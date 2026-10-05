@@ -1275,6 +1275,26 @@ export const en = {
   "ventures.state.selling": "Selling",
   "ventures.state.settled": "Settled",
   "ventures.state.cancelled": "Called off",
+  "farmCapital.theFarm": "The farm (its own capital)",
+  "farmCapital.ownCapital": "Own capital",
+  "farmCapital.take": "The farm takes units",
+  "farmCapital.takeHint":
+    "The farm puts its own money into {venture}, at the same unit price and on the same terms as everyone. It shares profit and loss on that money as any investor does, and every investor's agreement names its units before they sign.",
+  "farmCapital.units": "The farm's units",
+  "farmCapital.unitsHint": "At most half the venture's units: {most}",
+  "farmCapital.splitIs":
+    "On the farm's split: investors {investors}%, the farm {farm}%",
+  "farmCapital.taken": "The farm's units are recorded",
+  "farmCapital.refused.farmHasUnitsAlready":
+    "The farm holds units of this venture already",
+  "farmCapital.refused.investorsSignedAlready":
+    "An investor has signed already. The farm takes its units before anybody signs, so all sign knowing",
+  "farmCapital.refused.overHalf":
+    "The farm may hold at most half of a venture's units",
+  "farmCapital.refused.unitsGone":
+    "Not that many units of this venture are left",
+  "portal.offers.farmHolds":
+    "The Farm itself holds {farmUnits} of these units with its own money, of {units} in all, on the same terms as you",
   "ventures.sign": "Sign an agreement",
   "ventures.missing.investor": "Choose who signs.",
   "ventures.missing.units": "Write how many units they take.",
@@ -1741,6 +1761,12 @@ export const en = {
     "An animal of this venture is missing: find her, or write her off and the farm makes her good",
   "refusal.madeGoodWithTheFarmsMoney":
     "That made a lost animal good from the farm's own money; it is not put right on the venture's side alone",
+  "refusal.theFarmsOwnCapital":
+    "That moved the farm's own capital, which its own books hold too; it is not put right on the venture's side alone",
+  "refusal.splitNotTheFarms":
+    "The farm's own units in this venture are on a {investorsPercent}% split; every investor signs on the same",
+  "refusal.theFarmsOwnUnits":
+    "The farm's own units are its own capital: they are signed, papered and told nothing as a person's are",
   "refusal.madeGoodNeedsReference":
     "A venture's lost animal is made good by the farm: give the transfer's reference",
   "refusal.aPriceIsMissing":
@@ -3507,6 +3533,9 @@ export const en = {
   "money.from.farmShare": "The farm's share of a venture",
   "money.from.farmLoss": "The farm's share of a venture's loss",
   "money.from.ventureMadeGood": "A venture's lost animal made good",
+  "money.from.ventureCapitalOut": "The farm's capital into a venture",
+  "money.from.ventureCapitalBack": "The farm's capital back from a venture",
+  "money.from.ventureCapitalReturn": "The farm's return on its own capital",
   "money.from.settlementAdjustment": "A settlement adjustment",
   "owner.enteredBy": "entered by {name}",
   "owner.inPieces":

@@ -400,13 +400,14 @@ export const signedForEach = async (
   }
   const signed = await tx.query.investmentAgreement.findMany({
     where: { farmId, ventureId: { in: [...ids] } },
-    columns: { ventureId: true, units: true },
+    columns: { ventureId: true, units: true, stampKind: true },
   });
   for (const one of signed) {
     const soFar = summary.get(one.ventureId) ?? NOBODY;
+    // The Farm's own Units are taken like anybody's, but the Farm is no person signed.
     summary.set(one.ventureId, {
       units: soFar.units + one.units,
-      people: soFar.people + 1,
+      people: soFar.people + (one.stampKind === "farm_own" ? 0 : 1),
     });
   }
   return summary;

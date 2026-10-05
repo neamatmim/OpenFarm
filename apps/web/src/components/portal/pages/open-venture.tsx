@@ -31,11 +31,14 @@ const WHOLE = 100;
 /**
  * One offered Venture, read before anything is asked: its terms, the split the farm signs on, the farm's own words,
  * and the rules said plainly — the Floor refund, a loss off capital, nothing guaranteed, joining only by signing in
- * person. Nothing about anybody else: not who has signed, not how many Units are left.
+ * person — and the Farm's own Units, where it holds some with its own money, as his Agreement will tell him. Nothing
+ * about anybody else: not who has signed, not how many Units are left.
  */
 const TheOffer = ({ one }: { one: OpenVenture }) => {
   const { t, language } = useLanguage();
   const asMoney = useMoney();
+  // An answer cached before the Farm could hold Units says none.
+  const farmUnits = one.farmUnits ?? 0;
   return (
     <div className="flex min-w-0 flex-col gap-4 lg:col-span-2">
       {one.words ? (
@@ -95,6 +98,14 @@ const TheOffer = ({ one }: { one: OpenVenture }) => {
             })}
           </li>
           <li>{t("portal.open.ruleLoss")}</li>
+          {farmUnits > 0 ? (
+            <li>
+              {t("portal.offers.farmHolds", {
+                farmUnits: formatNumber(farmUnits, language),
+                units: formatNumber(one.units ?? 0, language),
+              })}
+            </li>
+          ) : null}
           <li>{t("portal.open.ruleNoReturn")}</li>
           <li>{t("portal.open.ruleSigning")}</li>
         </ul>

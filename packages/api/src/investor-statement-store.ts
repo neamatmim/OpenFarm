@@ -70,6 +70,8 @@ export interface TheVenture {
   name: string;
   state: VentureRow["state"];
   unitPriceMoney: number;
+  /** How many Units it has in all. */
+  units: number;
   /** How its Units are paid for, and — paid by the month — the terms it froze, which his papers print. */
   capitalPaid: VentureRow["capitalPaid"];
   cattlePartMoney: number | null;
@@ -130,6 +132,7 @@ export const hisStanding = async (
         name: true,
         state: true,
         unitPriceMoney: true,
+        units: true,
         capitalPaid: true,
         cattlePartMoney: true,
         monthlySums: true,
@@ -142,6 +145,13 @@ export const hisStanding = async (
   ]);
   if (!(venture && investor)) {
     throw noSuchAgreement();
+  }
+  // The Farm's own Units are no person's: nobody to send a paper to, and no portal to read one in.
+  if (investor.isFarm) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "The Farm's own Units have no papers",
+      data: { refusal: "the_farms_own_units" },
+    });
   }
   const inForce = await nominationInForce(tx, farmId, investor.id);
   // His own capital, asked for by his Agreement: a Float or a Reimbursement is the Venture's money and no

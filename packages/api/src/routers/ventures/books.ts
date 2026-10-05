@@ -24,6 +24,7 @@ import {
   whyItStands,
 } from "../../corrections/venture-movement";
 import { economicsOfHerd, farmCosts } from "../../cost-store";
+import { farmsOwnOf } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
 import { tagsOfHerRecords } from "../../herd-store";
 import { protectedProcedure } from "../../index";
@@ -661,6 +662,11 @@ export const booksProcedures = {
             one.internalSaleId ? [one.internalSaleId] : []
           ),
         });
+        const itsOwn = await farmsOwnOf(
+          context.db,
+          context.farm.id,
+          rows.flatMap((one) => (one.agreementId ? [one.agreementId] : []))
+        );
         return rows.map((one) => ({
           id: one.id,
           kind: one.kind,
@@ -684,7 +690,11 @@ export const booksProcedures = {
           /** Why it may not be put right, as the farm's word for it; null where it may. */
           whyItStands:
             whyItStands(
-              one,
+              {
+                ...one,
+                farmsOwn:
+                  one.agreementId !== null && itsOwn.has(one.agreementId),
+              },
               run?.state,
               one.buyingTripId !== null && countedTrips.has(one.buyingTripId)
             )?.refusal ?? null,

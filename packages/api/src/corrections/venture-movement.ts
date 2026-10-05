@@ -6,6 +6,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { farmsOwnOf } from "../farm-capital-store";
 import { farmDay } from "../farm-clock";
 import { amountInput } from "../money-inputs";
 import { lockTheFarm, readMovement } from "../venture-store";
@@ -55,6 +56,8 @@ export const whyItStands = (
     internalSaleId: string | null;
     saleId: string | null;
     intakeId: string | null;
+    /** Whether it moved the Farm's own capital, whose Money Event stands on the Farm's books beside it. */
+    farmsOwn?: boolean;
   },
   ventureState: string | undefined,
   floatCounted: boolean
@@ -89,6 +92,15 @@ export const whyItStands = (
       message:
         "That made a lost animal good from the Farm's own money; it is not put right on the Venture's side alone",
       refusal: "made_good_with_the_farms_money",
+    };
+  }
+  if (row.farmsOwn) {
+    // The Farm's own capital in or out is a Money Event on the Farm's books as well. Changed here alone, the Venture
+    // and the Farm's books would disagree about one transfer, as with a lost animal made good.
+    return {
+      message:
+        "That moved the Farm's own capital, which its own books hold too; it is not put right on the Venture's side alone",
+      refusal: "the_farms_own_capital",
     };
   }
   if (row.intakeId) {
@@ -140,7 +152,17 @@ const assertNothingRestsOnIt = async (tx: Tx, row: MovementRow) => {
         columns: { id: true },
       })
     : undefined;
-  const stands = whyItStands(row, venture?.state, counted !== undefined);
+  const itsOwn = await farmsOwnOf(
+    tx,
+    row.farmId,
+    row.agreementId ? [row.agreementId] : []
+  );
+  const farmsOwn = itsOwn.size > 0;
+  const stands = whyItStands(
+    { ...row, farmsOwn },
+    venture?.state,
+    counted !== undefined
+  );
   if (stands) {
     throw refuse(stands.message, stands.refusal);
   }

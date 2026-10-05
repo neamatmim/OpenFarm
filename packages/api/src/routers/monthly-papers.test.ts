@@ -1,5 +1,8 @@
 import { paperTemplateVersion } from "@OpenFarm/db/schema/paper-template";
-import { STANDARD_AGREEMENT_BEFORE_MONTHLY } from "@OpenFarm/domain";
+import {
+  STANDARD_AGREEMENT_BEFORE_MONTHLY,
+  STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
+} from "@OpenFarm/domain";
 import {
   FakeClock,
   asTheFarmHeldItBefore,
@@ -217,5 +220,40 @@ describe("a farm on the standard wording it was given", () => {
       columns: { currentVersionId: true },
     });
     expect(kept?.currentVersionId).toBe(mine.versionId);
+  });
+
+  it("is caught up from the paid-by-the-month standard to the one with a lost animal made good", async () => {
+    const owner = await asOwner();
+    await owner.templates.list();
+    const db = scratchDb();
+    const template = await db.query.paperTemplate.findFirst({
+      where: { farmId: theFarm().id, kind: "investment_agreement" },
+    });
+    if (!template?.currentVersionId) {
+      throw new Error("expected the farm's Agreement wording");
+    }
+    // As a farm given its wording between 2026-10-02 and 2026-10-05 holds it: that standard, published by nobody.
+    const { currentVersionId } = template;
+    await asTheFarmHeldItBefore((tx) =>
+      tx
+        .update(paperTemplateVersion)
+        .set({
+          content: STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
+          publishedBy: null,
+        })
+        .where(eq(paperTemplateVersion.id, currentVersionId))
+    );
+
+    await owner.templates.list();
+
+    const caughtUp = await db.query.paperTemplate.findFirst({
+      where: { id: template.id },
+      with: { currentVersion: true },
+    });
+    expect(caughtUp?.currentVersionId).not.toBe(currentVersionId);
+    expect(JSON.stringify(caughtUp?.currentVersion?.content)).toContain(
+      "If an animal is lost or stolen"
+    );
+    expect(caughtUp?.currentVersion?.note).toContain("2026-10-05");
   });
 });

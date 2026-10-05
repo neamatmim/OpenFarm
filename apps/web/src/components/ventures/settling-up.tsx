@@ -98,6 +98,8 @@ export const PayOutSheet = ({
     amountMoney: number;
     agreementId?: string;
     adjustmentId?: string;
+    /** The share is the Farm's own Units': it comes home to the Farm's own bank account. */
+    farmsOwn?: boolean;
   } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -107,12 +109,13 @@ export const PayOutSheet = ({
   const [movedOn, setMovedOn] = useState("");
   const [reference, setReference] = useState("");
   const [farmAccountId, setFarmAccountId] = useState("");
-  // The Farm's own side of it — its share, its share of a loss, an Adjustment it pays — is booked on the Farm's books,
-  // so it names the Farm's bank account the transfer went into or came out of.
+  // The Farm's own side of it — its share, its share of a loss, an Adjustment it pays, the payout on its own Units — is
+  // booked on the Farm's books, so it names the Farm's bank account the transfer went into or came out of.
   const farmsSide =
     what?.kind === "farm" ||
     what?.kind === "farmLoss" ||
-    what?.kind === "adjustment";
+    what?.kind === "adjustment" ||
+    what?.farmsOwn === true;
   // Emptied whenever the sheet is opened for somebody else: a bank reference left over from the last man
   // is a reference against the wrong payment, and the whole point of writing it down is that it is real.
   const [lastFor, setLastFor] = useState<string | null>(null);
@@ -194,6 +197,7 @@ export const PayOutSheet = ({
       share: () =>
         paying.mutate({
           ...where,
+          ...(what.farmsOwn ? farmsAccount : {}),
           agreementId: what.agreementId ?? "",
           amountMoney: what.amountMoney,
         }),

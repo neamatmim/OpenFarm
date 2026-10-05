@@ -38,7 +38,8 @@ const readerFor = async (
   const theFarm = context.farm;
   const them = theFarm
     ? await context.db.query.investor.findFirst({
-        where: { id: investorId, farmId: theFarm.id },
+        // The Farm's own partner record has no portal to preview.
+        where: { id: investorId, farmId: theFarm.id, isFarm: false },
         columns: { id: true, name: true, phone: true },
       })
     : null;

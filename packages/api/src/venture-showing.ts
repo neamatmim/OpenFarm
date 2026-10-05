@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import type { Tx } from "./audit";
 import { audited } from "./audit";
+import { farmUnitsOf } from "./farm-capital-store";
 import { offerProjectionOf, offeredProjection } from "./projection-store";
 import { closeRequests } from "./requests-to-join";
 import type { VentureRow } from "./venture-act";
@@ -128,7 +129,8 @@ const offeredAs = (
   investorsPercent: number,
   now: Date,
   projection: ReturnType<typeof offeredProjection> | null,
-  isNew: boolean
+  isNew: boolean,
+  farmUnits: number
 ) => ({
   id: row.id,
   name: row.name,
@@ -153,6 +155,11 @@ const offeredAs = (
   projection,
   /** Shown since they last looked at what they are offered: said in their portal, and nowhere else. */
   isNew,
+  /** How many of its Units the Farm holds with its own money, at the same price and on the same terms: told before
+   *  anybody asks to join, as their Agreement tells them before they sign. None where it holds none. */
+  farmUnits,
+  /** How many Units it has in all, for "the Farm holds four of its ten". */
+  units: row.units,
 });
 
 /**
@@ -213,7 +220,9 @@ export const openVenturesFor = async (
           now,
           projected ? offeredProjection(projected) : null,
           offersSeenAt === null ||
-            (one.shownInPortalAt !== null && one.shownInPortalAt > offersSeenAt)
+            (one.shownInPortalAt !== null &&
+              one.shownInPortalAt > offersSeenAt),
+          await farmUnitsOf(db, farm.id, one.id)
         );
       })
   );

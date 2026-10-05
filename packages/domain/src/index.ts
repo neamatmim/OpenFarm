@@ -885,6 +885,7 @@ export {
 export {
   FIRST_PRINTED_AGREEMENT,
   STANDARD_AGREEMENT_BEFORE_MONTHLY,
+  STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
   STANDARD_TEMPLATES,
 } from "./standard-templates";
 export {
@@ -961,3 +962,4 @@ export {
   shedPhoneOnlyAddressOf,
   worksOnlyOnShedPhones,
 } from "./shed-phone-only";
+export { farmsOwnPayout } from "./farm-capital";

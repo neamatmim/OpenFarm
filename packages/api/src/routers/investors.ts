@@ -157,6 +157,23 @@ const changeInvestor = async (
   );
 };
 
+/**
+ * Refuses the Farm's own partner record as nobody: it holds the Farm's own capital in a Venture, is on no list of
+ * people, and is renamed, retired or brought back by nobody — it lives as long as the farm does.
+ */
+const assertAPerson = async (
+  context: { db: { query: Tx["query"] }; farm: { id: string } },
+  id: string
+) => {
+  const theFarm = await context.db.query.investor.findFirst({
+    where: { id, farmId: context.farm.id, isFarm: true },
+    columns: { id: true },
+  });
+  if (theFarm) {
+    throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
+  }
+};
+
 export const investorsRouter = {
   /**
    * The people whose money is in the farm's Ventures, with how many Units each holds across the Ventures
@@ -168,8 +185,9 @@ export const investorsRouter = {
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
     .handler(async ({ context }) => {
+      // People only: the Farm's own partner record, for its own capital in a Venture, is no Investor to list.
       const rows = await context.db.query.investor.findMany({
-        where: { farmId: context.farm.id },
+        where: { farmId: context.farm.id, isFarm: false },
         orderBy: { name: "asc", id: "asc" },
       });
       const [
@@ -201,6 +219,10 @@ export const investorsRouter = {
         ),
       ]);
       const today = farmDayOf(context.clock.now());
+      const theFarm = await context.db.query.investor.findFirst({
+        where: { farmId: context.farm.id, isFarm: true },
+        columns: { id: true },
+      });
       // Every Venture each person signed into, the latest first, running or long settled — so their
       // record leads to each run their money went to.
       const ventureOf = new Map(ventures.map((one) => [one.id, one]));
@@ -242,6 +264,9 @@ export const investorsRouter = {
         payInNotes: context.farm.payInNotes,
         /** Whether invited Investors are shown a settled Venture's Return on Capital (ADR 0012). */
         returnsShown: context.farm.investorReturns,
+        /** The Farm's own partner record, which holds its own capital in a Venture and is in no list of people: so a
+         *  screen naming whose money a movement was names the Farm, not an id. Nothing until it has taken Units. */
+        farmPartnerId: theFarm?.id ?? null,
         people: rows.map((one) => ({
           id: one.id,
           name: one.name,
@@ -287,7 +312,8 @@ export const investorsRouter = {
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       const who = await context.db.query.investor.findFirst({
-        where: { id: input.id, farmId: context.farm.id },
+        // The Farm's own Units are on their Ventures, not on an Investor's record.
+        where: { id: input.id, farmId: context.farm.id, isFarm: false },
         columns: { id: true },
       });
       if (!who) {
@@ -435,6 +461,7 @@ export const investorsRouter = {
     .use(requirePersonalSession())
     .input(updateInput)
     .handler(async ({ context, input }) => {
+      await assertAPerson(context, input.id);
       const already = await theSamePerson(context.db, context.farm.id, {
         name: input.name,
         phone: input.phone,
@@ -464,6 +491,7 @@ export const investorsRouter = {
     .use(requirePersonalSession())
     .input(z.object({ id: z.string().min(1) }))
     .handler(async ({ context, input }) => {
+      await assertAPerson(context, input.id);
       await retireFromList(context, INVESTORS, input.id, {
         refuseWhile: async (tx) => {
           // Counted behind the same lock a signature takes, so nobody is signed between the count and the
@@ -507,6 +535,7 @@ export const investorsRouter = {
     .use(requirePersonalSession())
     .input(z.object({ id: z.string().min(1) }))
     .handler(async ({ context, input }) => {
+      await assertAPerson(context, input.id);
       await bringBackToList(context, INVESTORS, input.id);
       return { id: input.id };
     }),

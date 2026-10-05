@@ -121,8 +121,13 @@ export const proposeAmendmentInApp = async (
   assertRegistered(context.farm, "an Amendment");
   assertInOrder(input);
   await assertNotSettled(context, input.ventureId);
+  // Every Investor agrees in the portal; the Farm's own Units move with them, and agree nothing with the Farm.
   const signed = await context.db.query.investmentAgreement.findMany({
-    where: { farmId: context.farm.id, ventureId: input.ventureId },
+    where: {
+      farmId: context.farm.id,
+      ventureId: input.ventureId,
+      stampKind: { ne: "farm_own" },
+    },
     columns: { investorId: true },
   });
   await assertInThePortal(
@@ -228,7 +233,11 @@ const assertStanding = (offer: OfferRow) => {
 const assertEveryoneAgreed = async (tx: Tx, offer: OfferRow) => {
   const [signed, answers] = await Promise.all([
     tx.query.investmentAgreement.findMany({
-      where: { farmId: offer.farmId, ventureId: offer.ventureId },
+      where: {
+        farmId: offer.farmId,
+        ventureId: offer.ventureId,
+        stampKind: { ne: "farm_own" },
+      },
       columns: { id: true },
     }),
     tx.query.amendmentOfferAnswer.findMany({
@@ -330,7 +339,11 @@ export const amendmentOffersOn = async (context: Acting, ventureId: string) => {
       columns: { paper: false },
     }),
     context.db.query.investmentAgreement.findMany({
-      where: { farmId: context.farm.id, ventureId },
+      where: {
+        farmId: context.farm.id,
+        ventureId,
+        stampKind: { ne: "farm_own" },
+      },
       columns: { id: true },
     }),
   ]);

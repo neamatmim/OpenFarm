@@ -14,6 +14,7 @@ import { ORPCError } from "@orpc/server";
 import { audited } from "./audit";
 import type { Context } from "./context";
 import { assertRegistered, exportedPaper } from "./export-store";
+import { farmUnitsOf } from "./farm-capital-store";
 import {
   assertCapitalHeld,
   hisHolding,
@@ -120,6 +121,14 @@ export const joiningLetterFor = async (
   const asMoney = (amount: number) => formatNumber(amount, language);
   // Paid by the month: the clauses it was signed with, and his Units' schedule under what he has paid.
   const { monthly } = paidForBy(standing.venture);
+  // The Farm's own Units in his Venture, as his Agreement told him before he signed.
+  const farmUnits = await farmUnitsOf(
+    context.db,
+    context.farm.id,
+    standing.venture.id
+  );
+  const farmCapital =
+    farmUnits > 0 ? { farmUnits, ventureUnits: standing.venture.units } : null;
   const text = joiningLetter({
     farm: context.farm,
     him: standing.him,
@@ -140,7 +149,10 @@ export const joiningLetterFor = async (
         }))
       : null,
     terms: termsOf(
-      wordingFor(signedIn.content, { paidByTheMonth: monthly !== null }),
+      wordingFor(signedIn.content, {
+        paidByTheMonth: monthly !== null,
+        farmCapital: farmCapital !== null,
+      }),
       paperValues({
         farm: context.farm,
         ownerName,
@@ -154,6 +166,7 @@ export const joiningLetterFor = async (
         windUpDays: context.farm.windUpDays,
         arbitrator: standing.agreement.arbitrator,
         monthly,
+        farmCapital,
       })
     ),
     amendedOn: standing.agreement.amendedOn
@@ -217,6 +230,11 @@ export const progressStatementFor = async (
     venture
   );
   const said = (value: number) => formatNumber(value, language);
+  const farmUnits = await farmUnitsOf(
+    context.db,
+    context.farm.id,
+    standing.venture.id
+  );
   const text = progressStatement({
     farm: context.farm,
     investorName: standing.him.name,
@@ -230,6 +248,11 @@ export const progressStatementFor = async (
     // rest, which is nobody's business but theirs. Held, not signed for, once the buying has started.
     units: said(holding.units),
     share: said(holding.sharePercent),
+    // The Farm's own Units are no other Investor's business kept from him: his Agreement named them before he signed.
+    farmUnits:
+      farmUnits > 0
+        ? `${said(farmUnits)} / ${said(standing.venture.units)}`
+        : null,
     standing: said(theirs.standingCount),
     sold: said(theirs.soldCount),
     died: said(theirs.diedCount),

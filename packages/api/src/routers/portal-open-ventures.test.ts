@@ -148,6 +148,9 @@ describe("a Venture shown in the portal", () => {
         projection: null,
         // Shown since they last looked at what they are offered, which they never have.
         isNew: true,
+        // The Farm holds none of its twenty Units with its own money.
+        farmUnits: 0,
+        units: 20,
       },
     ]);
   });
@@ -386,5 +389,28 @@ describe("the Owner showing a Venture", () => {
     const shown = listed.find((one) => one.id === ventureId);
     expect(shown?.shownInPortal).toBe(true);
     expect(shown?.portalWords).toBe(WORDS);
+  });
+});
+
+describe("a Venture in which the Farm holds Units with its own money", () => {
+  it("tells an invited Investor how many of its Units the Farm holds, before he asks to join", async () => {
+    const owner = await asOwner();
+    const shared = await owner.ventures.open({
+      name: `খামারও আছে ${suffix}`,
+      ...TERMS,
+    });
+    await owner.ventures.agreements.farmTakes({
+      ventureId: shared.id,
+      units: 5,
+    });
+    await owner.ventures.showInPortal({ id: shared.id, words: WORDS });
+
+    const him = await signedInAs(karim.loginEmail);
+    const offered = await him.portal.openVentures();
+
+    expect(offered.find((one) => one.id === shared.id)).toMatchObject({
+      farmUnits: 5,
+      units: 20,
+    });
   });
 });

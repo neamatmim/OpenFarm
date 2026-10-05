@@ -7,6 +7,7 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import {
   Banknote,
+  Building2,
   Copy,
   FileText,
   ImageIcon,
@@ -27,6 +28,7 @@ import { Nothing } from "@/components/list-cells";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { RowMenu } from "@/components/page-kit";
 import { AgreementPaperButton } from "@/components/ventures/agreement-paper";
+import { FarmTakesSheet } from "@/components/ventures/farm-takes-sheet";
 import type { StatementKind } from "@/components/ventures/investor-papers";
 import {
   AgreementAgain,
@@ -88,6 +90,11 @@ const paidAgainst = (
   }
   return paid;
 };
+
+/** Whether the Farm may take Units of its own now: open, a Unit or more to spare for it under half, and only before
+ *  anybody signs, so every Investor signs knowing the Farm's own Units. */
+const farmMayTake = (venture: Venture, signed: number, unitsLeft: number) =>
+  venture.state === "open" && signed === 0 && unitsLeft > 1;
 
 /** One Investor's papers, in a menu on his row: his three statements, each offered only once it can be made and saying
  *  why not until then — the joining letter and the progress statement once capital has come in, the settlement
@@ -182,7 +189,8 @@ const NameCell = ({ row }: InvestorCell) => {
   return (
     <span className="flex flex-col">
       <span className="font-medium">{row.original.name}</span>
-      {row.original.payInCode ? (
+      {/* The Farm's own capital leaves its own books with no Pay-in Code to write on a transfer. */}
+      {row.original.payInCode && !row.original.isFarm ? (
         <span className="text-muted-foreground font-mono text-xs">
           {t("ventures.payInCodeIs", { code: row.original.payInCode })}
         </span>
@@ -266,6 +274,12 @@ const PaidCell = ({ row }: InvestorCell) => {
  *  agreed in the app and needs none. */
 const PaperCell = ({ row }: InvestorCell) => {
   const { t } = useLanguage();
+  // The Farm's own Units: it signs nothing with itself, so there is no paper to keep.
+  if (row.original.isFarm) {
+    return (
+      <StatusBadge tone="neutral">{t("farmCapital.ownCapital")}</StatusBadge>
+    );
+  }
   if (agreedInApp(row.original)) {
     return (
       <StatusBadge tone="success">{t("agreeInApp.agreedBadge")}</StatusBadge>
@@ -316,10 +330,11 @@ const RowActions = ({
           {t("ventures.takeCapital")}
         </Button>
       ) : null}
-      {paperOnFile(row) || row.cancelled ? null : (
+      {paperOnFile(row) || row.cancelled || row.isFarm ? null : (
         <AgreementPaperButton agreementId={row.id} idPrefix={idPrefix} />
       )}
-      {row.cancelled ? null : (
+      {/* The Farm's own Units have no papers: no Agreement, no statements to send itself. */}
+      {row.cancelled || row.isFarm ? null : (
         <PapersMenu
           agreementId={row.id}
           hasPaid={row.paidMoney > 0}
@@ -489,6 +504,7 @@ export const VentureInvestors = ({
     useState<Parameters<typeof PayOutSheet>[0]["what"]>(null);
   const [saying, setSaying] =
     useState<Parameters<typeof AcknowledgeSheet>[0]["what"]>(null);
+  const [farmTaking, setFarmTaking] = useState(false);
   const open = venture.state === "open";
   // Open, or paid by the month and running: the Monthly Sums come in while it buys and fattens.
   const taking = takesCapitalNow(venture);
@@ -511,6 +527,7 @@ export const VentureInvestors = ({
     const share = shareOf.get(one.id);
     return {
       ...one,
+      // The Farm's own partner record is named as the Farm by the one lookup every screen uses.
       name: nameOf(one.investorId),
       owedMoney: one.units * venture.unitPriceMoney,
       paidMoney: paid.get(one.id) ?? 0,
@@ -530,6 +547,7 @@ export const VentureInvestors = ({
             title: share.name,
             amountMoney: share.payoutMoney,
             agreementId: one.id,
+            farmsOwn: one.isFarm,
           });
         }
       },
@@ -555,6 +573,17 @@ export const VentureInvestors = ({
         >
           <Banknote aria-hidden data-icon="inline-start" />
           {t("ventures.takeCapital")}
+        </Button>
+      ) : null}
+      {farmMayTake(venture, agreed.length, unitsLeft) ? (
+        <Button
+          onClick={() => setFarmTaking(true)}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <Building2 aria-hidden data-icon="inline-start" />
+          {t("farmCapital.take")}
         </Button>
       ) : null}
       {open && unitsLeft > 0 ? (
@@ -599,6 +628,11 @@ export const VentureInvestors = ({
         }}
         open={saying !== null}
         what={saying}
+      />
+      <FarmTakesSheet
+        onOpenChange={setFarmTaking}
+        open={farmTaking}
+        venture={farmTaking ? venture : null}
       />
       {papers.produced ? (
         <div className="mt-4">

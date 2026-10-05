@@ -1195,6 +1195,23 @@ export const bn: Record<MessageKey, string> = {
   "ventures.state.selling": "বিক্রি চলছে",
   "ventures.state.settled": "হিসাব শেষ",
   "ventures.state.cancelled": "বাতিল",
+  "farmCapital.theFarm": "খামার (নিজের মূলধন)",
+  "farmCapital.ownCapital": "নিজের মূলধন",
+  "farmCapital.take": "খামার ইউনিট নেবে",
+  "farmCapital.takeHint":
+    "খামার নিজের টাকা {venture}-এ দেবে, সবার মতো একই ইউনিটের দামে ও একই শর্তে। সেই টাকায় খামার অন্য বিনিয়োগকারীর মতোই মুনাফা ও ক্ষতির ভাগ নেবে, আর সই করার আগেই প্রত্যেক বিনিয়োগকারীর চুক্তিতে খামারের ইউনিটের কথা লেখা থাকবে।",
+  "farmCapital.units": "খামারের ইউনিট",
+  "farmCapital.unitsHint": "ভেঞ্চারের ইউনিটের সর্বোচ্চ অর্ধেক: {most}",
+  "farmCapital.splitIs": "খামারের ভাগ অনুযায়ী: বিনিয়োগকারী {investors}%, খামার {farm}%",
+  "farmCapital.taken": "খামারের ইউনিট লেখা হলো",
+  "farmCapital.refused.farmHasUnitsAlready": "এই ভেঞ্চারে খামারের ইউনিট আগেই আছে",
+  "farmCapital.refused.investorsSignedAlready":
+    "একজন বিনিয়োগকারী আগেই সই করেছেন। খামার কেউ সই করার আগেই ইউনিট নেয়, যাতে সবাই জেনে সই করেন",
+  "farmCapital.refused.overHalf":
+    "খামার একটি ভেঞ্চারের সর্বোচ্চ অর্ধেক ইউনিট নিতে পারে",
+  "farmCapital.refused.unitsGone": "এই ভেঞ্চারে এতগুলো ইউনিট বাকি নেই",
+  "portal.offers.farmHolds":
+    "খামার নিজেও নিজের টাকায় এর {units}টি ইউনিটের মধ্যে {farmUnits}টি নিয়েছে, আপনার মতো একই শর্তে",
   "ventures.sign": "চুক্তি সই",
   "ventures.missing.investor": "কে সই করবেন বেছে নিন।",
   "ventures.missing.units": "কত ইউনিট নিচ্ছেন লিখুন।",
@@ -1615,6 +1632,12 @@ export const bn: Record<MessageKey, string> = {
     "এই ভেঞ্চারের একটি গরু খুঁজে পাওয়া যাচ্ছে না: খুঁজে পান, নয়তো হারানো লিখুন — খামার তার ক্ষতিপূরণ দেবে",
   "refusal.madeGoodWithTheFarmsMoney":
     "এটি খামারের নিজের টাকায় হারানো পশুর ক্ষতিপূরণ; শুধু ভেঞ্চারের দিকে এটি ঠিক করা যায় না",
+  "refusal.theFarmsOwnCapital":
+    "এটি খামারের নিজের মূলধন, যা খামারের নিজের হিসাবেও আছে; শুধু ভেঞ্চারের দিকে এটি ঠিক করা যায় না",
+  "refusal.splitNotTheFarms":
+    "এই ভেঞ্চারে খামারের নিজের ইউনিট {investorsPercent}% ভাগে নেওয়া; প্রত্যেক বিনিয়োগকারী একই ভাগে সই করবেন",
+  "refusal.theFarmsOwnUnits":
+    "খামারের নিজের ইউনিট তার নিজের মূলধন: মানুষের মতো তাতে সই, কাগজ বা চিঠি হয় না",
   "refusal.madeGoodNeedsReference":
     "ভেঞ্চারের হারানো পশুর ক্ষতিপূরণ খামার দেয়: ব্যাংক ট্রান্সফারের রেফারেন্স দিন",
   "refusal.aPriceIsMissing": "যে খাবার বা ওষুধ দেওয়া হয়েছে তার দাম জানা নেই",
@@ -3286,6 +3309,9 @@ export const bn: Record<MessageKey, string> = {
   "money.from.farmShare": "ভেঞ্চার পরিচালনার ভাগ",
   "money.from.farmLoss": "ভেঞ্চারের লোকসানে খামারের ভাগ",
   "money.from.ventureMadeGood": "ভেঞ্চারের হারানো পশুর ক্ষতিপূরণ",
+  "money.from.ventureCapitalOut": "ভেঞ্চারে খামারের মূলধন",
+  "money.from.ventureCapitalBack": "ভেঞ্চার থেকে খামারের মূলধন ফেরত",
+  "money.from.ventureCapitalReturn": "খামারের নিজের মূলধনে মুনাফা",
   "money.from.settlementAdjustment": "হিসাব সমন্বয়",
   "owner.enteredBy": "লিখেছেন {name}",
   "owner.inPieces": "একা সীমার নিচে, এই সপ্তাহে একই মানুষকে দেওয়া বাকি অংশসহ সীমার বেশি",

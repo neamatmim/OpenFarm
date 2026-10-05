@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -203,8 +204,14 @@ export const investor = pgTable(
     /** Retired, never removed: their Agreements, payouts and statements are kept for twelve years and every
      *  one of them names them. A retired Investor is not signed for another Venture until brought back. */
     retiredAt: timestamp("retired_at", { withTimezone: true }),
+    /** The Farm itself, as the partner for its own capital in a Venture: not a person — no papers, no Nominee, no
+     *  portal, and not one of the Investor Cap's twenty, the Owner being one already. One a farm. */
+    isFarm: boolean("is_farm").notNull().default(false),
   },
   (table) => [
+    uniqueIndex("investor_farm_uidx")
+      .on(table.farmId)
+      .where(sql`${table.isFarm}`),
     // A name is not an identity in Bangladesh — two Md. Abdul Karims are two people, and the farm may
     // record both. The same name on the same phone is the same person written down twice, and that the
     // farm will not have.
@@ -395,7 +402,12 @@ export const requestToJoin = pgTable(
 /** How the Agreement's stamp duty was paid: on stamp paper, or by e-challan into the treasury with no paper to
  *  stamp — or none was, the Agreement agreed within the app by the Investor and approved by the Owner. Its own copy, as
  *  the schema's other enums are. */
-export const STAMP_KINDS = ["paper", "e_challan", "in_app"] as const;
+export const STAMP_KINDS = [
+  "paper",
+  "e_challan",
+  "in_app",
+  "farm_own",
+] as const;
 export type StampKind = (typeof STAMP_KINDS)[number];
 /** The kinds a paper is signed and stamped by, as against agreed in the app. */
 export const STAMPED_KINDS = ["paper", "e_challan"] as const;

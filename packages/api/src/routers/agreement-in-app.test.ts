@@ -450,3 +450,28 @@ describe("an Agreement agreed in the app", () => {
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
+
+describe("an Agreement offered in the app, and the Farm's own Units", () => {
+  beforeAll(async () => {
+    const owner = await as("owner");
+    await owner.investors.setAgreementsInApp({ shown: true });
+  });
+
+  it("keeps the Farm from taking Units while it stands, as a signed one does: its paper was laid out without them", async () => {
+    const ventureId = await aVenture("অফার আগে");
+    const them = await invited("অফার পাওয়া");
+    const owner = await as("owner");
+    const { id } = await owner.ventures.agreements.offers.make(
+      terms(ventureId, them.id)
+    );
+    expect(
+      await refusalOf(
+        owner.ventures.agreements.farmTakes({ ventureId, units: 2 })
+      )
+    ).toBe("investors_signed_already");
+
+    // Taken back, nobody holds a paper laid out without them.
+    await owner.ventures.agreements.offers.withdraw({ offerId: id });
+    await owner.ventures.agreements.farmTakes({ ventureId, units: 2 });
+  });
+});

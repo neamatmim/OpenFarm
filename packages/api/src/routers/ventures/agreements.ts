@@ -23,6 +23,7 @@ import {
   withdrawAmendment,
 } from "../../amendment-offer-store";
 import { audited } from "../../audit";
+import { farmTakesUnits, isTheFarmsOwn } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
 import { protectedProcedure } from "../../index";
 import {
@@ -171,8 +172,25 @@ export const agreementsProcedures = {
           hasPaper: kept.has(one.id),
           /** Whether its paper is on file as capital needs it (`paperOnFile`): what says it may take capital. */
           paperOnFile: paperOnFile(one, kept.has(one.id)),
+          /** The Farm's own Units, held with its own money: no person's, and no paper is ever made of them. */
+          isFarm: isTheFarmsOwn(one),
         }));
       }),
+
+    /**
+     * The Farm takes Units of the Venture with its own money (`farmTakesUnits`): while it is open and before any
+     * Investor has signed, at most half its Units, once. The Owner's alone, as every taka of a Venture's is.
+     */
+    farmTakes: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(
+        z.object({
+          ventureId: z.string(),
+          units: z.number().int().min(1).max(10_000),
+        })
+      )
+      .handler(({ context, input }) => farmTakesUnits(context, input)),
 
     /**
      * One Investor signs for one Venture: the Units they take, the split those Units earn, the Arbitrator
@@ -408,10 +426,17 @@ export const agreementsProcedures = {
         const now = context.clock.now();
         const row = await context.db.query.investmentAgreement.findFirst({
           where: { id: input.agreementId, farmId: context.farm.id },
-          columns: { id: true },
+          columns: { id: true, stampKind: true },
         });
         if (!row) {
           throw new ORPCError("NOT_FOUND", { message: "No such Agreement" });
+        }
+        // The Farm signs nothing with itself: there is no stamped paper to keep for its own Units.
+        if (isTheFarmsOwn(row)) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: "The Farm's own Units have no stamped paper",
+            data: { refusal: "the_farms_own_units" },
+          });
         }
         await audited(context).write(
           {

@@ -59,8 +59,16 @@ export const writeAgreement = async (
   await lockTheFarm(tx, farm.id);
   const signing = await tx.query.investor.findFirst({
     where: { id: agreement.investorId, farmId: farm.id },
-    columns: { retiredAt: true },
+    columns: { retiredAt: true, isFarm: true },
   });
+  // The Farm's own Units are taken as its own capital, before anybody signs — never signed for as a person's.
+  if (signing?.isFarm) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "The Farm's own Units are taken as its own capital, not signed for",
+      data: { refusal: "the_farms_own_units" },
+    });
+  }
   if (signing?.retiredAt) {
     throw new ORPCError("BAD_REQUEST", {
       message:
@@ -102,6 +110,21 @@ export const writeAgreement = async (
     throw new ORPCError("BAD_REQUEST", {
       message: `Only ${venture.units - taken} Units of this Venture are left`,
       data: { refusal: "venture_units_gone" },
+    });
+  }
+  // The Farm's own Units are on the same terms as everyone's: every Investor signs on the split they were taken on, or
+  // the Settlement could not divide the run at all.
+  const farmsOwn = await tx.query.investmentAgreement.findFirst({
+    where: { farmId: farm.id, ventureId: venture.id, stampKind: "farm_own" },
+    columns: { investorsPercent: true },
+  });
+  if (farmsOwn && farmsOwn.investorsPercent !== agreement.investorsPercent) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `The Farm's own Units in this Venture are on a ${farmsOwn.investorsPercent}% split; every Investor signs on the same`,
+      data: {
+        refusal: "split_not_the_farms",
+        investorsPercent: farmsOwn.investorsPercent,
+      },
     });
   }
   const counted = await countedInvestors(tx, farm.id);

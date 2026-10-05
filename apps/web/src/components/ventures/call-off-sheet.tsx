@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { FormField, FormSheet } from "@/components/page-kit";
+import { FarmAccountField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import { useMoney } from "@/lib/money";
@@ -26,7 +27,8 @@ const NOTHING_SENT: SentBack = { movedOn: "", reference: "" };
  *
  * The sheet asks for the day and the reference of each refund, one per movement that came in, because
  * the Venture ends when the money is on its way back and an Investor asking "where is mine" deserves a
- * transfer number rather than a date.
+ * transfer number rather than a date. The Farm's own capital comes back to the Farm's own books, so where the Farm
+ * had put some in, the sheet asks which of its bank accounts it went back into.
  */
 export const CallOffSheet = ({
   venture,
@@ -42,9 +44,11 @@ export const CallOffSheet = ({
   const asMoney = useMoney();
   const [reason, setReason] = useState("");
   const [sentBack, setSentBack] = useState<Record<string, SentBack>>({});
+  const [farmAccountId, setFarmAccountId] = useState("");
   useFreshFor(venture?.id, () => {
     setReason("");
     setSentBack({});
+    setFarmAccountId("");
   });
   const movements = useQuery({
     ...orpc.ventures.movements.list.queryOptions({
@@ -55,6 +59,18 @@ export const CallOffSheet = ({
   const nameOf = useInvestorNames();
   const took = (movements.data ?? []).filter(
     (one) => one.kind === "capital_in"
+  );
+  const agreements = useQuery({
+    ...orpc.ventures.agreements.list.queryOptions({
+      input: { ventureId: venture?.id ?? "" },
+    }),
+    enabled: venture !== null,
+  });
+  const farmsOwn = new Set(
+    (agreements.data ?? []).filter((one) => one.isFarm).map((one) => one.id)
+  );
+  const farmsComeBack = took.some(
+    (one) => one.agreementId !== null && farmsOwn.has(one.agreementId)
   );
   const callingOff = useMutation(
     orpc.ventures.cancel.mutationOptions({
@@ -90,6 +106,7 @@ export const CallOffSheet = ({
             movedOn: sentBack[one.id]?.movedOn ?? "",
             reference: sentBack[one.id]?.reference ?? "",
           })),
+          ...(farmsComeBack && farmAccountId ? { farmAccountId } : {}),
         })
       }
       open={open}
@@ -106,6 +123,14 @@ export const CallOffSheet = ({
           value={reason}
         />
       </FormField>
+      {farmsComeBack ? (
+        <FarmAccountField
+          id="call-off-farm-account"
+          kind="bank"
+          onChange={setFarmAccountId}
+          value={farmAccountId}
+        />
+      ) : null}
       {took.length === 0 ? (
         <p className="text-muted-foreground text-sm">
           {t("ventures.nothingToSendBack")}

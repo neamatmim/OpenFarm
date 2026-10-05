@@ -86,6 +86,21 @@ const CATEGORIES: Record<
     nameEn: "Lost Venture animals made good",
     direction: "out",
   },
+  venture_capital_out: {
+    nameBn: "ভেঞ্চারে খামারের মূলধন",
+    nameEn: "The Farm's capital into a Venture",
+    direction: "out",
+  },
+  venture_capital_back: {
+    nameBn: "ভেঞ্চার থেকে খামারের মূলধন ফেরত",
+    nameEn: "The Farm's capital back from a Venture",
+    direction: "in",
+  },
+  venture_capital_return: {
+    nameBn: "খামারের নিজের মূলধনে মুনাফা",
+    nameEn: "The Farm's return on its own capital",
+    direction: "in",
+  },
   feed_in: { nameBn: "খাদ্য কেনা", nameEn: "Feed", direction: "out" },
   medicine_purchase: {
     nameBn: "ওষুধ কেনা",

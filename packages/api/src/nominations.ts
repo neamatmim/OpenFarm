@@ -56,7 +56,8 @@ export const nomineesInput = z
 /** The Investor a মনোনয়নপত্র is for: on this farm, and not retired — a retired Investor signs nothing new. */
 const theirs = async (context: Owned, investorId: string) => {
   const them = await context.db.query.investor.findFirst({
-    where: { id: investorId, farmId: context.farm.id },
+    // The Farm's own partner record is no person and names no Nominee.
+    where: { id: investorId, farmId: context.farm.id, isFarm: false },
   });
   if (!them) {
     throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
