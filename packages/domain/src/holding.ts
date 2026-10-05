@@ -149,8 +149,11 @@ export interface WhatHappened {
   /** Her crossing to the Fattening side, and the price the Owner put on it — or none yet. */
   crossing: { on: Date; priceMoney: number | null } | null;
   died: Date | null;
-  /** When she was written off as Lost: gone, and nothing came back for her, as for a death. */
+  /** When she was written off as Lost: gone, and nothing came back for her, as for a death — unless she was a
+   *  Venture's, which the Farm made good. */
   lost: Date | null;
+  /** What the Farm paid her Venture to make her good, where she was a Venture's and was lost; left out otherwise. */
+  madeGoodMoney?: number | null;
 }
 
 /** How a Holding ended: when, and what came back — nothing for a death or a loss, and not yet known for a crossing not
@@ -213,5 +216,7 @@ export const howSheLeft = (
   if (her.died) {
     return { how: "died", on: her.died, backMoney: 0 };
   }
-  return her.lost ? { how: "lost", on: her.lost, backMoney: 0 } : null;
+  return her.lost
+    ? { how: "lost", on: her.lost, backMoney: her.madeGoodMoney ?? 0 }
+    : null;
 };

@@ -470,7 +470,8 @@ export const en = {
   "portal.unitsShare":
     "{count, plural, one {# unit} other {# units}} · {share}% of the Venture",
   "portal.animals": "Animals standing",
-  "portal.animalsHint": "{sold} sold · {died} lost",
+  "portal.animalsHint": "{sold} sold · {died} died",
+  "portal.animalsLost": "{lost} lost, made good by the farm",
   "portal.daysToWindow": "Days to the sale window",
   "portal.windowHint": "A count of days, not a promise",
   "portal.herd": "The animals",
@@ -1519,6 +1520,7 @@ export const en = {
   "ventures.kind.advanceRepaid": "Your own money back",
   "ventures.kind.farmShare": "The farm's share of the profit",
   "ventures.kind.farmLossIn": "The farm's share of the loss, paid in",
+  "ventures.kind.madeGood": "A lost animal made good by the farm",
   "ventures.kind.reimbursement": "Reimbursed the farm",
   "ventures.kind.advance": "Your own money in",
   "ventures.correctMovement": "Put it right",
@@ -1735,6 +1737,12 @@ export const en = {
   "refusal.joiningNeedsAWindow":
     "Say which target window she is being fed towards; the next Eid could not be worked out",
   "refusal.anAnimalStillStands": "An Animal of this venture is still standing",
+  "refusal.anAnimalIsMissing":
+    "An animal of this venture is missing: find her, or write her off and the farm makes her good",
+  "refusal.madeGoodWithTheFarmsMoney":
+    "That made a lost animal good from the farm's own money; it is not put right on the venture's side alone",
+  "refusal.madeGoodNeedsReference":
+    "A venture's lost animal is made good by the farm: give the transfer's reference",
   "refusal.aPriceIsMissing":
     "Feed was given or a dose used that nothing can put a price on",
   "refusal.aFloatIsOpen": "A buying float has not been counted home",
@@ -3498,6 +3506,7 @@ export const en = {
   "money.from.reimbursement": "Reimbursed by a venture",
   "money.from.farmShare": "The farm's share of a venture",
   "money.from.farmLoss": "The farm's share of a venture's loss",
+  "money.from.ventureMadeGood": "A venture's lost animal made good",
   "money.from.settlementAdjustment": "A settlement adjustment",
   "owner.enteredBy": "entered by {name}",
   "owner.inPieces":
@@ -5912,8 +5921,11 @@ export const en = {
   "animals.writeOffStolen": "Stolen",
   "animals.writeOffGd": "Thana GD number",
   "animals.writeOffDone": "{tag} written off as lost",
-  "animals.writeOffVenture":
-    "A venture's animal cannot be written off yet: its investors' agreement does not say what a loss is to them",
+  "animals.writeOffVentureHint":
+    "It leaves the herd as lost from the morning the round last looked for it. It is {venture}'s, so the farm makes it good: what it has cost the venture to date goes from the farm into the venture account by bank, and its investors lose nothing.",
+  "animals.madeGoodReference": "The transfer's reference",
+  "animals.madeGoodReferenceHint":
+    "The bank transfer from the farm into the venture account that pays for it.",
   "animals.writeOffAsk":
     "Missing {days, plural, one {# day} other {# days}} — write it off as lost?",
   "animals.writtenOff": "Written off as lost on {day}",

@@ -212,18 +212,76 @@ describe("an animal that leaves without dying", () => {
     expect(still?.state).toBe("quarantine");
   });
 
-  it("refuses a Venture's animal until its agreement says what a loss is", async () => {
+  it("makes a Venture's lost animal good: the Farm pays the Venture what she cost it, by bank, from its own books", async () => {
     const bull = await aBull("2066-03-06T04:00:00.000Z", ventureId);
     await notFoundOn("2066-03-14", bull.tagNumber);
     const owner = await as("owner", "2066-03-22T06:00:00.000Z");
+    // The money has to move: a write-off with no transfer behind it is a promise nobody can find in the account.
     await expect(
       owner.client.animals.writeOff({
         tagNumber: bull.tagNumber,
         cause: "জানা নেই",
       })
-    ).rejects.toMatchObject({ data: { refusal: "venture_owns_her" } });
+    ).rejects.toMatchObject({ data: { refusal: "made_good_needs_reference" } });
     const still = await him(bull.tagNumber);
     expect(still?.state).toBe("quarantine");
+
+    await owner.client.animals.writeOff({
+      tagNumber: bull.tagNumber,
+      cause: "জানা নেই",
+      madeGood: { reference: `MG-${suffix}` },
+    });
+    const gone = await him(bull.tagNumber);
+    expect(gone?.state).toBe("lost");
+    // Bought at ৳80,000 and charged nothing since: that is what she cost the Venture, and what comes back to it.
+    const movements = await scratchDb().query.ventureMovement.findMany({
+      where: { farmId: theFarm().id, ventureId, kind: "made_good" },
+    });
+    expect(movements).toEqual([
+      expect.objectContaining({
+        amountMoney: 80_000,
+        reference: `MG-${suffix}`,
+        movedOn: "2066-03-22",
+      }),
+    ]);
+    const money = await scratchDb().query.moneyEvent.findMany({
+      where: {
+        farmId: theFarm().id,
+        source: "venture_made_good",
+        sourceId: movements[0]?.id ?? "",
+      },
+    });
+    expect(money).toEqual([
+      expect.objectContaining({ amountMoney: 80_000, direction: "out" }),
+    ]);
+    // Moved with the Farm's own books, so never put right on the Venture's side alone.
+    const listed = await owner.client.ventures.movements.list({ ventureId });
+    expect(listed.find((one) => one.kind === "made_good")?.whyItStands).toBe(
+      "made_good_with_the_farms_money"
+    );
+    // Told apart from a death wherever the Venture's herd is counted.
+    const herd = await owner.client.ventures.herd({ ventureId });
+    expect(herd).toMatchObject({ lostCount: 1, diedCount: 0 });
+  });
+
+  it("names a Venture's missing animal in its Settlement as missing, not as still standing", async () => {
+    const bull = await aBull("2066-03-08T04:00:00.000Z", ventureId);
+    await notFoundOn("2066-03-16", bull.tagNumber);
+    const owner = await as("owner", "2066-03-17T06:00:00.000Z");
+    const settlement = await owner.client.ventures.settlement.get({
+      ventureId,
+    });
+    const blocks = settlement.blocks as {
+      word: string;
+      tagNumbers?: string[];
+    }[];
+    expect(
+      blocks.find((one) => one.word === "an_animal_is_missing")?.tagNumbers
+    ).toContain(bull.tagNumber);
+    expect(
+      blocks.find((one) => one.word === "an_animal_still_stands")?.tagNumbers ??
+        []
+    ).not.toContain(bull.tagNumber);
   });
 
   it("comes back as he was when the Owner finds him after all — the Manager cannot", async () => {

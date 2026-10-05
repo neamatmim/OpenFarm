@@ -15,6 +15,7 @@ import {
 import { user } from "./auth";
 import { farm } from "./farm";
 import { intake, internalSale, sale } from "./fattening";
+import { animal } from "./herd";
 import { handover } from "./money";
 import { heldUnits, numericMoney } from "./numeric-columns";
 import { buyingTrip } from "./trip";
@@ -53,6 +54,9 @@ export const VENTURE_MOVEMENT_KINDS = [
   // A bull bought with no outing — at the farm gate, from a neighbour — paid straight from the account by bank, and
   // written from her Intake as a Sale's money is from the Sale.
   "intake_out",
+  // A Venture's animal written off as lost, made good by the Farm at what she had cost the Venture: the Farm's own
+  // money in, so a theft or a stray costs the Investors nothing.
+  "made_good",
 ] as const;
 export type VentureMovementKind = (typeof VENTURE_MOVEMENT_KINDS)[number];
 
@@ -97,6 +101,9 @@ export const ventureMovement = pgTable(
     intakeId: text("intake_id").references(() => intake.id),
     /** The deposit that carried a cash Sale's money here from the hand that took it at the livestock market. */
     handoverId: text("handover_id").references(() => handover.id),
+    /** The animal a `made_good` movement makes good: lost, and paid for by the Farm at what she had cost. Only a
+     *  made-good movement has one. */
+    animalId: text("animal_id").references(() => animal.id),
     amountMoney: numericMoney("amount_money").notNull(),
     /** The day the bank moved it, on the farm's own clock. */
     movedOn: text("moved_on").notNull(),

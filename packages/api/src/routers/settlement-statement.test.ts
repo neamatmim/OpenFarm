@@ -324,7 +324,7 @@ describe("the sheet an Investor checks the whole run against", () => {
     // Four lakh five thousand and five between two of them averages ২,০২,৫০২.৫, and the half-taka
     // stays: it is an average, and rounding it would make the two prices above it not add up.
     expect(text).toContain("বিক্রি হয়েছে / Sold: ২ · গড়ে ২,০২,৫০২.৫ টাকা");
-    expect(text).toContain("মারা গেছে / Lost: ০");
+    expect(text).toContain("মারা গেছে / Died: ০");
   });
 
   it("reads a loss as a loss, off capital rather than onto it", async () => {

@@ -455,6 +455,9 @@ const WHAT_IT_DOES = {
   farm_share: { line: "paidOutMoney", sign: 1, cattle: 0 },
   // The Farm's share of a loss, paid in so the payouts the Settlement wrote down can all be made.
   farm_loss_in: { line: "farmCoveredMoney", sign: 1, cattle: 0 },
+  // A lost animal made good by the Farm at what she had cost: she comes back to the Venture as her price would have
+  // from a buyer, on the side that keeps the animals, so the run neither gains nor loses on her.
+  made_good: { line: "proceedsMoney", sign: 1, cattle: 0 },
 } as const satisfies Record<
   VentureMovementKind,
   { line: keyof Held; sign: 1 | -1; cattle: 0 | 1 | -1 }

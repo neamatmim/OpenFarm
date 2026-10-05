@@ -80,6 +80,8 @@ export interface TheirProgress {
   /** Gone any other way — died, or culled. An Investor asks how many he lost, not by which of the
    *  two, and the Farm would rather say one number than seem to be sorting the answer. */
   diedCount: number;
+  /** Lost — strayed or stolen — and made good by the Farm at what she had cost: not a death, and no loss to him. */
+  lostCount: number;
   /**
    * How many of the standing have been on the scale since they arrived, which is how many animals the
    * two averages below are over. Said, because the averages are silent about it otherwise and an
@@ -223,6 +225,7 @@ export const theirProgress = async (
   let standingCount = 0;
   let soldCount = 0;
   let diedCount = 0;
+  let lostCount = 0;
 
   for (const one of rows) {
     const view = fatteningOf(one.intake, one.weighIns, now, readDays);
@@ -262,6 +265,8 @@ export const theirProgress = async (
       }
     } else if (one.state === "sold") {
       soldCount += 1;
+    } else if (one.state === "lost") {
+      lostCount += 1;
     } else {
       // Died or culled: both are an Animal his money did not get back on a lorry.
       diedCount += 1;
@@ -299,6 +304,7 @@ export const theirProgress = async (
     standingCount,
     soldCount,
     diedCount,
+    lostCount,
     weighedCount: standingLatest.length,
     averageIntakeKg: meanOf(standingIntake),
     averageLatestKg: meanOf(standingLatest),

@@ -1,0 +1,2 @@
+ALTER TABLE "venture_movement" ADD COLUMN "animal_id" text;--> statement-breakpoint
+ALTER TABLE "venture_movement" ADD CONSTRAINT "venture_movement_animal_id_animal_id_fkey" FOREIGN KEY ("animal_id") REFERENCES "animal"("id");

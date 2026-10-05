@@ -406,6 +406,8 @@ export interface TheirHerdStory {
   soldCount: number;
   averageSoldMoney: number | null;
   boughtBackCount: number;
+  /** Lost and made good by the Farm. */
+  lostCount: number;
   diedCount: number;
 }
 
@@ -556,6 +558,7 @@ export const theirHerdStory = async (
   const sold: number[] = [];
   let boughtBackCount = 0;
   let diedCount = 0;
+  let lostCount = 0;
 
   for (const one of costs.animals) {
     if (one.intake && ownedThenBy(one.id, one.intake.arrivedAt) === ventureId) {
@@ -571,6 +574,13 @@ export const theirHerdStory = async (
       ownedThenBy(one.id, exit.at) === ventureId
     ) {
       diedCount += 1;
+    }
+    if (
+      exit &&
+      one.state === "lost" &&
+      ownedThenBy(one.id, exit.at) === ventureId
+    ) {
+      lostCount += 1;
     }
   }
   for (const one of internal) {
@@ -592,5 +602,6 @@ export const theirHerdStory = async (
     averageSoldMoney: meanMoney(sold),
     boughtBackCount,
     diedCount,
+    lostCount,
   };
 };

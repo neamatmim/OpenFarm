@@ -27,7 +27,10 @@ describe("the standard Investment Agreement", () => {
 
   it("prints the two parts after the profit and loss clauses and before the sale window, on a Venture paid by the month", () => {
     const said = terms(true);
-    const loss = said.findIndex((one) => one.startsWith("An animal that dies"));
+    // The last of the loss clauses: a death, then a loss or theft the Farm makes good.
+    const loss = said.findIndex((one) =>
+      one.startsWith("If an animal is lost or stolen")
+    );
     const window = said.findIndex((one) =>
       one.startsWith("Target sale window")
     );

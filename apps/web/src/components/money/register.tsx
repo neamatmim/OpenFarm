@@ -50,6 +50,7 @@ const SOURCE_WORD = {
   settlement_adjustment: "money.from.settlementAdjustment",
   farm_share: "money.from.farmShare",
   farm_loss: "money.from.farmLoss",
+  venture_made_good: "money.from.ventureMadeGood",
   receivable_payment: "money.from.receivablePayment",
   by_hand: "money.from.byHand",
 } as const satisfies Record<MoneyEvent["source"], MessageKey>;

@@ -953,6 +953,8 @@ export interface ProgressStatement {
   standing: string;
   sold: string;
   died: string;
+  /** Lost and made good by the Farm, formatted; nothing when none were. */
+  lost?: string | null;
   /** Averages over the animals that have been weighed, and how many that is. */
   weighed: string;
   averageIntake: string | null;
@@ -1001,7 +1003,14 @@ export const progressStatement = (sheet: ProgressStatement): string =>
       "পশুর অবস্থা / The cattle",
       field("  দাঁড়িয়ে আছে", "Standing", sheet.standing),
       field("  বিক্রি হয়েছে", "Sold", sheet.sold),
-      field("  মারা গেছে", "Lost", sheet.died),
+      field("  মারা গেছে", "Died", sheet.died),
+      sheet.lost
+        ? field(
+            "  হারিয়ে গেছে, খামার ক্ষতিপূরণ দিয়েছে",
+            "Lost, made good by the Farm",
+            sheet.lost
+          )
+        : null,
       field("  ওজন নেওয়া হয়েছে", "Weighed", sheet.weighed),
       sheet.averageIntake
         ? field(

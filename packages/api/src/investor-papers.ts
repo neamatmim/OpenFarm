@@ -233,6 +233,7 @@ export const progressStatementFor = async (
     standing: said(theirs.standingCount),
     sold: said(theirs.soldCount),
     died: said(theirs.diedCount),
+    lost: theirs.lostCount > 0 ? said(theirs.lostCount) : null,
     weighed: said(theirs.weighedCount),
     averageIntake:
       theirs.averageIntakeKg === null ? null : said(theirs.averageIntakeKg),

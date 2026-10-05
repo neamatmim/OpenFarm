@@ -49,6 +49,17 @@ import type { client } from "@/utils/orpc";
 
 type Today = Awaited<ReturnType<typeof client.portal.venture>>;
 
+/** What became of the herd's animals, in a line: sold and died, and — only where there were any — lost and made good
+ *  by the Farm, which is no loss to the Investor. An answer this phone kept from before has no lost ones. */
+const herdHint = (
+  herd: { sold: number; died: number; lost?: number },
+  t: ReturnType<typeof useLanguage>["t"]
+): string => {
+  const said = t("portal.animalsHint", { sold: herd.sold, died: herd.died });
+  const lost = herd.lost ?? 0;
+  return lost > 0 ? `${said} · ${t("portal.animalsLost", { lost })}` : said;
+};
+
 const TABS = ["animals", "spending", "papers"] as const;
 type Tab = (typeof TABS)[number];
 
@@ -131,10 +142,7 @@ const useFigures = (
     {
       label: t("portal.animals"),
       value: formatNumber(today.herd.standing, language),
-      hint: t("portal.animalsHint", {
-        sold: today.herd.sold,
-        died: today.herd.died,
-      }),
+      hint: herdHint(today.herd, t),
       icon: Beef,
     },
     {
@@ -323,14 +331,7 @@ const Herd = ({ today }: { today: Today }) => {
       <Section title={t("portal.herd")}>
         <EmptyState
           bare
-          description={
-            gone
-              ? t("portal.animalsHint", {
-                  sold: today.herd.sold,
-                  died: today.herd.died,
-                })
-              : undefined
-          }
+          description={gone ? herdHint(today.herd, t) : undefined}
           icon={Beef}
           title={gone ? t("portal.herdGone") : t("portal.herdNoneYet")}
         />

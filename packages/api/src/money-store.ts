@@ -81,6 +81,11 @@ const CATEGORIES: Record<
     nameEn: "The Farm's share of a Venture's loss",
     direction: "out",
   },
+  venture_made_good: {
+    nameBn: "ভেঞ্চারের হারানো পশুর ক্ষতিপূরণ",
+    nameEn: "Lost Venture animals made good",
+    direction: "out",
+  },
   feed_in: { nameBn: "খাদ্য কেনা", nameEn: "Feed", direction: "out" },
   medicine_purchase: {
     nameBn: "ওষুধ কেনা",

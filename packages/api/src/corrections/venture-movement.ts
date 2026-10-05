@@ -51,6 +51,7 @@ export interface WhyItStands {
  */
 export const whyItStands = (
   row: {
+    kind: string;
     internalSaleId: string | null;
     saleId: string | null;
     intakeId: string | null;
@@ -79,6 +80,15 @@ export const whyItStands = (
       message:
         "That is one side of an Internal Sale; the sale itself is what to put right",
       refusal: "one_side_of_a_sale",
+    };
+  }
+  if (row.kind === "made_good") {
+    // A lost animal made good is the Farm's own money in, with the Farm's Money Event out beside it. Changed here alone,
+    // the Venture and the Farm's books would disagree about one transfer.
+    return {
+      message:
+        "That made a lost animal good from the Farm's own money; it is not put right on the Venture's side alone",
+      refusal: "made_good_with_the_farms_money",
     };
   }
   if (row.intakeId) {

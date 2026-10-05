@@ -45,6 +45,7 @@ export const KIND_WORD = {
   advance_repaid: "ventures.kind.advanceRepaid",
   farm_share: "ventures.kind.farmShare",
   farm_loss_in: "ventures.kind.farmLossIn",
+  made_good: "ventures.kind.madeGood",
 } as const satisfies Record<string, MessageKey>;
 
 type Showing = "all" | "in" | "out";

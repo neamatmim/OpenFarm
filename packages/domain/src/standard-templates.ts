@@ -102,6 +102,10 @@ export const FIRST_PRINTED_AGREEMENT: TemplateContent = {
           en: "An animal that dies is a loss to this Venture, not to any one Investor.",
         },
         {
+          bn: "কোনো পশু হারিয়ে গেলে বা চুরি হলে খামার এই ভেঞ্চারকে সেদিন পর্যন্ত তার পেছনে যত খরচ হয়েছে তা ব্যাংকে ফিরিয়ে দেবে; তা বিনিয়োগকারীদের কোনো ক্ষতি নয়।",
+          en: "If an animal is lost or stolen, the Farm makes it good to this Venture by bank at what it has cost to date; it is no loss to the Investors.",
+        },
+        {
           bn: "বিক্রয়ের লক্ষ্য সময়: {windowStart} থেকে {windowEnd}।",
           en: "Target sale window: {windowStart} to {windowEnd}.",
         },
