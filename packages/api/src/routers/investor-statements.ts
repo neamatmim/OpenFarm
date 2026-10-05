@@ -13,7 +13,7 @@ import { agreedPaperOf } from "../agreement-offer-store";
 import { agreementLaidOut, amendmentLaidOut } from "../agreement-paper";
 import { audited } from "../audit";
 import { assertRegistered, exportedPaper } from "../export-store";
-import { farmUnitsOf } from "../farm-capital-store";
+import { assertTheFarmsSplit, farmUnitsOf } from "../farm-capital-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import {
@@ -149,6 +149,13 @@ export const investorStatementsRouter = {
         input.nominees
       );
       assertNamable(nominees, today);
+      // On the Farm's own Units' split, where it holds any: a stamp bought for terms the farm would refuse is wasted.
+      await assertTheFarmsSplit(
+        context.db,
+        context.farm.id,
+        run.id,
+        input.investorsPercent
+      );
       const document = agreementLaidOut({
         farm: context.farm,
         ownerName: context.actor.name,

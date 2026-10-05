@@ -39,4 +39,4 @@ A paid-by-the-month Venture moves to selling on its first Sale (`reachesSellingO
 | A     | fix/made-good-found | Done   |
 | B     | fix/adjustment-amount | Done   |
 | C     | fix/stuck-pay-in-notes | Done   |
-| D     |        |        |
+| D     | fix/farm-capital-disclosure | Done (D5 left: the capital "The farm" mid-sentence shows only where the Farm's row no longer appears; D6 closed by D2, the wording being given before the Farm's Units are written) |

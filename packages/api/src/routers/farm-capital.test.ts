@@ -1,3 +1,7 @@
+import {
+  STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
+  STANDARD_TEMPLATES,
+} from "@OpenFarm/domain";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -600,6 +604,18 @@ describe("the split the Farm's own Units are on", () => {
         })
       )
     ).toBe("split_not_the_farms");
+    // Nor laid out on another to be signed: a stamp bought for a paper the farm would refuse is a stamp wasted.
+    expect(
+      await refusalOf(
+        owner.investorStatements.agreementToSign({
+          ventureId,
+          investorId: person.id,
+          units: 1,
+          investorsPercent: 70,
+          arbitrator: `সালিস ${suffix}`,
+        })
+      )
+    ).toBe("split_not_the_farms");
   });
 });
 
@@ -626,5 +642,56 @@ describe("an Amendment on a Venture where only the Farm holds Units", () => {
     // Nothing moved: the Farm's Units are on the terms they were taken on.
     const [own] = await owner.ventures.agreements.list({ ventureId });
     expect(own?.investorsPercent).toBe(60);
+  });
+});
+
+describe("the Farm's own Units after a paper was laid out", () => {
+  it("are refused once an Investor has been handed a paper to sign: it was printed without them", async () => {
+    const owner = await as("owner");
+    const ventureId = await aVenture("কাগজ আগে");
+    const person = await owner.investors.record({
+      name: `কাগজ হাতে ${suffix}`,
+      phone: `0161${suffix}3`,
+    });
+    await owner.investorStatements.agreementToSign({
+      ventureId,
+      investorId: person.id,
+      units: 2,
+      investorsPercent: 60,
+      arbitrator: `সালিস ${suffix}`,
+    });
+
+    expect(
+      await refusalOf(
+        owner.ventures.agreements.farmTakes({ ventureId, units: 2 })
+      )
+    ).toBe("paper_laid_out_already");
+  });
+});
+
+describe("the Farm's own Units under the Owner's own wording", () => {
+  it("are refused while the Agreement in force has no clause telling the Investors of them", async () => {
+    const owner = await as("owner");
+    await owner.templates.list();
+    // The Owner publishes wording of her own from before the clause existed.
+    await owner.templates.publish({
+      kind: "investment_agreement",
+      content: STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
+      note: `আমার নিজের ${suffix}`,
+    });
+    const ventureId = await aVenture("নিজের কথা");
+    expect(
+      await refusalOf(
+        owner.ventures.agreements.farmTakes({ ventureId, units: 2 })
+      )
+    ).toBe("wording_tells_no_farm_capital");
+
+    // With the standard back in force, every Investor's paper tells them, and the Farm may take its Units.
+    await owner.templates.publish({
+      kind: "investment_agreement",
+      content: STANDARD_TEMPLATES.investment_agreement,
+      note: `মানক আবার ${suffix}`,
+    });
+    await owner.ventures.agreements.farmTakes({ ventureId, units: 2 });
   });
 });

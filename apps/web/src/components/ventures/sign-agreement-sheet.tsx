@@ -225,6 +225,8 @@ const useWhoMaySign = (venture: { id: string; units: number } | null) => {
   return {
     signable,
     inAppOn,
+    /** The split the Farm's own Units were taken on, where it holds any: every Investor signs on the same. */
+    farmsSplit: signed.find((one) => one.isFarm)?.investorsPercent,
     left:
       (venture?.units ?? 0) - signed.reduce((sum, one) => sum + one.units, 0),
     nobodyLeft: investors.isSuccess && signable.length === 0,
@@ -661,7 +663,7 @@ export const SignAgreementSheet = ({
   const farm = useQuery(orpc.farm.current.queryOptions());
   // The farm answers with less than its Parameters to somebody they are not for, so the figure is read
   // only where it is actually there rather than assumed onto every shape of the answer.
-  const startsAt =
+  const farmsSetting =
     farm.data && "ventureInvestorsPercent" in farm.data
       ? farm.data.ventureInvestorsPercent
       : undefined;
@@ -675,7 +677,10 @@ export const SignAgreementSheet = ({
     setNomineeDrafts([]);
   });
   const today = farmDayOf(new Date());
-  const { signable, left, nobodyLeft, inAppOn } = useWhoMaySign(venture);
+  const { signable, left, nobodyLeft, inAppOn, farmsSplit } =
+    useWhoMaySign(venture);
+  // Where the Farm holds Units of its own, their split — the one every Investor is signed on; else the farm's setting.
+  const startsAt = farmsSplit ?? farmsSetting;
   // Offered in the app only while the farm's switch is on: turned off meanwhile, the sheet is a stamped paper again.
   const inApp = terms.inApp && inAppOn;
   const asOffered = { ...terms, inApp };

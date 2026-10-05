@@ -1207,6 +1207,12 @@ export const bn: Record<MessageKey, string> = {
   "farmCapital.refused.farmHasUnitsAlready": "এই ভেঞ্চারে খামারের ইউনিট আগেই আছে",
   "farmCapital.refused.investorsSignedAlready":
     "একজন বিনিয়োগকারী আগেই সই করেছেন। খামার কেউ সই করার আগেই ইউনিট নেয়, যাতে সবাই জেনে সই করেন",
+  "farmCapital.refused.offerStanding":
+    "অ্যাপে দেওয়া একটি চুক্তির প্রস্তাব অপেক্ষায় আছে, খামারের ইউনিটের কথা ছাড়া। আগে সেটি তুলে নিন",
+  "farmCapital.refused.paperLaidOut":
+    "খামারের ইউনিটের কথা ছাড়াই একজন বিনিয়োগকারীর সইয়ের কাগজ ছাপা হয়ে গেছে। কোনো কাগজ ছাপার আগেই খামার ইউনিট নেয়",
+  "farmCapital.refused.wordingTellsNothing":
+    "চালু বিনিয়োগ চুক্তিতে খামারের নিজের ইউনিটের কথা বিনিয়োগকারীদের জানানোর কোনো ধারা নেই। আগে সেটি প্রকাশ করুন",
   "farmCapital.refused.overHalf":
     "খামার একটি ভেঞ্চারের সর্বোচ্চ অর্ধেক ইউনিট নিতে পারে",
   "farmCapital.refused.unitsGone": "এই ভেঞ্চারে এতগুলো ইউনিট বাকি নেই",

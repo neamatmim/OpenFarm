@@ -1289,6 +1289,12 @@ export const en = {
     "The farm holds units of this venture already",
   "farmCapital.refused.investorsSignedAlready":
     "An investor has signed already. The farm takes its units before anybody signs, so all sign knowing",
+  "farmCapital.refused.offerStanding":
+    "An agreement offered in the app is waiting, laid out without the farm's units. Withdraw it first",
+  "farmCapital.refused.paperLaidOut":
+    "A paper has already been printed for an investor to sign without the farm's units. The farm takes its units before any is",
+  "farmCapital.refused.wordingTellsNothing":
+    "The investment agreement in force has no clause telling investors of the farm's own units. Publish one first",
   "farmCapital.refused.overHalf":
     "The farm may hold at most half of a venture's units",
   "farmCapital.refused.unitsGone":

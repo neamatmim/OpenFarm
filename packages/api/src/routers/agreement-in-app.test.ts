@@ -468,10 +468,19 @@ describe("an Agreement offered in the app, and the Farm's own Units", () => {
       await refusalOf(
         owner.ventures.agreements.farmTakes({ ventureId, units: 2 })
       )
-    ).toBe("investors_signed_already");
+    ).toBe("an_offer_is_standing");
 
     // Taken back, nobody holds a paper laid out without them.
     await owner.ventures.agreements.offers.withdraw({ offerId: id });
     await owner.ventures.agreements.farmTakes({ ventureId, units: 2 });
+    // Offered again, it is on the Farm's own split or not at all: one agreed on another could never be approved.
+    expect(
+      await refusalOf(
+        owner.ventures.agreements.offers.make({
+          ...terms(ventureId, them.id),
+          investorsPercent: 70,
+        })
+      )
+    ).toBe("split_not_the_farms");
   });
 });

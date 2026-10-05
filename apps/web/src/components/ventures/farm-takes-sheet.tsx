@@ -14,11 +14,14 @@ import { orpc } from "@/utils/orpc";
 const FARM_SHARE_MOST = 0.5;
 
 /** The farm's refusals of the Farm's Units, in the reader's words. */
-const OWN_WORDS = {
+const REFUSALS = {
   farm_has_units_already: "farmCapital.refused.farmHasUnitsAlready",
   investors_signed_already: "farmCapital.refused.investorsSignedAlready",
   farm_units_over_half: "farmCapital.refused.overHalf",
   venture_units_gone: "farmCapital.refused.unitsGone",
+  an_offer_is_standing: "farmCapital.refused.offerStanding",
+  paper_laid_out_already: "farmCapital.refused.paperLaidOut",
+  wording_tells_no_farm_capital: "farmCapital.refused.wordingTellsNothing",
 } as const;
 
 /**
@@ -36,7 +39,7 @@ export const FarmTakesSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const refused = useRefused(OWN_WORDS);
+  const refused = useRefused(REFUSALS);
   const [units, setUnits] = useState("");
   useFreshFor(venture?.id, () => setUnits(""));
   const farm = useQuery(orpc.farm.current.queryOptions());
