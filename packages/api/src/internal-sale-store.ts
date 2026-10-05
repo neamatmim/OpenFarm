@@ -13,9 +13,9 @@ import type { Booking } from "./money-store";
 import { bookMoney } from "./money-store";
 import { priceAtWeight } from "./venture-store";
 
-/** What she last weighed, and the reading the price is struck from. */
+/** What she last weighed, and the reading the price is struck from: none for one never weighed since her Intake. */
 export interface Weighed {
-  id: string;
+  id: string | null;
   weightKg: number;
 }
 
@@ -37,6 +37,12 @@ export interface Handover {
   soldOn: string;
   paymentMethod: PaymentMethod;
   reference: string;
+  /**
+   * Paid for already, and at what: a Venture's lost animal the Farm made good, found again. The made-good transfer
+   * was the Farm paying for her, so the sale moves no money of its own — no Venture Movement, no Money Event — and is
+   * struck at what was made good rather than at a rate a kilo.
+   */
+  madeGood?: { priceMoney: number };
 }
 
 /**
@@ -56,7 +62,9 @@ export const recordInternalSale = async (
 ): Promise<{ id: string; weightKg: number; priceMoney: number }> => {
   const { now, actorId } = booking;
   const farmId = booking.farm.id;
-  const priceMoney = priceAtWeight(hand.weighed.weightKg, hand.rateMoneyPerKg);
+  const priceMoney =
+    hand.madeGood?.priceMoney ??
+    priceAtWeight(hand.weighed.weightKg, hand.rateMoneyPerKg);
   await tx.insert(internalSale).values({
     id: hand.id,
     farmId,
@@ -73,15 +81,19 @@ export const recordInternalSale = async (
     createdAt: now,
   });
   // One movement per Venture side. Where the Farm is one of the sides it has none: a Venture Account is
-  // the only account here, and the Farm's own books are answered separately.
-  const sides = [
-    hand.to === null
-      ? null
-      : { ventureId: hand.to, kind: "internal_buy" as const },
-    hand.from === null
-      ? null
-      : { ventureId: hand.from, kind: "internal_sell" as const },
-  ].filter((side) => side !== null);
+  // the only account here, and the Farm's own books are answered separately. Made good already, none at all.
+  const sides = (
+    hand.madeGood
+      ? []
+      : [
+          hand.to === null
+            ? null
+            : { ventureId: hand.to, kind: "internal_buy" as const },
+          hand.from === null
+            ? null
+            : { ventureId: hand.from, kind: "internal_sell" as const },
+        ]
+  ).filter((side) => side !== null);
   for (const side of sides) {
     // oxlint-disable-next-line no-await-in-loop -- one transaction, one statement at a time
     await tx.insert(ventureMovement).values({
@@ -100,7 +112,7 @@ export const recordInternalSale = async (
   // The Farm's own side is a Money Event, because taka really enters or leaves the Farm: it sold a bull,
   // or it bought one. Only where the Farm is a side — between two Ventures no money of the Farm's has
   // moved, and its books say nothing.
-  if (hand.from === null || hand.to === null) {
+  if (!hand.madeGood && (hand.from === null || hand.to === null)) {
     await bookMoney(tx, booking, {
       // The Farm letting her go is money in; the Farm taking her on is money out.
       source: hand.from === null ? "internal_sale_in" : "internal_sale_out",

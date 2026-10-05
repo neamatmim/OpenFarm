@@ -5953,6 +5953,8 @@ export const en = {
   "animals.writeOffVentureHint":
     "It leaves the herd as lost from the morning the round last looked for it. It is {venture}'s, so the farm makes it good: what it has cost the venture to date goes from the farm into the venture account by bank, and its investors lose nothing.",
   "animals.madeGoodReference": "The transfer's reference",
+  "animals.madeGoodAmount":
+    "Transfer {amount} into the venture's account: what she has cost it so far",
   "animals.madeGoodReferenceHint":
     "The bank transfer from the farm into the venture account that pays for it.",
   "animals.writeOffAsk":

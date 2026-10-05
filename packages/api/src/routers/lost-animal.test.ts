@@ -225,6 +225,10 @@ describe("an animal that leaves without dying", () => {
     ).rejects.toMatchObject({ data: { refusal: "made_good_needs_reference" } });
     const still = await him(bull.tagNumber);
     expect(still?.state).toBe("quarantine");
+    // Said before the act, so the transfer the Owner makes is the figure the farm books.
+    expect(
+      await owner.client.animals.madeGoodAmount({ tagNumber: bull.tagNumber })
+    ).toEqual({ amountMoney: 80_000 });
 
     await owner.client.animals.writeOff({
       tagNumber: bull.tagNumber,
@@ -282,6 +286,59 @@ describe("an animal that leaves without dying", () => {
       blocks.find((one) => one.word === "an_animal_still_stands")?.tagNumbers ??
         []
     ).not.toContain(bull.tagNumber);
+  });
+
+  it("found after the Farm made a Venture's bull good, comes back as the Farm's own: it paid for him", async () => {
+    const bull = await aBull("2066-03-09T04:00:00.000Z", ventureId);
+    await notFoundOn("2066-03-17", bull.tagNumber);
+    const owner = await as("owner", "2066-03-25T06:00:00.000Z");
+    await owner.client.animals.writeOff({
+      tagNumber: bull.tagNumber,
+      cause: "জানা নেই",
+      madeGood: { reference: `MG-FOUND-${suffix}` },
+    });
+    const later = await as("owner", "2066-03-26T06:00:00.000Z");
+    await later.client.animals.found({ tagNumber: bull.tagNumber });
+
+    // The Farm's from the day he was found, at what it made good: an Internal Sale with no money of its own, the
+    // made-good transfer having paid for him already.
+    const back = await scratchDb().query.animal.findFirst({
+      where: { farmId: theFarm().id, tagNumber: bull.tagNumber },
+      columns: { id: true, state: true, ownerVentureId: true },
+    });
+    expect(back).toMatchObject({ state: "quarantine", ownerVentureId: null });
+    const handed = await scratchDb().query.internalSale.findMany({
+      where: { farmId: theFarm().id, animalId: back?.id ?? "" },
+      columns: {
+        fromVentureId: true,
+        toVentureId: true,
+        priceMoney: true,
+        soldOn: true,
+      },
+    });
+    expect(handed).toEqual([
+      {
+        fromVentureId: ventureId,
+        toVentureId: null,
+        priceMoney: 80_000,
+        soldOn: "2066-03-26",
+      },
+    ]);
+    const moved = await scratchDb().query.ventureMovement.findMany({
+      where: { farmId: theFarm().id, ventureId, animalId: back?.id ?? "" },
+      columns: { kind: true, amountMoney: true },
+    });
+    expect(moved).toEqual([{ kind: "made_good", amountMoney: 80_000 }]);
+    // Nobody's money moved again: the Farm's books hold the one transfer out.
+    const booked = await scratchDb().query.moneyEvent.findMany({
+      where: {
+        farmId: theFarm().id,
+        source: { in: ["internal_sale_in", "internal_sale_out"] },
+        occurredAt: { gte: new Date("2066-03-26T00:00:00Z") },
+      },
+      columns: { id: true },
+    });
+    expect(booked).toEqual([]);
   });
 
   it("comes back as he was when the Owner finds him after all — the Manager cannot", async () => {

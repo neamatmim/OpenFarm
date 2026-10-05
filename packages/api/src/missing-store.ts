@@ -67,7 +67,8 @@ export const openMissing = async (
 /**
  * Takes back a Missing this Step opened, when the Step is put right to say she was there after all. Only one still
  * open: once the Manager has found her, that she went missing and was found is what happened, whatever the round is
- * later corrected to say.
+ * later corrected to say. Nor one the Owner has written off: that is her decision, with a Venture's money made good on
+ * it, and only Found brings her back.
  */
 export const takeBackMissingOpenedBy = async (
   tx: Tx,
@@ -76,7 +77,11 @@ export const takeBackMissingOpenedBy = async (
   await tx
     .delete(missing)
     .where(
-      and(eq(missing.completionId, completionId), isNull(missing.foundAt))
+      and(
+        eq(missing.completionId, completionId),
+        isNull(missing.foundAt),
+        isNull(missing.writtenOffAt)
+      )
     );
 };
 

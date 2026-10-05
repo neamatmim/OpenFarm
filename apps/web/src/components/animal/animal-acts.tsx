@@ -26,6 +26,7 @@ import {
 import { FarmAccountField } from "@/components/payment-method";
 import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
 import { useLanguage } from "@/i18n/language-provider";
+import { useMoney } from "@/lib/money";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
@@ -677,6 +678,14 @@ const WriteOffDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const [reference, setReference] = useState("");
   const [farmAccountId, setFarmAccountId] = useState("");
   const venture = detail.owner ?? null;
+  const asMoney = useMoney();
+  // What the Farm makes her good at, said before the act: the transfer is made for the figure the farm books.
+  const toMakeGood = useQuery({
+    ...orpc.animals.madeGoodAmount.queryOptions({
+      input: { tagNumber: detail.tagNumber },
+    }),
+    enabled: open && venture !== null,
+  });
   const writeOff = useMutation(
     orpc.animals.writeOff.mutationOptions({
       onSuccess: () => {
@@ -758,6 +767,13 @@ const WriteOffDialog = ({ detail, open, onOpenChange }: ActProps) => {
       ) : null}
       {venture ? (
         <>
+          {toMakeGood.data ? (
+            <p className="bg-muted/50 rounded-lg p-3 text-sm">
+              {t("animals.madeGoodAmount", {
+                amount: asMoney(toMakeGood.data.amountMoney),
+              })}
+            </p>
+          ) : null}
           <FormField
             hint={t("animals.madeGoodReferenceHint")}
             id="write-off-made-good"
