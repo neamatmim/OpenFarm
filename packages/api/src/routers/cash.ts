@@ -120,6 +120,7 @@ export const cashRouter = {
       if (handedAt > now) {
         throw new ORPCError("BAD_REQUEST", {
           message: "Cash cannot have changed hands tomorrow",
+          data: { refusal: "handed_later_than_now" },
         });
       }
       let id = "";

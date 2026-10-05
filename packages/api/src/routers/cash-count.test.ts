@@ -146,6 +146,56 @@ describe("the weekly cash count", () => {
     expect(row).toEqual({ counted: 4500, expected: 4500 });
   });
 
+  it("is not undone by cash written up later but spent before it: the count already found it gone", async () => {
+    // Four thousand five hundred in the hand; ৳500 of repairs paid on Wednesday, not yet written up; Friday finds 4,000.
+    await countOn("2071-06-12", 4000, "পাঁচশো খরচ লেখা হয়নি");
+    expect(await managersHand(fridayEvening("2071-06-12"))).toMatchObject({
+      amount: 4000,
+    });
+    // Saturday the Manager writes the repairs up, dated the Wednesday they were paid: the count already found it gone.
+    const saturday = await as("manager", "2071-06-13T05:00:00.000Z");
+    const categories = await saturday.client.money.categories.list();
+    const repairs = categories.find((one) => one.key === "repairs");
+    await saturday.client.money.enter({
+      categoryId: repairs?.id ?? "",
+      amountMoney: 500,
+      occurredOn: "2071-06-10",
+      counterparty: { name: `মিস্ত্রি ${suffix}` },
+      paymentMethod: "cash",
+    });
+    expect(await managersHand("2071-06-13T06:00:00.000Z")).toMatchObject({
+      amount: 4000,
+    });
+  });
+
+  it("is compared, when counted again, with the hand as it stood then — not with cash that came in since", async () => {
+    // Four thousand in the hand; Friday's count finds 3,000.
+    const { manager, completionId } = await countOn("2071-06-19", 3000);
+    // Saturday ৳1,000 of manure cash comes in.
+    const saturday = await as("manager", "2071-06-20T05:00:00.000Z");
+    await saturday.client.money.enter({
+      categoryId: manureId,
+      amountMoney: 1000,
+      occurredOn: "2071-06-20",
+      counterparty: { name: `গোবর ক্রেতা ${suffix}` },
+      paymentMethod: "cash",
+    });
+    // Sunday the missing thousand is found, and Friday's count put right to 4,000.
+    await correctStepAsShown(manager.client, {
+      completionId,
+      reason: "হারানো এক হাজার পাওয়া গেছে",
+      evidence: [4000, ""],
+    });
+    const row = await scratchDb().query.cashCount.findFirst({
+      where: { completionId },
+      columns: { counted: true, expected: true },
+    });
+    expect(row).toEqual({ counted: 4000, expected: 4000 });
+    expect(await managersHand("2071-06-21T06:00:00.000Z")).toMatchObject({
+      amount: 5000,
+    });
+  });
+
   it("is the Owner's line to move, not the Manager's", async () => {
     const manager = await as("manager", fridayEvening("2071-06-05"));
     await expect(
