@@ -609,6 +609,18 @@ export const en = {
     "Have the lawyer and the Shariah scholar confirmed the farm may rely on an Agreement with no stamp on it? Once on, new Agreements and Amendments may be agreed in the app.",
   "agreeInApp.switch.shownDone": "Agreeing in the app is on",
   "agreeInApp.switch.hiddenDone": "Agreeing in the app is off",
+  "payInNote.switch.title": "Pay-in notes from investors",
+  "payInNote.switch.show": "Turn on",
+  "payInNote.switch.hide": "Turn off",
+  "payInNote.switch.shownHint":
+    "An investor may tell you in the portal that they sent money towards their agreement. You check the venture account and record it, or answer not found. No money moves through the portal.",
+  "payInNote.switch.hiddenHint":
+    "Off. Turn it on only once the lawyer and the Shariah scholar have seen it — their approval was of a portal that only says where to pay.",
+  "payInNote.switch.confirmTitle": "Turn on pay-in notes?",
+  "payInNote.switch.confirmWhy":
+    "Have the lawyer and the Shariah scholar seen it? Once on, every invited investor who still owes on an agreement may tell you they sent money, and you are told at once.",
+  "payInNote.switch.shownDone": "Pay-in notes are on",
+  "payInNote.switch.hiddenDone": "Pay-in notes are off",
   "agreeInApp.route": "Agreed in the app",
   "agreeInApp.sheetHint":
     "No stamp or e-challan. The Investor reads this Agreement's paper in the portal and agrees to it; once you approve, the Agreement is written.",

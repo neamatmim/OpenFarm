@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="bn">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>জমার খবর — উপদেষ্টাদের কাছে প্রশ্ন</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      @page {
+        size: A4;
+        margin: 14mm;
+      }
+      :root {
+        --ink: #1b1f1d;
+        --muted: #5b625e;
+        --line: #b9c0bc;
+        --soft: #f3f5f4;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #fff;
+        color: var(--ink);
+        font:
+          14px/1.5 "Noto Sans Bengali",
+          system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 182mm;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 2px;
+      }
+      h2 {
+        font-size: 15px;
+        margin: 18px 0 6px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 3px;
+      }
+      .en {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 12px;
+      }
+      .fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 24px;
+        margin-bottom: 12px;
+      }
+      .fields div {
+        border-bottom: 1px solid var(--line);
+        padding-top: 14px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .box {
+        background: var(--soft);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+      }
+      .box ul {
+        margin: 4px 0 0;
+        padding-left: 18px;
+      }
+      .q {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 12px 10px;
+        margin-bottom: 10px;
+        break-inside: avoid;
+      }
+      .q .who {
+        float: right;
+        font-size: 11px;
+        border: 1px solid var(--line);
+        border-radius: 99px;
+        padding: 0 8px;
+        color: var(--muted);
+      }
+      .q p {
+        margin: 0 0 4px;
+      }
+      .q .num {
+        font-weight: 600;
+      }
+      .opts {
+        list-style: none;
+        margin: 4px 0 0;
+        padding: 0;
+      }
+      .opts li {
+        margin: 2px 0;
+      }
+      .opts li::before {
+        content: "☐ ";
+        font-size: 15px;
+      }
+      .lines div {
+        border-bottom: 1px solid var(--line);
+        height: 22px;
+      }
+      .ref {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .signs {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 16px;
+        margin-top: 10px;
+        break-inside: avoid;
+      }
+      .signs div {
+        border-top: 1px solid var(--ink);
+        padding-top: 4px;
+        margin-top: 44px;
+        font-size: 12px;
+      }
+      .foot {
+        margin-top: 14px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      @media print {
+        main {
+          padding: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>জমার খবর — উপদেষ্টাদের কাছে প্রশ্ন</h1>
+      <p class="en">
+        Pay-in Notes — questions for the lawyer and the Shariah scholar
+      </p>
+      <p class="sub">
+        খামার চায় বিনিয়োগকারী পোর্টাল থেকে জানাতে পারুন যে তিনি টাকা
+        পাঠিয়েছেন। টাকা পোর্টালের ভেতর দিয়ে যাবে না; শুধু তাঁর খবর। আপনাদের
+        লিখিত মত না পাওয়া পর্যন্ত এটি বন্ধ থাকবে। প্রতিটি প্রশ্নে যেটি প্রযোজ্য
+        টিক দিন, আর দরকার হলে নিচে লিখুন।
+        <br /><span class="en"
+          >The farm wishes Investors to be able to say, from the portal, that
+          they have sent money. No money passes through the portal, only their
+          word. It stays switched off until your written opinions. Tick what
+          applies and write below where needed.</span
+        >
+      </p>
+
+      <div class="fields">
+        <div>খামারের নাম / Farm</div>
+        <div>তারিখ / Date</div>
+      </div>
+
+      <h2>আজ কীভাবে চলে <span class="en">· How it works today</span></h2>
+      <div class="box">
+        আপনারা ২৬ সেপ্টেম্বর ২০২৬-এ যা অনুমোদন করেছেন:
+        <span class="en">What you approved on 26 September 2026:</span>
+        <ul>
+          <li>
+            পোর্টাল শুধু আমন্ত্রিতদের জন্য। সই করা চুক্তির জন্য সেখানে ভেঞ্চার
+            হিসাবের ব্যাংক তথ্য আর জমার কোড দেখানো হয়, যাতে বিনিয়োগকারী জানেন
+            কোথায় টাকা দিতে হবে।
+            <span class="en"
+              >The portal is by invitation only. For a signed Agreement it shows
+              the Venture Account's bank details and the Pay-in Code, so the
+              Investor knows where to pay.</span
+            >
+          </li>
+          <li>
+            পোর্টালের ভেতরে টাকা নেওয়া হয় না — কার্ড, গেটওয়ে বা মোবাইল
+            ব্যাংকিং কিছুই নয়। বিনিয়োগকারী ব্যাংকে টাকা দেন; মালিক ব্যাংক
+            বিবরণী দেখে তা খাতায় লেখেন।
+            <span class="en"
+              >No payment is taken inside the portal — no card, gateway or
+              mobile financial service. The Investor pays by bank; the Owner
+              finds it on the statement and records it.</span
+            >
+          </li>
+        </ul>
+      </div>
+
+      <h2>যা করতে চাই <span class="en">· What the farm proposes</span></h2>
+      <div class="box">
+        টাকা পাঠানোর পর বিনিয়োগকারী পোর্টালে একটি "জমার খবর" দেবেন: কত টাকা,
+        কোন দিন, কীভাবে (ব্যাংক ট্রান্সফার, চেক, জমার স্লিপ, বা বিকাশ থেকে
+        ভেঞ্চার হিসাবে), লেনদেনের রেফারেন্স বা ট্রানজ্যাকশন আইডি, চাইলে স্লিপের
+        ছবি। মালিককে সঙ্গে সঙ্গে জানানো হবে। মালিক ভেঞ্চার হিসাব মিলিয়ে টাকা
+        পেলে খাতায় লিখবেন — আগের মতোই, একই নিয়মে — না পেলে "পাওয়া যায়নি"
+        লিখে জানাবেন। খবর নিজে কোনো টাকা নেয় না, কোনো মূলধনও লেখে না।
+        <span class="en"
+          >After sending money, the Investor sends a "Pay-in Note" in the
+          portal: how much, the day, how (bank transfer, cheque, deposit slip,
+          or bKash into the Venture Account), the reference or transaction ID,
+          and a photo of the slip if they like. The Owner is told at once. The
+          Owner checks the Venture Account and, finding it, records it — as
+          today, under the same rules — or answers "not found" with a line. The
+          note itself takes no money and records no capital.</span
+        >
+      </div>
+
+      <h2>প্রশ্ন <span class="en">· Questions</span></h2>
+      <div class="q">
+        <span class="who">আইনজীবী / Lawyer</span>
+        <p>
+          <span class="num">১.</span> পোর্টাল আমন্ত্রিতদের জন্যই থাকবে।
+          বিনিয়োগকারী পোর্টালের বাইরে টাকা পাঠিয়ে পোর্টালে শুধু জানাবেন, আর
+          খামার ব্যাংক মিলিয়ে নিশ্চিত করবে। এটা কি "পোর্টালে টাকা নেওয়া" বলে
+          গণ্য হবে?<br /><span class="en"
+            >1. The portal stays by invitation. The Investor sends money outside
+            it and only says so in it; the farm confirms against the bank. Is
+            that "taking payment in the portal"?</span
+          >
+        </p>
+        <ul class="opts">
+          <li>না, এভাবে চলবে / No, it may go ahead as described</li>
+          <li>
+            চলবে, শর্তসাপেক্ষে (নিচে লিখুন) / It may, on conditions (write
+            below)
+          </li>
+          <li>হ্যাঁ, এটা করা যাবে না / Yes, it may not be done</li>
+        </ul>
+        <div class="lines"><div></div></div>
+      </div>
+      <div class="q">
+        <span class="who">আইনজীবী / Lawyer</span>
+        <p>
+          <span class="num">২.</span> "কীভাবে পাঠালেন"-এর মধ্যে কি বিকাশ থেকে
+          ভেঞ্চারের ব্যাংক হিসাবে পাঠানো রাখা যায়? টাকা ব্যাংকেই জমা হয়;
+          ট্রানজ্যাকশন আইডি রেফারেন্স হিসেবে থাকে। বিকাশ নম্বরে মূলধন নেওয়া হবে
+          না।<br /><span class="en"
+            >2. May "how it was sent" include bKash sent into the Venture's bank
+            account? The money lands in the bank; the transaction ID is the
+            reference. No capital is taken into a bKash number.</span
+          >
+        </p>
+        <ul class="opts">
+          <li>হ্যাঁ / Yes</li>
+          <li>শুধু ব্যাংক / Bank only</li>
+          <li>শর্তসাপেক্ষে (নিচে লিখুন) / On conditions (write below)</li>
+        </ul>
+        <div class="lines"><div></div></div>
+      </div>
+      <div class="q">
+        <span class="who">আইনজীবী / Lawyer</span>
+        <p>
+          <span class="num">৩.</span> বিনিয়োগকারীর দেওয়া স্লিপ বা স্ক্রিনশটের
+          ছবি খামার রাখবে। রাখা নিয়ে, আর কত দিন রাখা যাবে, কিছু বলার আছে কি?<br /><span
+            class="en"
+            >3. The farm will keep the photo of the slip or screenshot the
+            Investor sends. Anything to say on keeping it, and for how
+            long?</span
+          >
+        </p>
+        <ul class="opts">
+          <li>
+            অন্য বিনিয়োগ কাগজের মতোই রাখা যাবে / Kept as the other investment
+            papers are
+          </li>
+          <li>অন্যভাবে (নিচে লিখুন) / Otherwise (write below)</li>
+        </ul>
+        <div class="lines"><div></div></div>
+      </div>
+      <div class="q">
+        <span class="who">শরিয়াহ / Shariah</span>
+        <p>
+          <span class="num">৪.</span> জমার খবর কোনো দায় তৈরি করে না, কোনো
+          জরিমানা বা অতিরিক্ত টাকা নেই (দেরির জরিমানা নেই, ২ অক্টোবর ২০২৬-এর
+          উত্তর অনুযায়ী)। "পাওয়া যায়নি" উত্তরে কি কোনো আপত্তি আছে?<br /><span
+            class="en"
+            >4. A Pay-in Note creates no obligation, no penalty and no extra
+            charge (no late fee, as answered on 2 October 2026). Any objection
+            to a note answered "not found"?</span
+          >
+        </p>
+        <ul class="opts">
+          <li>আপত্তি নেই / No objection</li>
+          <li>আপত্তি আছে (নিচে লিখুন) / An objection (write below)</li>
+        </ul>
+        <div class="lines"><div></div></div>
+      </div>
+      <div class="q">
+        <span class="who">আইনজীবী + শরিয়াহ / Lawyer + Shariah</span>
+        <p>
+          <span class="num">৫.</span> অন্য কোনো শর্ত বা সতর্কতা?<br /><span
+            class="en"
+            >5. Any other condition or caution?</span
+          >
+        </p>
+        <div class="lines">
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+      </div>
+
+      <h2>স্বাক্ষর <span class="en">· Signatures</span></h2>
+      <div class="signs" style="grid-template-columns: 1fr 1fr">
+        <div>
+          আইনজীবী — নাম, স্বাক্ষর, তারিখ<br /><span class="en">Lawyer</span>
+        </div>
+        <div>
+          শরিয়াহ বিশেষজ্ঞ — নাম, স্বাক্ষর, তারিখ<br /><span class="en"
+            >Shariah scholar</span
+          >
+        </div>
+      </div>
+
+      <p class="foot">
+        উত্তর পাওয়া পর্যন্ত সফটওয়্যারে এটি বন্ধ থাকবে; মালিক নিজে চালু করবেন।
+        <br />Until answered it stays switched off in the farm's software; the
+        Owner turns it on.
+      </p>
+    </main>
+  </body>
+</html>

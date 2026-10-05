@@ -279,6 +279,10 @@ export const farm = pgTable("farm", {
    *  portal, the Owner approving — instead of on stamped paper. Off until the Owner turns it on, once the lawyer and
    *  the Shariah scholar have confirmed it. The Owner's alone. */
   agreementsInApp: boolean("agreements_in_app").notNull().default(false),
+  /** Whether an Investor may send a **Pay-in Note** from the portal — their word that they sent money towards an
+   *  Agreement, which the Owner checks against the Venture Account and records, or answers not found (ADR 0018). It
+   *  moves no money. Off until the Owner turns it on, once the lawyer and the Shariah scholar have seen it. */
+  payInNotes: boolean("pay_in_notes").notNull().default(false),
   /** Whether Investors are shown a settled Venture's **Return on Capital** in the portal and on their হিসাব নিকাশ — a
    *  share over its days, never a rate a year (ADR 0012). Off until the Owner turns it on, once the lawyer and the
    *  Shariah scholar have seen its wording; the Owner's Portal Preview shows it either way. */

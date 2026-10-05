@@ -237,6 +237,8 @@ export const investorsRouter = {
         projectionsShown: context.farm.investorProjections,
         /** Whether Agreements and Amendments may be agreed within the app. */
         agreementsInApp: context.farm.agreementsInApp,
+        /** Whether an Investor may send a Pay-in Note from the portal (ADR 0018). */
+        payInNotes: context.farm.payInNotes,
         /** Whether invited Investors are shown a settled Venture's Return on Capital (ADR 0012). */
         returnsShown: context.farm.investorReturns,
         people: rows.map((one) => ({
@@ -550,6 +552,34 @@ export const investorsRouter = {
           tx
             .update(farm)
             .set({ agreementsInApp: input.shown })
+            .where(eq(farm.id, context.farm.id))
+      );
+      return { shown: input.shown };
+    }),
+
+  /**
+   * Lets an Investor send a **Pay-in Note** from the portal — their word that they sent money towards one of their
+   * Agreements, for the Owner to check against the Venture Account — or stops it (ADR 0018). It moves no money and
+   * records no capital. Off until the Owner turns it on, once the lawyer and the Shariah scholar have seen it. The
+   * Owner's alone.
+   */
+  setPayInNotes: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ shown: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      await audited(context).write(
+        {
+          entity: "farm",
+          entityId: context.farm.id,
+          action: "update",
+          before: { payInNotes: context.farm.payInNotes },
+          after: { payInNotes: input.shown },
+        },
+        (tx) =>
+          tx
+            .update(farm)
+            .set({ payInNotes: input.shown })
             .where(eq(farm.id, context.farm.id))
       );
       return { shown: input.shown };

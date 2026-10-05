@@ -183,6 +183,8 @@ export interface Context {
     investorReturns: boolean;
     /** Whether Agreements and Amendments may be agreed within the app, instead of on stamped paper. */
     agreementsInApp: boolean;
+    /** Whether an Investor may send a Pay-in Note from the portal (ADR 0018). */
+    payInNotes: boolean;
     /** The market price a kilo of live weight, low and high, as the Owner last judged it; nothing until set. */
     marketLowMoneyPerKg: number | null;
     marketHighMoneyPerKg: number | null;

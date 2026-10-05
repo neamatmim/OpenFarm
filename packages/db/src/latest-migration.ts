@@ -3,4 +3,4 @@
  * database whether it has applied this one: an app built for a table the database does not have yet is not ready,
  * however well the database answers. A test fails when a new migration is generated and this is not moved on.
  */
-export const LATEST_MIGRATION = "20261004223316_moments_carry_their_zone";
+export const LATEST_MIGRATION = "20261005122611_pay_in_notes_switch";
