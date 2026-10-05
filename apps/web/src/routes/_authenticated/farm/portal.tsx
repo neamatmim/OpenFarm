@@ -12,8 +12,8 @@ import { orpc } from "@/utils/orpc";
 
 /**
  * What invited Investors see, the Owner's alone: whether the portal is open at all, and whether it shows projections,
- * settled returns and Agreements to agree in the app. Set once and read rarely, so they live with the farm's settings
- * rather than over the list of Investors.
+ * settled returns, Agreements to agree in the app and Pay-in Notes. Set once and read rarely, so they live with the
+ * farm's settings rather than over the list of Investors.
  */
 const PortalSettingsPage = () => {
   const { t } = useLanguage();
@@ -45,6 +45,11 @@ const PortalSettingsPage = () => {
               <ShownToInvestorsSwitch
                 shown={standing.agreementsInApp ?? false}
                 what="agreements"
+              />
+              {/* Missing from an answer kept from before Pay-in Notes: off. */}
+              <ShownToInvestorsSwitch
+                shown={standing.payInNotes ?? false}
+                what="payInNotes"
               />
             </div>
           </Section>

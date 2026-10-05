@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "pay_in_notes" boolean DEFAULT false NOT NULL;

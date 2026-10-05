@@ -313,6 +313,18 @@ const SHOWN = {
     shownDone: "returns.switch.shownDone",
     hiddenDone: "returns.switch.hiddenDone",
   },
+  payInNotes: {
+    set: orpc.investors.setPayInNotes,
+    title: "payInNote.switch.title",
+    show: "payInNote.switch.show",
+    hide: "payInNote.switch.hide",
+    shownHint: "payInNote.switch.shownHint",
+    hiddenHint: "payInNote.switch.hiddenHint",
+    confirmTitle: "payInNote.switch.confirmTitle",
+    confirmWhy: "payInNote.switch.confirmWhy",
+    shownDone: "payInNote.switch.shownDone",
+    hiddenDone: "payInNote.switch.hiddenDone",
+  },
 } as const;
 
 type Shown = keyof typeof SHOWN;
