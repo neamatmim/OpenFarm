@@ -225,15 +225,18 @@ const OneAdjustment = ({
             {t("ventures.theFarmMadeItGood")}
           </p>
           {/* What each man actually got, not only what the act came to: it is his own figure he will
-              ask about. */}
-          {shares.map((one) => (
-            <div className="flex justify-between gap-2" key={one.agreementId}>
-              <span className="text-muted-foreground">{one.name}</span>
-              <span className="tabular-nums">
-                {asMoney(adjustment.perUnitPaidMoney * one.units)}
-              </span>
-            </div>
-          ))}
+              ask about. Not the Farm's own Units, sent nothing — the Farm paying itself moves nothing; an answer cached
+              before the Farm could hold Units says none are its own. */}
+          {shares
+            .filter((one) => !(one.farmsOwn ?? false))
+            .map((one) => (
+              <div className="flex justify-between gap-2" key={one.agreementId}>
+                <span className="text-muted-foreground">{one.name}</span>
+                <span className="tabular-nums">
+                  {asMoney(adjustment.perUnitPaidMoney * one.units)}
+                </span>
+              </div>
+            ))}
         </div>
       ) : null}
       {adjustment.outcome === "outstanding" ? (
@@ -306,7 +309,9 @@ export const Adjustments = ({
             onPay={() =>
               onPay({
                 adjustmentId: one.id,
-                amountMoney: one.perUnitToPayMoney * approved.units,
+                // What the farm will book, the Investors' Units alone; an answer cached before it was said works it out.
+                amountMoney:
+                  one.toPayMoney ?? one.perUnitToPayMoney * approved.units,
               })
             }
             onWaive={() => onWaive(one.id)}

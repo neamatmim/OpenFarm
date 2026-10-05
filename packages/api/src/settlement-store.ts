@@ -26,7 +26,11 @@ import { NEVER_CHECKED } from "./bank-standing";
 import { heldSalesOf } from "./cash-store";
 import type { CarriedLine, FarmCosts } from "./cost-store";
 import { chargedTo, farmCosts, owedByMonth } from "./cost-store";
-import { adjustmentsOf } from "./settlement-adjustment-store";
+import { farmsOwnOf } from "./farm-capital-store";
+import {
+  adjustmentsOf,
+  whatAnAdjustmentSends,
+} from "./settlement-adjustment-store";
 import {
   balanceOf,
   bankStandingOf,
@@ -741,6 +745,12 @@ export const readSettlement = async (
   }
   const { row, shares } = approved;
   const nameOf = await namesOf(tx, farmId, shares);
+  const itsOwn = await farmsOwnOf(
+    tx,
+    farmId,
+    shares.map((one) => one.agreementId)
+  );
+  const adjustments = await adjustmentsOf(tx, farmId, row.id);
   return {
     approvedAt: row.approvedAt,
     proceedsMoney: row.proceedsMoney,
@@ -773,11 +783,20 @@ export const readSettlement = async (
       paidMovementId: one.paidMovementId,
       acknowledgedAt: one.acknowledgedAt,
       acknowledgedNote: one.acknowledgedNote,
+      /** The Farm's own Units: paid like anyone's at Settlement, and sent nothing by an Adjustment. */
+      farmsOwn: itsOwn.has(one.agreementId),
     })),
     /** Whether everything it owed has gone out, which is what makes the Venture Settled. */
     allPaid: nothingLeftToPay(row, shares),
-    /** What has landed late since, and what was done about each of them. */
-    adjustments: await adjustmentsOf(tx, farmId, row.id),
+    /** What has landed late since, and what was done about each of them — with what one would send now, in all. */
+    adjustments: adjustments.map((one) => ({
+      ...one,
+      toPayMoney: whatAnAdjustmentSends(
+        one.perUnitToPayMoney,
+        shares,
+        itsOwn
+      ).reduce((sum, his) => sum + his.amountMoney, 0),
+    })),
   };
 };
 

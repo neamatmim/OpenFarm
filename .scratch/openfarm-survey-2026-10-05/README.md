@@ -37,6 +37,6 @@ A paid-by-the-month Venture moves to selling on its first Sale (`reachesSellingO
 | Group | Branch | Status |
 | ----- | ------ | ------ |
 | A     | fix/made-good-found | Done   |
-| B     |        |        |
+| B     | fix/adjustment-amount | Done   |
 | C     |        |        |
 | D     |        |        |

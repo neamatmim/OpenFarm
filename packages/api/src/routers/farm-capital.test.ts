@@ -309,7 +309,7 @@ describe("the Farm's own Units at Settlement", () => {
       ...PAID_FROM_THE_ACCOUNT,
     });
     const { client: selling } = await at("2096-01-10T06:00:00.000Z");
-    await selling.sales.record({
+    const sold = await selling.sales.record({
       tagNumber: bull.tagNumber,
       buyer: { name: `কসাই ${suffix}` },
       destination: "গাবতলী",
@@ -392,6 +392,49 @@ describe("the Farm's own Units at Settlement", () => {
         },
       ])
     );
+
+    // The Investor paid too, then the buyer makes up ৳20,000: ৳12,000 more to the Units, ৳600 a Unit. The Farm's own
+    // ten would be the Farm paying itself, so only the Investor's ten are sent — ৳6,000, and the screen is told so.
+    await settling.ventures.settlement.pay({
+      ventureId: venture.id,
+      agreementId: theirs,
+      amountMoney: 506_000,
+      movedOn: "2096-01-15",
+      paymentMethod: "bank",
+      reference: `INV-BACK-${suffix}`,
+    });
+    const { client: late } = await at("2096-02-01T06:00:00.000Z");
+    await late.farm.setParameters({ adjustmentThresholdMoney: 1000 });
+    await late.sales.correct({
+      id: sold.id,
+      reason: `ক্রেতা বাকি টাকা দিয়েছে ${suffix}`,
+      changes: { priceMoney: { from: 100_000, to: 120_000 } },
+    });
+    const raised = await late.ventures.settlement.adjustments.raise({
+      ventureId: venture.id,
+      reason: `বিক্রির দাম সংশোধন ${suffix}`,
+    });
+    const owed = await late.ventures.settlement.approved({
+      ventureId: venture.id,
+    });
+    expect(
+      owed?.adjustments.find((one) => one.id === raised.id)?.toPayMoney
+    ).toBe(6000);
+    expect(owed?.shares.map((one) => [one.agreementId, one.farmsOwn])).toEqual(
+      expect.arrayContaining([
+        [farms.id, true],
+        [theirs, false],
+      ])
+    );
+    const sent = await late.ventures.settlement.adjustments.pay({
+      ventureId: venture.id,
+      adjustmentId: raised.id,
+      movedOn: "2096-02-01",
+      paymentMethod: "bank",
+      reference: `ADJ-${suffix}`,
+      farmAccountId: current.id,
+    });
+    expect(sent.paidMoney).toBe(6000);
   });
 });
 
