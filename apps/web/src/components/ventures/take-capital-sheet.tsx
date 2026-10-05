@@ -89,21 +89,45 @@ const whatTheChoiceSays = ({
 export const TakeCapitalSheet = ({
   venture,
   agreementId = null,
+  fromNote = null,
   open,
   onOpenChange,
 }: {
   venture: { id: string; name: string } | null;
   /** Opened from one Investor's row: his paper, chosen already. */
   agreementId?: string | null;
+  /** Opened from an Investor's Pay-in Note (ADR 0018): what it says, filled in for the Owner to check against the
+   *  statement, and the note answered received once the capital is recorded. */
+  fromNote?: {
+    id: string;
+    investor: string;
+    agreementId: string;
+    amountMoney: number;
+    sentOn: string;
+    reference: string;
+  } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
   const refused = useRefused();
   const [arrival, setArrival] = useState<Arrival>(NOTHING_YET);
-  // A new subject is another Venture or another man's paper: what was typed for one is not the other's.
-  useFreshFor(venture ? `${venture.id}:${agreementId ?? ""}` : undefined, () =>
-    setArrival({ ...NOTHING_YET, agreementId: agreementId ?? "" })
+  /** What the sheet starts from: what a note says, or his paper alone, or nothing. */
+  const startingFrom = (): Arrival =>
+    fromNote
+      ? {
+          agreementId: fromNote.agreementId,
+          amountMoney: String(fromNote.amountMoney),
+          movedOn: fromNote.sentOn,
+          reference: fromNote.reference,
+        }
+      : { ...NOTHING_YET, agreementId: agreementId ?? "" };
+  // A new subject is another Venture, another man's paper or another note: what was typed for one is not the other's.
+  useFreshFor(
+    venture
+      ? `${venture.id}:${agreementId ?? ""}:${fromNote?.id ?? ""}`
+      : undefined,
+    () => setArrival(startingFrom())
   );
   const agreements = useQuery({
     ...orpc.ventures.agreements.list.queryOptions({
@@ -117,7 +141,7 @@ export const TakeCapitalSheet = ({
     orpc.ventures.takeCapital.mutationOptions({
       onError: refused,
       onSuccess: () => {
-        setArrival({ ...NOTHING_YET, agreementId: agreementId ?? "" });
+        setArrival(startingFrom());
         onOpenChange(false);
         toast.success(t("ventures.capitalTaken"));
       },
@@ -171,6 +195,7 @@ export const TakeCapitalSheet = ({
           movedOn: arrival.movedOn,
           paymentMethod: "bank",
           reference: arrival.reference,
+          ...(fromNote ? { payInNoteId: fromNote.id } : {}),
         })
       }
       open={open}
@@ -179,6 +204,11 @@ export const TakeCapitalSheet = ({
       submitLabel={t("ventures.takeCapital")}
       title={t("ventures.takeCapital")}
     >
+      {fromNote ? (
+        <p className="bg-muted/50 rounded-lg p-3 text-sm">
+          {t("ventures.payIn.fromNote", { investor: fromNote.investor })}
+        </p>
+      ) : null}
       <FormField
         hint={t("ventures.referenceHint")}
         id="capital-reference"

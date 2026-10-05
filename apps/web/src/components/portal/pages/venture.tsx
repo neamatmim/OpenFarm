@@ -29,6 +29,7 @@ import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { FiguresAsAt } from "@/components/portal/figures-as-at";
 import { HowToPay } from "@/components/portal/how-to-pay";
+import { PayInNotes, waitingMoneyOf } from "@/components/portal/pay-in-notes";
 import { PortalPapers } from "@/components/portal/portal-papers";
 import { VentureSkeleton } from "@/components/portal/portal-skeletons";
 import {
@@ -684,7 +685,17 @@ const VentureToday = ({
       {/* An answer this phone kept from before the portal could say it has none. */}
       <OnTheirCapital returned={mine?.returnOnCapital ?? null} />
       {/* While their capital is owed. An answer this phone kept from before the farm said where to pay has none. */}
-      <HowToPay paying={today.howToPay ?? null} />
+      <HowToPay
+        paying={today.howToPay ?? null}
+        waitingMoney={waitingMoneyOf(today.payIn)}
+      />
+      {/* What they have told the farm they sent, and a way to tell it more (ADR 0018). An answer this phone kept from
+          before the portal took these notes has none. */}
+      <PayInNotes
+        agreementId={today.agreementId}
+        paying={today.howToPay ?? null}
+        payIn={today.payIn}
+      />
       {/* An answer this phone kept from before the portal could show one has none. */}
       <HisProjectionSection projection={today.projection ?? null} />
       <PageTabs

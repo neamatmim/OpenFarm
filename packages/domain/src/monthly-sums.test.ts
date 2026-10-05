@@ -204,6 +204,20 @@ describe("where an Agreement stands against its Monthly Sums", () => {
     });
   });
 
+  it("says as next the first sum still unpaid, not one paid ahead", () => {
+    // February paid, and April's sent early with March's: the next he owes is May's.
+    expect(standing(142_500, "2074-02-20")).toMatchObject({
+      dueMoney: 0,
+      next: { dueOn: "2074-05-10", amount: 7500 },
+    });
+    // Part of March's sent early: the rest of it is what is next.
+    expect(standing(130_000, "2074-02-20")).toMatchObject({
+      next: { dueOn: "2074-03-10", amount: 5000 },
+    });
+    // Every sum paid ahead: nothing is next.
+    expect(standing(150_000, "2074-02-20")).toMatchObject({ next: null });
+  });
+
   it("has no next sum once the last is due, and owes nothing once all is paid", () => {
     expect(standing(150_000, "2074-05-20")).toEqual({
       owedMoney: 0,

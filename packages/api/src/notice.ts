@@ -126,6 +126,9 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   // Who has asked to put money in is the Owner's business alone, as every Investor is: the Manager reads no Request
   // (ADR 0008). Work waiting for her, not a Needs Review, which is the system unable to settle something.
   join_requested: { audience: [theOwner], entity: "request_to_join" },
+  // Money an Investor says they sent is the Owner's to look for in the Venture Account and record: hers alone, as every
+  // Investor's money is (ADR 0018).
+  pay_in_note_sent: { audience: [theOwner], entity: "pay_in_note" },
   // The Manager rings the buyer; the Owner answers for whom the farm lends to. About the one Sale or Dispatch gone past
   // its day, so each is told once however many mornings it stays late.
   receivable_overdue: {

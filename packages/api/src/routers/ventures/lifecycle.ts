@@ -8,6 +8,7 @@ import {
   mayMoveTo,
   monthlyTermsOf,
   roundMoney,
+  takesCapital,
   towardsTheFloor,
 } from "@OpenFarm/domain";
 // The Venture router's part for opening a Venture, showing it, its plan and projection, and moving it through its life.
@@ -22,6 +23,7 @@ import { farmDay } from "../../farm-clock";
 import { protectedProcedure } from "../../index";
 import { tellTheOwnerAPaperIsDue } from "../../investor-statement-notice";
 import { missedByEach } from "../../monthly-sums-store";
+import { closePayInNotes } from "../../pay-in-notes";
 import { projectionBasisOf, projectionOf } from "../../projection-store";
 import { owedTheFarmByEach } from "../../reimbursement-store";
 import {
@@ -188,6 +190,18 @@ const moveTo = async (
         await assertReadyToBuy(tx, context.farm.id, standing);
       }
       await tx.update(venture).set({ state: to }).where(eq(venture.id, row.id));
+      // Taking no more capital — one paid before buying once it buys, one paid by the month once it sells: a note of
+      // money sent is waiting for nothing the farm can still record (ADR 0018).
+      if (!takesCapital({ ...standing, state: to })) {
+        await closePayInNotes(
+          tx,
+          auditing.recordEvent,
+          context.farm.id,
+          { ventureId: row.id },
+          "venture_takes_no_capital",
+          context.clock.now()
+        );
+      }
       // No longer gathering capital: nothing asked for it, or promised on it, is waiting any more.
       if (to === "buying") {
         await closeRequests(
@@ -808,6 +822,15 @@ export const lifecycleProcedures = {
             context.farm.id,
             { ventureId: row.id },
             "venture_cancelled",
+            now
+          );
+          // And every note of money sent towards it: what came in has gone back above.
+          await closePayInNotes(
+            tx,
+            auditing.recordEvent,
+            context.farm.id,
+            { ventureId: row.id },
+            "venture_takes_no_capital",
             now
           );
         }

@@ -8,6 +8,14 @@ import {
 } from "../amendment-offer-store";
 import { protectedProcedure, publicProcedure } from "../index";
 import {
+  changePayInNote,
+  payInNoteChangeInput,
+  payInNoteInput,
+  sendPayInNote,
+  theirPayInNotes,
+  withdrawPayInNote,
+} from "../pay-in-notes";
+import {
   PORTAL_PAPER_KINDS,
   theirOpenVentures,
   theirOwnRequests,
@@ -148,6 +156,36 @@ export const portalRouter = {
       await withdrawRequest(context, context.investor.id, input.requestId);
       return { id: input.requestId };
     }),
+
+  /**
+   * Saying they sent money towards one of their own Agreements, outside the portal (ADR 0018): how much, the day, the
+   * way, the reference, and a photo of the slip if they like. It moves no money and records no capital; the Owner is
+   * told at once and checks the Venture Account. Refused while the farm's switch is off.
+   */
+  sendPayInNote: investorProcedure
+    .input(payInNoteInput)
+    .handler(({ context, input }) =>
+      sendPayInNote(context, context.investor.id, input)
+    ),
+
+  /** Changing their own note while it waits for the Owner. */
+  changePayInNote: investorProcedure
+    .input(payInNoteChangeInput)
+    .handler(({ context, input }) =>
+      changePayInNote(context, context.investor.id, input)
+    ),
+
+  /** Withdrawing their own note while it waits: sent twice, or the money never went. */
+  withdrawPayInNote: investorProcedure
+    .input(z.object({ noteId: z.string() }))
+    .handler(({ context, input }) =>
+      withdrawPayInNote(context, context.investor.id, input.noteId)
+    ),
+
+  /** Their own Pay-in Notes, the latest first, and where each stands. */
+  payInNotes: investorProcedure.handler(({ context }) =>
+    theirPayInNotes(context.db, context.farm.id, context.investor.id)
+  ),
 
   /** Their own Requests to Join and where each stands (`theirOwnRequests`). */
   requests: investorProcedure.handler(({ context }) =>

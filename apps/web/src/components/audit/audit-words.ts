@@ -79,6 +79,7 @@ export const ENTITIES = [
   "lot",
   "treatment",
   "request_to_join",
+  "pay_in_note",
   "receivable",
   "missing",
   "farm_day",

@@ -14,7 +14,8 @@ import { toast } from "@/lib/toast";
  * screens had written their own way round that and three had not, so this is the one way round it.
  *
  * The input keeps `capture="environment"`, which is what makes a phone open its camera rather than a
- * file browser: every one of these is a photograph somebody takes standing in front of the thing.
+ * file browser: almost every one of these is a photograph somebody takes standing in front of the thing. The one
+ * that is not — a screenshot of a transfer — says so with `fromCamera`.
  */
 export const PhotoField = ({
   id,
@@ -22,6 +23,7 @@ export const PhotoField = ({
   onPhoto,
   takeLabel,
   disabled = false,
+  fromCamera = true,
 }: {
   id: string;
   /** Whether a photo is on, so the line beside the button can say so. */
@@ -30,6 +32,9 @@ export const PhotoField = ({
   /** What the button says. The words differ — a stamped paper, a receipt, a certificate. */
   takeLabel: MessageKey;
   disabled?: boolean;
+  /** False for a picture somebody already has — a screenshot of a transfer — which a phone told to open its camera
+   *  would not let them choose. */
+  fromCamera?: boolean;
 }) => {
   const { t } = useLanguage();
   return (
@@ -51,7 +56,7 @@ export const PhotoField = ({
       </p>
       <input
         accept="image/*"
-        capture="environment"
+        capture={fromCamera ? "environment" : undefined}
         className="sr-only"
         disabled={disabled}
         id={id}

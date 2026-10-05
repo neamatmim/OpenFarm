@@ -348,3 +348,134 @@ export const settlementAdjustment = pgTable(
     ),
   ]
 );
+
+/** How an Investor says they sent money towards an Agreement: by bank — a transfer, a cheque or a deposit slip — or
+ *  by Mobile Money sent into the Venture Account, which lands there as the bank's own credit (ADR 0018). Mirrored in the
+ *  domain, for the screens; a test holds them together. */
+export const PAY_IN_WAYS = [
+  "bank_transfer",
+  "cheque",
+  "deposit_slip",
+  "mobile_money",
+] as const;
+
+/**
+ * Where a Pay-in Note stands. Waiting for the Owner to look at the Venture Account; received, the Owner having recorded
+ * the capital from it; not found, with the Owner's line; withdrawn by the Investor; or closed by the farm when nothing
+ * is owed on the Agreement any more, or its Venture takes no more capital, or the Investor was retired. Never deleted.
+ */
+export const PAY_IN_NOTE_STATES = [
+  "waiting",
+  "received",
+  "not_found",
+  "withdrawn",
+  "closed",
+] as const;
+
+/** Why the farm closed a Pay-in Note nobody answered: nothing left owing on its Agreement, its Venture taking no more
+ *  capital, or its Investor retired. */
+export const PAY_IN_CLOSE_REASONS = [
+  "nothing_owed",
+  "venture_takes_no_capital",
+  "investor_retired",
+] as const;
+
+/** What an Investor did to their own Pay-in Note, kept beneath it. */
+export const PAY_IN_CHANGE_KINDS = ["sent", "changed", "withdrawn"] as const;
+
+/**
+ * A **Pay-in Note**: an Investor's word, from the portal, that they sent money towards one of their Agreements outside
+ * it — how much, the day, the way and the reference the bank or the provider gave. It moves no money and records no
+ * capital; the Owner checks the Venture Account and records the capital from it, or answers not found (ADR 0018).
+ */
+export const payInNote = pgTable(
+  "pay_in_note",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    ventureId: text("venture_id")
+      .notNull()
+      .references(() => venture.id),
+    agreementId: text("agreement_id")
+      .notNull()
+      .references(() => investmentAgreement.id),
+    investorId: text("investor_id")
+      .notNull()
+      .references(() => investor.id),
+    /** What they say they sent, as it stands now. */
+    amountMoney: numericMoney("amount_money").notNull(),
+    /** The day they say it went, on the farm's own clock. */
+    sentOn: text("sent_on").notNull(),
+    way: text("way", { enum: PAY_IN_WAYS }).notNull(),
+    /** The reference the bank or the provider gave: the transfer's, the cheque's number, the slip's, the TrxID. */
+    reference: text("reference").notNull(),
+    state: text("state", { enum: PAY_IN_NOTE_STATES })
+      .notNull()
+      .default("waiting"),
+    /** The account that sent it: the Investor's own. */
+    sentBy: text("sent_by").references(() => user.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    /** The capital the Owner recorded from it, for one received. */
+    movementId: text("movement_id").references(() => ventureMovement.id),
+    /** For "not found", the Owner's line to the Investor. */
+    answerLine: text("answer_line"),
+    answeredBy: text("answered_by").references(() => user.id),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    /** Why and when the farm closed it, for one closed by what happened to the Agreement, the Venture or the Investor. */
+    closedBecause: text("closed_because", { enum: PAY_IN_CLOSE_REASONS }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+  },
+  (table) => [
+    check(
+      "pay_in_note_sent_on_day",
+      sql`${table.sentOn} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`
+    ),
+    check("pay_in_note_amount_above_nothing", sql`${table.amountMoney} > 0`),
+    index("pay_in_note_venture_idx").on(table.farmId, table.ventureId),
+    index("pay_in_note_agreement_idx").on(table.agreementId),
+    // One capital movement answers one note: the same money is not received twice.
+    uniqueIndex("pay_in_note_movement_uidx")
+      .on(table.movementId)
+      .where(sql`${table.movementId} is not null`),
+  ]
+);
+
+/** What the Investor did to their own Pay-in Note, each kept with what it said then — so "I said fifty thousand, not
+ *  five" has an answer. */
+export const payInNoteChange = pgTable(
+  "pay_in_note_change",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    noteId: text("note_id")
+      .notNull()
+      .references(() => payInNote.id),
+    kind: text("kind", { enum: PAY_IN_CHANGE_KINDS }).notNull(),
+    amountMoney: numericMoney("amount_money").notNull(),
+    sentOn: text("sent_on").notNull(),
+    way: text("way", { enum: PAY_IN_WAYS }).notNull(),
+    reference: text("reference").notNull(),
+    madeBy: text("made_by").references(() => user.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [index("pay_in_note_change_idx").on(table.farmId, table.noteId)]
+);
+
+/** The photo of the slip or the screenshot an Investor sent with their Pay-in Note, if they sent one: kept apart from
+ *  the note, so a list of notes never carries the pictures. */
+export const payInNotePhoto = pgTable("pay_in_note_photo", {
+  noteId: text("note_id")
+    .primaryKey()
+    .references(() => payInNote.id),
+  farmId: text("farm_id")
+    .notNull()
+    .references(() => farm.id, { onDelete: "cascade" }),
+  contentType: text("content_type").notNull(),
+  /** Downscaled on the device before upload, base64. */
+  data: text("data").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+});

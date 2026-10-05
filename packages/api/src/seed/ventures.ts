@@ -12,6 +12,7 @@ import {
   portalClientOf,
 } from "./runtime";
 import { CATTLE_BUYERS, breedIdNamed, daysBetween } from "./shared";
+import { A_SLIP_PHOTO } from "./slip-photo";
 import type { Farm } from "./standing";
 import { paidBy } from "./standing";
 
@@ -739,14 +740,12 @@ export const openTheVentures = async (
 };
 
 /**
- * One of the farm's Investors let into the portal, taking the invitation up with the seed's password, and asking to
- * join a Venture the farm is showing. Answers with the Request's id.
+ * One of the farm's Investors let into the portal, taking the invitation up with the seed's password. Answers with the
+ * address they sign in with, for a portal client on whatever day they next come back.
  */
-const anInvestorAsks = async (
+const letIntoThePortal = async (
   f: Farm,
-  who: (typeof INVESTORS)[number],
-  ventureId: string,
-  asked: { units: number; note: string }
+  who: (typeof INVESTORS)[number]
 ): Promise<string> => {
   const them = await f.db.query.investor.findFirst({
     where: { farmId: f.farmId, name: who.name, phone: who.phone },
@@ -764,9 +763,144 @@ const anInvestorAsks = async (
     code,
     password: SEED_PASSWORD,
   });
+  return loginEmail;
+};
+
+/**
+ * One of the farm's Investors let into the portal, asking to join a Venture the farm is showing. Answers with the
+ * Request's id.
+ */
+const anInvestorAsks = async (
+  f: Farm,
+  who: (typeof INVESTORS)[number],
+  ventureId: string,
+  asked: { units: number; note: string }
+): Promise<string> => {
+  const loginEmail = await letIntoThePortal(f, who);
   const investor = await portalClientOf(f.db, loginEmail, f.clock);
   const { id } = await investor.portal.requestToJoin({ ventureId, ...asked });
   return id;
+};
+
+/**
+ * Pay-in Notes on the monthly Venture (ADR 0018), with the switch on — so both sides have every state to show. The one
+ * who pays on time sends next month's sum early and says so, sends the note twice by mistake and withdraws the second,
+ * and the Owner records the money from the first. The one behind says he sent the missed month by bKash; the Owner
+ * cannot find it and says so; he sends a fresh note with the screenshot, which is waiting for her today.
+ */
+const tellOfMoneySent = (
+  farm: Farm,
+  on: (day: string, time: string, what: string, run: Happening["run"]) => void,
+  {
+    onTime,
+    behind,
+    ahead,
+    missed,
+  }: {
+    onTime: { who: (typeof INVESTORS)[number]; units: number; id: string };
+    behind: { who: (typeof INVESTORS)[number]; units: number; id: string };
+    ahead: { dueOn: string; amount: number } | null;
+    missed: { dueOn: string; amount: number } | null;
+  }
+) => {
+  const { today } = farm;
+  const signIn: Record<"onTime" | "behind", string> = {
+    onTime: "",
+    behind: "",
+  };
+  const portalOf = (f: Farm, whose: "onTime" | "behind") =>
+    portalClientOf(f.db, signIn[whose], f.clock);
+  let early = "";
+  let notFound = "";
+  on(
+    addDays(today, -4),
+    "09:00",
+    "the monthly Venture's Investors are let into the portal",
+    async (f) => {
+      await f.as.owner.investors.setPortalOpen({ open: true });
+      await f.as.owner.investors.setPayInNotes({ shown: true });
+      signIn.onTime = await letIntoThePortal(f, onTime.who);
+      signIn.behind = await letIntoThePortal(f, behind.who);
+    }
+  );
+  if (ahead) {
+    on(
+      addDays(today, -4),
+      "19:30",
+      "next month's sum is sent early",
+      async (f) => {
+        const investor = await portalOf(f, "onTime");
+        const said = {
+          agreementId: onTime.id,
+          amountMoney: onTime.units * ahead.amount,
+          sentOn: addDays(today, -4),
+          way: "bank_transfer" as const,
+          reference: `BEFTN TRF-${f.random.int(100_000, 999_999)}`,
+        };
+        const sent = await investor.portal.sendPayInNote(said);
+        early = sent.id;
+        // Sent twice by mistake, and taken back at once.
+        const twice = await investor.portal.sendPayInNote(said);
+        await investor.portal.withdrawPayInNote({ noteId: twice.id });
+      }
+    );
+    on(
+      addDays(today, -3),
+      "10:30",
+      "the early sum is found and recorded",
+      async (f) => {
+        await f.as.owner.ventures.takeCapital({
+          agreementId: onTime.id,
+          amountMoney: onTime.units * ahead.amount,
+          movedOn: addDays(today, -4),
+          paymentMethod: "bank",
+          reference: `BEFTN TRF-${f.random.int(100_000, 999_999)}`,
+          payInNoteId: early,
+        });
+      }
+    );
+  }
+  if (missed) {
+    const owed = behind.units * missed.amount;
+    on(
+      addDays(today, -3),
+      "18:00",
+      "the missed month is said sent",
+      async (f) => {
+        const investor = await portalOf(f, "behind");
+        const sent = await investor.portal.sendPayInNote({
+          agreementId: behind.id,
+          amountMoney: owed,
+          sentOn: addDays(today, -3),
+          way: "mobile_money",
+          reference: `TrxID ${f.random.int(10_000_000, 99_999_999)}`,
+        });
+        notFound = sent.id;
+      }
+    );
+    on(addDays(today, -2), "10:00", "the Owner cannot find it", async (f) => {
+      await f.as.owner.ventures.payInNotes.notFound({
+        noteId: notFound,
+        line: "ভেঞ্চার হিসাবে এখনো আসেনি — বিকাশের স্ক্রিনশটটা পাঠাবেন।",
+      });
+    });
+    on(
+      addDays(today, -1),
+      "19:00",
+      "it is said sent again, with the screenshot",
+      async (f) => {
+        const investor = await portalOf(f, "behind");
+        await investor.portal.sendPayInNote({
+          agreementId: behind.id,
+          amountMoney: owed,
+          sentOn: addDays(today, -1),
+          way: "mobile_money",
+          reference: `TrxID ${f.random.int(10_000_000, 99_999_999)}`,
+          photo: A_SLIP_PHOTO,
+        });
+      }
+    );
+  }
 };
 
 /**
@@ -805,6 +939,15 @@ const payTheMonthlyVenture = (
       capitalPaid: "by_the_month",
     });
     ventureId = venture.id;
+    // Where its Investors are told to pay their Monthly Sums: the portal names no other account.
+    await f.as.owner.ventures.setBankAccount({
+      id: ventureId,
+      bank: "ইসলামী ব্যাংক বাংলাদেশ পিএলসি",
+      branch: "সাভার শাখা",
+      accountName: "মোঃ আব্দুল করিম — মাসে মাসে ২০২৭ ভেঞ্চার",
+      accountNumber: "2050.1230.0187654",
+      routingNumber: "125264718",
+    });
     for (const [index, one] of [onTime, behind].entries()) {
       const signed = await signOn(f, ventureId, one.who, {
         units: one.units,
@@ -836,6 +979,12 @@ const payTheMonthlyVenture = (
       }
     });
   }
+  tellOfMoneySent(farm, on, {
+    onTime,
+    behind,
+    ahead: sums.find((one) => one.dueOn > today) ?? null,
+    missed: missed ?? null,
+  });
 };
 
 /**

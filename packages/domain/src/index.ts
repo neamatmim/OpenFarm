@@ -736,6 +736,20 @@ export type {
 } from "./animal-price";
 export { projectedSettlement } from "./projection";
 export type { Projected, ProjectedEnd, ToProject } from "./projection";
+export type {
+  PayInCloseReason,
+  PayInNoteState,
+  PayInWay,
+} from "./pay-in-notes";
+export {
+  PAY_IN_CLOSE_REASONS,
+  PAY_IN_LINE_MOST,
+  PAY_IN_NOTE_STATES,
+  PAY_IN_REFERENCE_MOST,
+  PAY_IN_WAYS,
+  isWaitingNote,
+  roomForANote,
+} from "./pay-in-notes";
 export type { RequestCloseReason, RequestToJoinState } from "./request-to-join";
 export {
   ANSWERED_REQUEST_STATES,

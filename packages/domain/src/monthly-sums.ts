@@ -181,7 +181,8 @@ export interface SumsStanding {
   /** Of what is due, what fell due more than SUM_MISSED_AFTER_DAYS before the day: missed. It may still be paid until
    *  the selling starts. */
   missedMoney: number;
-  /** The next Monthly Sum not yet due — its day and what his Units pay on it — or nothing once none is left. */
+  /** The next Monthly Sum not yet due and not yet paid — its day and what of it his Units still pay, all of it unless
+   *  some was sent ahead — or nothing once none is left. */
   next: MonthlySum | null;
   /** How many of the Monthly Sums his payments have cleared, whole, oldest first; and how many there are. */
   sumsPaid: number;
@@ -216,13 +217,20 @@ export const sumsStandingOf = ({
         .filter((one) => passed(one.dueOn))
         .reduce((sum, one) => sum + one.amount, 0));
   const missedBefore = addDays(today, -SUM_MISSED_AFTER_DAYS);
-  const upcoming = monthly.sums.find((one) => one.dueOn > today);
   // Each sum is cleared once everything due up to it is paid: the Cattle Part first, then the sums in their order.
   let reached = units * monthly.cattlePartMoney;
   const cleared = monthly.sums.map((one) => {
     reached += units * one.amount;
-    return { dueOn: one.dueOn, cleared: reached <= paidMoney };
+    return {
+      dueOn: one.dueOn,
+      cleared: reached <= paidMoney,
+      // What of it is still unpaid, once everything before it is: none of a sum sent ahead.
+      left: Math.min(units * one.amount, Math.max(0, reached - paidMoney)),
+    };
   });
+  // The next sum still to pay, not merely the next 10th: a sum sent ahead is not asked for again, and one sent in part
+  // asks only for the rest.
+  const upcoming = cleared.find((one) => one.dueOn > today && !one.cleared);
   const missed = cleared.filter(
     (one) => !one.cleared && one.dueOn < missedBefore
   );
@@ -233,9 +241,7 @@ export const sumsStandingOf = ({
       0,
       dueBy((dueOn) => dueOn < missedBefore) - paidMoney
     ),
-    next: upcoming
-      ? { dueOn: upcoming.dueOn, amount: units * upcoming.amount }
-      : null,
+    next: upcoming ? { dueOn: upcoming.dueOn, amount: upcoming.left } : null,
     sumsPaid: cleared.filter((one) => one.cleared).length,
     sums: monthly.sums.length,
     lastMissedOn: missed.at(-1)?.dueOn ?? null,

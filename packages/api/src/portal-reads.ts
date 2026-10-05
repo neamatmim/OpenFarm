@@ -29,6 +29,7 @@ import {
 } from "./investor-statement-store";
 import { signedInOn } from "./membership";
 import { nominationInForce, paperNominees } from "./nomination-store";
+import { theirPayInNotes } from "./pay-in-notes";
 import { ownerNameOf, requireTheirs } from "./portal-store";
 import { hisProjection, projectionOf } from "./projection-store";
 import { theirRequests } from "./requests-to-join";
@@ -215,7 +216,7 @@ export const theirVentureToday = async (
   const now = clock.now();
   const standing = await hisStanding(db, farm.id, agreementId, farmDayOf(now));
   const run = await theVentureOf(db, farm.id, standing.venture.id);
-  const [theirs, spend, paying, projected] = await Promise.all([
+  const [theirs, spend, paying, projected, notes] = await Promise.all([
     theirProgress(db, farm.id, run, now),
     theirSpend(db, farm.id, run),
     howToPay(db, farm.id, agreementId, run, farmDayOf(now)),
@@ -229,6 +230,7 @@ export const theirVentureToday = async (
           now
         )
       : null,
+    theirPayInNotes(db, farm.id, investor.id),
   ]);
   return {
     agreementId,
@@ -285,6 +287,17 @@ export const theirVentureToday = async (
     },
     /** Where to pay and how much is left, while their capital is still owed; nothing once it is all in. */
     howToPay: paying,
+    /** Their Pay-in Notes on this Agreement, the latest first (ADR 0018), and whether the portal offers to send one:
+     *  while something is owed into a Venture Account the page shows, and the Owner has the switch on — or, in the
+     *  Owner's Preview, either way, so it can be read before anybody else does. The Preview sends nothing; its screen
+     *  says whose act that is. */
+    payIn: {
+      mayTell:
+        (farm.payInNotes || reader.previewing === true) &&
+        paying !== null &&
+        paying.account !== null,
+      notes: notes.filter((one) => one.agreementId === agreementId),
+    },
     /** What it might come to for their own Units at the Owner's low and high sale prices (ADR 0010): an estimate,
      *  and nothing unless the Owner shows Projections, has set the prices, and the Venture is still running. */
     projection: projected
