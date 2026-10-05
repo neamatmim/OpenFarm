@@ -559,3 +559,29 @@ describe("the split the Farm's own Units are on", () => {
     ).toBe("split_not_the_farms");
   });
 });
+
+describe("an Amendment on a Venture where only the Farm holds Units", () => {
+  it("is refused as one nobody has signed for: there is no Investor to sign it", async () => {
+    const owner = await as("owner");
+    const ventureId = await aVenture("শুধু খামার");
+    await owner.ventures.agreements.farmTakes({ ventureId, units: 3 });
+
+    expect(
+      await refusalOf(
+        owner.ventures.agreements.amend({
+          ventureId,
+          investorsPercent: 65,
+          targetWindowStart: "2095-06-05",
+          targetWindowEnd: "2095-06-12",
+          signedOn: "2095-01-03",
+          reason: `কেউ সই করেনি ${suffix}`,
+          contentType: "image/jpeg",
+          data: "aGVsbG8=",
+        })
+      )
+    ).toBe("nobody_has_signed");
+    // Nothing moved: the Farm's Units are on the terms they were taken on.
+    const [own] = await owner.ventures.agreements.list({ ventureId });
+    expect(own?.investorsPercent).toBe(60);
+  });
+});
