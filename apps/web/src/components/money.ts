@@ -36,8 +36,10 @@ export const useApproveMoney = () => {
     orpc.money.approve.mutationOptions({
       onError: async (error) => {
         onRefused(error);
-        // Corrected or approved since it was read: show what it says now.
+        // Corrected or approved since it was read: show what it says now, wherever she read it.
         await queryClient.invalidateQueries({ queryKey: orpc.home.key() });
+        await queryClient.invalidateQueries({ queryKey: orpc.overview.key() });
+        await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
       },
     })
   );

@@ -1769,6 +1769,8 @@ export const en = {
     "That made a lost animal good from the farm's own money; it is not put right on the venture's side alone",
   "refusal.theFarmsOwnCapital":
     "That moved the farm's own capital, which its own books hold too; it is not put right on the venture's side alone",
+  "refusal.termsChanged":
+    "It has been corrected since you read it. Read it again before approving",
   "refusal.handedLaterThanNow": "Cash cannot have changed hands later than now",
   "refusal.splitNotTheFarms":
     "The farm's own units in this venture are on a {investorsPercent}% split; every investor signs on the same",

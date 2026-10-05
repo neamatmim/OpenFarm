@@ -22,7 +22,7 @@ import {
   workAwaitingSignOff,
 } from "../instances-store";
 import { lostInAYear, missingNow } from "../missing-store";
-import { awaitingApproval } from "../money-store";
+import { awaitingApproval, termsOf } from "../money-store";
 import { monthlyCostsNow } from "../monthly-costs-store";
 import { overdueReceivable } from "../receivable-store";
 import { renewalDue } from "../registration-store";
@@ -246,6 +246,8 @@ export const overviewRouter = {
             purseName: row.purse?.name ?? null,
             /** Who entered it: the Owner asks them about it. */
             recordedByName: row.recorder?.name ?? null,
+            /** The terms she reads, which her approval names: corrected under her since, it is refused. */
+            termsRead: termsOf(row),
             /** Under the line alone, and waiting because the week's other pieces to the same person take it past. */
             inPieces:
               Number(row.amountMoney) <= context.farm.approvalThresholdMoney,

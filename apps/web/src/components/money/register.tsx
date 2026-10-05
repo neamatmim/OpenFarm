@@ -457,7 +457,12 @@ export const RegisterTab = ({
     entersMoney,
     approving: approve.isPending,
     handleApprove: (one: MoneyEvent) =>
-      approve.mutate({ id: one.id, amountMoney: one.amountMoney }),
+      approve.mutate({
+        id: one.id,
+        amountMoney: one.amountMoney,
+        // The terms the row showed: a list kept from before it said them sends the amount alone.
+        ...(one.termsRead ? { termsRead: one.termsRead } : {}),
+      }),
   }));
   const shown = rows.filter((row) => passes(filters, row.event, row.what));
   const categories = [...new Set(rows.map((row) => row.what))].toSorted(

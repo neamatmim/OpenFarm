@@ -24,6 +24,7 @@ import {
   bookingOf,
   moneyTotalsOf,
   settleMoneyNotices,
+  termsOf,
 } from "../money-store";
 import { periodInput, periodOf } from "../period";
 import {
@@ -160,6 +161,8 @@ export const moneyRouter = {
         /** The Animal it was for, where it came from one of her records. */
         tagNumber: tagOf.get(row.sourceId) ?? null,
         approval: row.approval,
+        /** The terms the Owner reads, which her approval names; corrected under her since, it is refused. */
+        termsRead: termsOf(row),
         approvedByName: row.approver?.name ?? null,
         approvedAt: row.approvedAt,
         note: row.note,
@@ -193,18 +196,33 @@ export const moneyRouter = {
    * The Owner approves a Money Event over the Approval Threshold. The Owner's alone, and recorded with
    * the amount approved; the record that made it went ahead long before.
    *
-   * An approval is of an amount, so the Owner names the amount they read. One corrected while they were
-   * reading it is refused rather than approved unseen, and so is one somebody else approved first.
+   * An approval is of its terms, so the Owner names the amount they read and — from a screen that has it — the terms
+   * whole: what it comes to, under which Category, to whom and in whose purse. One corrected while they were reading it
+   * is refused rather than approved unseen, and so is one somebody else approved first.
    */
   approve: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
-    .input(z.object({ id: z.string(), amountMoney: amountInput }))
+    .input(
+      z.object({
+        id: z.string(),
+        amountMoney: amountInput,
+        /** The terms read, as the row gave them; a screen kept from before it did sends only the amount. */
+        termsRead: z.string().optional(),
+      })
+    )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const waiting = await context.db.query.moneyEvent.findFirst({
         where: { id: input.id, farmId: context.farm.id },
-        columns: { id: true, approval: true, amountMoney: true },
+        columns: {
+          id: true,
+          approval: true,
+          amountMoney: true,
+          categoryId: true,
+          counterpartyId: true,
+          purseVentureId: true,
+        },
       });
       if (!waiting) {
         throw new ORPCError("NOT_FOUND", { message: "No such money entry" });
@@ -219,6 +237,15 @@ export const moneyRouter = {
             refusal: "amount_changed",
             amountMoney: waiting.amountMoney,
           },
+        });
+      }
+      if (
+        input.termsRead !== undefined &&
+        input.termsRead !== termsOf(waiting)
+      ) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "It has been corrected since it was read",
+          data: { refusal: "terms_changed" },
         });
       }
       await audited(context).write(

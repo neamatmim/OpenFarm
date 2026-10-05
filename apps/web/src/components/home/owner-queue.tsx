@@ -155,6 +155,7 @@ const MoneyGroup = ({ needsYou, headless }: GroupProps) => {
                 approveMoney.mutate({
                   id: row.id,
                   amountMoney: row.amountMoney,
+                  ...(row.termsRead ? { termsRead: row.termsRead } : {}),
                 })
               }
               size="sm"

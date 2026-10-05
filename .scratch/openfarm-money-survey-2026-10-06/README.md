@@ -43,6 +43,6 @@ Three read-only reviewers looked at the farm's own books, its reports, and the m
 | Group | Branch | Status |
 | ----- | ------ | ------ |
 | A     | fix/cash-counts | Done   |
-| B     |        |        |
+| B     | fix/approval-line | Done   |
 | C     |        |        |
 | D     |        |        |
