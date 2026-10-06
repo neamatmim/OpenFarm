@@ -2,7 +2,7 @@ import { eq } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { venture as ventureTable } from "@OpenFarm/db/schema/venture";
 import type { SopContent } from "@OpenFarm/domain";
-import { seasonOf } from "@OpenFarm/domain";
+import { EXIT_STATES, seasonOf } from "@OpenFarm/domain";
 import {
   FakeClock,
   scratchDb,
@@ -11,8 +11,10 @@ import {
 } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { theirHerdStory } from "../investor-statement-store";
 import { createTestClient } from "../test/client";
 import { A_DEATH_PHOTO } from "../test/death-photo";
+import { theirProgress } from "../venture-herd-store";
 import { appRouter } from "./index";
 
 /**
@@ -548,6 +550,26 @@ describe("the Internal Sale", () => {
       tagNumber: hers.tagNumber,
     });
     expect(her.owner).toMatchObject({ id: other });
+
+    // And the first Venture's closing story still adds up: every bull it bought is sold, sold on, bought back, dead,
+    // lost or standing — the one sold on to the other Venture among them, not missing from all six.
+    const story = await theirHerdStory(scratchDb(), theFarm().id, ventureId);
+    const standing = await scratchDb().query.animal.findMany({
+      where: {
+        farmId: theFarm().id,
+        ownerVentureId: ventureId,
+        state: { notIn: [...EXIT_STATES] },
+      },
+      columns: { id: true },
+    });
+    expect(story.boughtCount).toBe(
+      story.soldCount +
+        story.soldAcrossCount +
+        story.boughtBackCount +
+        story.diedCount +
+        story.lostCount +
+        standing.length
+    );
   });
 
   it("refuses a dairy cow, whatever the rate", async () => {
@@ -1009,5 +1031,93 @@ describe("a Sale of hers put right", () => {
         },
       })
     ).rejects.toMatchObject({ data: { refusal: "before_she_was_here" } });
+  });
+});
+
+describe("a bull the Farm sold to a Venture and bought back", () => {
+  it("is the Farm's margin from buying him back, not his first stretch twice", async () => {
+    const manager = await as("manager", "2047-11-01T05:00:00.000Z");
+    const bought = await manager.client.intakes.record({
+      penId,
+      sex: "male",
+      seller: { name: `ব্যাপারী ${suffix}` },
+      purchasePriceMoney: 60_000,
+      marketTollMoney: 2000,
+      weightKg: 250,
+      estimatedAgeMonths: 20,
+      arrivedAt: new Date("2047-11-01T05:00:00.000Z"),
+      targetWindowStart: "2047-12-17",
+      targetWindowEnd: "2047-12-19",
+    });
+    await weigh("2047-11-09", [[bought.tagNumber, 250]]);
+    const owner = await as("owner", "2047-11-10T04:00:00.000Z");
+    // A Venture of its own, still buying: the file's first has been carried on to later states by the tests above.
+    const buying = await funded(owner, 7);
+    await owner.client.ventures.sellInternally({
+      tagNumber: bought.tagNumber,
+      toVentureId: buying,
+      rateMoneyPerKg: 252,
+      note: `দর ${suffix}`,
+      soldOn: "2047-11-10",
+      paymentMethod: "bank",
+      reference: `INT-OUT-${suffix}`,
+      priceMoney: 63_000,
+    });
+    await weigh("2047-11-11", [[bought.tagNumber, 250]]);
+    const back = await as("owner", "2047-11-12T04:00:00.000Z");
+    await back.client.ventures.sellInternally({
+      tagNumber: bought.tagNumber,
+      // To the Farm.
+      rateMoneyPerKg: 252,
+      note: `ফেরত ${suffix}`,
+      soldOn: "2047-11-12",
+      paymentMethod: "bank",
+      reference: `INT-BACK-${suffix}`,
+      priceMoney: 63_000,
+    });
+    // November's margin before he is sold, so his own is what it moves by: other bulls in this file sell that month too.
+    const earlier = await as("owner", "2047-12-01T04:00:00.000Z");
+    const without = await earlier.client.monthlyReport.get();
+    const marginBefore =
+      without.months.find((one) => one.month === "2047-11")?.fattening
+        .marginMoney ?? 0;
+    const selling = await as("manager", "2047-11-12T08:00:00.000Z");
+    await selling.client.sales.record({
+      tagNumber: bought.tagNumber,
+      buyer: { name: `ক্রেতা ${suffix}` },
+      priceMoney: 70_000,
+      weightKg: 260,
+      destination: `হাট ${suffix}`,
+      vehicle: `ট্রাক ${suffix}`,
+      driver: `চালক ${suffix}`,
+      paymentMethod: "bank",
+      reference: `BACK-SALE-${suffix}`,
+    });
+    const reading = await as("owner", "2047-12-01T04:00:00.000Z");
+    const his = await reading.client.costs.forAnimal({
+      tagNumber: bought.tagNumber,
+    });
+    const { months } = await reading.client.monthlyReport.get();
+    const august = months.find((one) => one.month === "2047-11");
+    // Sold at seventy thousand, bought back at sixty-three: the toll he paid on his first stretch was the Venture's
+    // price to recover, never the Farm's twice.
+    expect(his).toBeDefined();
+    expect((august?.fattening.marginMoney ?? 0) - marginBefore).toBe(7000);
+
+    // And the Venture's own progress still has him, gone from its herd: once read off whose he is today, he vanished
+    // from it while its paper still charged it for him.
+    const run = await scratchDb().query.venture.findFirst({
+      where: { id: buying },
+      columns: { id: true, targetWindowStart: true, targetWindowEnd: true },
+    });
+    const progress = await theirProgress(
+      scratchDb(),
+      theFarm().id,
+      run ?? { id: buying, targetWindowStart: "", targetWindowEnd: "" },
+      new Date("2047-12-01T04:00:00.000Z")
+    );
+    expect(
+      progress.animals.find((one) => one.tagNumber === bought.tagNumber)
+    ).toMatchObject({ standing: false });
   });
 });

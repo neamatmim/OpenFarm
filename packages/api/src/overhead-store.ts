@@ -47,8 +47,41 @@ export const overheadMoneyIn = async (
       },
     },
   });
+  // A Vet's own fee for a visit that named no animal reached none — no Side to split it over, nobody to charge — so it
+  // is the place's, as marked money naming no Side is. Left out of both, it was in no figure at all.
+  const fees = await db.query.vetFee.findMany({
+    where: { farmId, visitedOn: { gte: from, lt: until } },
+    columns: { id: true },
+    with: { animals: { columns: { animalId: true }, limit: 1 } },
+  });
+  const noAnimal = fees
+    .filter((one) => one.animals.length === 0)
+    .map((one) => one.id);
+  const unnamed =
+    noAnimal.length === 0
+      ? []
+      : await db.query.moneyEvent.findMany({
+          where: {
+            farmId,
+            purseVentureId: THE_FARMS_PURSE,
+            source: "vet_fee",
+            sourceId: { in: noAnimal },
+            direction: "out",
+          },
+          columns: { amountMoney: true, occurredAt: true },
+          with: {
+            category: { columns: { id: true, nameBn: true, nameEn: true } },
+          },
+        });
+  const visits = unnamed.map((one) => ({
+    categoryId: one.category.id,
+    categoryBn: one.category.nameBn,
+    categoryEn: one.category.nameEn,
+    amount: one.amountMoney,
+    occurredAt: one.occurredAt,
+  }));
   // Asked of the one rule that says what a Herd Cost is, so the costing and this can never disagree about a taka.
-  return rows
+  const handEntered = rows
     .filter(
       (one) =>
         herdCostOf({
@@ -66,6 +99,7 @@ export const overheadMoneyIn = async (
       amount: one.amountMoney,
       occurredAt: one.occurredAt,
     }));
+  return [...handEntered, ...visits];
 };
 
 /**

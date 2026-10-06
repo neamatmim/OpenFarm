@@ -52,6 +52,8 @@ export const herdStoryWords = (
     soldCount: number;
     averageSoldMoney: number | null;
     boughtBackCount: number;
+    /** Missing from a story told before a bull sold on to another Venture was counted. */
+    soldAcrossCount?: number;
     diedCount: number;
     /** Missing from a story told before a lost animal could be made good. */
     lostCount?: number;
@@ -71,6 +73,9 @@ export const herdStoryWords = (
     }`,
     story.boughtBackCount > 0
       ? `খামার কিনে নিয়েছে / Bought back by the Farm: ${said(story.boughtBackCount)}`
+      : null,
+    (story.soldAcrossCount ?? 0) > 0
+      ? `অন্য ভেঞ্চারে বিক্রি / Sold to another Venture: ${said(story.soldAcrossCount ?? 0)}`
       : null,
     `মারা গেছে / Died: ${said(story.diedCount)}`,
     (story.lostCount ?? 0) > 0

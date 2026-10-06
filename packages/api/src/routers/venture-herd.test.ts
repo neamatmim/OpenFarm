@@ -324,12 +324,12 @@ describe("what a Venture's animals are doing", () => {
     const theirs = await owner.client.ventures.herd({
       ventureId: firstVenture,
     });
-    // Six came in. One died, one went to a buyer, and one went across to the other Venture and is no
-    // longer on this paper at all, because whose she is, is asked of the day it is printed.
+    // Six came in. One died, one went to a buyer, and one went across to the other Venture: gone from this herd as one
+    // sold, never vanished from it — six came, and six are accounted for, as the bought line charges for six.
     expect(theirs.standingCount).toBe(3);
     expect(theirs.diedCount).toBe(1);
-    expect(theirs.soldCount).toBe(1);
-    expect(theirs.animals).toHaveLength(5);
+    expect(theirs.soldCount).toBe(2);
+    expect(theirs.animals).toHaveLength(6);
   });
 
   it("says which bull earned and which did not, worst first", async () => {
@@ -417,9 +417,9 @@ describe("what a Venture's animals are doing", () => {
     // The herd's gain is over every bull it has had, not the three standing — or it would drift as the fast
     // gainers went to buyers. The first, 28 kg to his weighing on 1 February at 07:30, 28.1 days on; the one who
     // died, the same before he did; the fifth, 21 kg in 42.1 days; the one sold, 28 kg to his 228 at the gate on
-    // the 18th, 45 days. 105 kg over 143.3 days is 0.73. Over the two standing alone it was 0.7, and the mean of
-    // the animals' own rates would be 0.75: this test fails if anybody makes it either.
-    expect(theirs.gainKgPerDay).toBe(0.73);
+    // the 18th, 45 days; and the one sold across, 28 kg to his 228 on the 10th, 36.5 days while he was theirs. 133 kg
+    // over 179.8 days is 0.74. Over the two standing alone it was 0.7: this test fails if anybody makes it that.
+    expect(theirs.gainKgPerDay).toBe(0.74);
   });
 
   it("says the day the averages were last read off the scale, from the animals they are over", async () => {
@@ -777,7 +777,7 @@ describe("অগ্রগতি — the sheet while the run goes on", () => {
     expect(text).toContain("২২৪.৫");
     // The herd's gain is over every bull it has had, not the two weighed above it, and says so.
     expect(text).toContain(
-      "দৈনিক বৃদ্ধি (বিক্রি ও মৃতসহ সব পশুর) / Daily gain (every animal so far, sold and dead included): ০.৭৩ কেজি"
+      "দৈনিক বৃদ্ধি (বিক্রি ও মৃতসহ সব পশুর) / Daily gain (every animal so far, sold and dead included): ০.৭৪ কেজি"
     );
   });
 

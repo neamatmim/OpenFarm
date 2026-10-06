@@ -3,14 +3,15 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNotNull, isNull } from "@OpenFarm/db/operators";
 import { missing } from "@OpenFarm/db/schema/missing";
 import type { AnimalState } from "@OpenFarm/domain";
-import { farmDayOf } from "@OpenFarm/domain";
+import { farmDayOf, roundMoney } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
-import { chargedOf, economicsOfAnimal, farmCosts } from "./cost-store";
+import { boughtInOf, costToItsOwner, farmCosts } from "./cost-store";
 import { isOnTheFarm } from "./instances-store";
 import type { Raised } from "./notice";
 import { rememberingPeople, tell } from "./notice";
+import { ownedThenByOf } from "./venture-store";
 
 // The farm's Missing: an Animal the round looked for and could not find. Opened by the round's "Animal not found",
 // told once to the Owner and the Manager, listed on both homes and on her page until the Manager marks her Found.
@@ -336,8 +337,10 @@ const A_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
 /**
  * The animals written off as Lost that went missing in the last year and were never found, and what they had cost
- * the farm — bought, fed, dosed and kept — as her price against her cost counts it. Worked from the farm's whole
- * costing only when there is one to cost.
+ * the farm: what each had cost her owner when written off (`costToItsOwner`) — for the Farm's own, her price and every
+ * charge on her since it had her; for a Venture's, what the Farm made good, which is the same sum asked of the Venture.
+ * Never her whole life across owners, whose earlier stretches an Internal Sale had already paid for. Worked from the
+ * farm's whole costing only when there is one to cost.
  */
 export const lostInAYear = async (
   db: Database,
@@ -351,19 +354,34 @@ export const lostInAYear = async (
       foundAt: { isNull: true },
       since: { gte: new Date(now.getTime() - A_YEAR_MS) },
     },
-    columns: { animalId: true },
+    columns: { animalId: true, writtenOffAt: true },
   });
   if (rows.length === 0) {
     return { count: 0, costMoney: 0 };
   }
-  const costs = await farmCosts(db, farmId);
-  const gone = new Set(rows.map((row) => row.animalId));
+  const [costs, ownedThenBy, boughtIn] = await Promise.all([
+    farmCosts(db, farmId),
+    ownedThenByOf(db, farmId),
+    boughtInOf(db, farmId),
+  ]);
+  const writtenOff = new Map(
+    rows.map((row) => [row.animalId, row.writtenOffAt ?? new Date(0)])
+  );
   let costMoney = 0;
   for (const her of costs.animals) {
-    if (gone.has(her.id)) {
-      const economics = economicsOfAnimal(costs, her);
-      costMoney += (economics.purchaseMoney ?? 0) + chargedOf(economics);
+    const at = writtenOff.get(her.id);
+    if (at) {
+      const owner = ownedThenBy(her.id, at);
+      const back = boughtIn.get(her.id);
+      costMoney +=
+        costToItsOwner(
+          costs,
+          ownedThenBy,
+          her,
+          owner,
+          back && back.toVentureId === owner ? back : undefined
+        ) ?? 0;
     }
   }
-  return { count: rows.length, costMoney: Math.round(costMoney) };
+  return { count: rows.length, costMoney: roundMoney(costMoney) };
 };
