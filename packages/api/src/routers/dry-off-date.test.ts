@@ -1,6 +1,7 @@
 import { DAY, FakeClock } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
+import { aMonthOn } from "../test/carrying";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -34,6 +35,7 @@ describe("the day a cow was dried off", () => {
     await owner.client.animals.setState({
       tagNumber,
       state: "pregnant_heifer",
+      expectedCalvingOn: aMonthOn(owner),
     });
     await owner.client.animals.setState({
       tagNumber,

@@ -2,7 +2,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
-import { farmDayOf, handedOverAt } from "@OpenFarm/domain";
+import { farmDayOf, handedOverAt, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -60,6 +60,22 @@ export const ownerOf = async (tx: Tx, animalId: string) => {
     columns: { ownerVentureId: true },
   });
   return row?.ownerVentureId ?? null;
+};
+
+/**
+ * Whose money bought her: the purse she was in before any Internal Sale moved her — the seller of the first — or, never
+ * sold on, whose she is. An Intake's money stays with that purse, however she has changed hands since: read from whose
+ * she is today, putting her price right after an Internal Sale booked it into her new owner's books, deleted a
+ * Venture's payment for her, or refused the Farm's own bull to everybody.
+ */
+export const ownerWhenBought = async (tx: Tx, animalId: string) => {
+  const [first] = await tx.query.internalSale.findMany({
+    where: { animalId },
+    columns: { fromVentureId: true },
+    orderBy: { soldOn: "asc", id: "asc" },
+    limit: 1,
+  });
+  return first ? first.fromVentureId : ownerOf(tx, animalId);
 };
 
 /**
@@ -164,8 +180,8 @@ export const bookIntakeMoney = async (
       counterpartyId: row.counterpartyId,
       paymentMethod,
       // Whose money bought her. A Venture's buying is its own cost from the first beast, and the
-      // Farm's books never carry a taka of it.
-      purseVentureId: await ownerOf(tx, row.animalId),
+      // Farm's books never carry a taka of it — whoever she has been sold on to since.
+      purseVentureId: await ownerWhenBought(tx, row.animalId),
     });
   }
 };
@@ -177,17 +193,26 @@ export const purchasePriceInput = z.number().min(0).max(100_000_000);
 export const assertTripIsOurs = async (
   tx: Tx,
   farmId: string,
-  tripId: string | undefined
+  tripId: string | undefined,
+  /** When the animal came home on it: not before the farm's day the outing went. */
+  arrivedAt?: Date
 ) => {
   if (tripId === undefined) {
     return;
   }
   const ours = await tx.query.buyingTrip.findFirst({
     where: { id: tripId, farmId },
-    columns: { id: true },
+    columns: { id: true, wentOn: true },
   });
   if (!ours) {
     throw new ORPCError("NOT_FOUND", { message: "No such outing" });
+  }
+  if (arrivedAt && arrivedAt < startOfFarmDay(farmDayOf(ours.wentOn))) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "An animal cannot have come home before the outing that brought her went",
+      data: { refusal: "arrived_before_the_trip" },
+    });
   }
   await assertTripIsOpen(tx, farmId, tripId);
 };
@@ -316,7 +341,7 @@ export const bookBoughtByBank = async (
   if (!row) {
     return;
   }
-  const ventureId = await ownerOf(tx, row.animalId);
+  const ventureId = await ownerWhenBought(tx, row.animalId);
   const already = await tx.query.ventureMovement.findFirst({
     where: { farmId: row.farmId, intakeId: row.id, kind: "intake_out" },
     columns: { id: true, ventureId: true, amountMoney: true },

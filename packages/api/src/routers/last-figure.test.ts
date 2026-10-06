@@ -2,6 +2,7 @@ import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { aMonthOn } from "../test/carrying";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -65,6 +66,7 @@ beforeAll(async () => {
   await owner.client.animals.setState({
     tagNumber: cowTag,
     state: "pregnant_heifer",
+    expectedCalvingOn: aMonthOn(owner),
   });
   await owner.client.animals.setState({ tagNumber: cowTag, state: "milking" });
   const morning = await owner.client.sops.create({

@@ -1,3 +1,4 @@
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Link } from "@tanstack/react-router";
 import type { Table as TableInstance } from "@tanstack/react-table";
@@ -11,9 +12,9 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
-import { SaidDate } from "@/components/list-cells";
+import { Nothing, SaidDate } from "@/components/list-cells";
 import { StatusBadge } from "@/components/page";
-import { useLanguage } from "@/i18n/language-provider";
+import { useLanguage, useT } from "@/i18n/language-provider";
 import type { orpc } from "@/utils/orpc";
 
 /**
@@ -337,6 +338,26 @@ const MoveWorkCell = ({ row }: { row: { original: MoveRow } }) => {
 };
 
 const move = createListColumns<MoveRow>();
+/** The farm's own words for why she moved — how she came, or that she was weaned — said in the reader's language;
+ *  a reason somebody typed is said as they typed it. Shown raw, every animal's first row read "born" on a Bangla page. */
+const FARM_MOVE_REASONS: Record<string, MessageKey> = {
+  born: "animals.moveReason.born",
+  intake: "animals.moveReason.intake",
+  registered: "animals.moveReason.registered",
+  "opening register": "animals.moveReason.openingRegister",
+  weaned: "animals.moveReason.weaned",
+};
+
+const ReasonCell = ({ row }: { row: { original: MoveRow } }) => {
+  const t = useT();
+  const said = row.original.reason;
+  if (!said) {
+    return <Nothing />;
+  }
+  const farms = FARM_MOVE_REASONS[said];
+  return farms ? t(farms) : said;
+};
+
 const moveColumns = move.columns([
   move.accessor("at", {
     header: listHeader("observations.col.when"),
@@ -351,6 +372,7 @@ const moveColumns = move.columns([
   move.accessor((row) => orDash(row.reason), {
     id: "reason",
     header: listHeader("animals.reason"),
+    cell: ReasonCell,
   }),
   move.display({
     header: ActionsHeader,
@@ -368,7 +390,13 @@ const MoveCard = ({ row }: { row: MoveRow }) => {
       detail={
         <>
           <span>{formatDate(new Date(row.at), language, "dateTime")}</span>
-          {row.reason ? <span>{row.reason}</span> : null}
+          {row.reason ? (
+            <span>
+              {FARM_MOVE_REASONS[row.reason]
+                ? t(FARM_MOVE_REASONS[row.reason])
+                : row.reason}
+            </span>
+          ) : null}
         </>
       }
       title={

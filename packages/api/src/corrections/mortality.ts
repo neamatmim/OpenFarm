@@ -1,16 +1,19 @@
-import { mortality } from "@OpenFarm/db/schema/herd";
+import { eq } from "@OpenFarm/db/operators";
+import { mortality, mortalityPhoto } from "@OpenFarm/db/schema/herd";
 import { DISPOSALS, MORTALITY_KINDS } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { audited } from "../audit";
+import { comesBackFromAVoidedExit } from "../herd-store";
 import { receiptInput } from "../money-inputs";
 import {
   correctMortality,
   keepDeathPhoto,
   readMortality,
 } from "../mortality-store";
-import type { CorrectionKind } from "./correction";
+import type { CorrectionKind, Corrector } from "./correction";
 import { changeOf, correctionInput, herVenturesAround } from "./correction";
 
 const loadMortality = (tx: Tx, farmId: string, id: string) =>
@@ -18,6 +21,45 @@ const loadMortality = (tx: Tx, farmId: string, id: string) =>
 
 const kind = z.enum(MORTALITY_KINDS);
 const disposal = z.enum(DISPOSALS);
+
+/**
+ * A death or a cull written against the wrong animal, voided by the Owner: the record and its photographs are taken off
+ * the books, the work raised about her since — her carcass — is called off, and she comes back as she was. A Venture
+ * settled on her refuses it, as any Correction of her leaving is refused (`venturesOf`).
+ */
+const voidTheDeath = async (
+  tx: Tx,
+  row: NonNullable<Awaited<ReturnType<typeof loadMortality>>>,
+  context: Corrector,
+  now: Date
+) => {
+  if (context.roleUsed !== "owner") {
+    throw new ORPCError("FORBIDDEN", {
+      message: "Only the Owner voids a death",
+      data: { refusal: "owner_only" },
+    });
+  }
+  if (!(row.stateBefore && row.stateChangedBefore)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This death was written before a death could be voided",
+      data: { refusal: "cannot_be_voided" },
+    });
+  }
+  await tx.delete(mortalityPhoto).where(eq(mortalityPhoto.mortalityId, row.id));
+  await tx.delete(mortality).where(eq(mortality.id, row.id));
+  await comesBackFromAVoidedExit(
+    tx,
+    row.farmId,
+    { id: row.animalId },
+    {
+      state: row.stateBefore,
+      since: row.stateChangedBefore,
+      leftAt: row.happenedAt,
+      now,
+      trail: audited(context).recordEvent,
+    }
+  );
+};
 
 /**
  * What putting a mortality right may change: whether she died or was culled, the cause the farm learned afterwards,
@@ -31,6 +73,8 @@ export const mortalityCorrectionInput = correctionInput({
   disposalNote: changeOf(z.string().trim().max(300), z.string().nullable()),
   happenedAt: changeOf(z.coerce.date(), z.coerce.date()),
   diagnosisId: changeOf(z.string().nullable(), z.string().nullable()),
+  /** Written against the wrong animal: the Owner voids it, and she comes back as she was (the Owner, 2026-10-06). */
+  voided: changeOf(z.literal(true), z.boolean()),
 })
   .omit({ id: true })
   .extend({
@@ -66,11 +110,16 @@ export const mortalityCorrection: CorrectionKind<
       disposalNote: row.disposalNote,
       happenedAt: row.happenedAt,
       diagnosisId: row.diagnosisId,
+      voided: false,
     }),
   // A newer photograph is a change of its own, with nothing else put right beside it.
   changesBeyondValues: ({ photo }) => photo !== undefined,
   trail: (tx, row) => readMortality(tx, row.id),
   apply: async (tx, row, to, { now, context, extra }) => {
+    if (to.voided) {
+      await voidTheDeath(tx, row, context, now);
+      return;
+    }
     if (extra.photo) {
       await keepDeathPhoto(
         tx,

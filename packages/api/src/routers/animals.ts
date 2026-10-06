@@ -36,6 +36,7 @@ import {
   pregnancyTimesOf,
 } from "../breeding-store";
 import { calfLossesOf } from "../calf-losses-store";
+import { followExpectedCalving } from "../calving-work";
 import type { Context } from "../context";
 import { correct, reasonInput } from "../corrections/correction";
 import {
@@ -63,6 +64,7 @@ import {
   calves,
   comesBack,
   entersState,
+  forgetExpectedCalving,
   insertAnimal,
   leaves,
   loadLiveAnimal,
@@ -70,6 +72,7 @@ import {
   requireAnimal,
 } from "../herd-store";
 import { protectedProcedure } from "../index";
+import { isOnTheFarm } from "../instances-store";
 import { costToDateOf, makeGood, takenOnByTheFarm } from "../made-good-store";
 import {
   markFound,
@@ -355,6 +358,16 @@ const intakeView = (
       }
     : null;
 
+/** A birth on a day still to come is refused: a calf born next June is a typo, not a calf. */
+const assertBornInThePast = (birthDate: Date | undefined, now: Date) => {
+  if (birthDate && birthDate.getTime() > now.getTime()) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A birth date cannot be in the future",
+      data: { refusal: "born_in_the_future" },
+    });
+  }
+};
+
 /** A calving date is the one thing about a Lactation anyone gives us, so it is the one thing
  *  worth refusing when it is impossible. */
 const assertCalvedInThePast = (calvedAt: Date | undefined, now: Date) => {
@@ -440,6 +453,7 @@ const createAnimal = async (
   reason: string
 ): Promise<{ id: string; tagNumber: string }> => {
   assertCalvedInThePast(input.calvedAt, now);
+  assertBornInThePast(input.birthDate, now);
   const calving = enteredCalving(
     input.state,
     input.expectedCalvingOn,
@@ -1241,6 +1255,9 @@ export const animalsRouter = {
         reason: reasonInput.optional(),
         /** When she calved, for a cow entering Milking. Defaults to now. */
         calvedAt: z.coerce.date().optional(),
+        /** The day she is expected to calve, for one set Pregnant Heifer by hand: refused without it, as she is
+         *  registered, or nothing would ever fall due for her. */
+        expectedCalvingOn: farmDay.optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -1304,11 +1321,38 @@ export const animalsRouter = {
           if (current.state === "quarantine") {
             await assertNoDoseOwed(tx, context.farm.id, current.id, now);
           }
+          // Carrying set by hand says when she is expected to calve, as she would be registered; not carrying, the
+          // calving she was expected to make — and its work — goes. Once neither was asked, and a heifer set carrying had
+          // nothing ever fall due, or one set back kept her calving work open.
+          const calving =
+            input.state === "pregnant_heifer"
+              ? enteredCalving(
+                  input.state,
+                  input.expectedCalvingOn,
+                  now,
+                  context.farm.gestationDays
+                )
+              : null;
           await entersState(tx, context.farm.id, current, {
             state: input.state,
             at: now,
             now,
           });
+          if (calving) {
+            await tx
+              .update(animal)
+              .set({ ...calving, updatedAt: now })
+              .where(eq(animal.id, current.id));
+          } else if (
+            current.state === "pregnant_heifer" &&
+            input.state === "heifer"
+          ) {
+            await forgetExpectedCalving(tx, context.farm.id, current, {
+              now,
+              calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
+              trail: audited(context).recordEvent,
+            });
+          }
           // Let out by hand: any Release raised again for him is owed no more.
           if (current.state === "quarantine") {
             await callOffPutOffReleases(
@@ -1418,6 +1462,13 @@ export const animalsRouter = {
           after: (tx) => readMissing(tx, target.id),
         },
         async (tx) => {
+          // Found is for one still here, or one written off as Lost: a death or a Sale is never undone by a Found.
+          if (!isOnTheFarm(target) && target.state !== "lost") {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "This animal has left the farm",
+              data: { refusal: "she_is_gone" },
+            });
+          }
           const open = await missingOf(tx, target.id);
           const writtenOff = open?.writtenOffAt ?? null;
           if (writtenOff && context.roleUsed !== "owner") {
@@ -1431,13 +1482,28 @@ export const animalsRouter = {
             animalId: target.id,
             by: context.actor.id,
             now,
+            writtenOff: writtenOff !== null,
           });
           if (writtenOff && open?.stateBefore && open.stateChangedBefore) {
+            const expectedCalving = {
+              at: open.expectedCalvingBefore,
+              serviceId: open.expectedCalvingServiceBefore,
+            };
             await comesBack(tx, context.farm.id, target, {
               state: open.stateBefore,
               since: open.stateChangedBefore,
               now,
+              expectedCalving,
             });
+            // Her calving work, called off when she was written off, comes back with her calving.
+            if (expectedCalving.at) {
+              await followExpectedCalving(
+                tx,
+                { ...target, expectedCalvingAt: expectedCalving.at },
+                pregnancyTimesOf(context.farm).calvingLeadDays,
+                { expectedAgain: true, trail: audited(context).recordEvent }
+              );
+            }
           }
           // A Venture's animal the Farm made good is the Farm's once found: it paid the Venture for her.
           if (writtenOff && target.ownerVentureId) {
@@ -1583,12 +1649,22 @@ export const animalsRouter = {
               ...input.madeGood,
             });
           }
+          const carrying = await tx.query.animal.findFirst({
+            where: { id: her.id },
+            columns: { expectedCalvingServiceId: true },
+          });
           const written = await markWrittenOff(tx, {
             farmId: context.farm.id,
             animalId: her.id,
             by: context.actor.id,
             now,
-            was: { state: her.state, stateChangedAt: her.stateChangedAt },
+            was: {
+              state: her.state,
+              stateChangedAt: her.stateChangedAt,
+              expectedCalvingAt: her.expectedCalvingAt,
+              expectedCalvingServiceId:
+                carrying?.expectedCalvingServiceId ?? null,
+            },
             why: {
               cause: input.cause,
               stolen: input.stolen,

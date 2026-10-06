@@ -15,8 +15,10 @@ import {
 import type { RowSelection } from "@/components/data-table";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { pinAnswerOf } from "@/lib/pin-answer";
 import { queueMove } from "@/lib/record-offline";
 import { refreshTheScreen } from "@/lib/refresh";
+import { sayWhy } from "@/lib/saying";
 import { toast } from "@/lib/toast";
 import { client, orpc } from "@/utils/orpc";
 
@@ -54,7 +56,9 @@ export const GroupMove = ({
   const moveThem = async () => {
     setPending(true);
     let moved = 0;
-    let refused = 0;
+    let queued = 0;
+    // Each refused, by her tag, with why — said, not sent to her page, which never said it.
+    const refused: string[] = [];
     // One already standing there has nowhere to go: she is said, not moved.
     const toGo = chosen.filter((each) => each.penId !== toPenId);
     const already = chosen.length - toGo.length;
@@ -71,8 +75,16 @@ export const GroupMove = ({
           ? client.animals.move(wanted)
           : queueMove(wanted));
         moved += 1;
-      } catch {
-        refused += 1;
+      } catch (error) {
+        // Not answered — a weak signal the phone thought was signal — is kept on the phone, as one made out of signal is;
+        // only the farm's own no is a refusal.
+        if (pinAnswerOf(error) === "no_signal") {
+          // oxlint-disable-next-line no-await-in-loop
+          await queueMove(wanted);
+          queued += 1;
+        } else {
+          refused.push(`${one.tagNumber}: ${sayWhy(error, t)}`);
+        }
       }
     }
     setPending(false);
@@ -86,6 +98,11 @@ export const GroupMove = ({
         })
       );
     }
+    if (queued > 0) {
+      toast.info(
+        t("animals.groupQueued", { count: formatNumber(queued, language) })
+      );
+    }
     if (already > 0) {
       toast.info(
         t("animals.groupAlreadyThere", {
@@ -93,12 +110,17 @@ export const GroupMove = ({
         })
       );
     }
-    if (refused > 0) {
-      toast.error(
-        t("animals.groupRefused", { count: formatNumber(refused, language) })
-      );
-    }
     refreshTheScreen(queryClient);
+    if (refused.length > 0) {
+      // Who, and why, and the ticks kept: somebody has something to do about them.
+      toast.error(
+        t("animals.groupRefused", {
+          count: formatNumber(refused.length, language),
+        }),
+        { description: refused.join(" · ") }
+      );
+      return;
+    }
     onDone();
   };
 

@@ -11,6 +11,7 @@ import {
 } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { aMonthOn } from "../test/carrying";
 import { createTestClient } from "../test/client";
 import { correctStepAsShown } from "../test/correct-step";
 import { A_DEATH_PHOTO } from "../test/death-photo";
@@ -105,6 +106,7 @@ const setup = async () => {
     await owner.client.animals.setState({
       tagNumber: cow.tagNumber,
       state: "pregnant_heifer",
+      expectedCalvingOn: aMonthOn(owner),
     });
     await owner.client.animals.setState({
       tagNumber: cow.tagNumber,
@@ -288,10 +290,17 @@ describe("claiming", () => {
   it("a Staff member cannot touch an Instance for a Pen that is not theirs", async () => {
     const clock = new FakeClock("2026-09-17T05:30:00.000Z");
     const { owner } = await instanceForPen(clock);
-    await owner.client.animals.move({
+    // Into the fattening Pen, unless an earlier test walked him there already: a Move into the Pen he stands in is no
+    // journey, and refused.
+    const steer = await owner.client.animals.get({
       tagNumber: world.steer.tagNumber,
-      toPenId: world.fatteningPen.id,
     });
+    if (steer.penId !== world.fatteningPen.id) {
+      await owner.client.animals.move({
+        tagNumber: world.steer.tagNumber,
+        toPenId: world.fatteningPen.id,
+      });
+    }
     const staff = await createTestClient(appRouter, { as: "staff", clock });
 
     const visible = await staff.client.work.today();

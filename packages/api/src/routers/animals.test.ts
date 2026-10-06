@@ -4,6 +4,7 @@ import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { aMonthOn } from "../test/carrying";
 import { createTestClient } from "../test/client";
 import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
@@ -146,7 +147,11 @@ describe("the state machine", () => {
     const { client } = pens.owner;
 
     await client.animals.setState({ tagNumber, state: "heifer" });
-    await client.animals.setState({ tagNumber, state: "pregnant_heifer" });
+    await client.animals.setState({
+      tagNumber,
+      state: "pregnant_heifer",
+      expectedCalvingOn: aMonthOn(pens.owner),
+    });
     await client.animals.setState({ tagNumber, state: "milking" });
     await client.animals.setState({ tagNumber, state: "dry" });
     await client.animals.setState({ tagNumber, state: "milking" });

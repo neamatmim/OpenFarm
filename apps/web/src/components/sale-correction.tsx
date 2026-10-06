@@ -1,13 +1,21 @@
 import { paidAtTheGate } from "@OpenFarm/domain";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import {
-  CorrectionDialog,
   CorrectionAnswer,
+  CorrectionChoice,
+  CorrectionDialog,
   useCorrecting,
 } from "@/components/correction-dialog";
 import { useT } from "@/i18n/language-provider";
-import { amount, counterparty, day, figure } from "@/lib/correcting";
+import {
+  amount,
+  counterparty,
+  day,
+  figure,
+  moment,
+  voiding,
+} from "@/lib/correcting";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -31,10 +39,17 @@ export const SaleCorrection = ({
     brokerMoney?: number;
     /** What she weighed on the day, which her Shrink and her price a kilo are read from. */
     weightKg: number;
+    /** When she left; left out of an answer cached before a Sale's day could be put right. */
+    soldAt?: Date | string;
   };
 }) => {
   const t = useT();
+  // The Owner's alone: a Sale written against the wrong animal is voided, and she comes back as she was.
+  const me = useQuery(orpc.people.me.queryOptions());
+  const mayVoid = me.data?.roles.includes("owner") ?? false;
   const correcting = useCorrecting({
+    ...(sale.soldAt ? { soldAt: moment(sale.soldAt) } : {}),
+    ...(mayVoid ? { voided: voiding() } : {}),
     priceMoney: amount(sale.priceMoney),
     buyer: counterparty(sale.buyerName),
     paidNowMoney: figure(
@@ -99,6 +114,23 @@ export const SaleCorrection = ({
         type="number"
         value={correcting.typed.brokerMoney ?? ""}
       />
+      {sale.soldAt ? (
+        <CorrectionAnswer
+          label={t("correct.soldAt")}
+          onChange={(value) => correcting.set("soldAt", value)}
+          type="datetime-local"
+          value={correcting.typed.soldAt ?? ""}
+        />
+      ) : null}
+      {mayVoid ? (
+        <CorrectionChoice
+          label={t("correct.void")}
+          onChange={(value) => correcting.set("voided", value)}
+          options={[{ value: "void", label: t("correct.voidSale") }]}
+          unchosen={t("correct.keep")}
+          value={correcting.typed.voided ?? ""}
+        />
+      ) : null}
     </CorrectionDialog>
   );
 };

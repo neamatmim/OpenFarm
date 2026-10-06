@@ -1,6 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { and, eq, isNotNull, isNull } from "@OpenFarm/db/operators";
 import { missing } from "@OpenFarm/db/schema/missing";
 import type { AnimalState } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
@@ -189,6 +189,8 @@ export const missingOf = async (db: Db, animalId: string) =>
       gdNumber: true,
       stateBefore: true,
       stateChangedBefore: true,
+      expectedCalvingBefore: true,
+      expectedCalvingServiceBefore: true,
     },
     with: { pen: { columns: { name: true } } },
     orderBy: { since: "desc" },
@@ -201,7 +203,15 @@ export const missingOf = async (db: Db, animalId: string) =>
  */
 export const markFound = async (
   tx: Tx,
-  input: { farmId: string; animalId: string; by: string; now: Date }
+  input: {
+    farmId: string;
+    animalId: string;
+    by: string;
+    now: Date;
+    /** Whether the Missing read was written off: found only as it was read. A write-off landing between the read
+     *  and this once had its Missing stamped found with her left Lost — and no Found could bring her back. */
+    writtenOff: boolean;
+  }
 ): Promise<{ id: string }> => {
   const [found] = await tx
     .update(missing)
@@ -210,7 +220,10 @@ export const markFound = async (
       and(
         eq(missing.farmId, input.farmId),
         eq(missing.animalId, input.animalId),
-        isNull(missing.foundAt)
+        isNull(missing.foundAt),
+        input.writtenOff
+          ? isNotNull(missing.writtenOffAt)
+          : isNull(missing.writtenOffAt)
       )
     )
     .returning({ id: missing.id });
@@ -242,7 +255,12 @@ export const markWrittenOff = async (
     animalId: string;
     by: string;
     now: Date;
-    was: { state: AnimalState; stateChangedAt: Date };
+    was: {
+      state: AnimalState;
+      stateChangedAt: Date;
+      expectedCalvingAt: Date | null;
+      expectedCalvingServiceId: string | null;
+    };
     why: WriteOff;
   }
 ): Promise<{ id: string; since: Date }> => {
@@ -256,6 +274,8 @@ export const markWrittenOff = async (
       gdNumber: input.why.gdNumber,
       stateBefore: input.was.state,
       stateChangedBefore: input.was.stateChangedAt,
+      expectedCalvingBefore: input.was.expectedCalvingAt,
+      expectedCalvingServiceBefore: input.was.expectedCalvingServiceId,
     })
     .where(
       and(

@@ -12,6 +12,7 @@ import {
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { hashToken } from "../device";
+import { aMonthOn } from "../test/carrying";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -50,7 +51,8 @@ const milkingSop = (): SopContent => ({
 });
 
 const setup = async () => {
-  const { client: owner } = await createTestClient(appRouter, { as: "owner" });
+  const ownerClient = await createTestClient(appRouter, { as: "owner" });
+  const { client: owner } = ownerClient;
   const shed = await owner.sheds.create({ name: `attr-${suffix}` });
   const pen = await owner.sheds.pens.create({
     shedId: shed.id,
@@ -67,6 +69,7 @@ const setup = async () => {
   await owner.animals.setState({
     tagNumber: cow.tagNumber,
     state: "pregnant_heifer",
+    expectedCalvingOn: aMonthOn(ownerClient),
   });
   await owner.animals.setState({ tagNumber: cow.tagNumber, state: "milking" });
   await createTestClient(appRouter, { as: "staff" });

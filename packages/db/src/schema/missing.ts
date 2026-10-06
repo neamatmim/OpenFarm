@@ -59,6 +59,12 @@ export const missing = pgTable(
     stateChangedBefore: timestamp("state_changed_before", {
       withTimezone: true,
     }),
+    /** The calving she was expected to make when she was written off, and the Service it came from: leaving clears
+     *  them, and a carrying cow found again came back with none, so no dry-off or calving work was raised for her. */
+    expectedCalvingBefore: timestamp("expected_calving_before", {
+      withTimezone: true,
+    }),
+    expectedCalvingServiceBefore: text("expected_calving_service_before"),
   },
   (table) => [
     index("missing_farm_idx").on(table.farmId, table.since),

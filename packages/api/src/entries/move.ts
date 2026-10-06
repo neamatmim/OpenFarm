@@ -1,4 +1,5 @@
 import { SIDES } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
@@ -59,6 +60,16 @@ export const moveEntry: EntryKind<MoveInput, { animalId: string }> = {
     requirePenInScope(context.scope, beast.penId);
     requirePenInScope(context.scope, input.toPenId);
     await requirePen(tx, context.farm.id, input.toPenId);
+    // Into the Pen she stands in, on the Side she is on, is no journey: written as one, it split her Pen spell in two.
+    const staysPut =
+      beast.penId === input.toPenId &&
+      (input.toSide ?? beast.side) === beast.side;
+    if (staysPut) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "She is already in that pen",
+        data: { refusal: "already_in_that_pen" },
+      });
+    }
     await walkTo(tx, {
       farmId: context.farm.id,
       beast,

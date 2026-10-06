@@ -2,6 +2,7 @@ import { standardPlaybook } from "@OpenFarm/domain";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { aMonthOn } from "../test/carrying";
 import { createTestClient } from "../test/client";
 import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
@@ -48,7 +49,13 @@ const aCowInMilk = async (name: string) => {
   for (const state of ["pregnant_heifer", "milking"] as const) {
     // One State after the other, as she lives them.
     // oxlint-disable-next-line no-await-in-loop
-    await owner.client.animals.setState({ tagNumber: cow.tagNumber, state });
+    await owner.client.animals.setState({
+      tagNumber: cow.tagNumber,
+      state,
+      ...(state === "pregnant_heifer"
+        ? { expectedCalvingOn: aMonthOn(owner) }
+        : {}),
+    });
   }
   return { penId: pen.id, tag: cow.tagNumber };
 };

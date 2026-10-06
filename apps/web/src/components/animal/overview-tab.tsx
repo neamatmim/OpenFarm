@@ -1,9 +1,14 @@
-import { DISPOSALS, MORTALITY_KINDS, bornAroundOf } from "@OpenFarm/domain";
+import {
+  isExitState,
+  DISPOSALS,
+  MORTALITY_KINDS,
+  bornAroundOf,
+} from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { Language } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
 import { Beef, MapPinOff, Milk, Shovel, TimerOff } from "lucide-react";
 import type { ReactNode } from "react";
@@ -21,9 +26,10 @@ import { TwoProjections } from "@/components/gain";
 import { Notice, Section, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
-import { choice, words } from "@/lib/correcting";
+import { choice, voiding, words } from "@/lib/correcting";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
 import type { Photo } from "@/lib/photo";
+import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
@@ -46,7 +52,11 @@ const PutItRight = ({
     detail,
     new Date(detail.mortality.happenedAt)
   );
+  // The Owner's alone: a death written against the wrong animal is voided, and she comes back as she was.
+  const me = useQuery(orpc.people.me.queryOptions());
+  const mayVoid = me.data?.roles.includes("owner") ?? false;
   const correcting = useCorrecting({
+    ...(mayVoid ? { voided: voiding() } : {}),
     kind: choice(detail.mortality.kind),
     cause: words(detail.mortality.cause),
     // An answer kept from before the link was shown has none: nothing is linked.
@@ -120,6 +130,15 @@ const PutItRight = ({
         value={correcting.typed.disposal ?? ""}
       />
       <DeathPhotoField id="mortality-newer-photo" onChange={setPhoto} />
+      {mayVoid ? (
+        <CorrectionChoice
+          label={t("correct.void")}
+          onChange={(value) => correcting.set("voided", value)}
+          options={[{ value: "void", label: t("correct.voidDeath") }]}
+          unchosen={t("correct.keep")}
+          value={correcting.typed.voided ?? ""}
+        />
+      ) : null}
     </CorrectionDialog>
   );
 };
@@ -359,7 +378,11 @@ const AboutHer = ({ detail }: { detail: AnimalDetail }) => {
         <Fact label={t("animals.side")}>
           <SideWord side={detail.side} />
         </Fact>
-        <Fact label={t("animals.pen")}>
+        <Fact
+          label={t(
+            isExitState(detail.state) ? "animals.lastPen" : "animals.pen"
+          )}
+        >
           {detail.pen.shed.name} / {detail.pen.name}
         </Fact>
         <Fact label={t("animals.sex")}>{t(`animals.sex.${detail.sex}`)}</Fact>
@@ -478,7 +501,15 @@ const WrittenOff = ({
   mayFind: boolean;
 }) => {
   const { t, language } = useLanguage();
-  const found = useMutation(orpc.animals.found.mutationOptions({}));
+  // Said as it went: refused — found already by somebody else, or she has gone — is told, not swallowed.
+  const refused = useRefused();
+  const found = useMutation(
+    orpc.animals.found.mutationOptions({
+      onSuccess: () =>
+        toast.success(t("animals.foundDone", { tag: detail.tagNumber })),
+      onError: refused,
+    })
+  );
   const gone = detail.missing?.writtenOff;
   if (!gone) {
     return null;
@@ -489,10 +520,7 @@ const WrittenOff = ({
         mayFind ? (
           <Button
             disabled={found.isPending}
-            onClick={async () => {
-              await found.mutateAsync({ tagNumber: detail.tagNumber });
-              toast.success(t("animals.foundDone", { tag: detail.tagNumber }));
-            }}
+            onClick={() => found.mutate({ tagNumber: detail.tagNumber })}
             size="sm"
             type="button"
             variant="outline"
@@ -528,7 +556,15 @@ const NotFound = ({
   onAct: (act: AnimalAct) => void;
 }) => {
   const { t, language } = useLanguage();
-  const found = useMutation(orpc.animals.found.mutationOptions({}));
+  // Said as it went: refused — found already by somebody else, or she has gone — is told, not swallowed.
+  const refused = useRefused();
+  const found = useMutation(
+    orpc.animals.found.mutationOptions({
+      onSuccess: () =>
+        toast.success(t("animals.foundDone", { tag: detail.tagNumber })),
+      onError: refused,
+    })
+  );
   if (!detail.missing || detail.missing.writtenOff) {
     return null;
   }
@@ -539,12 +575,7 @@ const NotFound = ({
           <>
             <Button
               disabled={found.isPending}
-              onClick={async () => {
-                await found.mutateAsync({ tagNumber: detail.tagNumber });
-                toast.success(
-                  t("animals.foundDone", { tag: detail.tagNumber })
-                );
-              }}
+              onClick={() => found.mutate({ tagNumber: detail.tagNumber })}
               size="sm"
               type="button"
               variant="outline"

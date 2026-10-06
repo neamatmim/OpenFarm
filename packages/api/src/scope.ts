@@ -180,7 +180,10 @@ export const outOfScope = (scope: Scope) => {
       return new ORPCError("FORBIDDEN");
     }
     default: {
-      return new ORPCError("FORBIDDEN", { message: "That pen is not yours" });
+      return new ORPCError("FORBIDDEN", {
+        message: "That pen is not yours",
+        data: { refusal: "pen_not_yours" },
+      });
     }
   }
 };

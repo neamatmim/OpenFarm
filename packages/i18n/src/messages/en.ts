@@ -1084,7 +1084,7 @@ export const en = {
   "animals.groupAlreadyThere":
     "{count, plural, one {# animal was} other {# animals were}} already in that pen",
   "animals.groupRefused":
-    "{count, plural, one {# animal was} other {# animals were}} not moved: open her page to see why",
+    "{count, plural, one {# animal} other {# animals}} could not be moved",
   "params.breeding": "Breeding calendar",
   "params.fatteningAndPapers": "Fattening and papers",
   "params.alertsHint":
@@ -1708,6 +1708,27 @@ export const en = {
     "That sighting was corrected since this list was opened. Answer the one in its place",
   "refusal.feedOnARation":
     "A ration a pen is on still feeds it ({ration}). Change that ration first",
+  "refusal.arrivedBeforeTheTrip":
+    "She can't have come home before the outing that brought her went. Check the day",
+  "refusal.beforeSheWasHere":
+    "She wasn't here yet then, or was moved after that time. Check the day and time",
+  "refusal.bornInTheFuture": "A birth date can't be in the future",
+  "refusal.alreadyInThatPen": "She is already in that pen",
+  "refusal.calfMovedBeforeThat":
+    "The calf was moved before that time, so the calving can't be after it",
+  "refusal.soldOnSince":
+    "She has been sold on since she was bought. Her owner is put right on the internal sale",
+  "refusal.notOnThatLorry":
+    "Not on that day's lorry: {tags}. Only animals still standing, or sold that day, can be",
+  "refusal.soldInTheFuture": "A sale can't be on a day that hasn't come yet",
+  "refusal.moneyMovedSince":
+    "Money has moved on this since: the buyer has paid, something was written off, or the venture is settled. Correct it instead",
+  "refusal.cannotBeVoided":
+    "This was written before it could be voided. Correct it instead",
+  "refusal.stateChangedSince":
+    "Her state has changed since this was made. Look at her page and do it again",
+  "refusal.noSuchPen": "That pen is no longer on the farm's list",
+  "refusal.penNotYours": "That pen isn't one of yours. Ask the manager",
   "refusal.phoneRevoked":
     "This phone is no longer one of the farm's. Ask the manager for a code to enrol it again",
   "refusal.tooManyPins":
@@ -2286,6 +2307,7 @@ export const en = {
     "Called off: her calving is no longer expected",
   "audit.calledOffBy.report_withdrawn": "Called off: the report was withdrawn",
   "audit.calledOffBy.course_stopped": "Called off: the vet stopped the course",
+  "audit.calledOffBy.exit_voided": "Called off: the owner voided her leaving",
   "audit.calledOffBy.version_published":
     "Called off: a new version moved its time",
   "audit.calledOffBy.sop_retired": "Called off: the procedure was retired",
@@ -2719,6 +2741,13 @@ export const en = {
   "animals.moveQueued": "Kept on this phone — she moves when there is signal",
   "animals.retag": "Replace the ear tag",
   "animals.retagged": "Re-tag recorded",
+  "animals.moveReason.born": "Born here",
+  "animals.moveReason.intake": "Came in from the market",
+  "animals.moveReason.registered": "Registered",
+  "animals.moveReason.openingRegister": "From the opening register",
+  "animals.moveReason.weaned": "Weaned",
+  "animals.lastInPen": "Last in {pen}",
+  "animals.lastPen": "Last pen",
   "animals.reason": "Reason",
   "animals.setState": "Change state",
   "animals.stateChanged": "State changed",
@@ -4449,6 +4478,11 @@ export const en = {
   "correct.sale": "Correct this sale",
   "correct.dispatch": "Correct this dispatch",
   "correct.purchase": "Correct this purchase",
+  "correct.soldAt": "When she left",
+  "correct.void": "Written against the wrong animal",
+  "correct.voidSale": "Void this sale: she comes back as she was",
+  "correct.voidDeath": "Void this death: she comes back as she was",
+  "correct.keep": "Keep it",
   "correct.arrival": "Correct this arrival",
   "correct.intake": "Correct what she cost",
   "correct.receivablePayment": "Correct this payment",

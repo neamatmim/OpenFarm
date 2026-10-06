@@ -119,8 +119,9 @@ describe("Herd Costs", () => {
     );
     // The ones who stood here all month carry about twice what the one who came on the 16th carries.
     expect(early.herdMoney).toBeGreaterThan(late.herdMoney * 1.5);
-    // The two who stood here all month carry all but the hours between their arrivals apart.
-    expect(Math.abs(early.herdMoney - alsoHere.herdMoney)).toBeLessThan(20);
+    // The two who stood here all month carry all but the hours between their arrivals apart: five, from midnight to five
+    // in the morning, now that a bull is on the books from when he came rather than when he was written up.
+    expect(Math.abs(early.herdMoney - alsoHere.herdMoney)).toBeLessThan(30);
   });
 
   it("comes off her Margin and her Cost of Gain", async () => {

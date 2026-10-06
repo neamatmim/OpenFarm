@@ -10,6 +10,7 @@ import {
 } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { aMonthOn } from "../test/carrying";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -57,6 +58,7 @@ const setup = async () => {
   await owner.client.animals.setState({
     tagNumber: cow.tagNumber,
     state: "pregnant_heifer",
+    expectedCalvingOn: aMonthOn(owner),
   });
   await owner.client.animals.setState({
     tagNumber: cow.tagNumber,

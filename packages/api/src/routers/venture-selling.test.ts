@@ -550,14 +550,15 @@ describe("the lorry that took them to the livestock market", () => {
       transportMoney: 8000,
       keepMoney: 1000,
       animals: [...tags],
-      wentOn: new Date("2047-05-02T05:00:00.000Z"),
+      // The day the first of them was sold off it; the other came home and was sold the next.
+      wentOn: new Date("2047-04-18T05:00:00.000Z"),
       paymentMethod: "cash",
     });
 
     const owner = await as("owner", "2047-06-02T04:00:00.000Z");
     const month = await owner.client.ventures.consumption({
       ventureId,
-      month: "2047-05",
+      month: "2047-04",
     });
     // Nine thousand for the lorry, split evenly over the two it carried — and only one of them was
     // the Venture's by then, a Correction above having said the other was the Farm's all along. So the

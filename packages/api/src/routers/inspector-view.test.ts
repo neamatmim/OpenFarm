@@ -1,6 +1,7 @@
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { aMonthOn } from "../test/carrying";
 import { createTestClient } from "../test/client";
 import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
@@ -55,7 +56,13 @@ const setup = async () => {
     });
     for (const state of ["pregnant_heifer", "milking"] as const) {
       // oxlint-disable-next-line no-await-in-loop
-      await owner.client.animals.setState({ tagNumber: made.tagNumber, state });
+      await owner.client.animals.setState({
+        tagNumber: made.tagNumber,
+        state,
+        ...(state === "pregnant_heifer"
+          ? { expectedCalvingOn: aMonthOn(owner) }
+          : {}),
+      });
     }
   };
   await cow();
@@ -88,6 +95,8 @@ const setup = async () => {
     estimatedAgeMonths: 18,
     targetWindowStart: "2043-07-01",
     targetWindowEnd: "2043-07-05",
+    // Came the day before he died: an animal cannot die before he came.
+    arrivedAt: new Date("2043-04-30T04:00:00.000Z"),
   });
   await manager.client.animals.recordMortality({
     photo: A_DEATH_PHOTO,

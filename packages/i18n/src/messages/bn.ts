@@ -1021,7 +1021,7 @@ export const bn: Record<MessageKey, string> = {
   "animals.groupMoved": "{count}টি পশু সরানো হয়েছে",
   "animals.groupQueued": "{count}টি সরানো এই ফোনে রাখা আছে, নেটওয়ার্ক পেলে পাঠানো হবে",
   "animals.groupAlreadyThere": "{count}টি পশু আগে থেকেই ওই পেনে আছে",
-  "animals.groupRefused": "{count}টি পশু সরানো যায়নি: কেন, তা তার পাতায় দেখুন",
+  "animals.groupRefused": "{count}টি পশু সরানো যায়নি",
   "params.breeding": "প্রজনন ক্যালেন্ডার",
   "params.fatteningAndPapers": "মোটাতাজাকরণ ও কাগজপত্র",
   "params.alertsHint":
@@ -1587,6 +1587,26 @@ export const bn: Record<MessageKey, string> = {
     "এই তালিকা খোলার পর ঘটনাটি সংশোধন হয়েছে। তার জায়গার ঘটনাটির উত্তর দিন",
   "refusal.feedOnARation":
     "একটি পেন যে রেশনে আছে তাতে এটি এখনো খাওয়ানো হয় ({ration})। আগে সেই রেশন বদলান",
+  "refusal.arrivedBeforeTheTrip":
+    "যে যাত্রায় এসেছে তা যাওয়ার আগে সে আসতে পারে না। দিনটি দেখে নিন",
+  "refusal.beforeSheWasHere":
+    "তখন সে এখানে ছিল না, বা তার পরে তাকে সরানো হয়েছে। দিন ও সময় দেখে নিন",
+  "refusal.bornInTheFuture": "জন্মের দিন ভবিষ্যতে হতে পারে না",
+  "refusal.alreadyInThatPen": "সে আগে থেকেই ওই পেনে আছে",
+  "refusal.calfMovedBeforeThat":
+    "বাছুরটিকে ওই সময়ের আগে সরানো হয়েছে, তাই বাচ্চা দেওয়া তার পরে হতে পারে না",
+  "refusal.soldOnSince":
+    "কেনার পর তাকে আবার বিক্রি করা হয়েছে। তার মালিক অভ্যন্তরীণ বিক্রিতে সংশোধন করুন",
+  "refusal.notOnThatLorry":
+    "সেদিনের ট্রাকে ছিল না: {tags}। শুধু যারা এখনো আছে, বা সেদিন বিক্রি হয়েছে, তারাই থাকতে পারে",
+  "refusal.soldInTheFuture": "বিক্রি এমন দিনে হতে পারে না যা এখনো আসেনি",
+  "refusal.moneyMovedSince":
+    "এরপর টাকা নড়েছে: ক্রেতা টাকা দিয়েছেন, কিছু বাদ দেওয়া হয়েছে, বা উদ্যোগ নিষ্পত্তি হয়েছে। এর বদলে সংশোধন করুন",
+  "refusal.cannotBeVoided":
+    "বাতিল করা যাওয়ার আগে এটি লেখা হয়েছিল। এর বদলে সংশোধন করুন",
+  "refusal.stateChangedSince": "এটি করার পর তার অবস্থা বদলেছে। তার পাতা দেখে আবার করুন",
+  "refusal.noSuchPen": "ওই পেন আর খামারের তালিকায় নেই",
+  "refusal.penNotYours": "ওই পেন আপনার নয়। ম্যানেজারকে জিজ্ঞেস করুন",
   "refusal.phoneRevoked":
     "এই ফোন আর খামারের নয়। আবার যুক্ত করতে ম্যানেজারের কাছে কোড চান",
   "refusal.tooManyPins":
@@ -2124,6 +2144,7 @@ export const bn: Record<MessageKey, string> = {
     "বাতিল: তার বাচ্চা দেওয়া আর প্রত্যাশিত নয়",
   "audit.calledOffBy.report_withdrawn": "বাতিল: রিপোর্ট ফিরিয়ে নেওয়া হয়েছে",
   "audit.calledOffBy.course_stopped": "বাতিল: পশুচিকিৎসক কোর্স বন্ধ করেছেন",
+  "audit.calledOffBy.exit_voided": "বাতিল: মালিক তার চলে যাওয়া বাতিল করেছেন",
   "audit.calledOffBy.version_published": "বাতিল: নতুন সংস্করণে সময় বদলেছে",
   "audit.calledOffBy.sop_retired": "বাতিল: কার্যপ্রণালীটি বাদ দেওয়া হয়েছে",
   "audit.calledOffBy.released": "বাতিল: পশুটি কোয়ারেন্টিন থেকে ছাড়া পেয়েছে",
@@ -2542,6 +2563,13 @@ export const bn: Record<MessageKey, string> = {
   "animals.moved": "স্থানান্তর হয়েছে",
   "animals.retag": "কানের ট্যাগ বদলান",
   "animals.retagged": "ট্যাগ বদল নথিভুক্ত",
+  "animals.moveReason.born": "এখানে জন্ম",
+  "animals.moveReason.intake": "হাট থেকে এসেছে",
+  "animals.moveReason.registered": "নিবন্ধিত",
+  "animals.moveReason.openingRegister": "শুরুর তালিকা থেকে",
+  "animals.moveReason.weaned": "দুধ ছাড়ানো হয়েছে",
+  "animals.lastInPen": "সর্বশেষ ছিল {pen}",
+  "animals.lastPen": "সর্বশেষ পেন",
   "animals.reason": "কারণ",
   "animals.setState": "অবস্থা বদলান",
   "animals.stateChanged": "অবস্থা বদলেছে",
@@ -4163,6 +4191,11 @@ export const bn: Record<MessageKey, string> = {
   "correct.sale": "এই বিক্রয় সংশোধন",
   "correct.dispatch": "এই দুধ দেওয়া সংশোধন",
   "correct.purchase": "এই কেনা সংশোধন",
+  "correct.soldAt": "কখন চলে গেছে",
+  "correct.void": "ভুল পশুর নামে লেখা হয়েছে",
+  "correct.voidSale": "এই বিক্রি বাতিল করুন: সে আগের মতো ফিরে আসবে",
+  "correct.voidDeath": "এই মৃত্যু বাতিল করুন: সে আগের মতো ফিরে আসবে",
+  "correct.keep": "রেখে দিন",
   "correct.arrival": "এই আগমন সংশোধন",
   "correct.intake": "কেনার তথ্য সংশোধন",
   "correct.receivablePayment": "এই পরিশোধ সংশোধন করুন",

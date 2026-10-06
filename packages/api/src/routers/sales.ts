@@ -240,6 +240,9 @@ export const salesRouter = {
             driver: input.driver,
             note: input.note ?? null,
             soldAt,
+            // What she comes back as, should the Owner void this Sale written against the wrong animal.
+            stateBefore: her.state,
+            stateChangedBefore: her.stateChangedAt,
             recordedBy: context.actor.id,
             recordedByRole: context.roleUsed,
             createdAt: now,
