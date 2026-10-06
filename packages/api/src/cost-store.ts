@@ -87,6 +87,7 @@ const byTheHead = (kind: Charge["kind"], one: CostShare): Charge => ({
   fromId: one.fromId,
   unpricedKg: 0,
   priced: true,
+  ...(one.over ? { over: one.over } : {}),
 });
 
 /**
@@ -607,6 +608,8 @@ export const keepChargesOf = (
       amount: one.amount,
       fed: one.kind === "feed",
       priced: one.priced,
+      // Her part of a month's Herd Cost is read by its days, not by the day it was entered.
+      ...(one.over ? { over: one.over } : {}),
     }));
 
 /** The litres some cows sent to Bulk. */

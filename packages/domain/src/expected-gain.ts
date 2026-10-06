@@ -322,12 +322,16 @@ export const gainOverStayOf = (
 
 /**
  * The kinds of animal the farm's own gains are said by, as her range is cut: crossbred bulls — whom a Ration's figures
- * are written for — deshi bulls, bulls nobody wrote a Breed for, and cows and heifers.
+ * are written for — deshi bulls, bulls nobody wrote a Breed for, and crossbred cows and heifers.
  */
 export const GAIN_GROUPS = ["cross", "deshi", "unrecorded", "female"] as const;
 export type GainGroup = (typeof GAIN_GROUPS)[number];
 
-/** Which of them she is. */
+/**
+ * Which of them she is, or none: the female figure is offered as the share a cow takes on top of her Breed's, so only a
+ * crossbred cow's gain is in it. A deshi cow's, or one nobody wrote a Breed for, would carry the deshi cut into the
+ * female share, and a deshi cow judged by both would be cut twice.
+ */
 export const gainGroupOf = ({
   sex,
   deshi,
@@ -335,9 +339,9 @@ export const gainGroupOf = ({
   sex: "male" | "female";
   /** Whether her Breed is deshi; null when nobody wrote one down. */
   deshi: boolean | null;
-}): GainGroup => {
+}): GainGroup | null => {
   if (sex === "female") {
-    return "female";
+    return deshi === false ? "female" : null;
   }
   if (deshi === null) {
     return "unrecorded";

@@ -1,15 +1,42 @@
 import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { weighIn } from "@OpenFarm/db/schema/fattening";
 import { needsReview } from "@OpenFarm/db/schema/review";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { judgeAgainAfter } from "../effects/weigh-in";
 import { protectedProcedure } from "../index";
 import { withTheirWork } from "../review-store";
 import { requireRole } from "../roles";
 
 /** How much of the queue a screen is handed at once. */
 const QUEUE_LIMIT = 100;
+
+/** A doubted reading the Manager found right: no longer doubted, and the readings after it judged again against it. */
+const letTheReadingStand = async (
+  tx: Tx,
+  farmId: string,
+  completionId: string,
+  now: Date
+): Promise<void> => {
+  const [reading] = await tx
+    .update(weighIn)
+    .set({ flaggedNote: null })
+    .where(
+      and(eq(weighIn.farmId, farmId), eq(weighIn.completionId, completionId))
+    )
+    .returning({ animalId: weighIn.animalId, weighedAt: weighIn.weighedAt });
+  if (reading) {
+    await judgeAgainAfter(tx, {
+      farmId,
+      animalId: reading.animalId,
+      after: reading.weighedAt,
+      now,
+    });
+  }
+};
 
 export const reviewQueueRouter = {
   /** What the system could not put right on its own, oldest first — the things that have
@@ -50,6 +77,9 @@ export const reviewQueueRouter = {
       z.object({
         id: z.string(),
         resolution: z.string().trim().min(1).max(400),
+        /** For a doubted weight: the Manager looked, and the reading is right. Its doubt is lifted, and the readings
+         *  after it are judged again against it. */
+        readingStands: z.boolean().optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -82,11 +112,23 @@ export const reviewQueueRouter = {
                 isNull(needsReview.resolvedAt)
               )
             )
-            .returning({ id: needsReview.id });
+            .returning({
+              id: needsReview.id,
+              entity: needsReview.entity,
+              entityId: needsReview.entityId,
+              reason: needsReview.reason,
+            });
           if (!row) {
             throw new ORPCError("NOT_FOUND", {
               message: "That is not waiting to be looked at",
             });
+          }
+          if (
+            input.readingStands &&
+            row.entity === "weigh_in" &&
+            row.reason === "implausible_weight"
+          ) {
+            await letTheReadingStand(tx, context.farm.id, row.entityId, now);
           }
         }
       );

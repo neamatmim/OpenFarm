@@ -40,6 +40,8 @@ export interface CostShare {
   /** What it came from: the Category of a Herd Cost, or the outing or livestock market a by-the-head cost was
    *  paid at. Always said, so a month's charges can be named rather than only totalled. */
   fromId: string;
+  /** The days it is for: her days in the month a Herd Cost is split over. Nothing for a cost of one moment. */
+  over?: { from: Date; until: Date };
 }
 
 /** One outing, as its cost is split: what it cost beyond the animals, and who came home on it. */
@@ -258,6 +260,7 @@ export const herdShares = ({
         ),
         amount: (cost.amount * one.ms) / total,
         fromId: cost.categoryId,
+        over: { from: new Date(one.since), until: new Date(one.until) },
       }))
     );
   }

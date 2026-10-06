@@ -270,6 +270,34 @@ describe("what a Pen is fed", () => {
   });
 });
 
+describe("a Ration written wrong", () => {
+  it("is refused with a word the screen can say, and a retired feed by its name", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    const hay = await manager.client.feed.items.create({
+      name: { bn: `খড় বেশি ${Date.now()}` },
+    });
+    // A hundred and fifty kilos of straw a head is a slip of the finger, never a ration.
+    await expect(
+      manager.client.feed.rations.save({
+        name: { bn: `বেশি রেশন ${Date.now()}` },
+        items: [{ feedItemId: hay.id, kgPerAnimalPerDay: 150 }],
+      })
+    ).rejects.toMatchObject({ data: { refusal: "ration_not_saved" } });
+    await manager.client.feed.items.retire({ id: hay.id });
+    await expect(
+      manager.client.feed.rations.save({
+        name: { bn: `বাদ রেশন ${Date.now()}` },
+        items: [{ feedItemId: hay.id, kgPerAnimalPerDay: 5 }],
+      })
+    ).rejects.toMatchObject({
+      data: {
+        refusal: "feed_retired",
+        feed: expect.stringMatching(/^খড় বেশি/u),
+      },
+    });
+  });
+});
+
 describe("retiring a Ration", () => {
   it("is refused while a Pen is fed on it, and done once the Pen is on another", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });

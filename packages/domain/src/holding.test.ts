@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { startOfFarmDay } from "./farm-clock";
-import type { Charge, ChargeKind, Holding, OwnedThenBy } from "./holding";
+import type {
+  Charge,
+  ChargeKind,
+  Holding,
+  OwnedThenBy,
+  WhatHappened,
+} from "./holding";
 import {
   EVERY_CHARGE,
   HER_KEEP,
@@ -9,6 +15,7 @@ import {
   chargesInHolding,
   chargesOfOwner,
   costsOf,
+  howSheLeft,
 } from "./holding";
 
 // Bull ১০১ comes off the lorry for the Farm on 4 January 2030 and is sold by Internal Sale to Venture v1 on the 20th,
@@ -186,5 +193,36 @@ describe("what some charges came to", () => {
       tripMoney: 1900,
       herdMoney: 900,
     });
+  });
+});
+
+describe("a Holding that ends in a loss", () => {
+  // v1's bull, lost and made good by the Farm at ৳95,000; found, and so the Farm's; lost again as the Farm's own.
+  const lostAgain = new Date("2030-04-01T05:00:00.000Z");
+  const her: WhatHappened = {
+    sale: null,
+    internalSales: [],
+    crossing: null,
+    died: null,
+    lost: lostAgain,
+    madeGood: { ventureId: "v1", amountMoney: 95_000 },
+  };
+
+  it("gets back what was made good only where it is the Venture the Farm made good", () => {
+    expect(
+      howSheLeft(
+        { animalId: "১০১", owner: "v1", side: "fattening", from: arrived },
+        her,
+        () => "v1"
+      )
+    ).toMatchObject({ how: "lost", backMoney: 95_000 });
+    // The Farm's own Holding of her paid that money; lost, nothing came back to it.
+    expect(
+      howSheLeft(
+        { animalId: "১০১", owner: null, side: "fattening", from: arrived },
+        her,
+        () => null
+      )
+    ).toMatchObject({ how: "lost", backMoney: 0 });
   });
 });

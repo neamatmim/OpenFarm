@@ -1,4 +1,5 @@
 import { Textarea } from "@OpenFarm/ui/components/textarea";
+import type { ReactNode } from "react";
 import { useId, useState } from "react";
 
 import { FormDialog, FormField } from "@/components/page-kit";
@@ -16,6 +17,7 @@ export const ReasonDialog = ({
   submitLabel,
   pending,
   handleSubmit,
+  children,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -26,6 +28,8 @@ export const ReasonDialog = ({
   submitLabel: string;
   pending: boolean;
   handleSubmit: (reason: string) => void;
+  /** Anything else the judgement asks, under the reason. */
+  children?: ReactNode;
 }) => {
   const id = useId();
   const [reason, setReason] = useState("");
@@ -50,6 +54,7 @@ export const ReasonDialog = ({
           value={reason}
         />
       </FormField>
+      {children}
     </FormDialog>
   );
 };

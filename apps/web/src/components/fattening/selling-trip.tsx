@@ -1,4 +1,5 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
+import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
@@ -39,13 +40,25 @@ const NOTHING_YET: Day = {
 const orNothing = (value: string) =>
   value.trim() === "" ? undefined : Number(value);
 
-type Beast = Awaited<ReturnType<typeof orpc.fattening.list.call>>[number];
+type Beast = Awaited<
+  ReturnType<typeof orpc.sellingTrips.whoCouldHaveGone.call>
+>[number];
 
-/** The fattening side pen by pen, each pen's animals in the board's order, since a lorry is loaded a pen at a time. */
-const penByPen = (board: Beast[]): [string, Beast[]][] => {
+/** The day the lorry went, as the server takes it: nothing for today, which it reads as now, and the first moment of
+ *  an earlier day — before anything sold off the lorry that day, so her share of it is charged while she was here. */
+const wentOnOf = (day: string, today: string): Date | undefined =>
+  day === today ? undefined : startOfFarmDay(day);
+
+/** The beasts pen by pen, since a lorry is loaded a pen at a time, and the ones sold that day together under their own
+ *  heading, gone from their pens by now. */
+const penByPen = (
+  offered: Beast[],
+  heading: { sold: string; noPen: string }
+): [string, Beast[]][] => {
   const pens = new Map<string, Beast[]>();
-  for (const one of board) {
-    pens.set(one.penName, [...(pens.get(one.penName) ?? []), one]);
+  for (const one of offered) {
+    const pen = one.soldThatDay ? heading.sold : (one.penName ?? heading.noPen);
+    pens.set(pen, [...(pens.get(pen) ?? []), one]);
   }
   return [...pens];
 };
@@ -72,7 +85,7 @@ const BeastTile = ({
         onCheckedChange={onTaken}
       />
       <span className="font-mono text-xs font-medium">{one.tagNumber}</span>
-      {one.state === "ready_for_sale" ? (
+      {one.ready ? (
         <span className="text-success ms-auto flex">
           <CircleCheck aria-hidden className="size-3.5" />
           <span className="sr-only">{t("state.ready_for_sale")}</span>
@@ -82,18 +95,25 @@ const BeastTile = ({
   );
 };
 
+/** The button over a group: a whole pen taken or left, or every beast sold that day, who are in no pen now. */
+const WHOLE_GROUP_WORD = {
+  false: { false: "selling.takePen", true: "selling.leavePen" },
+  true: { false: "selling.takeAllSold", true: "selling.leaveAllSold" },
+} as const;
+
 /** Who went, pen by pen as tiles, with a button to take — or leave — a whole pen at once. */
 const WhoWent = ({
-  board,
+  offered,
   taken,
   onTaken,
 }: {
-  board: Beast[];
+  offered: Beast[];
   taken: string[];
   onTaken: (taken: string[]) => void;
 }) => {
   const { t } = useLanguage();
-  if (board.length === 0) {
+  const soldHeading = t("selling.soldThatDay");
+  if (offered.length === 0) {
     return (
       <p className="text-muted-foreground text-sm">
         {t("selling.nobodyToTake")}
@@ -102,7 +122,10 @@ const WhoWent = ({
   }
   return (
     <div className="flex flex-col gap-4">
-      {penByPen(board).map(([pen, beasts]) => {
+      {penByPen(offered, {
+        sold: soldHeading,
+        noPen: t("selling.noPen"),
+      }).map(([pen, beasts]) => {
         const tags = beasts.map((one) => one.tagNumber);
         const whole = tags.every((tag) => taken.includes(tag));
         return (
@@ -126,7 +149,7 @@ const WhoWent = ({
                 type="button"
                 variant="ghost"
               >
-                {t(whole ? "selling.leavePen" : "selling.takePen")}
+                {t(WHOLE_GROUP_WORD[`${pen === soldHeading}`][`${whole}`])}
               </Button>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6">
@@ -162,18 +185,26 @@ export const SellingTripForm = () => {
   const refused = useRefused();
   const asMoney = useMoney();
   const [day, setDay] = useState<Day>(NOTHING_YET);
+  const today = farmDayOf(new Date());
+  const [wentOnDay, setWentOnDay] = useState(today);
   const [taken, setTaken] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
   const trips = useQuery(orpc.sellingTrips.list.queryOptions());
   // Every beast on the Fattening side, not only the ones already flagged Ready: at Eid the lorry takes
-  // whoever is worth taking, and the day is often written up after they have sold.
-  const board = useQuery(orpc.fattening.list.queryOptions({ input: {} }));
+  // whoever is worth taking. And the ones sold that day, since the day is often written up after they have sold.
+  const wentOn = wentOnOf(wentOnDay, today);
+  const offered = useQuery(
+    orpc.sellingTrips.whoCouldHaveGone.queryOptions({
+      input: { wentOn: startOfFarmDay(wentOnDay) },
+    })
+  );
   const record = useMutation(
     orpc.sellingTrips.record.mutationOptions({
       onError: refused,
       onSuccess: () => {
         setDay(NOTHING_YET);
+        setWentOnDay(farmDayOf(new Date()));
         setTaken([]);
         toast.success(t("selling.tripRecorded"));
       },
@@ -202,6 +233,20 @@ export const SellingTripForm = () => {
                 setDay({ ...day, wentTo: event.target.value })
               }
               value={day.wentTo}
+            />
+          </FormField>
+          <FormField id="selling-went-on" label={t("selling.wentOn")}>
+            <Input
+              id="selling-went-on"
+              max={today}
+              onChange={(event) => {
+                setWentOnDay(event.target.value || today);
+                // Another day is another lorry: who was ticked for the last one was not necessarily on it.
+                setTaken([]);
+              }}
+              required
+              type="date"
+              value={wentOnDay}
             />
           </FormField>
           <PaymentMethodField
@@ -241,11 +286,11 @@ export const SellingTripForm = () => {
             </span>
           </legend>
           <Loaded
-            query={board}
+            query={offered}
             skeleton={<Skeleton className="h-16 rounded-lg" />}
           >
             <WhoWent
-              board={board.data ?? []}
+              offered={offered.data ?? []}
               onTaken={setTaken}
               taken={taken}
             />
@@ -261,6 +306,7 @@ export const SellingTripForm = () => {
                 transportMoney: orNothing(day.transportMoney),
                 keepMoney: orNothing(day.keepMoney),
                 animals: taken,
+                wentOn,
                 paymentMethod,
                 ...accountSent(paymentMethod, account),
               })

@@ -408,7 +408,11 @@ describe("an animal's gain over her whole stay on a Ration", () => {
 
 describe("the kind of animal a gain of the farm's own is said by", () => {
   it("is her sex first, then her breed", () => {
-    expect(gainGroupOf({ sex: "female", deshi: true })).toBe("female");
+    expect(gainGroupOf({ sex: "female", deshi: false })).toBe("female");
+    // A deshi cow, or one nobody wrote a Breed for, is in no figure: the female figure is offered as the share a cow
+    // takes on top of her Breed's, and a deshi cow's gain in it would cut a deshi cow twice.
+    expect(gainGroupOf({ sex: "female", deshi: true })).toBeNull();
+    expect(gainGroupOf({ sex: "female", deshi: null })).toBeNull();
     expect(gainGroupOf({ sex: "male", deshi: true })).toBe("deshi");
     expect(gainGroupOf({ sex: "male", deshi: false })).toBe("cross");
     expect(gainGroupOf({ sex: "male", deshi: null })).toBe("unrecorded");

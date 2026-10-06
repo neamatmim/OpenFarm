@@ -103,7 +103,6 @@ const UNWORDED = [
   "no_such_product",
   "no_such_venture",
   "no_withdrawal_days",
-  "not_fattening",
   "not_notifiable",
   "not_shorter",
   "owner_writes_their_own",

@@ -205,3 +205,113 @@ describe("the fortnightly weigh-in", () => {
     });
   });
 });
+
+/** A bull of the Pen's, off the lorry on the first of March at so many kilos. */
+const arrives = async (weightKg: number) => {
+  const manager = await createTestClient(appRouter, {
+    as: "manager",
+    clock: new FakeClock("2027-03-01T03:00:00.000Z"),
+  });
+  const his = await manager.client.intakes.record({
+    penId: world.pen.id,
+    sex: "male",
+    seller: { name: `হাট ${suffix}` },
+    purchasePriceMoney: 90_000,
+    weightKg,
+    estimatedAgeMonths: 22,
+    arrivedAt: new Date("2027-03-01T03:00:00.000Z"),
+  });
+  return his.tagNumber;
+};
+
+/** One bull weighed on a day's round: whether the farm doubted the reading, and the Completion it is. */
+const weighs = async (day: string, tagNumber: string, kg: number) => {
+  const { instance, staff } = await round(day);
+  const done = await staff.client.work.completeStep({
+    instanceId: instance.id,
+    stepId: "weigh",
+    animalTag: tagNumber,
+    evidence: [kg],
+  });
+  // Hers by her own row: two bulls weighed on one round at one instant cannot be told apart by time.
+  const her = await scratchDb().query.animal.findFirst({
+    where: { farmId: theFarm().id, tagNumber },
+    columns: { id: true },
+  });
+  const completion = await scratchDb().query.stepCompletion.findFirst({
+    where: {
+      instanceId: instance.id,
+      stepId: "weigh",
+      animalId: her?.id ?? "",
+    },
+    columns: { id: true },
+  });
+  return {
+    flagged: (done.effect as { flagged?: boolean }).flagged ?? false,
+    completionId: completion?.id ?? "",
+  };
+};
+
+/** Whether the farm doubts her reading of a Completion now. */
+const doubted = async (completionId: string) => {
+  const row = await scratchDb().query.weighIn.findFirst({
+    where: { completionId },
+    columns: { flaggedNote: true },
+  });
+  return row?.flaggedNote !== null && row?.flaggedNote !== undefined;
+};
+
+describe("a reading set against what came before it", () => {
+  it("judges a first Weigh-in against what she weighed off the lorry", async () => {
+    const tag = await arrives(200);
+    // Nine days in, the scale read as 400: no bull grows twenty-two kilos a day.
+    const misread = await weighs("2027-03-10", tag, 400);
+    expect(misread.flagged).toBe(true);
+    // The true reading after it is not doubted for being under a figure the farm already doubted.
+    const right = await weighs("2027-03-24", tag, 212);
+    expect(right.flagged).toBe(false);
+  });
+
+  it("judges again the readings after one put right", async () => {
+    const tag = await arrives(200);
+    const first = await weighs("2027-03-10", tag, 205);
+    // Fifty-five kilos in a fortnight from 205: doubted.
+    const second = await weighs("2027-03-24", tag, 260);
+    expect(second.flagged).toBe(true);
+    // The first was misread; it was 230. From 230, 260 in a fortnight is a bull growing well.
+    const { manager } = await round("2027-03-25");
+    await correctStepAsShown(manager.client, {
+      completionId: first.completionId,
+      evidence: [230],
+      reason: "স্কেলে ভুল পড়া হয়েছিল",
+    });
+    expect(await doubted(second.completionId)).toBe(false);
+    const queue = await manager.client.reviewQueue.list();
+    expect(
+      queue.some(
+        (row) =>
+          row.reason === "implausible_weight" &&
+          row.entityId === second.completionId
+      )
+    ).toBe(false);
+  });
+
+  it("trusts a doubted reading the Manager says is right", async () => {
+    const tag = await arrives(200);
+    await weighs("2027-03-10", tag, 210);
+    const big = await weighs("2027-03-24", tag, 260);
+    expect(big.flagged).toBe(true);
+    const { manager } = await round("2027-03-25");
+    const queue = await manager.client.reviewQueue.list();
+    const asked = queue.find(
+      (row) =>
+        row.reason === "implausible_weight" && row.entityId === big.completionId
+    );
+    await manager.client.reviewQueue.resolve({
+      id: asked?.id ?? "",
+      resolution: "আবার মেপে একই পাওয়া গেছে",
+      readingStands: true,
+    });
+    expect(await doubted(big.completionId)).toBe(false);
+  });
+});

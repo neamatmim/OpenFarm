@@ -1629,8 +1629,7 @@ export const bn: Record<MessageKey, string> = {
   "refusal.nothingLeftToBuy": "এই ভেঞ্চারের আর কোনো গরু কেনার নেই",
   "refusal.bankRateFromTheFuture":
     "ব্যাংকের হার আসা দিন থেকে ধরা হয়, সামনের দিন থেকে নয়",
-  "refusal.crossingUnweighed":
-    "পার হওয়ার দিন শেষ হওয়া পর্যন্ত কেউ তার ওজন নেয়নি; আগে ওজন নিন, তারপর দাম লিখুন",
+  "refusal.crossingUnweighed": "পার হওয়ার পর থেকে তার ওজন নেওয়া হয়নি। আগে ওজন নিন",
   "refusal.joiningNeedsAWindow":
     "কোন বিক্রির সময়ের জন্য তাকে খাওয়ানো হচ্ছে তা বলুন; পরের ঈদ বের করা যায়নি",
   "refusal.anAnimalStillStands": "এই ভেঞ্চারের একটি গরু এখনও আছে",
@@ -1640,6 +1639,9 @@ export const bn: Record<MessageKey, string> = {
     "এটি খামারের নিজের টাকায় হারানো পশুর ক্ষতিপূরণ; শুধু ভেঞ্চারের দিকে এটি ঠিক করা যায় না",
   "refusal.theFarmsOwnCapital":
     "এটি খামারের নিজের মূলধন, যা খামারের নিজের হিসাবেও আছে; শুধু ভেঞ্চারের দিকে এটি ঠিক করা যায় না",
+  "refusal.notFattening": "শুধু মোটাতাজা করা হচ্ছে এমন পশুকেই বিক্রির জন্য তৈরি বলা যায়",
+  "refusal.soldBeforeSheCame":
+    "যেদিন পশুটি এসেছে, বা শেষবার হাতবদল হয়েছে, তার আগের দিনে তাকে বিক্রি করা যায় না",
   "refusal.termsChanged": "আপনি পড়ার পরে এটি সংশোধন হয়েছে। অনুমোদনের আগে আবার পড়ুন",
   "refusal.handedLaterThanNow": "এখনকার পরে টাকা হাতবদল হতে পারে না",
   "refusal.splitNotTheFarms":
@@ -2373,6 +2375,7 @@ export const bn: Record<MessageKey, string> = {
   "breeds.gain.title": "{name}: প্রত্যাশিত বৃদ্ধির কত ভাগ",
   "breeds.gain.hint":
     "এই জাতের পশু তার রেশনের প্রত্যাশিত বৃদ্ধির এই ভাগে মাপা হবে, দেশির হারের বদলে। গাভী বা বকনার বেলায় স্ত্রী পশুর হারও এর ওপর ধরা হবে। ৩০% থেকে ১২০%।",
+  "breeds.gain.between": "{least}% থেকে {most}%",
   "breeds.gain.label": "রেশনের প্রত্যাশিত বৃদ্ধির কত ভাগ (%)",
   "breeds.gain.farmHint": "{figure}। শুধু ষাঁড় থেকে — গাভী বা বকনায় স্ত্রী পশুর হারও থাকে।",
   "breeds.gain.noFigure":
@@ -2912,6 +2915,7 @@ export const bn: Record<MessageKey, string> = {
   "feed.items": "খাদ্য উপাদান",
   "feed.addItem": "উপাদান যোগ করুন",
   "feed.retire": "বাদ দিন",
+  "feed.atMostADay": "দিনে {kg}-এর বেশি নয়",
   "feed.retired": "বাদ দেওয়া",
   "feed.restore": "ফিরিয়ে আনুন",
   "feed.rename": "নাম বদলান",
@@ -2940,6 +2944,7 @@ export const bn: Record<MessageKey, string> = {
   "feed.bandTo": "পর্যন্ত (কেজি)",
   "feed.bandHint":
     "যে কোনো ওজনে চললে দুটোই ফাঁকা রাখুন। এই সীমার বাইরের ষাঁড় মোটাতাজাকরণ পাতায় দেখানো হবে।",
+  "feed.bandWrong": "দুটো ওজনই শূন্যের বেশি, আর «থেকে» «পর্যন্ত»-এর চেয়ে কম হতে হবে",
   "feed.bandRange": "{from}–{to} কেজি",
   "feed.bandFromOnly": "{from} কেজি থেকে",
   "feed.bandToOnly": "{to} কেজির নিচে",
@@ -2997,7 +3002,7 @@ export const bn: Record<MessageKey, string> = {
   "farmGains.group.cross": "সংকর ষাঁড়",
   "farmGains.group.deshi": "দেশি ষাঁড়",
   "farmGains.group.unrecorded": "জাত লেখা নেই এমন ষাঁড়",
-  "farmGains.group.female": "গাভী ও বকনা",
+  "farmGains.group.female": "সংকর গাভী ও বকনা",
   "farmGains.figure": "{group} {gain} ({count}টি)",
   "farmGains.offer": "এই রেশনে আপনার সংকর ষাঁড়দের মাঝের অর্ধেক: {range} ({count}টি)",
   "farmGains.use": "এটি নিন",
@@ -3174,9 +3179,12 @@ export const bn: Record<MessageKey, string> = {
   "refusal.neverMonthly":
     "যে খরচ কোনো রেকর্ড থেকে আসে না, শুধু সেটাকেই প্রতি মাসের খরচ বলা যায়",
   "refusal.wagesWatchedByPerson": "মজুরি খোঁজা হয় মানুষ ধরে, খাত ধরে নয়",
-  "refusal.feedRetired": "এই খাদ্য বাতিল করা হয়েছে",
+  "refusal.rationNotSaved":
+    "রেশনটি এভাবে রাখা যাচ্ছে না: প্রতিটি পরিমাণ, ওজনের সীমা আর প্রত্যাশিত বৃদ্ধি দেখে নিন",
+  "refusal.feedRetired": "{feed} বাদ দেওয়া হয়েছে: সরিয়ে দিন, নয়তো আগে ফিরিয়ে আনুন",
   "refusal.bagSizeUnknown": "আগে খাদ্য উপাদান ট্যাবে এর বস্তার ওজন লিখুন",
-  "refusal.bundlesByTheHead": "আঁটিতে গোনা খাদ্য মাথাপিছু যায়, দৈহিক ওজন ধরে নয়",
+  "refusal.bundlesByTheHead":
+    "{feed} আঁটিতে গোনা হয়, তাই মাথাপিছু যায়, দৈহিক ওজন ধরে নয়",
   "refusal.packNeedsKg": "কেবল কেজিতে মাপা খাদ্যই বস্তায় বা মণে আসে",
   "nav.milk": "দুধ",
   "dispatch.subtitle":
@@ -3298,6 +3306,9 @@ export const bn: Record<MessageKey, string> = {
   "selling.wentTo": "কোথায় গিয়েছিল",
   "selling.transport": "গাড়ি ভাড়া (যাওয়া-আসা)",
   "selling.keep": "জায়গা, খাওয়া ও থাকা",
+  "selling.wentOn": "যেদিন গিয়েছিল",
+  "selling.soldThatDay": "সেদিন বিক্রি হয়েছে",
+  "selling.noPen": "কোনো পেনে নেই",
   "selling.whoWent": "কারা গিয়েছিল",
   "selling.nobodyToTake": "মোটাতাজাকরণে নেওয়ার মতো কোনো পশু নেই",
   "selling.recordTrip": "হাটের দিন লিখুন",
@@ -3306,6 +3317,8 @@ export const bn: Record<MessageKey, string> = {
   "selling.shrink": "বিক্রি হওয়াগুলোর পথে ওজন কমেছে {percent}% ({kg} কেজি)",
   "selling.tookAnimals": "{count}টি গেছে",
   "selling.chosen": "{count}টি পশু বাছা হয়েছে",
+  "selling.takeAllSold": "সবগুলো নিন",
+  "selling.leaveAllSold": "সবগুলো বাদ দিন",
   "selling.takePen": "পুরো পেন নিন",
   "selling.leavePen": "পেন বাদ দিন",
   "money.from.sale": "বিক্রি",
@@ -4133,6 +4146,7 @@ export const bn: Record<MessageKey, string> = {
   "review.title": "দেখা দরকার",
   "review.none": "অপেক্ষায় কিছু নেই",
   "review.resolve": "নিষ্পত্তি করুন",
+  "review.weightIsRight": "স্কেলের ওজনটাই ঠিক",
   "review.resolution": "আপনি কী সিদ্ধান্ত নিলেন?",
   "review.resolveHint":
     "কী সিদ্ধান্ত নিলেন লিখুন; এটি রেকর্ডে থাকবে, কিছুই মুছে যাবে না।",
@@ -4706,6 +4720,7 @@ export const bn: Record<MessageKey, string> = {
   "returns.bankFrom": "{day} থেকে",
   "returns.bankInForce": "চালু",
   "returns.bankSet": "হার লিখুন",
+  "returns.bankAtMost": "{most}-এর বেশি নয়",
   "returns.bankPerYear": "বছরে প্রতি ১০০ {currencyIn} হার",
   "returns.bankNote": "কীসের হার",
   "returns.bankNoteHint":
@@ -4755,7 +4770,7 @@ export const bn: Record<MessageKey, string> = {
   "returns.crossingsNone": "কোনো পারাপারের দাম বাকি নেই।",
   "returns.crossingLine": "{tag}, পার হয়েছে {day}",
   "returns.crossingWeighed": "সেদিনের মধ্যে ওজন {kg} কেজি",
-  "returns.crossingUnweighed": "সেদিনের মধ্যে ওজন নেওয়া হয়নি — আগে ওজন নিন",
+  "returns.crossingUnweighed": "এখনো ওজন নেওয়া হয়নি — আগে ওজন নিন",
   "returns.priceIt": "দাম লিখুন",
   "returns.priceAgain": "আবার দাম লিখুন",
   "returns.crossingPriced": "দাম {price}, প্রতি কেজি {rate}",

@@ -308,12 +308,12 @@ describe("how a Holding ended", () => {
     const madeGood = {
       ...nothing,
       lost: new Date("2031-03-01T05:00:00.000Z"),
-      madeGoodMoney: 82_500,
+      madeGood: { ventureId: "v1", amountMoney: 82_500 },
     };
-    expect(howSheLeft(holding, madeGood, () => null)).toMatchObject({
-      how: "lost",
-      backMoney: 82_500,
-    });
+    // The Venture's Holding of her: what the Farm paid it comes back to it.
+    expect(
+      howSheLeft({ ...holding, owner: "v1" }, madeGood, () => "v1")
+    ).toMatchObject({ how: "lost", backMoney: 82_500 });
   });
 
   it("is read from the Books as they stand", () => {

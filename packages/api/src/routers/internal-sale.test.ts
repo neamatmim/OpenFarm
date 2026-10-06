@@ -104,15 +104,15 @@ const funded = async (owner: Owner, which: number) => {
   return venture.id;
 };
 
-/** One bull of the Farm's own. */
-const bull = async (instant: string) => {
+/** One bull of the Farm's own, bought at so many kilos — a hundred and eighty unless said. */
+const bull = async (instant: string, weightKg = 180) => {
   const manager = await as("manager", instant);
   return await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
     purchasePriceMoney: 60_000,
-    weightKg: 180,
+    weightKg,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(instant),
     targetWindowStart: "2047-05-17",
@@ -243,7 +243,7 @@ describe("the Internal Sale", () => {
     const listed = await owner.client.investors.list();
     expect(listed.people.length).toBeGreaterThan(0);
 
-    const hers = await bull("2047-02-07T05:00:00.000Z");
+    const hers = await bull("2047-02-07T05:00:00.000Z", 210);
     await weigh("2047-02-08", [[hers.tagNumber, 210]]);
     const owner2 = await as("owner", "2047-02-08T09:00:00.000Z");
     await owner2.client.ventures.sellInternally({
@@ -287,7 +287,7 @@ describe("the Internal Sale", () => {
     // In March, clear of February's money read below. Bought by the Farm for Eid 2047 and weighed at 210 kg; sold to
     // the Venture at ৳300 a kilo — ৳63,000, which ends her first Season — and bought back the same moment at the same
     // price for a winter market, which starts her second at ৳63,000.
-    const hers = await bull("2047-03-10T05:00:00.000Z");
+    const hers = await bull("2047-03-10T05:00:00.000Z", 210);
     await weigh("2047-03-11", [[hers.tagNumber, 210]]);
     const owner = await as("owner", "2047-03-11T09:00:00.000Z");
     const sale = {
@@ -343,7 +343,7 @@ describe("the Internal Sale", () => {
   });
 
   it("refuses a Venture whose Cattle Budget does not hold her price", async () => {
-    const hers = await bull("2047-02-04T06:00:00.000Z");
+    const hers = await bull("2047-02-04T06:00:00.000Z", 220);
     await weigh("2047-02-07", [[hers.tagNumber, 220]]);
     const owner = await as("owner", "2047-02-07T09:00:00.000Z");
     // Twenty-two lakh for a bull, against a Cattle Budget of ten: the buyer pays out of what it holds for cattle.
@@ -382,8 +382,8 @@ describe("the Internal Sale", () => {
   });
 
   it("refuses an animal last weighed longer ago than the Owner's days, and takes one weighed lately", async () => {
-    const stale = await bull("2047-02-14T05:00:00.000Z");
-    const fresh = await bull("2047-02-14T05:00:00.000Z");
+    const stale = await bull("2047-02-14T05:00:00.000Z", 250);
+    const fresh = await bull("2047-02-14T05:00:00.000Z", 250);
     // Twenty days before the sale, and ten.
     await weigh("2047-02-14", [[stale.tagNumber, 250]]);
     await weigh("2047-02-24", [[fresh.tagNumber, 250]]);
@@ -415,7 +415,7 @@ describe("the Internal Sale", () => {
 
   it("refuses her once she is Ready for Sale", async () => {
     const owner = await as("owner", "2047-02-10T04:00:00.000Z");
-    const hers = await bull("2047-02-10T05:00:00.000Z");
+    const hers = await bull("2047-02-10T05:00:00.000Z", 400);
     await weigh("2047-02-11", [[hers.tagNumber, 400]]);
     const manager = await as("manager", "2047-02-11T09:00:00.000Z");
     // Out of quarantine and up to weight, so the Manager says she is ready.
@@ -444,7 +444,7 @@ describe("the Internal Sale", () => {
 
   it("refuses a bull that has died: there is no animal left to move", async () => {
     const owner = await as("owner", "2047-02-12T04:00:00.000Z");
-    const hers = await bull("2047-02-12T05:00:00.000Z");
+    const hers = await bull("2047-02-12T05:00:00.000Z", 260);
     await weigh("2047-02-13", [[hers.tagNumber, 260]]);
     await owner.client.animals.recordMortality({
       photo: A_DEATH_PHOTO,
@@ -472,7 +472,7 @@ describe("the Internal Sale", () => {
   });
 
   it("refuses a Venture that is selling, and one she already belongs to", async () => {
-    const hers = await bull("2047-02-12T05:00:00.000Z");
+    const hers = await bull("2047-02-12T05:00:00.000Z", 230);
     await weigh("2047-02-13", [[hers.tagNumber, 230]]);
     const later = await as("owner", "2047-02-13T09:00:00.000Z");
     await later.client.ventures.sellInternally({
@@ -506,7 +506,7 @@ describe("the Internal Sale", () => {
   it("moves her between two Ventures, both sides at once", async () => {
     const owner = await as("owner", "2047-02-15T04:00:00.000Z");
     const other = await funded(owner, 2);
-    const hers = await bull("2047-02-15T05:00:00.000Z");
+    const hers = await bull("2047-02-15T05:00:00.000Z", 240);
     await weigh("2047-02-16", [[hers.tagNumber, 240]]);
     const selling = await as("owner", "2047-02-16T09:00:00.000Z");
     await selling.client.ventures.sellInternally({
@@ -586,7 +586,7 @@ describe("the Internal Sale", () => {
   it("refuses a Venture that has started selling", async () => {
     const owner = await as("owner", "2047-02-18T04:00:00.000Z");
     const winding = await funded(owner, 3);
-    const hers = await bull("2047-02-18T05:00:00.000Z");
+    const hers = await bull("2047-02-18T05:00:00.000Z", 250);
     await weigh("2047-02-19", [[hers.tagNumber, 250]]);
     const later = await as("owner", "2047-02-19T09:00:00.000Z");
     await later.client.ventures.startFattening({ id: winding });
@@ -656,9 +656,9 @@ describe("the Internal Sale", () => {
 describe("the animals the Owner is offered to move", () => {
   it("are the bought Fattening animals still here, weighed, and not yet ready — with their purse and weight", async () => {
     const owner = await as("owner", "2047-03-01T04:00:00.000Z");
-    const weighed = await bull("2047-03-01T05:00:00.000Z");
+    const weighed = await bull("2047-03-01T05:00:00.000Z", 240);
     const unweighed = await bull("2047-03-01T05:10:00.000Z");
-    const gone = await bull("2047-03-01T05:20:00.000Z");
+    const gone = await bull("2047-03-01T05:20:00.000Z", 250);
     await weigh("2047-03-02", [
       [weighed.tagNumber, 240],
       [gone.tagNumber, 250],
@@ -803,5 +803,52 @@ describe("a bull the Farm bought back from a Venture", () => {
     expect(
       months.find((one) => one.month === "2047-08")?.fattening.marginMoney
     ).toBe(16_400);
+  });
+});
+
+describe("a bull sold to a Venture the day he arrived", () => {
+  it("is the Venture's once, at what it paid for him — and his price at the lorry is the Farm's", async () => {
+    // What the Venture is charged for buying, as its Settlement reads it: its own buying, and what it paid to take
+    // animals on.
+    const bought = async (instant: string) => {
+      const owner = await as("owner", instant);
+      const worked = await owner.client.ventures.settlement.get({ ventureId });
+      return worked.charges.find((one) => one.word === "bought")?.amount ?? 0;
+    };
+    const before = await bought("2047-10-01T02:00:00.000Z");
+    // Off the lorry at nine in the morning at ৳60,000, weighed at noon, sold to the Venture that afternoon at 180 kg ×
+    // ৳400: the Venture paid ৳72,000 for him, and nothing for the Farm's buying at the lorry.
+    const his = await bull("2047-10-01T03:00:00.000Z");
+    await weigh("2047-10-01", [[his.tagNumber, 180]]);
+    const selling = await as("owner", "2047-10-01T10:00:00.000Z");
+    await selling.client.ventures.sellInternally({
+      tagNumber: his.tagNumber,
+      toVentureId: ventureId,
+      rateMoneyPerKg: 400,
+      note: `একই দিনে ${suffix}`,
+      soldOn: "2047-10-01",
+      paymentMethod: "bank",
+      reference: `INT-SAMEDAY-${suffix}`,
+      priceMoney: 72_000,
+    });
+    expect((await bought("2047-10-01T11:00:00.000Z")) - before).toBe(72_000);
+  });
+
+  it("is refused a sale dated before he came", async () => {
+    const his = await bull("2047-10-05T03:00:00.000Z");
+    await weigh("2047-10-05", [[his.tagNumber, 180]]);
+    const owner = await as("owner", "2047-10-05T10:00:00.000Z");
+    await expect(
+      owner.client.ventures.sellInternally({
+        tagNumber: his.tagNumber,
+        toVentureId: ventureId,
+        rateMoneyPerKg: 400,
+        note: `আগের তারিখে ${suffix}`,
+        soldOn: "2047-10-04",
+        paymentMethod: "bank",
+        reference: `INT-BEFORE-${suffix}`,
+        priceMoney: 72_000,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "sold_before_she_came" } });
   });
 });

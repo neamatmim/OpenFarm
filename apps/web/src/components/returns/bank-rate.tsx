@@ -1,5 +1,5 @@
 import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
@@ -22,12 +22,15 @@ interface TypedRate {
   fromDay: string;
 }
 
+/** The most a rate a year may be, as the server takes it: a hundred on every hundred. */
+const MOST_PER_YEAR = 100;
+
 const BankRateSheet = ({
   onOpenChange,
 }: {
   onOpenChange: (open: boolean) => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const refused = useRefused();
   const today = farmDayOf(new Date());
   const [typed, setTyped] = useState<TypedRate>({
@@ -45,8 +48,11 @@ const BankRateSheet = ({
     })
   );
   const perYear = figureOf(typed.perYear);
+  // Said under the box, in the reader's words, rather than refused by the server in English.
+  const overTheMost = perYear !== null && perYear > MOST_PER_YEAR;
   const ready =
     aFigure(perYear) &&
+    !overTheMost &&
     typed.note.trim().length > 0 &&
     typed.fromDay.length > 0;
   return (
@@ -66,7 +72,17 @@ const BankRateSheet = ({
       submitLabel={t("returns.bankSet")}
       title={t("returns.bankSet")}
     >
-      <FormField id="bank-per-year" label={t("returns.bankPerYear")}>
+      <FormField
+        error={
+          overTheMost
+            ? t("returns.bankAtMost", {
+                most: formatNumber(MOST_PER_YEAR, language),
+              })
+            : undefined
+        }
+        id="bank-per-year"
+        label={t("returns.bankPerYear")}
+      >
         <Input
           autoComplete="off"
           id="bank-per-year"

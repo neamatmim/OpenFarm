@@ -742,3 +742,49 @@ describe("a Ration's Expected Gain", () => {
     );
   });
 });
+
+describe("a Pen put on the Ration it is already on", () => {
+  it("keeps the day it went on it: the gain since is still counted from then", async () => {
+    const manager = await as("manager", "2037-08-01T04:00:00.000Z");
+    const shed = await manager.client.sheds.create({ name: `আবার ${suffix}` });
+    const pen = await manager.client.sheds.pens.create({
+      shedId: shed.id,
+      name: `একই রেশন ${suffix}`,
+    });
+    const straw = await manager.client.feed.items.create({
+      name: { bn: `খড় আবার ${suffix}` },
+    });
+    const ration = async (name: string) =>
+      await manager.client.feed.rations.save({
+        name: { bn: `${name} ${suffix}` },
+        items: [{ feedItemId: straw.id, kgPer100KgPerDay: 1 }],
+      });
+    const first = await ration("প্রথম");
+    const other = await ration("অন্য");
+    await manager.client.feed.rations.assign({
+      penId: pen.id,
+      rationId: first.rationId,
+    });
+    const assignedOn = async () => {
+      const row = await scratchDb().query.penRation.findFirst({
+        where: { penId: pen.id },
+        columns: { assignedAt: true },
+      });
+      return row?.assignedAt;
+    };
+    const went = await assignedOn();
+    // A week later the same Ration is chosen again — a second tap, or a phone sending it twice.
+    const again = await as("manager", "2037-08-08T04:00:00.000Z");
+    await again.client.feed.rations.assign({
+      penId: pen.id,
+      rationId: first.rationId,
+    });
+    expect(await assignedOn()).toEqual(went);
+    // Another Ration is another start.
+    await again.client.feed.rations.assign({
+      penId: pen.id,
+      rationId: other.rationId,
+    });
+    expect(await assignedOn()).toEqual(new Date("2037-08-08T04:00:00.000Z"));
+  });
+});

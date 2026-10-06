@@ -100,6 +100,7 @@ export {
   daysOnFeedOf,
   wholeDaysFrom,
   fatteningView,
+  implausibleAfterArrival,
   implausibleChange,
 } from "./fattening";
 export type {
@@ -707,6 +708,7 @@ export {
   perKgOfSales,
   priceOfAnimal,
   priceRangeFor,
+  RECENT_SALES_DAYS,
   soldUnder,
 } from "./animal-price";
 export {

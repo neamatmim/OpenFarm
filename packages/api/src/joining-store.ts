@@ -107,23 +107,36 @@ export const priceTheJoining = async (
 };
 
 /**
- * What she weighed for her crossing to be priced from: her latest Weigh-in the farm did not doubt by the end of the day she crossed — the
- * morning's round after she was walked over counts — and none if nobody weighed her by then.
+ * What she weighed for her crossing to be priced from: her latest Weigh-in the farm did not doubt by the end of the day she
+ * crossed — the morning's round after she was walked over counts — or, nobody having weighed her by then, her first one
+ * after it: a calf that would not go on the crush that morning is priced from the next round she did, rather than never,
+ * which would leave her Season unfinished for good. None while she has never been weighed.
  */
 export const weighedForTheCrossing = async (
   tx: Pick<Tx, "query">,
   animalId: string,
   joinedOn: string
 ): Promise<{ id: string; weightKg: number } | null> => {
-  const reading = await tx.query.weighIn.findFirst({
-    where: {
-      animalId,
-      weighedAt: { lt: joiningWeighedBy(joinedOn) },
-      flaggedNote: { isNull: true },
-    },
-    columns: { id: true, weightKg: true },
-    orderBy: { weighedAt: "desc", id: "desc" },
-  });
+  const byThen = joiningWeighedBy(joinedOn);
+  const reading =
+    (await tx.query.weighIn.findFirst({
+      where: {
+        animalId,
+        weighedAt: { lt: byThen },
+        flaggedNote: { isNull: true },
+      },
+      columns: { id: true, weightKg: true },
+      orderBy: { weighedAt: "desc", id: "desc" },
+    })) ??
+    (await tx.query.weighIn.findFirst({
+      where: {
+        animalId,
+        weighedAt: { gte: byThen },
+        flaggedNote: { isNull: true },
+      },
+      columns: { id: true, weightKg: true },
+      orderBy: { weighedAt: "asc", id: "asc" },
+    }));
   return reading
     ? { id: reading.id, weightKg: Number(reading.weightKg) }
     : null;

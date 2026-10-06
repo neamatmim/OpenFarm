@@ -507,6 +507,9 @@ export const farmGainsByRation = async (
   const gains = new Map<string, Map<GainGroup, number[]>>();
   for (const one of animals) {
     const group = gainGroupOf({ sex: one.sex, deshi: one.deshi });
+    if (group === null) {
+      continue;
+    }
     for (const [rationId, gain] of one.best) {
       const byGroup = gains.get(rationId) ?? new Map<GainGroup, number[]>();
       const inGroup = byGroup.get(group) ?? [];

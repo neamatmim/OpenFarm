@@ -4,6 +4,7 @@ import {
   addDays,
   daysOnFeedOf,
   fatteningView,
+  implausibleAfterArrival,
   implausibleChange,
   PLAUSIBLE_DAILY_GAIN_KG,
   PLAUSIBLE_DAILY_LOSS_KG,
@@ -183,6 +184,22 @@ describe("what the scale means", () => {
     expect(view.recent).toMatchObject({ overDays: 35, dailyGainKg: 1.03 });
   });
 
+  it("counts the days between two readings as farm days, as the gain on her Ration does", () => {
+    // 300 kg at eleven at night on the first, 328 kg at nine in the morning on the twenty-ninth: twenty-eight farm days,
+    // a kilo a day — not twenty-seven and a bit of clock, which would read 1.02.
+    const view = fatteningView(
+      null,
+      [
+        { weightKg: 300, weighedAt: new Date("2027-01-01T23:00:00+06:00") },
+        { weightKg: 328, weighedAt: new Date("2027-01-29T09:00:00+06:00") },
+      ],
+      windowOpensAt,
+      new Date("2027-01-29T10:00:00+06:00"),
+      FOUR_WEEKS
+    );
+    expect(view.recent).toMatchObject({ overDays: 28, dailyGainKg: 1 });
+  });
+
   it("says no recent gain while no reading is far enough back", () => {
     const view = fatteningView(
       intake,
@@ -223,5 +240,29 @@ describe("what the scale means", () => {
     expect(view.sinceIntake?.projectedKg).toBe(null);
     expect(view.sinceIntake?.reachesTarget).toBe(null);
     expect(view.onTrack).toBe(null);
+  });
+});
+
+describe("a first reading set against what she was bought at", () => {
+  const arrived = {
+    weightKg: 200,
+    arrivedAt: new Date("2027-03-01T03:00:00.000Z"),
+  };
+  const nineDaysOn = new Date("2027-03-10T03:00:00.000Z");
+
+  it("allows the lorry's weight back and two and a half kilos a day since", () => {
+    // 200 + 20 back off the lorry + 22.5 over nine days: 242.5 is the most.
+    expect(
+      implausibleAfterArrival(arrived, { weightKg: 242, weighedAt: nineDaysOn })
+    ).toBeNull();
+    expect(
+      implausibleAfterArrival(arrived, { weightKg: 400, weighedAt: nineDaysOn })
+    ).toMatchObject({ lastKg: 200 });
+  });
+
+  it("never doubts one lighter than she was bought at: that is a purchase to ask about", () => {
+    expect(
+      implausibleAfterArrival(arrived, { weightKg: 150, weighedAt: nineDaysOn })
+    ).toBeNull();
   });
 });

@@ -21,6 +21,7 @@ import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import { SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
@@ -138,15 +139,19 @@ const ReadyPage = () => {
   const suggestions = useQuery(orpc.readyForSale.suggestions.queryOptions());
   const board = useQuery(orpc.fattening.list.queryOptions({ input: {} }));
 
+  const refused = useRefused();
+  // Under withdrawal, said with the day she is fit on; anything else in the farm's words, never the server's English.
   const onError = (error: Error) => {
     const fitOn = fitOnFrom(error);
-    toast.error(
-      fitOn
-        ? t("ready.underWithdrawal", {
-            when: formatDate(new Date(fitOn), language, "date"),
-          })
-        : (error.message ?? t("common.error"))
-    );
+    if (fitOn) {
+      toast.error(
+        t("ready.underWithdrawal", {
+          when: formatDate(new Date(fitOn), language, "date"),
+        })
+      );
+      return;
+    }
+    refused(error);
   };
 
   const confirm = useMutation(
