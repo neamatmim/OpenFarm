@@ -10,6 +10,7 @@ import {
   perKgOfSales,
   priceOfAnimal,
   priceRangeFor,
+  RECENT_SALES_DAYS,
   shrankPast,
   shrinkOf,
   soldUnder,
@@ -30,8 +31,6 @@ import { projectionBasisOf } from "./projection-store";
 import { fatteningRows } from "./ready-store";
 import { ownedThenByOf } from "./venture-store";
 
-/** How far back the farm's own sales are read for what a kilo has been fetching: two months of a market. */
-const RECENT_SALES_DAYS = 60;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The fattening side as the board and the Ready list read it. */

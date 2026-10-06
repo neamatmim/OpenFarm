@@ -708,6 +708,7 @@ export {
   perKgOfSales,
   priceOfAnimal,
   priceRangeFor,
+  RECENT_SALES_DAYS,
   soldUnder,
 } from "./animal-price";
 export {

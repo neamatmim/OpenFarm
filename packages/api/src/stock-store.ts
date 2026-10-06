@@ -533,16 +533,19 @@ export const recordStockCount = async (
   }
   const items = await tx.query.feedItem.findMany({
     where: { farmId: entry.farmId },
-    columns: { id: true, retiredAt: true },
+    columns: { id: true, nameBn: true, retiredAt: true },
   });
   const byId = new Map(items.map((item) => [item.id, item]));
   if (entry.counts.some((line) => !byId.has(line.feedItemId))) {
     throw new ORPCError("NOT_FOUND", { message: "No such feed" });
   }
-  if (entry.counts.some((line) => byId.get(line.feedItemId)?.retiredAt)) {
+  const retired = entry.counts
+    .map((line) => byId.get(line.feedItemId))
+    .find((item) => item?.retiredAt);
+  if (retired) {
     throw new ORPCError("BAD_REQUEST", {
       message: "A retired feed is not counted",
-      data: { refusal: "feed_retired" },
+      data: { refusal: "feed_retired", feed: retired.nameBn },
     });
   }
   const countedIds = new Set(entry.counts.map((line) => line.feedItemId));

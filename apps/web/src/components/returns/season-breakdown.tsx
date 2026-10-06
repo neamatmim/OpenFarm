@@ -26,6 +26,7 @@ import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
 import { GrowthSaid } from "./growth-said";
+import { lineOrder } from "./line-order";
 
 type BreakdownBy = Parameters<typeof client.returns.breakdown>[0]["by"];
 type BreakdownRow = Awaited<
@@ -154,6 +155,7 @@ const breakdownColumnsFor = (by: BreakdownBy) =>
       id: "line",
       header: listHeader(BY_WORD[by]),
       cell: LineCell,
+      sortFn: (a, b) => lineOrder(a.original, b.original),
     }),
     breakdownColumn.accessor("costMoney", {
       id: "costBack",

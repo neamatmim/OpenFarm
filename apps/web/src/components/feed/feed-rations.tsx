@@ -4,7 +4,10 @@ import {
   feedUnitWord,
   findBandProblems,
   findExpectedGainProblems,
+  findRationProblems,
   isByWeight,
+  MAX_KG_PER_100KG_PER_DAY,
+  MAX_KG_PER_ANIMAL_PER_DAY,
   mayGoByWeight,
 } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
@@ -90,6 +93,68 @@ const expectedGainReady = (
   );
 };
 
+/** The weights a Ration is written for, either end open, and what is wrong with them where something is — said under
+ *  the boxes rather than left as a Save that will not press. */
+const BandFields = ({
+  idFor,
+  fromKg,
+  toKg,
+  onFromKg,
+  onToKg,
+  wrong,
+}: {
+  idFor: (part: string) => string;
+  fromKg: string;
+  toKg: string;
+  onFromKg: (typed: string) => void;
+  onToKg: (typed: string) => void;
+  wrong: boolean;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <fieldset className="space-y-2">
+      <legend className="mb-2 text-sm font-medium">{t("feed.band")}</legend>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor={idFor("from")}>{t("feed.bandFrom")}</Label>
+          <Input
+            aria-describedby={idFor("band-said")}
+            aria-invalid={wrong}
+            id={idFor("from")}
+            inputMode="decimal"
+            min={0}
+            onChange={(event) => onFromKg(event.target.value)}
+            type="number"
+            value={fromKg}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={idFor("to")}>{t("feed.bandTo")}</Label>
+          <Input
+            aria-describedby={idFor("band-said")}
+            aria-invalid={wrong}
+            id={idFor("to")}
+            inputMode="decimal"
+            min={0}
+            onChange={(event) => onToKg(event.target.value)}
+            type="number"
+            value={toKg}
+          />
+        </div>
+      </div>
+      <p
+        className={cn(
+          "text-xs",
+          wrong ? "text-destructive" : "text-muted-foreground"
+        )}
+        id={idFor("band-said")}
+      >
+        {t(wrong ? "feed.bandWrong" : "feed.bandHint")}
+      </p>
+    </fieldset>
+  );
+};
+
 /** The two boxes of a Ration's Expected Gain, low and high, with what they are for beneath. */
 const ExpectedGainFields = ({
   idFor,
@@ -166,6 +231,10 @@ const ExpectedGainFields = ({
 /** How a line counts: by the head, or by every hundred kilos of body weight. */
 type Basis = "head" | "weight";
 
+/** The most a line may give a day: by the head, or for every hundred kilos of her. */
+const mostOf = (basis: Basis): number =>
+  basis === "weight" ? MAX_KG_PER_100KG_PER_DAY : MAX_KG_PER_ANIMAL_PER_DAY;
+
 /** A line as the Ration stores it, from what was typed and how it counts. */
 const lineOf = (
   feedItemId: string,
@@ -220,6 +289,8 @@ const RationDialog = ({
     written.toKg === null ? "" : String(written.toKg)
   );
   const band = { fromKg: kgOrNone(fromKg), toKg: kgOrNone(toKg) };
+  // Said under the boxes rather than left as a Save that will not press.
+  const bandWrong = findBandProblems(band).length > 0;
   const [gainLow, setGainLow] = useState(typedOf(ration?.expectedGain?.lowKg));
   const [gainHigh, setGainHigh] = useState(
     typedOf(ration?.expectedGain?.highKg)
@@ -250,6 +321,9 @@ const RationDialog = ({
       : [];
   });
   const idFor = (part: string) => `ration-${ration?.id ?? "new"}-${part}`;
+  // Said beside the line, before Save is tried: the server refuses more than any animal is given in a day.
+  const overTheMost = (feedItemId: string) =>
+    Number(kg[feedItemId] ?? "") > mostOf(basis[feedItemId] ?? "head");
 
   return (
     <FormSheet
@@ -275,7 +349,8 @@ const RationDialog = ({
       ready={
         lines.length > 0 &&
         name.trim() !== "" &&
-        findBandProblems(band).length === 0 &&
+        findRationProblems({ items: lines }).length === 0 &&
+        !bandWrong &&
         expectedGainReady(gain)
       }
       submitLabel={t("feed.setRation")}
@@ -320,6 +395,12 @@ const RationDialog = ({
                   </Label>
                   <div className="flex items-center gap-2">
                     <Input
+                      aria-describedby={
+                        overTheMost(item.id)
+                          ? idFor(`${item.id}-most`)
+                          : undefined
+                      }
+                      aria-invalid={overTheMost(item.id)}
                       className="w-24 text-right"
                       id={idFor(item.id)}
                       inputMode="decimal"
@@ -359,42 +440,31 @@ const RationDialog = ({
                       </option>
                     </NativeSelect>
                   </div>
+                  {overTheMost(item.id) ? (
+                    <p
+                      className="text-destructive w-full text-xs"
+                      id={idFor(`${item.id}-most`)}
+                    >
+                      {t("feed.atMostADay", {
+                        kg: formatNumber(
+                          mostOf(basis[item.id] ?? "head"),
+                          language
+                        ),
+                      })}
+                    </p>
+                  ) : null}
                 </li>
               ))}
             </ul>
           </fieldset>
-          <fieldset className="space-y-2">
-            <legend className="mb-2 text-sm font-medium">
-              {t("feed.band")}
-            </legend>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor={idFor("from")}>{t("feed.bandFrom")}</Label>
-                <Input
-                  id={idFor("from")}
-                  inputMode="decimal"
-                  min={0}
-                  onChange={(event) => setFromKg(event.target.value)}
-                  type="number"
-                  value={fromKg}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor={idFor("to")}>{t("feed.bandTo")}</Label>
-                <Input
-                  id={idFor("to")}
-                  inputMode="decimal"
-                  min={0}
-                  onChange={(event) => setToKg(event.target.value)}
-                  type="number"
-                  value={toKg}
-                />
-              </div>
-            </div>
-            <p className="text-muted-foreground text-xs">
-              {t("feed.bandHint")}
-            </p>
-          </fieldset>
+          <BandFields
+            fromKg={fromKg}
+            idFor={idFor}
+            onFromKg={setFromKg}
+            onToKg={setToKg}
+            toKg={toKg}
+            wrong={bandWrong}
+          />
           <ExpectedGainFields
             farmsOwn={
               ration ? (

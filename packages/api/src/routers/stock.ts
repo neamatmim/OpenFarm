@@ -280,6 +280,7 @@ export const stockRouter = {
         where: { id: input.feedItemId, farmId: context.farm.id },
         columns: {
           id: true,
+          nameBn: true,
           retiredAt: true,
           fodderPriceMoney: true,
           unit: true,
@@ -292,7 +293,7 @@ export const stockRouter = {
       if (item.retiredAt) {
         throw new ORPCError("BAD_REQUEST", {
           message: "That feed is retired; restore it before buying more",
-          data: { refusal: "feed_retired" },
+          data: { refusal: "feed_retired", feed: item.nameBn },
         });
       }
       const slip = quantityReceived(input, item);

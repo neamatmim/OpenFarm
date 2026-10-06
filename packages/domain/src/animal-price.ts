@@ -95,6 +95,10 @@ export const soldUnder = ({
   };
 };
 
+/** How far back the farm's own sales are read for what a kilo has been fetching: two months of a market. One figure
+ *  for the server that reads them and the screen that says how far back it looked. */
+export const RECENT_SALES_DAYS = 60;
+
 /**
  * What a kilo fetched across some of the farm's sales: everything they fetched over everything they weighed — so a
  * heavy bull counts for his weight, not as one vote beside a light one. Nothing where nothing with a weight was sold.

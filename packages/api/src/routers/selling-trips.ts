@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { sellingTripAnimal } from "@OpenFarm/db/schema/fattening";
 import { sellingTrip } from "@OpenFarm/db/schema/trip";
-import { shrinkOfMany } from "@OpenFarm/domain";
+import { farmDayOf, farmDaysBetween, shrinkOfMany } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -47,7 +47,55 @@ const recordInput = z.object({
   reference: referenceInput,
 });
 
+/** The states a beast on the Fattening side is in while she still stands here to be put on a lorry. */
+const STANDING = ["quarantine", "fattening", "ready_for_sale"] as const;
+
 export const sellingTripsRouter = {
+  /**
+   * The beasts a day's lorry may have carried, to tick: every one still standing on the Fattening side, and every one
+   * sold that farm day — the day is often written up after the market, by when the ones sold off the lorry are gone
+   * from the board. One sold on another day is not offered; she was not on this lorry to be sold.
+   */
+  whoCouldHaveGone: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ wentOn: z.coerce.date() }))
+    .handler(async ({ context, input }) => {
+      const day = farmDayOf(input.wentOn);
+      const { from, until } = farmDaysBetween(day, day);
+      const [standing, sold] = await Promise.all([
+        context.db.query.animal.findMany({
+          where: {
+            farmId: context.farm.id,
+            side: "fattening",
+            state: { in: [...STANDING] },
+          },
+          columns: { tagNumber: true, state: true },
+          with: { pen: { columns: { name: true } } },
+          orderBy: { tagNumber: "asc" },
+        }),
+        context.db.query.sale.findMany({
+          where: { farmId: context.farm.id, soldAt: { gte: from, lt: until } },
+          columns: { id: true },
+          with: { animal: { columns: { tagNumber: true } } },
+          orderBy: { soldAt: "asc", id: "asc" },
+        }),
+      ]);
+      return [
+        ...standing.map((one) => ({
+          tagNumber: one.tagNumber,
+          penName: one.pen?.name ?? null,
+          ready: one.state === "ready_for_sale",
+          soldThatDay: false,
+        })),
+        ...sold.map((one) => ({
+          tagNumber: one.animal.tagNumber,
+          penName: null,
+          ready: false,
+          soldThatDay: true,
+        })),
+      ];
+    }),
+
   /** The outings the farm has made to sell, newest first. The Owner's and the Manager's. */
   list: protectedProcedure
     .use(requireRole("owner", "manager"))

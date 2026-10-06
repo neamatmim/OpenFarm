@@ -1,5 +1,5 @@
 import type { FarmGainFigure, GainGroup } from "@OpenFarm/domain";
-import { GAIN_GROUPS } from "@OpenFarm/domain";
+import { findExpectedGainProblems, GAIN_GROUPS } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -68,7 +68,8 @@ export const FarmGainsLine = ({ gains }: { gains: OnRation | undefined }) => {
 };
 
 /** In the Ration's editor, the middle half of the farm's own crossbred bulls on it — whom a Ration's figures are for —
- *  offered as its Expected Gain. Nothing until five have a gain, or while the slowest quarter put on nothing. */
+ *  offered as its Expected Gain. Nothing until five have a gain, while the slowest quarter put on nothing, or while the
+ *  range is one the Ration could not be saved with: a mistyped weighing can put a bull over what any bull gains. */
 export const FarmGainsOffer = ({
   gains,
   onUse,
@@ -78,7 +79,14 @@ export const FarmGainsOffer = ({
 }) => {
   const { t, language } = useLanguage();
   const figure = gains?.figures.cross;
-  if (!figure || figure.lowKg <= 0) {
+  const takeable =
+    figure !== undefined &&
+    figure.lowKg > 0 &&
+    findExpectedGainProblems({
+      lowKg: figure.lowKg,
+      highKg: figure.highKg,
+    }).length === 0;
+  if (!(figure && takeable)) {
     return null;
   }
   return (

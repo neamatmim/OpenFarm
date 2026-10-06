@@ -181,6 +181,45 @@ describe("a Selling Trip", () => {
     expect(await costOf(two)).toMatchObject({ tripMoney: 1500 });
   });
 
+  it("offers to tick the beasts sold that day, with the ones still standing", async () => {
+    const manager = await as("manager", "2041-05-01T04:00:00.000Z");
+    const [home, soldBefore, soldThatDay] = [
+      await buy(manager),
+      await buy(manager),
+      await buy(manager),
+    ];
+    const sell = async (tagNumber: string, instant: string) => {
+      const seller = await as("manager", instant);
+      await seller.client.sales.record({
+        tagNumber,
+        buyer: { name: `হাটের ক্রেতা ${suffix}` },
+        priceMoney: 90_000,
+        weightKg: 300,
+        destination: "গাবতলী",
+        vehicle: "ঢাকা মেট্রো ট-১-২২২২",
+        driver: "রফিক",
+        paymentMethod: "cash",
+      });
+    };
+    await sell(soldBefore, "2041-05-08T08:00:00.000Z");
+    await sell(soldThatDay, "2041-05-10T08:00:00.000Z");
+    // Written up the next morning, for the 10th: the bull sold off the lorry that day stood on it, the one sold on the
+    // 8th did not.
+    const writer = await as("manager", "2041-05-11T03:00:00.000Z");
+    const offered = await writer.client.sellingTrips.whoCouldHaveGone({
+      wentOn: new Date("2041-05-10T06:00:00.000Z"),
+    });
+    const tags = offered.map((one) => one.tagNumber);
+    expect(tags).toEqual(expect.arrayContaining([home, soldThatDay]));
+    expect(tags).not.toContain(soldBefore);
+    expect(offered.find((one) => one.tagNumber === soldThatDay)).toMatchObject({
+      soldThatDay: true,
+    });
+    expect(offered.find((one) => one.tagNumber === home)).toMatchObject({
+      soldThatDay: false,
+    });
+  });
+
   it("puts right what the day cost, and re-charges the animals taken", async () => {
     const manager = await as("manager", "2041-03-22T04:00:00.000Z");
     const one = await buy(manager);

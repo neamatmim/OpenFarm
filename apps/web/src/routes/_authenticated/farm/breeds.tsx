@@ -377,6 +377,8 @@ const GainDialog = ({
   );
   const percent = Number(typed);
   const inBounds = typed.trim() !== "" && isBreedGainPercent(percent);
+  // A figure typed outside the bounds is said under the box, not left as a Save that will not press.
+  const outOfBounds = typed.trim() !== "" && !inBounds;
   const hasOwn = own !== null;
   return (
     <FormDialog
@@ -398,6 +400,14 @@ const GainDialog = ({
       title={t("breeds.gain.title", { name: setting?.name ?? "" })}
     >
       <FormField
+        error={
+          outOfBounds
+            ? t("breeds.gain.between", {
+                least: formatNumber(BREED_GAIN_PERCENT.least, language),
+                most: formatNumber(BREED_GAIN_PERCENT.most, language),
+              })
+            : undefined
+        }
         hint={
           setting?.figureSaid
             ? t("breeds.gain.farmHint", { figure: setting.figureSaid })

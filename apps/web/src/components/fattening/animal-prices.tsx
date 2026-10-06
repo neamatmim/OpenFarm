@@ -1,4 +1,5 @@
 import type { Keeping } from "@OpenFarm/domain";
+import { RECENT_SALES_DAYS } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -498,7 +499,7 @@ export const MarketPrice = ({ compact = false }: { compact?: boolean }) => {
               perKg: asMoney(recent.moneyPerKg),
               animals: recent.animals,
             })
-          : t("market.noRecent", { days: 60 })}
+          : t("market.noRecent", { days: RECENT_SALES_DAYS })}
       </p>
       {setting ? (
         <MarketSheet market={market} onOpenChange={setSetting} />

@@ -2,7 +2,11 @@ import type { MessageKey, MessageParams } from "@OpenFarm/i18n";
 import { translate } from "@OpenFarm/i18n";
 import { describe, expect, it } from "vitest";
 
-import { correctionRefusalMessage, isChangedSince } from "./correction-refusal";
+import {
+  correctionRefusalMessage,
+  isChangedSince,
+  wordedRefusal,
+} from "./correction-refusal";
 
 // Every way the farm refuses a Correction, said in the reader's language rather than the server's English.
 
@@ -77,5 +81,18 @@ describe("a refused Correction", () => {
 
   it("leaves an error that is not a refusal to the caller", () => {
     expect(correctionRefusalMessage(new Error("offline"), t)).toBeNull();
+  });
+});
+
+const aboutTheFeed = (refusal: string) => ({
+  data: { refusal, feed: "কাঁচা ঘাস" },
+});
+
+describe("a refusal about one feed of several", () => {
+  it("names the feed, so the Manager knows which line to take out", () => {
+    expect(wordedRefusal(aboutTheFeed("feed_retired"), t)).toContain("কাঁচা ঘাস");
+    expect(wordedRefusal(aboutTheFeed("bundles_by_the_head"), t)).toContain(
+      "কাঁচা ঘাস"
+    );
   });
 });

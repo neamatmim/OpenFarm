@@ -1769,6 +1769,8 @@ export const en = {
     "That made a lost animal good from the farm's own money; it is not put right on the venture's side alone",
   "refusal.theFarmsOwnCapital":
     "That moved the farm's own capital, which its own books hold too; it is not put right on the venture's side alone",
+  "refusal.notFattening":
+    "Only an animal being fattened can be made ready for sale",
   "refusal.soldBeforeSheCame":
     "She cannot be sold on a day before she came, or before she last changed hands",
   "refusal.termsChanged":
@@ -2538,6 +2540,7 @@ export const en = {
   "breeds.gain.title": "{name}: its share of the expected gain",
   "breeds.gain.hint":
     "An animal of this breed is judged at this share of its ration's expected gain, in place of the deshi share. A cow or heifer is still judged at the female share on top. From 30% to 120%.",
+  "breeds.gain.between": "From {least}% to {most}%",
   "breeds.gain.label": "Share of the ration's expected gain (%)",
   "breeds.gain.farmHint":
     "{figure}. From bulls only — a cow or heifer carries the female share too.",
@@ -3110,6 +3113,7 @@ export const en = {
   "feed.items": "Feed items",
   "feed.addItem": "Add a feed",
   "feed.retire": "Retire",
+  "feed.atMostADay": "No more than {kg} a day",
   "feed.retired": "Retired",
   "feed.restore": "Restore",
   "feed.rename": "Rename",
@@ -3142,6 +3146,7 @@ export const en = {
   "feed.bandTo": "Up to (kg)",
   "feed.bandHint":
     "Leave both empty for a ration that suits any weight. A bull outside the band is pointed out on the Fattening page.",
+  "feed.bandWrong": "Both weights above nothing, and From below Up to",
   "feed.bandRange": "{from}–{to} kg",
   "feed.bandFromOnly": "from {from} kg",
   "feed.bandToOnly": "under {to} kg",
@@ -3395,11 +3400,13 @@ export const en = {
     "Only money going out that no record books may be marked as paid every month",
   "refusal.wagesWatchedByPerson":
     "A wage is looked for by the person paid, not by the category",
-  "refusal.feedRetired": "That feed is retired",
+  "refusal.rationNotSaved":
+    "This ration cannot be saved as written: check each amount, its weights and its expected gain",
+  "refusal.feedRetired": "{feed} is retired: take it out, or restore it first",
   "refusal.bagSizeUnknown":
     "Say what one of its bags weighs first, on the Feed items tab",
   "refusal.bundlesByTheHead":
-    "A feed counted in bundles goes by the head, not by body weight",
+    "{feed} is counted in bundles, so it goes by the head, not by body weight",
   "refusal.packNeedsKg": "Only feed weighed in kilos comes in bags or maunds",
   "nav.feed": "Feed",
   "nav.standards": "Standards and sources",
@@ -3524,6 +3531,9 @@ export const en = {
   "selling.wentTo": "Where it went",
   "selling.transport": "Lorry, both ways",
   "selling.keep": "Stall, food and lodging",
+  "selling.wentOn": "The day it went",
+  "selling.soldThatDay": "Sold that day",
+  "selling.noPen": "In no pen",
   "selling.whoWent": "Who went",
   "selling.nobodyToTake": "No animal on the fattening side to take",
   "selling.recordTrip": "Record the outing",
@@ -3533,6 +3543,8 @@ export const en = {
   "selling.tookAnimals": "{count} taken",
   "selling.chosen":
     "{count, plural, one {# animal chosen} other {# animals chosen}}",
+  "selling.takeAllSold": "Take them all",
+  "selling.leaveAllSold": "Leave them all",
   "selling.takePen": "Take the pen",
   "selling.leavePen": "Leave the pen",
   "money.from.sale": "Sale",
@@ -5037,6 +5049,7 @@ export const en = {
   "returns.bankFrom": "From {day}",
   "returns.bankInForce": "In force",
   "returns.bankSet": "Type a rate",
+  "returns.bankAtMost": "No more than {most}",
   "returns.bankPerYear": "Rate a year, on every {currencySign}100",
   "returns.bankNote": "What it is",
   "returns.bankNoteHint":

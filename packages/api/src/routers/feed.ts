@@ -470,7 +470,7 @@ export const feedRouter = {
         if (problems.length > 0) {
           throw new ORPCError("BAD_REQUEST", {
             message: `This ration cannot be saved — ${problems.join("; ")}`,
-            data: { problems },
+            data: { refusal: "ration_not_saved", problems },
           });
         }
         const now = context.clock.now();
