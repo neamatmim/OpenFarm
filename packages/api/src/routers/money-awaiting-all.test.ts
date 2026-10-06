@@ -57,7 +57,7 @@ describe("money waiting for the Owner", () => {
     const owner = await as("owner");
     const { needsYou } = await owner.client.overview.get();
     expect(needsYou.moneyAwaiting).toHaveLength(50);
-    expect(needsYou.moneyAwaitingAll).toEqual({
+    expect(needsYou.moneyAwaitingAll).toMatchObject({
       count: WAITING,
       totalMoney: WAITING * EACH_MONEY,
     });

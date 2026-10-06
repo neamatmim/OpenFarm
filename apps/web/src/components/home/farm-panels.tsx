@@ -265,10 +265,13 @@ const SideOfHerd = ({
 export const HerdPanel = ({
   died,
   culled,
+  bornDead = 0,
   lostYear,
 }: {
   died: number;
   culled: number;
+  /** Calves born dead, said apart from deaths; missing from a cached answer from before, which counted them as died. */
+  bornDead?: number;
   /** Written off as Lost in the last year, and what they had cost; missing from a cached answer from before. */
   lostYear?: { count: number; costMoney: number };
 }) => {
@@ -284,7 +287,7 @@ export const HerdPanel = ({
   ).length;
   const milkHeld = herd.filter((a) => stillHeld(a.milkWithdrawalUntil)).length;
   const meatHeld = herd.filter((a) => stillHeld(a.meatWithdrawalUntil)).length;
-  const lost = died + culled;
+  const lost = died + culled + bornDead;
 
   return (
     <Section
@@ -314,10 +317,16 @@ export const HerdPanel = ({
           </dl>
           {lost > 0 ? (
             <p className="text-danger text-sm">
-              {t("owner.losses", {
-                died: formatNumber(died, language),
-                culled: formatNumber(culled, language),
-              })}
+              {bornDead > 0
+                ? t("owner.lossesBornDead", {
+                    died: formatNumber(died, language),
+                    culled: formatNumber(culled, language),
+                    bornDead: formatNumber(bornDead, language),
+                  })
+                : t("owner.losses", {
+                    died: formatNumber(died, language),
+                    culled: formatNumber(culled, language),
+                  })}
             </p>
           ) : (
             <p className="text-muted-foreground text-sm">

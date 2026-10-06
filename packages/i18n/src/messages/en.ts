@@ -3988,6 +3988,8 @@ export const en = {
   "owner.mightCull":
     "{count, plural, one {# cow} other {# cows}} might be culled",
   "owner.losses": "Lost in 30 days: {died} died · {culled} culled",
+  "owner.lossesBornDead":
+    "Lost in 30 days: {died} died · {culled} culled · born dead: {bornDead}",
   "owner.todayMark": "Today",
   "mortality.happenedAt": "When she went",
   "mortality.correct": "Correct it",

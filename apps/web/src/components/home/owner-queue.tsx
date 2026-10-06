@@ -1,3 +1,4 @@
+import { farmDayOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -101,6 +102,39 @@ const RenewalRow = ({
   );
 };
 
+/**
+ * Where one entry waiting for her is found: a Venture's money on that Venture's own page, the Farm's on the money page
+ * opened on its own day — never this month alone, where an entry of last month is nowhere. An answer kept from before
+ * the farm said whose it was opens the money page.
+ */
+const WhereItWaits = ({
+  row,
+  children,
+}: {
+  row: NeedsYou["moneyAwaiting"][number];
+  children: ReactNode;
+}) =>
+  row.purseVentureId ? (
+    <Link
+      className="hover:underline"
+      params={{ ventureId: row.purseVentureId }}
+      to="/ventures/$ventureId/money"
+    >
+      {children}
+    </Link>
+  ) : (
+    <Link
+      className="hover:underline"
+      search={{
+        from: farmDayOf(new Date(row.occurredAt)),
+        to: farmDayOf(new Date()),
+      }}
+      to="/money"
+    >
+      {children}
+    </Link>
+  );
+
 /** Money waiting on the Owner: what it all comes to beside how many, the first few approved where they stand. */
 const MoneyGroup = ({ needsYou, headless }: GroupProps) => {
   const { t, language } = useLanguage();
@@ -116,7 +150,19 @@ const MoneyGroup = ({ needsYou, headless }: GroupProps) => {
       icon={HandCoins}
       label={t("owner.moneyAwaiting")}
       more={
-        <Link className={MORE_LINK} to="/money">
+        // From the Farm's own oldest entry waiting, so every one the count holds is on the page.
+        <Link
+          className={MORE_LINK}
+          search={
+            needsYou.moneyAwaitingAll?.farmsOldestOn
+              ? {
+                  from: needsYou.moneyAwaitingAll.farmsOldestOn,
+                  to: farmDayOf(new Date()),
+                }
+              : {}
+          }
+          to="/money"
+        >
           {t("home.openList")}
         </Link>
       }
@@ -139,13 +185,13 @@ const MoneyGroup = ({ needsYou, headless }: GroupProps) => {
               .join(" · ") || undefined
           }
           title={
-            <Link className="hover:underline" to="/money">
+            <WhereItWaits row={row}>
               {categoryName(row, language)} ·{" "}
               <span className="tabular-nums">
                 {currencySign()}
                 {formatNumber(row.amountMoney, language)}
               </span>
-            </Link>
+            </WhereItWaits>
           }
           trailing={
             <Button
@@ -723,7 +769,8 @@ export const FarmToday = ({
 }) => {
   const { t } = useLanguage();
   const counts: Record<FarmTodayKind, number> = {
-    overdue: needsYou.overdue.length,
+    // All of it, not the longest-waiting fifty the list shows; an answer kept from before the total was said has its list.
+    overdue: needsYou.overdueTotal ?? needsYou.overdue.length,
     lowStock: needsYou.lowStock.length,
     endingWithdrawal: needsYou.endingWithdrawal.length,
   };

@@ -298,3 +298,51 @@ describe("the Owner's home", () => {
     expect(todaysBar?.day).toBe("2028-02-06");
   });
 });
+
+describe("late work a month old", () => {
+  it("is still in front of the Owner, as on the Overdue list, however long it has waited", async () => {
+    // Five weeks after the 1st of February's milking was left open.
+    const clock = new FakeClock("2028-03-07T03:30:00.000Z");
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+    const home = await owner.client.overview.get();
+    const listed = await owner.client.work.overdue();
+    expect(listed.length).toBeGreaterThan(0);
+    // The home counts what the list holds, and shows the longest-waiting first.
+    expect(home.needsYou.overdueTotal).toBe(listed.length);
+    expect(home.needsYou.overdue.length).toBeGreaterThan(0);
+  });
+});
+
+describe("money waiting for the Owner", () => {
+  it("is found where the home sends her: the Farm's own from its oldest waiting day, on the money page", async () => {
+    // Entered by the Manager on the 30th of May, over the line, and still waiting on the 2nd of June.
+    const may = new FakeClock("2028-05-30T05:00:00.000Z");
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: may,
+    });
+    const categories = await manager.client.money.categories.list();
+    const rent = categories.find((one) => one.key === "rent")?.id ?? "";
+    await manager.client.money.enter({
+      categoryId: rent,
+      amountMoney: 2_000_000,
+      occurredOn: "2028-05-30",
+      counterparty: { name: `বাড়িওয়ালা ${suffix}` },
+      paymentMethod: "bank",
+      reference: `RENT-${suffix}`,
+    });
+    const june = new FakeClock("2028-06-02T05:00:00.000Z");
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: june,
+    });
+    const home = await owner.client.overview.get();
+    const opensOn = home.needsYou.moneyAwaitingAll.farmsOldestOn;
+    expect(opensOn).toBe("2028-05-30");
+    const there = await owner.client.money.list({
+      from: opensOn ?? "2028-06-01",
+      to: "2028-06-02",
+    });
+    expect(there.totals.awaiting).toBeGreaterThan(0);
+  });
+});

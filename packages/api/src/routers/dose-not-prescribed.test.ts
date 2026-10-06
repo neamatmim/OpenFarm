@@ -215,6 +215,28 @@ describe("a dose not prescribed", () => {
     expect(now.length - before).toBe(1);
   });
 
+  it("is on the Owner's Withdrawal-ending list while her milk hold is nearly over, and off it once it is", async () => {
+    const tag = await aCow(`শেষ হচ্ছে ${suffix}`);
+    const manager = await as("manager");
+    await manager.client.treatments.giveNotPrescribed({
+      animalTag: tag,
+      productId: known,
+      givenAt: new Date(NOW),
+      advice: `জ্বর ${suffix}`,
+    });
+    const listed = async (at: string) => {
+      const owner = await as("owner", at);
+      const home = await owner.client.overview.get();
+      return home.needsYou.endingWithdrawal.some(
+        (one) => one.tagNumber === tag
+      );
+    };
+    // Four days of milk: three and a half days on, nearly over.
+    expect(await listed(after(3.5))).toBe(true);
+    // Nine days on her milk is clear five days since — her meat still held — and nothing is ending.
+    expect(await listed(after(9))).toBe(false);
+  });
+
   it("is the Owner's or the Manager's to write, and the default days the Vet's alone", async () => {
     const tag = await aCow(`কর্মী ${suffix}`);
     const staff = await as("staff");

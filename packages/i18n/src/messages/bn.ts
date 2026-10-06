@@ -3737,6 +3737,8 @@ export const bn: Record<MessageKey, string> = {
   "owner.noLosses": "গত ৩০ দিনে কোনো পশু হারায়নি",
   "owner.mightCull": "{count}টি গাভী ছাঁটাই ভাবার মতো",
   "owner.losses": "৩০ দিনে হারানো: {died} মারা গেছে · {culled} বাদ",
+  "owner.lossesBornDead":
+    "৩০ দিনে হারানো: {died} মারা গেছে · {culled} বাদ · মৃত জন্ম: {bornDead}",
   "owner.todayMark": "আজ",
   "mortality.happenedAt": "কখন গেল",
   "mortality.correct": "সংশোধন",

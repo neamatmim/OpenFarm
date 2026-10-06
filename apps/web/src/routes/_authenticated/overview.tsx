@@ -137,7 +137,19 @@ const useFarmFigures = (data: OwnerAnswer): Figure[] => {
     {
       label: t("money.awaitingCount"),
       value: (
-        <Link className={FIGURE_LINK} to="/money">
+        // From the Farm's own oldest entry waiting, so what this counts is on the page it opens.
+        <Link
+          className={FIGURE_LINK}
+          search={
+            data.needsYou.moneyAwaitingAll?.farmsOldestOn
+              ? {
+                  from: data.needsYou.moneyAwaitingAll.farmsOldestOn,
+                  to: farmDayOf(new Date()),
+                }
+              : {}
+          }
+          to="/money"
+        >
           {asMoney(moneyAwaitingTotal(data.needsYou))}
         </Link>
       ),
@@ -326,6 +338,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
         <div className="grid min-w-0 items-start gap-6 md:grid-cols-2 xl:grid-cols-1">
           <MilkPanel tiles={tiles} />
           <HerdPanel
+            bornDead={tiles.bornDead}
             culled={tiles.culled}
             died={tiles.died}
             lostYear={tiles.lostYear}

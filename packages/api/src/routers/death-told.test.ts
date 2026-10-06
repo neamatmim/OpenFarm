@@ -294,4 +294,16 @@ describe("a death told to the Owner", () => {
     });
     expect(await toldOf(tags.stillborn, "owner")).toHaveLength(1);
   });
+
+  it("is said as born dead on the Owner's home, never counted as died as well", async () => {
+    const owner = await as("owner", `${DAY}T08:00:00.000Z`);
+    const { tiles } = await owner.client.overview.get();
+    const deaths = await scratchDb().query.mortality.findMany({
+      where: { farmId: theFarm().id, kind: "died" },
+      columns: { id: true },
+    });
+    // The stillborn calf of this file is one of its deaths, and in the born-dead line alone.
+    expect(tiles.bornDead).toBeGreaterThanOrEqual(1);
+    expect(tiles.died + tiles.bornDead).toBe(deaths.length);
+  });
 });
