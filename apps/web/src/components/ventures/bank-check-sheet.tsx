@@ -110,6 +110,49 @@ const useTheCheck = (
   };
 };
 
+/** How a month stands against the farm's figure, as `standingOf` reads it. */
+interface MonthStanding {
+  beforeFirst: boolean;
+  firstReading: boolean;
+  expectedMoney: number;
+}
+
+/**
+ * How the month stands against the farm's figure: before a Farm Account's first reading — nothing to read it against,
+ * and no first reading either, the one it would be being written already — its first reading, with the statement itself
+ * the figure, or what the farm believes it held. A Venture Account's answer, and one kept from before the farm said so,
+ * never says it is before the first.
+ */
+const standingOf = (
+  expected: { expectedMoney: number | null } | undefined
+): MonthStanding => {
+  const beforeFirst =
+    expected !== undefined &&
+    "beforeFirstReading" in expected &&
+    expected.beforeFirstReading === true;
+  return {
+    beforeFirst,
+    firstReading:
+      expected !== undefined && expected.expectedMoney === null && !beforeFirst,
+    expectedMoney: expected?.expectedMoney ?? 0,
+  };
+};
+
+/** The line saying the farm's figure for the month, as `standingOf` reads it. */
+const whatTheFarmThinks = (
+  { t, language }: ReturnType<typeof useLanguage>,
+  standing: MonthStanding
+): string => {
+  if (standing.beforeFirst) {
+    return t("refusal.beforeTheFirstReading");
+  }
+  return standing.firstReading
+    ? t("farmAccounts.firstReading")
+    : t("ventures.farmThinks", {
+        expected: formatNumber(standing.expectedMoney, language),
+      });
+};
+
 /**
  * The month's bank check: what the statement said, against what the farm thinks the account held — a Venture
  * Account's, or one of the Farm's own mobile money numbers and bank accounts. A Farm Account's first reading has nothing to
@@ -129,7 +172,8 @@ export const BankCheckSheet = ({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) => {
-  const { t, language } = useLanguage();
+  const said = useLanguage();
+  const { t, language } = said;
   const [month, setMonth] = useState(lastMonth);
   const [read, setRead] = useState("");
   const [note, setNote] = useState("");
@@ -158,17 +202,14 @@ export const BankCheckSheet = ({
       );
     }
   );
-  // Nothing for a Farm Account never read before this month: the statement itself is the figure.
-  const firstReading =
-    expected !== undefined && expected.expectedMoney === null;
-  const expectedMoney = expected?.expectedMoney ?? 0;
+  const { beforeFirst, firstReading, expectedMoney } = standingOf(expected);
   const readMoney = Number(read);
   const typed = read !== "" && !Number.isNaN(readMoney);
   // Rounded the way the farm rounds, so what she reads here is what the farm will say.
   const differenceMoney =
     typed && !firstReading ? roundMoney(readMoney - expectedMoney) : 0;
   const already = expected?.checked ?? null;
-  const ready = which !== null && typed;
+  const ready = which !== null && typed && !beforeFirst;
   const words = wordsOf(t, venture, farmAccount);
   return (
     <FormSheet
@@ -190,11 +231,11 @@ export const BankCheckSheet = ({
         />
       </FormField>
       <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
-        {firstReading
-          ? t("farmAccounts.firstReading")
-          : t("ventures.farmThinks", {
-              expected: formatNumber(expectedMoney, language),
-            })}
+        {whatTheFarmThinks(said, {
+          beforeFirst,
+          firstReading,
+          expectedMoney,
+        })}
       </p>
       {already ? (
         <p className="text-muted-foreground text-sm">

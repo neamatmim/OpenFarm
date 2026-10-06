@@ -11,8 +11,9 @@ type Db = Pick<Database, "query">;
 export type OverheadMoneyOn = OverheadMoney & { occurredAt: Date };
 
 /**
- * Every Overhead in a stretch (CONTEXT.md: **Overhead**): money going out of the Farm's purse, entered by hand, that
- * no animal carries. A Herd Cost is the animals' — split across those who stood that month — so it is left out; money
+ * Every Overhead in a stretch (CONTEXT.md: **Overhead**): money going out of the Farm's purse, entered by hand or drawn
+ * against a wage, that no animal carries — a month's wage cost is its Wage Draws and what payday paid, never either
+ * alone. A Herd Cost is the animals' — split across those who stood that month — so it is left out; money
  * under a marked Category that named no Side reached no animal, so it is in. A record's money (feed, medicine, cattle)
  * is the animals' by its record, and a Venture's money was never the Farm's.
  */
@@ -25,7 +26,7 @@ export const overheadMoneyIn = async (
     where: {
       farmId,
       purseVentureId: THE_FARMS_PURSE,
-      source: "by_hand",
+      source: { in: ["by_hand", "wage_draw"] },
       direction: "out",
       occurredAt: { gte: from, lt: until },
     },

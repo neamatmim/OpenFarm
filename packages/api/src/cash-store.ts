@@ -157,63 +157,186 @@ export interface HandHolds {
   lastCount: { at: Date; counted: number; expected: number } | null;
 }
 
+/** One movement of cash into or out of one hand, and when it moved. */
+interface HandMovement {
+  userId: string;
+  at: Date;
+  amount: number;
+}
+
 /**
- * What every hand holds of the Farm's cash: the cash Money Events that named it, in less out; the Handovers to and from
- * it; and each Cash Count's difference, so a hand holds what was counted from the count on. A count being recorded again
- * is left out of what it is compared against.
+ * Every movement of cash through the farm's hands, dated by when the notes moved — not by when anybody wrote it up:
+ * the Farm's cash Money Events that named a hand, in less out; the Handovers to and from a hand; and a Venture's sale
+ * cash, in the hand from its Sale until the deposit that banked it. A Sale written before sale cash was kept in hands,
+ * its movement already there with no deposit behind it, never was in one.
+ */
+const handMovementsOf = async (
+  db: Db,
+  farmId: string
+): Promise<HandMovement[]> => {
+  const [events, handed, ventureSales] = await Promise.all([
+    db.query.moneyEvent.findMany({
+      where: {
+        farmId,
+        paymentMethod: "cash",
+        heldBy: { isNotNull: true },
+        purseVentureId: THE_FARMS_PURSE,
+      },
+      columns: {
+        heldBy: true,
+        direction: true,
+        amountMoney: true,
+        occurredAt: true,
+      },
+    }),
+    // A deposit of a Venture's sale cash is read from the Sales it carried, below.
+    db.query.handover.findMany({
+      where: { farmId, ventureId: { isNull: true } },
+      columns: {
+        fromUserId: true,
+        toUserId: true,
+        amountMoney: true,
+        handedAt: true,
+      },
+    }),
+    db.query.moneyEvent.findMany({
+      where: {
+        farmId,
+        source: "sale",
+        paymentMethod: "cash",
+        heldBy: { isNotNull: true },
+        purseVentureId: { isNotNull: true },
+      },
+      columns: {
+        sourceId: true,
+        heldBy: true,
+        amountMoney: true,
+        occurredAt: true,
+      },
+    }),
+  ]);
+  const banked =
+    ventureSales.length === 0
+      ? []
+      : await db.query.ventureMovement.findMany({
+          where: {
+            farmId,
+            kind: "sale_in",
+            saleId: { in: ventureSales.map((one) => one.sourceId) },
+          },
+          columns: { saleId: true, handoverId: true },
+        });
+  const deposits =
+    banked.length === 0
+      ? []
+      : await db.query.handover.findMany({
+          where: {
+            farmId,
+            id: {
+              in: banked.flatMap((one) =>
+                one.handoverId ? [one.handoverId] : []
+              ),
+            },
+          },
+          columns: { id: true, handedAt: true },
+        });
+  const bankedBy = new Map(banked.map((one) => [one.saleId, one.handoverId]));
+  const depositedAt = new Map(deposits.map((one) => [one.id, one.handedAt]));
+  const moved: HandMovement[] = [];
+  for (const one of events) {
+    if (one.heldBy) {
+      moved.push({
+        userId: one.heldBy,
+        at: one.occurredAt,
+        amount: one.direction === "in" ? one.amountMoney : -one.amountMoney,
+      });
+    }
+  }
+  for (const one of handed) {
+    if (one.fromUserId) {
+      moved.push({
+        userId: one.fromUserId,
+        at: one.handedAt,
+        amount: -one.amountMoney,
+      });
+    }
+    if (one.toUserId) {
+      moved.push({
+        userId: one.toUserId,
+        at: one.handedAt,
+        amount: one.amountMoney,
+      });
+    }
+  }
+  for (const one of ventureSales) {
+    const handoverId = bankedBy.get(one.sourceId);
+    const bankedThen = handoverId ? depositedAt.get(handoverId) : undefined;
+    // Banked with no deposit behind it: written before sale cash was kept in hands, so never in one.
+    if (!one.heldBy || (bankedBy.has(one.sourceId) && !bankedThen)) {
+      continue;
+    }
+    moved.push({
+      userId: one.heldBy,
+      at: one.occurredAt,
+      amount: one.amountMoney,
+    });
+    if (bankedThen) {
+      moved.push({
+        userId: one.heldBy,
+        at: bankedThen,
+        amount: -one.amountMoney,
+      });
+    }
+  }
+  return moved;
+};
+
+/**
+ * What every hand holds of the Farm's cash — and a Venture's sale cash not yet banked — at a moment, now unless said:
+ * what its latest Cash Count found, and every movement since. The count wins, as the store's does: cash written up
+ * after it but spent before it was already gone when the notes were counted, and is not taken off again. A count being
+ * recorded again is left out of what it is compared against, and so is everything that moved after it.
  */
 const handsOf = async (
   db: Db,
   farmId: string,
-  { excludingCount }: { excludingCount?: string } = {}
+  { excludingCount, asOf }: { excludingCount?: string; asOf?: Date } = {}
 ): Promise<Map<string, number>> => {
-  const events = await db.query.moneyEvent.findMany({
-    where: {
-      farmId,
-      paymentMethod: "cash",
-      heldBy: { isNotNull: true },
-      purseVentureId: THE_FARMS_PURSE,
-    },
-    columns: { heldBy: true, direction: true, amountMoney: true },
-  });
-  // A deposit of a Venture's sale cash is left out: the Sales it carried stop being held the moment it is written.
-  const handed = await db.query.handover.findMany({
-    where: { farmId, ventureId: { isNull: true } },
-    columns: { fromUserId: true, toUserId: true, amountMoney: true },
-  });
-  const held = await heldSalesOf(db, farmId);
-  const counts = await db.query.cashCount.findMany({
-    where: { farmId },
-    columns: {
-      userId: true,
-      completionId: true,
-      counted: true,
-      expected: true,
-    },
-  });
-  const holds = new Map<string, number>();
-  const add = (userId: string | null, amount: number) => {
-    if (userId) {
-      holds.set(userId, (holds.get(userId) ?? 0) + amount);
-    }
-  };
-  for (const one of events) {
-    add(
-      one.heldBy,
-      one.direction === "in" ? one.amountMoney : -one.amountMoney
-    );
-  }
-  for (const one of handed) {
-    add(one.fromUserId, -one.amountMoney);
-    add(one.toUserId, one.amountMoney);
-  }
-  // A Venture's sale cash is in the hand that took it until it is deposited: the notes are there to be counted.
-  for (const one of held) {
-    add(one.heldBy, one.amount);
-  }
+  const [moved, counts] = await Promise.all([
+    handMovementsOf(db, farmId),
+    db.query.cashCount.findMany({
+      where: { farmId },
+      columns: {
+        id: true,
+        userId: true,
+        completionId: true,
+        counted: true,
+        countedAt: true,
+      },
+      orderBy: { countedAt: "asc", id: "asc" },
+    }),
+  ]);
+  const until = asOf ?? null;
+  // Each hand's latest count by then: what it found, and from when everything else is added on.
+  const lastCount = new Map<string, { counted: number; at: Date }>();
   for (const one of counts) {
-    if (one.completionId !== excludingCount) {
-      add(one.userId, one.counted - one.expected);
+    if (
+      one.completionId !== excludingCount &&
+      (until === null || one.countedAt <= until)
+    ) {
+      lastCount.set(one.userId, { counted: one.counted, at: one.countedAt });
+    }
+  }
+  const holds = new Map<string, number>();
+  for (const [userId, count] of lastCount) {
+    holds.set(userId, count.counted);
+  }
+  for (const one of moved) {
+    const since = lastCount.get(one.userId)?.at;
+    const afterTheCount = since === undefined || one.at > since;
+    const byThen = until === null || one.at <= until;
+    if (afterTheCount && byThen) {
+      holds.set(one.userId, (holds.get(one.userId) ?? 0) + one.amount);
     }
   }
   return holds;
@@ -283,8 +406,10 @@ export const recordCashCount = async (
     now: Date;
   }
 ): Promise<{ differs: boolean }> => {
+  // The hand as it stood when the notes were counted: nothing that moved since is what they were counted against.
   const holds = await handsOf(tx, input.farm.id, {
     excludingCount: input.completionId,
+    asOf: input.countedAt,
   });
   const expected = roundMoney(holds.get(input.userId) ?? 0);
   const row = {
@@ -819,7 +944,9 @@ const depositSaleCash = async (
 
 /**
  * Cash passed from one hand to another, or to the bank or out of it. Refused from the bank to the bank, from a hand to
- * itself, to a person who holds no cash on this farm, and — the bank being one end — without its slip.
+ * itself, to a person who holds no cash on this farm, and — the bank being one end — without its slip. From a hand the
+ * farm's books name, whether or not its person still holds a Role: a Manager who has left still has the notes until
+ * they are handed over.
  */
 export const recordHandover = async (
   tx: Tx,
@@ -871,13 +998,20 @@ export const recordHandover = async (
   }
   await assertTheAccountEnds(tx, input.farmId, input.from, input.to);
   const holders = await holdersOf(tx, input.farmId, CASH_HOLDING_ROLES);
-  for (const userId of [fromUserId, toUserId]) {
-    if (userId && !holders.includes(userId)) {
-      throw new ORPCError("BAD_REQUEST", {
-        message: "Only the Owner or a Manager holds the farm's cash",
-        data: { refusal: "holds_no_cash" },
-      });
-    }
+  const handsNamed =
+    fromUserId && !holders.includes(fromUserId)
+      ? await handsOf(tx, input.farmId)
+      : null;
+  const mayGive =
+    fromUserId === null ||
+    holders.includes(fromUserId) ||
+    (handsNamed?.has(fromUserId) ?? false);
+  const mayTake = toUserId === null || holders.includes(toUserId);
+  if (!(mayGive && mayTake)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Only the Owner or a Manager holds the farm's cash",
+      data: { refusal: "holds_no_cash" },
+    });
   }
   const id = uuidv7(input.now);
   await tx.insert(handover).values({

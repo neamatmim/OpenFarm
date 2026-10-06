@@ -208,9 +208,13 @@ export const farmAccountsRouter = {
       const already = await context.db.query.farmAccountCheck.findFirst({
         where: { farmAccountId: row.id, forMonth: input.month },
       });
+      const first = await firstReadingOf(context.db, context.farm.id, row.id);
       return {
         /** Nothing: no statement read yet, or this month is before the first one. */
         expectedMoney,
+        /** A month before the account's first reading: nothing can be read against it, and it is no first reading
+         *  either — the one it would be is already written. */
+        beforeFirstReading: first !== null && input.month < first.forMonth,
         checked: already
           ? {
               readMoney: already.readMoney,

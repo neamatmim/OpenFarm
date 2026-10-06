@@ -1,4 +1,5 @@
 import type { Database } from "@OpenFarm/db";
+import type { OwnedThenBy } from "@OpenFarm/domain";
 import {
   farmDayOf,
   floorWeightOf,
@@ -15,8 +16,11 @@ import {
 } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
+import type { FarmCosts } from "./cost-store";
 import {
+  boughtInOf,
   chargedOf,
+  costToItsOwner,
   economicsOfAnimal,
   farmCosts,
   keepChargesOf,
@@ -24,6 +28,7 @@ import {
 import { tell } from "./notice";
 import { projectionBasisOf } from "./projection-store";
 import { fatteningRows } from "./ready-store";
+import { ownedThenByOf } from "./venture-store";
 
 /** How far back the farm's own sales are read for what a kilo has been fetching: two months of a market. */
 const RECENT_SALES_DAYS = 60;
@@ -33,12 +38,40 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const ON_THE_SIDE = ["quarantine", "fattening", "ready_for_sale"] as const;
 
 /**
+ * What she has cost her owner now (`costToItsOwner`): what they paid to take her on, by the Internal Sale that last
+ * brought her to them if one did, and her charges since. Her whole costing where her owner never paid for her.
+ */
+const costToHerOwner = (
+  read: {
+    costs: FarmCosts;
+    ownedThenBy: OwnedThenBy;
+    boughtIn: Awaited<ReturnType<typeof boughtInOf>>;
+  },
+  animal: FarmCosts["animals"][number],
+  owner: string | null,
+  economics: ReturnType<typeof economicsOfAnimal>
+): number => {
+  const back = read.boughtIn.get(animal.id);
+  return (
+    costToItsOwner(
+      read.costs,
+      read.ownedThenBy,
+      animal,
+      owner,
+      back && back.toVentureId === owner ? back : undefined
+    ) ?? (economics.purchaseMoney ?? 0) + chargedOf(economics)
+  );
+};
+
+/**
  * Every animal on the fattening side priced for the Owner: what she has cost the farm so far — bought for, and every
  * charge the farm's costing puts on her — what she weighs, the price a kilo at which she pays for herself, and what she
  * might fetch at the low and the high price a kilo, with what each leaves over her cost. A Venture's animal is priced
  * at her Venture's plan's sale prices, the farm's own at its market price; either may not be set yet.
  *
- * The same costing the Venture's economics reads, so an animal's cost here and on its Venture's page are one sum. And
+ * The same costing the Venture's economics reads, narrowed to what she cost her owner now: what they paid to take her
+ * on and her charges since, as their Settlement or books count her — never what her first buyer paid for one bought
+ * across purses since. And
  * whether keeping her the days ahead pays: her keep over the days the farm reads a keep over, over the rate she is
  * gaining at now, set beside those same prices.
  */
@@ -57,7 +90,11 @@ export const pricesOnTheSide = async (
   now: Date
 ) => {
   const rows = await fatteningRows(db, farm.id, { states: ON_THE_SIDE }, now);
-  const costs = await farmCosts(db, farm.id);
+  const [costs, ownedThenBy, boughtIn] = await Promise.all([
+    farmCosts(db, farm.id),
+    ownedThenByOf(db, farm.id),
+    boughtInOf(db, farm.id),
+  ]);
   const owners = await db.query.animal.findMany({
     where: { farmId: farm.id, id: { in: rows.map((one) => one.id) } },
     columns: { id: true, ownerVentureId: true },
@@ -127,8 +164,13 @@ export const pricesOnTheSide = async (
         return [];
       }
       const economics = economicsOfAnimal(costs, animal);
-      const costMoney = (economics.purchaseMoney ?? 0) + chargedOf(economics);
       const venture = ventureOf.get(row.id) ?? null;
+      const costMoney = costToHerOwner(
+        { costs, ownedThenBy, boughtIn },
+        animal,
+        venture,
+        economics
+      );
       const range = priceRangeFor({
         ofHerVenture: venture ? (ventureRange.get(venture) ?? null) : null,
         market,
@@ -244,7 +286,16 @@ export const tellIfSoldUnderCost = async (
     return;
   }
   const economics = economicsOfAnimal(costs, costed);
-  const costMoney = (economics.purchaseMoney ?? 0) + chargedOf(economics);
+  const costMoney = costToHerOwner(
+    {
+      costs,
+      ownedThenBy: await ownedThenByOf(tx, farm.id),
+      boughtIn: await boughtInOf(tx, farm.id),
+    },
+    costed,
+    animal.ownerVentureId,
+    economics
+  );
   const basis = animal.ownerVentureId
     ? await projectionBasisOf(tx, farm.id, animal.ownerVentureId)
     : null;

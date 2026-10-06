@@ -1769,6 +1769,9 @@ export const en = {
     "That made a lost animal good from the farm's own money; it is not put right on the venture's side alone",
   "refusal.theFarmsOwnCapital":
     "That moved the farm's own capital, which its own books hold too; it is not put right on the venture's side alone",
+  "refusal.termsChanged":
+    "It has been corrected since you read it. Read it again before approving",
+  "refusal.handedLaterThanNow": "Cash cannot have changed hands later than now",
   "refusal.splitNotTheFarms":
     "The farm's own units in this venture are on a {investorsPercent}% split; every investor signs on the same",
   "refusal.theFarmsOwnUnits":
@@ -3438,7 +3441,8 @@ export const en = {
   "dispatch.reportsHint":
     "Choose the dates, then print the dispatch record a processor or BFSA asks for, or save the figures as a CSV.",
   "refusal.dispatchedInTheFuture": "Milk cannot have left later than now",
-  "refusal.periodTooLong": "One report covers a year at most",
+  "refusal.periodTooLong":
+    "One report covers two years at most: the longest year the farm can have",
   "nav.ventures": "Ventures",
   "nav.money": "Income and expenses",
   "money.subtitle":

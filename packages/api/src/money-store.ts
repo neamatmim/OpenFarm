@@ -572,7 +572,11 @@ const assertTheAccount = async (
   }
 };
 
-/** That the reference is there, and not on another Money Event of the same account. */
+/** A reference as a pattern matching only itself: its own `%`, `_` and `\` are letters, not wildcards. */
+const literally = (reference: string): string =>
+  reference.replaceAll(/[\\%_]/gu, (letter) => `\\${letter}`);
+
+/** That the reference is there, and not on another Money Event of the same account, whatever its case. */
 const assertTheReference = async (
   tx: Tx,
   farmAccountId: string,
@@ -585,8 +589,13 @@ const assertTheReference = async (
       "Money by mobile money or the bank carries its transaction ID or reference"
     );
   }
+  // Matched whatever the case: a transaction ID read off a phone's message is the same one typed in small letters.
   const twice = await tx.query.moneyEvent.findFirst({
-    where: { farmAccountId, reference, id: { ne: id } },
+    where: {
+      farmAccountId,
+      reference: { ilike: literally(reference) },
+      id: { ne: id },
+    },
     columns: { id: true },
   });
   if (twice) {
@@ -791,13 +800,35 @@ const tellTheOwner = async (
   );
 };
 
-/** The week a bill's pieces are added up over: the farm day of this one and the six before it. */
+/**
+ * The terms a Money Event waits for the Owner's word on, as one fingerprint: what it comes to, under which Category, to
+ * whom and in whose purse — what a Correction asks her again for. Read with the row she approves from and sent back with
+ * her approval, so one put right under her since is refused rather than approved unseen.
+ */
+export const termsOf = (row: {
+  amountMoney: number | string;
+  categoryId: string;
+  counterpartyId: string | null;
+  purseVentureId: string | null;
+}): string =>
+  [
+    Number(row.amountMoney),
+    row.categoryId,
+    row.counterpartyId ?? "",
+    row.purseVentureId ?? "",
+  ].join("|");
+
+/** The week a bill's pieces are added up over: the farm day of this one and the six either side of it. */
 const PIECES_WINDOW_MS = 6 * 24 * 60 * 60 * 1000;
 
+/** The money a person is paid that is pieces of one bill: what is entered by hand, and their Wage Draws. */
+const PIECE_SOURCES = ["by_hand", "wage_draw"] as const;
+
 /**
- * What else the same person was paid by hand in the week up to this entry, by anybody but the Owner, the same way and
- * from the same purse: a bill's other pieces, which the Approval Threshold counts with it. Nothing for money a record
- * books, for money the Owner enters, or for money naming nobody.
+ * What else the same person was paid by hand — or drew against their wage — within a week of this entry either side,
+ * by anybody but the Owner, the same way and from the same purse: a bill's other pieces, which the Approval Threshold
+ * counts with it. Either side, because a piece written up late and dated before one already entered is in the same
+ * week all the same. Nothing for money another record books, for money the Owner enters, or for money naming nobody.
  */
 const piecesOf = async (
   tx: Tx,
@@ -809,17 +840,14 @@ const piecesOf = async (
     purseVentureId: string | null;
   }
 ): Promise<number> => {
-  if (
-    money.source !== "by_hand" ||
-    booking.byTheOwner ||
-    money.counterpartyId === null
-  ) {
+  const isAPiece = PIECE_SOURCES.some((source) => source === money.source);
+  if (!isAPiece || booking.byTheOwner || money.counterpartyId === null) {
     return 0;
   }
   const pieces = await tx.query.moneyEvent.findMany({
     where: {
       farmId: booking.farm.id,
-      source: "by_hand",
+      source: { in: [...PIECE_SOURCES] },
       id: { ne: entry.id },
       counterpartyId: money.counterpartyId,
       direction: entry.direction,
@@ -828,7 +856,7 @@ const piecesOf = async (
       recordedByRole: { ne: "owner" },
       occurredAt: {
         gte: new Date(money.occurredAt.getTime() - PIECES_WINDOW_MS),
-        lte: money.occurredAt,
+        lte: new Date(money.occurredAt.getTime() + PIECES_WINDOW_MS),
       },
     },
     columns: { amountMoney: true },

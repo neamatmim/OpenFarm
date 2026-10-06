@@ -70,6 +70,8 @@ const accountantCsv = (money: readonly ExportedMoney[]) =>
       "record",
       "record_id",
       "reference",
+      "transaction_id",
+      "farm_account",
       "approval",
       "note",
     ],
@@ -85,6 +87,8 @@ const accountantCsv = (money: readonly ExportedMoney[]) =>
       one.source,
       one.sourceId,
       one.reference,
+      one.transactionId,
+      one.farmAccountName,
       one.approval === "awaiting" ? "awaiting_approval" : one.approval,
       one.note,
     ])

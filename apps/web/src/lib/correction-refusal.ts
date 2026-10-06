@@ -228,6 +228,8 @@ const WORDED_REFUSALS = {
   the_farms_own_units: "refusal.theFarmsOwnUnits",
   the_farms_own_capital: "refusal.theFarmsOwnCapital",
   split_not_the_farms: "refusal.splitNotTheFarms",
+  handed_later_than_now: "refusal.handedLaterThanNow",
+  terms_changed: "refusal.termsChanged",
   a_price_is_missing: "refusal.aPriceIsMissing",
   a_float_is_open: "refusal.aFloatIsOpen",
   a_reimbursement_is_owed: "refusal.aReimbursementIsOwed",

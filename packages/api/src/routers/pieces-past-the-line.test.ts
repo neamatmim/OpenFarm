@@ -79,6 +79,34 @@ describe("a bill in pieces", () => {
     );
   });
 
+  it("counts a piece dated before one already entered: the week is the same week whichever came first", async () => {
+    const name = `টিন বিক্রেতা ${suffix}`;
+    await enter("manager", name, 15_000, "2077-05-20");
+    // Written up a day late, dated the day before: thirty thousand in the week all the same.
+    expect(await standing("manager", name, 15_000, "2077-05-19")).toBe(
+      "awaiting"
+    );
+  });
+
+  it("counts a Wage Draw as a piece: two draws to one person in a week past the line wait", async () => {
+    const name = `অগ্রিম নেওয়া ${suffix}`;
+    const draw = async (amountMoney: number, day: string) => {
+      const manager = await as("manager", day);
+      const made = await manager.client.money.drawWage({
+        counterparty: { name },
+        amountMoney,
+        drawnOn: day,
+      });
+      const row = await scratchDb().query.moneyEvent.findFirst({
+        where: { source: "wage_draw", sourceId: made.id },
+        columns: { approval: true },
+      });
+      return row?.approval;
+    };
+    expect(await draw(15_000, "2077-05-21")).toBe("not_needed");
+    expect(await draw(15_000, "2077-05-22")).toBe("awaiting");
+  });
+
   it("never counts the Owner's own money, nor another person's", async () => {
     const name = `ইট বিক্রেতা ${suffix}`;
     await enter("owner", name, 15_000, "2077-05-09");
@@ -102,6 +130,46 @@ describe("a bill in pieces", () => {
     ).toMatchObject({
       inPieces: true,
       recordedByName: thePerson("manager").name,
+    });
+  });
+});
+
+describe("the Owner's approval", () => {
+  it("is of the terms she read: corrected under her since, it is refused — the same amount or not", async () => {
+    const name = `ঠিকাদার ${suffix}`;
+    const made = await enter("manager", name, 25_000, "2077-05-24");
+    expect(made.approval).toBe("awaiting");
+    const owner = await as("owner", "2077-05-24");
+    const home = await owner.client.overview.get();
+    const read = home.needsYou.moneyAwaiting.find((one) => one.id === made.id);
+    expect(read?.termsRead).toBeTruthy();
+
+    // While she reads, the Manager puts the category right: the same amount, other terms.
+    const manager = await as("manager", "2077-05-24");
+    const categories = await manager.client.money.categories.list();
+    const utilities = categories.find((one) => one.key === "utilities");
+    await manager.client.money.correctEntered({
+      id: made.id,
+      changes: {
+        categoryId: { from: repairsId, to: utilities?.id ?? "" },
+      },
+      reason: `ভুল খাত ${suffix}`,
+    });
+    await expect(
+      owner.client.money.approve({
+        id: made.id,
+        amountMoney: 25_000,
+        termsRead: read?.termsRead,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "terms_changed" } });
+
+    // Read again, it is hers to approve.
+    const again = await owner.client.overview.get();
+    const now = again.needsYou.moneyAwaiting.find((one) => one.id === made.id);
+    await owner.client.money.approve({
+      id: made.id,
+      amountMoney: 25_000,
+      termsRead: now?.termsRead,
     });
   });
 });

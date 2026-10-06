@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { assertTheHand } from "../cash-store";
 import { correct } from "../corrections/correction";
 import {
   moneyByHandCorrection,
@@ -159,6 +160,29 @@ const askIfEnteredAlready = async (
 /** The Category as the trail records it either side of a change. */
 const readCategory = async (tx: Tx, farmId: string, id: string) =>
   (await tx.query.moneyCategory.findFirst({ where: { id, farmId } })) ?? null;
+
+/**
+ * Whose hand cash written up by hand is in, where the writer named another (`assertTheHand`): the Owner writing up the
+ * Manager's takings or draw, never anybody else naming another's hand. Nothing for money not paid in cash, which is in
+ * nobody's hand, nor where nobody was named — it is the writer's, as a Sale's is.
+ */
+const handNamed = async (
+  context: {
+    farm: { id: string };
+    actor: { id: string };
+    roles: readonly string[];
+  },
+  tx: Tx,
+  input: { paymentMethod?: string; heldBy?: string }
+): Promise<string | undefined> =>
+  (input.paymentMethod ?? "cash") === "cash"
+    ? await assertTheHand(
+        tx,
+        context.farm.id,
+        { id: context.actor.id, roles: context.roles },
+        input.heldBy
+      )
+    : undefined;
 
 /** The farm's Categories, as the one way a list is kept keeps it. */
 const CATEGORIES = {
@@ -459,6 +483,8 @@ export const moneyEntryProcedures = {
         wageMonth: monthInput.optional(),
         side: sideInput.optional(),
         receipt: receiptInput.optional(),
+        /** Whose hand the cash is in, where it is not the writer's: the Owner writing up the Manager's takings. */
+        heldBy: z.string().optional(),
         /** Entered again knowing it looks like one already entered — two loads of bamboo from the same man, the same
          *  day, at the same price. */
         sameAgain: z.boolean().optional(),
@@ -524,6 +550,7 @@ export const moneyEntryProcedures = {
               )
             : { parts: [], takenMoney: 0 };
           ({ takenMoney } = draws);
+          const heldBy = await handNamed(context, tx, input);
           await bookMoney(
             tx,
             bookingOf(
@@ -539,6 +566,7 @@ export const moneyEntryProcedures = {
               occurredAt,
               counterpartyId,
               paymentMethod: input.paymentMethod,
+              ...(heldBy === undefined ? {} : { heldBy }),
             },
             {
               id,
@@ -574,6 +602,8 @@ export const moneyEntryProcedures = {
         farmAccountId: farmAccountIdInput,
         reference: referenceInput,
         note: noteInput.optional(),
+        /** Whose hand the cash came out of, where it is not the writer's: the Owner writing up the Manager's draw. */
+        heldBy: z.string().optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -609,6 +639,7 @@ export const moneyEntryProcedures = {
               drawnAt,
               note: input.note ?? null,
               paymentMethod: input.paymentMethod,
+              heldBy: await handNamed(context, tx, input),
             }
           ));
         }

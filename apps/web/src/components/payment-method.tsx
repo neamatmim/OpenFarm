@@ -105,12 +105,17 @@ export const PaymentMethodField = ({
         <Label htmlFor={id}>{t("money.paidBy")}</Label>
         <NativeSelect
           id={id}
-          onChange={(event) =>
-            onChange(
-              PAYMENT_METHODS.find((method) => method === event.target.value) ??
-                "cash"
-            )
-          }
+          onChange={(event) => {
+            const method =
+              PAYMENT_METHODS.find((one) => one === event.target.value) ??
+              "cash";
+            // An account is of one kind: chosen for the bank, it is no mobile money number, so a change of method
+            // lets go of it rather than sending one the farm refuses as not that kind.
+            if (account && method !== value && account.typed.farmAccountId) {
+              account.onChange({ ...account.typed, farmAccountId: "" });
+            }
+            onChange(method);
+          }}
           value={value}
         >
           {PAYMENT_METHODS.map((method) => (

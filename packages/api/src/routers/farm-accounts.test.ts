@@ -99,6 +99,27 @@ describe("the Farm Accounts", () => {
       farmAccountId: accounts.office,
       reference: `TRX-A-${suffix}`,
     });
+    // And on the accountant's export, which is what they read against the statement: the transaction ID and the
+    // account, as the register shows them.
+    const owner = await as("owner");
+    await owner.client.farm.setIdentity({
+      address: `সাভার, ঢাকা ${suffix}`,
+      phone: "+8801711000094",
+      registrationNumber: `DLS/SAV/2082/${suffix}`,
+      registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
+      registrationExpiresOn: "2085-03-31",
+    });
+    const registered = await as("owner");
+    const { csv } = await registered.client.reports.accountantExport({
+      from: DAY,
+      to: DAY,
+      format: "csv",
+    });
+    const [header, ...rows] = (csv ?? "").slice(1).trim().split("\r\n");
+    expect(header).toContain("transaction_id,farm_account");
+    expect(rows.find((row) => row.includes(id))).toContain(
+      `TRX-A-${suffix},অফিস বিকাশ ${suffix}`
+    );
   });
 
   it("refuses mobile money money that names no account, the bank's, or one with no transaction ID", async () => {
@@ -138,6 +159,14 @@ describe("the Farm Accounts", () => {
         paymentMethod: "mobile_money",
         farmAccountId: accounts.office,
         reference: `TRX-A-${suffix}`,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "reference_used_already" } });
+    // Typed in small letters, the same transaction all the same: a message read off a phone is not case-sensitive.
+    await expect(
+      manureSold(1500, {
+        paymentMethod: "mobile_money",
+        farmAccountId: accounts.office,
+        reference: `trx-a-${suffix}`,
       })
     ).rejects.toMatchObject({ data: { refusal: "reference_used_already" } });
     await expect(
@@ -298,6 +327,44 @@ describe("the Farm Accounts", () => {
         },
       })
     ).rejects.toMatchObject({ data: { refusal: "reference_used_already" } });
+  });
+
+  it("puts a Wage Draw right from cash to mobile money only with the account and its transaction ID", async () => {
+    const manager = await as("manager", `${DAY}T11:00:00.000Z`);
+    const drawn = await manager.client.money.drawWage({
+      counterparty: { name: `রাখাল ${suffix}` },
+      amountMoney: 1500,
+      drawnOn: DAY,
+    });
+    const change = {
+      paymentMethod: { from: "cash" as const, to: "mobile_money" as const },
+    };
+    // Named nothing, it is refused: a farm that lists its mobile money numbers asks which one.
+    await expect(
+      manager.client.money.correctDraw({
+        id: drawn.id,
+        reason: `বিকাশে দিয়েছিল ${suffix}`,
+        changes: change,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "names_no_farm_account" } });
+    await manager.client.money.correctDraw({
+      id: drawn.id,
+      reason: `বিকাশে দিয়েছিল ${suffix}`,
+      changes: {
+        ...change,
+        farmAccount: {
+          from: { farmAccountId: null, reference: null },
+          to: { farmAccountId: accounts.office, reference: `TRX-D-${suffix}` },
+        },
+      },
+    });
+    const owner = await as("owner");
+    const list = await owner.client.money.list({ from: DAY, to: DAY });
+    expect(list.events.find((one) => one.sourceId === drawn.id)).toMatchObject({
+      paymentMethod: "mobile_money",
+      farmAccountId: accounts.office,
+      reference: `TRX-D-${suffix}`,
+    });
   });
 
   it("takes cash into the bank account, and mobile money to the bank, as Handovers", async () => {

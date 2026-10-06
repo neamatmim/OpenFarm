@@ -40,6 +40,7 @@ import {
   PaymentMethodField,
 } from "@/components/payment-method";
 import { PhotoField } from "@/components/photo-field";
+import { WhoseHandField } from "@/components/whose-hand";
 import { useLanguage } from "@/i18n/language-provider";
 import { amount, note } from "@/lib/correcting";
 import { useMoney } from "@/lib/money";
@@ -318,6 +319,8 @@ export const EnterMoneySheet = ({
   const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
   const [receipt, setReceipt] = useState<Photo | null>(null);
   const [side, setSide] = useState<SideChoice>("");
+  // Whose hand the cash is in, where the Owner writes up somebody else's: hers where nothing is chosen.
+  const [heldBy, setHeldBy] = useState("");
   const usable = (categories.data ?? []).filter(
     (one) => one.enterable && !one.retiredAt
   );
@@ -336,7 +339,14 @@ export const EnterMoneySheet = ({
   const enter = useMutation(
     orpc.money.enter.mutationOptions({
       onSuccess: () => {
+        // The next entry is another one: its Side, how it was paid, the account and its transaction ID and its day are
+        // its own to say, never the last one's carried over — only the Category is kept, for a run of the same kind.
         setTyped({ ...NOTHING_TYPED, categoryId: typed.categoryId });
+        setOccurredOn(farmDayOf(new Date()));
+        setPaymentMethod("cash");
+        setAccount(NO_ACCOUNT);
+        setSide("");
+        setHeldBy("");
         setTwin(null);
         toast.success(t("byHand.entered"));
         handleOpenChange(false);
@@ -360,6 +370,7 @@ export const EnterMoneySheet = ({
           counterparty: { name: typed.counterparty.trim() },
           paymentMethod,
           ...accountSent(paymentMethod, account),
+          ...(paymentMethod === "cash" && heldBy ? { heldBy } : {}),
           note: typed.note.trim() || undefined,
           wageMonth: isWage ? typed.wageMonth : undefined,
           side: side || undefined,
@@ -473,6 +484,13 @@ export const EnterMoneySheet = ({
               value={paymentMethod}
             />
           </div>
+          {paymentMethod === "cash" ? (
+            <WhoseHandField
+              id="entry-whose-hand"
+              onChange={setHeldBy}
+              value={heldBy}
+            />
+          ) : null}
 
           <FormField id="entry-note" label={t("byHand.note")}>
             <Input

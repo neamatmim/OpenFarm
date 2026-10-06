@@ -1640,6 +1640,8 @@ export const bn: Record<MessageKey, string> = {
     "এটি খামারের নিজের টাকায় হারানো পশুর ক্ষতিপূরণ; শুধু ভেঞ্চারের দিকে এটি ঠিক করা যায় না",
   "refusal.theFarmsOwnCapital":
     "এটি খামারের নিজের মূলধন, যা খামারের নিজের হিসাবেও আছে; শুধু ভেঞ্চারের দিকে এটি ঠিক করা যায় না",
+  "refusal.termsChanged": "আপনি পড়ার পরে এটি সংশোধন হয়েছে। অনুমোদনের আগে আবার পড়ুন",
+  "refusal.handedLaterThanNow": "এখনকার পরে টাকা হাতবদল হতে পারে না",
   "refusal.splitNotTheFarms":
     "এই ভেঞ্চারে খামারের নিজের ইউনিট {investorsPercent}% ভাগে নেওয়া; প্রত্যেক বিনিয়োগকারী একই ভাগে সই করবেন",
   "refusal.theFarmsOwnUnits":
@@ -3215,7 +3217,8 @@ export const bn: Record<MessageKey, string> = {
   "dispatch.reportsHint":
     "তারিখ বেছে নিন, তারপর প্রসেসর বা বিএফএসএ যে হস্তান্তরের রেকর্ড চায় তা প্রিন্ট করুন, বা হিসাব CSV ফাইলে রাখুন।",
   "refusal.dispatchedInTheFuture": "দুধ এখনের পরে যেতে পারে না",
-  "refusal.periodTooLong": "একটি রেকর্ডে এক বছরের বেশি থাকে না",
+  "refusal.periodTooLong":
+    "একটি রেকর্ডে দুই বছরের বেশি থাকে না: খামারের সবচেয়ে লম্বা বছরও এর মধ্যে",
   "nav.ventures": "ভেঞ্চার",
   "nav.money": "{currencyOf} হিসাব",
   "money.subtitle":

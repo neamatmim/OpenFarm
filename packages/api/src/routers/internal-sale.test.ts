@@ -753,3 +753,55 @@ describe("a Venture's animal it bought in, lost and made good", () => {
     expect(made).toEqual([{ amountMoney: 72_800 }]);
   });
 });
+
+describe("a bull the Farm bought back from a Venture", () => {
+  it("earns the Farm what it sold him for less what it paid for him, not less what somebody else first paid", async () => {
+    // The Farm buys him at ৳60,000 and sells him to the Venture at 182 kg × ৳350 = ৳63,700; buys him back at 184 kg ×
+    // ৳400 = ৳73,600; a buyer pays ৳90,000. The Farm's Margin on him: ৳16,400 — not ৳30,000 off his first price.
+    const his = await bull("2047-08-01T05:00:00.000Z");
+    await weigh("2047-08-03", [[his.tagNumber, 182]]);
+    const owner = await as("owner", "2047-08-03T09:00:00.000Z");
+    await owner.client.ventures.sellInternally({
+      tagNumber: his.tagNumber,
+      toVentureId: ventureId,
+      rateMoneyPerKg: 350,
+      note: `আজকের হাটের দর ${suffix}`,
+      soldOn: "2047-08-03",
+      paymentMethod: "bank",
+      reference: `INT-OUT-${suffix}`,
+      priceMoney: 63_700,
+    });
+    await weigh("2047-08-05", [[his.tagNumber, 184]]);
+    const back = await as("owner", "2047-08-05T09:00:00.000Z");
+    await back.client.ventures.sellInternally({
+      tagNumber: his.tagNumber,
+      rateMoneyPerKg: 400,
+      note: `ফেরত কেনা ${suffix}`,
+      soldOn: "2047-08-05",
+      paymentMethod: "bank",
+      reference: `INT-BACK-${suffix}`,
+      priceMoney: 73_600,
+    });
+    // What he has cost the Farm, as his price is weighed against it: what it paid to have him back.
+    const pricing = await back.client.fattening.prices();
+    expect(
+      pricing.animals.find((one) => one.tagNumber === his.tagNumber)?.costMoney
+    ).toBe(73_600);
+    const manager = await as("manager", "2047-08-10T05:00:00.000Z");
+    await manager.client.sales.record({
+      tagNumber: his.tagNumber,
+      buyer: { name: `কসাই ${suffix}` },
+      destination: "গাবতলী",
+      vehicle: "ঢাকা মেট্রো-ট ১১-২২৩৬",
+      driver: "সোহেল",
+      priceMoney: 90_000,
+      weightKg: 190,
+    });
+
+    const reading = await as("owner", "2047-08-20T04:00:00.000Z");
+    const { months } = await reading.client.monthlyReport.get();
+    expect(
+      months.find((one) => one.month === "2047-08")?.fattening.marginMoney
+    ).toBe(16_400);
+  });
+});

@@ -182,4 +182,26 @@ describe("the Overhead", () => {
       perHeadPerDayMoney: 437.65,
     });
   });
+
+  it("counts a Wage Draw with the wages: a month's wage cost is its draws and what payday paid", async () => {
+    // Five thousand drawn on 21 March, ahead of payday: wages are ৳17,000 that month, the Overhead ৳36,000.
+    const manager = await as("manager", "2045-03-21T04:00:00.000Z");
+    await manager.client.money.drawWage({
+      counterparty: { name: "রাখাল করিম" },
+      amountMoney: 5000,
+      drawnOn: "2045-03-21",
+    });
+    const owner = await as("owner", "2045-04-05T04:00:00.000Z");
+    const { overheads } = await owner.client.costs.bySide(MARCH);
+    expect(overheads).toMatchObject({
+      totalMoney: 36_000,
+      lines: expect.arrayContaining([
+        expect.objectContaining({ categoryEn: "Wages", amount: 17_000 }),
+      ]),
+    });
+    const { months } = await owner.client.monthlyReport.get();
+    expect(
+      months.find((one) => one.month === "2045-03")?.overheads.amount
+    ).toBe(36_000);
+  });
 });

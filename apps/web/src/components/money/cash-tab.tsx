@@ -1,3 +1,4 @@
+import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -58,10 +59,18 @@ const HandOverDialog = ({
     (one) => one.userId !== from.userId
   );
   const [chosen, setChosen] = useState("");
-  const to = chosen || (others[0]?.userId ?? BANK);
-  // The Farm's own accounts a deposit may go into, by name — the bank itself where none is listed yet.
+  // The Farm's own accounts a deposit may go into, by name — and the bank itself while no bank account of the farm's is
+  // open, since the farm asks one named once any is.
   const accounts = useQuery(orpc.farmAccounts.list.queryOptions());
   const intoAccounts = (accounts.data ?? []).filter((one) => !one.retired);
+  const plainBank = !intoAccounts.some((one) => one.kind === "bank");
+  // What the list draws, in its order: what is sent is always one of these, and the first unless another is chosen.
+  const drawn = [
+    ...others.map((one) => one.userId),
+    ...(plainBank ? [BANK] : []),
+    ...intoAccounts.map((one) => `${ACCOUNT}${one.id}`),
+  ];
+  const to = drawn.includes(chosen) ? chosen : (drawn[0] ?? BANK);
   const toAnAccount = to.startsWith(ACCOUNT);
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
@@ -116,15 +125,12 @@ const HandOverDialog = ({
               {one.name}
             </option>
           ))}
-          {intoAccounts.length === 0 ? (
-            <option value={BANK}>{t("cash.bank")}</option>
-          ) : (
-            intoAccounts.map((one) => (
-              <option key={one.id} value={`${ACCOUNT}${one.id}`}>
-                {one.name} · {one.number.slice(-4)}
-              </option>
-            ))
-          )}
+          {plainBank ? <option value={BANK}>{t("cash.bank")}</option> : null}
+          {intoAccounts.map((one) => (
+            <option key={one.id} value={`${ACCOUNT}${one.id}`}>
+              {one.name} · {one.number.slice(-4)}
+            </option>
+          ))}
         </NativeSelect>
       </FormField>
       <FormField id="hand-amount" label={t("cash.amount")}>
@@ -247,7 +253,11 @@ const DepositDialog = ({
           to: { ventureId, saleIds: going.map((one) => one.saleId) },
           amountMoney: totalMoney,
           reference: reference.trim(),
-          ...(day ? { handedAt: new Date(`${day}T06:00:00.000Z`) } : {}),
+          // Today is now, as the farm writes it; an earlier day is that farm day's start — never a clock hour that is
+          // still to come this morning.
+          ...(day && day !== farmDayOf(new Date())
+            ? { handedAt: startOfFarmDay(day) }
+            : {}),
         })
       }
       open={open}

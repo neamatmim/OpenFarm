@@ -1,4 +1,11 @@
-import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
+import { and, eq } from "@OpenFarm/db/operators";
+import { roleAssignment } from "@OpenFarm/db/schema/farm";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -139,5 +146,96 @@ describe("cash in hand", () => {
       reason: `বিকাশে দিয়েছিল ${suffix}`,
     });
     expect(await handOf("manager")).toBe(before - 700);
+  });
+
+  it("refuses cash said to have changed hands later than now, with a word for it", async () => {
+    const manager = await as("manager");
+    await expect(
+      manager.client.cash.handOver({
+        from: { userId: thePerson("manager").id },
+        to: { userId: thePerson("owner").id },
+        amountMoney: 100,
+        handedAt: new Date(new Date(NOW).getTime() + 60 * 60 * 1000),
+      })
+    ).rejects.toMatchObject({ data: { refusal: "handed_later_than_now" } });
+  });
+
+  it("is taken out of the hand of a Manager who has left, by the Owner, into a hand that still holds the farm's cash", async () => {
+    await manureSold("manager", 900);
+    const held = await handOf("manager");
+    expect(held).toBeGreaterThan(0);
+    const managerRole = and(
+      eq(roleAssignment.farmId, theFarm().id),
+      eq(roleAssignment.userId, thePerson("manager").id),
+      eq(roleAssignment.role, "manager")
+    );
+    await scratchDb()
+      .update(roleAssignment)
+      .set({ revokedAt: new Date(NOW) })
+      .where(managerRole);
+    try {
+      const owner = await as("owner");
+      const ownerBefore = await handOf("owner");
+      await owner.client.cash.handOver({
+        from: { userId: thePerson("manager").id },
+        to: { userId: thePerson("owner").id },
+        amountMoney: held,
+      });
+      expect(await handOf("owner")).toBe(ownerBefore + held);
+      expect(await handOf("manager")).toBe(0);
+      // Never into a hand that no longer holds the farm's cash.
+      await expect(
+        owner.client.cash.handOver({
+          from: { userId: thePerson("owner").id },
+          to: { userId: thePerson("manager").id },
+          amountMoney: 100,
+        })
+      ).rejects.toMatchObject({ data: { refusal: "holds_no_cash" } });
+    } finally {
+      await scratchDb()
+        .update(roleAssignment)
+        .set({ revokedAt: null })
+        .where(managerRole);
+    }
+  });
+});
+
+describe("cash the Owner writes up for somebody else", () => {
+  it("goes into the hand that took it, as the Owner names it — and nobody else may name another's", async () => {
+    const owner = await as("owner");
+    const categories = await owner.client.money.categories.list();
+    const manure = categories.find((one) => one.key === "manure_sales");
+    const managerBefore = await handOf("manager");
+    const ownerBefore = await handOf("owner");
+    // The Manager sold the manure and holds the notes; the Owner writes it up that evening.
+    await owner.client.money.enter({
+      categoryId: manure?.id ?? "",
+      amountMoney: 800,
+      occurredOn: NOW.slice(0, 10),
+      counterparty: { name: `গোবর ক্রেতা ${suffix}` },
+      paymentMethod: "cash",
+      heldBy: thePerson("manager").id,
+    });
+    expect(await handOf("manager")).toBe(managerBefore + 800);
+    expect(await handOf("owner")).toBe(ownerBefore);
+    // A Wage Draw paid out of the Manager's hand, written up by the Owner, comes out of it.
+    await owner.client.money.drawWage({
+      counterparty: { name: `রাখাল ${suffix}` },
+      amountMoney: 300,
+      drawnOn: NOW.slice(0, 10),
+      heldBy: thePerson("manager").id,
+    });
+    expect(await handOf("manager")).toBe(managerBefore + 500);
+    const manager = await as("manager");
+    await expect(
+      manager.client.money.enter({
+        categoryId: manure?.id ?? "",
+        amountMoney: 100,
+        occurredOn: NOW.slice(0, 10),
+        counterparty: { name: `গোবর ক্রেতা ${suffix}` },
+        paymentMethod: "cash",
+        heldBy: thePerson("owner").id,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "owner_only" } });
   });
 });
