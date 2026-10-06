@@ -5,9 +5,10 @@ import { roundMoney } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import { bookAt } from "./medicine-stock";
 
 // The monthly medicine count: every product on the Drug List counted in doses, blind, and set against what the store
-// is thought to hold — doses bought, less doses given, with the earlier counts' differences. The count wins.
+// is thought to hold — the store replayed up to the count (medicine-stock's bookAt). The count wins.
 
 /** One product as a medicine count Step recorded it. */
 export interface MedicineCountLine {
@@ -23,66 +24,6 @@ export interface MedicineAdjustment {
   /** What its purchases cost a dose, on average; nothing for a product never bought. */
   perDoseMoney: number | null;
 }
-
-/**
- * What the store was thought to hold of each product at a moment, in doses — bought by then, less given by then, with
- * every other count's difference before it — and what a dose of it cost. A count is read without itself, so a count
- * put right is compared against the same book.
- */
-export const bookAt = async (
-  tx: Pick<Tx, "query">,
-  farmId: string,
-  at: Date,
-  excludingCompletion: string
-): Promise<Map<string, { expected: number; perDoseMoney: number | null }>> => {
-  const bought = await tx.query.medicinePurchase.findMany({
-    where: { farmId, purchasedOn: { lte: at } },
-    columns: { drugProductId: true, doses: true, priceMoney: true },
-  });
-  const given = await tx.query.treatment.findMany({
-    where: { farmId, givenAt: { lte: at } },
-    columns: { productId: true },
-  });
-  const earlier = await tx.query.medicineCount.findMany({
-    where: {
-      farmId,
-      countedAt: { lte: at },
-      completionId: { ne: excludingCompletion },
-    },
-    columns: { drugProductId: true, expected: true, counted: true },
-  });
-  const book = new Map<
-    string,
-    { doses: number; amount: number; bought: number; expected: number }
-  >();
-  const of = (id: string) => {
-    const one = book.get(id) ?? { doses: 0, amount: 0, bought: 0, expected: 0 };
-    book.set(id, one);
-    return one;
-  };
-  for (const one of bought) {
-    const line = of(one.drugProductId);
-    line.expected += one.doses;
-    line.bought += one.doses;
-    line.amount += one.priceMoney;
-  }
-  for (const one of given) {
-    of(one.productId).expected -= 1;
-  }
-  for (const one of earlier) {
-    of(one.drugProductId).expected += one.counted - one.expected;
-  }
-  return new Map(
-    [...book].map(([id, line]) => [
-      id,
-      {
-        expected: Math.max(0, line.expected),
-        perDoseMoney:
-          line.bought > 0 ? roundMoney(line.amount / line.bought) : null,
-      },
-    ])
-  );
-};
 
 /**
  * Books a medicine count: for each product on the Drug List, what the store was thought to hold at the moment it was
@@ -124,6 +65,13 @@ export const recordMedicineCount = async (
     });
   }
   const countedIds = new Set(entry.counts.map((line) => line.drugProductId));
+  // One line a product: two said different things, and the row kept and the difference told disagreed.
+  if (countedIds.size < entry.counts.length) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A medicine count counts each medicine once",
+      data: { refusal: "counted_twice" },
+    });
+  }
   const missing = products
     .filter((one) => !(one.retiredAt || countedIds.has(one.id)))
     .map((one) => one.id);

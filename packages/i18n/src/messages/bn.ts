@@ -1578,6 +1578,7 @@ export const bn: Record<MessageKey, string> = {
   "refusal.doseNotDueYet":
     "এই ডোজের সময় এখনো হয়নি। আগের ডোজটি আগে দিন, বা এর সময়ের কাছাকাছি পর্যন্ত অপেক্ষা করুন",
   "refusal.courseStopped": "পশুচিকিৎসক এই কোর্স আগেই বন্ধ করেছেন",
+  "refusal.countedTwice": "এক গণনায় প্রতিটি ওষুধ একবারই গোনা হয়",
   "refusal.phoneRevoked":
     "এই ফোন আর খামারের নয়। আবার যুক্ত করতে ম্যানেজারের কাছে কোড চান",
   "refusal.tooManyPins":
@@ -4145,6 +4146,7 @@ export const bn: Record<MessageKey, string> = {
   "correct.hint": "যা ভুল তা ঠিক করুন। আগের তথ্য এই সংশোধনের পাশে অডিট লগে পড়া যাবে।",
   "correct.sale": "এই বিক্রয় সংশোধন",
   "correct.dispatch": "এই দুধ দেওয়া সংশোধন",
+  "correct.purchase": "এই কেনা সংশোধন",
   "correct.arrival": "এই আগমন সংশোধন",
   "correct.intake": "কেনার তথ্য সংশোধন",
   "correct.receivablePayment": "এই পরিশোধ সংশোধন করুন",

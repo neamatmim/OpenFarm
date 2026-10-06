@@ -15,6 +15,11 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { correct } from "../corrections/correction";
+import {
+  medicinePurchaseCorrection,
+  medicinePurchaseCorrectionInput,
+} from "../corrections/medicine-purchase";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import type { FarmList } from "../farm-list";
@@ -286,6 +291,17 @@ export const drugsRouter = {
       );
       return { id };
     }),
+
+  /**
+   * Medicine bought, put right with a reason — its doses, its cost, its seller, its day, its Lot, how it was paid —
+   * and its Money Event with it, because a typo would otherwise sit in the store and every dose's cost for good.
+   */
+  correctPurchase: protectedProcedure
+    .use(requireRole(...medicinePurchaseCorrection.roles))
+    .input(medicinePurchaseCorrectionInput)
+    .handler(({ context, input }) =>
+      correct(context, medicinePurchaseCorrection, input)
+    ),
 
   /** What the farm has bought of a product, newest first. The Owner's and the Manager's: it carries
    *  prices, and money is not the Vet's or Barn Staff's. */

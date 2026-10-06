@@ -1699,6 +1699,7 @@ export const en = {
   "refusal.doseNotDueYet":
     "This dose is not due yet. Give the dose before it first, or wait until nearer its time",
   "refusal.courseStopped": "The vet has already stopped this course",
+  "refusal.countedTwice": "Each medicine is counted once in a count",
   "refusal.phoneRevoked":
     "This phone is no longer one of the farm's. Ask the manager for a code to enrol it again",
   "refusal.tooManyPins":
@@ -4431,6 +4432,7 @@ export const en = {
     "Change what is wrong. The original stays readable in the audit trail beside this correction.",
   "correct.sale": "Correct this sale",
   "correct.dispatch": "Correct this dispatch",
+  "correct.purchase": "Correct this purchase",
   "correct.arrival": "Correct this arrival",
   "correct.intake": "Correct what she cost",
   "correct.receivablePayment": "Correct this payment",

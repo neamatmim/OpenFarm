@@ -5,7 +5,7 @@
 import { HEAT, STAYS_A_HEIFER } from "@OpenFarm/domain";
 
 import { inThePenAt } from "../head-count-store";
-import { bookAt } from "../medicine-count-store";
+import { bookAt } from "../medicine-stock";
 import type { Responder } from "./history";
 import { RESPONDERS } from "./history";
 import { addDays, onFarm } from "./runtime";

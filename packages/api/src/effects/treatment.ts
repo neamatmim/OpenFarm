@@ -6,7 +6,7 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
 import { recomputeWithdrawal } from "../health-store";
-import { lotOfTheLatestDose } from "../medicine-stock";
+import { lotOfDose } from "../medicine-stock";
 import { tell } from "../notice";
 import { callOffPutOffDose, raiseThePutOff } from "../put-off-store";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
@@ -189,10 +189,10 @@ export const tellIfItsLotHadExpired = async (
     return;
   }
   // Read on the day it was given: only whether the Lot had passed its day is asked, so no warning is wanted.
-  const lot = await lotOfTheLatestDose(
+  const lot = await lotOfDose(
     tx,
     farmId,
-    dose.productId,
+    { id: doseId, productId: dose.productId },
     expiryWindow(dose.givenAt, 0)
   );
   if (!(lot?.expiresOn && lot.standing === "expired")) {

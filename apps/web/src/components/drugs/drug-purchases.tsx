@@ -1,8 +1,14 @@
 import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { ShoppingCart } from "lucide-react";
 
 import {
+  CorrectionAnswer,
+  CorrectionDialog,
+  useCorrecting,
+} from "@/components/correction-dialog";
+import {
+  ActionsHeader,
   DataTable,
   createListColumns,
   listHeader,
@@ -13,6 +19,7 @@ import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Loaded } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { amount as amountHeld, day } from "@/lib/correcting";
 import { orpc } from "@/utils/orpc";
 
 import type { DrugProduct, Purchase } from "./drug-types";
@@ -20,6 +27,57 @@ import { productName } from "./drug-types";
 
 /** How many purchases a page shows before the next. */
 const HISTORY_PAGE = 20;
+
+/** Medicine bought written up wrong: how many doses, what it cost, or the day — with the reason. Its money is put
+ *  right with it. */
+const PurchaseCorrection = ({ purchase }: { purchase: Purchase }) => {
+  const { t } = useLanguage();
+  const correcting = useCorrecting({
+    doses: amountHeld(purchase.doses),
+    priceMoney: amountHeld(purchase.priceMoney),
+    purchasedOn: day(purchase.purchasedOn),
+  });
+  const correct = useMutation(orpc.drugs.correctPurchase.mutationOptions({}));
+  return (
+    <CorrectionDialog
+      onOpen={correcting.handleOpen}
+      onSave={async (reason) => {
+        await correct.mutateAsync({
+          id: purchase.id,
+          reason,
+          changes: correcting.changes(),
+        });
+      }}
+      ready={correcting.changed}
+      title={t("correct.purchase")}
+    >
+      <CorrectionAnswer
+        inputMode="numeric"
+        label={t("drugs.doses")}
+        onChange={(value) => correcting.set("doses", value)}
+        type="number"
+        value={correcting.typed.doses ?? ""}
+      />
+      <CorrectionAnswer
+        inputMode="numeric"
+        label={t("drugs.price")}
+        onChange={(value) => correcting.set("priceMoney", value)}
+        type="number"
+        value={correcting.typed.priceMoney ?? ""}
+      />
+      <CorrectionAnswer
+        label={t("drugs.boughtOn")}
+        onChange={(value) => correcting.set("purchasedOn", value)}
+        type="date"
+        value={correcting.typed.purchasedOn ?? ""}
+      />
+    </CorrectionDialog>
+  );
+};
+
+const CorrectCell = ({ row }: { row: { original: Purchase } }) => (
+  <PurchaseCorrection purchase={row.original} />
+);
 
 /** What one dose of a purchase came to. */
 const perDose = (one: Purchase) =>
@@ -116,6 +174,12 @@ const purchaseColumns = column.columns([
     header: listHeader("lots.col.lot"),
     cell: LotCell,
   }),
+  column.display({
+    id: "correct",
+    header: ActionsHeader,
+    cell: CorrectCell,
+    meta: { align: "end" },
+  }),
 ]);
 
 /** A purchase on a phone: the day and who sold it, what it cost large, how much and how many doses beneath. */
@@ -146,6 +210,7 @@ const PurchaseCard = ({ row }: { row: Purchase }) => {
         lotNumber={row.lotNumber}
         standing={row.standing}
       />
+      <PurchaseCorrection purchase={row} />
     </div>
   );
 };
