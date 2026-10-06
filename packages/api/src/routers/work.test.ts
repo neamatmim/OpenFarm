@@ -288,10 +288,17 @@ describe("claiming", () => {
   it("a Staff member cannot touch an Instance for a Pen that is not theirs", async () => {
     const clock = new FakeClock("2026-09-17T05:30:00.000Z");
     const { owner } = await instanceForPen(clock);
-    await owner.client.animals.move({
+    // Into the fattening Pen, unless an earlier test walked him there already: a Move into the Pen he stands in is no
+    // journey, and refused.
+    const steer = await owner.client.animals.get({
       tagNumber: world.steer.tagNumber,
-      toPenId: world.fatteningPen.id,
     });
+    if (steer.penId !== world.fatteningPen.id) {
+      await owner.client.animals.move({
+        tagNumber: world.steer.tagNumber,
+        toPenId: world.fatteningPen.id,
+      });
+    }
     const staff = await createTestClient(appRouter, { as: "staff", clock });
 
     const visible = await staff.client.work.today();

@@ -357,6 +357,16 @@ const intakeView = (
       }
     : null;
 
+/** A birth on a day still to come is refused: a calf born next June is a typo, not a calf. */
+const assertBornInThePast = (birthDate: Date | undefined, now: Date) => {
+  if (birthDate && birthDate.getTime() > now.getTime()) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A birth date cannot be in the future",
+      data: { refusal: "born_in_the_future" },
+    });
+  }
+};
+
 /** A calving date is the one thing about a Lactation anyone gives us, so it is the one thing
  *  worth refusing when it is impossible. */
 const assertCalvedInThePast = (calvedAt: Date | undefined, now: Date) => {
@@ -442,6 +452,7 @@ const createAnimal = async (
   reason: string
 ): Promise<{ id: string; tagNumber: string }> => {
   assertCalvedInThePast(input.calvedAt, now);
+  assertBornInThePast(input.birthDate, now);
   const calving = enteredCalving(
     input.state,
     input.expectedCalvingOn,

@@ -444,10 +444,11 @@ describe("the Internal Sale", () => {
   });
 
   it("refuses a bull that has died: there is no animal left to move", async () => {
-    const owner = await as("owner", "2047-02-12T04:00:00.000Z");
     const hers = await bull("2047-02-12T05:00:00.000Z", 260);
     await weigh("2047-02-13", [[hers.tagNumber, 260]]);
-    await owner.client.animals.recordMortality({
+    // Dead after she came, the morning she was weighed.
+    const morning = await as("owner", "2047-02-13T06:00:00.000Z");
+    await morning.client.animals.recordMortality({
       photo: A_DEATH_PHOTO,
       tagNumber: hers.tagNumber,
       kind: "died",
@@ -656,7 +657,6 @@ describe("the Internal Sale", () => {
 
 describe("the animals the Owner is offered to move", () => {
   it("are the bought Fattening animals still here, weighed, and not yet ready — with their purse and weight", async () => {
-    const owner = await as("owner", "2047-03-01T04:00:00.000Z");
     const weighed = await bull("2047-03-01T05:00:00.000Z", 240);
     const unweighed = await bull("2047-03-01T05:10:00.000Z");
     const gone = await bull("2047-03-01T05:20:00.000Z", 250);
@@ -664,7 +664,9 @@ describe("the animals the Owner is offered to move", () => {
       [weighed.tagNumber, 240],
       [gone.tagNumber, 250],
     ]);
-    await owner.client.animals.recordMortality({
+    // Dead after he came, the morning he was weighed.
+    const morning = await as("owner", "2047-03-02T06:00:00.000Z");
+    await morning.client.animals.recordMortality({
       photo: A_DEATH_PHOTO,
       tagNumber: gone.tagNumber,
       kind: "died",

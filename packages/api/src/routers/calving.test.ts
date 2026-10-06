@@ -163,6 +163,78 @@ const morningRound = async (
 };
 
 describe("the calving", () => {
+  it("is not re-dated past a Move her calf has made since", async () => {
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2032-04-01T04:00:00.000Z"),
+    });
+    const carrying = await owner.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "pregnant_heifer",
+      penId: world.pen.id,
+      source: "bought",
+      aliases: [],
+      expectedCalvingOn: "2032-04-02",
+    });
+    const sheds = await owner.client.sheds.list();
+    const shed = sheds.find((one) =>
+      one.pens.some((pen) => pen.id === world.pen.id)
+    );
+    const nursery = await owner.client.sheds.pens.create({
+      shedId: shed?.id ?? "",
+      name: `বাছুরের ঘর ${suffix}`,
+    });
+    const { id, client, manager } = await morningRound("2032-04-02");
+    await client.client.work.completeStep({
+      instanceId: id,
+      stepId: "calved",
+      animalTag: carrying.tagNumber,
+      evidence: [
+        "2032-04-02T00:10:00.000Z",
+        "unassisted",
+        "female",
+        "alive",
+        "",
+        "",
+      ],
+    });
+    const dam = await manager.client.animals.get({
+      tagNumber: carrying.tagNumber,
+    });
+    const calf = dam.calvings[0]?.calves[0]?.tagNumber ?? "";
+    // Walked to the nursery at two in the morning.
+    const walker = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2032-04-02T02:00:00.000Z"),
+    });
+    await walker.client.animals.move({ tagNumber: calf, toPenId: nursery.id });
+
+    const board = await manager.client.work.get({ id });
+    const entry = board.completions.find(
+      (row) => row.stepId === "calved" && row.status === "done"
+    );
+    // Put right to five: after the calf was walked, which would have her born after she left the Pen she was born in.
+    const later = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2032-04-02T08:00:00.000Z"),
+    });
+    await expect(
+      correctStepAsShown(later.client, {
+        completionId: entry?.id ?? "",
+        evidence: [
+          "2032-04-02T05:00:00.000Z",
+          "unassisted",
+          "female",
+          "alive",
+          "",
+          "",
+        ],
+        reason: "সময় ভুল লেখা হয়েছিল",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "calf_moved_before_that" } });
+  });
+
   it("starts her next Lactation and gives her calf the next dairy number", async () => {
     // Before six on 10 March — the farm's clock — the morning round finds her with a heifer calf.
     const { id, client, manager } = await morningRound("2032-03-10");

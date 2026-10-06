@@ -1708,6 +1708,14 @@ export const en = {
     "That sighting was corrected since this list was opened. Answer the one in its place",
   "refusal.feedOnARation":
     "A ration a pen is on still feeds it ({ration}). Change that ration first",
+  "refusal.arrivedBeforeTheTrip":
+    "She can't have come home before the outing that brought her went. Check the day",
+  "refusal.beforeSheWasHere":
+    "She wasn't here yet then, or was moved after that time. Check the day and time",
+  "refusal.bornInTheFuture": "A birth date can't be in the future",
+  "refusal.alreadyInThatPen": "She is already in that pen",
+  "refusal.calfMovedBeforeThat":
+    "The calf was moved before that time, so the calving can't be after it",
   "refusal.phoneRevoked":
     "This phone is no longer one of the farm's. Ask the manager for a code to enrol it again",
   "refusal.tooManyPins":

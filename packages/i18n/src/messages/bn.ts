@@ -1587,6 +1587,14 @@ export const bn: Record<MessageKey, string> = {
     "এই তালিকা খোলার পর ঘটনাটি সংশোধন হয়েছে। তার জায়গার ঘটনাটির উত্তর দিন",
   "refusal.feedOnARation":
     "একটি পেন যে রেশনে আছে তাতে এটি এখনো খাওয়ানো হয় ({ration})। আগে সেই রেশন বদলান",
+  "refusal.arrivedBeforeTheTrip":
+    "যে যাত্রায় এসেছে তা যাওয়ার আগে সে আসতে পারে না। দিনটি দেখে নিন",
+  "refusal.beforeSheWasHere":
+    "তখন সে এখানে ছিল না, বা তার পরে তাকে সরানো হয়েছে। দিন ও সময় দেখে নিন",
+  "refusal.bornInTheFuture": "জন্মের দিন ভবিষ্যতে হতে পারে না",
+  "refusal.alreadyInThatPen": "সে আগে থেকেই ওই পেনে আছে",
+  "refusal.calfMovedBeforeThat":
+    "বাছুরটিকে ওই সময়ের আগে সরানো হয়েছে, তাই বাচ্চা দেওয়া তার পরে হতে পারে না",
   "refusal.phoneRevoked":
     "এই ফোন আর খামারের নয়। আবার যুক্ত করতে ম্যানেজারের কাছে কোড চান",
   "refusal.tooManyPins":

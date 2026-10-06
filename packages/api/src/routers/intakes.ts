@@ -293,7 +293,12 @@ export const intakesRouter = {
           }
           // Asked before she is written down: what may refuse her should refuse her in the farm's own
           // words, not by a foreign key after the row exists and a tag number has been spent.
-          await assertTripIsOurs(tx, context.farm.id, input.buyingTripId);
+          await assertTripIsOurs(
+            tx,
+            context.farm.id,
+            input.buyingTripId,
+            arrivedAt
+          );
           await assertVentureIsBuying(tx, context.farm.id, input.ventureId);
           await assertSheBelongsWithTheFloat(tx, context.farm.id, {
             buyingTripId: input.buyingTripId,
@@ -314,6 +319,9 @@ export const intakesRouter = {
             },
             extra: { ownerVentureId: input.ventureId ?? null },
             now,
+            // On the books from when he came, not when he was typed: his arrival Move, his Quarantine and his first
+            // night's feed all count from it.
+            arrivedAt,
             reason: "intake",
           });
           ({ tagNumber } = made);

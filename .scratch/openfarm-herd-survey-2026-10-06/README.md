@@ -56,7 +56,7 @@ Three reviewers each took one part: animals coming in, animals leaving, and move
 | Group | Branch | Status |
 | ----- | ------ | ------ |
 | A     | fix/missing-found | Done (a Found marks the Missing only as it read it — written off or not — so a write-off in between refuses it; a written-off cow keeps her Expected Calving on the Missing, migration 20261006110034, and comes back with it and her calving work; leaving closes an open Missing; Found refuses an animal sold or dead (`she_is_gone`); her page's Found buttons say a refusal) |
-| B     |        |        |
+| B     | fix/herd-dates | Done (an Intake on the books, its arrival Move and its State from when she came; not before the outing went — `arrived_before_the_trip`; no Sale or death before her last Move — `before_she_was_here`, the Mortality Correction too; no birth still to come; a calving not re-dated past a Move her calf made — `calf_moved_before_that`; a held crossing late after a State change; no Move into the Pen she stands in — `already_in_that_pen`. Six test fixtures that killed or sold an animal before it came were made real) |
 | C     |        |        |
 | D     |        |        |
 | E     |        |        |

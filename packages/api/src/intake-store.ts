@@ -2,7 +2,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
-import { farmDayOf, handedOverAt } from "@OpenFarm/domain";
+import { farmDayOf, handedOverAt, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -177,17 +177,26 @@ export const purchasePriceInput = z.number().min(0).max(100_000_000);
 export const assertTripIsOurs = async (
   tx: Tx,
   farmId: string,
-  tripId: string | undefined
+  tripId: string | undefined,
+  /** When the animal came home on it: not before the farm's day the outing went. */
+  arrivedAt?: Date
 ) => {
   if (tripId === undefined) {
     return;
   }
   const ours = await tx.query.buyingTrip.findFirst({
     where: { id: tripId, farmId },
-    columns: { id: true },
+    columns: { id: true, wentOn: true },
   });
   if (!ours) {
     throw new ORPCError("NOT_FOUND", { message: "No such outing" });
+  }
+  if (arrivedAt && arrivedAt < startOfFarmDay(farmDayOf(ours.wentOn))) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "An animal cannot have come home before the outing that brought her went",
+      data: { refusal: "arrived_before_the_trip" },
+    });
   }
   await assertTripIsOpen(tx, farmId, tripId);
 };

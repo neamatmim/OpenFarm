@@ -219,7 +219,10 @@ describe("a death and a cull", () => {
 
   it("writes it down the way the farm writes everything down", async () => {
     const clock = new FakeClock("2026-12-03T02:00:00.000Z");
-    const { cow } = await aCowOfHerOwn(clock);
+    // On the farm since the day before: an animal cannot be found dead before she came.
+    const { cow } = await aCowOfHerOwn(
+      new FakeClock("2026-12-02T02:00:00.000Z")
+    );
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
     // Found dead this morning; written up at noon, and the record says which was which.

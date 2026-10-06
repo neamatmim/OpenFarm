@@ -377,7 +377,8 @@ export const insertAnimal = async (
     breedId: input.breedId ?? null,
     birthDate: input.birthDate ?? null,
     ...extra,
-    stateChangedAt: now,
+    // In her State since she came — her Quarantine counts from the lorry, not from when it was typed.
+    stateChangedAt: arrivedAt,
     createdAt: now,
     updatedAt: now,
   });
@@ -488,6 +489,18 @@ export const forgetExpectedCalving = async (
   );
 };
 
+/** A crossing made before her State last changed was made of an animal she no longer is: taken, it dated her Fattening
+ *  from before a pregnancy recorded since. Late, and a person decides. */
+const refuseACrossingSinceChanged = (
+  crossing: boolean,
+  stateChangedAt: Date | undefined,
+  movedAt: Date
+) => {
+  if (crossing && stateChangedAt && stateChangedAt > movedAt) {
+    throw lateEntry("Her State has changed since this was made");
+  }
+};
+
 /**
  * Walks an animal to a Pen and records the journey — the one place a Move is written, so a
  * Move the Playbook made and a Move somebody recorded by hand obey the same rules.
@@ -514,6 +527,8 @@ export const walkTo = async (
       expectedCalvingAt: Date | null;
       /** Whose animal she is, where she is not the Farm's own. */
       ownerVentureId?: string | null;
+      /** When she reached her State, for a crossing held on a phone. */
+      stateChangedAt?: Date;
     };
     toPenId: string;
     /** The Side she lands on; her own, unless she is crossing. */
@@ -552,6 +567,7 @@ export const walkTo = async (
   }
   const toSide = entry.toSide ?? beast.side;
   const crossing = toSide !== beast.side;
+  refuseACrossingSinceChanged(crossing, beast.stateChangedAt, entry.movedAt);
   const state = crossing
     ? stateAfterSideChange(beast.state, toSide)
     : beast.state;
@@ -773,6 +789,30 @@ export const calves = async (
 };
 
 /**
+ * That she was here at a moment she is said to have left: no earlier than her last Move — the one that brought her, or
+ * walked her where she stood. A Sale or a death dated before she came was taken: her Pen history ended before it began,
+ * the money was dated before what she was bought for, and her death fell in a month she was not on the farm.
+ */
+const assertWasHereAt = async (tx: Tx, animalId: string, at: Date) => {
+  const [last] = await tx.query.animalMove.findMany({
+    where: { animalId },
+    columns: { movedAt: true },
+    orderBy: { movedAt: "desc", id: "desc" },
+    limit: 1,
+  });
+  if (last && at < last.movedAt) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "She was not there yet, or was moved after that: an animal cannot leave before her last Move",
+      data: {
+        refusal: "before_she_was_here",
+        since: last.movedAt.toISOString(),
+      },
+    });
+  }
+};
+
+/**
  * Takes an Animal out of the herd: the exit State, when she went, and the work about her shut.
  *
  * One place for every way out, because they are the same act with different paperwork — a
@@ -803,6 +843,7 @@ export const leaves = async (
     trail: Trail;
   }
 ): Promise<{ workClosed: number }> => {
+  await assertWasHereAt(tx, her.id, at);
   const [left] = await tx
     .update(animal)
     .set({
@@ -984,6 +1025,26 @@ export const redateCalving = async (
   },
   now: Date
 ): Promise<void> => {
+  // Not past anything her calves have done since: born after the Move that walked her out of the Pen she was born in,
+  // her Pen history said she stood where she did not, and her feed was charged to the wrong Pen.
+  if (calving.calfIds.length > 0) {
+    const [walked] = await tx.query.animalMove.findMany({
+      where: {
+        animalId: { in: calving.calfIds },
+        fromPenId: { isNotNull: true },
+        movedAt: { lte: calving.to },
+      },
+      columns: { id: true },
+      limit: 1,
+    });
+    if (walked) {
+      throw new ORPCError("BAD_REQUEST", {
+        message:
+          "A calf was walked before that time: the calving cannot be put after it",
+        data: { refusal: "calf_moved_before_that" },
+      });
+    }
+  }
   const dam = await tx.query.animal.findFirst({
     where: { id: calving.damId, farmId },
     columns: { lactationNumber: true, state: true, stateChangedAt: true },
@@ -1031,6 +1092,9 @@ export const correctHowSheLeft = async (
 ): Promise<void> => {
   if (!(state || at)) {
     return;
+  }
+  if (at) {
+    await assertWasHereAt(tx, her.id, at);
   }
   const [corrected] = await tx
     .update(animal)

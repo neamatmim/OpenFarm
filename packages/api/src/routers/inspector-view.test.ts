@@ -88,6 +88,8 @@ const setup = async () => {
     estimatedAgeMonths: 18,
     targetWindowStart: "2043-07-01",
     targetWindowEnd: "2043-07-05",
+    // Came the day before he died: an animal cannot die before he came.
+    arrivedAt: new Date("2043-04-30T04:00:00.000Z"),
   });
   await manager.client.animals.recordMortality({
     photo: A_DEATH_PHOTO,
