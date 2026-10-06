@@ -1572,6 +1572,9 @@ export const bn: Record<MessageKey, string> = {
     "বাছুরকে পাল দেওয়া হয় না: প্রথম পাল দেওয়ার এখনো অনেক মাস বাকি",
   "refusal.pricedFromTheFuture":
     "তার দাম গোনা হয় এমন দিন থেকে যা এসে গেছে: বড়জোর আজ থেকে",
+  "refusal.workAboutAnotherAnimal": "এই কাজ অন্য একটি পশুর জন্য: সেটির নামেই লিখুন",
+  "refusal.skipReasonNotOffered":
+    "এটা এই ধাপ বাদ দেওয়ার কারণগুলোর একটি নয়: তালিকা থেকে একটি বেছে নিন",
   "refusal.calvedLately":
     "সে এত সম্প্রতি বাচ্চা দিয়েছে যে আবার দিতে পারে না: এটা একই বাচ্চা দেওয়া দুবার লেখা, নয়তো জমজের একটি — জমজ একটাই বাচ্চা দেওয়া, দুটো বাছুরসহ",
   "refusal.calvedBeforeHerService":

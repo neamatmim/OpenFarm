@@ -351,6 +351,21 @@ describe("working the pen board", () => {
     expect(skipped).toMatchObject({ status: "skipped", skipReason: "অসুস্থ" });
   });
 
+  it("takes a skip only for a reason the Step gives: there is nowhere to type another", async () => {
+    const clock = new FakeClock("2026-09-20T05:30:00.000Z");
+    const { instance } = await instanceForPen(clock);
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+    await staff.client.work.claim({ id: instance.id });
+    await expect(
+      staff.client.work.completeStep({
+        instanceId: instance.id,
+        stepId: "milk",
+        animalTag: world.cows[0]?.tagNumber ?? "",
+        skipReason: "যা খুশি",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "skip_reason_not_offered" } });
+  });
+
   it("keeps a number that was outside its range, with the fact that it was", async () => {
     const clock = new FakeClock("2026-09-20T05:30:00.000Z");
     const { instance } = await instanceForPen(clock);

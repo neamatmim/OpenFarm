@@ -115,6 +115,10 @@ export const stepCompletion = pgTable(
     skipReason: text("skip_reason"),
     /** What was recorded, keyed by evidence index: a tick, a number, a choice, a note. */
     evidence: jsonb("evidence").notNull(),
+    /** What the Step said beyond its Evidence — the Pen's feeding, a count of the store or the medicine, the renewed
+     *  Registration's days — as it was sent, so the same Step arriving again is told from a different one. Nothing for a
+     *  Step that says none, and for one recorded before it was kept. */
+    extras: jsonb("extras"),
     /** Set when a number fell outside its sane range and the person confirmed it anyway. */
     outOfRange: text("out_of_range"),
     /** Where the milk went, for a Step whose effect writes a Milk Record. Part of the act

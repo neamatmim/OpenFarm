@@ -210,22 +210,49 @@ const effectOfStep = (
     trail: audited(context).recordEvent,
   });
 
+/**
+ * What a Step says beyond its Evidence, as it is kept on the Completion: the feeding, the counts, the renewed
+ * Registration's days — never the certificate's photograph, which is kept apart. Nothing for a Step that says none.
+ */
+export const extrasOf = (
+  answer: Pick<StepAnswer, "feeding" | "counts" | "medicineCounts" | "renewal">
+): Record<string, unknown> | null => {
+  const extras = {
+    ...(answer.feeding?.length ? { feeding: answer.feeding } : {}),
+    ...(answer.counts?.length ? { counts: answer.counts } : {}),
+    ...(answer.medicineCounts?.length
+      ? { medicineCounts: answer.medicineCounts }
+      : {}),
+    ...(answer.renewal
+      ? {
+          renewal: {
+            expiresOn: answer.renewal.expiresOn,
+            issuedOn: answer.renewal.issuedOn ?? null,
+          },
+        }
+      : {}),
+  };
+  return Object.keys(extras).length > 0 ? extras : null;
+};
+
 /** Is this the same Step arriving again — a phone replaying its Outbox — or a different one? Compared on what it says,
  *  not on when it was sent: the same figures sent twice are one fact, and a different figure is a Correction whoever
- *  sent it. */
+ *  sent it — the Pen's feeding or a count as much as its Evidence. */
 const sameAnswer = (
   existing: {
     status: string;
     skipReason: string | null;
     evidence: unknown;
     destination: string | null;
+    extras: unknown;
   },
   input: StepCompletionInput
 ): boolean =>
   existing.status === (input.skipReason ? "skipped" : "done") &&
   existing.skipReason === (input.skipReason ?? null) &&
   existing.destination === (input.destination ?? null) &&
-  JSON.stringify(existing.evidence) === JSON.stringify(input.evidence);
+  JSON.stringify(existing.evidence) === JSON.stringify(input.evidence) &&
+  JSON.stringify(existing.extras ?? null) === JSON.stringify(extrasOf(input));
 
 /**
  * One Step done — once per animal where the Step repeats — with whatever its Effect writes into the farm's records.
@@ -279,13 +306,13 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
         tx,
         context.farm.id,
         step,
-        work.penId,
+        { penId: work.penId, animalId: work.animalId },
         input.animalTag
       );
       const skipping = Boolean(input.skipReason);
       // The photos follow as Step photos of their own; the Step says which slots they answer.
       const promised = new Set(input.photoSlots);
-      assertEvidenceComplete(step, input.evidence, skipping, (slot) =>
+      assertEvidenceComplete(step, input.evidence, input.skipReason, (slot) =>
         promised.has(slot)
       );
 
@@ -325,6 +352,7 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
           status: skipping ? "skipped" : "done",
           skipReason: input.skipReason ?? null,
           evidence: input.evidence,
+          extras: extrasOf(input),
           // Judged by the farm from the Step's own range, never taken from the phone's word for it.
           outOfRange: skipping
             ? null
@@ -402,7 +430,7 @@ export const replaceStep = async (
   const content = contentOf(work.version);
   const step = stepOf(content, completion.stepId);
   const skipping = Boolean(answer.skipReason);
-  assertEvidenceComplete(step, answer.evidence, skipping, hasPhotoAt);
+  assertEvidenceComplete(step, answer.evidence, answer.skipReason, hasPhotoAt);
   await tx
     .update(stepCompletion)
     .set({
@@ -413,6 +441,12 @@ export const replaceStep = async (
         ? null
         : outsideItsRange(step.evidence, answer.evidence),
       destination: answer.destination ?? null,
+      // What the Correction said beyond its Evidence, over what was kept: one that leaves the lines out keeps them.
+      ...(extrasOf(answer)
+        ? {
+            extras: sql`coalesce(${stepCompletion.extras}, '{}'::jsonb) || ${JSON.stringify(extrasOf(answer))}::jsonb`,
+          }
+        : {}),
     })
     .where(eq(stepCompletion.id, completion.id));
   return effectOfStep(tx, context, {

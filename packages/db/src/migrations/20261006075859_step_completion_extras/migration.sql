@@ -1,0 +1,1 @@
+ALTER TABLE "step_completion" ADD COLUMN "extras" jsonb;

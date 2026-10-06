@@ -411,3 +411,58 @@ describe("a death and a cull", () => {
     expect(her.state).toBe("heifer");
   });
 });
+
+describe("work about her raised by her death", () => {
+  it("takes a Step recorded per animal against her, and is not done without it", async () => {
+    // The Owner's own: a look at the carcass, written per animal.
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2026-12-10T02:00:00.000Z"),
+    });
+    const lookSop = await owner.client.sops.create({
+      content: {
+        ...handlingSop(),
+        name: { bn: `মৃতদেহ দেখা ${Date.now()}`, en: "Look at the carcass" },
+        steps: [
+          {
+            id: "looked",
+            text: { bn: "মৃতদেহ দেখা হয়েছে" },
+            repeatPerAnimal: true,
+            evidence: [{ type: "tick", required: true }],
+            skipReasons: [],
+          },
+        ],
+      },
+    });
+    const clock = new FakeClock("2026-12-10T03:00:00.000Z");
+    const { cow, pen } = await aCowOfHerOwn(clock);
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    await manager.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
+      tagNumber: cow.tagNumber,
+      kind: "died",
+      cause: "রাতে মরে গেছে",
+      disposal: "buried",
+    });
+    await manager.client.work.ensureDue();
+    const today = await manager.client.work.today({ penId: pen.id });
+    const look = today.find(
+      (row) =>
+        row.definitionId === lookSop.definitionId && row.animalId === cow.id
+    );
+    await manager.client.work.claim({ id: look?.id ?? "" });
+    const board = await manager.client.work.get({ id: look?.id ?? "" });
+    expect(board.animals.map((one) => one.tagNumber)).toEqual([cow.tagNumber]);
+    // Not done until the Step about her is.
+    await expect(
+      manager.client.work.complete({ id: look?.id ?? "" })
+    ).rejects.toThrow(/Not finished yet/u);
+    await manager.client.work.completeStep({
+      instanceId: look?.id ?? "",
+      stepId: "looked",
+      animalTag: cow.tagNumber,
+      evidence: [true],
+    });
+    await manager.client.work.complete({ id: look?.id ?? "" });
+  });
+});

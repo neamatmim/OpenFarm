@@ -812,7 +812,9 @@ export const animalsForInstance = async (
   });
   return rows.filter(
     (row) =>
-      isOnTheFarm(row) &&
+      // Work about her is about her even once she has left: what her death raised — the carcass looked at, her
+      // report — is work precisely because she has gone.
+      (isOnTheFarm(row) || row.id === animalId) &&
       // Work raised about one animal stays about her even if she has moved on since — a cow
       // dried off between the Move and the check is still the cow to look at.
       (Boolean(animalId) || appliesToAnimal(content.appliesTo, row))
