@@ -48,6 +48,11 @@ import {
 } from "@/lib/device";
 import { useFarmName } from "@/lib/farm-name";
 import { initialsOf } from "@/lib/initials";
+import {
+  countOfflineGuess,
+  forgetOfflineGuesses,
+  offlineLockedOut,
+} from "@/lib/offline-pin-guesses";
 import { phoneOutbox } from "@/lib/outbox-client";
 import { pinAnswerOf } from "@/lib/pin-answer";
 import { currentListener } from "@/lib/push";
@@ -267,11 +272,18 @@ const DevicePage = () => {
           refused(error);
           return;
         }
+        // No signal, so the farm counts nothing: the phone counts its own wrong PINs, as the farm would.
+        if (offlineLockedOut(entry.userId, Date.now())) {
+          toast.error(t("refusal.tooManyPins"));
+          return;
+        }
+        countOfflineGuess(entry.userId, Date.now());
         const correctHere = await verifyPin(typed, entry.salt, entry.hash);
         if (!correctHere) {
           toast.error(t("device.wrongPin"));
           return;
         }
+        forgetOfflineGuesses(entry.userId);
         // No signal: work is captured locally, and the PIN — held in memory, never stored — is proved to the farm
         // as soon as the phone finds signal.
         setSwitchToken(null);

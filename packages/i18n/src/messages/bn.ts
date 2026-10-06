@@ -935,6 +935,9 @@ export const bn: Record<MessageKey, string> = {
   "people.handOverHow":
     "তিনি {email} দিয়ে সাইন আপ করে কোডটি দেবেন। কোডটি একবারই কাজ করবে, শুধু ওই ইমেইলের জন্য। এটি শুধু এখনই দেখানো হচ্ছে।",
   "people.newCode": "নতুন কোড",
+  "people.withdrawInvite": "আমন্ত্রণ ফিরিয়ে নিন",
+  "people.inviteWithdrawn": "আমন্ত্রণ ফিরিয়ে নেওয়া হয়েছে",
+  "people.standing.codeLapsed": "কোডের মেয়াদ শেষ — নতুন কোড দিন",
   "people.kpi.toApprove": "অনুমোদনের অপেক্ষায়",
   "people.subtitle":
     "খামারে কে কাজ করেন, কে কী করতে পারেন, আর কে যোগ দেওয়ার অপেক্ষায়।",
@@ -1613,6 +1616,23 @@ export const bn: Record<MessageKey, string> = {
   "refusal.stateChangedSince": "এটি করার পর তার অবস্থা বদলেছে। তার পাতা দেখে আবার করুন",
   "refusal.noSuchPen": "ওই পেন আর খামারের তালিকায় নেই",
   "refusal.penNotYours": "ওই পেন আপনার নয়। ম্যানেজারকে জিজ্ঞেস করুন",
+  "refusal.keepAnotherOwner": "খামারে অন্তত আরেকজন মালিক রাখতে হবে।",
+  "refusal.notSignedInThere": "তিনি আর সেখানে সাইন ইন করা নেই।",
+  "refusal.visitUntilToday": "পরিদর্শন অন্তত আজ পর্যন্ত চলতে হবে।",
+  "refusal.visitIsForVets": "শুধু ভেটকেই পরিদর্শনে ডাকা যায়।",
+  "refusal.managerStaffOrVisiting":
+    "ম্যানেজার এটি শুধু খামারকর্মী বা পরিদর্শক ভেটের জন্য করতে পারেন।",
+  "refusal.managerStaffOnly": "ম্যানেজার এটি শুধু খামারকর্মীর জন্য করতে পারেন।",
+  "refusal.noInviteWaiting": "গ্রহণের অপেক্ষায় কোনো আমন্ত্রণ নেই।",
+  "refusal.notOnThisFarm": "এই মানুষটি এই খামারে নেই।",
+  "refusal.codeNotValid": "কোডটি ঠিক নয়। নতুন কোড চেয়ে নিন।",
+  "refusal.tooManyCodes":
+    "অনেকবার ভুল কোড দেওয়া হয়েছে। পনেরো মিনিট পরে আবার চেষ্টা করুন।",
+  "refusal.pinTooEasy":
+    "এই পিন সবাই আগে চেষ্টা করবে। একই সংখ্যা বারবার বা পরপর সংখ্যা ছাড়া চারটি সংখ্যা বেছে নিন।",
+  "refusal.pinFourDigits": "পিন চার সংখ্যার।",
+  "refusal.hasLeftTheFarm": "এই মানুষটি আর এই খামারে কাজ করেন না।",
+  "refusal.cannotDisableYourself": "নিজেকে বন্ধ করা যায় না।",
   "refusal.phoneRevoked":
     "এই ফোন আর খামারের নয়। আবার যুক্ত করতে ম্যানেজারের কাছে কোড চান",
   "refusal.tooManyPins":

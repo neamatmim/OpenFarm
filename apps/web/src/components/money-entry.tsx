@@ -1,6 +1,5 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
-import type { MessageKey } from "@OpenFarm/i18n";
 import {
   currencySign,
   formatDate,
@@ -26,6 +25,8 @@ import {
   useCorrecting,
 } from "@/components/correction-dialog";
 import { categoryName } from "@/components/money";
+import { SideField } from "@/components/money/side-field";
+import type { SideChoice } from "@/components/money/side-field";
 import { WageDrawsNote } from "@/components/money/wage-draws";
 import {
   ConfirmDialog,
@@ -48,48 +49,6 @@ import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
-
-const SIDE_WORD = {
-  "": "byHand.wholeFarm",
-  dairy: "animals.side.dairy",
-  fattening: "animals.side.fattening",
-} as const satisfies Record<string, MessageKey>;
-
-type SideChoice = keyof typeof SIDE_WORD;
-
-/** Which Side money entered by hand belongs to, or the whole farm. */
-const SideField = ({
-  id,
-  onChange,
-  value,
-}: {
-  id: string;
-  onChange: (side: SideChoice) => void;
-  value: SideChoice;
-}) => {
-  const { t } = useLanguage();
-  return (
-    <FormField id={id} label={t("byHand.side")}>
-      <NativeSelect
-        id={id}
-        onChange={(event) =>
-          onChange(
-            (Object.keys(SIDE_WORD) as SideChoice[]).find(
-              (side) => side === event.target.value
-            ) ?? ""
-          )
-        }
-        value={value}
-      >
-        {(Object.keys(SIDE_WORD) as SideChoice[]).map((side) => (
-          <option key={side} value={side}>
-            {t(SIDE_WORD[side])}
-          </option>
-        ))}
-      </NativeSelect>
-    </FormField>
-  );
-};
 
 /** Takes a receipt photo, shrunk on the phone before it goes. */
 const ReceiptField = ({

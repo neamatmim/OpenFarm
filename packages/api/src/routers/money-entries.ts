@@ -91,12 +91,14 @@ const askIfEnteredAlready = async (
     occurredAt: Date;
     sameAgain: boolean;
     now: Date;
+    /** What it is compared with: money entered by hand, or a person's Wage Draws. */
+    source?: "by_hand" | "wage_draw";
   }
 ): Promise<string | null> => {
   const sameDay = await tx.query.moneyEvent.findMany({
     where: {
       farmId: context.farm.id,
-      source: "by_hand",
+      source: entry.source ?? "by_hand",
       occurredAt: { eq: entry.occurredAt },
     },
     columns: { id: true, amountMoney: true, occurredAt: true },
@@ -574,6 +576,7 @@ export const moneyEntryProcedures = {
               note: input.note ?? null,
               wageMonth,
               side: input.side ?? null,
+              drawsTakenMoney: draws.takenMoney,
             }
           );
           await takeDraws(tx, context.farm.id, id, draws.parts, now);
@@ -604,19 +607,30 @@ export const moneyEntryProcedures = {
         note: noteInput.optional(),
         /** Whose hand the cash came out of, where it is not the writer's: the Owner writing up the Manager's draw. */
         heldBy: z.string().optional(),
+        /** Sent again knowing it looks like a draw already written: the same person, the same taka, the same day. */
+        sameAgain: z.boolean().optional(),
+        /** The Side the person works on, as their wage will say it: a draw is part of the wage. */
+        side: sideInput.optional(),
       })
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const drawnAt = enteredOn(input.drawnOn, now);
       let id = "";
+      let enteredKnowing: string | null = null;
       await audited(context).write(
         {
           entity: "wage_draw",
           entityId: () => id,
           action: "create",
-          after: async (tx) =>
-            (await tx.query.wageDraw.findFirst({ where: { id } })) ?? null,
+          after: async (tx) => {
+            const drawn =
+              (await tx.query.wageDraw.findFirst({ where: { id } })) ?? null;
+            // The trail keeps that it was written knowing, and against which.
+            return drawn && enteredKnowing
+              ? { ...drawn, enteredKnowing }
+              : drawn;
+          },
         },
         async (tx) => {
           const counterpartyId = await counterpartyNamed(
@@ -625,6 +639,18 @@ export const moneyEntryProcedures = {
             input.counterparty,
             now
           );
+          // A draw written up twice — the Manager at noon, the Owner in the evening — came off payday twice: asked
+          // about, as money entered by hand is, before it is kept.
+          enteredKnowing = await askIfEnteredAlready(tx, context, {
+            // What the Owner's notice of a draw written twice knowingly is about: the asking itself.
+            id: newId(now),
+            name: input.counterparty.name,
+            amountMoney: input.amountMoney,
+            occurredAt: drawnAt,
+            sameAgain: input.sameAgain ?? false,
+            now,
+            source: "wage_draw",
+          });
           ({ id } = await recordWageDraw(
             tx,
             bookingOf(
@@ -638,6 +664,7 @@ export const moneyEntryProcedures = {
               amountMoney: input.amountMoney,
               drawnAt,
               note: input.note ?? null,
+              side: input.side ?? null,
               paymentMethod: input.paymentMethod,
               heldBy: await handNamed(context, tx, input),
             }

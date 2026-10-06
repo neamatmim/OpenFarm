@@ -3,7 +3,11 @@ import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
 import { eq } from "@OpenFarm/db/operators";
 import { user } from "@OpenFarm/db/schema/auth";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
-import { ACTIVE_ROLE, ROLES } from "@OpenFarm/db/schema/farm";
+import {
+  ACTIVE_ROLE,
+  INVITE_LAPSE_DAYS,
+  ROLES,
+} from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ASSIGNMENT } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
 import { worksOnlyOnShedPhones } from "@OpenFarm/domain";
@@ -30,6 +34,7 @@ import {
   pensOf,
   planInvite,
   reissueInvite,
+  withdrawInvite,
   restoreMembership,
   rolesOf,
   setPens,
@@ -73,6 +78,9 @@ const readPhone = async (tx: Tx, userId: string) => {
 /** A number as the farm writes it down. Not validated into a shape: a farm writes numbers the
  *  way the people who use them do, and a gateway that cannot dial one will say so. */
 const phoneInput = z.string().trim().min(6).max(20);
+
+/** A day, for how long an invite's code stands. */
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const peopleRouter = {
   /**
@@ -181,6 +189,7 @@ export const peopleRouter = {
         acceptedAt: true,
         accessUntil: true,
         createdAt: true,
+        codeIssuedAt: true,
       } as const;
       const [people, pending, approved] = await Promise.all([
         context.db.query.user.findMany({
@@ -249,8 +258,16 @@ export const peopleRouter = {
           ...one,
           shedPhoneOnly: worksOnlyOnShedPhones(one.email),
         })),
-        /** Approved, but the person has not signed up yet — Roles are granted when they do. */
-        awaitingSignup: approved.filter((i) => !i.acceptedAt),
+        /** Approved, but the person has not signed up yet — Roles are granted when they do. Each says whether its code
+         *  has lapsed, a fortnight after it was given, and wants a new one. */
+        awaitingSignup: approved
+          .filter((i) => !i.acceptedAt)
+          .map((one) => ({
+            ...one,
+            lapsed:
+              (one.codeIssuedAt ?? one.createdAt).getTime() <=
+              context.clock.now().getTime() - INVITE_LAPSE_DAYS * DAY_MS,
+          })),
       };
     }),
 
@@ -414,9 +431,34 @@ export const peopleRouter = {
         (tx) =>
           reissueInvite(tx, context.farm.id, input.id, codeHash, {
             role: context.roleUsed,
+            now: context.clock.now(),
           })
       );
       return { id: input.id, code };
+    }),
+
+  /**
+   * Withdraws an invitation nobody has taken up: its code works for nobody, and its address opens no account. The
+   * Owner's, or the Manager's for a Staff or visiting Vet invite. The address may be invited again.
+   */
+  withdrawInvite: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      await audited(context).write(
+        {
+          entity: "invite",
+          entityId: input.id,
+          action: "update",
+          after: { status: "revoked" },
+        },
+        (tx) =>
+          withdrawInvite(tx, context.farm.id, input.id, {
+            role: context.roleUsed,
+          })
+      );
+      return { id: input.id, withdrawn: true };
     }),
 
   /**
@@ -431,13 +473,17 @@ export const peopleRouter = {
       const farmId = context.farm?.id;
       const email = context.session?.user.email.toLowerCase();
       if (!(farmId && email)) {
-        throw new ORPCError("NOT_FOUND", { message: "That code is not right" });
+        throw new ORPCError("NOT_FOUND", {
+          message: "That code is not right",
+          data: { refusal: "code_not_valid" },
+        });
       }
       const now = context.clock.now();
       const guesses = `invite:${context.actor.id}`;
       if (lockedOut(guesses, now, CODE_ATTEMPTS)) {
         throw new ORPCError("TOO_MANY_REQUESTS", {
           message: "Too many wrong codes — wait fifteen minutes",
+          data: { refusal: "too_many_codes" },
         });
       }
       const codeHash = await hashOfCodeAsTyped(input.code);
@@ -461,6 +507,7 @@ export const peopleRouter = {
             countFailure(guesses, now, CODE_ATTEMPTS);
             throw new ORPCError("NOT_FOUND", {
               message: "That code is not right",
+              data: { refusal: "code_not_valid" },
             });
           }
           roles = taken;
@@ -575,7 +622,12 @@ export const peopleRouter = {
           before: (tx) => whoTheyAre(tx, input.userId),
           after: (tx) => whoTheyAre(tx, input.userId),
         },
-        (tx) => endMembership(tx, input.userId, { by, now })
+        (tx) =>
+          endMembership(tx, input.userId, {
+            by,
+            now,
+            farmId: context.farm.id,
+          })
       );
       return { userId: input.userId, disabled: true };
     }),
@@ -690,13 +742,17 @@ export const peopleRouter = {
     .handler(async ({ context, input }) => {
       const farmId = context.farm?.id;
       if (!farmId) {
-        throw new ORPCError("NOT_FOUND", { message: "That code is not right" });
+        throw new ORPCError("NOT_FOUND", {
+          message: "That code is not right",
+          data: { refusal: "code_not_valid" },
+        });
       }
       const now = context.clock.now();
       const guesses = `password-code:${input.email}`;
       if (lockedOut(guesses, now, CODE_ATTEMPTS)) {
         throw new ORPCError("TOO_MANY_REQUESTS", {
           message: "Too many wrong codes — wait fifteen minutes",
+          data: { refusal: "too_many_codes" },
         });
       }
       // Refused before the code is looked at, so a code is never spent on a password that will not be kept.
@@ -705,7 +761,10 @@ export const peopleRouter = {
       const them = await personByEmail(context.db, input.email);
       if (!them) {
         countFailure(guesses, now, CODE_ATTEMPTS);
-        throw new ORPCError("NOT_FOUND", { message: "That code is not right" });
+        throw new ORPCError("NOT_FOUND", {
+          message: "That code is not right",
+          data: { refusal: "code_not_valid" },
+        });
       }
       // The trail names them, not whoever issued the code: it is their password and they chose it.
       await audited({ ...context, actor: them }, farmId).write(

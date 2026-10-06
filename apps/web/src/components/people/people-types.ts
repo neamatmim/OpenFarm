@@ -15,6 +15,8 @@ export type Standing =
       inviteId: string;
       /** A Vet called in for a visit, which a Manager may give a new code for as he may invite one. */
       visiting: boolean;
+      /** Its code given a fortnight ago and never used: it wants a new one, or withdrawing. */
+      lapsed: boolean;
     };
 
 export type StandingKind = Standing["kind"];
@@ -109,6 +111,8 @@ export const listedFrom = (list: PeopleList | undefined): Listed[] => {
       kind: "waitingToSignUp",
       inviteId: one.id,
       visiting: Boolean(one.accessUntil),
+      // An answer kept from before the farm said so has none: read as standing.
+      lapsed: one.lapsed ?? false,
     },
   }));
   return [...pending, ...waiting, ...people];

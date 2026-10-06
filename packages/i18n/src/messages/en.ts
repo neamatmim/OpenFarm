@@ -991,6 +991,9 @@ export const en = {
   "people.handOverHow":
     "They sign up with {email} and enter the code. It works once, and only for that email. It is shown only now.",
   "people.newCode": "New code",
+  "people.withdrawInvite": "Withdraw invite",
+  "people.inviteWithdrawn": "Invite withdrawn",
+  "people.standing.codeLapsed": "Code lapsed — give a new one",
   "people.kpi.toApprove": "Waiting for approval",
   "people.subtitle":
     "Who works on the farm, what each may do, and who is waiting to join.",
@@ -1735,6 +1738,23 @@ export const en = {
     "Her state has changed since this was made. Look at her page and do it again",
   "refusal.noSuchPen": "That pen is no longer on the farm's list",
   "refusal.penNotYours": "That pen isn't one of yours. Ask the manager",
+  "refusal.keepAnotherOwner": "The farm must keep at least one other owner.",
+  "refusal.notSignedInThere": "They are not signed in there any more.",
+  "refusal.visitUntilToday": "A visit has to last until today at least.",
+  "refusal.visitIsForVets": "Only a vet is invited for a visit.",
+  "refusal.managerStaffOrVisiting":
+    "A manager may only do this for barn staff or a visiting vet.",
+  "refusal.managerStaffOnly": "A manager may only do this for barn staff.",
+  "refusal.noInviteWaiting": "No invite is waiting to be taken up.",
+  "refusal.notOnThisFarm": "That person is not on this farm.",
+  "refusal.codeNotValid": "That code is not right. Ask for a new one.",
+  "refusal.tooManyCodes":
+    "Too many wrong codes. Wait fifteen minutes, then try again.",
+  "refusal.pinTooEasy":
+    "That PIN is one anybody would try first. Choose four digits that are not a run or one digit repeated.",
+  "refusal.pinFourDigits": "A PIN is four digits.",
+  "refusal.hasLeftTheFarm": "That person no longer works on this farm.",
+  "refusal.cannotDisableYourself": "You cannot disable yourself.",
   "refusal.phoneRevoked":
     "This phone is no longer one of the farm's. Ask the manager for a code to enrol it again",
   "refusal.tooManyPins":

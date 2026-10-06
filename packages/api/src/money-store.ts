@@ -401,6 +401,8 @@ export interface MoneyOfARecord {
   /** How it was paid. Left out of a Correction, it stays as it was booked; left out of a first
    *  booking, cash. */
   paymentMethod?: PaymentMethod;
+  /** The Side its money falls to, where the record says one: a Wage Draw, as its wage does. */
+  side?: (typeof SIDES)[number] | null;
   /** Whose hand the cash went into or came out of, where the record says; left out, the person writing it. */
   heldBy?: string | null;
   /** Whose money moved: left out or null, the Farm's own; a Venture's id, that Venture's. Set by the
@@ -420,6 +422,9 @@ export interface EnteredByHand {
   note: string | null;
   wageMonth: string | null;
   side: (typeof SIDES)[number] | null;
+  /** For a wage, the draws it took off itself: the wage is judged whole against the Approval Threshold, though only
+   *  what is paid now is booked. */
+  drawsTakenMoney?: number;
 }
 
 /** Which Farm Account a record's mobile money or bank money names, and its transaction ID — as the form said it, for the one
@@ -740,6 +745,7 @@ const moneyFieldsOf = ({
     : { purseVentureId: money.purseVentureId }),
   approval,
   ...(approval === "approved" ? {} : { approvedBy: null, approvedAt: null }),
+  ...(money.side === undefined ? {} : { side: money.side }),
   ...(byHand
     ? {
         categoryId: byHand.category.id,
@@ -874,6 +880,22 @@ const piecesOf = async (
 };
 
 /**
+ * What else is counted with this money against the Approval Threshold. A wage's other pieces are its own draws, whenever
+ * they were drawn: a 25,000 wage that took a 6,000 draw is 25,000 paid, and booked as 19,000 it passed under the line
+ * unasked. One wage a month, so it has no others. Anything else, the week's other pieces (`piecesOf`).
+ */
+const otherPiecesOf = async (
+  tx: Tx,
+  booking: Booking,
+  money: MoneyOfARecord,
+  byHand: EnteredByHand | undefined,
+  entry: Parameters<typeof piecesOf>[3]
+): Promise<number> =>
+  byHand?.wageMonth
+    ? roundMoney(byHand.drawsTakenMoney ?? 0)
+    : await piecesOf(tx, booking, money, entry);
+
+/**
  * Books a record's money as its Money Event, in the record's own transaction: the first time the record
  * is written, a Money Event; every time it is corrected, the same Money Event put right.
  *
@@ -952,7 +974,7 @@ export const bookMoney = async (
     thresholdMoney: farm.approvalThresholdMoney,
     enteredByTheOwner: booking.byTheOwner,
     before,
-    piecesMoney: await piecesOf(tx, booking, money, {
+    piecesMoney: await otherPiecesOf(tx, booking, money, byHand, {
       id,
       direction: placed.direction,
       purseVentureId: terms.purseVentureId,

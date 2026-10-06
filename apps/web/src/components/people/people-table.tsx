@@ -5,7 +5,7 @@ import { Badge } from "@OpenFarm/ui/components/badge";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
-import { KeyRound, UserRoundCheck } from "lucide-react";
+import { KeyRound, Undo2, UserRoundCheck } from "lucide-react";
 
 import {
   ActionsHeader,
@@ -27,6 +27,8 @@ import { STANDING_ORDER, STANDING_TONE, STANDING_WORD } from "./people-types";
 export interface PeopleActions {
   handleApprove: (inviteId: string) => void;
   handleNewCode: (inviteId: string) => void;
+  /** Withdraws an invitation nobody has taken up: its code works for nobody, and the address may be asked again. */
+  handleWithdraw: (inviteId: string) => void;
   busy: (what: string) => boolean;
   /** Approving an invitation is the Owner's alone; a Manager sees it waiting and no button. */
   mayApprove: boolean;
@@ -41,6 +43,14 @@ interface PersonRow extends Listed {
 /** What somebody's standing is called, in its colour: a visit says the last day it lasts. */
 export const StandingBadge = ({ standing }: { standing: Standing }) => {
   const { t, language } = useLanguage();
+  const lapsed = standing.kind === "waitingToSignUp" && standing.lapsed;
+  if (lapsed) {
+    return (
+      <StatusBadge tone="warning">
+        {t("people.standing.codeLapsed")}
+      </StatusBadge>
+    );
+  }
   const said = t(STANDING_WORD[standing.kind], {
     date:
       standing.kind === "visiting"
@@ -96,7 +106,7 @@ const ApproveButton = ({ row }: { row: PersonRow }) => {
 const PersonRowMenu = ({ row }: { row: PersonRow }) => {
   const t = useT();
   const { standing, actions } = row;
-  const { handleNewCode } = actions;
+  const { handleNewCode, handleWithdraw } = actions;
   const mayGiveACode =
     standing.kind === "waitingToSignUp" &&
     (actions.givesAnyCode || aManagerMayInvite(row.roles, standing.visiting));
@@ -110,6 +120,12 @@ const PersonRowMenu = ({ row }: { row: PersonRow }) => {
                 icon: KeyRound,
                 disabled: actions.busy(`code:${standing.inviteId}`),
                 handleSelect: () => handleNewCode(standing.inviteId),
+              },
+              {
+                label: t("people.withdrawInvite"),
+                icon: Undo2,
+                disabled: actions.busy(`withdraw:${standing.inviteId}`),
+                handleSelect: () => handleWithdraw(standing.inviteId),
               },
             ]
           : []

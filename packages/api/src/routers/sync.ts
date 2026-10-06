@@ -39,12 +39,15 @@ const recordersFor = (context: Recorder): RecorderFor => {
     recordedAt: Date;
     switchToken?: string;
   }) => {
+    // The stint the token was given for, on any of this farm's Shed Phones: the token is the proof, and a phone
+    // enrolled again is a new phone to the farm though the same handset, holding work its people did before
+    // (the Owner, 2026-10-07).
     const stint = entry.switchToken
       ? await context.db.query.deviceSwitch.findFirst({
           where: {
             tokenHash: await hashToken(entry.switchToken),
-            deviceId: context.device?.id ?? "",
             userId: entry.actorId ?? "",
+            device: { farmId: context.farm.id },
           },
           columns: { createdAt: true, expiresAt: true },
         })
@@ -77,6 +80,8 @@ const recordersFor = (context: Recorder): RecorderFor => {
         message: "Recorded under somebody who does not work on this phone",
       });
     }
+    // Read as they were until they left: work they did before it is theirs, whenever the phone brings it in (the Owner,
+    // 2026-10-07). Work dated after they left is refused, entry by entry, below.
     const theirs: Context = await buildContext({
       session: null,
       device: { ...context.device, activeUserId: actorId },
@@ -85,6 +90,7 @@ const recordersFor = (context: Recorder): RecorderFor => {
       db: context.db,
       push: context.push,
       sms: context.sms,
+      evenIfLeft: true,
     });
     // The Role they act under, chosen the way the batch's own gate chose the sender's: the checks that follow —
     // a Staff member's Pens, the Role the trail records — depend on it.
@@ -103,6 +109,12 @@ const recordersFor = (context: Recorder): RecorderFor => {
     const found = known.get(entry.actorId) ?? asSomebodyElse(entry.actorId);
     known.set(entry.actorId, found);
     const recorder = await found;
+    const left = recorder.person?.disabledAt;
+    if (left && entry.recordedAt >= left) {
+      throw new ORPCError("FORBIDDEN", {
+        message: "Recorded under somebody who no longer works on this farm",
+      });
+    }
     await provedFor(entry);
     return recorder;
   };

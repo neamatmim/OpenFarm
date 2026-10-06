@@ -197,12 +197,22 @@ export const extendSwitch = async (
 export const closeSwitches = async (
   db: Database,
   deviceId: string,
-  now: Date
+  now: Date,
+  /** Only this person's, where one person's lock is meant; everybody's when the phone itself is put away. */
+  only?: { userId: string }
 ): Promise<void> => {
   await db
     .update(deviceSwitch)
     .set({ expiresAt: now })
-    .where(eq(deviceSwitch.deviceId, deviceId));
+    .where(
+      only
+        ? and(
+            eq(deviceSwitch.deviceId, deviceId),
+            eq(deviceSwitch.userId, only.userId),
+            gt(deviceSwitch.expiresAt, now)
+          )
+        : eq(deviceSwitch.deviceId, deviceId)
+    );
 };
 
 /** The shed phone this request comes from, or a refusal: one taken off the farm's list — revoked, or forgotten — is told

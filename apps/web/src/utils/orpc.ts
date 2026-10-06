@@ -15,7 +15,8 @@ import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 
-import { getDeviceToken, getSwitchToken } from "@/lib/device";
+import { getDeviceToken, getSwitchToken, setDeviceToken } from "@/lib/device";
+import { pinAnswerOf } from "@/lib/pin-answer";
 import { refreshAfterASave } from "@/lib/refresh";
 import { toast } from "@/lib/toast";
 
@@ -107,6 +108,20 @@ const getORPCClient = createIsomorphicFn()
         }
         return fetch(url, { ...options, headers, credentials: "include" });
       },
+      interceptors: [
+        // A Shed Phone the Manager took off the farm's list is told so on whatever it asks: it forgets its token there
+        // and then, and the next screen asks for the Manager's code — not a pause as if somebody had signed out.
+        async ({ next }) => {
+          try {
+            return await next();
+          } catch (error) {
+            if (getDeviceToken() && pinAnswerOf(error) === "revoked") {
+              setDeviceToken(null);
+            }
+            throw error;
+          }
+        },
+      ],
     });
 
     return createORPCClient(link);

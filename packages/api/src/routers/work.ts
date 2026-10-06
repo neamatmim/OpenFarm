@@ -550,11 +550,18 @@ export const workRouter = {
             // may touch it, and they are not on this farm to pick it up.
             const target = await tx.query.user.findFirst({
               where: { id: input.userId },
-              columns: { id: true },
+              columns: { id: true, disabledAt: true },
               with: {
                 roles: { where: { farmId: context.farm.id, ...ACTIVE_ROLE } },
               },
             });
+            // Nobody who has left: work pinned to them is work nobody else may touch, and they are not here to do it.
+            if (target?.disabledAt) {
+              throw new ORPCError("BAD_REQUEST", {
+                message: "That person no longer works on this farm",
+                data: { refusal: "has_left_the_farm" },
+              });
+            }
             // Whoever it is pinned to must be able to work it — the Role the Instance is
             // for, or the Owner or Manager stepping in, exactly as assertMayWork allows.
             const held = target?.roles.map((role) => role.role) ?? [];

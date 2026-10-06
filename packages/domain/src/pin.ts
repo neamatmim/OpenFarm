@@ -18,6 +18,27 @@ const PIN_PATTERN = new RegExp(`^\\d{${PIN_LENGTH}}$`, "u");
 
 export const isPin = (pin: string): boolean => PIN_PATTERN.test(pin);
 
+/** How far one digit is from the next, going round from 9 to 0: 1 up, 9 down. */
+const stepOf = (from: number, to: number) => (to - from + 10) % 10;
+
+/**
+ * A PIN the whole shed would try first: one digit four times, or a run up or down — 1234, 7890, 9876. Ten thousand
+ * guesses is little enough; these are the first ten anybody tries. Refused when it is set (the farm's default,
+ * 2026-10-07).
+ */
+export const isTooEasyPin = (pin: string): boolean => {
+  const digits = [...pin].map(Number);
+  const steps = digits
+    .slice(1)
+    .map((digit, at) => stepOf(digits[at] ?? 0, digit));
+  const [first] = steps;
+  return (
+    first !== undefined &&
+    [0, 1, 9].includes(first) &&
+    steps.every((step) => step === first)
+  );
+};
+
 const toBase64 = (bytes: Uint8Array): string =>
   btoa(Array.from(bytes, (byte) => String.fromCodePoint(byte)).join(""));
 

@@ -368,6 +368,47 @@ const asTheyWork = (
       }
     : { ...access, rolesOffThePhone: [] };
 
+/** The Pens somebody kept up to the moment they left: those still assigned, and those leaving itself ended. */
+const pensKeptUntil = async (
+  db: Database,
+  farmId: string,
+  userId: string,
+  left: Date
+): Promise<string[]> => {
+  const rows = await db.query.penAssignment.findMany({
+    where: {
+      farmId,
+      userId,
+      OR: [{ endedAt: { isNull: true } }, { endedAt: { gte: left } }],
+    },
+    columns: { penId: true },
+  });
+  return [...new Set(rows.map((one) => one.penId))];
+};
+
+type PersonRow = NonNullable<Awaited<ReturnType<typeof resolvePerson>>>;
+
+/** Who is acting, as the context names them: nothing for nobody. */
+const personOf = (row: PersonRow | undefined) =>
+  row
+    ? {
+        id: row.id,
+        name: row.name,
+        phone: row.phone,
+        disabledAt: row.disabledAt,
+      }
+    : null;
+
+/** Whether a person the Owner has disabled is shut out of this context: always, but for their own earlier work. */
+const shutOut = (row: PersonRow, evenIfLeft: boolean) =>
+  row.disabledAt !== null && !evenIfLeft;
+
+/** The Pens they keep — or, left since, the Pens they kept until they went, which leaving ended. */
+const pensOf = (db: Database, farmId: string, row: PersonRow) =>
+  row.disabledAt
+    ? pensKeptUntil(db, farmId, row.id, row.disabledAt)
+    : Promise.resolve(row.penAssignments.map((p) => p.penId));
+
 /** The one place a Context is assembled — production and tests both go through it.
  *  Resolves the Farm, the person, their Roles and Pen Assignments from the database. */
 export const buildContext = async ({
@@ -381,6 +422,7 @@ export const buildContext = async ({
   pushKey = null,
   farmId = null,
   callerAddress = null,
+  evenIfLeft = false,
 }: {
   session: Session | null;
   device?: DeviceSession | null;
@@ -393,6 +435,9 @@ export const buildContext = async ({
   pushKey?: string | null;
   /** Which Farm this request acts on, for a caller that knows. Nothing for a request on a farm's own install. */
   farmId?: string | null;
+  /** Read a person the Owner has since disabled as they were until they left — their Roles, and the Pens they kept to
+   *  the end — for work they did before it reaching the farm after (sync). Never for a request of their own. */
+  evenIfLeft?: boolean;
 }): Promise<Context> => {
   const base = {
     auth: null,
@@ -435,17 +480,11 @@ export const buildContext = async ({
   }
 
   const row = await resolvePerson(db, actingUserId, farm.id);
-  const person = row
-    ? {
-        id: row.id,
-        name: row.name,
-        phone: row.phone,
-        disabledAt: row.disabledAt,
-      }
-    : null;
-  if (!row || row.disabledAt) {
+  const person = personOf(row);
+  if (!row || shutOut(row, evenIfLeft)) {
     return { ...empty, farm, person };
   }
+  const penIds = await pensOf(db, farm.id, row);
 
   const { roles, visiting, caseAnimalIds } = await accessOf(
     db,
@@ -461,7 +500,7 @@ export const buildContext = async ({
     farm,
     person,
     ...asTheyWork({ roles, visiting, caseAnimalIds }, { device, session }),
-    penIds: row.penAssignments.map((p) => p.penId),
+    penIds,
   };
 };
 

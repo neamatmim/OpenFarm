@@ -269,3 +269,60 @@ describe("who recorded work on a Shed Phone", () => {
     expect(sent.results[0]?.outcome).toBe("rejected");
   });
 });
+
+describe("work a Shed Phone held while things changed", () => {
+  it("is still hers when it reaches the farm on the phone enrolled again under a new name", async () => {
+    // Milked on the 1st of May on the old enrolment; the phone was enrolled afresh before it found signal.
+    const { instance, clock, staff } = await morning("2031-05-01");
+    const token = await provedPin(thePerson("staff").id, clock.now());
+    const { client: again } = await createTestClient(appRouter, {
+      as: "otherStaff",
+      clock,
+      onShedPhone: true,
+      phone: { id: `phone-again-${suffix}`, name: `নতুন নাম ${suffix}` },
+    });
+    const sent = await again.sync.batch({
+      key: `attr-${suffix}-${counted()}`,
+      entries: [milked(instance.id, thePerson("staff").id, clock.now(), token)],
+    });
+    expect(sent.results[0]?.outcome).toBe("applied");
+    const board = await staff.work.get({ id: instance.id });
+    expect(board.completions[0]).toMatchObject({
+      recordedBy: thePerson("staff").id,
+    });
+  });
+
+  it("is still hers when it reaches the farm after she has left, done before she did", async () => {
+    // Milked at dawn on the 2nd of June with no signal; the Owner disabled her at noon; the phone found signal after.
+    const { instance, clock, other } = await morning("2031-06-02");
+    const milkedAt = clock.now();
+    const token = await provedPin(thePerson("staff").id, milkedAt);
+    const noon = new FakeClock("2031-06-02T06:00:00.000Z");
+    const { client: owner } = await createTestClient(appRouter, {
+      as: "owner",
+      clock: noon,
+    });
+    await owner.people.disable({ userId: thePerson("staff").id });
+    try {
+      const sent = await other.sync.batch({
+        key: `attr-${suffix}-${counted()}`,
+        entries: [
+          milked(instance.id, thePerson("staff").id, milkedAt, token),
+          // And nothing she is said to have done after she left.
+          milked(
+            instance.id,
+            thePerson("staff").id,
+            new Date("2031-06-02T07:00:00.000Z"),
+            token
+          ),
+        ],
+      });
+      expect(sent.results.map((one) => one.outcome)).toEqual([
+        "applied",
+        "rejected",
+      ]);
+    } finally {
+      await owner.people.enable({ userId: thePerson("staff").id });
+    }
+  });
+});

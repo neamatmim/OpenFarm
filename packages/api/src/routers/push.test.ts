@@ -808,3 +808,36 @@ describe("whose a browser's pushes are", () => {
     ).rejects.toMatchObject({ code: "CONFLICT" });
   });
 });
+
+describe("a session the Owner signs out from the People page", () => {
+  it("takes that phone's pushes with it: a phone left in a yard stops showing the farm's business", async () => {
+    const post = listeningPost();
+    const clock = new FakeClock("2027-04-08T05:00:00.000Z");
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      push: post.transport,
+    });
+    const yard = endpoint();
+    await manager.client.push.subscribe({
+      endpoint: yard,
+      p256dh: "key",
+      auth: "secret",
+    });
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+      push: post.transport,
+    });
+    const managerId = thePerson("manager").id;
+    await owner.client.people.signOut({
+      userId: managerId,
+      sessionId: `session-${managerId}`,
+    });
+    const row = await scratchDb().query.pushSubscription.findFirst({
+      where: { endpoint: yard },
+      columns: { revokedAt: true },
+    });
+    expect(row?.revokedAt).not.toBeNull();
+  });
+});

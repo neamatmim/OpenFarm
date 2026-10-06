@@ -113,7 +113,11 @@ describe("the farm keeps an Owner", () => {
 
     await expect(
       tried((tx) =>
-        endMembership(tx, thePerson("owner").id, { by: owner(), now })
+        endMembership(tx, thePerson("owner").id, {
+          by: owner(),
+          now,
+          farmId: theFarm().id,
+        })
       )
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });

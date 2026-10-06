@@ -84,6 +84,10 @@ export const pushRouter = {
               userId: context.actor.id,
               // A Shed Phone's voice goes when the phone does (ADR 0003).
               deviceId: context.device?.id ?? null,
+              // A person's own browser's voice goes with the sign-in it was agreed under.
+              sessionId: context.device
+                ? null
+                : (context.session?.session.id ?? null),
               ...input,
             },
             now
