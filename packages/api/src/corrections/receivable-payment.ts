@@ -1,5 +1,9 @@
-import { eq } from "@OpenFarm/db/operators";
-import { receivablePayment } from "@OpenFarm/db/schema/money";
+import { eq, inArray } from "@OpenFarm/db/operators";
+import {
+  moneyEvent,
+  moneyReceipt,
+  receivablePayment,
+} from "@OpenFarm/db/schema/money";
 import { startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
 
@@ -23,6 +27,7 @@ import {
 import {
   CATEGORY_OF_RECEIVABLE,
   assertPaidNoMoreThanOwed,
+  lockTheBuyer,
   owingOf,
   readReceivablePayment,
 } from "../receivable-store";
@@ -33,7 +38,8 @@ const loadPayment = (tx: Tx, farmId: string, id: string) =>
   tx.query.receivablePayment.findFirst({ where: { id, farmId } });
 
 /** What putting a Receivable Payment right may change: how much, the day it came, how it was paid, and the note. Who paid
- *  and what for are not changed: a payment written against the wrong buyer is taken back and written again. */
+ *  and what for are not changed: a payment written twice, against the wrong buyer or for the wrong kind is voided and
+ *  written again. */
 export const receivablePaymentCorrectionInput = correctionInput({
   amountMoney: changeOf(amountInput, z.number()),
   paidOn: changeOf(farmDay, z.string()),
@@ -43,7 +49,29 @@ export const receivablePaymentCorrectionInput = correctionInput({
   note: changeOf(noteInput.nullable(), z.string().nullable()),
   /** Whose hand took the cash, put right on the rule a payment is written on (`assertTheHand`). */
   heldBy: changeOf(z.string(), z.string().nullable()),
+  /** Written twice, against the wrong buyer or for the wrong kind: taken off the books with its Money Event, by whoever may
+   *  correct it in their window — the Owner at any time — as a Sale is (the Owner, 2026-10-07). */
+  voided: changeOf(z.literal(true), z.boolean()),
 });
+
+/**
+ * A payment voided: it and its Money Event are gone, and what he owes is read again without it — his oldest debts first,
+ * as ever, so a write-off it had cleared stands again.
+ */
+const voidThePayment = async (tx: Tx, row: { id: string }) => {
+  const events = await tx.query.moneyEvent.findMany({
+    where: { source: "receivable_payment", sourceId: row.id },
+    columns: { id: true },
+  });
+  const ids = events.map((one) => one.id);
+  if (ids.length > 0) {
+    await tx
+      .delete(moneyReceipt)
+      .where(inArray(moneyReceipt.moneyEventId, ids));
+    await tx.delete(moneyEvent).where(inArray(moneyEvent.id, ids));
+  }
+  await tx.delete(receivablePayment).where(eq(receivablePayment.id, row.id));
+};
 
 /** A Receivable Payment put right — and with it its Money Event, rather than a second one. */
 export const receivablePaymentCorrection: CorrectionKind<
@@ -73,12 +101,19 @@ export const receivablePaymentCorrection: CorrectionKind<
     ),
     note: row.note,
     heldBy: await handOfTheRecord(tx, row.farmId, "receivable_payment", row.id),
+    voided: false,
   }),
   trail: (tx, row) => readReceivablePayment(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
+    if (to.voided) {
+      await voidThePayment(tx, row);
+      return;
+    }
     const amountMoney = to.amountMoney ?? row.amountMoney;
     const note = to.note === undefined ? row.note : to.note;
     if (amountMoney > row.amountMoney) {
+      // Under his lock, as a payment is taken: a payment at the same moment is counted before this one grows.
+      await lockTheBuyer(tx, row.counterpartyId);
       // What he owes now already has this payment taken off it; only what it grows by is asked about.
       const owingMoney = await owingOf(
         tx,

@@ -1577,6 +1577,10 @@ export const bn: Record<MessageKey, string> = {
     "এঁড়ে বাছুর বকনা হিসেবে থাকে না — তার মোটাতাজাকরণ পেন বাছুন",
   "refusal.owedBelowWrittenOff":
     "এর ওপর {currencySign}{writtenOffMoney} বাকি বাদ দেওয়া আছে: আগে বাদ দেওয়াটা কমান, তারপর এটা ঠিক করুন",
+  "refusal.owedBelowPaid":
+    "তার দেওয়া টাকায় এর {currencySign}{paidMoney} শোধ হয়ে গেছে: এর বদলে সেই টাকা দেওয়ার হিসাবটা ঠিক করুন",
+  "refusal.paidOnByThisBuyer":
+    "এর ওপর তিনি টাকা দিয়েছেন, বা কিছু বাদ দেওয়া হয়েছে: অন্য ক্রেতার নাম দেওয়ার আগে সেগুলো ঠিক করুন",
   "refusal.serviceOfACalf":
     "বাছুরকে পাল দেওয়া হয় না: প্রথম পাল দেওয়ার এখনো অনেক মাস বাকি",
   "refusal.pricedFromTheFuture":
@@ -4227,6 +4231,8 @@ export const bn: Record<MessageKey, string> = {
   "correct.soldAt": "কখন চলে গেছে",
   "correct.void": "ভুল পশুর নামে লেখা হয়েছে",
   "correct.voidSale": "এই বিক্রি বাতিল করুন: সে আগের মতো ফিরে আসবে",
+  "correct.voidPaymentWhy": "দুবার লেখা, ভুল ক্রেতার নামে, বা ভুল খাতে",
+  "correct.voidPayment": "এই টাকা দেওয়া বাতিল করুন: তাকে বাদ দিয়ে বাকি আবার হিসাব হবে",
   "correct.voidDeath": "এই মৃত্যু বাতিল করুন: সে আগের মতো ফিরে আসবে",
   "correct.keep": "রেখে দিন",
   "correct.arrival": "এই আগমন সংশোধন",

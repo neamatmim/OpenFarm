@@ -1697,6 +1697,10 @@ export const en = {
     "A bull calf does not stay as a heifer — choose his fattening pen",
   "refusal.owedBelowWrittenOff":
     "{currencySign}{writtenOffMoney} is written off on it: lower the write-off first, then put this right",
+  "refusal.owedBelowPaid":
+    "His payments have already cleared {currencySign}{paidMoney} of it: put the payment right instead",
+  "refusal.paidOnByThisBuyer":
+    "He has paid on it, or some was written off: put those right before naming another buyer",
   "refusal.serviceOfACalf":
     "A calf is not served: she is months from her first service",
   "refusal.pricedFromTheFuture":
@@ -4515,6 +4519,10 @@ export const en = {
   "correct.soldAt": "When she left",
   "correct.void": "Written against the wrong animal",
   "correct.voidSale": "Void this sale: she comes back as she was",
+  "correct.voidPaymentWhy":
+    "Written twice, against the wrong buyer, or for the wrong kind",
+  "correct.voidPayment":
+    "Void this payment: what he owes is read again without it",
   "correct.voidDeath": "Void this death: she comes back as she was",
   "correct.keep": "Keep it",
   "correct.arrival": "Correct this arrival",

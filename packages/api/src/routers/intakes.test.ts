@@ -294,4 +294,33 @@ describe("intake", () => {
       herd.find((one) => one.tagNumber === taken.tagNumber)?.ageAtIntake
     ).toEqual(told);
   });
+
+  it("puts right what she weighed off the lorry and how old she was judged", async () => {
+    // 280 typed as 180: every gain of hers would be measured from a hundred kilos she never lacked.
+    const clock = new FakeClock("2027-01-20T04:00:00.000Z");
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    const vet = await createTestClient(appRouter, { as: "vet", clock });
+    const taken = await manager.client.intakes.record({
+      penId,
+      sex: "male",
+      seller: { name: `বাজার ${Date.now()}` },
+      purchasePriceMoney: 72_000,
+      weightKg: 180,
+      estimatedAgeMonths: 19,
+    });
+    await manager.client.intakes.correct({
+      id: taken.intakeId,
+      reason: "ওজন ২৮০, বয়স ২৪ মাস",
+      changes: {
+        weightKg: { from: 180, to: 280 },
+        estimatedAgeMonths: { from: 19, to: 24 },
+      },
+    });
+    const her = await manager.client.animals.get({
+      tagNumber: taken.tagNumber,
+    });
+    expect(her.intake).toMatchObject({ weightKg: 280 });
+    const his = await vet.client.animals.get({ tagNumber: taken.tagNumber });
+    expect(his.ageAtIntake).toMatchObject({ estimatedAgeMonths: 24 });
+  });
 });

@@ -18,7 +18,7 @@ import { ANIMAL_STATES, animal, animalMove } from "./herd";
 import { stepCompletion } from "./instance";
 import { numericMoney } from "./numeric-columns";
 import { buyingTrip, sellingTrip } from "./trip";
-import { venture } from "./venture";
+import { VENTURE_STATES, venture } from "./venture";
 
 /**
  * A person or business the Farm buys from, sells to, or pays.
@@ -285,6 +285,9 @@ export const sale = pgTable(
     stateChangedBefore: timestamp("state_changed_before", {
       withTimezone: true,
     }),
+    /** Where her Venture stood before this Sale — its first — moved it to Selling: where it goes back to if the Owner
+     *  voids this Sale and no other of its animals is sold. Null for every other Sale. */
+    ventureStateBefore: text("venture_state_before", { enum: VENTURE_STATES }),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role"),
     createdAt: timestamp("created_at", { withTimezone: true })

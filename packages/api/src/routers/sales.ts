@@ -1,4 +1,5 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
+import { eq } from "@OpenFarm/db/operators";
 import { sale } from "@OpenFarm/db/schema/fattening";
 import {
   receivableAtTheGate,
@@ -286,6 +287,11 @@ export const salesRouter = {
               audited(context).recordEvent
             );
             if (started) {
+              // Kept on the Sale that moved it, so a void of it puts the Venture back where it stood.
+              await tx
+                .update(sale)
+                .set({ ventureStateBefore: started })
+                .where(eq(sale.id, id));
               // Selling, a Venture paid by the month takes no more Monthly Sums: a note of one sent is waiting for
               // nothing the farm can still record (ADR 0018), as when any Venture stops taking capital.
               await closePayInNotes(

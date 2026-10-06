@@ -579,3 +579,59 @@ describe("the lorry that took them to the livestock market", () => {
     );
   });
 });
+
+describe("a Venture's only Sale voided", () => {
+  it("puts the Venture back where it stood, and it takes animals again", async () => {
+    // Buying, a bull of the Farm's written up against a tag of the Venture's: the Owner voids it.
+    const owner = await as("owner", "2047-06-03T04:00:00.000Z");
+    const back = await funded(owner, 3);
+    await owner.client.ventures.startBuying({ id: back });
+    const atTheGate = await as("owner", "2047-06-03T05:00:00.000Z");
+    const her = await atTheGate.client.intakes.record({
+      penId,
+      sex: "male",
+      seller: { name: `ব্যাপারী ${suffix}` },
+      purchasePriceMoney: 60_000,
+      weightKg: 200,
+      estimatedAgeMonths: 20,
+      ventureId: back,
+      ...PAID_FROM_THE_ACCOUNT,
+      arrivedAt: new Date("2047-06-03T05:00:00.000Z"),
+      targetWindowStart: plan.targetWindowStart,
+      targetWindowEnd: plan.targetWindowEnd,
+    });
+    const manager = await as("manager", "2047-06-03T06:00:00.000Z");
+    const sold = await manager.client.sales.record({
+      tagNumber: her.tagNumber,
+      buyer: { name: `ক্রেতা চার ${suffix}` },
+      priceMoney: 90_000,
+      weightKg: 300,
+      destination: `ঢাকা ${suffix}`,
+      vehicle: `ঢাকা মেট্রো ${suffix}`,
+      driver: `চালক ${suffix}`,
+      paymentMethod: "bank",
+    });
+    expect(await theVenture(owner, back)).toMatchObject({ state: "selling" });
+    const voiding = await as("owner", "2047-06-03T07:00:00.000Z");
+    await voiding.client.sales.correct({
+      id: sold.id,
+      reason: "ভুল ট্যাগে লেখা হয়েছিল",
+      changes: { voided: { from: false, to: true } },
+    });
+    expect(await theVenture(owner, back)).toMatchObject({ state: "buying" });
+    // Still buying, so it takes the next bull off the lorry, as a Selling Venture would not.
+    await voiding.client.intakes.record({
+      penId,
+      sex: "male",
+      seller: { name: `ব্যাপারী ${suffix}` },
+      purchasePriceMoney: 60_000,
+      weightKg: 200,
+      estimatedAgeMonths: 20,
+      ventureId: back,
+      ...PAID_FROM_THE_ACCOUNT,
+      arrivedAt: new Date("2047-06-03T06:30:00.000Z"),
+      targetWindowStart: plan.targetWindowStart,
+      targetWindowEnd: plan.targetWindowEnd,
+    });
+  });
+});

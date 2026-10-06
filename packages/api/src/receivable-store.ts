@@ -1,4 +1,5 @@
 import type { Database } from "@OpenFarm/db";
+import { sql } from "@OpenFarm/db/operators";
 import type { CategoryKey } from "@OpenFarm/db/schema/money";
 import type {
   ReceivableAtTheGate,
@@ -736,6 +737,81 @@ export const owingOnItem = async (
     "counterpartyId" in row ? row.counterpartyId : row.buyerId;
   const owing = await owingNowOf(db, farmId, [id]);
   return { counterpartyId, owingMoney: owing.get(id) ?? 0 };
+};
+
+/** Held while a buyer's Receivable is read and then added to — a payment, a write-off, or either put right — so two phones
+ *  at once each see the other's. */
+export const lockTheBuyer = async (tx: Tx, counterpartyId: string) => {
+  await tx.execute(
+    sql`select 1 from counterparty where id = ${counterpartyId} for update`
+  );
+};
+
+/** What a buyer's payments have cleared of one Sale or Dispatch of his, oldest first: nothing where none has. */
+export const paidOnItem = async (
+  db: Db,
+  farmId: string,
+  counterpartyId: string,
+  id: string
+): Promise<number> => {
+  const [his] = await receivableOfBuyers(db, farmId, {
+    counterpartyId,
+    settledToo: true,
+  });
+  for (const kind of his?.kinds ?? []) {
+    const item = kind.items.find((one) => one.id === id);
+    if (item) {
+      return item.paidMoney;
+    }
+  }
+  return 0;
+};
+
+/**
+ * A Sale or Dispatch put right to leave its buyer owing less than his payments have already cleared of it is refused:
+ * the same taka would be counted twice — once at the gate, once as his payment — and the rest shown as paid ahead. It is
+ * the payment that is wrong, and it is the payment that is put right (the Owner, 2026-10-07).
+ */
+export const assertOwedCoversPaid = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  item: { id: string; counterpartyId: string },
+  receivableMoney: number
+) => {
+  const paidMoney = await paidOnItem(tx, farmId, item.counterpartyId, item.id);
+  if (receivableMoney < paidMoney) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "His payments have already cleared more of it than would be owed: put the payment right instead",
+      data: { refusal: "owed_below_paid", paidMoney },
+    });
+  }
+};
+
+/**
+ * A Sale or Dispatch moved to another buyer once anything was paid or written off on it is refused: his payments and
+ * the write-off are his, and moving the debt alone would leave the new buyer chased for money already paid and the old
+ * one shown paid ahead (the Owner, 2026-10-07). The payment or the write-off is put right first.
+ */
+export const assertNothingStandsAgainst = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  item: { id: string; counterpartyId: string }
+) => {
+  const writtenOff = await tx.query.receivableWriteOff.findFirst({
+    where: { farmId, sourceId: item.id },
+    columns: { id: true },
+  });
+  const paidMoney = writtenOff
+    ? 0
+    : await paidOnItem(tx, farmId, item.counterpartyId, item.id);
+  if (writtenOff || paidMoney > 0) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "His payments or a write-off stand against it: put those right before naming another buyer",
+      data: { refusal: "paid_on_by_this_buyer" },
+    });
+  }
 };
 
 /**

@@ -226,6 +226,8 @@ const WORDED_REFUSALS = {
   priced_from_the_future: "refusal.pricedFromTheFuture",
   service_of_a_calf: "refusal.serviceOfACalf",
   calved_before_her_service: "refusal.calvedBeforeHerService",
+  owed_below_paid: "refusal.owedBelowPaid",
+  paid_on_by_this_buyer: "refusal.paidOnByThisBuyer",
   owed_below_written_off: "refusal.owedBelowWrittenOff",
   nothing_owed_on_it: "refusal.nothingOwedOnIt",
   venture_owns_her: "refusal.ventureOwnsHer",

@@ -138,7 +138,7 @@ type ChangeSet = Record<string, Change<Comparable, unknown> | undefined>;
 type ShownValues<C extends ChangeSet> = {
   [K in keyof C]-?: NonNullable<C[K]>["from"];
 };
-type NewValues<C extends ChangeSet> = {
+export type NewValues<C extends ChangeSet> = {
   [K in keyof C]?: NonNullable<C[K]>["to"];
 };
 

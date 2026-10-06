@@ -1,0 +1,2 @@
+ALTER TABLE "sale" ADD COLUMN "venture_state_before" text;--> statement-breakpoint
+ALTER TABLE "sale" ADD CONSTRAINT "sale_venture_state_before_known" CHECK ("venture_state_before" IN ('open', 'buying', 'fattening', 'selling', 'settled', 'cancelled'));
