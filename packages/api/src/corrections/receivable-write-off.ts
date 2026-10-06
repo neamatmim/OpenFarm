@@ -6,6 +6,7 @@ import type { Tx } from "../audit";
 import { noteInput } from "../money-inputs";
 import {
   assertWrittenOffNoMoreThanOwed,
+  lockTheBuyer,
   owingOnItem,
   readWriteOff,
 } from "../receivable-store";
@@ -37,6 +38,8 @@ export const writeOffCorrection: CorrectionKind<
   trail: (tx, row) => readWriteOff(tx, row.id),
   apply: async (tx, row, to) => {
     if (to.amountMoney !== undefined && to.amountMoney > row.amountMoney) {
+      // Under his lock, as a write-off is written: a payment at the same moment is counted before this one grows.
+      await lockTheBuyer(tx, row.counterpartyId);
       // What is owing now already has this write-off taken off it; only what it grows by is asked about.
       const standing = await owingOnItem(
         tx,

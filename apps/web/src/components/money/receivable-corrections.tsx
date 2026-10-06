@@ -2,15 +2,17 @@ import { useMutation } from "@tanstack/react-query";
 
 import {
   CorrectionAnswer,
+  CorrectionChoice,
   CorrectionDialog,
   useCorrecting,
 } from "@/components/correction-dialog";
 import { useLanguage } from "@/i18n/language-provider";
-import { amount, day, figure, note, words } from "@/lib/correcting";
+import { amount, day, figure, note, voiding, words } from "@/lib/correcting";
 import { orpc } from "@/utils/orpc";
 
 /** A Receivable Payment written up wrong — how much, the day it came, or the note — put right with the reason. Who paid and
- *  what for are not changed here: a payment against the wrong buyer is taken back and written again. */
+ *  what for are not changed here: a payment written twice, against the wrong buyer or for the wrong kind is voided, and
+ *  written again. */
 export const ReceivablePaymentCorrection = ({
   payment,
 }: {
@@ -26,6 +28,7 @@ export const ReceivablePaymentCorrection = ({
     amountMoney: amount(payment.amountMoney),
     paidOn: day(payment.paidOn),
     note: note(payment.note),
+    voided: voiding(),
   });
   const correct = useMutation(
     orpc.receivables.correctPayment.mutationOptions({})
@@ -62,6 +65,13 @@ export const ReceivablePaymentCorrection = ({
         label={t("receivable.note")}
         onChange={(value) => correcting.set("note", value)}
         value={correcting.typed.note ?? ""}
+      />
+      <CorrectionChoice
+        label={t("correct.voidPaymentWhy")}
+        onChange={(value) => correcting.set("voided", value)}
+        options={[{ value: "void", label: t("correct.voidPayment") }]}
+        unchosen={t("correct.keep")}
+        value={correcting.typed.voided ?? ""}
       />
     </CorrectionDialog>
   );

@@ -1,4 +1,5 @@
-import { startOfFarmDay } from "@OpenFarm/domain";
+import type { PaymentMethod } from "@OpenFarm/domain";
+import { PAYMENT_METHODS, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
@@ -16,14 +17,20 @@ import { WhatSheCost } from "@/components/costs";
 import { Section } from "@/components/page";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
+import type { AccountTyped } from "@/components/payment-method";
+import {
+  FarmAccountField,
+  PAYMENT_METHOD_WORD,
+} from "@/components/payment-method";
 import { ReceivableOwed } from "@/components/receivable-fields";
 import { DairyReturnsPanel } from "@/components/returns/dairy-returns";
 import { SaleCorrection } from "@/components/sale-correction";
 import { useSalePapers } from "@/components/sale/sale-papers";
 import { useLanguage } from "@/i18n/language-provider";
-import type { Answer } from "@/lib/correcting";
+import type { Answer, Answers } from "@/lib/correcting";
 import {
   amount,
+  choice,
   counterparty,
   figure,
   isWholeWindow,
@@ -55,63 +62,73 @@ const whoseSheIs = (
   couldBeSent: () => true,
 });
 
-/**
- * The Manager puts right what a bought-in animal cost, who sold her, whose she is, or — for the Farm's own — the window
- * she is sold in. A Venture's animal made the Farm's is asked that window afresh, because her Venture's was never the
- * Farm's choice.
- */
-const IntakeCorrection = ({
-  intake,
-  owner,
+/** The outing she came home on, as a Correction answers it: one of the farm's, or none — the farm gate — which is an
+ *  answer of its own, as the Farm is for whose she is. */
+const NO_OUTING = "no-outing";
+
+const outingOf = (
+  held: string | null
+): Answer<string | null, string | null> => ({
+  holds: held,
+  shows: held ?? NO_OUTING,
+  sends: (typed) => (typed === NO_OUTING ? null : typed),
+  same: (typed) => (typed === NO_OUTING ? held === null : typed === held),
+  couldBeSent: () => true,
+});
+
+/** The window the Farm sells her in, as two date boxes — said afresh, with why, for one a Correction makes the Farm's. */
+const WindowAnswers = ({
+  correcting,
+  forTheFarmFrom,
 }: {
-  intake: {
-    id: string;
-    purchasePriceMoney: number;
-    marketTollMoney: number;
-    sellerName: string | null;
-    /** As her page shows it: her Venture's where she is one's. */
-    targetWindow: { start: string; end: string };
-  };
-  /** The Venture she is on now, where she is not the Farm's own. */
-  owner: { id: string; name: string } | null;
+  correcting: Correcting;
+  /** The Venture she is leaving for the Farm's own, whose window was never the Farm's choice; nothing where none. */
+  forTheFarmFrom: string | null;
 }) => {
   const { t } = useLanguage();
-  // The runs an animal may be moved onto. `ventures.running` is exactly the three states a Correction
-  // may hand her to — buying, fattening, selling — and is the one Venture reading a Manager may make,
-  // which matters because putting a slip at the livestock market right is his to do.
-  const running = useQuery(orpc.ventures.running.queryOptions());
-  const itsWindow = targetWindow(intake.targetWindow, {
-    askedAfresh: owner !== null,
-  });
-  const correcting = useCorrecting({
-    purchasePriceMoney: amount(intake.purchasePriceMoney),
-    // Nothing is a real answer here: an animal bought at the farm gate paid no toll, and one typed by
-    // mistake is put back to nothing. `amount` would refuse it, and refuse the whole Correction with it.
-    marketTollMoney: figure(intake.marketTollMoney),
-    seller: counterparty(intake.sellerName),
-    owner: whoseSheIs(owner?.id ?? null),
-    targetWindow: itsWindow,
-  });
-  const correct = useMutation(orpc.intakes.correct.mutationOptions({}));
-  // The window is the Farm's to say only for an animal that will be the Farm's own; a Venture's is its Venture's.
-  const willBeTheFarms = (correcting.typed.owner ?? THE_FARMS) === THE_FARMS;
   const typedWindow = correcting.typed.targetWindow ?? "";
-  const windowStillToSay =
-    owner !== null && willBeTheFarms && !isWholeWindow(typedWindow);
   const [start = "", end = ""] = typedWindow.split("|");
   return (
-    <CorrectionDialog
-      onOpen={correcting.handleOpen}
-      onSave={async (reason) => {
-        await correct.mutateAsync({
-          id: intake.id,
-          reason,
-          changes: correcting.changes(),
-        });
-      }}
-      ready={correcting.changed && !windowStillToSay}
-      title={t("correct.intake")}
-    >
+    <>
+      <CorrectionAnswer
+        label={t("intake.windowStart")}
+        onChange={(value) =>
+          correcting.set(
+            "targetWindow",
+            withWindowDay(typedWindow, "start", value)
+          )
+        }
+        type="date"
+        value={start}
+      />
+      <CorrectionAnswer
+        label={t("intake.windowEnd")}
+        onChange={(value) =>
+          correcting.set(
+            "targetWindow",
+            withWindowDay(typedWindow, "end", value)
+          )
+        }
+        type="date"
+        value={end}
+      />
+      {forTheFarmFrom === null ? null : (
+        <p className="text-muted-foreground text-xs">
+          {t("correct.windowForTheFarm", { venture: forTheFarmFrom })}
+        </p>
+      )}
+    </>
+  );
+};
+
+type Correcting = ReturnType<typeof useCorrecting>;
+
+/** An Intake's own figures as a Correction's boxes: what she cost, the toll, who sold her, and what she weighed and was
+ *  judged off the lorry. */
+const ArrivalAnswers = ({ correcting }: { correcting: Correcting }) => {
+  const { t } = useLanguage();
+  return (
+    <>
       <CorrectionAnswer
         inputMode="numeric"
         label={t("intake.price")}
@@ -131,6 +148,254 @@ const IntakeCorrection = ({
         onChange={(value) => correcting.set("seller", value)}
         value={correcting.typed.seller ?? ""}
       />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CorrectionAnswer
+          inputMode="decimal"
+          label={t("intake.weight")}
+          onChange={(value) => correcting.set("weightKg", value)}
+          type="number"
+          value={correcting.typed.weightKg ?? ""}
+        />
+        <CorrectionAnswer
+          inputMode="numeric"
+          label={t("intake.age")}
+          onChange={(value) => correcting.set("estimatedAgeMonths", value)}
+          type="number"
+          value={correcting.typed.estimatedAgeMonths ?? ""}
+        />
+      </div>
+    </>
+  );
+};
+
+/** How she was paid for as the Correction would leave it: what was chosen, else what was. */
+const paidByOf = (
+  typed: string | undefined,
+  held: PaymentMethod | null | undefined
+): PaymentMethod | null => (typed || held || null) as PaymentMethod | null;
+
+/** The Farm Account and transaction ID a Correction names afresh, beside the answers `useCorrecting` keeps: an object
+ *  of two boxes rather than one answer, as the wage draw's is. */
+const useAccountNamed = (held: {
+  farmAccountId?: string | null;
+  reference?: string | null;
+}) => {
+  const namedNow: AccountTyped = {
+    farmAccountId: held.farmAccountId ?? "",
+    reference: held.reference ?? "",
+  };
+  const [account, setAccount] = useState<AccountTyped>(namedNow);
+  const reference = account.reference.trim();
+  /** The change to send, where money not paid in cash names another account or another transaction ID. */
+  const changeFor = (paidBy: PaymentMethod | null) =>
+    paidBy !== null &&
+    paidBy !== "cash" &&
+    account.farmAccountId !== "" &&
+    reference !== "" &&
+    (account.farmAccountId !== namedNow.farmAccountId ||
+      reference !== namedNow.reference)
+      ? {
+          from: {
+            farmAccountId: held.farmAccountId ?? null,
+            reference: held.reference ?? null,
+          },
+          to: { farmAccountId: account.farmAccountId, reference },
+        }
+      : undefined;
+  return {
+    account,
+    handleAccount: setAccount,
+    reset: () => setAccount(namedNow),
+    changeFor,
+  };
+};
+
+/** The outing she came home on: none, or one of the farm's recent ones — and hers, wherever it is, so the box shows it. */
+const OutingChoice = ({
+  held,
+  value,
+  onChange,
+}: {
+  held: { id: string; wentTo: string } | null;
+  value: string;
+  onChange: (value: string) => void;
+}) => {
+  const { t } = useLanguage();
+  const trips = useQuery(orpc.buyingTrips.list.queryOptions());
+  const recent = trips.data ?? [];
+  const outings = [
+    ...(held && !recent.some((one) => one.id === held.id) ? [held] : []),
+    ...recent,
+  ];
+  return (
+    <CorrectionChoice
+      label={t("intake.trip")}
+      onChange={onChange}
+      options={[
+        { value: NO_OUTING, label: t("intake.noTrip") },
+        ...outings.map((one) => ({ value: one.id, label: one.wentTo })),
+      ]}
+      value={value}
+    />
+  );
+};
+
+/** How she was paid for, and — for money not paid in cash — the Farm Account and its transaction ID. */
+const PaidForFields = ({
+  id,
+  held,
+  paidBy,
+  onChoose,
+  account,
+  onAccount,
+}: {
+  id: string;
+  held: PaymentMethod;
+  paidBy: PaymentMethod | null;
+  onChoose: (value: string) => void;
+  account: AccountTyped;
+  onAccount: (account: AccountTyped) => void;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <>
+      <CorrectionChoice
+        label={t("money.paidBy")}
+        onChange={onChoose}
+        options={PAYMENT_METHODS.map((method) => ({
+          value: method,
+          label: t(PAYMENT_METHOD_WORD[method]),
+        }))}
+        value={paidBy ?? held}
+      />
+      {paidBy === "mobile_money" || paidBy === "bank" ? (
+        <>
+          <FarmAccountField
+            id={`intake-account-${id}`}
+            kind={paidBy}
+            onChange={(farmAccountId) =>
+              onAccount({ ...account, farmAccountId })
+            }
+            value={account.farmAccountId}
+          />
+          <CorrectionAnswer
+            label={t("money.reference")}
+            onChange={(typed) => onAccount({ ...account, reference: typed })}
+            value={account.reference}
+          />
+        </>
+      ) : null}
+    </>
+  );
+};
+
+/** An Intake as her page holds it, which is what its Correction starts from. */
+interface IntakeHeld {
+  id: string;
+  purchasePriceMoney: number;
+  marketTollMoney: number;
+  sellerName: string | null;
+  /** As her page shows it: her Venture's where she is one's. */
+  targetWindow: { start: string; end: string };
+  buyingTrip: { id: string; wentTo: string } | null;
+  weightKg: number;
+  estimatedAgeMonths: number;
+  /** How she was paid for, and from which Farm Account; left out of an answer cached before her page said. */
+  paymentMethod?: PaymentMethod | null;
+  farmAccountId?: string | null;
+  reference?: string | null;
+}
+
+/** An Intake's answers as its Correction starts from them: each box showing what the record says. */
+const intakeAnswers = (
+  intake: IntakeHeld,
+  owner: { id: string } | null,
+  itsWindow: Answer<{ start: string; end: string }, unknown>
+): Answers => ({
+  purchasePriceMoney: amount(intake.purchasePriceMoney),
+  // Nothing is a real answer here: an animal bought at the farm gate paid no toll, and one typed by
+  // mistake is put back to nothing. `amount` would refuse it, and refuse the whole Correction with it.
+  marketTollMoney: figure(intake.marketTollMoney),
+  seller: counterparty(intake.sellerName),
+  owner: whoseSheIs(owner?.id ?? null),
+  targetWindow: itsWindow,
+  buyingTrip: outingOf(intake.buyingTrip?.id ?? null),
+  weightKg: amount(intake.weightKg),
+  estimatedAgeMonths: figure(intake.estimatedAgeMonths),
+  ...(intake.paymentMethod
+    ? { paymentMethod: choice(intake.paymentMethod) }
+    : {}),
+});
+
+/**
+ * The Manager puts right what a bought-in animal cost, who sold her, the outing she came home on, how she was paid for,
+ * what she weighed off the lorry and how old she was judged, whose she is, or — for the Farm's own — the window she is
+ * sold in. A Venture's animal made the Farm's is asked that window afresh, because her Venture's was never the Farm's
+ * choice.
+ */
+const IntakeCorrection = ({
+  intake,
+  owner,
+}: {
+  intake: IntakeHeld;
+  /** The Venture she is on now, where she is not the Farm's own. */
+  owner: { id: string; name: string } | null;
+}) => {
+  const { t } = useLanguage();
+  // The runs an animal may be moved onto. `ventures.running` is exactly the three states a Correction
+  // may hand her to — buying, fattening, selling — and is the one Venture reading a Manager may make,
+  // which matters because putting a slip at the livestock market right is his to do.
+  const running = useQuery(orpc.ventures.running.queryOptions());
+  const named = useAccountNamed(intake);
+  const itsWindow = targetWindow(intake.targetWindow, {
+    askedAfresh: owner !== null,
+  });
+  const correcting = useCorrecting(intakeAnswers(intake, owner, itsWindow));
+  const correct = useMutation(orpc.intakes.correct.mutationOptions({}));
+  // The window is the Farm's to say only for an animal that will be the Farm's own; a Venture's is its Venture's.
+  const willBeTheFarms = (correcting.typed.owner ?? THE_FARMS) === THE_FARMS;
+  const typedWindow = correcting.typed.targetWindow ?? "";
+  const windowStillToSay =
+    owner !== null && willBeTheFarms && !isWholeWindow(typedWindow);
+  const paidBy = paidByOf(correcting.typed.paymentMethod, intake.paymentMethod);
+  const farmAccount = named.changeFor(paidBy);
+  return (
+    <CorrectionDialog
+      onOpen={() => {
+        correcting.handleOpen();
+        named.reset();
+      }}
+      onSave={async (reason) => {
+        await correct.mutateAsync({
+          id: intake.id,
+          reason,
+          changes: {
+            ...correcting.changes(),
+            ...(farmAccount ? { farmAccount } : {}),
+          },
+        });
+      }}
+      ready={
+        (correcting.changed || farmAccount !== undefined) && !windowStillToSay
+      }
+      title={t("correct.intake")}
+    >
+      <ArrivalAnswers correcting={correcting} />
+      <OutingChoice
+        held={intake.buyingTrip}
+        onChange={(value) => correcting.set("buyingTrip", value)}
+        value={correcting.typed.buyingTrip ?? NO_OUTING}
+      />
+      {intake.paymentMethod ? (
+        <PaidForFields
+          account={named.account}
+          held={intake.paymentMethod}
+          id={intake.id}
+          onAccount={named.handleAccount}
+          onChoose={(value) => correcting.set("paymentMethod", value)}
+          paidBy={paidBy}
+        />
+      ) : null}
       {/* Only where there is somewhere to move her to. A farm that has never run a Venture is not
           asked whose its animals are. */}
       {(running.data ?? []).length === 0 && owner === null ? null : (
@@ -154,35 +419,10 @@ const IntakeCorrection = ({
         />
       )}
       {willBeTheFarms ? (
-        <>
-          <CorrectionAnswer
-            label={t("intake.windowStart")}
-            onChange={(value) =>
-              correcting.set(
-                "targetWindow",
-                withWindowDay(typedWindow, "start", value)
-              )
-            }
-            type="date"
-            value={start}
-          />
-          <CorrectionAnswer
-            label={t("intake.windowEnd")}
-            onChange={(value) =>
-              correcting.set(
-                "targetWindow",
-                withWindowDay(typedWindow, "end", value)
-              )
-            }
-            type="date"
-            value={end}
-          />
-          {owner === null ? null : (
-            <p className="text-muted-foreground text-xs">
-              {t("correct.windowForTheFarm", { venture: owner.name })}
-            </p>
-          )}
-        </>
+        <WindowAnswers
+          correcting={correcting}
+          forTheFarmFrom={owner?.name ?? null}
+        />
       ) : null}
     </CorrectionDialog>
   );

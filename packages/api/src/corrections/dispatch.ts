@@ -22,6 +22,8 @@ import {
   paymentMethodOf,
 } from "../money-store";
 import {
+  assertNothingStandsAgainst,
+  assertOwedCoversPaid,
   assertOwedCoversWrittenOff,
   receivableOrRefuse,
   paidNowInput,
@@ -120,6 +122,7 @@ export const dispatchCorrection: CorrectionKind<
     const receivableMoved =
       receivable.receivableMoney !== row.receivableMoney ||
       receivable.promisedBy !== row.promisedBy;
+    const item = { id: row.id, counterpartyId: row.buyerId };
     if (receivable.receivableMoney < row.receivableMoney) {
       await assertOwedCoversWrittenOff(
         tx,
@@ -127,6 +130,19 @@ export const dispatchCorrection: CorrectionKind<
         row.id,
         receivable.receivableMoney
       );
+      await assertOwedCoversPaid(
+        tx,
+        row.farmId,
+        item,
+        receivable.receivableMoney
+      );
+    }
+    const newBuyer =
+      to.buyer === undefined
+        ? undefined
+        : await buyerOnTheDay(tx, row.farmId, to.buyer, now);
+    if (newBuyer && newBuyer.buyerId !== row.buyerId) {
+      await assertNothingStandsAgainst(tx, row.farmId, item);
     }
     const putRight = {
       ...(receivableMoved ? receivable : {}),
@@ -147,9 +163,7 @@ export const dispatchCorrection: CorrectionKind<
         ? {}
         : { snfPercent: twoPlaces(to.snfPercent) }),
       ...(to.note === undefined ? {} : { note: to.note }),
-      ...(to.buyer === undefined
-        ? {}
-        : await buyerOnTheDay(tx, row.farmId, to.buyer, now)),
+      ...newBuyer,
     };
     // Nothing of the record itself may have changed: a Correction may name only how it was paid
     // for, and an update with no values to set is a database error rather than a no-op.

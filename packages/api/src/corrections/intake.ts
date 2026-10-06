@@ -35,7 +35,7 @@ import {
   lockTheFarm,
   ventureWindowOf,
 } from "../venture-store";
-import type { CorrectionKind } from "./correction";
+import type { CorrectionKind, NewValues } from "./correction";
 import {
   changeOf,
   correctionInput,
@@ -54,6 +54,8 @@ const loadIntake = (tx: Tx, farmId: string, id: string) =>
       marketTollMoney: true,
       buyingTripId: true,
       arrivedAt: true,
+      weightKg: true,
+      estimatedAgeMonths: true,
       targetWindowStart: true,
       targetWindowEnd: true,
       recordedBy: true,
@@ -102,7 +104,8 @@ const refuseAnOwnerSoldOnSince = async (tx: Tx, animalId: string) => {
 
 /**
  * What an Intake's Correction may change: what the farm paid, the livestock market's toll on her, the outing she came
- * home on, who sold the animal, how he was paid, and — for the Farm's own — the window she is sold in.
+ * home on, who sold the animal, how he was paid, what she weighed off the lorry and how old she was judged, and — for
+ * the Farm's own — the window she is sold in.
  */
 export const intakeCorrectionInput = correctionInput({
   purchasePriceMoney: changeOf(purchasePriceInput, z.number()),
@@ -124,6 +127,10 @@ export const intakeCorrectionInput = correctionInput({
   /** For a Venture's bull with no outing, paid from its account by bank: the transfer or cheque. Asked when a
    *  Correction makes her one, and put right like any other slip. */
   reference: changeOf(z.string().trim().min(1).max(120), z.string().nullable()),
+  /** What she weighed off the lorry: the first point every gain of hers is measured from, so a figure typed wrong is put
+   *  right here rather than carried into her Cost of Gain for good. */
+  weightKg: changeOf(z.number().positive().max(2000), z.number()),
+  estimatedAgeMonths: changeOf(z.number().int().min(0).max(360), z.number()),
 });
 
 /** Whose she will be after a Correction: the owner it names, else whose she was. */
@@ -165,6 +172,37 @@ const assertTheWindowIsTheOwners = ({
   }
 };
 
+/** The Intake's own columns as the Correction leaves them: nothing for what lives elsewhere, as her owner does. */
+const putRightOf = async (
+  tx: Tx,
+  row: { farmId: string },
+  to: NewValues<z.infer<typeof intakeCorrectionInput>["changes"]>,
+  now: Date
+) => ({
+  ...(to.purchasePriceMoney === undefined
+    ? {}
+    : { purchasePriceMoney: to.purchasePriceMoney }),
+  ...(to.marketTollMoney === undefined
+    ? {}
+    : { marketTollMoney: to.marketTollMoney }),
+  ...(to.buyingTrip === undefined ? {} : { buyingTripId: to.buyingTrip }),
+  ...(to.weightKg === undefined ? {} : { weightKg: to.weightKg.toFixed(2) }),
+  ...(to.estimatedAgeMonths === undefined
+    ? {}
+    : { estimatedAgeMonths: to.estimatedAgeMonths }),
+  ...(to.targetWindow === undefined
+    ? {}
+    : {
+        targetWindowStart: to.targetWindow.start,
+        targetWindowEnd: to.targetWindow.end,
+      }),
+  ...(to.seller === undefined
+    ? {}
+    : {
+        counterpartyId: await counterpartyNamed(tx, row.farmId, to.seller, now),
+      }),
+});
+
 /**
  * An Intake put right — and with it the Money Event, rather than a second one. Filed under the Animal it made, as the
  * Intake itself was.
@@ -199,6 +237,8 @@ export const intakeCorrection: CorrectionKind<
       paymentMethod: await paymentMethodOf(tx, row.farmId, "intake", row.id),
       farmAccount: await farmAccountShownOf(tx, row.farmId, "intake", row.id),
       reference: await boughtByBankReference(tx, row.farmId, row.id),
+      weightKg: Number(row.weightKg),
+      estimatedAgeMonths: row.estimatedAgeMonths,
     };
   },
   shownAs: { seller: (to) => to.name },
@@ -247,31 +287,7 @@ export const intakeCorrection: CorrectionKind<
         .set({ ownerVentureId: to.owner })
         .where(eq(animal.id, row.animalId));
     }
-    const putRight = {
-      ...(to.purchasePriceMoney === undefined
-        ? {}
-        : { purchasePriceMoney: to.purchasePriceMoney }),
-      ...(to.marketTollMoney === undefined
-        ? {}
-        : { marketTollMoney: to.marketTollMoney }),
-      ...(to.buyingTrip === undefined ? {} : { buyingTripId: to.buyingTrip }),
-      ...(to.targetWindow === undefined
-        ? {}
-        : {
-            targetWindowStart: to.targetWindow.start,
-            targetWindowEnd: to.targetWindow.end,
-          }),
-      ...(to.seller === undefined
-        ? {}
-        : {
-            counterpartyId: await counterpartyNamed(
-              tx,
-              row.farmId,
-              to.seller,
-              now
-            ),
-          }),
-    };
+    const putRight = await putRightOf(tx, row, to, now);
     // Nothing of the Intake itself may have changed: an owner lives on the Animal, and a Correction that
     // only moves her between owners leaves this row exactly as it was.
     if (somethingChanged(putRight)) {

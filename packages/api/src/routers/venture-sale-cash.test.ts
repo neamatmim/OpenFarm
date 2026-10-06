@@ -216,6 +216,18 @@ describe("a Venture's bull sold for cash", () => {
     ).rejects.toMatchObject({ data: { refusal: "money_moved_since" } });
   });
 
+  it("is not given another price once its cash has gone into the Venture Account", async () => {
+    // The slip said ৳148,000: a new price would have the account claim money the bank never got.
+    const owner = await as("owner", "2080-01-12T09:30:00.000Z");
+    await expect(
+      owner.client.sales.correct({
+        id: first.saleId,
+        reason: `দাম আসলে বেশি ছিল ${suffix}`,
+        changes: { priceMoney: { from: 148_000, to: 153_000 } },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "money_moved_since" } });
+  });
+
   it("is never taken by mobile money", async () => {
     await expect(
       sold(tags[2] ?? "", 110_000, "mobile_money", "2080-01-13T06:00:00.000Z")

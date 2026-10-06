@@ -358,6 +358,28 @@ const intakeView = (
       }
     : null;
 
+/** Her Intake as her page shows it, with how she was paid for and from which Farm Account: what putting a slip at the
+ *  livestock market right starts from. */
+const withHowSheWasPaid = async (
+  db: Database,
+  farmId: string,
+  shown: ReturnType<typeof intakeView>
+) => {
+  if (!shown) {
+    return null;
+  }
+  const paid = await db.query.moneyEvent.findFirst({
+    where: { farmId, source: "intake", sourceId: shown.id },
+    columns: { paymentMethod: true, farmAccountId: true, reference: true },
+  });
+  return {
+    ...shown,
+    paymentMethod: paid?.paymentMethod ?? null,
+    farmAccountId: paid?.farmAccountId ?? null,
+    reference: paid?.reference ?? null,
+  };
+};
+
 /** A birth on a day still to come is refused: a calf born next June is a typo, not a calf. */
 const assertBornInThePast = (birthDate: Date | undefined, now: Date) => {
   if (birthDate && birthDate.getTime() > now.getTime()) {
@@ -927,6 +949,13 @@ export const animalsRouter = {
       const herSale = theCost
         ? await saleShown(context.db, context.farm.id, sale)
         : null;
+      const intakeShown = theCost
+        ? await withHowSheWasPaid(
+            context.db,
+            context.farm.id,
+            intakeView(intake)
+          )
+        : null;
       const [heats, services, checks] = await Promise.all([
         heatsOf(context.db, her.id),
         servicesOf(context.db, her.id),
@@ -981,7 +1010,7 @@ export const animalsRouter = {
         /** What the farm paid and who it bought her from is the Intake row of the roles
          *  matrix — `R` to the Owner, `C R U` to the Manager, and nothing to anybody else.
          *  A milker weighs her and a Vet treats her without being told what she cost. */
-        intake: theCost ? intakeView(intake) : null,
+        intake: intakeShown,
         /** The seller's word for her age and the day it was given, which is not the money row: anybody who
          *  may see her may be told how old she is thought to be. */
         ageAtIntake: intake

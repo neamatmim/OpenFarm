@@ -1,6 +1,5 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { sql } from "@OpenFarm/db/operators";
 import {
   RECEIVABLE_KINDS as KINDS,
   RECEIVABLE_SOURCES,
@@ -38,6 +37,7 @@ import {
   assertPaidNoMoreThanOwed,
   receivableOfBuyers,
   assertWrittenOffNoMoreThanOwed,
+  lockTheBuyer,
   overdueOfBuyer,
   owingOf,
   owingOnItem,
@@ -139,9 +139,7 @@ export const receivablesRouter = {
         },
         async (tx) => {
           // Held while his Receivable is read, so two phones taking his money at once each see the other's.
-          await tx.execute(
-            sql`select 1 from counterparty where id = ${known.id} for update`
-          );
+          await lockTheBuyer(tx, known.id);
           assertPaidNoMoreThanOwed({
             amountMoney: input.amountMoney,
             owingMoney: await owingOf(
@@ -237,9 +235,7 @@ export const receivablesRouter = {
           }
           // Held while what is owing is read, as a payment is — and read again behind it: what was owing a moment ago
           // may have been paid or written off by another phone since.
-          await tx.execute(
-            sql`select 1 from counterparty where id = ${standing.counterpartyId} for update`
-          );
+          await lockTheBuyer(tx, standing.counterpartyId);
           const owingNow = await owingOnItem(
             tx,
             context.farm.id,

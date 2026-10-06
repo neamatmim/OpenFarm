@@ -1,6 +1,8 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import { farm } from "@OpenFarm/db/schema/farm";
+import { sale as saleTable } from "@OpenFarm/db/schema/fattening";
+import { animal } from "@OpenFarm/db/schema/herd";
 import type { VentureState } from "@OpenFarm/db/schema/venture";
 import { venture } from "@OpenFarm/db/schema/venture";
 import type { VentureMovementKind } from "@OpenFarm/db/schema/venture-account";
@@ -1328,11 +1330,57 @@ export const readVenture = async (tx: Tx, farmId: string, id: string) => {
 };
 
 /**
+ * A Venture put back where it stood when the Sale that made it Selling is voided — written against the wrong animal, so
+ * none of its animals has been sold after all. Left Selling where another of its animals has been sold since.
+ */
+export const backFromSellingOnAVoid = async (
+  tx: Tx,
+  farmId: string,
+  ventureId: string,
+  stoodAt: VentureState,
+  /** The void's own `recordEvent`, so the move is on the same transaction as the void that caused it. */
+  trail: (
+    tx: Tx,
+    event: { entity: AuditEntity; entityId: string; action: "update" },
+    snapshots: { before?: SnapshotValue; after?: SnapshotValue }
+  ) => Promise<string>
+) => {
+  const row = await tx.query.venture.findFirst({
+    where: { id: ventureId, farmId },
+    columns: { state: true },
+  });
+  if (row?.state !== "selling") {
+    return;
+  }
+  const [another] = await tx
+    .select({ id: saleTable.id })
+    .from(saleTable)
+    .innerJoin(animal, eq(animal.id, saleTable.animalId))
+    .where(
+      and(eq(saleTable.farmId, farmId), eq(animal.ownerVentureId, ventureId))
+    )
+    .limit(1);
+  if (another) {
+    return;
+  }
+  const before = await readVenture(tx, farmId, ventureId);
+  await tx
+    .update(venture)
+    .set({ state: stoodAt })
+    .where(eq(venture.id, ventureId));
+  await trail(
+    tx,
+    { entity: "venture", entityId: ventureId, action: "update" },
+    { before, after: await readVenture(tx, farmId, ventureId) }
+  );
+};
+
+/**
  * A Venture keeping up with its own animals: the first of them sold is what makes it Selling.
  *
  * A fact rather than a chore — the Owner is not asked to remember, and the Manager selling at the livestock market
  * is not asked to know whose animal she is selling. Nothing to do once it is already Selling, so a
- * second Sale writes no second event.
+ * second Sale writes no second event. Says where it stood before, or nothing where it did not move.
  */
 export const reachesSellingOnASale = async (
   tx: Tx,
@@ -1361,7 +1409,7 @@ export const reachesSellingOnASale = async (
   }
   if (!(row && mayMoveTo(row.state, "selling"))) {
     // Already Selling: it is where a Sale would put it, and there is nothing to record.
-    return false;
+    return null;
   }
   const before = await readVenture(tx, farmId, ventureId);
   await tx
@@ -1376,8 +1424,8 @@ export const reachesSellingOnASale = async (
   // Said rather than acted on here: the run turning back into money is one of the four moments an
   // Investor hears at, and this is the one place that knows it was the *first* Sale — the state only
   // moves once. Telling him is the caller's, because a store that told anybody would have to reach
-  // back into the notices and make a circle of the imports.
-  return true;
+  // back into the notices and make a circle of the imports. Where it stood is the Sale's to keep, should it be voided.
+  return row.state;
 };
 
 /**

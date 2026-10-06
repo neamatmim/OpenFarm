@@ -28,7 +28,10 @@ import {
   paymentMethodOf,
 } from "../money-store";
 import {
+  assertNothingStandsAgainst,
+  assertOwedCoversPaid,
   assertOwedCoversWrittenOff,
+  paidOnItem,
   receivableOrRefuse,
   paidNowInput,
   promisedByInput,
@@ -41,8 +44,8 @@ import {
   readSale,
 } from "../sale-store";
 import { assertNotSettledUp } from "../venture-act";
-import { lockTheFarm } from "../venture-store";
-import type { CorrectionKind, Corrector } from "./correction";
+import { backFromSellingOnAVoid, lockTheFarm } from "../venture-store";
+import type { CorrectionKind, Corrector, NewValues } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
 
 const loadSale = (tx: Tx, farmId: string, id: string) =>
@@ -61,11 +64,27 @@ const loadSale = (tx: Tx, farmId: string, id: string) =>
       counterpartyId: true,
       stateBefore: true,
       stateChangedBefore: true,
+      ventureStateBefore: true,
       recordedBy: true,
       createdAt: true,
     },
     with: { buyer: { columns: { name: true } } },
   });
+
+/** A Venture's cash from this Sale already deposited into its account, with its slip: the figure is the bank's now. */
+const assertNotDeposited = async (tx: Tx, saleId: string) => {
+  const deposited = await tx.query.ventureMovement.findFirst({
+    where: { saleId, handoverId: { isNotNull: true } },
+    columns: { id: true },
+  });
+  if (deposited) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "Its cash is in the Venture Account already; the bank holds what the slip said",
+      data: { refusal: "money_moved_since" },
+    });
+  }
+};
 
 /**
  * A Sale written against the wrong animal, voided by the Owner: what it booked is put to nothing — her price, the broker,
@@ -95,11 +114,11 @@ const voidTheSale = async (
       where: { source: "sale", sourceId: row.id },
       columns: { id: true },
     })) ??
-    (row.receivableMoney > 0
-      ? await tx.query.receivablePayment.findFirst({
-          where: { counterpartyId: row.counterpartyId },
-          columns: { id: true },
-        })
+    // What his payments cleared of this Sale, not whether he ever paid the farm anything: a regular trader's mistaken
+    // credit Sale is voided like any other until he pays something off it.
+    (row.receivableMoney > 0 &&
+    (await paidOnItem(tx, row.farmId, row.counterpartyId, row.id)) > 0
+      ? { id: row.id }
       : undefined);
   // Her Venture's Settlement approved — not only settled — holds what she fetched: a void after it took the proceeds
   // out of an account whose Settlement already counted them (venture-act's `assertNotSettledUp`).
@@ -110,17 +129,14 @@ const voidTheSale = async (
   if (hers?.ownerVentureId) {
     await assertNotSettledUp(tx, row.farmId, hers.ownerVentureId);
   }
-  // Cash deposited into the Venture Account is in the bank: voiding the Sale would take it off the account's books.
-  const deposited = await tx.query.ventureMovement.findFirst({
-    where: { saleId: row.id, handoverId: { isNotNull: true } },
-    columns: { id: true },
-  });
-  if (paidOrWrittenOff || deposited) {
+  if (paidOrWrittenOff) {
     throw new ORPCError("BAD_REQUEST", {
       message: "Money has moved on this Sale since; put it right instead",
       data: { refusal: "money_moved_since" },
     });
   }
+  // Cash deposited into the Venture Account is in the bank: voiding the Sale would take it off the account's books.
+  await assertNotDeposited(tx, row.id);
   await tx
     .update(sale)
     .set({
@@ -143,6 +159,16 @@ const voidTheSale = async (
     await tx.delete(moneyEvent).where(inArray(moneyEvent.id, ids));
   }
   await tx.delete(sale).where(eq(sale.id, row.id));
+  // The Venture this Sale made Selling goes back where it stood, unless another of its animals has been sold since.
+  if (hers?.ownerVentureId && row.ventureStateBefore) {
+    await backFromSellingOnAVoid(
+      tx,
+      row.farmId,
+      hers.ownerVentureId,
+      row.ventureStateBefore,
+      audited(context).recordEvent
+    );
+  }
   await comesBackFromAVoidedExit(
     tx,
     row.farmId,
@@ -232,6 +258,54 @@ export const saleCorrectionInput = correctionInput({
 });
 
 /**
+ * What her buyer owes once the Correction stands, and who he is — refused where it would leave him owing less than was
+ * written off or than his payments have cleared, or name another buyer once anything stands against it.
+ */
+const owedAfter = async (
+  tx: Tx,
+  row: NonNullable<Awaited<ReturnType<typeof loadSale>>>,
+  to: NewValues<z.infer<typeof saleCorrectionInput>["changes"]>,
+  now: Date
+) => {
+  // What he paid stands unless the Correction says otherwise: a price mistyped is not cash handed back.
+  const receivable = receivableOrRefuse(
+    receivablePutRight({
+      before: {
+        worthMoney: row.priceMoney,
+        receivableMoney: row.receivableMoney,
+        promisedBy: row.promisedBy,
+      },
+      worthMoney: to.priceMoney ?? row.priceMoney,
+      paidNowMoney: to.paidNowMoney,
+      promisedBy: to.promisedBy,
+      // The day she left as corrected: a promise of payment before she went is no promise.
+      leftOn: farmDayOf(to.soldAt ?? row.soldAt),
+      promiseRequired: true,
+    })
+  );
+  const receivableMoved =
+    receivable.receivableMoney !== row.receivableMoney ||
+    receivable.promisedBy !== row.promisedBy;
+  if (receivable.receivableMoney < row.receivableMoney) {
+    await assertOwedCoversWrittenOff(
+      tx,
+      "sale",
+      row.id,
+      receivable.receivableMoney
+    );
+    await assertOwedCoversPaid(tx, row.farmId, row, receivable.receivableMoney);
+  }
+  const buyerId =
+    to.buyer === undefined
+      ? row.counterpartyId
+      : await counterpartyNamed(tx, row.farmId, to.buyer, now);
+  if (buyerId !== row.counterpartyId) {
+    await assertNothingStandsAgainst(tx, row.farmId, row);
+  }
+  return { receivable, receivableMoved, buyerId };
+};
+
+/**
  * A Sale put right — and with it the Money Event, rather than a second one. She stays sold: the way she left is not
  * what is corrected.
  */
@@ -274,33 +348,17 @@ export const saleCorrection: CorrectionKind<
     if (to.soldAt) {
       await moveTheDay(tx, row, to.soldAt, now);
     }
-    // What he paid stands unless the Correction says otherwise: a price mistyped is not cash handed back.
-    const receivable = receivableOrRefuse(
-      receivablePutRight({
-        before: {
-          worthMoney: row.priceMoney,
-          receivableMoney: row.receivableMoney,
-          promisedBy: row.promisedBy,
-        },
-        worthMoney: to.priceMoney ?? row.priceMoney,
-        paidNowMoney: to.paidNowMoney,
-        promisedBy: to.promisedBy,
-        // The day she left as corrected: a promise of payment before she went is no promise.
-        leftOn: farmDayOf(to.soldAt ?? row.soldAt),
-        promiseRequired: true,
-      })
-    );
-    const receivableMoved =
-      receivable.receivableMoney !== row.receivableMoney ||
-      receivable.promisedBy !== row.promisedBy;
-    if (receivable.receivableMoney < row.receivableMoney) {
-      await assertOwedCoversWrittenOff(
-        tx,
-        "sale",
-        row.id,
-        receivable.receivableMoney
-      );
+    // A Venture's cash already deposited: the account holds what the slip said, and a new price would have it claim
+    // money the bank never got. Refused, as the void is (the Owner, 2026-10-07).
+    if (to.priceMoney !== undefined) {
+      await assertNotDeposited(tx, row.id);
     }
+    const { receivable, receivableMoved, buyerId } = await owedAfter(
+      tx,
+      row,
+      to,
+      now
+    );
     const putRight = {
       ...(to.priceMoney === undefined ? {} : { priceMoney: to.priceMoney }),
       ...(to.brokerMoney === undefined ? {} : { brokerMoney: to.brokerMoney }),
@@ -308,16 +366,7 @@ export const saleCorrection: CorrectionKind<
         ? {}
         : { weightKg: to.weightKg.toFixed(2) }),
       ...(receivableMoved ? receivable : {}),
-      ...(to.buyer === undefined
-        ? {}
-        : {
-            counterpartyId: await counterpartyNamed(
-              tx,
-              row.farmId,
-              to.buyer,
-              now
-            ),
-          }),
+      ...(to.buyer === undefined ? {} : { counterpartyId: buyerId }),
     };
     // Nothing of the record itself may have changed: a Correction may name only how it was paid
     // for, and an update with no values to set is a database error rather than a no-op.
