@@ -508,3 +508,30 @@ describe("an Investor's own page", () => {
     expect(JSON.stringify(his)).not.toContain(hisLost);
   });
 });
+
+/** A Latin figure just before a Bangla unit: the one thing neither reader reads cleanly. */
+const LATIN_BESIDE_BANGLA = /[0-9][0-9,.]* (?:টাকা|দিন|কেজি)/gu;
+
+describe("the statement printed for an Owner who reads English", () => {
+  it("still says every figure in a Bangla phrase in Bangla numerals, and the English half in English ones", async () => {
+    const owner = await as("owner", "2053-03-03T04:00:00.000Z");
+    await owner.client.language.set({ language: "en" });
+    try {
+      const reading = await as("owner", "2053-03-03T04:00:00.000Z");
+      const { text } = await reading.client.investorStatements.settlement({
+        agreementId: hisWon,
+      });
+      expect(text.match(LATIN_BESIDE_BANGLA) ?? []).toEqual([]);
+      expect(text).toContain(
+        "প্রতি ইউনিট / Per Unit: ৫০,০০০ টাকা দিয়ে ৫৬,১৫০ টাকা / 50,000 in, 56,150 back"
+      );
+      // And his joining letter, its money beside টাকা as well.
+      const letter = await reading.client.investorStatements.joining({
+        agreementId: hisWon,
+      });
+      expect(letter.text.match(LATIN_BESIDE_BANGLA) ?? []).toEqual([]);
+    } finally {
+      await owner.client.language.set({ language: "bn" });
+    }
+  });
+});

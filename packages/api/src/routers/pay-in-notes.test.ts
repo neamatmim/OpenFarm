@@ -742,6 +742,26 @@ describe("money owed, as the portal says it", () => {
     });
   });
 
+  it("counts their Units as the Venture page does: signed while it gathers, paid for once it buys", async () => {
+    const ventureId = await aVenture("ইউনিট গোনা");
+    const them = await signedUp("এক ইউনিট দিয়েছে", ventureId, 2);
+    const owner = await as("owner");
+    await owner.ventures.takeCapital({
+      agreementId: them.agreementId,
+      amountMoney: 50_000,
+      movedOn: TODAY,
+      paymentMethod: "bank",
+      reference: "BEFTN 73",
+    });
+    const gathering = await owner.investors.agreements({ id: them.id });
+    expect(gathering.agreements[0]?.unitsCounted).toBe(2);
+    await owner.ventures.startBuying({ id: ventureId });
+    // One Unit paid for of the two signed: the Settlement will divide by one, and the home card says one, as his
+    // Venture's own page does — not "2 units" there and "1 unit" a tap later.
+    const buying = await owner.investors.agreements({ id: them.id });
+    expect(buying.agreements[0]).toMatchObject({ units: 2, unitsCounted: 1 });
+  });
+
   it("closes a note waiting on it once a Correction fills its paper", async () => {
     const ventureId = await aVenture("সংশোধনে শোধ");
     const them = await signedUp("সংশোধনে", ventureId, 2);

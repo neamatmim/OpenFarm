@@ -7,13 +7,13 @@ import {
   isExitState,
   maskedDigits,
   readingOf,
-  unitsHeld,
 } from "@OpenFarm/domain";
 import type { TemplateContent } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Context } from "./context";
 import { farmsOwnValues } from "./data-keepers";
+import { farmUnitsOf } from "./farm-capital-store";
 import { howToPay } from "./how-to-pay";
 import type { PaperMaking } from "./investor-papers";
 import {
@@ -244,18 +244,28 @@ export const theirVentureToday = async (
     { id: agreementId, stampKind: standing.agreement.stampKind },
     paying?.owedMoney ?? 0
   );
+  // The Units signed for while the Venture gathers, the Units paid for once it buys — one rule for the page, its
+  // projection and the papers (the Owner's decision, 2026-10-06).
+  const holding = hisHolding(
+    {
+      units: standing.agreement.units,
+      capitalMoney: standing.capitalMoney,
+    },
+    spend,
+    run
+  );
+  // The Farm's own Units in it, as his Agreement and his progress statement tell him: how many of how many.
+  const theFarmsUnits = await farmUnitsOf(db, farm.id, run.id);
   return {
     agreementId,
     venture: { name: standing.venture.name, state: run.state },
+    /** The Farm's own Units in the Venture, where it holds any (ADR 0019); nothing where it holds none. */
+    farmUnits:
+      theFarmsUnits > 0
+        ? { farmUnits: theFarmsUnits, ventureUnits: run.units }
+        : null,
     his: {
-      ...hisHolding(
-        {
-          units: standing.agreement.units,
-          capitalMoney: standing.capitalMoney,
-        },
-        spend,
-        run
-      ),
+      ...holding,
       capitalMoney: standing.capitalMoney,
       investorsPercent: standing.agreement.investorsPercent,
       amendedOn: standing.agreement.amendedOn,
@@ -317,9 +327,12 @@ export const theirVentureToday = async (
      *  and nothing unless the Owner shows Projections, has set the prices, and the Venture is still running. */
     projection: projected
       ? hisProjection(projected, {
-          // The Units he holds — paid for — as the Settlement will divide by them.
-          units: unitsHeld(standing.capitalMoney, run.unitPriceMoney),
-          capitalMoney: standing.capitalMoney,
+          // As his page counts them; and what they put in, signed for while it gathers, paid once it buys.
+          units: holding.units,
+          capitalMoney: Math.max(
+            standing.capitalMoney,
+            holding.units * run.unitPriceMoney
+          ),
         })
       : null,
   };

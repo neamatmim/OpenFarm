@@ -65,23 +65,23 @@ Three reviewers each took one part: who gets in and what each Investor reads; mo
 
 - Build all four groups.
 - A3: in the portal an Amendment names the other parties only, with no NID, phone, address or nominees. The printed paper the Owner keeps stays whole.
-- D4/D6: while a Venture gathers, an Investor is projected and shown on the Units signed for, labelled as signed. Once buying starts it is the Units paid for, as the Settlement divides. The same rule applies on the home card, the Ventures list and the Venture page.
+- D4/D6: while a Venture gathers, an Investor is projected and shown on the Units signed for. Once buying starts it is the Units paid for, as the Settlement divides. The same rule applies on the home card, the Ventures list and the Venture page.
 - C1: once a Venture takes no more capital there is no "still to pay" and no how-to-pay link. A line says what was not paid, and that their share is by what they paid.
 
 Defaults taken without asking, as the obvious reading:
 
 - A1: correcting an Investor's phone moves their sign-in to the new number, as the code's comment already says. A code is not taken up onto an account that belongs to another Investor.
 - B1: an approved offer's Nominees are dated the day the Investor agreed, so a Nomination signed after that still wins.
-- B3: offers are hidden while the agreeing-in-the-app switch is off, and closed when their Venture is cancelled, starts buying, or is settled.
+- B3: offers are hidden while the agreeing-in-the-app switch is off, and hidden and refused once their Venture is cancelled or buying (an Agreement offer) or settled (an Amendment offer).
 - C3: a note received says the sum booked.
 - D2: in a Bangla phrase every number is in Bangla numerals, whatever the reader's language.
 - D3: a Venture that nobody has signed into is not due a statement.
 
 ## Status
 
-| Group | Branch | Status |
-| ----- | ------ | ------ |
-| A     |        |        |
-| B     |        |        |
-| C     |        |        |
-| D     |        |        |
+| Group | Branch                | Status                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A     | fix/portal-door       | Done (taking up a code moves the Investor's own account to their phone today; an account another Investor still signs in with is refused `phone_has_portal` at the consent, invitation and join — `accountOfAnotherAt`, `theirAccount`; a consent withdrawn after access was taken clears the code; an Amendment in the portal names other parties by name alone — `othersNamedOnly`, the kept paper and its fingerprint unchanged; Better Auth `/update-user` disabled; code guesses counted before any await, a right one given back — `takeBackOne`)                                                                                   |
+| B     | fix/portal-agreements | Done (an approved offer's Nominees dated the day agreed — `nominatedOn`; the offer's paper, the stamped paper to sign and the portal's Open Ventures read the window in force — `withWindowsInForce`; agreement offers shown and agreeable only on an open Venture and with the switch on, Amendment offers not once settled — `venture_wrong_state`/`already_approved`, worded `agreeInApp.refusal.venture_moved_on`. Offers are hidden at read time rather than withdrawn, so the Owner's list still shows them standing until withdrawn. The to-sign paper's window and a settled Venture's Amendment offer have no test of their own) |
+| C     | fix/portal-money      | Done (their Agreements say `takesCapital`; the portal says a sum not sent as not paid, share by what was paid, no how-to-pay — `lib/still-to-pay`; a capital Correction that fills the paper closes waiting notes `nothing_owed`; a received note carries `receivedMoney` and says the sum recorded where it differs)                                                                                                                                                                                                                                                                                                                     |
+| D     | fix/portal-figures    | Done (a Venture's progress reads each animal from the day it had her, at the Internal Sale's weight, readings and line within her stretch; Investor papers say every figure beside a Bangla unit in Bangla numerals, the per-Unit and Return on Capital lines in both halves' own — joining letter too; a Venture nobody signed is never due a statement; projection and page on one holding — Units signed while gathering, paid once buying, `unitsCounted` on the home card and list; a shut portal signs the reader out to the door, which says so; all lost counts as gone; the Farm's own Units on the Venture page)                |

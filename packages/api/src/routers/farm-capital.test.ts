@@ -492,6 +492,17 @@ describe("the Farm's own Units, told to every Investor before they sign", () => 
     const { text } = await owner.investorStatements.progress({ agreementId });
 
     expect(text).toMatch(/খামারের নিজের ইউনিট[^\n]*৩ \/ ১০/u);
+
+    // And on his Venture's page in the portal, which says the same figures as the statement.
+    const his = await scratchDb().query.investmentAgreement.findFirst({
+      where: { id: agreementId },
+      columns: { investorId: true },
+    });
+    const today = await owner.portalPreview.venture({
+      investorId: his?.investorId ?? "",
+      agreementId,
+    });
+    expect(today.farmUnits).toEqual({ farmUnits: 3, ventureUnits: 10 });
   });
 });
 

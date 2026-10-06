@@ -32,8 +32,8 @@ const sheet = (
   units: "২০",
   perUnit: "৩,০০০",
   perUnitRose: false,
-  perUnitIn: "৫০,০০০",
-  perUnitBack: "৪৭,০০০",
+  perUnitIn: { bn: "৫০,০০০", en: "50,000" },
+  perUnitBack: { bn: "৪৭,০০০", en: "47,000" },
   rounding: "০",
   farmShare: "৪০,০০০",
   farmShareRose: false,
@@ -87,12 +87,16 @@ describe("the হিসাব নিকাশ of a man who paid by the month and
 describe("the হিসাব নিকাশ's line on their capital", () => {
   it("says a loss as a loss, unsigned, under the payout", () => {
     const text = settlementStatement(
-      sheet({ per100: "৬", days: "৮৯", rose: false })
+      sheet({
+        per100: { bn: "৬", en: "6" },
+        days: { bn: "৮৯", en: "89" },
+        rose: false,
+      })
     );
     const line = capitalLine(text);
     expect(line).toContain("প্রতি ১০০ টাকা মূলধনে ৬ টাকা ক্ষতি, ৮৯ দিনে");
     expect(line).toContain(
-      "৬ lost on every ৳100 of your capital, over ৮৯ days"
+      "6 lost on every ৳100 of your capital, over 89 days"
     );
     expect(line).not.toMatch(/-|−/u);
     const lines = text.split("\n");
