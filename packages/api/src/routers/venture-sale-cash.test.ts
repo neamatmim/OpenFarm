@@ -204,6 +204,18 @@ describe("a Venture's bull sold for cash", () => {
     ).rejects.toMatchObject({ data: { refusal: "not_held_here" } });
   });
 
+  it("is not voided once its cash has gone into the Venture Account", async () => {
+    // Deposited above: the money is in the bank, and a void would take it off the account's books.
+    const owner = await as("owner", "2080-01-12T09:00:00.000Z");
+    await expect(
+      owner.client.sales.correct({
+        id: first.saleId,
+        reason: `ভুল ট্যাগ ${suffix}`,
+        changes: { voided: { from: false, to: true } },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "money_moved_since" } });
+  });
+
   it("is never taken by mobile money", async () => {
     await expect(
       sold(tags[2] ?? "", 110_000, "mobile_money", "2080-01-13T06:00:00.000Z")
@@ -214,15 +226,35 @@ describe("a Venture's bull sold for cash", () => {
 });
 
 describe("a Venture's bull sold by bank", () => {
+  let bankSale = "";
+
   it("reaches the Venture Account under the transfer's reference, not her tag", async () => {
-    await sold(
+    ({ id: bankSale } = await sold(
       tags[2] ?? "",
       110_000,
       "bank",
       "2080-01-14T06:00:00.000Z",
       `NPSB-${suffix}`
-    );
+    ));
     const moved = await saleMoneyIn("2080-01-14T07:00:00.000Z");
     expect(moved.map((one) => one.reference)).toContain(`NPSB-${suffix}`);
+  });
+
+  it("moves its account's money with it when its day is put right", async () => {
+    const manager = await as("manager", "2080-01-15T04:00:00.000Z");
+    await manager.client.sales.correct({
+      id: bankSale,
+      reason: `আগের দিন বিক্রি ${suffix}`,
+      changes: {
+        soldAt: {
+          from: "2080-01-14T06:00:00.000Z",
+          to: new Date("2080-01-13T09:00:00.000Z"),
+        },
+      },
+    });
+    const moved = await saleMoneyIn("2080-01-15T05:00:00.000Z");
+    expect(
+      moved.find((one) => one.reference === `NPSB-${suffix}`)?.movedOn
+    ).toBe("2080-01-13");
   });
 });

@@ -2,6 +2,7 @@ import type { GrowthHolding } from "@OpenFarm/domain";
 import {
   farmDayOf,
   growthOf,
+  handedOverAt,
   isExitState,
   startOfFarmDay,
 } from "@OpenFarm/domain";
@@ -13,7 +14,7 @@ import {
   READINGS_FOR_A_RATE,
   WEIGH_IN_COLUMNS,
 } from "./fattening-store";
-import { windowInForceOn } from "./venture-store";
+import { whenEachCame, windowInForceOn } from "./venture-store";
 
 /**
  * A Venture's whole run, standing and gone, in one read.
@@ -167,24 +168,88 @@ const meanOf = (values: number[]): number | null =>
     ? null
     : roundedKg(values.reduce((sum, one) => sum + one, 0) / values.length);
 
+/** The stretch an animal was one Venture's: from the Internal Sale that last brought her to it — or her arrival, bought
+ *  by it — to the one that took her off it, her Sale, or now; with what she weighed at each Internal Sale. */
+const theirStretch = (
+  one: {
+    id: string;
+    intake: { arrivedAt: Date } | null;
+    sale: { soldAt: Date; weightKg: string } | null;
+  },
+  handed: readonly {
+    animalId: string;
+    fromVentureId: string | null;
+    toVentureId: string | null;
+    soldOn: string;
+    weightKg: string;
+  }[],
+  came: ReadonlyMap<string, Date>,
+  ventureId: string,
+  now: Date
+) => {
+  const hers = handed.filter((sale) => sale.animalId === one.id);
+  const inAt = hers.findLastIndex((sale) => sale.toVentureId === ventureId);
+  const offAt = hers.findLastIndex((sale) => sale.fromVentureId === ventureId);
+  const broughtIn = inAt === -1 ? undefined : hers[inAt];
+  const tookOff = offAt > inAt ? hers[offAt] : undefined;
+  const from = broughtIn
+    ? handedOverAt(broughtIn.soldOn, came.get(one.id))
+    : (one.intake?.arrivedAt ?? now);
+  if (tookOff) {
+    return {
+      from,
+      until: handedOverAt(tookOff.soldOn, came.get(one.id)),
+      cameKg: broughtIn ? Number(broughtIn.weightKg) : null,
+      wentKg: Number(tookOff.weightKg),
+      handedOn: true,
+    };
+  }
+  return {
+    from,
+    until: one.sale?.soldAt ?? now,
+    cameKg: broughtIn ? Number(broughtIn.weightKg) : null,
+    wentKg: one.sale ? Number(one.sale.weightKg) : null,
+    handedOn: false,
+  };
+};
+
 /**
- * What one Venture's cattle are doing: how many stand, how many have gone, what they weigh, and what
- * they are putting on.
- *
- * Whose an Animal is, is asked of the day rather than off her record. An **Internal Sale** moves her
- * between purses, and reading `ownerVentureId` would move her retrospectively — off one Venture's paper
- * and onto another's for months she was never theirs. `ownedThenByOf` is how every other Venture sum
- * asks it, and the Settlement is worked out through it.
+ * Every animal a Venture has held, with the Internal Sales that moved one to it or off it and when each came: those it
+ * holds today, and those it held once. Read off whose she is today alone, a bull the Farm took off it vanished from its
+ * progress while its paper charged for him.
  */
-export const theirProgress = async (
+const everyOneTheyHeld = async (
   tx: Pick<Tx, "query">,
   farmId: string,
-  /** The Venture as its row holds it; the window counted to is the one in force today. */
-  venture: { id: string; targetWindowStart: string; targetWindowEnd: string },
-  now: Date
-): Promise<TheirProgress> => {
+  ventureId: string
+) => {
+  const handed = await tx.query.internalSale.findMany({
+    where: {
+      farmId,
+      OR: [{ fromVentureId: ventureId }, { toVentureId: ventureId }],
+    },
+    columns: {
+      animalId: true,
+      fromVentureId: true,
+      toVentureId: true,
+      soldOn: true,
+      weightKg: true,
+    },
+    orderBy: { soldOn: "asc", id: "asc" },
+  });
+  const came =
+    handed.length === 0
+      ? new Map<string, Date>()
+      : await whenEachCame(tx, farmId);
+  const everHeld = [...new Set(handed.map((one) => one.animalId))];
   const rows = await tx.query.animal.findMany({
-    where: { farmId, ownerVentureId: venture.id },
+    where:
+      everHeld.length === 0
+        ? { farmId, ownerVentureId: ventureId }
+        : {
+            farmId,
+            OR: [{ ownerVentureId: ventureId }, { id: { in: everHeld } }],
+          },
     orderBy: { tagNumber: "asc", id: "asc" },
     limit: VENTURE_LIMIT,
     columns: {
@@ -212,6 +277,26 @@ export const theirProgress = async (
       },
     },
   });
+  return { rows, handed, came };
+};
+
+/**
+ * What one Venture's cattle are doing: how many stand, how many have gone, what they weigh, and what
+ * they are putting on.
+ *
+ * Whose an Animal is, is asked of the day rather than off her record. An **Internal Sale** moves her
+ * between purses, and reading `ownerVentureId` would move her retrospectively — off one Venture's paper
+ * and onto another's for months she was never theirs. `ownedThenByOf` is how every other Venture sum
+ * asks it, and the Settlement is worked out through it.
+ */
+export const theirProgress = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  /** The Venture as its row holds it; the window counted to is the one in force today. */
+  venture: { id: string; targetWindowStart: string; targetWindowEnd: string },
+  now: Date
+): Promise<TheirProgress> => {
+  const { rows, handed, came } = await everyOneTheyHeld(tx, farmId, venture.id);
   const readDays = await gainReadDaysOf(tx, farmId);
 
   const animals: HerProgress[] = [];
@@ -229,14 +314,21 @@ export const theirProgress = async (
 
   for (const one of rows) {
     const view = fatteningOf(one.intake, one.weighIns, now, readDays);
+    const stretch = theirStretch(one, handed, came, venture.id, now);
     if (one.intake) {
       holdings.push({
-        takenOn: one.intake.arrivedAt,
-        until: one.sale?.soldAt ?? now,
-        cameKg: Number(one.intake.weightKg),
-        soldKg: one.sale ? Number(one.sale.weightKg) : null,
+        takenOn: stretch.from,
+        until: stretch.until,
+        cameKg: stretch.cameKg ?? Number(one.intake.weightKg),
+        soldKg: stretch.wentKg,
+        // What she put on while she was theirs: not the Farm's months with her before, nor her new owner's after.
         readings: one.weighIns
-          .filter((reading) => reading.flaggedNote === null)
+          .filter(
+            (reading) =>
+              reading.flaggedNote === null &&
+              reading.weighedAt >= stretch.from &&
+              reading.weighedAt < stretch.until
+          )
           .map((reading) => ({
             kg: Number(reading.weightKg),
             at: reading.weighedAt,
@@ -244,7 +336,8 @@ export const theirProgress = async (
         chargedMoney: 0,
       });
     }
-    const standing = !isExitState(one.state);
+    // Moved off them by an Internal Sale: gone from their herd as one sold, not standing in it.
+    const standing = !(stretch.handedOn || isExitState(one.state));
     const intakeKg = one.intake ? Number(one.intake.weightKg) : null;
     const since = view.sinceIntake;
     if (standing) {
@@ -263,7 +356,7 @@ export const theirProgress = async (
           });
         }
       }
-    } else if (one.state === "sold") {
+    } else if (stretch.handedOn || one.state === "sold") {
       soldCount += 1;
     } else if (one.state === "lost") {
       lostCount += 1;

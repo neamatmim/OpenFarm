@@ -739,6 +739,19 @@ describe("what a Settlement is", () => {
     });
   });
 
+  it("will not void a Sale of hers once its Settlement is approved", async () => {
+    // Approved above and not yet paid out: the Venture is still Selling, and a void would take her proceeds out of an
+    // account whose Settlement already holds them.
+    const owner = await as("owner", "2047-04-08T04:00:00.000Z");
+    await expect(
+      owner.client.sales.correct({
+        id: saleIds[0] ?? "",
+        reason: `ভুল ট্যাগ ${suffix}`,
+        changes: { voided: { from: false, to: true } },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "already_approved" } });
+  });
+
   it("will not have the Farm cover a loss that is not there", async () => {
     // The first run made money: the Farm takes a share of it, and has nothing to put in.
     const owner = await as("owner", "2047-04-07T04:00:00.000Z");

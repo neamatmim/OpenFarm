@@ -23,6 +23,7 @@ import {
   returnOf,
   returnOfHoldings,
   returnOnCapitalOf,
+  roundMoney,
   growthOfHoldings,
   seasonGroupsOf,
   seasonsOf,
@@ -38,9 +39,14 @@ import { hasBand } from "./band-store";
 import type { FarmCosts } from "./cost-store";
 import { farmCosts } from "./cost-store";
 import { dairyAnimalOf, dairyOf } from "./dairy-returns";
+import { farmsOwnOf } from "./farm-capital-store";
 import { bandOf } from "./feed-store";
 import { weighedForTheCrossing } from "./joining-store";
 import { lostSince } from "./missing-store";
+import {
+  adjustmentsOf,
+  whatAnAdjustmentSends,
+} from "./settlement-adjustment-store";
 import { approvedSettlementOf } from "./settlement-store";
 import { ownedThenByOf, whenEachCame } from "./venture-store";
 
@@ -227,6 +233,49 @@ const booksOf = async (
 const WITH_CATTLE = [...RUNNING_STATES, "settled"] as const;
 
 /**
+ * Each share of an approved Settlement with what every Adjustment paid since sent it (`whatAnAdjustmentSends`, the sum
+ * the payout booked) added to what the Settlement paid: their capital made both, and the statement lists both as paid.
+ * The Farm's own Units are sent nothing, and take nothing more here.
+ */
+const withAdjustmentsPaid = async <
+  Share extends { agreementId: string; units: number; shareMoney: number },
+>(
+  db: Pick<Database, "query">,
+  farmId: string,
+  approved: { row: { id: string }; shares: readonly Share[] }
+): Promise<Share[]> => {
+  const raised = await adjustmentsOf(db, farmId, approved.row.id);
+  const paid = raised.filter(
+    (one) => one.outcome === "paid" && one.perUnitPaidMoney > 0
+  );
+  if (paid.length === 0) {
+    return [...approved.shares];
+  }
+  const itsOwn = await farmsOwnOf(
+    db,
+    farmId,
+    approved.shares.map((one) => one.agreementId)
+  );
+  const sent = new Map<string, number>();
+  for (const one of paid) {
+    for (const part of whatAnAdjustmentSends(
+      one.perUnitPaidMoney,
+      approved.shares,
+      itsOwn
+    )) {
+      sent.set(
+        part.agreementId,
+        (sent.get(part.agreementId) ?? 0) + part.amountMoney
+      );
+    }
+  }
+  return approved.shares.map((one) => ({
+    ...one,
+    shareMoney: roundMoney(one.shareMoney + (sent.get(one.agreementId) ?? 0)),
+  }));
+};
+
+/**
  * Each Venture with cattle, worked from the Books as a Season is, with its approved Settlement once it is settled: what
  * it made then, the Farm's share, and the payouts its Investors' capital is counted to.
  */
@@ -291,7 +340,8 @@ const venturesOf = async (
         {
           profitMoney: approved.row.profitMoney,
           farmMoney: approved.row.farmMoney,
-          shares: approved.shares,
+          // oxlint-disable-next-line no-await-in-loop -- the same Venture's Adjustments, read beside its Settlement
+          shares: await withAdjustmentsPaid(db, farmId, approved),
           movements: movements.filter((one) => one.ventureId === venture.id),
         },
         floorDays,
@@ -838,7 +888,10 @@ export const agreementReturnOnCapital = async (
     return null;
   }
   const approved = await approvedSettlementOf(db, farmId, agreement.ventureId);
-  const share = approved?.shares.find((one) => one.agreementId === agreementId);
+  const shares = approved
+    ? await withAdjustmentsPaid(db, farmId, approved)
+    : [];
+  const share = shares.find((one) => one.agreementId === agreementId);
   if (!share) {
     return null;
   }

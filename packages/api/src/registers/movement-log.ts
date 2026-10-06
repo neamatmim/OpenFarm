@@ -23,6 +23,10 @@ const MOVEMENT_KINDS = [
   "side_change",
   "sale",
   ...MORTALITY_KINDS,
+  // Written off as Lost — gone from the morning she was last looked for — and found again: an Exit and a coming back,
+  // which an inspector reconciling the herd against the log has to see.
+  "lost",
+  "found",
 ] as const;
 type MovementKind = (typeof MOVEMENT_KINDS)[number];
 
@@ -150,7 +154,7 @@ const movementsBetween = async (
   range: { from: Date; until: Date }
 ): Promise<MovementRow[]> => {
   const within = { gte: range.from, lt: range.until };
-  const [moves, sales, deaths] = await Promise.all([
+  const [moves, sales, deaths, lost, found] = await Promise.all([
     movesBetween(db, farmId, within),
     db.query.sale.findMany({
       where: { farmId, soldAt: within },
@@ -160,11 +164,50 @@ const movementsBetween = async (
       where: { farmId, happenedAt: within },
       with: leaverColumns,
     }),
+    db.query.missing.findMany({
+      where: { farmId, writtenOffAt: { isNotNull: true }, since: within },
+      columns: { since: true },
+      with: {
+        animal: { columns: { tagNumber: true } },
+        pen: { columns: { name: true } },
+      },
+    }),
+    db.query.missing.findMany({
+      where: { farmId, writtenOffAt: { isNotNull: true }, foundAt: within },
+      columns: { foundAt: true },
+      with: {
+        animal: { columns: { tagNumber: true } },
+        pen: { columns: { name: true } },
+        finder: { columns: { name: true } },
+      },
+    }),
   ]);
   const lines: MovementRow[] = [
     ...moves,
     ...sales.map((one) => leaving(one, one.soldAt, "sale", one.destination)),
     ...deaths.map((one) => leaving(one, one.happenedAt, one.kind, null)),
+    ...lost.map((one): MovementRow => ({
+      at: one.since,
+      tagNumber: one.animal.tagNumber,
+      kind: "lost",
+      from: one.pen.name,
+      to: null,
+      recordedBy: null,
+    })),
+    ...found.flatMap((one): MovementRow[] =>
+      one.foundAt
+        ? [
+            {
+              at: one.foundAt,
+              tagNumber: one.animal.tagNumber,
+              kind: "found",
+              from: null,
+              to: one.pen.name,
+              recordedBy: one.finder?.name ?? null,
+            },
+          ]
+        : []
+    ),
   ];
   const orderOf = (kind: MovementKind) => MOVEMENT_KINDS.indexOf(kind);
   return lines.toSorted(

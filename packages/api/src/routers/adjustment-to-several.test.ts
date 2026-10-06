@@ -1,6 +1,7 @@
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { agreementReturnOnCapital } from "../returns-store";
 import { PAID_FROM_THE_ACCOUNT } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
@@ -18,6 +19,8 @@ const at = (instant: string) =>
 let ventureId = "";
 let saleId = "";
 let farmAccountId = "";
+/** The two Investors' Agreements, five Units each. */
+const agreements: string[] = [];
 
 beforeAll(async () => {
   const { client: owner } = await at("2097-01-02T04:00:00.000Z");
@@ -40,7 +43,6 @@ beforeAll(async () => {
     cattleBudgetMoney: 400_000,
   });
   ventureId = venture.id;
-  const agreements: string[] = [];
   for (const [name, phone] of [
     ["করিম", `0171${suffix}1`],
     ["রহিম", `0171${suffix}2`],
@@ -180,5 +182,24 @@ describe("a Settlement Adjustment paid to several Investors", () => {
       { amountMoney: 6000, farmAccountId, reference: `ADJ-${suffix} · 1/2` },
       { amountMoney: 6000, farmAccountId, reference: `ADJ-${suffix} · 2/2` },
     ]);
+  });
+
+  it("is in what their capital made, as the statement listing it paid says", async () => {
+    // Paid by the test before: ৳6,000 a share at the Settlement and ৳6,000 more since, so ৳12,000 on each ৳2,50,000 —
+    // 4.8 in the hundred, not the 2.4 the Settlement alone made.
+    const { client: owner } = await at("2097-02-02T04:00:00.000Z");
+    const { ventures } = await owner.returns.list();
+    expect(
+      ventures.find((one) => one.id === ventureId)?.returnOnCapital
+    ).toMatchObject({ capitalMoney: 500_000, shareMoney: 24_000 });
+    for (const agreementId of agreements) {
+      // oxlint-disable-next-line no-await-in-loop -- one Investor's reading at a time
+      const his = await agreementReturnOnCapital(
+        scratchDb(),
+        theFarm().id,
+        agreementId
+      );
+      expect(his?.per100).toBe(4.8);
+    }
   });
 });

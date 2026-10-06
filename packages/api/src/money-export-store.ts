@@ -7,7 +7,7 @@ import type {
   Side,
   SideShare,
 } from "@OpenFarm/domain";
-import { penHistoryOf, sidesOverTime } from "@OpenFarm/domain";
+import { penHistoryOf, sidesOverTime, startOfFarmDay } from "@OpenFarm/domain";
 
 import { THE_FARMS_PURSE } from "./money-store";
 import { receivableOfBuyers } from "./receivable-store";
@@ -43,6 +43,10 @@ const idsOf = (
   events: readonly { source: MoneySource; sourceId: string }[],
   source: MoneySource
 ) => events.filter((one) => one.source === source).map((one) => one.sourceId);
+
+/** What a record's facts are kept under: its kind and its id, since a broker's fee and its Sale share an id. */
+const factKey = (source: MoneySource, sourceId: string) =>
+  `${source}:${sourceId}`;
 
 /** An even split of something across these Sides, one part for each. */
 const splitAcross = (sides: readonly Side[]): RecordFacts["sides"] =>
@@ -122,6 +126,104 @@ const receivablePaymentFacts = (
 };
 
 /**
+ * The facts of a lorry and of an Internal Sale, split as Costs by Side charges them: a Buying Trip's money across the
+ * animals that came home on it, a Selling Trip's across every animal it carried, each by the Side she stood on that day;
+ * an Internal Sale's to the Side of the animal it handed over. One that carried nobody is the whole farm's.
+ */
+const carriedFactsOf = async (
+  db: Db,
+  farmId: string,
+  events: readonly { source: MoneySource; sourceId: string }[],
+  sideOf: (animal: { id: string; side: Side }, at: Date) => Side
+): Promise<(readonly [string, RecordFacts])[]> => {
+  const buyingIds = idsOf(events, "buying_trip");
+  const sellingIds = idsOf(events, "selling_trip");
+  const internalIds = [
+    ...idsOf(events, "internal_sale_in"),
+    ...idsOf(events, "internal_sale_out"),
+  ];
+  const [buying, selling, carried, handed] = await Promise.all([
+    db.query.buyingTrip.findMany({
+      where: { farmId, id: { in: buyingIds } },
+      columns: { id: true, wentTo: true },
+      with: {
+        intakes: {
+          columns: { arrivedAt: true },
+          with: { animal: { columns: { id: true, side: true } } },
+        },
+      },
+    }),
+    db.query.sellingTrip.findMany({
+      where: { farmId, id: { in: sellingIds } },
+      columns: { id: true, wentTo: true, wentOn: true },
+    }),
+    sellingIds.length === 0
+      ? []
+      : db.query.sellingTripAnimal.findMany({
+          where: { sellingTripId: { in: sellingIds } },
+          columns: { sellingTripId: true, animalId: true },
+        }),
+    db.query.internalSale.findMany({
+      where: { farmId, id: { in: internalIds } },
+      columns: { id: true, animalId: true, soldOn: true },
+    }),
+  ]);
+  const animalIds = [
+    ...new Set([
+      ...carried.map((one) => one.animalId),
+      ...handed.map((one) => one.animalId),
+    ]),
+  ];
+  const animals =
+    animalIds.length === 0
+      ? []
+      : await db.query.animal.findMany({
+          where: { farmId, id: { in: animalIds } },
+          columns: { id: true, side: true, tagNumber: true },
+        });
+  const byId = new Map(animals.map((one) => [one.id, one]));
+  return [
+    ...buying.map(
+      (one) =>
+        [
+          factKey("buying_trip", one.id),
+          {
+            reference: one.wentTo,
+            sides: splitAcross(
+              one.intakes.map((came) => sideOf(came.animal, came.arrivedAt))
+            ),
+          },
+        ] as const
+    ),
+    ...selling.map((one) => {
+      const aboard = carried.flatMap((line) => {
+        const her =
+          line.sellingTripId === one.id ? byId.get(line.animalId) : undefined;
+        return her ? [sideOf(her, one.wentOn)] : [];
+      });
+      return [
+        factKey("selling_trip", one.id),
+        { reference: one.wentTo, sides: splitAcross(aboard) },
+      ] as const;
+    }),
+    ...handed.flatMap((one) => {
+      const her = byId.get(one.animalId);
+      if (!her) {
+        return [];
+      }
+      const facts = {
+        reference: her.tagNumber,
+        sides: [{ side: sideOf(her, startOfFarmDay(one.soldOn)), part: 1 }],
+      };
+      return [
+        [factKey("internal_sale_in", one.id), facts] as const,
+        [factKey("internal_sale_out", one.id), facts] as const,
+      ];
+    }),
+  ];
+};
+
+/**
  * What each record behind these Money Events is known by and which Side its money belongs to, on the day
  * the money moved. Milk is the Dairy side's, and a bought animal the Fattening side's, as an Intake always
  * is. A sold animal's money is the Side she stood on when she went, and a Vet Fee is split across the
@@ -152,7 +254,13 @@ const recordFactsOf = async (
       db.query.sale.findMany({
         where: {
           farmId,
-          id: { in: [...idsOf(events, "sale"), ...receivable.clearedSaleIds] },
+          id: {
+            in: [
+              ...idsOf(events, "sale"),
+              ...idsOf(events, "sale_broker"),
+              ...receivable.clearedSaleIds,
+            ],
+          },
         },
         columns: { id: true, soldAt: true },
         with: {
@@ -207,12 +315,16 @@ const recordFactsOf = async (
   );
   return new Map<string, RecordFacts>([
     ...receivable.payments.map(
-      (one) => [one.id, receivablePaymentFacts(one, saleFacts)] as const
+      (one) =>
+        [
+          factKey("receivable_payment", one.id),
+          receivablePaymentFacts(one, saleFacts),
+        ] as const
     ),
     ...dispatches.map(
       (one) =>
         [
-          one.id,
+          factKey("dispatch", one.id),
           {
             reference: one.deliveryNote,
             sides: [{ side: "dairy" as const, part: 1 }],
@@ -222,35 +334,42 @@ const recordFactsOf = async (
     ...intakes.map(
       (one) =>
         [
-          one.id,
+          factKey("intake", one.id),
           {
             reference: one.animal.tagNumber,
             sides: [{ side: "fattening" as const, part: 1 }],
           },
         ] as const
     ),
-    ...sales.map(
-      (one) =>
-        [
-          one.id,
-          {
-            reference: one.animal.tagNumber,
-            sides: [{ side: sideOf(one.animal, one.soldAt), part: 1 }],
-          },
-        ] as const
-    ),
+    // A Sale's money, and the broker's fee on it beside it: the same animal, the same Side, each its own line.
+    ...sales.flatMap((one) => {
+      const facts = {
+        reference: one.animal.tagNumber,
+        sides: [{ side: sideOf(one.animal, one.soldAt), part: 1 }],
+      };
+      return [
+        [factKey("sale", one.id), facts] as const,
+        [factKey("sale_broker", one.id), facts] as const,
+      ];
+    }),
     ...feedIns.map(
       (one) =>
-        [one.id, { reference: one.feedItem.nameBn, sides: WHOLE_FARM }] as const
+        [
+          factKey("feed_in", one.id),
+          { reference: one.feedItem.nameBn, sides: WHOLE_FARM },
+        ] as const
     ),
     ...medicines.map(
       (one) =>
-        [one.id, { reference: one.product.nameBn, sides: WHOLE_FARM }] as const
+        [
+          factKey("medicine_purchase", one.id),
+          { reference: one.product.nameBn, sides: WHOLE_FARM },
+        ] as const
     ),
     ...fees.map((one) => {
       const seen = one.animals.map((line) => line.animal);
       return [
-        one.id,
+        factKey("vet_fee", one.id),
         {
           reference:
             seen
@@ -263,6 +382,7 @@ const recordFactsOf = async (
         },
       ] as const;
     }),
+    ...(await carriedFactsOf(db, farmId, events, sideOf)),
   ]);
 };
 
@@ -317,7 +437,7 @@ export const moneyForTheAccountant = async (
         });
   const accountName = new Map(accounts.map((one) => [one.id, one.name]));
   return events.map((one) => {
-    const fact = facts.get(one.sourceId);
+    const fact = facts.get(factKey(one.source, one.sourceId));
     const byHand = one.source === "by_hand";
     const { amountMoney } = one;
     return {

@@ -52,7 +52,13 @@ const treatmentsBetween = async (
       },
       giver: { columns: { name: true } },
       prescription: {
-        columns: { dose: true, route: true, days: true, times: true },
+        columns: {
+          dose: true,
+          route: true,
+          days: true,
+          times: true,
+          stoppedAt: true,
+        },
         with: {
           diagnosis: { columns: { disease: true } },
           vet: { columns: { name: true } },
@@ -78,8 +84,10 @@ const treatmentsBetween = async (
         drug: product.nameBn,
         dose: prescription?.dose ?? null,
         route: prescription?.route ?? null,
+        // Where the course had got to — and that the Vet stopped it, which an inspector reading an antibiotic course
+        // would otherwise take for one abandoned.
         course: prescription
-          ? `${one.number}/${prescription.days * prescription.times.length}`
+          ? `${one.number}/${prescription.days * prescription.times.length}${prescription.stoppedAt ? " · বন্ধ / stopped" : ""}`
           : null,
         givenBy: one.giver?.name ?? null,
         prescribedBy: prescription?.vet?.name ?? null,

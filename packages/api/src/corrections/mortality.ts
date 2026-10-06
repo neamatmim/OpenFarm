@@ -13,6 +13,7 @@ import {
   keepDeathPhoto,
   readMortality,
 } from "../mortality-store";
+import { assertNotSettledUp } from "../venture-act";
 import type { CorrectionKind, Corrector } from "./correction";
 import { changeOf, correctionInput, herVenturesAround } from "./correction";
 
@@ -44,6 +45,14 @@ const voidTheDeath = async (
       message: "This death was written before a death could be voided",
       data: { refusal: "cannot_be_voided" },
     });
+  }
+  // Her Venture's Settlement approved, not only settled, already counts her gone (venture-act's `assertNotSettledUp`).
+  const hers = await tx.query.animal.findFirst({
+    where: { id: row.animalId },
+    columns: { ownerVentureId: true },
+  });
+  if (hers?.ownerVentureId) {
+    await assertNotSettledUp(tx, row.farmId, hers.ownerVentureId);
   }
   await tx.delete(mortalityPhoto).where(eq(mortalityPhoto.mortalityId, row.id));
   await tx.delete(mortality).where(eq(mortality.id, row.id));

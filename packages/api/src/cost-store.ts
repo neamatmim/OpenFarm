@@ -973,10 +973,18 @@ export const theFarmsOwn = (
   /** The Internal Sale that last put each animal where she is (`boughtInOf`); left out, every price is her first. */
   boughtIn: ReadonlyMap<
     string,
-    { toVentureId: string | null; priceMoney: number }
+    { toVentureId: string | null; priceMoney: number; handedOver: Date }
   > = new Map()
 ): FarmCosts => {
-  const charges = chargesOfOwner(costs.charges, null, ownedThenBy);
+  // An animal the Farm bought back is the Farm's from the buy-back, at its price: what she was charged in its first
+  // stretch with her was recovered by the Internal Sale that took her off it, and counted again it took her margin twice.
+  const sinceBoughtBack = (one: { animalId: string; at: Date }) => {
+    const back = boughtIn.get(one.animalId);
+    return !(back && back.toVentureId === null && one.at < back.handedOver);
+  };
+  const charges = chargesOfOwner(costs.charges, null, ownedThenBy).filter(
+    sinceBoughtBack
+  );
   const litres = costs.litres.filter(
     (one) => ownedThenBy(one.animalId, one.at) === null
   );

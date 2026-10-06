@@ -416,6 +416,8 @@ export interface TheirHerdStory {
   soldCount: number;
   averageSoldMoney: number | null;
   boughtBackCount: number;
+  /** Sold on to another Venture: an Internal Sale to a purse that is not the Farm's, which is not a Sale. */
+  soldAcrossCount: number;
   /** Lost and made good by the Farm. */
   lostCount: number;
   diedCount: number;
@@ -567,6 +569,7 @@ export const theirHerdStory = async (
   const bought: number[] = [];
   const sold: number[] = [];
   let boughtBackCount = 0;
+  let soldAcrossCount = 0;
   let diedCount = 0;
   let lostCount = 0;
 
@@ -604,6 +607,11 @@ export const theirHerdStory = async (
     if (one.fromVentureId === ventureId && one.toVentureId === null) {
       boughtBackCount += 1;
     }
+    // Let go to another Venture: gone from this run's herd at a price, as surely as to a buyer, or its counts do not
+    // add up to what it bought.
+    if (one.fromVentureId === ventureId && one.toVentureId !== null) {
+      soldAcrossCount += 1;
+    }
   }
   return {
     boughtCount: bought.length,
@@ -611,6 +619,7 @@ export const theirHerdStory = async (
     soldCount: sold.length,
     averageSoldMoney: meanMoney(sold),
     boughtBackCount,
+    soldAcrossCount,
     diedCount,
     lostCount,
   };

@@ -27,7 +27,9 @@ import {
   ageWords,
   doseWords,
   herWithdrawalWords,
+  leftWords,
   penSpellWords,
+  sexWords,
   sourceWords,
 } from "../paper-words";
 import { languageOf } from "../reader-language";
@@ -193,7 +195,7 @@ export const papersRouter = {
       const text = animalPassport({
         farm: context.farm,
         tagNumber: her.tagNumber,
-        sex: her.sex,
+        sex: sexWords(her.sex),
         // The passport is the farm's Bangla paper with English labels, so the breed goes on it in Bangla.
         breed: her.breed?.nameBn ?? null,
         age: ageWords(her, language),
@@ -216,6 +218,7 @@ export const papersRouter = {
         // Where she went, not who took her: R7 names the destination, and one buyer's name is
         // not the next holder's business.
         leftFor: her.sale?.destination ?? null,
+        left: leftWords(her.exit, language),
         producedBy: context.actor.name,
         producedAt: formatDate(now, language, "dateTime"),
       });

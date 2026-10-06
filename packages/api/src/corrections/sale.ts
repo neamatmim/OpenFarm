@@ -34,6 +34,7 @@ import {
   salePriceInput,
   readSale,
 } from "../sale-store";
+import { assertNotSettledUp } from "../venture-act";
 import { lockTheFarm } from "../venture-store";
 import type { CorrectionKind, Corrector } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
@@ -94,12 +95,21 @@ const voidTheSale = async (
           columns: { id: true },
         })
       : undefined);
-  const venture = await tx.query.ventureMovement.findFirst({
-    where: { saleId: row.id },
-    columns: { ventureId: true },
-    with: { venture: { columns: { state: true } } },
+  // Her Venture's Settlement approved — not only settled — holds what she fetched: a void after it took the proceeds
+  // out of an account whose Settlement already counted them (venture-act's `assertNotSettledUp`).
+  const hers = await tx.query.animal.findFirst({
+    where: { id: row.animalId },
+    columns: { ownerVentureId: true },
   });
-  if (paidOrWrittenOff || venture?.venture?.state === "settled") {
+  if (hers?.ownerVentureId) {
+    await assertNotSettledUp(tx, row.farmId, hers.ownerVentureId);
+  }
+  // Cash deposited into the Venture Account is in the bank: voiding the Sale would take it off the account's books.
+  const deposited = await tx.query.ventureMovement.findFirst({
+    where: { saleId: row.id, handoverId: { isNotNull: true } },
+    columns: { id: true },
+  });
+  if (paidOrWrittenOff || deposited) {
     throw new ORPCError("BAD_REQUEST", {
       message: "Money has moved on this Sale since; put it right instead",
       data: { refusal: "money_moved_since" },

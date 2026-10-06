@@ -271,3 +271,66 @@ describe("the accountant's export", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
+
+describe("the export's Sides for a lorry and a broker", () => {
+  it("are the Fattening side's, as Costs by Side charges them, each line known by its own record", async () => {
+    const manager = await as("manager", "2040-05-02T04:00:00.000Z");
+    const shed = await manager.client.sheds.create({ name: `lorry-${suffix}` });
+    const pen = await manager.client.sheds.pens.create({
+      quarantine: true,
+      shedId: shed.id,
+      name: `লরি ${suffix}`,
+    });
+    const bull = await manager.client.intakes.record({
+      penId: pen.id,
+      sex: "male",
+      seller: { name: `হাট ${suffix}` },
+      purchasePriceMoney: 40_000,
+      weightKg: 250,
+      estimatedAgeMonths: 20,
+      targetWindowStart: "2040-06-01",
+      targetWindowEnd: "2040-06-05",
+    });
+    // To the market on the 20th: ৳3,000 of lorry, and ৳500 to the broker who found the buyer.
+    const going = await as("manager", "2040-05-20T04:00:00.000Z");
+    const trip = await going.client.sellingTrips.record({
+      wentTo: `গাবতলী ${suffix}`,
+      transportMoney: 3000,
+      animals: [bull.tagNumber],
+      wentOn: new Date("2040-05-20T04:00:00.000Z"),
+    });
+    const sold = await going.client.sales.record({
+      tagNumber: bull.tagNumber,
+      buyer: { name: `কসাই মে ${suffix}` },
+      priceMoney: 45_000,
+      weightKg: 265,
+      brokerMoney: 500,
+      destination: "গাবতলী",
+      vehicle: "ঢাকা মেট্রো ট ১২",
+      driver: "করিম",
+    });
+
+    const owner = await as("owner", "2040-06-01T04:00:00.000Z");
+    const { csv } = await owner.client.reports.accountantExport({
+      from: "2040-05-01",
+      to: "2040-05-31",
+      format: "csv",
+    });
+    const rows = (csv ?? "").slice(1).trim().split("\r\n");
+    const line = (record: string, id: string) =>
+      rows.find((row) => row.includes(`,${record},${id},`));
+    // A lorry that carried only Fattening animals is the Fattening side's on Costs by Side; the export says the same.
+    expect(line("selling_trip", trip.id)).toContain(",fattening,selling_trip,");
+    // The broker's money is his own record's line — out, under its own Category — known by the bull it was paid on.
+    expect(line("sale_broker", sold.id)).toContain(
+      `,fattening,sale_broker,${sold.id},${bull.tagNumber},`
+    );
+    const { summary } = await owner.client.reports.accountantExport({
+      from: "2040-05-01",
+      to: "2040-05-31",
+      format: "paper",
+    });
+    // Nothing of May's is the whole farm's: the bull, his lorry, his broker and his price are all Fattening's.
+    expect(summary?.bySide.find((one) => one.side === null)).toBeUndefined();
+  });
+});
