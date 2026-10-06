@@ -5,7 +5,7 @@ import {
   amendmentOfferAnswer,
 } from "@OpenFarm/db/schema/venture";
 import type { PaperDocument } from "@OpenFarm/domain";
-import { farmDayOf } from "@OpenFarm/domain";
+import { farmDayOf, othersNamedOnly } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Acting } from "./agreeing-in-app";
@@ -436,6 +436,10 @@ export const theirAmendmentOffers = async (
     }),
   ]);
   const nameOf = new Map(runs.map((one) => [one.id, one.name]));
+  const reader = await context.db.query.investor.findFirst({
+    where: { id: investorId, farmId: context.farm.id },
+    columns: { name: true, phone: true },
+  });
   return named.map((one) => ({
     id: one.id,
     ventureName: nameOf.get(one.ventureId) ?? "",
@@ -446,7 +450,11 @@ export const theirAmendmentOffers = async (
     offeredAt: one.offeredAt,
     agreedAt:
       answers.find((answer) => answer.offerId === one.id)?.agreedAt ?? null,
-    paper: one.paper as PaperDocument,
+    // The other Investors by name alone. What they agree to is the paper kept, by its fingerprint, all the same.
+    paper: othersNamedOnly(
+      one.paper as PaperDocument,
+      reader ?? { name: "", phone: "" }
+    ),
     paperHash: one.paperHash,
   }));
 };

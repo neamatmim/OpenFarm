@@ -17,6 +17,29 @@ export type Owned = Context & {
 };
 
 /**
+ * Whether an account signs in at this address that is another Investor's: tied to an invitation that is not this
+ * Investor's. One Investor to an account, whatever phone either is written down with today.
+ */
+export const accountOfAnotherAt = async (
+  db: Pick<Context["db"], "query">,
+  loginEmail: string,
+  investorId: string
+): Promise<boolean> => {
+  const account = await db.query.user.findFirst({
+    where: { email: loginEmail },
+    columns: { id: true },
+  });
+  if (!account) {
+    return false;
+  }
+  const tied = await db.query.investorAccess.findFirst({
+    where: { userId: account.id, investorId: { ne: investorId } },
+    columns: { id: true },
+  });
+  return tied !== undefined;
+};
+
+/**
  * The Investor on this farm, and the address their portal account signs in as, once it is certain they can have one:
  * not retired, on a mobile number, and no other Investor's portal on that number.
  */
@@ -48,6 +71,14 @@ export const invitable = async (context: Owned, investorId: string) => {
   if (sharing && sharing.investorId !== investorId) {
     throw refused(
       "Another Investor on the same phone already has the portal",
+      "phone_has_portal"
+    );
+  }
+  // An account still answering to that number — another Investor's, whose phone was corrected but who has not yet
+  // taken up the code on the new one — is theirs: a code here would open it to somebody else.
+  if (await accountOfAnotherAt(context.db, loginEmail, investorId)) {
+    throw refused(
+      "Another Investor's account still signs in on that phone",
       "phone_has_portal"
     );
   }

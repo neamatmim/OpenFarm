@@ -26,6 +26,8 @@ import { orpc } from "@/utils/orpc";
 const REFUSALS: Record<string, MessageKey> = {
   wrong_code: "portal.refused.wrongCode",
   portal_closed: "portal.refused.closed",
+  // An account another Investor still signs in with on that phone: theirs, never handed on.
+  phone_has_portal: "portal.refused.phoneHasPortal",
   password_too_short: "portal.refused.passwordTooShort",
   password_too_common: "auth.passwordTooCommon",
 };

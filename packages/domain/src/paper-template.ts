@@ -631,6 +631,42 @@ const investorRows = (him: PaperInvestor): DocumentRow[] =>
     row("জাতীয় পরিচয়পত্র", "NID", him.nid)
   );
 
+/** What a party's row of this label says, where it has one. */
+const valueOf = (rowsOf: readonly DocumentRow[], en: string) =>
+  rowsOf.find((one) => one.label.en === en)?.value;
+
+/**
+ * A paper as one Investor reads it in the portal: every party named, but another Investor by name alone — their
+ * phone, address, NID and Nominees are theirs, not this reader's (the Owner's decision, 2026-10-06). The Farm and the
+ * reader stand as the paper kept them. The paper kept, and printed for signing, is never changed by it.
+ */
+export const othersNamedOnly = (
+  paper: PaperDocument,
+  reader: { name: string; phone: string }
+): PaperDocument => ({
+  ...paper,
+  sections: paper.sections.map((section) =>
+    section.kind === "parties"
+      ? {
+          ...section,
+          parties: section.parties.map((party, index) => {
+            const theReader =
+              valueOf(party.rows, "Name") === reader.name &&
+              valueOf(party.rows, "Phone") === reader.phone;
+            return index === 0 || theReader
+              ? party
+              : {
+                  ...party,
+                  rows: party.rows.filter((one) => one.label.en === "Name"),
+                  nominees: [],
+                  lines: [],
+                };
+          }),
+        }
+      : section
+  ),
+});
+
 /** The blanks of the stamp box: the farm records all three when the paper comes back stamped. */
 const STAMP_BLANKS: Said[] = [
   { bn: "সিরিয়াল / চালান নম্বর", en: "Serial / challan no." },

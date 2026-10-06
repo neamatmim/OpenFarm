@@ -67,3 +67,18 @@ export const keysHeld = (): number => failures.size;
 export const forgetFailures = (key: string): void => {
   failures.delete(key);
 };
+
+/** Gives back one guess counted before it was known to be right: the latest counted at that moment. */
+export const takeBackOne = (key: string, now: Date): void => {
+  const at = failures.get(key);
+  const index = at?.lastIndexOf(now.getTime()) ?? -1;
+  if (!at || index === -1) {
+    return;
+  }
+  const kept = at.toSpliced(index, 1);
+  if (kept.length === 0) {
+    failures.delete(key);
+  } else {
+    failures.set(key, kept);
+  }
+};

@@ -283,6 +283,9 @@ export const createAuth = (
   const { baseURL, trustedOrigins } = originsFor(where);
 
   return betterAuth({
+    // An account's name is the farm's to write — the Owner's for staff, the Investor's record for an Investor — and the
+    // trail names everybody by it. Nothing here renames itself; the farm's own API sets the language.
+    disabledPaths: ["/update-user"],
     database: drizzleAdapter(db, {
       provider: "pg",
 

@@ -1,6 +1,7 @@
 import { createAuth } from "@OpenFarm/auth";
 import { eq } from "@OpenFarm/db/operators";
 import { user } from "@OpenFarm/db/schema/auth";
+import { env } from "@OpenFarm/env/server";
 import {
   createTestPrincipal,
   inviteWaitingFor,
@@ -108,5 +109,43 @@ describe("the door", () => {
     });
 
     expect(made.user.email).toBe(asked);
+  });
+});
+
+describe("an account's own name", () => {
+  it("is the farm's to write: nobody signed in renames themselves, and the trail keeps the name the farm knows", async () => {
+    await disabled(null);
+    const AUTH = `${env.BETTER_AUTH_URL}/api/auth`;
+    const signedIn = await auth.handler(
+      new Request(`${AUTH}/sign-in/email`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: env.BETTER_AUTH_URL,
+        },
+        body: JSON.stringify({ email: ours.email, password: PASSWORD }),
+      })
+    );
+    const cookie = (signedIn.headers.getSetCookie?.() ?? [])
+      .map((one) => one.split(";")[0])
+      .join("; ");
+    expect(cookie).not.toBe("");
+    const renamed = await auth.handler(
+      new Request(`${AUTH}/update-user`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: env.BETTER_AUTH_URL,
+          cookie,
+        },
+        body: JSON.stringify({ name: "মালিক" }),
+      })
+    );
+    expect(renamed.status).toBe(404);
+    const after = await scratchDb().query.user.findFirst({
+      where: { email: ours.email },
+      columns: { name: true },
+    });
+    expect(after?.name).toBe(ours.name);
   });
 });
