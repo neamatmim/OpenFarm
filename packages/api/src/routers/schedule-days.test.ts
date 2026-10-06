@@ -1,5 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -87,5 +87,62 @@ describe("a schedule kept on some days of the week", () => {
     await expect(owner.sops.create({ content })).rejects.toMatchObject({
       code: "BAD_REQUEST",
     });
+  });
+});
+
+describe("a schedule moved by a new Version during the day", () => {
+  const twiceADay = (times: string[]): SopContent => ({
+    ...weighing(),
+    name: { bn: `দিনে দুবার ${suffix}`, en: "Twice a day" },
+    triggers: [{ kind: "schedule", times }],
+  });
+
+  it("keeps the day's work raised under the old one, and raises only what is still to come under the new", async () => {
+    const { client: owner } = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2066-03-01T00:00:00.000Z"),
+    });
+    const sop = await owner.sops.create({
+      content: twiceADay(["05:00", "16:00"]),
+    });
+    // The day's work raised at nine in the morning, the farm's clock: the morning one and the afternoon one.
+    const morning = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2066-03-02T03:00:00.000Z"),
+    });
+    await morning.client.work.ensureDue();
+    // At ten the Owner moves both half an hour later.
+    const publishing = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2066-03-02T04:00:00.000Z"),
+    });
+    await publishing.client.sops.publish({
+      definitionId: sop.definitionId,
+      content: twiceADay(["05:30", "16:30"]),
+      note: "দোহনের সময় আধা ঘণ্টা পিছিয়ে",
+    });
+    const later = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2066-03-02T04:30:00.000Z"),
+    });
+    await later.client.work.ensureDue();
+    const day = await scratchDb().query.sopInstance.findMany({
+      where: {
+        definitionId: sop.definitionId,
+        state: { ne: "called_off" },
+        dueAt: {
+          gte: new Date("2066-03-01T18:00:00.000Z"),
+          lt: new Date("2066-03-02T18:00:00.000Z"),
+        },
+      },
+      columns: { dueAt: true },
+      orderBy: { dueAt: "asc" },
+    });
+    // The morning's, done or not, under the old times; the afternoon's under the new. Not four, and not a 05:30 that
+    // was overdue the moment it was raised.
+    expect(day.map((one) => one.dueAt.toISOString())).toEqual([
+      "2066-03-01T23:00:00.000Z",
+      "2066-03-02T10:30:00.000Z",
+    ]);
   });
 });

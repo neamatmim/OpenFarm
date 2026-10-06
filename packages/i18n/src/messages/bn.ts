@@ -2102,6 +2102,7 @@ export const bn: Record<MessageKey, string> = {
   "audit.calledOffBy.calving_no_longer_expected":
     "বাতিল: তার বাচ্চা দেওয়া আর প্রত্যাশিত নয়",
   "audit.calledOffBy.report_withdrawn": "বাতিল: রিপোর্ট ফিরিয়ে নেওয়া হয়েছে",
+  "audit.calledOffBy.version_published": "বাতিল: নতুন সংস্করণে সময় বদলেছে",
   "audit.calledOffBy.sop_retired": "বাতিল: কার্যপ্রণালীটি বাদ দেওয়া হয়েছে",
   "audit.calledOffBy.released": "বাতিল: পশুটি কোয়ারেন্টিন থেকে ছাড়া পেয়েছে",
   "audit.calledOffBy.excused": "বাতিল: ডাক্তার এই ডোজ মাফ করেছেন",

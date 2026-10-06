@@ -33,12 +33,29 @@ export interface RenewalEntry {
 const RENEWAL_CAUSE = "registration:";
 
 /**
- * What raises the renewal work for a Registration: the year its certificate runs out. Once for each year's
- * certificate, so a Manager putting a typed expiry right within the year raises nothing more, and the renewed
- * certificate's year raises its own renewal when its lead comes.
+ * What raises the renewal work for a Registration: the day its certificate runs out. Once for each certificate, so the
+ * renewed one raises its own renewal when its lead comes — even where it runs out in the same year as the one it
+ * replaced, which a cause keyed on the year never raised. A typed expiry put right while its renewal is open raises
+ * nothing more: no renewal is raised while one is open (`openRenewalsOf`).
  */
 export const renewalCause = (expiresOn: Date): string =>
-  `${RENEWAL_CAUSE}${farmDayOf(expiresOn).slice(0, "YYYY".length)}`;
+  `${RENEWAL_CAUSE}${farmDayOf(expiresOn)}`;
+
+/** The SOPs with renewal work still open: none of them is given a second until it is done, missed or called off. */
+export const openRenewalsOf = async (
+  db: Pick<Tx, "query">,
+  farmId: string
+): Promise<Set<string>> => {
+  const open = await db.query.sopInstance.findMany({
+    where: {
+      farmId,
+      cause: { like: `${RENEWAL_CAUSE}%` },
+      state: { in: [...OPEN_INSTANCE_STATES] },
+    },
+    columns: { definitionId: true },
+  });
+  return new Set(open.map((one) => one.definitionId));
+};
 
 /**
  * The Registration's renewal as the Owner's exception list says it: when it runs out, whether it already

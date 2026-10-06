@@ -29,6 +29,9 @@ export const sopDefinition = pgTable(
     ),
     /** Set when the Owner retires an SOP; history and past Instances stay. */
     retiredAt: timestamp("retired_at", { withTimezone: true }),
+    /** When the Owner last brought it back from being retired: its work is raised afresh from then, and nothing that
+     *  happened while it was retired is owed. */
+    restoredAt: timestamp("restored_at", { withTimezone: true }),
     createdBy: text("created_by").references(() => user.id),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

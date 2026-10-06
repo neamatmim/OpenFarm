@@ -22,7 +22,14 @@ const as = (role: "owner" | "manager", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 let releaseId = "";
-const tags = { kept: "", missed: "", corrected: "", byHand: "", later: "" };
+const tags = {
+  kept: "",
+  missed: "",
+  corrected: "",
+  byHand: "",
+  later: "",
+  retired: "",
+};
 
 beforeAll(async () => {
   const owner = await as("owner", ARRIVED);
@@ -185,5 +192,41 @@ describe("a Release put off", () => {
     await expect(
       manager.client.farm.setParameters({ putOffDays: 5 })
     ).resolves.toBeDefined();
+  });
+});
+
+describe("a Release put off under a procedure since retired", () => {
+  it("is not raised again: the farm has switched the procedure off", async () => {
+    const { rows } = await hisReleases(RELEASE_DAY, tags.retired);
+    const [work] = rows;
+    const manager = await as("manager", RELEASE_DAY);
+    await manager.client.work.claim({ id: work?.id ?? "" });
+    await manager.client.work.completeStep({
+      instanceId: work?.id ?? "",
+      stepId: "healthy",
+      animalTag: tags.retired,
+      evidence: [],
+      skipReason: KEPT_IN,
+    });
+    // Taken and begun, so retiring leaves it for him to finish.
+    const owner = await as("owner", RELEASE_DAY);
+    await owner.client.sops.retire({ definitionId: releaseId });
+    for (const stepId of ["doses", "release"]) {
+      const skipping = stepId === "release";
+      // oxlint-disable-next-line no-await-in-loop -- the steps are walked in their order
+      await manager.client.work.completeStep({
+        instanceId: work?.id ?? "",
+        stepId,
+        animalTag: tags.retired,
+        evidence: skipping ? [] : [true],
+        ...(skipping ? { skipReason: KEPT_IN } : {}),
+      });
+    }
+    const after = await scratchDb().query.sopInstance.findMany({
+      where: { definitionId: releaseId, cause: { like: "%:again:%" } },
+      columns: { id: true, animalId: true },
+    });
+    const him = await manager.client.animals.get({ tagNumber: tags.retired });
+    expect(after.filter((one) => one.animalId === him.id)).toEqual([]);
   });
 });

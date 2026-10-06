@@ -63,9 +63,16 @@ export const raiseThePutOff = async (
       animalId: true,
       cause: true,
     },
-    with: { version: { columns: { content: true } } },
+    with: {
+      version: { columns: { content: true } },
+      definition: { columns: { retiredAt: true } },
+    },
   });
   if (!(work?.animalId && work.cause && work.version)) {
+    return;
+  }
+  // The farm has switched the procedure off: work it had begun is finished, and none raised again under it.
+  if (work.definition.retiredAt) {
     return;
   }
   const content = contentOf(work.version);

@@ -92,6 +92,7 @@ export const CALLED_OFF_BY = [
   "calving_no_longer_expected",
   "report_withdrawn",
   "sop_retired",
+  "version_published",
   "released",
   "excused",
 ] as const;

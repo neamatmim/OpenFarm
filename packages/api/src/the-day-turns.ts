@@ -38,7 +38,7 @@ import { missedToTell, raiseMissedSums } from "./monthly-sums-store";
 import { tell } from "./notice";
 import { carryThePost, pushRaised } from "./push-send";
 import { overdueToTell, raiseOverdueReceivable } from "./receivable-store";
-import { tellOfRenewals } from "./registration-store";
+import { openRenewalsOf, tellOfRenewals } from "./registration-store";
 import {
   reimbursementsToTell,
   tellAboutReimbursementsDue,
@@ -165,16 +165,23 @@ export const theDaysWork = async (context: Turning) => {
   });
   const sops = definitions
     .filter((definition) => definition.currentVersion)
-    .map((definition) => ({
-      definitionId: definition.id,
-      versionId: definition.currentVersion?.id ?? "",
-      content: contentOf({ content: definition.currentVersion?.content }),
-      triggersInForceSince:
-        definition.currentVersion?.publishedAt ?? definition.createdAt,
-      // A procedure's first Version catches up with the animals already on their way; a later one does not raise
-      // again what the first raised.
-      catchesUp: definition.currentVersion?.number === 1,
-    }));
+    .map((definition) => {
+      const published =
+        definition.currentVersion?.publishedAt ?? definition.createdAt;
+      // Brought back from being retired after it was published, it is in force again from then: nothing that happened
+      // while it was retired is owed, nor caught up with.
+      const { restoredAt } = definition;
+      const restored = restoredAt !== null && restoredAt > published;
+      return {
+        definitionId: definition.id,
+        versionId: definition.currentVersion?.id ?? "",
+        content: contentOf({ content: definition.currentVersion?.content }),
+        triggersInForceSince: restored && restoredAt ? restoredAt : published,
+        // A procedure's first Version catches up with the animals already on their way; a later one does not raise
+        // again what the first raised.
+        catchesUp: !restored && definition.currentVersion?.number === 1,
+      };
+    });
   // As far back as the longest a procedure hangs work after an arrival or a State, so the one it catches up with
   // is found.
   const reachDays =
@@ -217,10 +224,15 @@ export const theDaysWork = async (context: Turning) => {
     breeding
   );
   // Work about the whole farm: its Registration coming up for renewal.
-  const forTheRenewal = renewalSlotsFor(now, sops, {
-    expiresOn: context.farm.registrationExpiresOn,
-    renewalLeadDays: context.farm.registrationRenewalLeadDays,
-  });
+  const forTheRenewal = renewalSlotsFor(
+    now,
+    sops,
+    {
+      expiresOn: context.farm.registrationExpiresOn,
+      renewalLeadDays: context.farm.registrationRenewalLeadDays,
+    },
+    await openRenewalsOf(context.db, context.farm.id)
+  );
   const slots = [...onTheSchedule, ...byWhatHappened, ...forTheRenewal];
   if (slots.length === 0) {
     return { raised: 0 };

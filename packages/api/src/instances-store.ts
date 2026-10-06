@@ -12,6 +12,7 @@ import type {
   SopContent,
 } from "@OpenFarm/domain";
 import {
+  goodUntilOf,
   EXIT_STATES,
   addDays,
   atFarmTime,
@@ -124,7 +125,9 @@ export interface Happening {
 export const renewalSlotsFor = (
   now: Date,
   sops: { definitionId: string; versionId: string; content: SopContent }[],
-  registration: { expiresOn: Date | null; renewalLeadDays: number }
+  registration: { expiresOn: Date | null; renewalLeadDays: number },
+  /** The SOPs whose renewal work is still open: given none more until it is done. */
+  stillOpen: ReadonlySet<string> = new Set()
 ): DueSlot[] => {
   const { expiresOn } = registration;
   if (
@@ -134,16 +137,19 @@ export const renewalSlotsFor = (
     return [];
   }
   return sops
-    .filter((sop) =>
-      sop.content.triggers.some(
-        (trigger) => trigger.kind === "registration_renewal"
-      )
+    .filter(
+      (sop) =>
+        !stillOpen.has(sop.definitionId) &&
+        sop.content.triggers.some(
+          (trigger) => trigger.kind === "registration_renewal"
+        )
     )
     .map((sop) => ({
       definitionId: sop.definitionId,
       versionId: sop.versionId,
       penId: null,
-      dueAt: expiresOn,
+      // When it runs out: the end of its last good day, so it is late only once the farm is unregistered.
+      dueAt: goodUntilOf(expiresOn),
       graceMinutes: sop.content.graceMinutes,
       assignedRole: sop.content.assignedRole,
       checkerRole: sop.content.checkerRole,
@@ -158,7 +164,15 @@ export const renewalSlotsFor = (
  */
 export const dueSlotsFor = (
   now: Date,
-  sops: { definitionId: string; versionId: string; content: SopContent }[],
+  sops: {
+    definitionId: string;
+    versionId: string;
+    content: SopContent;
+    /** When the Version in force was published. */
+    triggersInForceSince?: Date;
+    /** Its first Version, which nothing came before. */
+    catchesUp?: boolean;
+  }[],
   animals: { penId: string; side: string; state: string }[]
 ): DueSlot[] => {
   const slots: DueSlot[] = [];
@@ -193,6 +207,17 @@ export const dueSlotsFor = (
       }
       for (const time of schedule.times) {
         const dueAt = dueAtFor(now, time);
+        // A later Version's time — or one brought back from being retired — already late when it came into force is
+        // not raised that day: the Version before it raised the day's work, and work late the moment it was raised is
+        // work nobody was asked to do in time. As the first Version's catch-up, it raises nothing already overdue.
+        const lateBeforeItsVersion =
+          sop.catchesUp === false &&
+          sop.triggersInForceSince !== undefined &&
+          dueAt.getTime() + sop.content.graceMinutes * MINUTE_MS <=
+            sop.triggersInForceSince.getTime();
+        if (lateBeforeItsVersion) {
+          continue;
+        }
         if (wholeFarm) {
           if (pens.size > 0) {
             slots.push({
