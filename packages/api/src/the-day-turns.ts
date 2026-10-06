@@ -41,7 +41,7 @@ import {
 import { missingToTell, tellOfMissing } from "./missing-store";
 import { missedToTell, raiseMissedSums } from "./monthly-sums-store";
 import { tell } from "./notice";
-import { carryThePost, pushRaised } from "./push-send";
+import { carryThePost, carryWhatWasHeld, pushRaised } from "./push-send";
 import { overdueToTell, raiseOverdueReceivable } from "./receivable-store";
 import { openRenewalsOf, tellOfRenewals } from "./registration-store";
 import {
@@ -752,6 +752,8 @@ export const theSweep = async (context: Turning) => {
     ["Reimbursements", () => tellAboutReimbursements(context, now)],
     // And the safety texts that did not go when their notice was raised, tried again until they do.
     ["texts", () => textAgainWhatDidNotGo(context)],
+    // And the pushes the quiet hours held, or nothing carried, once the farm is awake.
+    ["held pushes", () => carryWhatWasHeld(context, now)],
   ];
   for (const [what, telling] of tellings) {
     try {

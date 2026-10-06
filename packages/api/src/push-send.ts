@@ -1,11 +1,19 @@
+import { and, inArray, isNull } from "@OpenFarm/db/operators";
+import { alert as alertRow } from "@OpenFarm/db/schema/alert";
 import type { AlertKind } from "@OpenFarm/domain";
-import { farmDayOf, isQuiet, wakesTheFarm } from "@OpenFarm/domain";
+import {
+  ALERT_KINDS,
+  farmDayOf,
+  isQuiet,
+  wakesTheFarm,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import { audited } from "./audit";
 import type { Context } from "./context";
 import { minuteOfFarmDay } from "./instances-store";
 import type { RaisedAlert } from "./instances-store";
+import { travelsByPush } from "./push";
 import type { Told } from "./push-store";
 import { carryTheDigest, claimTheDigest, pushAlerts } from "./push-store";
 
@@ -40,9 +48,12 @@ export const pushRaised = async (
     from: context.farm.quietFrom,
     until: context.farm.quietUntil,
   });
-  const toSend = asleep
-    ? raised.filter((alert) => wakesTheFarm(alert.kind as AlertKind))
-    : raised;
+  // Only what goes to a pocket at once: a digest's kinds wait for the post, and are never claimed here.
+  const toSend = (
+    asleep
+      ? raised.filter((alert) => wakesTheFarm(alert.kind as AlertKind))
+      : raised
+  ).filter((alert) => travelsByPush(alert.kind));
   if (toSend.length === 0) {
     return nothing;
   }
@@ -50,12 +61,28 @@ export const pushRaised = async (
     // Its own transaction, opened here rather than by the audited helper: there is no one
     // change this is about. Each Alert gets its own trail entry below, because what became
     // of telling one person about one thing belongs on that thing and not in a total.
-    return await context.db.transaction((tx) =>
-      pushAlerts(
+    return await context.db.transaction(async (tx) => {
+      // Carried by this push, and by no other: one held over the night and carried in the morning is carried once, and
+      // two sweeps at once do not both buzz the same pocket.
+      const claimed = await tx
+        .update(alertRow)
+        .set({ carriedAt: now })
+        .where(
+          and(
+            inArray(
+              alertRow.id,
+              toSend.map((one) => one.id)
+            ),
+            isNull(alertRow.carriedAt)
+          )
+        )
+        .returning({ id: alertRow.id });
+      const ours = new Set(claimed.map((one) => one.id));
+      return await pushAlerts(
         tx,
         context.push,
         context.farm.id,
-        toSend,
+        toSend.filter((one) => ours.has(one.id)),
         now,
         async (inner, alert, told) => {
           await audited(context).recordEvent(
@@ -69,8 +96,8 @@ export const pushRaised = async (
             { receivedAt: now }
           );
         }
-      )
-    );
+      );
+    });
   } catch (error) {
     // A push service that will not answer is not something to put in front of the person
     // who was going to be told. The Alert is already theirs to read.
@@ -79,6 +106,59 @@ export const pushRaised = async (
     }
     return nothing;
   }
+};
+
+/** The kinds a push carries at once. */
+const PUSHED_KINDS = ALERT_KINDS.filter((kind) => travelsByPush(kind));
+
+/** How far back a notice that should have gone at once and has not is still worth a pocket: a day. Older, it is in the
+ *  app already and a buzz about it would be news of nothing. */
+const STILL_NEWS_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Pushes what should have gone at once and has not: what the quiet hours held — a death at eleven at night reaches the
+ * Owner when the farm wakes, as the glossary says — and anything raised where no push followed it. Only while the farm
+ * is awake, and only what is a day old or less, each once.
+ */
+export const carryWhatWasHeld = async (
+  context: Context & { farm: NonNullable<Context["farm"]> },
+  now: Date
+) => {
+  const asleep = isQuiet(minuteOfFarmDay(now), {
+    from: context.farm.quietFrom,
+    until: context.farm.quietUntil,
+  });
+  if (asleep) {
+    return;
+  }
+  const held = await context.db.query.alert.findMany({
+    where: {
+      farmId: context.farm.id,
+      kind: { in: PUSHED_KINDS },
+      carriedAt: { isNull: true },
+      dismissedAt: { isNull: true },
+      createdAt: { gte: new Date(now.getTime() - STILL_NEWS_MS) },
+    },
+    columns: {
+      id: true,
+      userId: true,
+      kind: true,
+      entity: true,
+      entityId: true,
+      params: true,
+    },
+  });
+  if (held.length === 0) {
+    return;
+  }
+  await pushRaised(
+    context,
+    held.map((one) => ({
+      ...one,
+      params: (one.params ?? {}) as Record<string, unknown>,
+    })),
+    now
+  );
 };
 
 /**
@@ -96,14 +176,14 @@ export const carryThePost = async (
   upTo: Date
 ): Promise<{ people: number; told: Told }> => {
   const nothing = { people: 0, told: { sent: 0, gone: 0, missed: 0 } };
-  const post = await context.db.transaction((tx) =>
-    claimTheDigest(tx, context.farm.id, now, upTo)
-  );
-  if (post.length === 0) {
-    // Nothing to carry is not an event: no transaction, no trail entry.
-    return nothing;
-  }
+  // Claimed and carried in one transaction: claimed apart and committed before it went, a post the server died carrying
+  // was marked carried and never pushed. Now an unfinished carrying is claimed again the next time — at least once,
+  // never lost. Nothing to carry is still no trail entry.
   return await context.db.transaction(async (tx) => {
+    const post = await claimTheDigest(tx, context.farm.id, now, upTo);
+    if (post.length === 0) {
+      return nothing;
+    }
     const carried = await carryTheDigest(
       tx,
       context.push,

@@ -12,6 +12,7 @@ import {
 } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { tell } from "../notice";
 import type { PushMessage, PushTarget, PushTransport } from "../push";
 import { aMonthOn } from "../test/carrying";
 import { createTestClient } from "../test/client";
@@ -664,5 +665,146 @@ describe("being told", () => {
     expect(swept.overdue).toBeGreaterThan(0);
     const inbox = await sweeper.client.alerts.mine({ entityId: instance.id });
     expect(inbox.some((row) => row.kind === "instance_overdue")).toBe(true);
+  });
+});
+
+describe("a notice raised where no push followed it", () => {
+  it("is carried by the next sweep while the farm is awake: a dose from an expired Lot reaches the Manager's pocket", async () => {
+    const post = listeningPost();
+    // Ten in the morning, farm time, on a day of its own.
+    const clock = new FakeClock("2027-04-02T04:00:00.000Z");
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      push: post.transport,
+    });
+    const mine = endpoint();
+    await manager.client.push.subscribe({
+      endpoint: mine,
+      p256dh: "key",
+      auth: "secret",
+    });
+    // Raised as the dose's own write raises it: the notice, and no push behind it.
+    const id = `expired-dose-${suffix}`;
+    await scratchDb().transaction((tx) =>
+      tell(
+        tx,
+        theFarm().id,
+        {
+          kind: "expired_dose_given",
+          about: { id },
+          facts: {
+            tag: "BD-0142",
+            name: "অক্সিটেট্রাসাইক্লিন",
+            lotNumber: `LOT-${suffix}`,
+            expiresOn: "2027-03-01",
+          },
+        },
+        clock.now()
+      )
+    );
+    await manager.client.alerts.sweep();
+    const pushed = post.sent.filter(
+      (one) => one.target.endpoint === mine && one.message.tag?.includes(id)
+    );
+    expect(pushed).toHaveLength(1);
+    // And it opens her page, as the list leads, not the day's work.
+    expect(pushed[0]?.message.url).toBe("/animals/BD-0142");
+  });
+});
+
+describe("whose a browser's pushes are", () => {
+  it("follows whoever is PIN-switched in on the Shed Phone", async () => {
+    const post = listeningPost();
+    const clock = new FakeClock("2027-04-05T05:00:00.000Z");
+    const handset = endpoint();
+    const first = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+      push: post.transport,
+    });
+    await first.client.push.subscribe({
+      endpoint: handset,
+      p256dh: "key",
+      auth: "secret",
+    });
+    // The next milker PINs in on the same handset, which now speaks for them.
+    const next = await createTestClient(appRouter, {
+      as: "otherStaff",
+      clock,
+      onShedPhone: true,
+      push: post.transport,
+    });
+    await expect(
+      next.client.push.subscribe({
+        endpoint: handset,
+        p256dh: "key",
+        auth: "secret",
+      })
+    ).resolves.toBeDefined();
+    const row = await scratchDb().query.pushSubscription.findFirst({
+      where: { endpoint: handset },
+      columns: { userId: true },
+    });
+    expect(row?.userId).toBe(thePerson("otherStaff").id);
+  });
+
+  it("is given up by signing out, and the next person on that browser is told instead", async () => {
+    const post = listeningPost();
+    const clock = new FakeClock("2027-04-06T05:00:00.000Z");
+    const office = endpoint();
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+      push: post.transport,
+    });
+    await owner.client.push.subscribe({
+      endpoint: office,
+      p256dh: "key",
+      auth: "secret",
+    });
+    // Signing out of the office computer forgets its browser, as the web's sign-out asks.
+    await owner.client.push.unsubscribe({ endpoint: office });
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      push: post.transport,
+    });
+    await expect(
+      manager.client.push.subscribe({
+        endpoint: office,
+        p256dh: "key",
+        auth: "secret",
+      })
+    ).resolves.toBeDefined();
+  });
+
+  it("is never taken from somebody still listening, off a Shed Phone", async () => {
+    const post = listeningPost();
+    const clock = new FakeClock("2027-04-07T05:00:00.000Z");
+    const theirs = endpoint();
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+      push: post.transport,
+    });
+    await owner.client.push.subscribe({
+      endpoint: theirs,
+      p256dh: "key",
+      auth: "secret",
+    });
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      push: post.transport,
+    });
+    await expect(
+      manager.client.push.subscribe({
+        endpoint: theirs,
+        p256dh: "key",
+        auth: "secret",
+      })
+    ).rejects.toMatchObject({ code: "CONFLICT" });
   });
 });

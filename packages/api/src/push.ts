@@ -40,19 +40,38 @@ export const silentTransport: PushTransport = {
   send: () => Promise.resolve({ delivered: false, gone: false }),
 };
 
-/** Where a push opens: the work it is about, the animal a death is about, or else the day's list. */
+/** The places a kind leads to whatever it names, as the in-app list's own (alert-list.tsx). */
+const PLACE_OF: Partial<Record<string, string>> = {
+  day_not_turning: "/farm/backups",
+  backup_overdue: "/farm/backups",
+  entry_rejected: "/outbox",
+};
+
+/**
+ * Where a push opens, as the in-app list leads: a kind's own place; a Venture's Investors for an Investor's note; the
+ * work it is about; the animal it names by her tag; else the day's list.
+ */
 const urlOf = (alert: {
+  kind?: string;
   entity: string;
   entityId: string;
   params: unknown;
 }): string => {
+  const place = alert.kind ? PLACE_OF[alert.kind] : undefined;
+  if (place) {
+    return place;
+  }
+  const params = (alert.params ?? {}) as { tag?: unknown; ventureId?: unknown };
+  if (
+    alert.kind === "pay_in_note_sent" &&
+    typeof params.ventureId === "string"
+  ) {
+    return `/ventures/${params.ventureId}/investors`;
+  }
   if (alert.entity === "sop_instance") {
     return `/work/${alert.entityId}`;
   }
-  const tag = (alert.params as { tag?: unknown } | null)?.tag;
-  return alert.entity === "mortality" && typeof tag === "string"
-    ? `/animals/${tag}`
-    : "/work";
+  return typeof params.tag === "string" ? `/animals/${params.tag}` : "/work";
 };
 
 /** What a kind says in a pocket, and nothing for the kinds that do not travel that way: the farm's own table puts a
