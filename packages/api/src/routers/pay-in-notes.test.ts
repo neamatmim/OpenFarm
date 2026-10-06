@@ -710,3 +710,85 @@ describe("the words a note keeps to", () => {
     expect([...PAY_IN_CLOSE_REASONS]).toEqual([...CLOSE_REASONS_KEPT]);
   });
 });
+
+describe("money owed, as the portal says it", () => {
+  beforeAll(async () => {
+    await switchedOn();
+    // More Investors in this file than the farm's own twenty.
+    const owner = await as("owner");
+    await owner.farm.setParameters({ investorCap: 50 });
+  });
+
+  it("is owed no more once the Venture takes no more capital, whatever was not paid", async () => {
+    const ventureId = await aVenture("আর নেয় না");
+    const them = await signedUp("অর্ধেক দিয়েছে", ventureId, 2);
+    const owner = await as("owner");
+    await owner.ventures.takeCapital({
+      agreementId: them.agreementId,
+      amountMoney: 50_000,
+      movedOn: TODAY,
+      paymentMethod: "bank",
+      reference: "BEFTN 70",
+    });
+    const before = await owner.investors.agreements({ id: them.id });
+    expect(before.agreements[0]?.venture.takesCapital).toBe(true);
+    await owner.ventures.startBuying({ id: ventureId });
+    // Half his Units' price never came; the Venture buys on what did, and takes no more. The portal reads that.
+    const after = await owner.investors.agreements({ id: them.id });
+    expect(after.agreements[0]).toMatchObject({
+      promisedMoney: 100_000,
+      capitalHeldMoney: 50_000,
+      venture: { takesCapital: false },
+    });
+  });
+
+  it("closes a note waiting on it once a Correction fills its paper", async () => {
+    const ventureId = await aVenture("সংশোধনে শোধ");
+    const them = await signedUp("সংশোধনে", ventureId, 2);
+    const owner = await as("owner");
+    const taken = await owner.ventures.takeCapital({
+      agreementId: them.agreementId,
+      amountMoney: 60_000,
+      movedOn: TODAY,
+      paymentMethod: "bank",
+      reference: "BEFTN 71",
+    });
+    const sent = await them.client.portal.sendPayInNote(
+      saying(them.agreementId, 40_000)
+    );
+    // The slip said a lakh: sixty was typed where a hundred thousand came.
+    await owner.ventures.movements.correct({
+      id: taken.id,
+      reason: `স্লিপে এক লাখ ${suffix}`,
+      changes: { amountMoney: { from: 60_000, to: 100_000 } },
+    });
+    expect(await theirNote(them, sent.id)).toMatchObject({
+      state: "closed",
+      closedBecause: "nothing_owed",
+    });
+    expect(await toldAbout("owner", ventureId)).toEqual([]);
+  });
+
+  it("received for a sum other than the note's, says the sum the farm recorded", async () => {
+    const ventureId = await aVenture("অন্য অঙ্ক");
+    const them = await signedUp("অন্য অঙ্কে", ventureId, 2);
+    const sent = await them.client.portal.sendPayInNote(
+      saying(them.agreementId, 60_000)
+    );
+    const owner = await as("owner");
+    // The bank showed fifty-five thousand: that is what is his capital.
+    await owner.ventures.takeCapital({
+      agreementId: them.agreementId,
+      amountMoney: 55_000,
+      movedOn: TODAY,
+      paymentMethod: "bank",
+      reference: "BEFTN 72",
+      payInNoteId: sent.id,
+    });
+    expect(await theirNote(them, sent.id)).toMatchObject({
+      state: "received",
+      amountMoney: 60_000,
+      receivedMoney: 55_000,
+    });
+  });
+});

@@ -671,7 +671,9 @@ export const waitingNotesByVenture = async (
 /** A note as the Investor reads it back, and as the Owner does: never the photo itself, only whether there is one. */
 const noteAsRead = (
   row: typeof payInNote.$inferSelect,
-  photoed: ReadonlySet<string>
+  photoed: ReadonlySet<string>,
+  /** The capital each movement recorded, by its id. */
+  booked: ReadonlyMap<string, number>
 ) => ({
   id: row.id,
   ventureId: row.ventureId,
@@ -687,7 +689,26 @@ const noteAsRead = (
   answeredAt: row.answeredAt,
   closedBecause: row.closedBecause,
   closedAt: row.closedAt,
+  /** For one received, the capital the farm recorded from it — what is theirs, whatever the note said. */
+  receivedMoney: row.movementId ? (booked.get(row.movementId) ?? null) : null,
 });
+
+/** The capital each received note's movement recorded, as it stands after any Correction. */
+const bookedOf = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  rows: readonly { movementId: string | null }[]
+): Promise<Map<string, number>> => {
+  const ids = rows.flatMap((row) => row.movementId ?? []);
+  if (ids.length === 0) {
+    return new Map();
+  }
+  const moved = await db.query.ventureMovement.findMany({
+    where: { farmId, id: { in: ids } },
+    columns: { id: true, amountMoney: true },
+  });
+  return new Map(moved.map((one) => [one.id, one.amountMoney]));
+};
 
 /** Which of these notes have a photo kept with them. */
 const photoedOf = async (
@@ -715,12 +736,15 @@ export const theirPayInNotes = async (
     where: { farmId, investorId },
     orderBy: { createdAt: "desc", id: "desc" },
   });
-  const photoed = await photoedOf(
-    db,
-    farmId,
-    rows.map((row) => row.id)
-  );
-  return rows.map((row) => noteAsRead(row, photoed));
+  const [photoed, booked] = await Promise.all([
+    photoedOf(
+      db,
+      farmId,
+      rows.map((row) => row.id)
+    ),
+    bookedOf(db, farmId, rows),
+  ]);
+  return rows.map((row) => noteAsRead(row, photoed, booked));
 };
 
 /**
@@ -830,12 +854,13 @@ export const notesOnVenture = async (context: Acting, ventureId: string) => {
     where: { farmId, ventureId },
     orderBy: { createdAt: "desc", id: "desc" },
   });
-  const [photoed, people, papers] = await Promise.all([
+  const [photoed, booked, people, papers] = await Promise.all([
     photoedOf(
       context.db,
       farmId,
       rows.map((row) => row.id)
     ),
+    bookedOf(context.db, farmId, rows),
     context.db.query.investor.findMany({
       where: {
         farmId,
@@ -851,7 +876,7 @@ export const notesOnVenture = async (context: Acting, ventureId: string) => {
   const nameOf = new Map(people.map((one) => [one.id, one.name]));
   const codeOf = new Map(papers.map((one) => [one.id, one.payInCode]));
   return rows.map((row) => ({
-    ...noteAsRead(row, photoed),
+    ...noteAsRead(row, photoed, booked),
     investorId: row.investorId,
     investor: nameOf.get(row.investorId) ?? "",
     payInCode: codeOf.get(row.agreementId) ?? "",

@@ -1,3 +1,5 @@
+import { takesCapital } from "@OpenFarm/domain";
+
 import type { Tx } from "./audit";
 import { paperOnFile, theFarmsShare } from "./investor-store";
 import { termsInForceOn } from "./venture-store";
@@ -66,7 +68,13 @@ export const theirAgreements = async (
   const [ventures, papers, moved, shares, terms] = await Promise.all([
     db.query.venture.findMany({
       where: { farmId, id: { in: signed.map((one) => one.ventureId) } },
-      columns: { id: true, name: true, state: true, unitPriceMoney: true },
+      columns: {
+        id: true,
+        name: true,
+        state: true,
+        unitPriceMoney: true,
+        capitalPaid: true,
+      },
     }),
     db.query.agreementPaper.findMany({
       where: { farmId, agreementId: { in: agreementIds } },
@@ -174,6 +182,8 @@ export const theirAgreements = async (
         id: one.ventureId,
         name: run?.name ?? "",
         state: run?.state ?? "open",
+        /** Whether it takes capital today: once it does not, what was not paid is not owed (ADR 0018). */
+        takesCapital: run ? takesCapital(run) : false,
       },
       units: one.units,
       /** What the Units are worth at the Venture's price: the capital this paper promised. */

@@ -283,6 +283,14 @@ const NoteSheet = ({
 /** What became of a note, in a line under it: what the farm will do, did, or said. */
 const WhatBecameOfIt = ({ note }: { note: TheirNote }) => {
   const { t } = useLanguage();
+  const asMoney = useMoney();
+  // The capital the farm recorded from it, where that was not the sum they said: theirs is what was recorded.
+  const recordedOther =
+    note.receivedMoney !== null &&
+    note.receivedMoney !== undefined &&
+    note.receivedMoney !== note.amountMoney
+      ? note.receivedMoney
+      : null;
   if (note.state === "waiting") {
     return (
       <p className="text-muted-foreground text-sm">
@@ -291,7 +299,15 @@ const WhatBecameOfIt = ({ note }: { note: TheirNote }) => {
     );
   }
   if (note.state === "received") {
-    return <p className="text-sm">{t("portal.payIn.receivedSay")}</p>;
+    return (
+      <p className="text-sm">
+        {recordedOther === null
+          ? t("portal.payIn.receivedSay")
+          : t("portal.payIn.receivedSayAmount", {
+              amount: asMoney(recordedOther),
+            })}
+      </p>
+    );
   }
   if (note.state === "not_found") {
     return (

@@ -180,6 +180,8 @@ export const bn: Record<MessageKey, string> = {
   "portal.requests.comeAndSign": "{venture}-এ খামার আপনার সঙ্গে চুক্তি সই করবে",
   "portal.owed.line": "{venture}-এ এখনো {amount} দেওয়া বাকি।",
   "portal.owed.how": "কীভাবে দেবেন",
+  "portal.owed.notPaid":
+    "{venture}-এ {amount} দেওয়া হয়নি; এটি আর মূলধন নেয় না, তাই আপনার অংশ যা দিয়েছেন সেই অনুযায়ী।",
   "portal.noVenturesHint":
     "খামারের সঙ্গে সামনাসামনি চুক্তি সই করলে ভেঞ্চারটি এখানে দেখা যাবে।",
   "portal.noPapersHint":
@@ -296,6 +298,8 @@ export const bn: Record<MessageKey, string> = {
   "portal.payIn.withPhoto": "ছবি পাঠানো হয়েছে",
   "portal.payIn.waitingSay": "খামার নিজের হিসাব মিলিয়ে তা লিখবে।",
   "portal.payIn.receivedSay": "খামার তা পেয়েছে এবং আপনার মূলধন হিসেবে লিখেছে।",
+  "portal.payIn.receivedSayAmount":
+    "খামার তা পেয়েছে এবং {amount} আপনার মূলধন হিসেবে লিখেছে।",
   "portal.payIn.notFoundSay": "খামার হিসাবে তা পায়নি:",
   "portal.payIn.closed.nothing_owed": "বন্ধ: এই চুক্তিতে আর কিছু বাকি নেই।",
   "portal.payIn.closed.venture_takes_no_capital":

@@ -187,6 +187,8 @@ export const en = {
   "portal.requests.comeAndSign": "The farm will sign with you for {venture}",
   "portal.owed.line": "{amount} still to pay on {venture}.",
   "portal.owed.how": "How to pay",
+  "portal.owed.notPaid":
+    "{amount} was not paid on {venture}, which takes no more capital: your share is by what you paid.",
   "portal.noVenturesHint":
     "A Venture shows here once you have signed its Agreement with the farm, in person.",
   "portal.noPapersHint":
@@ -320,6 +322,8 @@ export const en = {
   "portal.payIn.waitingSay": "The farm will check its account and record it.",
   "portal.payIn.receivedSay":
     "The farm found it and recorded it as your capital.",
+  "portal.payIn.receivedSayAmount":
+    "The farm found it, and recorded your capital from it as {amount}.",
   "portal.payIn.notFoundSay": "The farm did not find it in the account:",
   "portal.payIn.closed.nothing_owed":
     "Closed: nothing is owed on this Agreement any more.",
