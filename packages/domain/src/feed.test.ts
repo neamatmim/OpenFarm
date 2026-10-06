@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  countedOverTheBook,
   daysLeftOf,
   fedPerDayOf,
   priceJumped,
@@ -395,5 +396,13 @@ describe("how many days of a feed are left", () => {
     expect(fedPerDayOf([fedDaysAgo(20, 50, now)], now)).toBe(0);
     expect(daysLeftOf(500, 0)).toBeNull();
     expect(daysLeftOf(-12, 20)).toBe(0);
+  });
+});
+
+describe("a count against a book below nothing", () => {
+  it("finds nothing over in an empty store, where feed was fed from a delivery nobody wrote down", () => {
+    expect(countedOverTheBook(0, -50)).toBe(0);
+    expect(countedOverTheBook(30, -50)).toBe(30);
+    expect(countedOverTheBook(80, 100)).toBe(-20);
   });
 });

@@ -360,6 +360,8 @@ export type StockMovement =
       quantity: number;
       /** What the lot cost; null for a Harvest from the farm's own fields. */
       priceMoney: number | null;
+      /** The delivery it was, and what its bag says, for reading what is left of each. */
+      lot?: { id: string; lotNumber: string | null; expiresOn: string | null };
     }
   | { kind: "out"; at: Date; quantity: number }
   /** A Stock Count: what was really there. It wins over whatever the store was thought to hold. The Step it was
@@ -446,6 +448,14 @@ export const stockLedger = (
     averagePriceMoney: price === null ? null : roundMoney(price),
   };
 };
+
+/**
+ * What a count found over the book: what it counted, less what the store was thought to hold — and a store thought to
+ * hold less than nothing held nothing. Feed fed from a delivery nobody wrote down left the book below nothing, and a
+ * count of an empty store then asked why it had found more, and booked feed found that never was.
+ */
+export const countedOverTheBook = (counted: number, book: number): number =>
+  roundKg(counted - Math.max(0, book));
 
 /**
  * What a Stock Count's differences come to in taka: each at the store's average price when it was counted, which is

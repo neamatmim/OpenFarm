@@ -358,6 +358,7 @@ export {
   scaleShortOf,
   sellersOnTheScale,
   shortfallOf,
+  countedOverTheBook,
   stockLedger,
   unitPriceOf,
 } from "./feed";

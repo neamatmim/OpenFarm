@@ -1,6 +1,6 @@
 import { dosePriceOf, roundMoney } from "@OpenFarm/domain";
 import type { ExpiryStanding, ExpiryWindow } from "@OpenFarm/domain/lots";
-import { expiryWindow } from "@OpenFarm/domain/lots";
+import { cameInAt, expiryWindow } from "@OpenFarm/domain/lots";
 import type { MedicineHappening } from "@OpenFarm/domain/medicine-store";
 import { medicineStoreOf } from "@OpenFarm/domain/medicine-store";
 
@@ -85,6 +85,7 @@ const historyOf = async (
       lotNumber: true,
       expiresOn: true,
       purchasedOn: true,
+      recordedAt: true,
     },
   });
   // One client to a transaction: read one after another.
@@ -114,11 +115,16 @@ const historyOf = async (
     return known;
   };
   for (const one of purchases) {
+    // Written down on its own day, it was bought by then — after a count that morning, not before it.
+    const at = cameInAt(one.purchasedOn, one.recordedAt);
+    if (upTo && at > upTo.at) {
+      continue;
+    }
     const line = of(one.drugProductId);
     line.purchases.push(one);
     line.happenings.push({
       kind: "bought",
-      at: one.purchasedOn,
+      at,
       lot: {
         id: one.id,
         quantity: one.doses,

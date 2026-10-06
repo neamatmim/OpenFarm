@@ -137,3 +137,122 @@ export const runsLow = ({
   level: number | null;
   retired: boolean;
 }): boolean => level !== null && !retired && onHand < level;
+
+/**
+ * When a delivery came into the store, as the store is replayed: its day's start — unless it was written down on that
+ * same day, when the moment it was written down. A delivery has only a day, and dated at midnight it sorted before a
+ * count made that morning: a lorry at four in the afternoon, written down on its day, was wiped out by the count it
+ * came after.
+ */
+export const cameInAt = (cameInOn: Date, recordedAt: Date): Date =>
+  recordedAt > cameInOn && farmDayOf(recordedAt) === farmDayOf(cameInOn)
+    ? recordedAt
+    : cameInOn;
+
+/** Something that happened to a store of Lots, at the moment it happened. */
+export type LotHappening<Lot extends LotIn> =
+  | { kind: "in"; at: Date; lot: Lot }
+  /** Used: a dose given, feed fed. The id, where it has one, is told which Lot it came out of. */
+  | { kind: "out"; at: Date; quantity: number; id?: string }
+  | { kind: "counted"; at: Date; counted: number };
+
+/** A store of Lots as it stands once replayed. */
+export interface LotsReplayed<Lot extends LotIn> {
+  /** Every Lot, in the order the store is used in, empty ones too. */
+  lots: LotStanding<Lot>[];
+  /** On the shelf from no Lot the farm wrote down: what counts found over the book. */
+  found: number;
+  onHand: number;
+  /** What every count found over the book as it stood just before it — less than nothing where it found less. */
+  countedDifference: number;
+  /** The Lot each use with an id came out of, the first it reached into; null for one from a Lot nobody wrote down. */
+  takenFrom: Map<string, string | null>;
+  /** The first Lot with something left and a day printed on it: the one to reach for, and to watch. */
+  next: LotStanding<Lot> | null;
+  /** How much is still on the shelf from Lots already past their day. */
+  pastItsDay: number;
+}
+
+/** At one instant, a Lot coming in before what is used, and both before the shelf is counted. */
+const HAPPENING_ORDER = { in: 0, out: 1, counted: 2 } as const;
+
+/**
+ * A store of Lots — a product's medicine or a Feed Item's feed — replayed in the order things happened: a Lot comes
+ * in, what is used comes out of the Lots first to expire among those already in, and a count is what was on the
+ * shelf — what it did not find gone from the Lots first to expire (a box past its day, thrown out, is one), what it
+ * found over the book kept as found.
+ *
+ * Replayed rather than worked out from a total: every use ever taken first-to-expire took it from Lots that came in
+ * after it, named the wrong Lot as expiring, and hid a later Lot's day from its warning.
+ */
+export const replayLots = <Lot extends LotIn>(
+  happenings: readonly LotHappening<Lot>[],
+  window: ExpiryWindow
+): LotsReplayed<Lot> => {
+  const inOrder = happenings.toSorted(
+    (a, b) =>
+      a.at.getTime() - b.at.getTime() ||
+      HAPPENING_ORDER[a.kind] - HAPPENING_ORDER[b.kind]
+  );
+  const lots: (Lot & { left: number })[] = [];
+  const takenFrom = new Map<string, string | null>();
+  let found = 0;
+  // Used with nothing on the book to use it from, until a count says what was really there.
+  let owed = 0;
+  let countedDifference = 0;
+  const onTheShelf = () => lots.reduce((sum, one) => sum + one.left, 0) + found;
+  /** Takes from the Lots first to expire; what is left over had no Lot to come from. The first Lot reached. */
+  const takeFromLots = (quantity: number) => {
+    let toTake = quantity;
+    let first: string | null = null;
+    for (const one of lots.toSorted(firstToUse)) {
+      const taken = Math.min(one.left, toTake);
+      if (taken > 0) {
+        first ??= one.id;
+      }
+      one.left -= taken;
+      toTake -= taken;
+    }
+    return { short: toTake, first };
+  };
+  for (const happening of inOrder) {
+    if (happening.kind === "in") {
+      lots.push({ ...happening.lot, left: happening.lot.quantity });
+    } else if (happening.kind === "out") {
+      const { short, first } = takeFromLots(happening.quantity);
+      const fromFound = Math.min(found, short);
+      found -= fromFound;
+      owed += short - fromFound;
+      if (happening.id) {
+        takenFrom.set(happening.id, first);
+      }
+    } else {
+      const book = Math.max(0, onTheShelf() - owed);
+      countedDifference += happening.counted - book;
+      owed = 0;
+      const over = onTheShelf() - happening.counted;
+      if (over > 0) {
+        const { short } = takeFromLots(over);
+        found = Math.max(0, found - short);
+      } else {
+        found -= over;
+      }
+    }
+  }
+  const standing = lots.toSorted(firstToUse).map((one) => ({
+    ...one,
+    standing: expiryStanding(one.expiresOn, window),
+  }));
+  return {
+    lots: standing,
+    found,
+    onHand: Math.max(0, onTheShelf() - owed),
+    countedDifference,
+    takenFrom,
+    next:
+      standing.find((one) => one.left > 0 && one.expiresOn !== null) ?? null,
+    pastItsDay: standing
+      .filter((one) => one.standing === "expired")
+      .reduce((sum, one) => sum + one.left, 0),
+  };
+};
