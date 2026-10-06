@@ -326,7 +326,8 @@ const Herd = ({ today }: { today: Today }) => {
   // No animal standing and none ever weighed: three boxes of dashes say nothing, so say why there are none.
   const noHerd = today.herd.standing === 0 && today.herd.weighed === 0;
   if (noHerd) {
-    const gone = today.herd.sold + today.herd.died > 0;
+    // Lost and made good counts as gone too: a Venture whose animals were all lost bought them all the same.
+    const gone = today.herd.sold + today.herd.died + (today.herd.lost ?? 0) > 0;
     return (
       <Section title={t("portal.herd")}>
         <EmptyState
@@ -628,7 +629,7 @@ const VentureToday = ({
   /** When this answer came back from the farm. */
   readAt: number;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const places = usePortalPlaces();
   const theirs = useTheirPortfolio();
@@ -683,6 +684,16 @@ const VentureToday = ({
       />
       <StageTrack state={today.venture.state} />
       <SummaryFigures figures={figures} hintsOnPhone />
+      {/* The Farm's own Units in it, as his Agreement and progress statement tell him. An answer this phone kept from
+          before the page said it has none. */}
+      {today.farmUnits ? (
+        <p className="text-muted-foreground text-sm">
+          {t("portal.offers.farmHolds", {
+            farmUnits: formatNumber(today.farmUnits.farmUnits, language),
+            units: formatNumber(today.farmUnits.ventureUnits, language),
+          })}
+        </p>
+      ) : null}
       {/* An answer this phone kept from before the portal could say it has none. */}
       <OnTheirCapital returned={mine?.returnOnCapital ?? null} />
       {/* While their capital is owed. An answer this phone kept from before the farm said where to pay has none. */}

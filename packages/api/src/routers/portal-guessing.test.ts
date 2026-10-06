@@ -63,3 +63,37 @@ describe("guessing codes at the portal's door", () => {
     ).rejects.toMatchObject({ data: { refusal: "wrong_code" } });
   });
 });
+
+/** What one try was answered with: the refusal's word, the error's code, or taken. */
+const wordOf = (one: PromiseSettledResult<unknown>) =>
+  one.status === "rejected"
+    ? ((one.reason as { data?: { refusal?: string }; code?: string }).data
+        ?.refusal ?? (one.reason as { code?: string }).code)
+    : "taken";
+
+describe("guesses sent all at once", () => {
+  it("are counted as surely as one after another: no more wrong codes are answered than the phone's limit", async () => {
+    const phone = `019${suffix}77`;
+    const callers = await Promise.all(
+      Array.from({ length: CODE_ATTEMPTS.limit * 4 }, (_, at) =>
+        from(`192.0.2.${(at % 250) + 1}`)
+      )
+    );
+    const answers = await Promise.allSettled(
+      callers.map((caller) =>
+        caller.portal.join({
+          phone,
+          code: "WRONGCOD",
+          password: "gorur-khamar-2026",
+        })
+      )
+    );
+    const words = answers.map(wordOf);
+    expect(words.filter((word) => word === "wrong_code").length).toBe(
+      CODE_ATTEMPTS.limit
+    );
+    expect(words.filter((word) => word === "TOO_MANY_REQUESTS").length).toBe(
+      CODE_ATTEMPTS.limit * 3
+    );
+  });
+});

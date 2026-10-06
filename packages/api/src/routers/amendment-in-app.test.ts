@@ -1,7 +1,6 @@
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { stillAsKept } from "../kept-paper";
 import { createTestClient } from "../test/client";
 import { invitingInvestors, signedInAs } from "../test/portal-client";
 import { appRouter } from "./index";
@@ -134,10 +133,21 @@ describe("an Amendment agreed in the app", () => {
       terms(ventureId)
     );
     const read = await agrees(first, id);
-    // What they read is the paper kept, naming them both.
-    expect(read && stillAsKept(read)).toBe(true);
-    expect(JSON.stringify(read?.paper)).toContain("প্রথম");
-    expect(JSON.stringify(read?.paper)).toContain("দ্বিতীয়");
+    // What they read is the paper kept, naming them both — the other by name alone: his phone, address, NID and
+    // Nominees are his, not the first Investor's to read. Their own stand as kept.
+    const [mine, his] = await Promise.all(
+      [first, second].map((one) =>
+        scratchDb().query.investor.findFirst({
+          where: { id: one.id },
+          columns: { phone: true },
+        })
+      )
+    );
+    const text = JSON.stringify(read?.paper);
+    expect(text).toContain("প্রথম");
+    expect(text).toContain("দ্বিতীয়");
+    expect(text).toContain(mine?.phone ?? "missing");
+    expect(text).not.toContain(his?.phone ?? "missing");
     await agrees(second, id);
     // Agreed by both, not yet approved: nothing has moved.
     const before = await owner.ventures.agreements.termsOn({

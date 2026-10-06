@@ -29,7 +29,7 @@ import { authClient } from "@/lib/auth-client";
  */
 const PortalLogin = () => {
   const { t, language } = useLanguage();
-  const { ended } = Route.useSearch();
+  const { ended, closed } = Route.useSearch();
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -81,6 +81,9 @@ const PortalLogin = () => {
           <Notice title={t("portal.endedTitle")} tone="info">
             {t("portal.endedHint")}
           </Notice>
+        ) : null}
+        {closed && !refused ? (
+          <Notice title={t("portal.closed")} tone="info" />
         ) : null}
         {refused ? <RefusedNotice refusal={refused} /> : null}
         <FormField id="portal-phone" label={t("portal.phone")}>
@@ -147,14 +150,22 @@ const PortalLogin = () => {
   );
 };
 
-/** What the address may say: that the portal just ended a sign-in that had lasted its day. */
+/** What the address may say: that the portal just ended a sign-in that had lasted its day, or that it is not open
+ *  to them any more. */
 interface LoginSearch {
   ended?: true;
+  closed?: true;
 }
 
 export const Route = createFileRoute("/portal/sign-in")({
-  validateSearch: (search: Record<string, unknown>): LoginSearch =>
-    search.ended === true || search.ended === "true" ? { ended: true } : {},
+  validateSearch: (search: Record<string, unknown>): LoginSearch => ({
+    ...(search.ended === true || search.ended === "true"
+      ? { ended: true as const }
+      : {}),
+    ...(search.closed === true || search.closed === "true"
+      ? { closed: true as const }
+      : {}),
+  }),
   // Somebody already signed in goes on to the portal, which sends anybody who is not an Investor to the farm.
   beforeLoad: async () => {
     let session: Awaited<ReturnType<typeof getUser>> = null;

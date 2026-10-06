@@ -1132,9 +1132,9 @@ export interface SettlementStatement {
   perUnit: string;
   /** Whether a Unit gained. On a losing run it lost, and the label has to say so as the others do. */
   perUnitRose: boolean;
-  /** What one Unit put in and what one Unit got back — the line he reads first. */
-  perUnitIn: string;
-  perUnitBack: string;
+  /** What one Unit put in and what one Unit got back — the line he reads first, said in both halves' own numerals. */
+  perUnitIn: Said;
+  perUnitBack: Said;
   rounding: string;
   farmShare: string;
   /** Whether the Farm's share was a share of profit. On a losing run the Farm bears its part too, and a
@@ -1161,7 +1161,7 @@ export interface SettlementStatement {
    * What their own capital made, once the Owner shows it (ADR 0012): the share over its days, already worded, and
    * whether it was a gain. Never a rate a year. Nothing while the Owner's switch is off.
    */
-  onCapital: { per100: string; days: string; rose: boolean } | null;
+  onCapital: { per100: Said; days: Said; rose: boolean } | null;
   /** What became of the cattle, already worded. */
   herd: string[];
   adjustments: StatementAdjustment[];
@@ -1211,7 +1211,7 @@ export const settlementStatement = (sheet: SettlementStatement): string =>
       field(
         "  প্রতি ইউনিট",
         "Per Unit",
-        `${sheet.perUnitIn} টাকা দিয়ে ${sheet.perUnitBack} টাকা / ${sheet.perUnitIn} in, ${sheet.perUnitBack} back`
+        `${sheet.perUnitIn.bn} টাকা দিয়ে ${sheet.perUnitBack.bn} টাকা / ${sheet.perUnitIn.en} in, ${sheet.perUnitBack.en} back`
       ),
       field("  ভগ্নাংশ খামারে", "Rounding to the Farm", `${sheet.rounding} টাকা`),
       sheet.farmShareRose
@@ -1270,8 +1270,8 @@ export const settlementStatement = (sheet: SettlementStatement): string =>
             "  মূলধনে",
             "On your capital",
             sheet.onCapital.rose
-              ? `প্রতি ১০০ টাকা মূলধনে ${sheet.onCapital.per100} টাকা লাভ, ${sheet.onCapital.days} দিনে / ${sheet.onCapital.per100} made on every ৳100 of your capital, over ${sheet.onCapital.days} days`
-              : `প্রতি ১০০ টাকা মূলধনে ${sheet.onCapital.per100} টাকা ক্ষতি, ${sheet.onCapital.days} দিনে / ${sheet.onCapital.per100} lost on every ৳100 of your capital, over ${sheet.onCapital.days} days`
+              ? `প্রতি ১০০ টাকা মূলধনে ${sheet.onCapital.per100.bn} টাকা লাভ, ${sheet.onCapital.days.bn} দিনে / ${sheet.onCapital.per100.en} made on every ৳100 of your capital, over ${sheet.onCapital.days.en} days`
+              : `প্রতি ১০০ টাকা মূলধনে ${sheet.onCapital.per100.bn} টাকা ক্ষতি, ${sheet.onCapital.days.bn} দিনে / ${sheet.onCapital.per100.en} lost on every ৳100 of your capital, over ${sheet.onCapital.days.en} days`
           )
         : null,
       "",

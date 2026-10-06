@@ -6,9 +6,11 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { audited } from "../audit";
 import { farmsOwnOf } from "../farm-capital-store";
 import { farmDay } from "../farm-clock";
 import { amountInput } from "../money-inputs";
+import { closePayInNotes } from "../pay-in-notes";
 import { lockTheFarm, readMovement } from "../venture-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
@@ -212,9 +214,9 @@ const assertWithinItsUnits = async (
   tx: Tx,
   row: MovementRow,
   amountMoney: number
-) => {
+): Promise<{ filled: boolean }> => {
   if (row.kind !== "capital_in" || !row.agreementId) {
-    return;
+    return { filled: false };
   }
   const agreement = await tx.query.investmentAgreement.findFirst({
     where: { id: row.agreementId, farmId: row.farmId },
@@ -250,6 +252,7 @@ const assertWithinItsUnits = async (
       cattlePartOnly ? "capital_over_cattle_part" : "capital_over_units"
     );
   }
+  return { filled: already + amountMoney >= owed };
 };
 
 /**
@@ -283,10 +286,22 @@ export const ventureMovementCorrection: CorrectionKind<
       reference: row.reference,
     }),
   trail: (tx, row) => readMovement(tx, row.farmId, row.id),
-  apply: async (tx, row, to) => {
+  apply: async (tx, row, to, { context, now }) => {
     if (to.amountMoney !== undefined) {
       assertTheFigureIsHersToChange(row);
-      await assertWithinItsUnits(tx, row, to.amountMoney);
+      const { filled } = await assertWithinItsUnits(tx, row, to.amountMoney);
+      // Nothing left owing on its paper now, as when the money was first taken: a note still waiting is for money the
+      // paper cannot take.
+      if (filled && row.agreementId) {
+        await closePayInNotes(
+          tx,
+          audited(context).recordEvent,
+          row.farmId,
+          { agreementId: row.agreementId },
+          "nothing_owed",
+          now
+        );
+      }
     }
     const putRight = {
       ...(to.amountMoney === undefined ? {} : { amountMoney: to.amountMoney }),

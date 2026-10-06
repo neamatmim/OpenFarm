@@ -153,23 +153,32 @@ export const papersToTell = async (
   if (ventures.length === 0) {
     return [];
   }
+  // One nobody has signed has nobody to send a paper to: never due, or the sweep would open a transaction to tell
+  // nobody every time somebody opens the app, and write that it had.
+  const signed = await signedForEach(
+    db as Tx,
+    farmId,
+    ventures.map((one) => one.id)
+  );
   const thisMonth = today.slice(0, "YYYY-MM".length);
-  const due = ventures.flatMap((one) => {
-    const occasions: Occasion[] = [{ kind: "month", month: thisMonth }];
-    // The Wind-up Period begins the day after the Target Window closes. Told while it runs, because
-    // the point of telling is that there is still time to sell.
-    if (
-      today > one.targetWindowEnd &&
-      today <= windUpEndsOn(one.targetWindowEnd, windUpDays)
-    ) {
-      occasions.push({ kind: "wind_up" });
-    }
-    return occasions.map((occasion) => ({
-      venture: one,
-      occasion,
-      noticeId: noticeId(one.id, occasion),
-    }));
-  });
+  const due = ventures
+    .filter((one) => (signed.get(one.id)?.people ?? 0) > 0)
+    .flatMap((one) => {
+      const occasions: Occasion[] = [{ kind: "month", month: thisMonth }];
+      // The Wind-up Period begins the day after the Target Window closes. Told while it runs, because
+      // the point of telling is that there is still time to sell.
+      if (
+        today > one.targetWindowEnd &&
+        today <= windUpEndsOn(one.targetWindowEnd, windUpDays)
+      ) {
+        occasions.push({ kind: "wind_up" });
+      }
+      return occasions.map((occasion) => ({
+        venture: one,
+        occasion,
+        noticeId: noticeId(one.id, occasion),
+      }));
+    });
   const owners = await holdersOf(db as Tx, farmId, ["owner"]);
   if (owners.length === 0) {
     return [];

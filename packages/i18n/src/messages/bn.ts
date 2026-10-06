@@ -180,6 +180,8 @@ export const bn: Record<MessageKey, string> = {
   "portal.requests.comeAndSign": "{venture}-এ খামার আপনার সঙ্গে চুক্তি সই করবে",
   "portal.owed.line": "{venture}-এ এখনো {amount} দেওয়া বাকি।",
   "portal.owed.how": "কীভাবে দেবেন",
+  "portal.owed.notPaid":
+    "{venture}-এ {amount} দেওয়া হয়নি; এটি আর মূলধন নেয় না, তাই আপনার অংশ যা দিয়েছেন সেই অনুযায়ী।",
   "portal.noVenturesHint":
     "খামারের সঙ্গে সামনাসামনি চুক্তি সই করলে ভেঞ্চারটি এখানে দেখা যাবে।",
   "portal.noPapersHint":
@@ -296,6 +298,8 @@ export const bn: Record<MessageKey, string> = {
   "portal.payIn.withPhoto": "ছবি পাঠানো হয়েছে",
   "portal.payIn.waitingSay": "খামার নিজের হিসাব মিলিয়ে তা লিখবে।",
   "portal.payIn.receivedSay": "খামার তা পেয়েছে এবং আপনার মূলধন হিসেবে লিখেছে।",
+  "portal.payIn.receivedSayAmount":
+    "খামার তা পেয়েছে এবং {amount} আপনার মূলধন হিসেবে লিখেছে।",
   "portal.payIn.notFoundSay": "খামার হিসাবে তা পায়নি:",
   "portal.payIn.closed.nothing_owed": "বন্ধ: এই চুক্তিতে আর কিছু বাকি নেই।",
   "portal.payIn.closed.venture_takes_no_capital":
@@ -676,6 +680,8 @@ export const bn: Record<MessageKey, string> = {
     "এই ভেঞ্চারে তাঁকে একটি চুক্তি আগেই পাঠানো আছে; নতুন পাঠাতে আগেরটি ফিরিয়ে নিন।",
   "agreeInApp.refusal.offer_not_agreed": "বিনিয়োগকারী এখনো সম্মতি দেননি।",
   "agreeInApp.refusal.offer_withdrawn": "এই চুক্তির প্রস্তাব ফিরিয়ে নেওয়া হয়েছে।",
+  "agreeInApp.refusal.venture_moved_on":
+    "এই ভেঞ্চার এরপর এগিয়ে গেছে, এই প্রস্তাব আর নেওয়া হয় না।",
   "agreeInApp.refusal.offer_already_approved": "এটি অনুমোদিত — এখন এটি চুক্তি।",
   "agreeInApp.refusal.venture_units_gone":
     "এই ভেঞ্চারে এত ইউনিট আর বাকি নেই। প্রস্তাবটি ফিরিয়ে নিয়ে কম ইউনিটে আবার পাঠান।",

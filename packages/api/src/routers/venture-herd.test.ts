@@ -403,6 +403,21 @@ describe("what a Venture's animals are doing", () => {
     expect(never?.overDays).toBeNull();
   });
 
+  it("reads a bull bought across from the day it had him, at what it bought him at — never his weeks before", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const theirs = await owner.client.ventures.herd({
+      ventureId: secondVenture,
+    });
+    const his = theirs.animals.find((one) => one.tagNumber === tags[3]);
+    // Bought on the 10th at his 228 of 1 February. Nobody has weighed him since he was theirs: he stands at what they
+    // bought him at, and what he put on for the first Venture's Investors is not theirs to read as gain.
+    expect(his).toMatchObject({ intakeKg: 228, latestKg: 228 });
+    expect(his?.dailyGainKg).toBeNull();
+    expect(theirs.weights.every((point) => point.day >= "2052-02-10")).toBe(
+      true
+    );
+  });
+
   it("averages over the animals standing, and works the herd's gain from every animal it has had", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
     const theirs = await owner.client.ventures.herd({

@@ -313,22 +313,32 @@ export const theirProgress = async (
   let lostCount = 0;
 
   for (const one of rows) {
-    const view = fatteningOf(one.intake, one.weighIns, now, readDays);
     const stretch = theirStretch(one, handed, came, venture.id, now);
-    if (one.intake) {
+    // Read from the day she was theirs, at what they took her on at — the Internal Sale's weight for one bought across —
+    // and only what the scale said while she was: her weeks before were another owner's gain, her weeks after too.
+    const theirReadings = one.weighIns.filter(
+      (reading) =>
+        reading.weighedAt >= stretch.from && reading.weighedAt < stretch.until
+    );
+    const takenOn = one.intake
+      ? {
+          ...one.intake,
+          arrivedAt: stretch.from,
+          weightKg:
+            stretch.cameKg === null
+              ? one.intake.weightKg
+              : String(stretch.cameKg),
+        }
+      : null;
+    const view = fatteningOf(takenOn, theirReadings, now, readDays);
+    if (takenOn) {
       holdings.push({
         takenOn: stretch.from,
         until: stretch.until,
-        cameKg: stretch.cameKg ?? Number(one.intake.weightKg),
+        cameKg: Number(takenOn.weightKg),
         soldKg: stretch.wentKg,
-        // What she put on while she was theirs: not the Farm's months with her before, nor her new owner's after.
-        readings: one.weighIns
-          .filter(
-            (reading) =>
-              reading.flaggedNote === null &&
-              reading.weighedAt >= stretch.from &&
-              reading.weighedAt < stretch.until
-          )
+        readings: theirReadings
+          .filter((reading) => reading.flaggedNote === null)
           .map((reading) => ({
             kg: Number(reading.weightKg),
             at: reading.weighedAt,
@@ -338,7 +348,7 @@ export const theirProgress = async (
     }
     // Moved off them by an Internal Sale: gone from their herd as one sold, not standing in it.
     const standing = !(stretch.handedOn || isExitState(one.state));
-    const intakeKg = one.intake ? Number(one.intake.weightKg) : null;
+    const intakeKg = takenOn ? Number(takenOn.weightKg) : null;
     const since = view.sinceIntake;
     if (standing) {
       standingCount += 1;
@@ -348,11 +358,11 @@ export const theirProgress = async (
         standingIntake.push(intakeKg);
         standingLatest.push(view.latestKg);
         lastWeighedAt = laterOf(lastWeighedAt, view.latestAt);
-        if (one.intake) {
+        if (takenOn) {
           averaged.push({
             animalId: one.id,
             kg: intakeKg,
-            at: one.intake.arrivedAt,
+            at: takenOn.arrivedAt,
           });
         }
       }
@@ -391,6 +401,8 @@ export const theirProgress = async (
           columns: { animalId: true, weightKg: true, weighedAt: true },
         });
 
+  // Each animal's line from the day she was theirs, as her figures above are.
+  const theirsFrom = new Map(averaged.map((one) => [one.animalId, one.at]));
   const window = await windowInForceOn(tx, farmId, venture, farmDayOf(now));
   const opensAt = startOfFarmDay(window.targetWindowStart);
   return {
@@ -408,11 +420,13 @@ export const theirProgress = async (
     lastWeighedAt,
     weights: weightsOverTime([
       ...averaged,
-      ...readings.map((one) => ({
-        animalId: one.animalId,
-        kg: Number(one.weightKg),
-        at: one.weighedAt,
-      })),
+      ...readings
+        .filter((one) => one.weighedAt >= (theirsFrom.get(one.animalId) ?? now))
+        .map((one) => ({
+          animalId: one.animalId,
+          kg: Number(one.weightKg),
+          at: one.weighedAt,
+        })),
     ]),
     // Whole days, and never negative: once the window has opened there are none left to count.
     daysToWindow: Math.max(

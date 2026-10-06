@@ -233,6 +233,23 @@ describe("hearing that a paper is due", () => {
     expect(after).toHaveLength(before.length);
   });
 
+  it("writes nothing to the trail, sweep after sweep, about a Venture nobody has signed", async () => {
+    const owner = await as("owner", "2054-03-06T04:00:00.000Z");
+    await owner.client.alerts.sweep();
+    const before = await owner.client.audit.list({
+      entity: "venture",
+      entityId: unsignedId,
+    });
+    // Nobody to send a paper to, so nothing is ever due: not a turn of the day that records having told nobody.
+    await owner.client.alerts.sweep();
+    await owner.client.alerts.sweep();
+    const after = await owner.client.audit.list({
+      entity: "venture",
+      entityId: unsignedId,
+    });
+    expect(after).toHaveLength(before.length);
+  });
+
   it("says nothing about a run that has been called off", async () => {
     // A third Venture, signed and paid into, then called off before it ever bought anything — which is
     // the only state a Venture may be called off in. Its money goes back, and it owes nobody a paper.

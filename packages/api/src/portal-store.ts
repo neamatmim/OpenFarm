@@ -16,6 +16,7 @@ import {
   CODE_ATTEMPTS,
   countFailure,
   forgetFailures,
+  takeBackOne,
   lockedOut,
 } from "./attempts";
 import type { Tx } from "./audit";
@@ -30,7 +31,7 @@ import {
   withdrawConsent,
 } from "./portal-consent";
 import type { Owned } from "./portal-invitable";
-import { invitable, refused } from "./portal-invitable";
+import { accountOfAnotherAt, invitable, refused } from "./portal-invitable";
 import { whatTheyDidToTheirRequests } from "./requests-to-join";
 import { seenWhenDone } from "./writes-seen";
 
@@ -281,7 +282,12 @@ export const takePortalAway = async (
         await changeAccess(() =>
           tx
             .update(investorAccess)
-            .set({ revokedWhy: "withdrew_consent" })
+            // A code given since access was taken away — a lost phone's new one — goes with the consent.
+            .set({
+              revokedWhy: "withdrew_consent",
+              codeHash: null,
+              codeExpiresAt: null,
+            })
             .where(eq(investorAccess.id, access.id))
         );
       }
@@ -295,6 +301,49 @@ export const takePortalAway = async (
 /** A phone and code that open no invitation: said the same whichever of the two is wrong. */
 const notAnInvitation = () =>
   refused("That phone and code do not match an invitation", "wrong_code");
+
+/** An account at that address is somebody else's. */
+const accountTaken = () =>
+  refused("Another account already signs in on that phone", "phone_has_portal");
+
+/**
+ * The account an Investor taking up a code signs in with, where they have one, and the address it answers to today.
+ * An account already there is theirs to set a password on: given back, a forgotten password, or one a crash left made
+ * before its invitation was written down as taken. Their own account, signing in on the phone they had, moves to the
+ * one the farm has for them now. Nobody else can open an account at an Investor's address, and an account that is
+ * another Investor's — or any other account at the address theirs would move to — is never given to this one.
+ */
+const theirAccount = async (
+  db: Context["db"],
+  access: { investorId: string; userId: string | null },
+  loginEmail: string
+): Promise<{ already: string | undefined; signsInAs: string }> => {
+  if (await accountOfAnotherAt(db, loginEmail, access.investorId)) {
+    throw accountTaken();
+  }
+  if (!access.userId) {
+    const atTheirAddress = await db.query.user.findFirst({
+      where: { email: loginEmail },
+      columns: { id: true },
+    });
+    return { already: atTheirAddress?.id, signsInAs: loginEmail };
+  }
+  const theirs = await db.query.user.findFirst({
+    where: { id: access.userId },
+    columns: { email: true },
+  });
+  const signsInAs = theirs?.email ?? loginEmail;
+  if (signsInAs !== loginEmail) {
+    const movingOnto = await db.query.user.findFirst({
+      where: { email: loginEmail },
+      columns: { id: true },
+    });
+    if (movingOnto) {
+      throw accountTaken();
+    }
+  }
+  return { already: access.userId, signsInAs };
+};
 
 /**
  * An Investor taking up the Owner's invitation: the phone they were written down with, the code handed to them, and
@@ -338,12 +387,13 @@ export const takeUpInvitation = async (
       message: "Too many wrong codes — wait fifteen minutes",
     });
   }
-  const wrong = () => {
-    for (const key of counted) {
-      countFailure(key, now, CODE_ATTEMPTS);
-    }
-    return notAnInvitation();
-  };
+  // Counted now, with nothing awaited since the check: guesses sent all at once each find the ones before them
+  // counted, where counting only once each was found wrong let a burst of forty through a limit of ten. A code that
+  // turns out right forgets the phone's count below.
+  for (const key of counted) {
+    countFailure(key, now, CODE_ATTEMPTS);
+  }
+  const wrong = () => notAnInvitation();
   // Worked out once: the invitation is found by it and used up by it, and the two must never disagree.
   const codeHash = await hashOfCodeAsTyped(input.code);
   const access = await context.db.query.investorAccess.findFirst({
@@ -369,15 +419,11 @@ export const takeUpInvitation = async (
   if (!who) {
     throw wrong();
   }
-  // An account already there is theirs to set a password on: given back, a forgotten password, or one a crash left
-  // made before its invitation was written down as taken. Nobody else can open an account at an Investor's address.
-  const atTheirAddress = access.userId
-    ? null
-    : await context.db.query.user.findFirst({
-        where: { email: loginEmail },
-        columns: { id: true },
-      });
-  const already = access.userId ?? atTheirAddress?.id;
+  const { already, signsInAs } = await theirAccount(
+    context.db,
+    access,
+    loginEmail
+  );
   const userId =
     already ??
     (await openInvestorAccount(auth, {
@@ -421,22 +467,21 @@ export const takeUpInvitation = async (
       // Only once the code is used, and by the try that used it: the row stays held until this commits, so a second
       // try with the same code waits above and then finds it gone, having changed nothing. A password that could not
       // be set undoes the taking, and the code still works.
-      if (
-        already &&
-        !(await setPasswordFor(auth, loginEmail, input.password))
-      ) {
+      if (already && !(await setPasswordFor(auth, signsInAs, input.password))) {
         throw new ORPCError("INTERNAL_SERVER_ERROR", {
           message: "The password could not be set",
         });
       }
       await tx
         .update(user)
-        .set({ disabledAt: null })
-        .where(and(eq(user.id, userId), eq(user.email, loginEmail)));
+        .set({ disabledAt: null, email: loginEmail })
+        .where(and(eq(user.id, userId), eq(user.email, signsInAs)));
     }
   );
-  // The phone's count is theirs and is forgotten; the caller's stays, since one caller may be a script's.
+  // The phone's count is theirs and is forgotten. The caller's keeps its wrong guesses, since one caller may be a
+  // script's, but not this one, which was right.
   forgetFailures(atPhone);
+  takeBackOne(byCaller, now);
   return { loginEmail };
 };
 

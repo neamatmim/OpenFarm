@@ -5,7 +5,7 @@ import {
   amendmentOfferAnswer,
 } from "@OpenFarm/db/schema/venture";
 import type { PaperDocument } from "@OpenFarm/domain";
-import { farmDayOf } from "@OpenFarm/domain";
+import { farmDayOf, othersNamedOnly } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Acting } from "./agreeing-in-app";
@@ -399,6 +399,10 @@ export const theirAmendmentOffers = async (
   context: Acting,
   investorId: string
 ) => {
+  // Nothing is agreed in the app while the farm's switch is off.
+  if (!context.farm.agreementsInApp) {
+    return [];
+  }
   const theirs = await context.db.query.investmentAgreement.findMany({
     where: { farmId: context.farm.id, investorId },
     columns: { id: true, ventureId: true, createdAt: true },
@@ -412,11 +416,23 @@ export const theirAmendmentOffers = async (
     },
     orderBy: { offeredAt: "asc", id: "asc" },
   });
-  const named = rows.filter((one) =>
-    theirs.some(
-      (mine) =>
-        mine.ventureId === one.ventureId && mine.createdAt <= one.offeredAt
-    )
+  // Nor on a Venture whose Settlement is approved: those figures are what everybody was paid on, and an Amendment on
+  // it is never approved.
+  const settled = await context.db.query.ventureSettlement.findMany({
+    where: {
+      farmId: context.farm.id,
+      ventureId: { in: rows.map((one) => one.ventureId) },
+    },
+    columns: { ventureId: true },
+  });
+  const closed = new Set(settled.map((one) => one.ventureId));
+  const named = rows.filter(
+    (one) =>
+      !closed.has(one.ventureId) &&
+      theirs.some(
+        (mine) =>
+          mine.ventureId === one.ventureId && mine.createdAt <= one.offeredAt
+      )
   );
   const [runs, answers] = await Promise.all([
     context.db.query.venture.findMany({
@@ -436,6 +452,10 @@ export const theirAmendmentOffers = async (
     }),
   ]);
   const nameOf = new Map(runs.map((one) => [one.id, one.name]));
+  const reader = await context.db.query.investor.findFirst({
+    where: { id: investorId, farmId: context.farm.id },
+    columns: { name: true, phone: true },
+  });
   return named.map((one) => ({
     id: one.id,
     ventureName: nameOf.get(one.ventureId) ?? "",
@@ -446,7 +466,11 @@ export const theirAmendmentOffers = async (
     offeredAt: one.offeredAt,
     agreedAt:
       answers.find((answer) => answer.offerId === one.id)?.agreedAt ?? null,
-    paper: one.paper as PaperDocument,
+    // The other Investors by name alone. What they agree to is the paper kept, by its fingerprint, all the same.
+    paper: othersNamedOnly(
+      one.paper as PaperDocument,
+      reader ?? { name: "", phone: "" }
+    ),
     paperHash: one.paperHash,
   }));
 };
@@ -454,7 +478,7 @@ export const theirAmendmentOffers = async (
 /**
  * An Investor agrees, from their own portal sign-in, to an Amendment offered on a Venture they are in — to the paper
  * they read, whose fingerprint they send back: refused when it is not the one kept. Refused for one not naming them,
- * one withdrawn, and while the farm's switch is off. Agreeing again changes nothing.
+ * one withdrawn, one on a Venture settled since, and while the farm's switch is off. Agreeing again changes nothing.
  */
 export const agreeToAmendment = async (
   context: Acting,
@@ -470,6 +494,8 @@ export const agreeToAmendment = async (
   if (offer.withdrawnAt) {
     throw refused("This offer was withdrawn", "offer_withdrawn");
   }
+  // Its Settlement approved since: an Amendment agreed now could never be approved.
+  await assertNotSettled(context, offer.ventureId);
   assertReadAsKept(offer, input.paperHash);
   const already = await context.db.query.amendmentOfferAnswer.findFirst({
     where: {

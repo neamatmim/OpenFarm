@@ -892,6 +892,7 @@ export {
   isTemplateField,
   letterheadOf,
   namedFields,
+  othersNamedOnly,
   paperFrom,
   partsAllowed,
   readingOf,

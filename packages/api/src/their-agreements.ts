@@ -1,6 +1,19 @@
+import { takesCapital, unitsHeld } from "@OpenFarm/domain";
+
 import type { Tx } from "./audit";
 import { paperOnFile, theFarmsShare } from "./investor-store";
 import { termsInForceOn } from "./venture-store";
+
+/** Their Units as the portal counts them: those signed for while the Venture gathers (or was called off gathering),
+ *  those paid for once it buys — what the Settlement will divide by, as `hisHolding` counts them on its page. */
+const unitsCountedOn = (
+  signed: number,
+  heldMoney: number,
+  run: { state: string; unitPriceMoney: number } | undefined
+) =>
+  !run || run.state === "open" || run.state === "cancelled"
+    ? signed
+    : unitsHeld(heldMoney, run.unitPriceMoney);
 
 /** One line of an Investor's money, as the Owner reads it on their page: capital that came in or went back on one
  *  of their Agreements, or a payout of what a Settlement owed them. */
@@ -66,7 +79,13 @@ export const theirAgreements = async (
   const [ventures, papers, moved, shares, terms] = await Promise.all([
     db.query.venture.findMany({
       where: { farmId, id: { in: signed.map((one) => one.ventureId) } },
-      columns: { id: true, name: true, state: true, unitPriceMoney: true },
+      columns: {
+        id: true,
+        name: true,
+        state: true,
+        unitPriceMoney: true,
+        capitalPaid: true,
+      },
     }),
     db.query.agreementPaper.findMany({
       where: { farmId, agreementId: { in: agreementIds } },
@@ -174,8 +193,13 @@ export const theirAgreements = async (
         id: one.ventureId,
         name: run?.name ?? "",
         state: run?.state ?? "open",
+        /** Whether it takes capital today: once it does not, what was not paid is not owed (ADR 0018). */
+        takesCapital: run ? takesCapital(run) : false,
       },
       units: one.units,
+      /** The Units the portal counts them by, as their Venture's page does (`hisHolding`): those signed for while it
+       *  gathers, those paid for once it buys — what the Settlement will divide by. */
+      unitsCounted: unitsCountedOn(one.units, heldOn.get(one.id) ?? 0, run),
       /** What the Units are worth at the Venture's price: the capital this paper promised. */
       promisedMoney: one.units * (run?.unitPriceMoney ?? 0),
       investorsPercent,

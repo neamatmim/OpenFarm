@@ -55,6 +55,12 @@ const madeIn = (context: PaperMaking) =>
 /** A figure in Bangla numerals, for a Bangla sentence whoever reads it. */
 const bn = (value: number) => formatNumber(value, "bn");
 
+/** A figure for a line said twice, in Bangla and then in English: each half in its own numerals. */
+const bothHalves = (value: number) => ({
+  bn: bn(value),
+  en: formatNumber(value, "en"),
+});
+
 /**
  * Where he stands against his Monthly Sums, as the progress statement says it in the words the advisers approved —
  * a Bangla sentence, so in Bangla numerals whoever reads it: "৪ মাসের ২টি দেওয়া · বাকি পড়েছে ৫,০০০ টাকা · পরেরটি
@@ -118,7 +124,8 @@ export const joiningLetterFor = async (
   );
   const day = (on: string) =>
     formatDate(new Date(`${on}T00:00:00Z`), language, "date");
-  const asMoney = (amount: number) => formatNumber(amount, language);
+  // Beside টাকা on the letter: Bangla numerals, whoever reads it.
+  const asMoney = bn;
   // Paid by the month: the clauses it was signed with, and his Units' schedule under what he has paid.
   const { monthly } = paidForBy(standing.venture);
   // The Farm's own Units in his Venture, as his Agreement told him before he signed.
@@ -134,7 +141,7 @@ export const joiningLetterFor = async (
     him: standing.him,
     ventureName: standing.venture.name,
     unitPrice: asMoney(standing.venture.unitPriceMoney),
-    units: formatNumber(standing.agreement.units, language),
+    units: bn(standing.agreement.units),
     capital: standing.capital.map((one) => ({
       kind: one.kind,
       amount: asMoney(one.amountMoney),
@@ -229,7 +236,8 @@ export const progressStatementFor = async (
     spend,
     venture
   );
-  const said = (value: number) => formatNumber(value, language);
+  // Every figure here stands beside a Bangla word — টাকা, কেজি, দিন — so in Bangla numerals, whoever reads it.
+  const said = bn;
   const farmUnits = await farmUnitsOf(
     context.db,
     context.farm.id,
@@ -342,7 +350,8 @@ export const settlementStatementFor = async (
       data: { refusal: "not_settled_yet" },
     });
   }
-  const said = (value: number) => formatNumber(value, language);
+  // Every figure here stands beside a Bangla word — টাকা, কেজি, দিন — so in Bangla numerals, whoever reads it.
+  const said = bn;
   // Unsigned, always: the label says which way it went, because a minus sign after the taka mark is
   // how a loss gets read as a small profit.
   const unsigned = (value: number) => said(Math.abs(value));
@@ -374,8 +383,8 @@ export const settlementStatementFor = async (
     perUnit: unsigned(settled.perUnitMoney),
     perUnitRose: settled.perUnitMoney >= 0,
     // What one Unit put in and what one Unit comes back with, which is the line he reads first.
-    perUnitIn: said(perUnitIn),
-    perUnitBack: said(perUnitIn + settled.perUnitMoney),
+    perUnitIn: bothHalves(perUnitIn),
+    perUnitBack: bothHalves(perUnitIn + settled.perUnitMoney),
     rounding: said(settled.roundingMoney),
     farmShare: unsigned(settled.farmMoney),
     farmShareRose: settled.farmMoney >= 0,
@@ -399,8 +408,8 @@ export const settlementStatementFor = async (
     },
     onCapital: onCapital
       ? {
-          per100: unsigned(onCapital.per100),
-          days: said(onCapital.days),
+          per100: bothHalves(Math.abs(onCapital.per100)),
+          days: bothHalves(onCapital.days),
           rose: onCapital.per100 >= 0,
         }
       : null,

@@ -86,7 +86,10 @@ const VentureCard = ({
               {t("portal.units")}
             </dt>
             <dd className="font-medium tabular-nums">
-              {t("portal.unitsHeld", { count: one.units })}
+              {/* As the Venture's own page counts them: signed while it gathers, paid for once it buys. */}
+              {t("portal.unitsHeld", {
+                count: one.unitsCounted ?? one.units,
+              })}
             </dd>
           </div>
           <div className="flex flex-col gap-0.5">

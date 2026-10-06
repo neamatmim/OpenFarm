@@ -56,9 +56,14 @@ const StageCell = ({ row }: { row: { original: HisAgreement } }) => (
   <StateBadge state={row.original.venture.state} />
 );
 
+/** Their Units as the Venture's own page counts them: signed while it gathers, paid for once it buys. */
 const UnitsCell = ({ row }: { row: { original: HisAgreement } }) => {
   const { language } = useLanguage();
-  return <>{formatNumber(row.original.units, language)}</>;
+  return (
+    <>
+      {formatNumber(row.original.unitsCounted ?? row.original.units, language)}
+    </>
+  );
 };
 
 const CapitalCell = ({ row }: { row: { original: HisAgreement } }) => {
@@ -127,7 +132,9 @@ const stage = columns.accessor((row) => row.venture.state, {
   cell: StageCell,
   meta: ONE_LINE,
 });
-const units = columns.accessor("units", {
+// Sorted by what it shows.
+const units = columns.accessor((row) => row.unitsCounted ?? row.units, {
+  id: "units",
   header: listHeader("portal.units"),
   cell: UnitsCell,
   meta: FIGURE,

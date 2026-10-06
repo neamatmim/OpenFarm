@@ -36,6 +36,9 @@ export interface AgreementToWrite {
   requestId?: string;
   /** The Nominees it names, already judged namable on its day. */
   nominees: readonly Nominee[];
+  /** The day the Investor put their name to those Nominees, where it was not the day it was stamped: agreed in the app,
+   *  the day they agreed — so a মনোনয়নপত্র signed between agreeing and the Owner's approval still outranks it. */
+  nominatedOn?: string;
 }
 
 /**
@@ -155,7 +158,7 @@ export const writeAgreement = async (
     farmId: farm.id,
     investorId: agreement.investorId,
     agreementId: agreement.id,
-    signedOn: agreement.stamp.on,
+    signedOn: agreement.nominatedOn ?? agreement.stamp.on,
     nominees: agreement.nominees,
     recordedBy: by.id,
     now: by.now,

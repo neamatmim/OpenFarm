@@ -24,6 +24,7 @@ import { assertNamable, nomineesToSign } from "./nominations";
 import { producedAt } from "./paper-values";
 import { languageOf } from "./reader-language";
 import { currentWording, giveStandardTemplates } from "./template-store";
+import { withWindowsInForce } from "./venture-store";
 
 // An Investment Agreement agreed within the app, instead of on stamped paper: the Owner offers it, the Investor agrees
 // to the paper in the portal, and the Owner approves it — and only then is it an Agreement. Behind the farm's switch,
@@ -184,10 +185,17 @@ export const offerInApp = async (
     context.farm.id,
     "investment_agreement"
   );
+  // As the Amendments signed so far have left its Target Window, not as it opened: the Agreement records that one.
+  const [inForce = run] = await withWindowsInForce(
+    context.db,
+    context.farm.id,
+    [run],
+    today
+  );
   const paper = agreementLaidOut({
     farm: context.farm,
     ownerName: context.actor.name,
-    run,
+    run: inForce,
     him,
     nominees,
     terms: input,
@@ -328,6 +336,8 @@ export const approveOffer = async (
           templateVersionId: offer.templateVersionId ?? "",
           requestId: offer.requestId ?? undefined,
           nominees: (offer.nominees ?? []) as Nominee[],
+          // Approval follows agreeing, so there is always a day they agreed.
+          nominatedOn: farmDayOf(offer.agreedAt ?? now),
         }
       );
       // Marked approved only while it is still neither withdrawn nor approved, in the same transaction: an offer
@@ -386,10 +396,14 @@ export const offersOn = async (context: Acting, ventureId: string) => {
 
 /**
  * The offers waiting on one Investor or on the Owner — neither withdrawn nor approved — with the Venture's name and the
- * paper kept, for them to read and agree to.
+ * paper kept, for them to read and agree to. Only while the farm's switch is on, and only on a Venture still open:
+ * one cancelled or buying since takes no Agreement, and an offer on it would be agreed for nothing.
  */
 export const theirOffers = async (context: Acting, investorId: string) => {
-  const rows = await context.db.query.agreementOffer.findMany({
+  if (!context.farm.agreementsInApp) {
+    return [];
+  }
+  const standing = await context.db.query.agreementOffer.findMany({
     where: {
       farmId: context.farm.id,
       investorId,
@@ -401,11 +415,13 @@ export const theirOffers = async (context: Acting, investorId: string) => {
   const runs = await context.db.query.venture.findMany({
     where: {
       farmId: context.farm.id,
-      id: { in: rows.map((one) => one.ventureId) },
+      id: { in: standing.map((one) => one.ventureId) },
+      state: "open",
     },
     columns: { id: true, name: true },
   });
   const nameOf = new Map(runs.map((one) => [one.id, one.name]));
+  const rows = standing.filter((one) => nameOf.has(one.ventureId));
   return rows.map((one) => ({
     id: one.id,
     ventureName: nameOf.get(one.ventureId) ?? "",
@@ -435,6 +451,17 @@ export const agreeToOffer = async (
   }
   if (offer.withdrawnAt) {
     throw refused("This offer was withdrawn", "offer_withdrawn");
+  }
+  // Its Venture cancelled or buying since: nothing agreed now could ever be approved.
+  const run = await context.db.query.venture.findFirst({
+    where: { id: offer.ventureId, farmId: context.farm.id },
+    columns: { state: true },
+  });
+  if (run?.state !== "open") {
+    throw refused(
+      "A Venture takes signatures only while it is open",
+      "venture_wrong_state"
+    );
   }
   assertReadAsKept(offer, input.paperHash);
   if (offer.agreedAt) {

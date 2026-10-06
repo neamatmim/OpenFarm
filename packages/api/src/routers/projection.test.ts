@@ -459,6 +459,37 @@ describe("an Investor's own Venture in the portal", () => {
     expect(said).not.toContain("farmMoney");
     expect(said).not.toContain("investorsMoney");
   });
+
+  it("projects an Investor signed but not yet paid on the Units signed for, while the Venture gathers", async () => {
+    const owner = await asOwner();
+    const her = await owner.investors.record({
+      name: `রহিমা ${suffix}`,
+      phone: `0175${suffix}`,
+      address: "সাভার",
+    });
+    const signed = await owner.ventures.agreements.sign({
+      ventureId: hisVenture,
+      investorId: her.id,
+      units: 2,
+      investorsPercent: 60,
+      arbitrator: `সালিস ${suffix}`,
+      stampKind: "paper",
+      stampValueMoney: 300,
+      stampedOn: "2052-01-02",
+      stampSerial: `S-Q-${suffix}`,
+    });
+    const today = await owner.portalPreview.venture({
+      investorId: her.id,
+      agreementId: signed.id,
+    });
+    // Two Units signed, nothing paid yet — the usual order. Her page says two Units; so does what they might come to:
+    // ৳3,424 and ৳8,745 a Unit, on top of the ৳1,00,000 she has signed to put in.
+    expect(today.his.units).toBe(2);
+    expect(today.projection).toMatchObject({
+      low: { shareMoney: 6848, payoutMoney: 106_848 },
+      high: { shareMoney: 17_490, payoutMoney: 117_490 },
+    });
+  });
 });
 
 describe("a Venture offered in the portal", () => {
