@@ -52,11 +52,13 @@ import type {
   Taken,
 } from "@/components/work/work-types";
 import { useLanguage } from "@/i18n/language-provider";
+import { fieldOfMoment, momentOfField } from "@/lib/farm-moment";
 import type { Photo } from "@/lib/photo";
 import { photoProblem, shrink } from "@/lib/photo";
 import type { MedicineCountEntry, StockCountEntry } from "@/lib/record-offline";
 import { skipReasonsOffered } from "@/lib/skipping";
 import type { StepAnswer } from "@/lib/step-answer";
+import { enteredFrom } from "@/lib/step-answer";
 import { toast } from "@/lib/toast";
 
 /**
@@ -128,6 +130,10 @@ const useMedicineCount = (
     handleCounted: setCounted,
     reasons,
     handleReason: setReasons,
+    // Every product counted, as the store's count asks: a box left blank went as nought, and booked the medicine gone.
+    complete: items.every(
+      (item) => (counted[item.drugProductId] ?? "").trim() !== ""
+    ),
     lines: (): MedicineCountEntry[] | undefined =>
       counts
         ? items.map((item) => ({
@@ -736,19 +742,38 @@ const FieldWithLabel = ({
   </div>
 );
 
-/** Two digits, as a date field writes a month, a day, an hour or a minute. */
-const twoDigits = (part: number) => String(part).padStart(2, "0");
-
-/** An instant as a `datetime-local` field holds it: the phone's own day and minute, no zone. */
-const asLocalField = (value: boolean | number | string | undefined): string => {
-  if (typeof value !== "string" || value === "") {
-    return "";
-  }
-  const at = new Date(value);
-  if (Number.isNaN(at.getTime())) {
-    return "";
-  }
-  return `${at.getFullYear()}-${twoDigits(at.getMonth() + 1)}-${twoDigits(at.getDate())}T${twoDigits(at.getHours())}:${twoDigits(at.getMinutes())}`;
+/**
+ * What a Step's sheet starts from. A Correction starts from the answer as it stands — its time, where its milk went,
+ * why it was skipped — and a new answer's date and time from now (lib/step-answer). A cow under Withdrawal has no
+ * choice of where her milk goes: the server decides again when the entry lands, this phone may have been offline
+ * since before she was treated.
+ */
+const useStartingAnswer = (
+  step: Step,
+  existing: Completion | undefined,
+  animal: Animal | undefined
+) => {
+  const done = existing?.status === "done" ? existing.evidence : undefined;
+  const [values, setValues] = useState<Entered>(() =>
+    enteredFrom(step, done, new Date())
+  );
+  const [skipping, setSkipping] = useState(existing?.status === "skipped");
+  const [reason, setReason] = useState(existing?.skipReason ?? "");
+  const locked = Boolean(animal?.underMilkWithdrawal);
+  const [destination, setDestination] = useState<MilkDestination>(
+    existing?.destination ?? (locked ? "discard" : "bulk")
+  );
+  return {
+    values,
+    setValues,
+    skipping,
+    setSkipping,
+    reason,
+    setReason,
+    destination,
+    setDestination,
+    locked,
+  };
 };
 
 /** A figure, typed on the phone's own number pad and shown large above it, under what it is where the Step says. */
@@ -887,17 +912,11 @@ const EvidenceControl = ({
         <Input
           className="h-12 text-base md:h-12 md:text-base"
           id={id}
-          // The field speaks the phone's own clock, which on this farm is the farm's; what is kept
-          // is the instant, so a phone set a zone away still records the right moment.
-          onChange={(event) =>
-            onValue(
-              event.target.value === ""
-                ? ""
-                : new Date(event.target.value).toISOString()
-            )
-          }
+          // The field speaks the farm's clock, not the phone's: the Owner's phone set a zone away neither shows a
+          // calving shifted nor records it hours off. What is kept is the instant.
+          onChange={(event) => onValue(momentOfField(event.target.value))}
           type="datetime-local"
-          value={asLocalField(value)}
+          value={fieldOfMoment(value)}
         />
       </FieldWithLabel>
     );
@@ -1020,25 +1039,19 @@ export const EvidenceSheet = ({
   onRecord: (payload: StepAnswer) => void;
 }) => {
   const { t, language } = useLanguage();
-  // A date and time the Step asks for starts as now: it is changed only when the thing happened
-  // earlier than it is being written down, which is the exception and not the rule.
-  const [values, setValues] = useState<Entered>(() =>
-    Object.fromEntries(
-      step.evidence.flatMap((item, index) =>
-        item.type === "datetime" ? [[index, new Date().toISOString()]] : []
-      )
-    )
-  );
-  const [skipping, setSkipping] = useState(false);
+  const {
+    values,
+    setValues,
+    skipping,
+    setSkipping,
+    reason,
+    setReason,
+    destination,
+    setDestination,
+    locked,
+  } = useStartingAnswer(step, existing, animal);
   const [warning, setWarning] = useState<string | null>(null);
   const [photos, setPhotos] = useState<Taken>({});
-  const [reason, setReason] = useState("");
-  // A cow under Withdrawal has no choice to make. The server decides again when the entry
-  // lands — this phone may have been offline since before she was treated.
-  const locked = Boolean(animal?.underMilkWithdrawal);
-  const [destination, setDestination] = useState<MilkDestination>(
-    locked ? "discard" : "bulk"
-  );
   const recordsMilk = step.effect?.kind === "milk_record";
   const feedsThePen = step.effect?.kind === "feeding";
   // Asked of one place, not worked out here: the server refuses a skip by the same rule, and when this
@@ -1253,6 +1266,7 @@ export const EvidenceSheet = ({
               cannotFeed ||
               untypedFeed(feedingRows, given) ||
               !count.complete ||
+              !medicine.complete ||
               !(ready && (!correcting || reason.trim()))
             }
             onClick={() => submit(false)}

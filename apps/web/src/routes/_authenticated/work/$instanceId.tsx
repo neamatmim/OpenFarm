@@ -342,6 +342,7 @@ const WorkPage = () => {
       <EvidenceSheet
         animal={openAnimal}
         correcting={Boolean(existing)}
+        existing={existing}
         key={openAnimal.id}
         onCancel={() => setOpenAnimalId(null)}
         onRecord={(payload) =>

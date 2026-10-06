@@ -1,5 +1,5 @@
 import { eq } from "@OpenFarm/db/operators";
-import { shedPhone } from "@OpenFarm/db/schema/device";
+import { deviceSwitch, shedPhone } from "@OpenFarm/db/schema/device";
 import { derivePinHash, verifyPin } from "@OpenFarm/domain";
 import {
   FakeClock,
@@ -8,8 +8,11 @@ import {
   thePerson,
   theShedPhone,
 } from "@OpenFarm/test-harness";
+import { createRouterClient } from "@orpc/server";
 import { describe, expect, it } from "vitest";
 
+import { createContext } from "../context";
+import { DEVICE_TOKEN_HEADER } from "../device-headers";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -106,6 +109,31 @@ describe("enrolling a Shed Phone", () => {
       manager.client.devices.revoke({ id: enrolled.id })
     ).rejects.toMatchObject({
       code: "NOT_FOUND",
+    });
+  });
+
+  it("tells a revoked phone so when somebody tries to PIN in on it, rather than letting it pass for no signal", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    const enrolled = await manager.client.devices.enrol({
+      name: `lost-${Date.now()}`,
+    });
+    const { token } = await manager.client.devices.claim({
+      code: enrolled.code,
+    });
+    await manager.client.devices.revoke({ id: enrolled.id });
+    // The phone turns up and somebody types their PIN on it, as a request off the phone carries it.
+    const context = await createContext({
+      req: new Request("http://farm.test/rpc", {
+        headers: { [DEVICE_TOKEN_HEADER]: token },
+      }),
+      db: scratchDb(),
+    });
+    const phone = createRouterClient(appRouter, { context });
+    await expect(
+      phone.devices.switchUser({ userId: thePerson("manager").id, pin: "1234" })
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      data: { refusal: "phone_revoked" },
     });
   });
 
@@ -396,5 +424,51 @@ describe("review findings", () => {
       true
     );
     expect(new Set(codes).size).toBe(codes.length);
+  });
+});
+
+describe("keeping a phone awake", () => {
+  it("lengthens the stint being worked, and never wakes one already locked", async () => {
+    const clock = new FakeClock("2031-04-01T04:00:00.000Z");
+    const staff = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+    });
+    const phone = theShedPhone();
+    const person = thePerson("staff").id;
+    // An hour ago the phone was locked on her; she has since PINned in again.
+    const locked = `locked-${Date.now()}`;
+    const working = `working-${Date.now()}`;
+    await scratchDb()
+      .insert(deviceSwitch)
+      .values([
+        {
+          id: locked,
+          deviceId: phone.id,
+          userId: person,
+          tokenHash: `hash-${locked}`,
+          expiresAt: new Date("2031-04-01T03:00:00.000Z"),
+          createdAt: new Date("2031-04-01T02:00:00.000Z"),
+        },
+        {
+          id: working,
+          deviceId: phone.id,
+          userId: person,
+          tokenHash: `hash-${working}`,
+          expiresAt: new Date("2031-04-01T04:01:00.000Z"),
+          createdAt: new Date("2031-04-01T03:50:00.000Z"),
+        },
+      ]);
+    await staff.client.devices.keepAwake();
+    const after = await scratchDb().query.deviceSwitch.findMany({
+      where: { id: { in: [locked, working] } },
+      columns: { id: true, expiresAt: true },
+    });
+    const of = (id: string) => after.find((one) => one.id === id)?.expiresAt;
+    expect(of(locked)).toEqual(new Date("2031-04-01T03:00:00.000Z"));
+    expect(of(working)?.getTime()).toBeGreaterThan(
+      Date.parse("2031-04-01T04:01:00.000Z")
+    );
   });
 });

@@ -58,7 +58,7 @@ const useStanding = () => {
         standing: {
           tone: "warning",
           icon: Pin,
-          label: t("work.pinnedTo", { name: "" }).trim(),
+          label: t("work.pinnedToSomeone"),
         },
       };
     }

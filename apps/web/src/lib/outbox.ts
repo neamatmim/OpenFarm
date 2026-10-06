@@ -89,6 +89,8 @@ export interface Transport {
     /** This phone's clock, now. Not what the entries say — those are honestly old — but
      *  what the phone believes the time to be as it speaks. */
     sentAt: string;
+    /** This Outbox's own id, so the farm keeps its count apart from the same person's other devices'. */
+    outboxId: string;
     entries: OutgoingEntry[];
   }) => Promise<{ results: EntryVerdict[] }>;
 }
@@ -113,6 +115,8 @@ const REJECTED = "rejected:";
 const NEEDS_REVIEW = "needs-review:";
 const PENDING_BATCH = "batch:pending";
 const NEXT_SEQ = "meta:seq";
+/** This Outbox's own id, made once and kept beside its count: each device a person works on counts from one. */
+const OUTBOX_ID = "meta:id";
 const LAST_SYNC = "meta:lastSync";
 const PAUSED = "meta:paused";
 /** Sequence numbers are padded so the storage adapter's key order is the order the work
@@ -273,6 +277,17 @@ export class Outbox {
     this.counter += 1;
     await this.write(NEXT_SEQ, this.counter);
     return seq;
+  }
+
+  /** This Outbox's id, made the first time it is asked for and kept on the device from then on. */
+  private async idOfThisOutbox(): Promise<string> {
+    const kept = await this.read<string>(OUTBOX_ID);
+    if (kept) {
+      return kept;
+    }
+    const made = crypto.randomUUID();
+    await this.write(OUTBOX_ID, made);
+    return made;
   }
 
   /** Records something, durably, before anything on screen says it happened. */
@@ -440,6 +455,7 @@ export class Outbox {
       const answer = await this.options.transport.send({
         key: batch.key,
         sentAt: this.now().toISOString(),
+        outboxId: await this.idOfThisOutbox(),
         // Exactly what was frozen, whatever the phone has learned since: the same key never carries two things.
         entries: batch.entries,
       });

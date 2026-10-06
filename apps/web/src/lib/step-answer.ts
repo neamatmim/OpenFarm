@@ -109,3 +109,21 @@ export const journeyOf = (
     },
   };
 };
+
+/**
+ * What a Step's sheet starts from: for a Correction, the answer as it was recorded — a sheet that started blank, with a
+ * date and time at now, moved a calving or a service to the moment somebody corrected the calf's sex; for a new answer,
+ * a date and time at now, which is changed only when the thing happened earlier than it is written down.
+ */
+export const enteredFrom = (
+  step: { evidence: readonly { type: string }[] },
+  recorded: readonly (boolean | number | string)[] | undefined,
+  now: Date
+): Record<number, boolean | number | string> =>
+  recorded
+    ? Object.fromEntries(recorded.map((value, index) => [index, value]))
+    : Object.fromEntries(
+        step.evidence.flatMap((item, index) =>
+          item.type === "datetime" ? [[index, now.toISOString()]] : []
+        )
+      );

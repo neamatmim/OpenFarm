@@ -10,12 +10,17 @@ import type { EntryRefusal } from "./entries/entry";
 
 const MINUTE_MS = 60_000;
 
-/** Where a sequence belongs: the Shed Phone that holds the outbox, or the person, when they
- *  are on their own phone. Never empty, so the unique index has something to bite on. */
-export const sourceKeyFor = (context: {
-  device: { id: string } | null;
-  actor: { id: string };
-}): string => context.device?.id ?? context.actor.id;
+/** Where a sequence belongs: the Shed Phone that holds the outbox, or the person on their own device — each Outbox
+ *  of theirs apart, since each counts from one. Never empty, so the unique index has something to bite on. */
+export const sourceKeyFor = (
+  context: {
+    device: { id: string } | null;
+    actor: { id: string };
+  },
+  outboxId?: string
+): string =>
+  context.device?.id ??
+  (outboxId ? `${context.actor.id}:${outboxId}` : context.actor.id);
 
 /** A digest of what was sent, so the same key carrying different work is refused rather than
  *  answered with someone else's result. A digest rather than the payload: the point is to

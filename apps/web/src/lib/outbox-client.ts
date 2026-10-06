@@ -26,6 +26,7 @@ const farm: Transport = {
     client.sync.batch({
       key: batch.key,
       sentAt: new Date(batch.sentAt),
+      outboxId: batch.outboxId,
       entries: batch.entries,
     }),
 };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { RecordedAnswer, StepAnswer } from "./step-answer";
-import { journeyOf } from "./step-answer";
+import { enteredFrom, journeyOf } from "./step-answer";
 
 const WHERE = { instanceId: "work-1", stepId: "feed", animalId: null };
 
@@ -94,5 +94,27 @@ describe("a Step's answer", () => {
       },
     });
     expect(forThePen.by === "outbox" && forThePen.input.animalId).toBeNull();
+  });
+});
+
+describe("what a sheet starts from", () => {
+  const calving = {
+    evidence: [
+      { type: "datetime" as const, required: true },
+      { type: "choice" as const, required: true, choices: [] },
+    ],
+  };
+  const now = new Date("2032-03-24T06:00:00.000Z");
+
+  it("is the answer as it was recorded, for a Correction: the calving's time is not moved to now", () => {
+    expect(
+      enteredFrom(calving, ["2032-03-24T00:10:00.000Z", "female"], now)
+    ).toEqual({ 0: "2032-03-24T00:10:00.000Z", 1: "female" });
+  });
+
+  it("is now for a date and time asked of a new answer, and nothing else", () => {
+    expect(enteredFrom(calving, undefined, now)).toEqual({
+      0: "2032-03-24T06:00:00.000Z",
+    });
   });
 });

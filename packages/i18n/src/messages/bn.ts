@@ -1572,6 +1572,15 @@ export const bn: Record<MessageKey, string> = {
     "বাছুরকে পাল দেওয়া হয় না: প্রথম পাল দেওয়ার এখনো অনেক মাস বাকি",
   "refusal.pricedFromTheFuture":
     "তার দাম গোনা হয় এমন দিন থেকে যা এসে গেছে: বড়জোর আজ থেকে",
+  "refusal.workAboutAnotherAnimal": "এই কাজ অন্য একটি পশুর জন্য: সেটির নামেই লিখুন",
+  "refusal.skipReasonNotOffered":
+    "এটা এই ধাপ বাদ দেওয়ার কারণগুলোর একটি নয়: তালিকা থেকে একটি বেছে নিন",
+  "refusal.phoneRevoked":
+    "এই ফোন আর খামারের নয়। আবার যুক্ত করতে ম্যানেজারের কাছে কোড চান",
+  "refusal.tooManyPins":
+    "অনেকবার ভুল পিন: পনেরো মিনিট অপেক্ষা করুন, নয়তো ম্যানেজারকে বলুন",
+  "refusal.cannotWorkHere": "এই ব্যক্তি এখন এই খামারে কাজ করতে পারেন না",
+  "refusal.staffOnlyOnShedPhone": "শেডের ফোনে শুধু খামারকর্মীরা কাজ করেন",
   "refusal.calvedLately":
     "সে এত সম্প্রতি বাচ্চা দিয়েছে যে আবার দিতে পারে না: এটা একই বাচ্চা দেওয়া দুবার লেখা, নয়তো জমজের একটি — জমজ একটাই বাচ্চা দেওয়া, দুটো বাছুরসহ",
   "refusal.calvedBeforeHerService":
@@ -2102,6 +2111,7 @@ export const bn: Record<MessageKey, string> = {
   "audit.calledOffBy.calving_no_longer_expected":
     "বাতিল: তার বাচ্চা দেওয়া আর প্রত্যাশিত নয়",
   "audit.calledOffBy.report_withdrawn": "বাতিল: রিপোর্ট ফিরিয়ে নেওয়া হয়েছে",
+  "audit.calledOffBy.version_published": "বাতিল: নতুন সংস্করণে সময় বদলেছে",
   "audit.calledOffBy.sop_retired": "বাতিল: কার্যপ্রণালীটি বাদ দেওয়া হয়েছে",
   "audit.calledOffBy.released": "বাতিল: পশুটি কোয়ারেন্টিন থেকে ছাড়া পেয়েছে",
   "audit.calledOffBy.excused": "বাতিল: ডাক্তার এই ডোজ মাফ করেছেন",
@@ -2753,6 +2763,10 @@ export const bn: Record<MessageKey, string> = {
   "sop.reject": "প্রত্যাখ্যান",
   "sop.rejectReason": "কেন নয়",
   "sop.noProposals": "কোনো পরিবর্তন অপেক্ষায় নেই",
+  "sop.blocker.bangla": "{where}: বাংলায় লিখুন",
+  "sop.blocker.noSteps": "অন্তত একটি ধাপ যোগ করুন",
+  "sop.blocker.other": "{where}: এখানে কিছু এভাবে প্রকাশ করা যাবে না",
+  "sop.blocker.whole": "কার্যপ্রণালী",
   "sop.cannotPublish": "এটি এখনো প্রকাশ করা যাবে না",
   "sop.tab.procedures": "কার্যপ্রণালী",
   "sop.tab.proposals": "প্রস্তাবিত পরিবর্তন",
@@ -4012,7 +4026,7 @@ export const bn: Record<MessageKey, string> = {
   "work.assignTo": "কে করবেন",
   "work.anyoneInRole": "যেকোনো {role}",
   "work.assigned": "কাজটি কে করবেন তা বদলানো হয়েছে",
-  "work.pinnedTo": "{name}-এর জন্য নির্ধারিত",
+  "work.pinnedToSomeone": "অন্য কারো জন্য নির্ধারিত",
   "work.progress": "{total}টির {done}টি",
   "work.skip": "বাদ",
   "work.skipWhy": "কেন বাদ?",

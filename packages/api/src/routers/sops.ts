@@ -1,5 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { and, eq, gte, isNull } from "@OpenFarm/db/operators";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import {
@@ -15,9 +15,10 @@ import {
   whyNotPrescribable,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
+import type { SQL } from "drizzle-orm";
 import { z } from "zod";
 
-import type { Tx } from "../audit";
+import type { Trail, Tx } from "../audit";
 import { audited } from "../audit";
 import { protectedProcedure } from "../index";
 import { tell } from "../notice";
@@ -239,6 +240,7 @@ const publishVersion = async (
     actorId,
     roleUsed,
     now,
+    trail,
   }: {
     farmId: string;
     definitionId: string;
@@ -247,6 +249,8 @@ const publishVersion = async (
     actorId: string;
     roleUsed: string | null;
     now: Date;
+    /** Where calling off the old Version's work still to come is written. */
+    trail: Trail;
   }
 ): Promise<{ id: string; number: number }> => {
   await requireInForce(tx, farmId, definitionId);
@@ -284,6 +288,21 @@ const publishVersion = async (
     .where(
       and(eq(sopDefinition.id, definitionId), eq(sopDefinition.farmId, farmId))
     );
+  // The old Version's scheduled work still to come and not yet taken is the old times': called off, for the new
+  // Version to raise at its own. What is under way, or past, stays — a morning's milking done at five is not raised
+  // again at half past because the afternoon moved.
+  if (number > 1) {
+    await callOffWork(
+      tx,
+      farmId,
+      and(
+        eq(sopInstance.definitionId, definitionId),
+        isNull(sopInstance.cause),
+        gte(sopInstance.dueAt, now)
+      ) as SQL,
+      { trail, by: "version_published", unstartedOnly: true }
+    );
+  }
 
   // Everybody whose Role does this work is told a new Version exists. It is written to the
   // farm's notification list and shown in-app, and it is deliberately not pushed: a changed
@@ -386,6 +405,7 @@ export const sopsRouter = {
             createdAt: now,
           });
           published = await publishVersion(tx, {
+            trail: audited(context).recordEvent,
             farmId: context.farm.id,
             definitionId,
             content: asSopContent(input.content),
@@ -436,6 +456,7 @@ export const sopsRouter = {
         },
         async (tx) => {
           published = await publishVersion(tx, {
+            trail: audited(context).recordEvent,
             farmId: context.farm.id,
             definitionId: input.definitionId,
             content: asSopContent(input.content),
@@ -736,6 +757,7 @@ export const sopsRouter = {
               throw new ORPCError("NOT_FOUND");
             }
             published = await publishVersion(tx, {
+              trail: audited(context).recordEvent,
               farmId: context.farm.id,
               definitionId: proposal.definitionId,
               content: proposal.content as SopContent,
@@ -871,6 +893,7 @@ export const sopsRouter = {
     .input(z.object({ definitionId: z.string(), note }))
     .handler(async ({ context, input }) => {
       const farmId = context.farm.id;
+      const now = context.clock.now();
       const existing = await requireProcedure(
         context.db,
         farmId,
@@ -895,7 +918,7 @@ export const sopsRouter = {
           }
           await tx
             .update(sopDefinition)
-            .set({ retiredAt: null })
+            .set({ retiredAt: null, restoredAt: now })
             .where(
               and(
                 eq(sopDefinition.id, existing.id),

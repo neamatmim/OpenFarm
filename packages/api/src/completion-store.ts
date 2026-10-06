@@ -28,15 +28,21 @@ export const stepOf = (content: SopContent, stepId: string): Step => {
 };
 
 /** The animal a per-animal Step is being recorded against — refusing one from another Pen,
- *  one that has left the farm, and an animal at all for a Step that runs once. */
+ *  one that has left the farm, an animal at all for a Step that runs once, and any but her for work about one animal:
+ *  a dose Step recorded against the cow beside her would write the Treatment and its withdrawal on the wrong cow. */
 export const resolveStepAnimal = async (
   tx: Tx,
   farmId: string,
   step: Step,
-  /** Null for work about the whole farm, whose animals stand wherever they stand. */
-  instancePenId: string | null,
+  work: {
+    /** Null for work about the whole farm, whose animals stand wherever they stand. */
+    penId: string | null;
+    /** The animal the work is about, where it is about one. */
+    animalId: string | null;
+  },
   animalTag: string | undefined
 ): Promise<string | null> => {
+  const instancePenId = work.penId;
   if (!step.repeatPerAnimal) {
     if (animalTag) {
       throw new ORPCError("BAD_REQUEST", {
@@ -61,12 +67,21 @@ export const resolveStepAnimal = async (
       message: `No animal with tag ${animalTag}`,
     });
   }
+  if (work.animalId !== null && beast.id !== work.animalId) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This work is about another animal",
+      data: { refusal: "work_about_another_animal" },
+    });
+  }
   // An animal that has left keeps its Pen, so the Pen alone does not prove she is here —
   // and a Step that writes a farm record would otherwise book litres to a sold cow. Both of
   // these are the world moving under an entry that was true when it was written.
+  // Work about her takes her whatever she has done since — gone, she is what her death's work is about.
+  const aboutHer = work.animalId !== null && beast.id === work.animalId;
   if (
-    (instancePenId !== null && beast.penId !== instancePenId) ||
-    !isOnTheFarm(beast)
+    !aboutHer &&
+    ((instancePenId !== null && beast.penId !== instancePenId) ||
+      !isOnTheFarm(beast))
   ) {
     throw lateEntry("That animal is not in this pen");
   }
@@ -116,22 +131,33 @@ export const assertMayWork = (
   }
 };
 
-/** A Step is either skipped with a reason — only where a reason means something — or done with
- *  everything the Version marks required. Checked per slot, not by count: a Step with an
- *  optional note and a required number is not satisfied by filling only the note. A photo
+/** A Step is either skipped with a reason — only where a reason means something, and only one of the reasons the Step
+ *  gives, there being nowhere to type another — or done with everything the Version marks required. Checked per slot,
+ *  not by count: a Step with an optional note and a required number is not satisfied by filling only the note. A photo
  *  arrives as a Step photo of its own, so the Step says which slots it answers. */
 export const assertEvidenceComplete = (
   step: Step,
   evidence: unknown[],
-  skipping: boolean,
+  /** Why it was skipped, or nothing for a Step done. */
+  skipReason: string | null | undefined,
   /** Whether a photo answers that slot. A Step may ask for more than one, and a photo that
    *  could not say which it answered would be a photo nobody can read back. */
   hasPhotoAt: (slot: number) => boolean
 ): void => {
-  if (skipping) {
+  if (skipReason) {
     if (!maySkip(step)) {
       throw new ORPCError("BAD_REQUEST", {
         message: "Only a per-animal step or a dose can be skipped",
+      });
+    }
+    // A reason the Version never wrote would count her covered and mean nothing the farm acts on.
+    const offered =
+      step.skipReasons.length === 0 ||
+      step.skipReasons.some((reason) => reason.bn === skipReason);
+    if (!offered) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "That is not one of this step's reasons to skip",
+        data: { refusal: "skip_reason_not_offered" },
       });
     }
     return;

@@ -1692,6 +1692,16 @@ export const en = {
     "A calf is not served: she is months from her first service",
   "refusal.pricedFromTheFuture":
     "Her price counts from a day that has come: today at the latest",
+  "refusal.workAboutAnotherAnimal":
+    "This work is about another animal: record it against her",
+  "refusal.skipReasonNotOffered":
+    "That is not one of this step's reasons to skip: choose one from the list",
+  "refusal.phoneRevoked":
+    "This phone is no longer one of the farm's. Ask the manager for a code to enrol it again",
+  "refusal.tooManyPins":
+    "Too many wrong PINs: wait fifteen minutes, or ask the manager",
+  "refusal.cannotWorkHere": "That person cannot work on this farm now",
+  "refusal.staffOnlyOnShedPhone": "Only barn staff work on a shed phone",
   "refusal.calvedLately":
     "She calved too lately to calve again: this is the same calving written twice, or a twin of it, which is one calving with two calves",
   "refusal.calvedBeforeHerService":
@@ -2263,6 +2273,8 @@ export const en = {
   "audit.calledOffBy.calving_no_longer_expected":
     "Called off: her calving is no longer expected",
   "audit.calledOffBy.report_withdrawn": "Called off: the report was withdrawn",
+  "audit.calledOffBy.version_published":
+    "Called off: a new version moved its time",
   "audit.calledOffBy.sop_retired": "Called off: the procedure was retired",
   "audit.calledOffBy.released": "Called off: he is out of quarantine",
   "audit.calledOffBy.excused": "Called off: the vet excused the dose",
@@ -2935,6 +2947,11 @@ export const en = {
   "sop.reject": "Reject",
   "sop.rejectReason": "Why not",
   "sop.noProposals": "No changes waiting",
+  "sop.blocker.bangla": "{where}: write it in Bangla",
+  "sop.blocker.noSteps": "Add at least one step",
+  "sop.blocker.other":
+    "{where}: something here cannot be published as it stands",
+  "sop.blocker.whole": "The procedure",
   "sop.cannotPublish": "This cannot be published yet",
   "sop.tab.procedures": "Procedures",
   "sop.tab.proposals": "Proposed changes",
@@ -4271,7 +4288,7 @@ export const en = {
   "work.heldBy": "{name} is doing this — you can read it here, not record it",
   "work.claimed": "You are working on this",
   "work.takenBy": "Someone else is working on this",
-  "work.pinnedTo": "Pinned to {name}",
+  "work.pinnedToSomeone": "Pinned to someone else",
   "work.assignTo": "Who does this",
   "work.anyoneInRole": "Anyone who is {role}",
   "work.assigned": "Updated who does this work",

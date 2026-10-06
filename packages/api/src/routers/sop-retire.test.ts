@@ -181,6 +181,38 @@ describe("bringing a procedure back", () => {
     expect(listed.find((one) => one.id === definitionId)?.retiredAt).toBeNull();
   });
 
+  it("raises nothing for what happened while it was retired", async () => {
+    // The arrival check is switched off on the 21st, a bull comes on the 22nd, and it is brought back on the 24th.
+    const day20 = await asOwner(onDay(20));
+    const { definitionId } = await day20.client.sops.create({
+      content: standardPlaybook().arrivalCheck,
+    });
+    const day21 = await asOwner(onDay(21));
+    await day21.client.sops.retire({ definitionId });
+    const day22 = await asOwner(onDay(22));
+    const shed = await day22.client.sheds.create({
+      name: `back-${Date.now()}`,
+    });
+    const pen = await day22.client.sheds.pens.create({
+      quarantine: true,
+      shedId: shed.id,
+      name: "আসার পেন",
+    });
+    await day22.client.animals.register({
+      sex: "male",
+      side: "fattening",
+      state: "quarantine",
+      penId: pen.id,
+      source: "bought",
+      aliases: [],
+    });
+    const day24 = await asOwner(onDay(24));
+    await day24.client.sops.restore({ definitionId });
+    await day24.client.work.ensureDue();
+    // His arrival was while the farm had said the check was not to be done: none is owed him now, two days late.
+    expect(await workOf(definitionId)).toEqual([]);
+  });
+
   it("is refused while another procedure a prescription raises is in force", async () => {
     const owner = await asOwner(onDay(8));
     const { treatmentDose } = standardPlaybook();

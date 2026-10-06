@@ -236,6 +236,22 @@ describe("feeding a Pen", () => {
     ]);
   });
 
+  it("refuses a second, different report of the same feeding: it is a Correction, not the same entry again", async () => {
+    const clock = new FakeClock("2027-08-20T02:00:00.000Z");
+    const { owner, instance } = await fedWith(clock, 6);
+    // Another phone says two kilos for the same tick: a different fact, which is a Correction, never silently dropped.
+    await expect(
+      owner.client.work.completeStep({
+        instanceId: instance.id,
+        stepId: "feed",
+        evidence: [true],
+        feeding: [{ feedItemId: world.concentrate.id, givenKg: 2 }],
+      })
+    ).rejects.toThrow(/already recorded/u);
+    const board = await owner.client.work.get({ id: instance.id });
+    expect(board.fed?.lines).toEqual([expect.objectContaining({ givenKg: 6 })]);
+  });
+
   it("rewrites the meal when a Correction says a different amount went out", async () => {
     const clock = new FakeClock("2027-08-06T02:00:00.000Z");
     const { owner, instance } = await fedWith(clock, 3);

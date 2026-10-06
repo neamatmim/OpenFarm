@@ -217,12 +217,13 @@ describe("the Registration and its renewal", () => {
     expect(early.needsYou.registrationRenewal).toBeNull();
 
     const raised = await renewalWork("2040-12-31T18:00:00.000Z");
-    // In no Pen, the Owner's, and due when the Registration runs out: late only once it has.
+    // In no Pen, the Owner's, and due when the Registration runs out — the end of its last good day, the 31st — so it
+    // is never late while the farm is still registered, whatever the Grace.
     expect(raised).toEqual([
       expect.objectContaining({
         penId: null,
         assignedRole: "owner",
-        dueAt: new Date("2041-03-30T18:00:00.000Z"),
+        dueAt: new Date("2041-03-31T18:00:00.000Z"),
       }),
     ]);
     const board = await as("owner", "2041-01-02T04:00:00.000Z");
@@ -413,5 +414,49 @@ describe("the Registration and its renewal", () => {
     expect(stillMoved.registrationExpiresOn?.toISOString()).toBe(
       "2043-03-30T18:00:00.000Z"
     );
+  });
+  it("raises the renewed certificate's renewal though it runs out in the same year as the one it replaced", async () => {
+    // The certificate ran out on 31 January 2051 and was renewed for a year from 10 November 2050: to 9 November 2051.
+    // Both run out in 2051, and the farm must still be reminded of the second.
+    const manager = await as("manager", "2050-10-01T04:00:00.000Z");
+    await manager.client.farm.setIdentity({
+      registrationExpiresOn: "2051-01-31",
+    });
+    const raised = await renewalWork("2050-11-10T04:00:00.000Z");
+    const work = raised.find((row) => row.state === "due");
+    const owner = await as("owner", "2050-11-10T04:00:00.000Z");
+    await owner.client.work.claim({ id: work?.id ?? "" });
+    await owner.client.work.completeStep({
+      instanceId: work?.id ?? "",
+      stepId: "apply",
+      evidence: [true],
+    });
+    await owner.client.work.completeStep({
+      instanceId: work?.id ?? "",
+      stepId: "renewed",
+      evidence: [true],
+      renewal: {
+        expiresOn: "2051-11-09",
+        issuedOn: "2050-11-10",
+        certificate: { contentType: "image/jpeg", data: "FFFF" },
+      },
+    });
+    await owner.client.work.complete({ id: work?.id ?? "" });
+    // The farm's ninety days before 9 November 2051.
+    const next = await renewalWork("2051-08-20T04:00:00.000Z");
+    expect(
+      next.filter(
+        (row) =>
+          row.state === "due" &&
+          row.dueAt.getTime() === Date.parse("2051-11-09T18:00:00.000Z")
+      )
+    ).toHaveLength(1);
+    // A typed expiry put right while that renewal is open raises no second one.
+    const putRight = await as("manager", "2051-08-21T04:00:00.000Z");
+    await putRight.client.farm.setIdentity({
+      registrationExpiresOn: "2051-11-19",
+    });
+    const after = await renewalWork("2051-08-21T05:00:00.000Z");
+    expect(after.filter((row) => row.state === "due")).toHaveLength(1);
   });
 });

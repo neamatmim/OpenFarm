@@ -426,3 +426,47 @@ describe("a Move that arrived from a phone", () => {
     ).toHaveLength(1);
   });
 });
+
+describe("work about one animal, recorded against another", () => {
+  it("is refused: the check is hers, whoever else stands in the Pen", async () => {
+    const clock = new FakeClock("2026-11-01T02:00:00.000Z");
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+    const shed = await owner.client.sheds.create({ name: `her-${Date.now()}` });
+    const [first, second] = [
+      await owner.client.sheds.pens.create({ shedId: shed.id, name: "ক" }),
+      await owner.client.sheds.pens.create({ shedId: shed.id, name: "খ" }),
+    ];
+    const heifer = (penId: string) =>
+      owner.client.animals.register({
+        sex: "female",
+        side: "dairy",
+        state: "heifer",
+        penId,
+        source: "born",
+        aliases: [],
+      });
+    const moved = await heifer(first?.id ?? "");
+    const standing = await heifer(second?.id ?? "");
+    await owner.client.animals.move({
+      tagNumber: moved.tagNumber,
+      toPenId: second?.id ?? "",
+      reason: "পেন পরিবর্তন",
+    });
+    await owner.client.work.ensureDue();
+    clock.advance(3 * DAY);
+    const today = await owner.client.work.today({ penId: second?.id ?? "" });
+    const hers = today.find(
+      (row) =>
+        row.definitionId === world.sop.definitionId && row.animalId === moved.id
+    );
+    await owner.client.work.claim({ id: hers?.id ?? "" });
+    await expect(
+      owner.client.work.completeStep({
+        instanceId: hers?.id ?? "",
+        stepId: "settled",
+        animalTag: standing.tagNumber,
+        evidence: [true],
+      })
+    ).rejects.toMatchObject({ data: { refusal: "work_about_another_animal" } });
+  });
+});

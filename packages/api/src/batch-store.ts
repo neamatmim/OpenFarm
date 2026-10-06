@@ -18,6 +18,7 @@ import type { RaisedAlert } from "./instances-store";
 import { tell } from "./notice";
 import type { Entry, EntryResult } from "./sync-entries";
 import {
+  batchUnder,
   clockIsOut,
   entrySeen,
   highestSeq,
@@ -265,7 +266,9 @@ const applyEntries = async (
       // oxlint-disable-next-line no-await-in-loop
       await keep(tx, context, entry, {
         input,
-        sourceKey,
+        // Kept under a key of its own: its number is the other entry's, and under the phone's key the row meant to hold
+        // what it said would be swallowed by the one already there — losing what somebody wrote down.
+        sourceKey: `${sourceKey}:clash:${entry.id}`,
         receivedAt,
         outcome: "rejected",
         reason: `sequence ${entry.seq} is already used by another entry`,
@@ -386,6 +389,20 @@ export const applyBatch = async (
         receivedAt,
       });
       if (!reserved) {
+        // Taken by the same batch asked for a moment before — its answer lost on a weak signal — and waited on until it
+        // was written: its stored answer, as any replay is answered, rather than work the farm took handed back as
+        // refused.
+        const taken = await batchUnder(tx, input.key);
+        const sameBatch =
+          taken?.farmId === context.farm.id &&
+          taken.requestHash === requestHash &&
+          taken.response;
+        if (sameBatch) {
+          return {
+            results: (taken.response as { results: EntryResult[] }).results,
+            told: [],
+          };
+        }
         throw new ORPCError("CONFLICT", {
           message: "That batch is already being applied",
         });
