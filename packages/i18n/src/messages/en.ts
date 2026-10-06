@@ -1706,6 +1706,8 @@ export const en = {
     "The vet has written no withdrawal days for this medicine, so it cannot be given yet",
   "refusal.observationCorrected":
     "That sighting was corrected since this list was opened. Answer the one in its place",
+  "refusal.feedOnARation":
+    "A ration a pen is on still feeds it ({ration}). Change that ration first",
   "refusal.phoneRevoked":
     "This phone is no longer one of the farm's. Ask the manager for a code to enrol it again",
   "refusal.tooManyPins":
@@ -3152,6 +3154,7 @@ export const en = {
   "feed.addItem": "Add a feed",
   "feed.retire": "Retire",
   "feed.atMostADay": "No more than {kg} a day",
+  "feed.retiredLine": "This feed is retired: empty its line to save the ration",
   "feed.retired": "Retired",
   "feed.restore": "Restore",
   "feed.rename": "Rename",

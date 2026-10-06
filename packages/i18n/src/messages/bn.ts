@@ -1585,6 +1585,8 @@ export const bn: Record<MessageKey, string> = {
     "পশুচিকিৎসক এই ওষুধের আটকে রাখার দিন লেখেননি, তাই এটি এখনো দেওয়া যাবে না",
   "refusal.observationCorrected":
     "এই তালিকা খোলার পর ঘটনাটি সংশোধন হয়েছে। তার জায়গার ঘটনাটির উত্তর দিন",
+  "refusal.feedOnARation":
+    "একটি পেন যে রেশনে আছে তাতে এটি এখনো খাওয়ানো হয় ({ration})। আগে সেই রেশন বদলান",
   "refusal.phoneRevoked":
     "এই ফোন আর খামারের নয়। আবার যুক্ত করতে ম্যানেজারের কাছে কোড চান",
   "refusal.tooManyPins":
@@ -2951,6 +2953,7 @@ export const bn: Record<MessageKey, string> = {
   "feed.addItem": "উপাদান যোগ করুন",
   "feed.retire": "বাদ দিন",
   "feed.atMostADay": "দিনে {kg}-এর বেশি নয়",
+  "feed.retiredLine": "এই খাবার বাদ দেওয়া হয়েছে: রেশন রাখতে এই ঘরটি খালি করুন",
   "feed.retired": "বাদ দেওয়া",
   "feed.restore": "ফিরিয়ে আনুন",
   "feed.rename": "নাম বদলান",

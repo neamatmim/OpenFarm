@@ -181,6 +181,7 @@ const WORDED_REFUSALS = {
   dose_not_due_yet: "refusal.doseNotDueYet",
   course_stopped: "refusal.courseStopped",
   counted_twice: "refusal.countedTwice",
+  feed_on_a_ration: "refusal.feedOnARation",
   not_shorter: "refusal.notShorter",
   no_withdrawal_days: "refusal.noWithdrawalDays",
   // A product retired from the Drug List since the list was read: why it may not be prescribed.

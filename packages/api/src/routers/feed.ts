@@ -1,7 +1,8 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNull, ne } from "@OpenFarm/db/operators";
+import { and, eq, isNull, ne, sql } from "@OpenFarm/db/operators";
 import {
   FEED_UNITS,
+  feedIn,
   feedItem,
   penRation,
   penRationSpell,
@@ -146,6 +147,28 @@ const FEED_ITEMS = {
   },
 } satisfies FarmList & Parameters<typeof assertNameFree>[2];
 
+/** The names of the Rations a Pen is on whose Version now gives this feed. */
+const rationsStillFeeding = async (
+  tx: Tx,
+  farmId: string,
+  feedItemId: string
+) => {
+  const rations = await tx.query.ration.findMany({
+    where: { farmId },
+    columns: { nameBn: true },
+    with: { currentVersion: true, pens: { columns: { penId: true } } },
+  });
+  return rations
+    .filter(
+      (one) =>
+        one.pens.length > 0 &&
+        linesOf(one.currentVersion?.items).some(
+          (line) => line.feedItemId === feedItemId
+        )
+    )
+    .map((one) => one.nameBn);
+};
+
 export const feedRouter = {
   /** The Feed Items the store holds and the farm feeds. */
   items: {
@@ -252,7 +275,27 @@ export const feedRouter = {
       .use(requireRole("owner", "manager"))
       .input(z.object({ id: z.string() }))
       .handler(async ({ context, input }) => {
-        await retireFromList(context, FEED_ITEMS, input.id);
+        await retireFromList(context, FEED_ITEMS, input.id, {
+          // Not while a Pen is still fed it: it would go on being fed, but could no longer be counted, bought or
+          // warned of running low, and its store would drift out of sight. The Ration is changed first.
+          refuseWhile: async (tx) => {
+            const feeding = await rationsStillFeeding(
+              tx,
+              context.farm.id,
+              input.id
+            );
+            if (feeding.length > 0) {
+              throw new ORPCError("BAD_REQUEST", {
+                message:
+                  "A Ration a Pen is on still feeds it; change the Ration first",
+                data: {
+                  refusal: "feed_on_a_ration",
+                  ration: feeding.join(", "),
+                },
+              });
+            }
+          },
+        });
         return { id: input.id };
       }),
 
@@ -344,11 +387,28 @@ export const feedRouter = {
             },
             after: { nameBn: existing.nameBn, fodderPriceMoney },
           },
-          (tx) =>
-            tx
+          async (tx) => {
+            await tx
               .update(feedItem)
               .set({ fodderPriceMoney })
-              .where(eq(feedItem.id, existing.id))
+              .where(eq(feedItem.id, existing.id));
+            // The cuts made before the farm said what its fodder is worth take this price: none could be priced,
+            // a Correction may not type one on a Harvest, and a Venture fed from them could never settle.
+            if (fodderPriceMoney !== null) {
+              await tx
+                .update(feedIn)
+                .set({
+                  priceMoney: sql`round(${feedIn.quantity} * ${fodderPriceMoney}, 2)`,
+                })
+                .where(
+                  and(
+                    eq(feedIn.feedItemId, existing.id),
+                    eq(feedIn.kind, "harvest"),
+                    isNull(feedIn.priceMoney)
+                  )
+                );
+            }
+          }
         );
         return { fodderPriceMoney: input.fodderPriceMoney };
       }),

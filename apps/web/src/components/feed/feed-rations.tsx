@@ -393,6 +393,12 @@ const RationDialog = ({
                     {item.nameBn}
                     {item.retiredAt ? ` · ${t("feed.retired")}` : ""}
                   </Label>
+                  {/* A retired feed still in the Ration stops it being saved: said here, beside the line to empty. */}
+                  {item.retiredAt && Number(kg[item.id] ?? "") > 0 ? (
+                    <p className="text-destructive basis-full text-xs">
+                      {t("feed.retiredLine")}
+                    </p>
+                  ) : null}
                   <div className="flex items-center gap-2">
                     <Input
                       aria-describedby={

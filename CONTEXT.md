@@ -240,7 +240,7 @@ Every screen says which it is. An announced day can be corrected, or taken back 
 
 **Feed In**: Feed coming into the store, either kind: a **Feed Purchase** or a **Harvest**. What the store's Stock on Hand is worked out from, with the Feedings that take it back out, and what the Feed page lists as «Came in». _Avoid_: Arrival (how an Animal came), Receipt (the buyer's paper), delivery, intake (an Animal's)
 
-**Fodder Price**: The price per kg the Owner sets on a home-grown Feed Item: roughly what it would cost to buy. What a Harvest brings into the store at. Changing it is the Owner's, and applies to Harvests from then on. _Avoid_: Market price, notional cost
+**Fodder Price**: The price per kg the Owner sets on a home-grown Feed Item: roughly what it would cost to buy. What a Harvest brings into the store at. Changing it is the Owner's, and applies to Harvests from then on — except a Harvest cut before the feed had any Fodder Price, which takes the first one set (the Owner, 2026-10-06): unpriced, a Pen fed from it stayed unpriced and a Venture fed from it could never settle. _Avoid_: Market price, notional cost
 
 **Stock on Hand**: Current quantity of a Feed Item: Feed Purchases and Harvests in, minus Feeding, corrected by the latest Stock Count — or of a product on the Drug List, in doses: Medicine Purchases in, minus every dose given, never below nothing. Worked out, never typed, and a Feed Item's shown below nothing when the pens were fed from feed nobody wrote down arriving. What is left of each Lot is worked out the same way, taking what was used from the Lot that expires first. Either may be given a level below which the Manager is told it is running low. _Avoid_: Inventory (the whole area), balance
 

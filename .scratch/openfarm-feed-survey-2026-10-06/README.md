@@ -48,6 +48,7 @@ The root: the feeding effect works out the Ration and the head count from the Pe
 ## Decisions (the Owner, 2026-10-06)
 
 - Build all four groups.
+- C2: a Harvest cut before its feed had any Fodder Price takes the first one set. A price changed afterwards still applies only from then on.
 - B5: the shed staff record what is left from the **last** feed, found in the trough before this feed goes in. The farm books it against the Pen's previous Feeding.
 
 ## Status
@@ -56,5 +57,5 @@ The root: the feeding effect works out the Ration and the head count from the Pe
 | ----- | ------ | ------ |
 | A     | fix/feed-stock | Done (a delivery written down on its own day comes in at that moment — `cameInAt`, for feed and medicine; feed Lots replayed with `replayLots` in domain/lots.ts, which medicine now shares; every count line read again, so a matched count shows once a late entry makes it short; a count compared with the book floored at nothing — `countedOverTheBook`) |
 | B     | fix/feeding-as-it-was | Done (a Pen's Ration history kept as `pen_ration_spell`, migration 20261006100519, backfilled from each Pen's current Ration; a Feeding read against the Ration of its work's raising and the animals standing when fed (`animalsInPenAt`); a Correction keeps the Feeding's own target and herd; feed given that was not owed is kept as a line; leftovers found at a feed are the feeding before's (`foundKg`, `passTheLeftovers`), never more than it gave; CONTEXT Leftover reworded) |
-| C     |        |        |
+| C     | fix/feed-retire-harvest | Done (a feed is not retired while a Ration a Pen is on gives it — `feed_on_a_ration`; the first Fodder Price set prices the Harvests cut with none — the Owner's decision, CONTEXT reworded; the Ration editor says beside a retired feed's line to empty it) |
 | D     |        |        |
