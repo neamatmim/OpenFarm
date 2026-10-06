@@ -83,6 +83,22 @@ const windowShown = async (
     end: row.targetWindowEnd,
   };
 
+/** Whose she is, once an Internal Sale has moved her, is the Sale's to say: her Intake set over it, her owner and her
+ *  history of owners disagreed. */
+const refuseAnOwnerSoldOnSince = async (tx: Tx, animalId: string) => {
+  const soldOn = await tx.query.internalSale.findFirst({
+    where: { animalId },
+    columns: { id: true },
+  });
+  if (soldOn) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "She has been sold on since she was bought; her owner is the Internal Sale's to put right",
+      data: { refusal: "sold_on_since" },
+    });
+  }
+};
+
 /**
  * What an Intake's Correction may change: what the farm paid, the livestock market's toll on her, the outing she came
  * home on, who sold the animal, how he was paid, and — for the Farm's own — the window she is sold in.
@@ -187,6 +203,9 @@ export const intakeCorrection: CorrectionKind<
   shownAs: { seller: (to) => to.name },
   trail: (tx, row) => readIntake(tx, row.animalId),
   apply: async (tx, row, to, { context, now }) => {
+    if (to.owner !== undefined) {
+      await refuseAnOwnerSoldOnSince(tx, row.animalId);
+    }
     // The outing she is on now, and the one she is being moved to: a Float already counted may neither
     // gain an animal nor lose one, because the sum it was counted against would stop being true.
     await assertTripIsOpen(tx, row.farmId, row.buyingTripId);

@@ -929,3 +929,43 @@ describe("a bull sold to a Venture and bought back the day he arrived", () => {
     expect(cost("bought_from_venture")).toBe(73_800);
   });
 });
+
+describe("an Intake put right after an Internal Sale", () => {
+  it("keeps its money with the purse that bought him, and is refused a new owner", async () => {
+    const farmBull = await bull("2047-05-01T05:00:00.000Z", 250);
+    await weigh("2047-05-02", [[farmBull.tagNumber, 250]]);
+    const owner = await as("owner", "2047-05-03T04:00:00.000Z");
+    await owner.client.ventures.sellInternally({
+      tagNumber: farmBull.tagNumber,
+      toVentureId: ventureId,
+      rateMoneyPerKg: 300,
+      note: `দর ${suffix}`,
+      soldOn: "2047-05-03",
+      paymentMethod: "bank",
+      reference: `INT-CORR-${suffix}`,
+      priceMoney: 75_000,
+    });
+
+    // His price at the gate was sixty-one thousand, not sixty: the Farm bought him, and the Farm's books are put right.
+    const manager = await as("manager", "2047-05-04T04:00:00.000Z");
+    await manager.client.intakes.correct({
+      id: farmBull.intakeId,
+      reason: "দাম ভুল লেখা হয়েছিল",
+      changes: { purchasePriceMoney: { from: 60_000, to: 61_000 } },
+    });
+    const paid = await scratchDb().query.moneyEvent.findFirst({
+      where: { source: "intake", sourceId: farmBull.intakeId },
+      columns: { amountMoney: true, purseVentureId: true },
+    });
+    expect(paid).toMatchObject({ amountMoney: 61_000, purseVentureId: null });
+
+    // Whose he is now was settled by the Internal Sale, not by his Intake.
+    await expect(
+      owner.client.intakes.correct({
+        id: farmBull.intakeId,
+        reason: "মালিক ভুল",
+        changes: { owner: { from: ventureId, to: null } },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "sold_on_since" } });
+  });
+});

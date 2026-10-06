@@ -105,6 +105,11 @@ export const recordMortality = async (
   if (death.diagnosisId) {
     await assertHerDiagnosis(tx, recorder.farmId, her.id, death.diagnosisId);
   }
+  // What she comes back as, should the Owner void this death written against the wrong animal.
+  const was = await tx.query.animal.findFirst({
+    where: { id: her.id },
+    columns: { state: true, stateChangedAt: true },
+  });
   const [written] = await tx
     .insert(mortality)
     .values({
@@ -117,6 +122,8 @@ export const recordMortality = async (
       diagnosisId: death.diagnosisId ?? null,
       disposal: death.disposal,
       disposalNote: death.disposalNote ?? null,
+      stateBefore: was?.state ?? null,
+      stateChangedBefore: was?.stateChangedAt ?? null,
       recordedBy: recorder.recordedBy,
       recordedByRole: recorder.recordedByRole,
       recordedAt: recorder.now,

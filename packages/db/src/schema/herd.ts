@@ -388,6 +388,12 @@ export const mortality = pgTable(
     /** Where, how deep, who took her — the detail the rule does not name but an inspector
      *  asks about. */
     disposalNote: text("disposal_note"),
+    /** The State she left from, and since when: what she comes back as if the Owner voids this, written against the
+     *  wrong animal. Null for one written before a void was possible (2026-10-06), which cannot be voided. */
+    stateBefore: text("state_before", { enum: ANIMAL_STATES }),
+    stateChangedBefore: timestamp("state_changed_before", {
+      withTimezone: true,
+    }),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }),
     recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),

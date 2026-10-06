@@ -14,7 +14,7 @@ import {
 
 import { user } from "./auth";
 import { farm } from "./farm";
-import { animal, animalMove } from "./herd";
+import { ANIMAL_STATES, animal, animalMove } from "./herd";
 import { stepCompletion } from "./instance";
 import { numericMoney } from "./numeric-columns";
 import { buyingTrip, sellingTrip } from "./trip";
@@ -279,6 +279,12 @@ export const sale = pgTable(
     /** Anything the farm wants said about why she went — a culled cow's reason lives here. */
     note: text("note"),
     soldAt: timestamp("sold_at", { withTimezone: true }).notNull(),
+    /** The State she left from, and since when: what she comes back as if the Owner voids this, written against the
+     *  wrong animal. Null for one written before a void was possible (2026-10-06), which cannot be voided. */
+    stateBefore: text("state_before", { enum: ANIMAL_STATES }),
+    stateChangedBefore: timestamp("state_changed_before", {
+      withTimezone: true,
+    }),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role"),
     createdAt: timestamp("created_at", { withTimezone: true })

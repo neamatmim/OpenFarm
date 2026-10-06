@@ -1595,6 +1595,15 @@ export const bn: Record<MessageKey, string> = {
   "refusal.alreadyInThatPen": "সে আগে থেকেই ওই পেনে আছে",
   "refusal.calfMovedBeforeThat":
     "বাছুরটিকে ওই সময়ের আগে সরানো হয়েছে, তাই বাচ্চা দেওয়া তার পরে হতে পারে না",
+  "refusal.soldOnSince":
+    "কেনার পর তাকে আবার বিক্রি করা হয়েছে। তার মালিক অভ্যন্তরীণ বিক্রিতে সংশোধন করুন",
+  "refusal.notOnThatLorry":
+    "সেদিনের ট্রাকে ছিল না: {tags}। শুধু যারা এখনো আছে, বা সেদিন বিক্রি হয়েছে, তারাই থাকতে পারে",
+  "refusal.soldInTheFuture": "বিক্রি এমন দিনে হতে পারে না যা এখনো আসেনি",
+  "refusal.moneyMovedSince":
+    "এরপর টাকা নড়েছে: ক্রেতা টাকা দিয়েছেন, কিছু বাদ দেওয়া হয়েছে, বা উদ্যোগ নিষ্পত্তি হয়েছে। এর বদলে সংশোধন করুন",
+  "refusal.cannotBeVoided":
+    "বাতিল করা যাওয়ার আগে এটি লেখা হয়েছিল। এর বদলে সংশোধন করুন",
   "refusal.phoneRevoked":
     "এই ফোন আর খামারের নয়। আবার যুক্ত করতে ম্যানেজারের কাছে কোড চান",
   "refusal.tooManyPins":
@@ -2132,6 +2141,7 @@ export const bn: Record<MessageKey, string> = {
     "বাতিল: তার বাচ্চা দেওয়া আর প্রত্যাশিত নয়",
   "audit.calledOffBy.report_withdrawn": "বাতিল: রিপোর্ট ফিরিয়ে নেওয়া হয়েছে",
   "audit.calledOffBy.course_stopped": "বাতিল: পশুচিকিৎসক কোর্স বন্ধ করেছেন",
+  "audit.calledOffBy.exit_voided": "বাতিল: মালিক তার চলে যাওয়া বাতিল করেছেন",
   "audit.calledOffBy.version_published": "বাতিল: নতুন সংস্করণে সময় বদলেছে",
   "audit.calledOffBy.sop_retired": "বাতিল: কার্যপ্রণালীটি বাদ দেওয়া হয়েছে",
   "audit.calledOffBy.released": "বাতিল: পশুটি কোয়ারেন্টিন থেকে ছাড়া পেয়েছে",
@@ -4171,6 +4181,11 @@ export const bn: Record<MessageKey, string> = {
   "correct.sale": "এই বিক্রয় সংশোধন",
   "correct.dispatch": "এই দুধ দেওয়া সংশোধন",
   "correct.purchase": "এই কেনা সংশোধন",
+  "correct.soldAt": "কখন চলে গেছে",
+  "correct.void": "ভুল পশুর নামে লেখা হয়েছে",
+  "correct.voidSale": "এই বিক্রি বাতিল করুন: সে আগের মতো ফিরে আসবে",
+  "correct.voidDeath": "এই মৃত্যু বাতিল করুন: সে আগের মতো ফিরে আসবে",
+  "correct.keep": "রেখে দিন",
   "correct.arrival": "এই আগমন সংশোধন",
   "correct.intake": "কেনার তথ্য সংশোধন",
   "correct.receivablePayment": "এই পরিশোধ সংশোধন করুন",

@@ -3,7 +3,7 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { Language } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
 import { Beef, MapPinOff, Milk, Shovel, TimerOff } from "lucide-react";
 import type { ReactNode } from "react";
@@ -21,7 +21,7 @@ import { TwoProjections } from "@/components/gain";
 import { Notice, Section, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
-import { choice, words } from "@/lib/correcting";
+import { choice, voiding, words } from "@/lib/correcting";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
@@ -47,7 +47,11 @@ const PutItRight = ({
     detail,
     new Date(detail.mortality.happenedAt)
   );
+  // The Owner's alone: a death written against the wrong animal is voided, and she comes back as she was.
+  const me = useQuery(orpc.people.me.queryOptions());
+  const mayVoid = me.data?.roles.includes("owner") ?? false;
   const correcting = useCorrecting({
+    ...(mayVoid ? { voided: voiding() } : {}),
     kind: choice(detail.mortality.kind),
     cause: words(detail.mortality.cause),
     // An answer kept from before the link was shown has none: nothing is linked.
@@ -121,6 +125,15 @@ const PutItRight = ({
         value={correcting.typed.disposal ?? ""}
       />
       <DeathPhotoField id="mortality-newer-photo" onChange={setPhoto} />
+      {mayVoid ? (
+        <CorrectionChoice
+          label={t("correct.void")}
+          onChange={(value) => correcting.set("voided", value)}
+          options={[{ value: "void", label: t("correct.voidDeath") }]}
+          unchosen={t("correct.keep")}
+          value={correcting.typed.voided ?? ""}
+        />
+      ) : null}
     </CorrectionDialog>
   );
 };

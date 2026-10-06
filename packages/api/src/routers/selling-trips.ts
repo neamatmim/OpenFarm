@@ -1,7 +1,12 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { sellingTripAnimal } from "@OpenFarm/db/schema/fattening";
 import { sellingTrip } from "@OpenFarm/db/schema/trip";
-import { farmDayOf, farmDaysBetween, shrinkOfMany } from "@OpenFarm/domain";
+import {
+  exitOf,
+  farmDayOf,
+  farmDaysBetween,
+  shrinkOfMany,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -172,13 +177,49 @@ export const sellingTripsRouter = {
       const tags = [...new Set(input.animals.map((one) => one.toUpperCase()))];
       const taken = await context.db.query.animal.findMany({
         where: { farmId: context.farm.id, tagNumber: { in: tags } },
-        columns: { id: true, tagNumber: true },
+        columns: {
+          id: true,
+          tagNumber: true,
+          side: true,
+          state: true,
+          stateChangedAt: true,
+        },
+        with: {
+          moves: {
+            columns: { movedAt: true },
+            orderBy: { movedAt: "asc" },
+            limit: 1,
+          },
+        },
       });
       if (taken.length !== tags.length) {
         const found = new Set(taken.map((one) => one.tagNumber));
         const missing = tags.filter((one) => !found.has(one));
         throw new ORPCError("NOT_FOUND", {
           message: `No animal with tag ${missing.join(", ")}`,
+        });
+      }
+      // Only who could have been on the lorry: a Fattening beast on the farm that farm day — here by its end, and not
+      // gone before it began; one that came home and was sold another day paid for her place too. A carcass, or a bull
+      // sold weeks before, once took a share of the day's cost from those really on it.
+      const { from, until } = farmDaysBetween(
+        farmDayOf(wentOn),
+        farmDayOf(wentOn)
+      );
+      const couldNot = taken.filter((one) => {
+        const came = one.moves[0]?.movedAt;
+        const left = exitOf(one)?.at;
+        const hereThatDay =
+          came !== undefined && came < until && !(left && left < from);
+        return !(one.side === "fattening" && hereThatDay);
+      });
+      if (couldNot.length > 0) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: `Not on that day's lorry: ${couldNot.map((one) => one.tagNumber).join(", ")}`,
+          data: {
+            refusal: "not_on_that_lorry",
+            tags: couldNot.map((one) => one.tagNumber).join(", "),
+          },
         });
       }
       const id = uuidv7(now);

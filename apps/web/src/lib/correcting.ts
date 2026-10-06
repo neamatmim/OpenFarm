@@ -151,6 +151,18 @@ export const moment = (held: Date | string): Answer<string, Date> => {
   };
 };
 
+/**
+ * Voiding a record written against the wrong animal — the Owner's alone: chosen, it sends that it is void; left alone,
+ * nothing. Never undone from here: a void is the record taken off the books.
+ */
+export const voiding = (): Answer<boolean, true> => ({
+  holds: false,
+  shows: "",
+  sends: (typed) => (typed === "void" ? true : undefined),
+  same: (typed) => typed !== "void",
+  couldBeSent: () => true,
+});
+
 /** A Target Window as two date boxes type it into one answer: its first day and its last, `start|end`. */
 const daysOf = (typed: string) => {
   const [start = "", end = ""] = typed.split("|");

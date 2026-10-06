@@ -3,6 +3,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import {
   and,
   eq,
+  gte,
   inArray,
   isNull,
   like,
@@ -1077,6 +1078,48 @@ export const redateCalving = async (
         and(eq(animalMove.animalId, calfId), isNull(animalMove.fromPenId))
       );
   }
+};
+
+/**
+ * Brings back an animal whose Sale or death the Owner voided, written against the wrong animal: the State she left from,
+ * from when she was in it. The work raised about her since she left — a carcass to dispose of — is called off; the
+ * work her leaving called off stays called off, and the day raises what she is owed from here.
+ */
+export const comesBackFromAVoidedExit = async (
+  tx: Tx,
+  farmId: string,
+  her: { id: string },
+  {
+    state,
+    since,
+    leftAt,
+    now,
+    trail,
+  }: { state: AnimalState; since: Date; leftAt: Date; now: Date; trail: Trail }
+): Promise<void> => {
+  const [back] = await tx
+    .update(animal)
+    .set({ state, stateChangedAt: since, updatedAt: now })
+    .where(
+      and(
+        eq(animal.id, her.id),
+        eq(animal.farmId, farmId),
+        inArray(animal.state, [...EXIT_STATES])
+      )
+    )
+    .returning({ id: animal.id });
+  if (!back) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Only an animal who has left the farm can come back",
+    });
+  }
+  await callOffWork(
+    tx,
+    farmId,
+    and(eq(sopInstance.animalId, her.id), gte(sopInstance.createdAt, leftAt)) ??
+      eq(sopInstance.animalId, her.id),
+    { trail, by: "exit_voided" }
+  );
 };
 
 /**
