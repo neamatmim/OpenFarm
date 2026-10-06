@@ -1,10 +1,12 @@
 import { eq } from "@OpenFarm/db/operators";
 import { agreementOffer } from "@OpenFarm/db/schema/venture";
+import { formatDate } from "@OpenFarm/i18n";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { stillAsKept } from "../kept-paper";
 import { createTestClient } from "../test/client";
+import { theWhole } from "../test/nominations";
 import { invitingInvestors, signedInAs } from "../test/portal-client";
 import { appRouter } from "./index";
 
@@ -482,5 +484,130 @@ describe("an Agreement offered in the app, and the Farm's own Units", () => {
         })
       )
     ).toBe("split_not_the_farms");
+  });
+});
+
+/** A farm day as an English paper writes it. */
+const said = (day: string) =>
+  formatDate(new Date(`${day}T00:00:00Z`), "en", "date");
+
+describe("an Agreement offered in the app, as things move on after it was offered", () => {
+  beforeAll(async () => {
+    const owner = await as("owner");
+    await owner.investors.setAgreementsInApp({ shown: true });
+  });
+
+  it("names the Nominees agreed to on the day agreed, so a মনোনয়নপত্র signed after it is still the list in force", async () => {
+    const ventureId = await aVenture("মনোনয়ন পরে");
+    const them = await invited("মনোনয়ন পরে");
+    const owner = await as("owner");
+    const { id } = await owner.ventures.agreements.offers.make({
+      ...terms(ventureId, them.id),
+      nominees: [{ ...theWhole(`স্ত্রী ${suffix}`), bornOn: "1990-01-01" }],
+    });
+    const offers = await them.client.portal.agreementOffers();
+    const offered = offers.find((one) => one.id === id);
+    await them.client.portal.agreeToOffer({
+      offerId: id,
+      paperHash: offered?.paperHash ?? "",
+    });
+    // On the 3rd he signs a new paper in front of the Owner, naming his son.
+    const third = await as("owner", "2093-01-03T04:00:00.000Z");
+    await third.investors.recordNomination({
+      id: them.id,
+      nominees: [
+        { ...theWhole(`ছেলে ${suffix}`, "ছেলে"), bornOn: "1995-01-01" },
+      ],
+      signedOn: "2093-01-03",
+      contentType: "image/jpeg",
+      data: "aGVsbG8=",
+    });
+    // And on the 5th the Owner approves the offer he agreed to on the 1st.
+    const approver = await as("owner", LATER);
+    await approver.ventures.agreements.offers.approve({ offerId: id });
+    const [inForce] = await approver.investors.nominations({ id: them.id });
+    expect(inForce?.nominees.map((one) => one.name)).toEqual([
+      `ছেলে ${suffix}`,
+    ]);
+  });
+
+  it("is laid out with the Target Window an Amendment has moved it to, as the Agreement it becomes records", async () => {
+    const ventureId = await aVenture("সংশোধনের পরে");
+    const first = await invited("সংশোধনের আগে");
+    const { id: firstOffer } = await offeredAndAgreed(ventureId, first);
+    const owner = await as("owner");
+    await owner.ventures.agreements.offers.approve({ offerId: firstOffer });
+    await owner.investors.setAgreementsInApp({ shown: true });
+    const moved = await owner.ventures.agreements.amendments.propose({
+      ventureId,
+      investorsPercent: 60,
+      targetWindowStart: "2093-07-01",
+      targetWindowEnd: "2093-07-10",
+      reason: `ঈদ পিছিয়েছে ${suffix}`,
+    });
+    const amendments = await first.client.portal.amendmentOffers();
+    const amendment = amendments.find((one) => one.id === moved.id);
+    await first.client.portal.agreeToAmendment({
+      offerId: moved.id,
+      paperHash: amendment?.paperHash ?? "",
+    });
+    const approver = await as("owner", "2093-01-03T04:00:00.000Z");
+    await approver.ventures.agreements.amendments.approve({
+      offerId: moved.id,
+    });
+
+    // A second Investor offered it after: his paper says July, as the Agreement he will hold does.
+    const second = await invited("সংশোধনের পরে");
+    const later = await as("owner", LATER);
+    const { id } = await later.ventures.agreements.offers.make(
+      terms(ventureId, second.id)
+    );
+    const [kept] = await scratchDb()
+      .select({ paper: agreementOffer.paper })
+      .from(agreementOffer)
+      .where(eq(agreementOffer.id, id));
+    const text = JSON.stringify(kept?.paper);
+    expect(text).toContain(said("2093-07-01"));
+    expect(text).not.toContain(said("2093-06-01"));
+    // And the Venture as the portal shows it to those not yet in it.
+    await later.ventures.showInPortal({ id: ventureId, words: "" });
+    const reading = await signedInAs(second.loginEmail, LATER);
+    const open = await reading.portal.openVentures();
+    expect(open.find((one) => one.id === ventureId)?.targetWindow.start).toBe(
+      "2093-07-01"
+    );
+  });
+
+  it("is gone from the portal, and cannot be agreed, once its Venture is cancelled", async () => {
+    const ventureId = await aVenture("বাতিল");
+    const them = await invited("বাতিল");
+    const owner = await as("owner");
+    const offered = await owner.ventures.agreements.offers.make(
+      terms(ventureId, them.id)
+    );
+    await owner.ventures.cancel({ id: ventureId, reason: "টাকা ওঠেনি" });
+    expect(await them.client.portal.agreementOffers()).toEqual([]);
+    expect(
+      await refusalOf(
+        them.client.portal.agreeToOffer({
+          offerId: offered.id,
+          paperHash: offered.paperHash,
+        })
+      )
+    ).toBe("venture_wrong_state");
+  });
+
+  it("is not shown while the Owner's switch is off", async () => {
+    const ventureId = await aVenture("সুইচ বন্ধ দেখায় না");
+    const them = await invited("সুইচ বন্ধ দেখায় না");
+    const owner = await as("owner");
+    await owner.ventures.agreements.offers.make(terms(ventureId, them.id));
+    await owner.investors.setAgreementsInApp({ shown: false });
+    try {
+      const portal = await signedInAs(them.loginEmail, JANUARY);
+      expect(await portal.portal.agreementOffers()).toEqual([]);
+    } finally {
+      await owner.investors.setAgreementsInApp({ shown: true });
+    }
   });
 });

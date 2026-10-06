@@ -1,6 +1,6 @@
 import { eq } from "@OpenFarm/db/operators";
 import { venture } from "@OpenFarm/db/schema/venture";
-import { isPastDecideBy } from "@OpenFarm/domain";
+import { farmDayOf, isPastDecideBy } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -11,7 +11,7 @@ import { offerProjectionOf, offeredProjection } from "./projection-store";
 import { closeRequests } from "./requests-to-join";
 import type { VentureRow } from "./venture-act";
 import { actOnVenture } from "./venture-act";
-import { paidForBy, readVenture } from "./venture-store";
+import { paidForBy, readVenture, withWindowsInForce } from "./venture-store";
 
 // A Venture still gathering capital, shown to the farm's invited Investors in the portal (ADR 0008). The Owner shows
 // it, words it and takes it out again; an Investor reads its terms, its rules and those words — and never anything
@@ -188,14 +188,20 @@ export const openVenturesFor = async (
   if (!them || them.retiredAt) {
     return [];
   }
-  const shown = await db.query.venture.findMany({
-    where: {
-      farmId: farm.id,
-      state: "open",
-      shownInPortalAt: { isNotNull: true },
-    },
-    orderBy: { decideBy: "asc", id: "asc" },
-  });
+  // Each with its Target Window as Amendments signed so far have moved it: what an Agreement signed today records.
+  const shown = await withWindowsInForce(
+    db,
+    farm.id,
+    await db.query.venture.findMany({
+      where: {
+        farmId: farm.id,
+        state: "open",
+        shownInPortalAt: { isNotNull: true },
+      },
+      orderBy: { decideBy: "asc", id: "asc" },
+    }),
+    farmDayOf(now)
+  );
   const signed = await db.query.investmentAgreement.findMany({
     where: { farmId: farm.id, investorId },
     columns: { ventureId: true },

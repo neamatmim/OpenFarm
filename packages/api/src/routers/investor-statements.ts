@@ -33,7 +33,7 @@ import {
   giveStandardTemplates,
   wordingSignedIn,
 } from "../template-store";
-import { paidForBy } from "../venture-store";
+import { paidForBy, withWindowsInForce } from "../venture-store";
 
 /**
  * What a copy of an Agreement writes into the stamp's blanks — serial, value, day — and the line marking it a copy and
@@ -156,10 +156,17 @@ export const investorStatementsRouter = {
         run.id,
         input.investorsPercent
       );
+      // As the Amendments signed so far have left its Target Window: what the Agreement it becomes records.
+      const [inForce = run] = await withWindowsInForce(
+        context.db,
+        context.farm.id,
+        [run],
+        today
+      );
       const document = agreementLaidOut({
         farm: context.farm,
         ownerName: context.actor.name,
-        run,
+        run: inForce,
         him,
         nominees,
         terms: input,

@@ -720,6 +720,8 @@ export const en = {
     "An Agreement is sent to them on this Venture already; withdraw it before sending another.",
   "agreeInApp.refusal.offer_not_agreed": "The Investor has not agreed yet.",
   "agreeInApp.refusal.offer_withdrawn": "This offer was withdrawn.",
+  "agreeInApp.refusal.venture_moved_on":
+    "This Venture has moved on since, and no longer takes this offer.",
   "agreeInApp.refusal.offer_already_approved":
     "This is approved — it is an Agreement now.",
   "agreeInApp.refusal.venture_units_gone":

@@ -19,6 +19,9 @@ type Offer = Awaited<ReturnType<typeof client.portal.agreementOffers>>[number];
 const REFUSALS = {
   agreements_in_app_off: "agreeInApp.refusal.agreements_in_app_off",
   offer_withdrawn: "agreeInApp.refusal.offer_withdrawn",
+  // Cancelled, buying or settled since it was offered: nothing agreed now could be approved.
+  venture_wrong_state: "agreeInApp.refusal.venture_moved_on",
+  already_approved: "agreeInApp.refusal.venture_moved_on",
   paper_changed_since: "agreeInApp.refusal.paper_changed_since",
   not_an_investor: "portal.refused.notAnInvestor",
   signed_in_too_long: "portal.endedHint",

@@ -676,6 +676,8 @@ export const bn: Record<MessageKey, string> = {
     "এই ভেঞ্চারে তাঁকে একটি চুক্তি আগেই পাঠানো আছে; নতুন পাঠাতে আগেরটি ফিরিয়ে নিন।",
   "agreeInApp.refusal.offer_not_agreed": "বিনিয়োগকারী এখনো সম্মতি দেননি।",
   "agreeInApp.refusal.offer_withdrawn": "এই চুক্তির প্রস্তাব ফিরিয়ে নেওয়া হয়েছে।",
+  "agreeInApp.refusal.venture_moved_on":
+    "এই ভেঞ্চার এরপর এগিয়ে গেছে, এই প্রস্তাব আর নেওয়া হয় না।",
   "agreeInApp.refusal.offer_already_approved": "এটি অনুমোদিত — এখন এটি চুক্তি।",
   "agreeInApp.refusal.venture_units_gone":
     "এই ভেঞ্চারে এত ইউনিট আর বাকি নেই। প্রস্তাবটি ফিরিয়ে নিয়ে কম ইউনিটে আবার পাঠান।",
