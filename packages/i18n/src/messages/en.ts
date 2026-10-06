@@ -1696,6 +1696,16 @@ export const en = {
     "This work is about another animal: record it against her",
   "refusal.skipReasonNotOffered":
     "That is not one of this step's reasons to skip: choose one from the list",
+  "refusal.doseNotDueYet":
+    "This dose is not due yet. Give the dose before it first, or wait until nearer its time",
+  "refusal.courseStopped": "The vet has already stopped this course",
+  "refusal.countedTwice": "Each medicine is counted once in a count",
+  "refusal.notShorter":
+    "A withdrawal can only be made shorter. Choose a day and time before the one it stands at",
+  "refusal.noWithdrawalDays":
+    "The vet has written no withdrawal days for this medicine, so it cannot be given yet",
+  "refusal.observationCorrected":
+    "That sighting was corrected since this list was opened. Answer the one in its place",
   "refusal.phoneRevoked":
     "This phone is no longer one of the farm's. Ask the manager for a code to enrol it again",
   "refusal.tooManyPins":
@@ -2273,6 +2283,7 @@ export const en = {
   "audit.calledOffBy.calving_no_longer_expected":
     "Called off: her calving is no longer expected",
   "audit.calledOffBy.report_withdrawn": "Called off: the report was withdrawn",
+  "audit.calledOffBy.course_stopped": "Called off: the vet stopped the course",
   "audit.calledOffBy.version_published":
     "Called off: a new version moved its time",
   "audit.calledOffBy.sop_retired": "Called off: the procedure was retired",
@@ -4188,6 +4199,7 @@ export const en = {
     "Choose from the list, or write another disease in your own words.",
   "vet.notifiableNamed":
     "{disease} must be reported to DLS: saving this raises the letter to the office at once.",
+  "vet.outcome": "How it ended",
   "vet.note": "What you found",
   "vet.record": "Record the diagnosis",
   "vet.recorded": "Diagnosis recorded",
@@ -4222,6 +4234,12 @@ export const en = {
   "prescribe.given": "given by {name}",
   "prescribe.owed": "not given yet",
   "prescribe.missed": "not given",
+  "prescribe.skipped": "skipped: {reason}",
+  "prescribe.stopped": "stopped",
+  "prescribe.stop": "Stop the course",
+  "prescribe.stopReason": "Why it is stopped",
+  "prescribe.stoppedDone":
+    "Course stopped; the doses still to give are owed no more",
   "prescribe.calledOff": "called off",
   "prescribe.course": "Course of treatment",
   "prescribe.sheetHint":
@@ -4346,7 +4364,7 @@ export const en = {
   "withdrawal.meatUntil": "Meat held until",
   "withdrawal.reason": "Why it is being shortened",
   "withdrawal.shortened": "Withdrawal shortened",
-  "withdrawal.endNow": "End it now",
+  "withdrawal.endNow": "Empty the box to end it now",
   "home.meatWithdrawal": "Held back from sale",
   "home.lowStock": "Feed running low",
   "home.lowStockLine": "{feed}: {onHand} {unit} left, below {threshold}",
@@ -4421,6 +4439,7 @@ export const en = {
     "Change what is wrong. The original stays readable in the audit trail beside this correction.",
   "correct.sale": "Correct this sale",
   "correct.dispatch": "Correct this dispatch",
+  "correct.purchase": "Correct this purchase",
   "correct.arrival": "Correct this arrival",
   "correct.intake": "Correct what she cost",
   "correct.receivablePayment": "Correct this payment",
@@ -5763,6 +5782,7 @@ export const en = {
   "params.soresTellAnimals": "Animals in one pen",
   "params.soresTellHours": "Within",
   "params.animals": "animals",
+  "animals.outcomeSaid": "Saved how it ended",
   "animals.outcome.recovered": "Recovered",
   "animals.outcome.not_recovered": "Not recovered",
   "home.illAgain": "Ill again and again",

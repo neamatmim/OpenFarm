@@ -132,6 +132,57 @@ export const underMeatWithdrawal = (
 export const withdrawalEndsAt = (givenAt: Date, days: number): Date =>
   new Date(givenAt.getTime() + days * DAY_MS);
 
+/** One dose's hold of one kind: until when, and when the farm learnt it was given. */
+export interface DoseHold {
+  until: Date;
+  /** Null where the farm cannot say — read as known all along. */
+  learntAt: Date | null;
+}
+
+/** The latest end of some holds, or nothing for none. */
+const latestOf = (holds: readonly DoseHold[]): Date | null => {
+  let last: Date | null = null;
+  for (const hold of holds) {
+    if (!last || hold.until > last) {
+      last = hold.until;
+    }
+  }
+  return last;
+};
+
+/**
+ * One of her holds as it stands: the latest end her doses give, except where the Vet has shortened it.
+ *
+ * A shortening covers the doses the Vet could have known of — those the farm had learnt of by then — and holds
+ * them only to where the Vet said. A dose learnt of afterwards is new: it holds her on its own days, so in force is
+ * the later of the two. Shortening once replaced every later reckoning only when the latest end moved, so a short
+ * dose after a long one was ignored and she went on a lorry inside its withdrawal; and any change at all threw the
+ * shortening away, so a dose corrected to a skip held her to the long one's end again.
+ *
+ * `shortened` is whether the Vet's word still changes anything: once newer doses hold her longer than everything it
+ * covered, it no longer does.
+ */
+export const holdInForce = (
+  holds: readonly DoseHold[],
+  shortening: { at: Date; to: Date } | null
+): { until: Date | null; shortened: boolean } => {
+  const uncapped = latestOf(holds);
+  if (!shortening) {
+    return { until: uncapped, shortened: false };
+  }
+  // Learnt of in the same instant as the shortening is newer: the safe side, holding her on its own days.
+  const knewOf = (hold: DoseHold) =>
+    hold.learntAt === null || hold.learntAt < shortening.at;
+  const covered = latestOf(holds.filter(knewOf));
+  const newer = latestOf(holds.filter((hold) => !knewOf(hold)));
+  const capped = covered && covered > shortening.to ? shortening.to : covered;
+  const until = newer && (!capped || newer > capped) ? newer : capped;
+  return {
+    until,
+    shortened: (until?.getTime() ?? null) !== (uncapped?.getTime() ?? null),
+  };
+};
+
 /** Both of a cow's Withdrawals as every screen shows them, and the Vet's shortening if there
  *  was one. Derived in one place so her page, the Manager's queue and increment 4's Sale all
  *  read the same dates. */

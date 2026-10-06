@@ -6,7 +6,7 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
 import { recomputeWithdrawal } from "../health-store";
-import { lotOfTheLatestDose } from "../medicine-stock";
+import { lotOfDose } from "../medicine-stock";
 import { tell } from "../notice";
 import { callOffPutOffDose, raiseThePutOff } from "../put-off-store";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
@@ -31,6 +31,9 @@ interface DoseGiven {
   completionId: string | null;
   givenBy: string | null;
   givenAt: Date | null;
+  learntAt: Date | null;
+  milkWithdrawalDays: number | null;
+  meatWithdrawalDays: number | null;
 }
 
 /**
@@ -137,7 +140,14 @@ const recordCampaignDose = async (
       target: [treatment.instanceId, treatment.animalId],
       set: { ...given, lotNumber },
     });
-  return { id, number: 1, prescriptionId: null, animalId };
+  return {
+    id,
+    number: 1,
+    prescriptionId: null,
+    animalId,
+    productId,
+    dueAt: input.instance.dueAt,
+  };
 };
 
 /** How many doses the course this one belongs to calls for — one, for a campaign. */
@@ -158,12 +168,14 @@ const dosesInTheCourse = async (
 /**
  * Says so when a dose just given came out of a Lot already past its day — warned of, not refused: an animal that
  * needed treating was treated, and the Vet, who answers for what went into her, and the Manager, who keeps the box
- * it came out of, hear of it at once. Keyed on the dose, so a phone sending it twice tells nobody twice.
+ * it came out of, hear of it at once. Keyed on the dose, so a phone sending it twice tells nobody twice. Every dose
+ * given is asked — a course's, a Campaign's, and one not prescribed, which once was never.
  */
-const tellIfItsLotHadExpired = async (
+export const tellIfItsLotHadExpired = async (
   tx: Tx,
-  input: TreatmentFacts,
-  doseId: string
+  farmId: string,
+  doseId: string,
+  now: Date
 ) => {
   const dose = await tx.query.treatment.findFirst({
     where: { id: doseId },
@@ -177,10 +189,10 @@ const tellIfItsLotHadExpired = async (
     return;
   }
   // Read on the day it was given: only whether the Lot had passed its day is asked, so no warning is wanted.
-  const lot = await lotOfTheLatestDose(
+  const lot = await lotOfDose(
     tx,
-    input.instance.farmId,
-    dose.productId,
+    farmId,
+    { id: doseId, productId: dose.productId },
     expiryWindow(dose.givenAt, 0)
   );
   if (!(lot?.expiresOn && lot.standing === "expired")) {
@@ -188,7 +200,7 @@ const tellIfItsLotHadExpired = async (
   }
   await tell(
     tx,
-    input.instance.farmId,
+    farmId,
     {
       kind: "expired_dose_given",
       about: { id: doseId },
@@ -199,7 +211,7 @@ const tellIfItsLotHadExpired = async (
         expiresOn: lot.expiresOn,
       },
     },
-    input.now
+    now
   );
 };
 
@@ -228,6 +240,77 @@ const followTheArrivalDose = async (tx: Tx, input: TreatmentFacts) => {
 };
 
 /**
+ * What the dose's row says of its giving: who, when, when the farm learnt of it, and the days it holds her for — the
+ * product's on the Drug List now, kept on the dose so days lowered there afterwards free nobody. All of it nothing
+ * for a skip.
+ *
+ * Given no earlier than the work that asked for it was raised: a phone whose clock had been reset a month back sent a
+ * dose dated before its Prescription was written, and her hold was over before the dose went in. The farm's own time
+ * for raising it is the earliest the dose can have been.
+ */
+const doseGiven = async (
+  tx: Tx,
+  input: TreatmentFacts,
+  productId: string | undefined
+): Promise<DoseGiven> => {
+  if (input.skipped) {
+    return {
+      completionId: null,
+      givenBy: null,
+      givenAt: null,
+      learntAt: null,
+      milkWithdrawalDays: null,
+      meatWithdrawalDays: null,
+    };
+  }
+  const product = productId
+    ? await tx.query.drugProduct.findFirst({
+        where: { id: productId },
+        columns: { milkWithdrawalDays: true, meatWithdrawalDays: true },
+      })
+    : undefined;
+  const raised = input.instance.raisedAt;
+  return {
+    completionId: input.completionId,
+    givenBy: input.recordedBy,
+    givenAt: input.recordedAt < raised ? raised : input.recordedAt,
+    learntAt: input.now,
+    milkWithdrawalDays: product?.milkWithdrawalDays ?? null,
+    meatWithdrawalDays: product?.meatWithdrawalDays ?? null,
+  };
+};
+
+/**
+ * A course's dose is taken no earlier than half-way from the dose before it: closer to its own time than to the
+ * last one's. Recording a dose only ever checked its work's state, so the third of a three-day course could be
+ * tapped the first morning — the course looked finished, her Withdrawal ran from the wrong day, and the real dose
+ * then had nowhere to be written. The first dose has no dose before it, and is taken whenever it is given.
+ */
+const assertDoseIsDue = async (
+  tx: Tx,
+  dose: { number: number; prescriptionId: string | null; dueAt: Date },
+  givenAt: Date
+) => {
+  if (!dose.prescriptionId || dose.number <= 1) {
+    return;
+  }
+  const before = await tx.query.treatment.findFirst({
+    where: { prescriptionId: dose.prescriptionId, number: dose.number - 1 },
+    columns: { dueAt: true },
+  });
+  if (!before) {
+    return;
+  }
+  const halfway = new Date((before.dueAt.getTime() + dose.dueAt.getTime()) / 2);
+  if (givenAt < halfway) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `Dose ${dose.number} is not due yet: it may be given from ${halfway.toISOString()}`,
+      data: { refusal: "dose_not_due_yet", from: halfway.toISOString() },
+    });
+  }
+};
+
+/**
  * Records that a dose was actually given — or, when the Step was skipped, that it was not
  * after all — and works her Withdrawals out afresh from everything she has had.
  *
@@ -244,7 +327,14 @@ const giveTheDose = async (
       instanceId: input.instance.id,
       ...(shape.animalId ? { animalId: shape.animalId } : {}),
     },
-    columns: { id: true, number: true, prescriptionId: true, animalId: true },
+    columns: {
+      id: true,
+      number: true,
+      prescriptionId: true,
+      animalId: true,
+      productId: true,
+      dueAt: true,
+    },
   });
   if (!(owed || shape.campaign)) {
     // The Treatment SOP was raised by something other than a Prescription — a schedule
@@ -254,13 +344,14 @@ const giveTheDose = async (
       message: "This work is not a dose of any prescription",
     });
   }
-  const given: DoseGiven = input.skipped
-    ? { completionId: null, givenBy: null, givenAt: null }
-    : {
-        completionId: input.completionId,
-        givenBy: input.recordedBy,
-        givenAt: input.recordedAt,
-      };
+  const given = await doseGiven(
+    tx,
+    input,
+    shape.campaign ? shape.productId : owed?.productId
+  );
+  if (owed && given.givenAt) {
+    await assertDoseIsDue(tx, owed, given.givenAt);
+  }
 
   let dose = owed;
   if (shape.campaign) {
@@ -281,7 +372,7 @@ const giveTheDose = async (
     dose?.animalId ?? shape.animalId ?? ""
   );
   if (dose && !input.skipped) {
-    await tellIfItsLotHadExpired(tx, input, dose.id);
+    await tellIfItsLotHadExpired(tx, input.instance.farmId, dose.id, input.now);
   }
   await followTheArrivalDose(tx, input);
   return {

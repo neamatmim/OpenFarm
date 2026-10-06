@@ -93,6 +93,7 @@ export const CALLED_OFF_BY = [
   "report_withdrawn",
   "sop_retired",
   "version_published",
+  "course_stopped",
   "released",
   "excused",
 ] as const;

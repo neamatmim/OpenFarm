@@ -14,6 +14,8 @@ export interface Dose {
   givenByName: string | null;
   /** The state of the work raised for it, so a dose nobody gave can say so. */
   state: string;
+  /** Why it was not given, for a dose skipped. Missing from an answer cached before the farm said it. */
+  skippedBecause?: string | null;
 }
 
 /** A Prescription as a screen reads it: what was ordered, and how the course is going. */
@@ -24,7 +26,16 @@ export interface Course {
   productNameBn: string;
   productNameEn: string | null;
   doses: Dose[];
+  /** When the Vet gave the course up and why; missing from an answer cached before the farm said it. */
+  stopped?: { reason: string | null } | null;
 }
+
+/** Whether a dose is still to be given: not given, not skipped, and its work neither called off nor missed. */
+export const stillOwed = (dose: Dose) =>
+  dose.givenAt === null &&
+  !dose.skippedBecause &&
+  dose.state !== "called_off" &&
+  dose.state !== "missed";
 
 /** The product in the reader's language — the label is in Bangla, so that is what is kept. */
 const productName = (course: Course, english: boolean) =>
@@ -47,6 +58,7 @@ export const CourseLine = ({ course }: { course: Course }) => {
         given: formatNumber(given, language),
         of: formatNumber(course.doses.length, language),
       })}
+      {course.stopped ? ` · ${t("prescribe.stopped")}` : null}
     </>
   );
 };
@@ -60,6 +72,13 @@ export const DoseLine = ({ dose }: { dose: Dose }) => {
       return {
         tone: "success",
         word: t("prescribe.given", { name: dose.givenByName ?? "" }),
+      };
+    }
+    // Skipped, its work closes as done; said as skipped and why, so the Vet can prescribe again.
+    if (dose.skippedBecause) {
+      return {
+        tone: "warning",
+        word: t("prescribe.skipped", { reason: dose.skippedBecause }),
       };
     }
     if (dose.state === "called_off") {

@@ -2,6 +2,7 @@ import type { Database } from "@OpenFarm/db";
 import type { FarmIdentity } from "@OpenFarm/domain";
 import {
   WITHDRAWAL_LOOK_BACK_DAYS,
+  withdrawalEndsAt,
   animalPassport,
   farmDayOf,
   roundMoney,
@@ -20,6 +21,7 @@ import { audited } from "../audit";
 import type { ExportedPaper } from "../export-store";
 import { exportedPaper } from "../export-store";
 import { farmDay } from "../farm-clock";
+import { meatDaysOf, milkDaysOf } from "../health-store";
 import { protectedProcedure } from "../index";
 import {
   ageWords,
@@ -257,7 +259,15 @@ export const papersRouter = {
         startOfFarmDay(farmDayOf(now)).getTime() -
           (WITHDRAWAL_LOOK_BACK_DAYS - 1) * DAY_MS
       );
-      const lately = her.doses.filter((dose) => dose.givenAt >= since);
+      // And any older dose still holding her: the farm's products may hold her for up to a year, and a paper saying
+      // "not clear" over an empty list explains nothing.
+      const stillHolds = (dose: (typeof her.doses)[number]) =>
+        [milkDaysOf(dose), meatDaysOf(dose)].some(
+          (days) => days !== null && withdrawalEndsAt(dose.givenAt, days) > now
+        );
+      const lately = her.doses.filter(
+        (dose) => dose.givenAt >= since || stillHolds(dose)
+      );
       const held = herWithdrawalWords(her.withdrawal, language);
       const doses = lately.map((dose) => doseWords(dose, language));
       const text = withdrawalSummary({

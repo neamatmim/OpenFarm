@@ -86,7 +86,12 @@ export const herRecord = async (
         limit: depth.doses + 1,
         with: {
           product: {
-            columns: { nameBn: true, nameEn: true, meatWithdrawalDays: true },
+            columns: {
+              nameBn: true,
+              nameEn: true,
+              milkWithdrawalDays: true,
+              meatWithdrawalDays: true,
+            },
           },
           giver: { columns: { name: true } },
           /** Whose prescription it was. A buyer and a slaughter vet are both entitled to ask,

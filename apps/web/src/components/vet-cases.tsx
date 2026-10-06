@@ -86,16 +86,21 @@ const OpenCaseDialog = ({
 export const VetCases = ({
   tagNumber,
   mayCall,
+  mayRead = mayCall,
 }: {
   tagNumber: string;
+  /** Call a vet to her: for an animal still here. */
   mayCall: boolean;
+  /** Her cases, listed and closed: those who run the farm, whether or not she is still here — an open case on an
+   *  animal gone could not be closed from anywhere. */
+  mayRead?: boolean;
 }) => {
   const t = useT();
   const refused = useRefused();
   const [calling, setCalling] = useState(false);
   const cases = useQuery({
     ...orpc.vetCases.forAnimal.queryOptions({ input: { tagNumber } }),
-    enabled: mayCall,
+    enabled: mayRead,
   });
   const vets = useQuery({
     ...orpc.vetCases.visitingVets.queryOptions(),
@@ -110,8 +115,8 @@ export const VetCases = ({
     })
   );
 
-  const nobodyToCall = (vets.data?.length ?? 0) === 0;
-  if (!mayCall || (nobodyToCall && (cases.data?.length ?? 0) === 0)) {
+  const nobodyToCall = !mayCall || (vets.data?.length ?? 0) === 0;
+  if (!mayRead || (nobodyToCall && (cases.data?.length ?? 0) === 0)) {
     return null;
   }
   return (
@@ -162,9 +167,10 @@ export const VetCases = ({
       ) : (
         <EmptyState bare icon={Stethoscope} title={t("cases.none")} />
       )}
-      {nobodyToCall ? (
+      {mayCall && nobodyToCall ? (
         <p className="text-muted-foreground text-sm">{t("cases.noVets")}</p>
-      ) : (
+      ) : null}
+      {nobodyToCall ? null : (
         <OpenCaseDialog
           onOpenChange={setCalling}
           open={calling}

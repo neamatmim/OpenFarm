@@ -1575,6 +1575,16 @@ export const bn: Record<MessageKey, string> = {
   "refusal.workAboutAnotherAnimal": "এই কাজ অন্য একটি পশুর জন্য: সেটির নামেই লিখুন",
   "refusal.skipReasonNotOffered":
     "এটা এই ধাপ বাদ দেওয়ার কারণগুলোর একটি নয়: তালিকা থেকে একটি বেছে নিন",
+  "refusal.doseNotDueYet":
+    "এই ডোজের সময় এখনো হয়নি। আগের ডোজটি আগে দিন, বা এর সময়ের কাছাকাছি পর্যন্ত অপেক্ষা করুন",
+  "refusal.courseStopped": "পশুচিকিৎসক এই কোর্স আগেই বন্ধ করেছেন",
+  "refusal.countedTwice": "এক গণনায় প্রতিটি ওষুধ একবারই গোনা হয়",
+  "refusal.notShorter":
+    "আটকে রাখার সময় শুধু কমানো যায়। এখন যে দিন ও সময় আছে, তার আগের একটি বেছে নিন",
+  "refusal.noWithdrawalDays":
+    "পশুচিকিৎসক এই ওষুধের আটকে রাখার দিন লেখেননি, তাই এটি এখনো দেওয়া যাবে না",
+  "refusal.observationCorrected":
+    "এই তালিকা খোলার পর ঘটনাটি সংশোধন হয়েছে। তার জায়গার ঘটনাটির উত্তর দিন",
   "refusal.phoneRevoked":
     "এই ফোন আর খামারের নয়। আবার যুক্ত করতে ম্যানেজারের কাছে কোড চান",
   "refusal.tooManyPins":
@@ -2111,6 +2121,7 @@ export const bn: Record<MessageKey, string> = {
   "audit.calledOffBy.calving_no_longer_expected":
     "বাতিল: তার বাচ্চা দেওয়া আর প্রত্যাশিত নয়",
   "audit.calledOffBy.report_withdrawn": "বাতিল: রিপোর্ট ফিরিয়ে নেওয়া হয়েছে",
+  "audit.calledOffBy.course_stopped": "বাতিল: পশুচিকিৎসক কোর্স বন্ধ করেছেন",
   "audit.calledOffBy.version_published": "বাতিল: নতুন সংস্করণে সময় বদলেছে",
   "audit.calledOffBy.sop_retired": "বাতিল: কার্যপ্রণালীটি বাদ দেওয়া হয়েছে",
   "audit.calledOffBy.released": "বাতিল: পশুটি কোয়ারেন্টিন থেকে ছাড়া পেয়েছে",
@@ -3914,6 +3925,7 @@ export const bn: Record<MessageKey, string> = {
   "vet.diseaseHint": "তালিকা থেকে বাছুন, অথবা নিজের ভাষায় অন্য রোগ লিখুন।",
   "vet.notifiableNamed":
     "{disease} ডিএলএস-কে জানাতে হয়: সংরক্ষণ করলেই অফিসে চিঠির কাজ সাথে সাথে উঠবে।",
+  "vet.outcome": "কীভাবে শেষ হলো",
   "vet.note": "যা পেলেন",
   "vet.record": "রোগ লিখুন",
   "vet.recorded": "রোগ লেখা হয়েছে",
@@ -3947,10 +3959,15 @@ export const bn: Record<MessageKey, string> = {
   "prescribe.given": "{name} দিয়েছেন",
   "prescribe.owed": "এখনও দেওয়া হয়নি",
   "prescribe.missed": "দেওয়া হয়নি",
+  "prescribe.skipped": "দেওয়া হয়নি: {reason}",
+  "prescribe.stopped": "বন্ধ",
+  "prescribe.stop": "কোর্স বন্ধ করুন",
+  "prescribe.stopReason": "কেন বন্ধ",
+  "prescribe.stoppedDone": "কোর্স বন্ধ হয়েছে; বাকি ডোজ আর দিতে হবে না",
   "prescribe.calledOff": "বাতিল",
   "prescribe.course": "চিকিৎসার কোর্স",
   "prescribe.sheetHint": "প্রতিটি ডোজ আপনার দেওয়া সময়ে শেডের কারও জন্য একটি কাজ হবে।",
-  "prescribe.timesHint": "কমা দিয়ে আলাদা করুন, যেমন 08:00, 20:00",
+  "prescribe.timesHint": "কমা দিয়ে আলাদা করুন, যেমন ০৮:০০, ২০:০০",
   "prescribe.dosesPreview": "{doses}টি ডোজের কাজ তৈরি হবে",
   "route.intramuscular": "মাংসে ইনজেকশন",
   "route.intravenous": "শিরায় ইনজেকশন",
@@ -4079,7 +4096,7 @@ export const bn: Record<MessageKey, string> = {
   "withdrawal.meatUntil": "মাংস কত তারিখ পর্যন্ত",
   "withdrawal.reason": "কেন কমাচ্ছেন",
   "withdrawal.shortened": "সময় কমানো হয়েছে",
-  "withdrawal.endNow": "এখনই শেষ করুন",
+  "withdrawal.endNow": "এখনই শেষ করতে ঘরটি খালি করুন",
   "home.meatWithdrawal": "বিক্রয়ে আটকে আছে",
   "home.lowStock": "খাদ্য কমে আসছে",
   "home.lowStockLine": "{feed}: {onHand} {unit} বাকি, {threshold}-এর নিচে",
@@ -4136,6 +4153,7 @@ export const bn: Record<MessageKey, string> = {
   "correct.hint": "যা ভুল তা ঠিক করুন। আগের তথ্য এই সংশোধনের পাশে অডিট লগে পড়া যাবে।",
   "correct.sale": "এই বিক্রয় সংশোধন",
   "correct.dispatch": "এই দুধ দেওয়া সংশোধন",
+  "correct.purchase": "এই কেনা সংশোধন",
   "correct.arrival": "এই আগমন সংশোধন",
   "correct.intake": "কেনার তথ্য সংশোধন",
   "correct.receivablePayment": "এই পরিশোধ সংশোধন করুন",
@@ -5392,6 +5410,7 @@ export const bn: Record<MessageKey, string> = {
   "params.soresTellAnimals": "এক পেনে পশু",
   "params.soresTellHours": "সময়ের মধ্যে",
   "params.animals": "টি পশু",
+  "animals.outcomeSaid": "কীভাবে শেষ হলো তা রাখা হয়েছে",
   "animals.outcome.recovered": "সেরে উঠেছে",
   "animals.outcome.not_recovered": "সারেনি",
   "home.illAgain": "বারবার অসুস্থ",

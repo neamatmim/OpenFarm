@@ -15,10 +15,16 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { correct } from "../corrections/correction";
+import {
+  medicinePurchaseCorrection,
+  medicinePurchaseCorrectionInput,
+} from "../corrections/medicine-purchase";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import type { FarmList } from "../farm-list";
 import { assertNameFree, bringBackToList, retireFromList } from "../farm-list";
+import { reachBackWithdrawalDays } from "../health-store";
 import { protectedProcedure } from "../index";
 import { assertNotExpiredWhenBought, lotFields } from "../lot-input";
 import { medicineStockOf, noMedicine } from "../medicine-stock";
@@ -286,6 +292,17 @@ export const drugsRouter = {
       return { id };
     }),
 
+  /**
+   * Medicine bought, put right with a reason — its doses, its cost, its seller, its day, its Lot, how it was paid —
+   * and its Money Event with it, because a typo would otherwise sit in the store and every dose's cost for good.
+   */
+  correctPurchase: protectedProcedure
+    .use(requireRole(...medicinePurchaseCorrection.roles))
+    .input(medicinePurchaseCorrectionInput)
+    .handler(({ context, input }) =>
+      correct(context, medicinePurchaseCorrection, input)
+    ),
+
   /** What the farm has bought of a product, newest first. The Owner's and the Manager's: it carries
    *  prices, and money is not the Vet's or Barn Staff's. */
   purchases: protectedProcedure
@@ -436,8 +453,8 @@ export const drugsRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      await changeProduct(context, input.id, (tx) =>
-        tx
+      await changeProduct(context, input.id, async (tx) => {
+        const changed = await tx
           .update(drugProduct)
           .set({
             milkWithdrawalDays: input.milkWithdrawalDays,
@@ -451,8 +468,11 @@ export const drugsRouter = {
               eq(drugProduct.farmId, context.farm.id)
             )
           )
-          .returning({ id: drugProduct.id })
-      );
+          .returning({ id: drugProduct.id });
+        // Raised days hold every animal already given it; lowered ones free nobody (health-store).
+        await reachBackWithdrawalDays(tx, context.farm.id, input.id, input);
+        return changed;
+      });
       return { id: input.id };
     }),
 

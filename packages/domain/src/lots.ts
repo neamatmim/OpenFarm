@@ -14,7 +14,7 @@ export interface LotIn {
  * The order the store is used in: the Lot that expires first, then the one that came in first. A Lot with no day
  * printed on it is reached for after every Lot that has one, because it is the one that will not go off.
  */
-const firstToUse = (a: LotIn, b: LotIn) => {
+export const firstToUse = (a: LotIn, b: LotIn) => {
   if (a.expiresOn !== b.expiresOn) {
     if (a.expiresOn === null) {
       return 1;

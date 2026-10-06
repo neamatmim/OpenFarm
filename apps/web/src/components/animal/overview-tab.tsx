@@ -280,11 +280,13 @@ const Withdrawals = ({
             heldWord={t("animals.meatHeld")}
             icon={Beef}
           >
+            {/* To the hour: the hold ends at the hour of the dose, and on the morning of its day a sale is still
+                refused. */}
             {t("animals.meatHeldUntil", {
               date: formatDate(
                 new Date(detail.meatWithdrawalUntil),
                 language,
-                "date"
+                "dateTime"
               ),
             })}
           </HoldLine>

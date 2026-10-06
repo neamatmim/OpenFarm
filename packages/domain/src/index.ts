@@ -413,6 +413,7 @@ export {
 export { diseaseWord, namesTheDisease } from "./disease-names";
 export type { IllAgain } from "./health";
 export type {
+  DoseHold,
   DoseRoute,
   NotPrescribable,
   WithdrawalDays,
@@ -424,6 +425,7 @@ export {
   MAX_WITHDRAWAL_DAYS,
   ROUTES,
   findWithdrawalProblems,
+  holdInForce,
   illAgainOf,
   daysOfADoseNotPrescribed,
   mayBePrescribed,
