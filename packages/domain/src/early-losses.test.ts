@@ -69,6 +69,36 @@ describe("early losses by seller and by livestock market", () => {
     ]);
   });
 
+  it("counts one livestock market however its name was typed", () => {
+    // "Gabtoli" on Monday's lorry, "gabtoli " on Friday's: one market, and its two dead bulls one pattern.
+    const typed = [
+      {
+        animalId: "e",
+        seller: "জব্বার",
+        livestockMarket: "Gabtoli",
+        arrivedAt: at("2026-05-04"),
+      },
+      {
+        animalId: "f",
+        seller: "জব্বার",
+        livestockMarket: "gabtoli ",
+        arrivedAt: at("2026-05-08"),
+      },
+    ];
+    const losses = earlyLosses(
+      typed,
+      [
+        { animalId: "e", kind: "died", at: at("2026-05-10") },
+        { animalId: "f", kind: "died", at: at("2026-05-12") },
+      ],
+      [],
+      stretch
+    );
+    expect(losses.byLivestockMarket).toEqual([
+      expect.objectContaining({ name: "Gabtoli", bought: 2, died: 2 }),
+    ]);
+  });
+
   it("names nobody where nothing was lost early", () => {
     expect(earlyLosses(bought, [], [], stretch)).toEqual({
       bySeller: [],

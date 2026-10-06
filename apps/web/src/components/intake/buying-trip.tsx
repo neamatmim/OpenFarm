@@ -10,6 +10,7 @@ import {
   NO_ACCOUNT,
   PaymentMethodField,
 } from "@/components/payment-method";
+import { WhoseHandField } from "@/components/whose-hand";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
@@ -53,6 +54,8 @@ export const BuyingTripSheet = ({
   const [paymentMethod, setPaymentMethod] =
     useState<IntakeFields["paymentMethod"]>("cash");
   const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
+  // Whose hand paid in cash, where the Owner names another's.
+  const [heldBy, setHeldBy] = useState("");
   const today = farmDayOf(new Date());
   // The day the lorry went, written up the next morning as often as not. Today is sent as nothing, which the server
   // reads as now; an earlier day as its first moment, so every beast that came home on it came after it went.
@@ -83,6 +86,7 @@ export const BuyingTripSheet = ({
           keepMoney: orNothing(outing.keepMoney),
           paymentMethod,
           ...accountSent(paymentMethod, account),
+          ...(paymentMethod === "cash" && heldBy ? { heldBy } : {}),
         })
       }
       open={open}
@@ -143,6 +147,13 @@ export const BuyingTripSheet = ({
         onChange={setPaymentMethod}
         value={paymentMethod}
       />
+      {paymentMethod === "cash" ? (
+        <WhoseHandField
+          id="trip-whose-hand"
+          onChange={setHeldBy}
+          value={heldBy}
+        />
+      ) : null}
     </FormSheet>
   );
 };

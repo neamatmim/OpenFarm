@@ -15,10 +15,13 @@ export const WhoseHandField = ({
   id,
   value,
   onChange,
+  label,
 }: {
   id: string;
   value: string;
   onChange: (userId: string) => void;
+  /** What the box asks, where it is not whose hand took the cash: who carries a Float. */
+  label?: string;
 }) => {
   const { t } = useLanguage();
   const isOwner = useIsOwner();
@@ -38,7 +41,7 @@ export const WhoseHandField = ({
   }
   return (
     <div className="space-y-1">
-      <Label htmlFor={id}>{t("cash.whoseHand")}</Label>
+      <Label htmlFor={id}>{label ?? t("cash.whoseHand")}</Label>
       <NativeSelect
         id={id}
         onChange={(event) => onChange(event.target.value)}

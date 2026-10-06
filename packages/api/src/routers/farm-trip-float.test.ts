@@ -246,3 +246,83 @@ describe("a Farm float counted home twice at once", () => {
     expect(tries.filter((one) => one.status === "fulfilled")).toHaveLength(1);
   });
 });
+
+describe("a Farm float whose outing paid for a bull from an account", () => {
+  it("counts only what was paid in cash from the hand", async () => {
+    const owner = await as("owner", "2072-03-03T04:00:00.000Z");
+    const manager = await as("manager", "2072-03-03T04:00:00.000Z");
+    const account = await owner.client.farmAccounts.create({
+      kind: "mobile_money",
+      name: `বিকাশ ${suffix}`,
+      number: "01711000099",
+    });
+    const trip = await manager.client.buyingTrips.record({
+      wentTo: `বিকাশের হাট ${suffix}`,
+      transportMoney: 1000,
+      wentOn: new Date("2072-03-03T04:00:00.000Z"),
+    });
+    await owner.client.cash.handOver({
+      from: { userId: thePerson("owner").id },
+      to: { userId: thePerson("manager").id },
+      amountMoney: 100_000,
+      buyingTripId: trip.id,
+    });
+    // ৳60,000 sent by bKash, not counted out of the notes in the Manager's pocket.
+    await manager.client.intakes.record({
+      penId,
+      sex: "male",
+      seller: { name: `ব্যাপারী বিকাশ ${suffix}` },
+      purchasePriceMoney: 60_000,
+      weightKg: 250,
+      estimatedAgeMonths: 20,
+      arrivedAt: new Date("2072-03-03T04:00:00.000Z"),
+      buyingTripId: trip.id,
+      paymentMethod: "mobile_money",
+      farmAccountId: account.id,
+      reference: `TXN-${suffix}`,
+      targetWindowStart: "2072-06-01",
+      targetWindowEnd: "2072-06-05",
+    });
+    await owner.client.cash.countFloatHome({
+      tripId: trip.id,
+      cashBackMoney: 99_000,
+    });
+  });
+});
+
+describe("a Farm bull taken in on an outing at the moment its float is counted home", () => {
+  it("is either taken in before the count or refused after it, never on a closed float", async () => {
+    const owner = await as("owner", "2072-03-04T04:00:00.000Z");
+    const manager = await as("manager", "2072-03-04T04:00:00.000Z");
+    const trip = await manager.client.buyingTrips.record({
+      wentTo: `একসাথে হাট ${suffix}`,
+      transportMoney: 1000,
+      wentOn: new Date("2072-03-04T04:00:00.000Z"),
+    });
+    await owner.client.cash.handOver({
+      from: { userId: thePerson("owner").id },
+      to: { userId: thePerson("manager").id },
+      amountMoney: 10_000,
+      buyingTripId: trip.id,
+    });
+    const tries = await Promise.allSettled([
+      owner.client.cash.countFloatHome({
+        tripId: trip.id,
+        cashBackMoney: 9000,
+      }),
+      manager.client.intakes.record({
+        penId,
+        sex: "male",
+        seller: { name: `ব্যাপারী একসাথে ${suffix}` },
+        purchasePriceMoney: 8000,
+        weightKg: 120,
+        estimatedAgeMonths: 8,
+        arrivedAt: new Date("2072-03-04T04:00:00.000Z"),
+        buyingTripId: trip.id,
+        targetWindowStart: "2072-06-01",
+        targetWindowEnd: "2072-06-05",
+      }),
+    ]);
+    expect(tries.filter((one) => one.status === "fulfilled")).toHaveLength(1);
+  });
+});

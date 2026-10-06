@@ -148,3 +148,31 @@ describe("whose hand took the notes", () => {
     expect(await handOf("manager")).toBe(managerBefore + 80_000);
   });
 });
+
+describe("whose hand paid at the livestock market", () => {
+  it("is the Manager's when the Owner writes up his bull and his lorry", async () => {
+    const managerBefore = await handOf("manager");
+    const ownerBefore = await handOf("owner");
+    const owner = await as("owner", `${DAY}T11:00:00.000Z`);
+    await owner.client.buyingTrips.record({
+      wentTo: `হাট ${suffix}`,
+      transportMoney: 2000,
+      paymentMethod: "cash",
+      wentOn: new Date(`${DAY}T05:00:00.000Z`),
+      heldBy: thePerson("manager").id,
+    });
+    await owner.client.intakes.record({
+      penId,
+      sex: "male",
+      seller: { name: `ব্যাপারী হাতে ${suffix}` },
+      purchasePriceMoney: 40_000,
+      weightKg: 220,
+      estimatedAgeMonths: 18,
+      arrivedAt: new Date(`${DAY}T05:30:00.000Z`),
+      paymentMethod: "cash",
+      heldBy: thePerson("manager").id,
+    });
+    expect(await handOf("manager")).toBe(managerBefore - 42_000);
+    expect(await handOf("owner")).toBe(ownerBefore);
+  });
+});

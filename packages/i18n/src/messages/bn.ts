@@ -1536,6 +1536,11 @@ export const bn: Record<MessageKey, string> = {
   "ventures.floatSum":
     "{currencySign}{went} তোলা হয়েছিল · গরু আর খরচ {currencySign}{bought} · ফেরত আসার কথা {currencySign}{back}",
   "ventures.cashBack": "ফেরত আনা {currencySum}",
+  "ventures.floatWhy": "কেন মিলছে না",
+  "ventures.floatShort":
+    "ফেরত আসার কথার চেয়ে {amount} কম: কেন লিখুন, তবে কম ধরেই হিসাব মিলবে",
+  "ventures.floatOver":
+    "হাটে নেওয়া টাকার চেয়ে {amount} বেশি খরচ হয়েছে: কেন লিখুন, তবে বেশি ধরেই হিসাব মিলবে",
   "ventures.cashBackHint": "যা বেঁচেছে, ব্যাংকে জমা হবে",
   "ventures.depositedOn": "জমার তারিখ",
   "ventures.slip": "জমার স্লিপ",
@@ -1545,6 +1550,7 @@ export const bn: Record<MessageKey, string> = {
   "ventures.floatDrawn": "{currencySum} তোলা হয়েছে",
   "ventures.floatTrip": "কোন যাত্রা",
   "ventures.floatTripHint": "প্রতি যাত্রায় একবার, যাতে ফিরে এলে হিসাব মেলানো যায়",
+  "ventures.carriedBy": "কে হাটে নিয়ে যাবেন",
   "ventures.floatMost": "সর্বোচ্চ {currencySign}{cattle}",
   "money.purseWas": "{venture}-এর {currencySum}",
   "ventures.outOfTheAccount": "হিসাব থেকে গেছে · ফেরত দেওয়া",
@@ -1603,6 +1609,8 @@ export const bn: Record<MessageKey, string> = {
   "refusal.arrivedBeforeTheTrip":
     "যে যাত্রায় এসেছে তা যাওয়ার আগে সে আসতে পারে না। দিনটি দেখে নিন",
   "refusal.wentInTheFuture": "এমন দিনে ট্রাক যেতে পারে না যা এখনো আসেনি",
+  "refusal.floatStillOut":
+    "{wentTo} হাটের টাকা এখনো বাইরে: কেনা শেষ করার আগে হিসাব মেলান",
   "refusal.beforeSheWasHere":
     "তখন সে এখানে ছিল না, বা তার পরে তাকে সরানো হয়েছে। দিন ও সময় দেখে নিন",
   "refusal.bornInTheFuture": "জন্মের দিন ভবিষ্যতে হতে পারে না",

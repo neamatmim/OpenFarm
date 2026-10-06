@@ -119,6 +119,14 @@ export const ventureMovement = pgTable(
      *  has them the Float is open. */
     reconciledAt: timestamp("reconciled_at", { withTimezone: true }),
     reconciledBy: text("reconciled_by").references(() => user.id),
+    /** Who carries a Buying Float's notes to the livestock market: the hand its cash is expected in, as a Venture's
+     *  sale cash is, until it is counted home. Null for a Float drawn before carriers were named (2026-10-07). */
+    heldBy: text("held_by").references(() => user.id),
+    /** What a Float counted home did not account for — positive where it came home short, negative where the outing
+     *  spent more than it took — and why, in the Owner's words. Only a Float's homecoming has them, and only when it
+     *  did not balance to the taka (the Owner, 2026-10-07). */
+    differenceMoney: numericMoney("difference_money"),
+    differenceReason: text("difference_reason"),
     recordedBy: text("recorded_by").references(() => user.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },

@@ -176,6 +176,11 @@ const IntakePage = () => {
               boughtFromTheAccount(fields) && fields.paidOn
                 ? fields.paidOn
                 : undefined,
+            // The Manager's cash, where the Owner writes up his lorry: his Friday count looks for it there.
+            heldBy:
+              sheet.paymentMethod === "cash" && fields.heldBy
+                ? fields.heldBy
+                : undefined,
           });
         }}
       >

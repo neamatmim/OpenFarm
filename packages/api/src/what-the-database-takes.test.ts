@@ -41,7 +41,8 @@ const listedColumns = () =>
 
 // Left free, each for its reason: the Owner's settings, refused out of range by their own form; a balance the bank
 // shows, which may be overdrawn; a plan's guesses; a Settlement's figures, which may be a loss; the tank's
-// difference from the cows' own litres, either way; the sign-in limiter's own count; a Ration's expected gain.
+// difference from the cows' own litres, either way; the sign-in limiter's own count; a Ration's expected gain; and what a
+// Buying Float counted home did not account for, short or over.
 const leftFree = (table: string, column: string): boolean =>
   [
     "farm",
@@ -58,6 +59,7 @@ const leftFree = (table: string, column: string): boolean =>
     "rate_limit.count",
     "ration.expected_gain_high_kg",
     "ration.expected_gain_low_kg",
+    "venture_movement.difference_money",
   ].includes(`${table}.${column}`);
 
 describe("what the database takes", () => {
