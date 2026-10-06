@@ -206,7 +206,10 @@ const MortalitySheet = ({ detail, open, onOpenChange }: ActProps) => {
           ...(note.trim() ? { disposalNote: note.trim() } : {}),
           // The round finds her at dawn and the record is written at noon; which was which is the farm's business,
           // so it can be said.
-          ...(happenedAt ? { happenedAt: new Date(happenedAt) } : {}),
+          // Read as the farm's day and time, not the phone's (lib/farm-moment).
+          ...(happenedAt
+            ? { happenedAt: new Date(momentOfField(happenedAt)) }
+            : {}),
           ...(diagnosisId ? { diagnosisId } : {}),
           ...(photo ? { photo } : {}),
         })
@@ -392,7 +395,10 @@ const AbortionDialog = ({ detail, open, onOpenChange }: ActProps) => {
       onSubmit={() =>
         record.mutate({
           tagNumber: detail.tagNumber,
-          abortedAt: abortedAt ? new Date(abortedAt) : new Date(),
+          // Read as the farm's day and time, not the phone's (lib/farm-moment).
+          abortedAt: abortedAt
+            ? new Date(momentOfField(abortedAt))
+            : new Date(),
           stageMonths: Number(stageMonths),
           note,
         })

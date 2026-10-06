@@ -1021,7 +1021,7 @@ export const bn: Record<MessageKey, string> = {
   "animals.groupMoved": "{count}টি পশু সরানো হয়েছে",
   "animals.groupQueued": "{count}টি সরানো এই ফোনে রাখা আছে, নেটওয়ার্ক পেলে পাঠানো হবে",
   "animals.groupAlreadyThere": "{count}টি পশু আগে থেকেই ওই পেনে আছে",
-  "animals.groupRefused": "{count}টি পশু সরানো যায়নি: কেন, তা তার পাতায় দেখুন",
+  "animals.groupRefused": "{count}টি পশু সরানো যায়নি",
   "params.breeding": "প্রজনন ক্যালেন্ডার",
   "params.fatteningAndPapers": "মোটাতাজাকরণ ও কাগজপত্র",
   "params.alertsHint":
@@ -1604,6 +1604,9 @@ export const bn: Record<MessageKey, string> = {
     "এরপর টাকা নড়েছে: ক্রেতা টাকা দিয়েছেন, কিছু বাদ দেওয়া হয়েছে, বা উদ্যোগ নিষ্পত্তি হয়েছে। এর বদলে সংশোধন করুন",
   "refusal.cannotBeVoided":
     "বাতিল করা যাওয়ার আগে এটি লেখা হয়েছিল। এর বদলে সংশোধন করুন",
+  "refusal.stateChangedSince": "এটি করার পর তার অবস্থা বদলেছে। তার পাতা দেখে আবার করুন",
+  "refusal.noSuchPen": "ওই পেন আর খামারের তালিকায় নেই",
+  "refusal.penNotYours": "ওই পেন আপনার নয়। ম্যানেজারকে জিজ্ঞেস করুন",
   "refusal.phoneRevoked":
     "এই ফোন আর খামারের নয়। আবার যুক্ত করতে ম্যানেজারের কাছে কোড চান",
   "refusal.tooManyPins":
@@ -2560,6 +2563,13 @@ export const bn: Record<MessageKey, string> = {
   "animals.moved": "স্থানান্তর হয়েছে",
   "animals.retag": "কানের ট্যাগ বদলান",
   "animals.retagged": "ট্যাগ বদল নথিভুক্ত",
+  "animals.moveReason.born": "এখানে জন্ম",
+  "animals.moveReason.intake": "হাট থেকে এসেছে",
+  "animals.moveReason.registered": "নিবন্ধিত",
+  "animals.moveReason.openingRegister": "শুরুর তালিকা থেকে",
+  "animals.moveReason.weaned": "দুধ ছাড়ানো হয়েছে",
+  "animals.lastInPen": "সর্বশেষ ছিল {pen}",
+  "animals.lastPen": "সর্বশেষ পেন",
   "animals.reason": "কারণ",
   "animals.setState": "অবস্থা বদলান",
   "animals.stateChanged": "অবস্থা বদলেছে",

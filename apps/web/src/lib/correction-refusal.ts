@@ -192,6 +192,9 @@ const WORDED_REFUSALS = {
   sold_in_the_future: "refusal.soldInTheFuture",
   money_moved_since: "refusal.moneyMovedSince",
   cannot_be_voided: "refusal.cannotBeVoided",
+  state_changed_since: "refusal.stateChangedSince",
+  no_such_pen: "refusal.noSuchPen",
+  pen_not_yours: "refusal.penNotYours",
   not_shorter: "refusal.notShorter",
   no_withdrawal_days: "refusal.noWithdrawalDays",
   // A product retired from the Drug List since the list was read: why it may not be prescribed.

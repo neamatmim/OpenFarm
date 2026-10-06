@@ -1,4 +1,9 @@
-import { DISPOSALS, MORTALITY_KINDS, bornAroundOf } from "@OpenFarm/domain";
+import {
+  isExitState,
+  DISPOSALS,
+  MORTALITY_KINDS,
+  bornAroundOf,
+} from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { Language } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -373,7 +378,11 @@ const AboutHer = ({ detail }: { detail: AnimalDetail }) => {
         <Fact label={t("animals.side")}>
           <SideWord side={detail.side} />
         </Fact>
-        <Fact label={t("animals.pen")}>
+        <Fact
+          label={t(
+            isExitState(detail.state) ? "animals.lastPen" : "animals.pen"
+          )}
+        >
           {detail.pen.shed.name} / {detail.pen.name}
         </Fact>
         <Fact label={t("animals.sex")}>{t(`animals.sex.${detail.sex}`)}</Fact>

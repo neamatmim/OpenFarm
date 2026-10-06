@@ -64,6 +64,7 @@ import {
   calves,
   comesBack,
   entersState,
+  forgetExpectedCalving,
   insertAnimal,
   leaves,
   loadLiveAnimal,
@@ -1254,6 +1255,9 @@ export const animalsRouter = {
         reason: reasonInput.optional(),
         /** When she calved, for a cow entering Milking. Defaults to now. */
         calvedAt: z.coerce.date().optional(),
+        /** The day she is expected to calve, for one set Pregnant Heifer by hand: refused without it, as she is
+         *  registered, or nothing would ever fall due for her. */
+        expectedCalvingOn: farmDay.optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -1317,11 +1321,38 @@ export const animalsRouter = {
           if (current.state === "quarantine") {
             await assertNoDoseOwed(tx, context.farm.id, current.id, now);
           }
+          // Carrying set by hand says when she is expected to calve, as she would be registered; not carrying, the
+          // calving she was expected to make — and its work — goes. Once neither was asked, and a heifer set carrying had
+          // nothing ever fall due, or one set back kept her calving work open.
+          const calving =
+            input.state === "pregnant_heifer"
+              ? enteredCalving(
+                  input.state,
+                  input.expectedCalvingOn,
+                  now,
+                  context.farm.gestationDays
+                )
+              : null;
           await entersState(tx, context.farm.id, current, {
             state: input.state,
             at: now,
             now,
           });
+          if (calving) {
+            await tx
+              .update(animal)
+              .set({ ...calving, updatedAt: now })
+              .where(eq(animal.id, current.id));
+          } else if (
+            current.state === "pregnant_heifer" &&
+            input.state === "heifer"
+          ) {
+            await forgetExpectedCalving(tx, context.farm.id, current, {
+              now,
+              calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
+              trail: audited(context).recordEvent,
+            });
+          }
           // Let out by hand: any Release raised again for him is owed no more.
           if (current.state === "quarantine") {
             await callOffPutOffReleases(

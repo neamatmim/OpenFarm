@@ -130,19 +130,20 @@ export const useAnimalPowers = (detail: AnimalDetail | undefined) => {
   // Sold, died or culled: nothing more is written of her — her record is put right, never added to — so nothing that
   // would add to it is offered, only to be refused.
   const stillHere = detail !== undefined && !isExitState(detail.state);
+  // An animal in Quarantine is walked only into a quarantine pen until she is released: nowhere else is offered.
+  const movePens = (
+    runsTheFarm ? pens : pens.filter((pen) => ownPens.includes(pen.id))
+  ).filter((pen) => detail?.state !== "quarantine" || pen.quarantine === true);
+  // Somewhere to go: a Pen other than the one she stands in. With none, Move led to a list holding only "—".
+  const somewhereToGo = movePens.some((pen) => pen.id !== detail?.penId);
   const powers: AnimalPowers = {
     stillHere,
     mayReport: stillHere && (mayHandle || isVet),
     mayMove:
       stillHere &&
+      somewhereToGo &&
       (runsTheFarm || (mayHandle && ownPens.includes(detail.penId))),
-    // An animal in Quarantine is walked only into a quarantine pen until she is released: nowhere else is offered.
-    movePens: (runsTheFarm
-      ? pens
-      : pens.filter((pen) => ownPens.includes(pen.id))
-    ).filter(
-      (pen) => detail?.state !== "quarantine" || pen.quarantine === true
-    ),
+    movePens,
     mayChangeState: (runsTheFarm || fullVet) && hasAStateToSet(detail),
     mayHandle: stillHere && mayHandle,
     runsTheFarm,

@@ -1084,7 +1084,7 @@ export const en = {
   "animals.groupAlreadyThere":
     "{count, plural, one {# animal was} other {# animals were}} already in that pen",
   "animals.groupRefused":
-    "{count, plural, one {# animal was} other {# animals were}} not moved: open her page to see why",
+    "{count, plural, one {# animal} other {# animals}} could not be moved",
   "params.breeding": "Breeding calendar",
   "params.fatteningAndPapers": "Fattening and papers",
   "params.alertsHint":
@@ -1725,6 +1725,10 @@ export const en = {
     "Money has moved on this since: the buyer has paid, something was written off, or the venture is settled. Correct it instead",
   "refusal.cannotBeVoided":
     "This was written before it could be voided. Correct it instead",
+  "refusal.stateChangedSince":
+    "Her state has changed since this was made. Look at her page and do it again",
+  "refusal.noSuchPen": "That pen is no longer on the farm's list",
+  "refusal.penNotYours": "That pen isn't one of yours. Ask the manager",
   "refusal.phoneRevoked":
     "This phone is no longer one of the farm's. Ask the manager for a code to enrol it again",
   "refusal.tooManyPins":
@@ -2737,6 +2741,13 @@ export const en = {
   "animals.moveQueued": "Kept on this phone — she moves when there is signal",
   "animals.retag": "Replace the ear tag",
   "animals.retagged": "Re-tag recorded",
+  "animals.moveReason.born": "Born here",
+  "animals.moveReason.intake": "Came in from the market",
+  "animals.moveReason.registered": "Registered",
+  "animals.moveReason.openingRegister": "From the opening register",
+  "animals.moveReason.weaned": "Weaned",
+  "animals.lastInPen": "Last in {pen}",
+  "animals.lastPen": "Last pen",
   "animals.reason": "Reason",
   "animals.setState": "Change state",
   "animals.stateChanged": "State changed",

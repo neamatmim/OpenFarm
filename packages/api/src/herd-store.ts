@@ -111,6 +111,11 @@ const claimTagNumber = async (
       data: { refusal: "tag_of_the_other_side" },
     });
   }
+  // One claim of a written number at a time: two at once each found it free, and the second fell on the database's
+  // own index with no word for it. The second now waits, and finds it taken.
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtext(${`${farmId}:tag:${tagNumber}`}))`
+  );
   const holder = await tx.query.animal.findFirst({
     where: { farmId, tagNumber },
     columns: { id: true },
@@ -262,7 +267,10 @@ export const loadLiveAnimal = async (
 export const requirePen = async (tx: Tx, farmId: string, penId: string) => {
   const row = await tx.query.pen.findFirst({ where: { id: penId, farmId } });
   if (!row) {
-    throw new ORPCError("NOT_FOUND", { message: "No such pen" });
+    throw new ORPCError("NOT_FOUND", {
+      message: "No such pen",
+      data: { refusal: "no_such_pen" },
+    });
   }
   return row;
 };
@@ -360,10 +368,13 @@ export const insertAnimal = async (
   if (input.breedId !== undefined) {
     await requireBreed(tx, farmId, input.breedId);
   }
+  // Where she came from, not where she stands: born on the farm she is D- whichever Side she is on (CONTEXT: Tag
+  // Number), and a bull born here and crossed to Fattening keeps the D- on his ear.
+  const origin: Side = input.source === "born" ? "dairy" : input.side;
   const tagNumber =
     input.tagNumber === undefined
-      ? await nextTagNumber(tx, farmId, input.side)
-      : await claimTagNumber(tx, farmId, input.side, input.tagNumber);
+      ? await nextTagNumber(tx, farmId, origin)
+      : await claimTagNumber(tx, farmId, origin, input.tagNumber);
   await tx.insert(animal).values({
     id,
     farmId,
@@ -441,7 +452,9 @@ const moveOpenWorkWith = (
 /** Nothing she has left may move her: a Move of her is the world having moved under it, so it is late (ADR 0004). */
 const refuseOnceSheHasLeft = (her: { state: AnimalState }) => {
   if (isExitState(her.state)) {
-    throw lateEntry(`This animal has left the farm (${her.state})`);
+    throw lateEntry(`This animal has left the farm (${her.state})`, {
+      refusal: "she_is_gone",
+    });
   }
 };
 
@@ -498,7 +511,9 @@ const refuseACrossingSinceChanged = (
   movedAt: Date
 ) => {
   if (crossing && stateChangedAt && stateChangedAt > movedAt) {
-    throw lateEntry("Her State has changed since this was made");
+    throw lateEntry("Her State has changed since this was made", {
+      refusal: "state_changed_since",
+    });
   }
 };
 
@@ -564,7 +579,9 @@ export const walkTo = async (
       entry.completionId ?? undefined
     )
   ) {
-    throw lateEntry("This animal has been moved since");
+    throw lateEntry("This animal has been moved since", {
+      refusal: "moved_since",
+    });
   }
   const toSide = entry.toSide ?? beast.side;
   const crossing = toSide !== beast.side;

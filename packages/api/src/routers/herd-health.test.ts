@@ -2,6 +2,7 @@ import { MASTITIS } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
+import { aMonthOn } from "../test/carrying";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -36,6 +37,7 @@ describe("the dairy herd's year", () => {
       await owner.client.animals.setState({
         tagNumber: cow.tagNumber,
         state: "pregnant_heifer",
+        expectedCalvingOn: aMonthOn(owner),
       });
       // oxlint-disable-next-line no-await-in-loop
       await owner.client.animals.setState({

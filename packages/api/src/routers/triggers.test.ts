@@ -9,6 +9,7 @@ import {
 } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { aMonthOn } from "../test/carrying";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -192,7 +193,13 @@ describe("work that starts because an animal reached a State", () => {
     });
     for (const state of ["pregnant_heifer", "milking"] as const) {
       // oxlint-disable-next-line no-await-in-loop
-      await owner.client.animals.setState({ tagNumber: cow.tagNumber, state });
+      await owner.client.animals.setState({
+        tagNumber: cow.tagNumber,
+        state,
+        ...(state === "pregnant_heifer"
+          ? { expectedCalvingOn: aMonthOn(owner) }
+          : {}),
+      });
     }
     return { owner, cow };
   };

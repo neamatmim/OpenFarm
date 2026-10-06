@@ -1,4 +1,4 @@
-import { PHOTO_FILE_MAX_BYTES } from "@OpenFarm/domain";
+import { isExitState, PHOTO_FILE_MAX_BYTES } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
   DropdownMenu,
@@ -195,7 +195,12 @@ const WhatSheIs = ({ detail }: { detail: AnimalDetail }) => {
         <SideWord side={detail.side} />
         <span className="inline-flex items-center gap-1">
           <MapPin aria-hidden className="size-4" />
-          {detail.pen.shed.name} / {detail.pen.name}
+          {/* Gone, she stands nowhere: the Pen she was last in, said as that. */}
+          {isExitState(detail.state)
+            ? t("animals.lastInPen", {
+                pen: `${detail.pen.shed.name} / ${detail.pen.name}`,
+              })
+            : `${detail.pen.shed.name} / ${detail.pen.name}`}
         </span>
         {breed ? <span>{breed}</span> : null}
         {age ? <span>{age}</span> : null}

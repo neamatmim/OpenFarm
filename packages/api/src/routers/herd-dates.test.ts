@@ -198,6 +198,7 @@ describe("a crossing a phone held", () => {
     await vet.client.animals.setState({
       tagNumber: heifer.tagNumber,
       state: "pregnant_heifer",
+      expectedCalvingOn: "2069-12-01",
     });
     // A phone walked her across to Fattening at five, and finds signal at eight.
     const phone = await createTestClient(appRouter, {

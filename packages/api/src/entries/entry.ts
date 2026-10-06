@@ -53,7 +53,8 @@ export const requireAnimalStillHere = async (
   const beast = await requireAnimal(tx, farmId, tagNumber.toUpperCase());
   if (isExitState(beast.state)) {
     throw lateEntry(
-      `Animal ${beast.tagNumber} has left the farm (${beast.state})`
+      `Animal ${beast.tagNumber} has left the farm (${beast.state})`,
+      { refusal: "she_is_gone" }
     );
   }
   return beast;
