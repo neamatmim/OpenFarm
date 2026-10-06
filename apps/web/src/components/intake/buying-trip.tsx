@@ -150,6 +150,7 @@ export const BuyingTripSheet = ({
       {paymentMethod === "cash" ? (
         <WhoseHandField
           id="trip-whose-hand"
+          label={t("cash.whoseHandPaid")}
           onChange={setHeldBy}
           value={heldBy}
         />

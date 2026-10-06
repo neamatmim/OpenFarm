@@ -5677,6 +5677,7 @@ export const bn: Record<MessageKey, string> = {
   "cash.deposited": "ভেঞ্চারের হিসাবে জমা হয়েছে",
   "cash.to": "কার কাছে",
   "cash.whoseHand": "নগদ {currencySum} কার হাতে গেল",
+  "cash.whoseHandPaid": "নগদ টাকা কার হাত থেকে গেল",
   "cash.myOwnHand": "আমার নিজের হাতে",
   "cash.bank": "ব্যাংক",
   "cash.amount": "{currencySum} ({currencySign})",

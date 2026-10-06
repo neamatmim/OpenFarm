@@ -220,10 +220,10 @@ const OutingChoice = ({
   value: string;
   onChange: (value: string) => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const trips = useQuery(orpc.buyingTrips.list.queryOptions());
   const recent = trips.data ?? [];
-  const outings = [
+  const outings: { id: string; wentTo: string; wentOn?: Date | string }[] = [
     ...(held && !recent.some((one) => one.id === held.id) ? [held] : []),
     ...recent,
   ];
@@ -233,7 +233,13 @@ const OutingChoice = ({
       onChange={onChange}
       options={[
         { value: NO_OUTING, label: t("intake.noTrip") },
-        ...outings.map((one) => ({ value: one.id, label: one.wentTo })),
+        // Named with its day, where the farm has it: one livestock market is gone to week after week.
+        ...outings.map((one) => ({
+          value: one.id,
+          label: one.wentOn
+            ? `${one.wentTo} · ${formatDate(new Date(one.wentOn), language, "date")}`
+            : one.wentTo,
+        })),
       ]}
       value={value}
     />

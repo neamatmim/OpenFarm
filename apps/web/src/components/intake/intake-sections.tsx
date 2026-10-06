@@ -119,14 +119,17 @@ const CashHandField = ({
   fields,
   onEdit,
   fromTheAccount,
-}: PartProps & { fromTheAccount: boolean }) =>
-  !fromTheAccount && fields.paymentMethod === "cash" ? (
+}: PartProps & { fromTheAccount: boolean }) => {
+  const { t } = useLanguage();
+  return !fromTheAccount && fields.paymentMethod === "cash" ? (
     <WhoseHandField
       id="intake-whose-hand"
+      label={t("cash.whoseHandPaid")}
       onChange={(heldBy) => onEdit({ heldBy })}
       value={fields.heldBy}
     />
   ) : null;
+};
 
 /**
  * The outing she is put on, and whose she is with it: an outing on a Venture's Float bought for that Venture, one on the

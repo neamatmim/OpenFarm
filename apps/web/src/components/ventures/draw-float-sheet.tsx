@@ -89,119 +89,123 @@ export const DrawFloatSheet = ({
     drawing.movedOn !== "" &&
     drawing.reference.trim() !== "";
   return (
-    <FormSheet
-      description={t("ventures.floatHint", {
-        cattle: formatNumber(held, language),
-      })}
-      onOpenChange={onOpenChange}
-      onSubmit={() =>
-        drawingIt.mutate({
-          ventureId: venture?.id ?? "",
-          buyingTripId: drawing.buyingTripId,
-          amountMoney: amount,
-          movedOn: drawing.movedOn,
-          paymentMethod: "bank",
-          reference: drawing.reference,
-          // Whose hand its notes are in until it is counted home: the one named, else the Owner's own.
-          carriedBy: drawing.carriedBy || me.data?.id,
-        })
-      }
-      open={open}
-      pending={drawingIt.isPending}
-      ready={ready}
-      submitLabel={t("ventures.drawFloat")}
-      title={t("ventures.drawFloat")}
-    >
-      <FormField
-        hint={t("ventures.floatTripHint")}
-        id="float-trip"
-        label={t("ventures.floatTrip")}
-      >
-        <div className="flex gap-2">
-          <NativeSelect
-            className="min-w-0 flex-1"
-            id="float-trip"
-            onChange={(event) =>
-              setDrawing({ ...drawing, buyingTripId: event.target.value })
-            }
-            value={drawing.buyingTripId}
-          >
-            <option value="">—</option>
-            {(trips.data ?? []).filter(mayBeFunded).map((one) => (
-              <option key={one.id} value={one.id}>
-                {`${one.wentTo} · ${formatDate(one.wentOn, language, "date")}`}
-              </option>
-            ))}
-          </NativeSelect>
-          <Button
-            className="h-11 shrink-0 md:h-9"
-            onClick={() => setWritingTrip(true)}
-            type="button"
-            variant="outline"
-          >
-            <Plus aria-hidden data-icon="inline-start" />
-            {t("intake.newTrip")}
-          </Button>
-        </div>
-      </FormField>
+    <>
+      {/* The outing is written up in a sheet of its own, with this one stepped aside until it is done: two sheets on one
+          edge of the screen show through each other. What was typed here waits, and the new outing comes back chosen. */}
       <BuyingTripSheet
         onOpenChange={setWritingTrip}
         onRecorded={async (tripId) => {
           await trips.refetch();
           setDrawing((was) => ({ ...was, buyingTripId: tripId }));
         }}
-        open={writingTrip}
+        open={open && writingTrip}
       />
-      <WhoseHandField
-        id="float-carried-by"
-        label={t("ventures.carriedBy")}
-        onChange={(carriedBy) => setDrawing({ ...drawing, carriedBy })}
-        value={drawing.carriedBy}
-      />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <FormSheet
+        description={t("ventures.floatHint", {
+          cattle: formatNumber(held, language),
+        })}
+        onOpenChange={onOpenChange}
+        onSubmit={() =>
+          drawingIt.mutate({
+            ventureId: venture?.id ?? "",
+            buyingTripId: drawing.buyingTripId,
+            amountMoney: amount,
+            movedOn: drawing.movedOn,
+            paymentMethod: "bank",
+            reference: drawing.reference,
+            // Whose hand its notes are in until it is counted home: the one named, else the Owner's own.
+            carriedBy: drawing.carriedBy || me.data?.id,
+          })
+        }
+        open={open && !writingTrip}
+        pending={drawingIt.isPending}
+        ready={ready}
+        submitLabel={t("ventures.drawFloat")}
+        title={t("ventures.drawFloat")}
+      >
         <FormField
-          hint={t("ventures.floatMost", {
-            cattle: formatNumber(held, language),
-          })}
-          id="float-amount"
-          label={t("ventures.amount")}
+          hint={t("ventures.floatTripHint")}
+          id="float-trip"
+          label={t("ventures.floatTrip")}
+        >
+          <div className="flex gap-2">
+            <NativeSelect
+              className="min-w-0 flex-1"
+              id="float-trip"
+              onChange={(event) =>
+                setDrawing({ ...drawing, buyingTripId: event.target.value })
+              }
+              value={drawing.buyingTripId}
+            >
+              <option value="">—</option>
+              {(trips.data ?? []).filter(mayBeFunded).map((one) => (
+                <option key={one.id} value={one.id}>
+                  {`${one.wentTo} · ${formatDate(one.wentOn, language, "date")}`}
+                </option>
+              ))}
+            </NativeSelect>
+            <Button
+              className="h-11 shrink-0 md:h-9"
+              onClick={() => setWritingTrip(true)}
+              type="button"
+              variant="outline"
+            >
+              <Plus aria-hidden data-icon="inline-start" />
+              {t("intake.newTrip")}
+            </Button>
+          </div>
+        </FormField>
+        <WhoseHandField
+          id="float-carried-by"
+          label={t("ventures.carriedBy")}
+          onChange={(carriedBy) => setDrawing({ ...drawing, carriedBy })}
+          value={drawing.carriedBy}
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField
+            hint={t("ventures.floatMost", {
+              cattle: formatNumber(held, language),
+            })}
+            id="float-amount"
+            label={t("ventures.amount")}
+          >
+            <Input
+              id="float-amount"
+              inputMode="numeric"
+              max={held}
+              onChange={(event) =>
+                setDrawing({ ...drawing, amountMoney: event.target.value })
+              }
+              type="number"
+              value={drawing.amountMoney}
+            />
+          </FormField>
+          <FormField id="float-moved-on" label={t("ventures.movedOn")}>
+            <Input
+              id="float-moved-on"
+              onChange={(event) =>
+                setDrawing({ ...drawing, movedOn: event.target.value })
+              }
+              type="date"
+              value={drawing.movedOn}
+            />
+          </FormField>
+        </div>
+        <FormField
+          hint={t("ventures.referenceHint")}
+          id="float-reference"
+          label={t("ventures.reference")}
         >
           <Input
-            id="float-amount"
-            inputMode="numeric"
-            max={held}
+            autoComplete="off"
+            id="float-reference"
             onChange={(event) =>
-              setDrawing({ ...drawing, amountMoney: event.target.value })
+              setDrawing({ ...drawing, reference: event.target.value })
             }
-            type="number"
-            value={drawing.amountMoney}
+            value={drawing.reference}
           />
         </FormField>
-        <FormField id="float-moved-on" label={t("ventures.movedOn")}>
-          <Input
-            id="float-moved-on"
-            onChange={(event) =>
-              setDrawing({ ...drawing, movedOn: event.target.value })
-            }
-            type="date"
-            value={drawing.movedOn}
-          />
-        </FormField>
-      </div>
-      <FormField
-        hint={t("ventures.referenceHint")}
-        id="float-reference"
-        label={t("ventures.reference")}
-      >
-        <Input
-          autoComplete="off"
-          id="float-reference"
-          onChange={(event) =>
-            setDrawing({ ...drawing, reference: event.target.value })
-          }
-          value={drawing.reference}
-        />
-      </FormField>
-    </FormSheet>
+      </FormSheet>
+    </>
   );
 };

@@ -6060,6 +6060,7 @@ export const en = {
   "cash.deposited": "Deposited into the venture account",
   "cash.to": "To",
   "cash.whoseHand": "Whose hand took the cash",
+  "cash.whoseHandPaid": "Whose hand paid the cash",
   "cash.myOwnHand": "My own",
   "cash.bank": "The bank",
   "cash.amount": "Amount ({currencySign})",
