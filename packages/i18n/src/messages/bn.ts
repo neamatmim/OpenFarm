@@ -4135,6 +4135,7 @@ export const bn: Record<MessageKey, string> = {
   "review.title": "দেখা দরকার",
   "review.none": "অপেক্ষায় কিছু নেই",
   "review.resolve": "নিষ্পত্তি করুন",
+  "review.weightIsRight": "স্কেলের ওজনটাই ঠিক",
   "review.resolution": "আপনি কী সিদ্ধান্ত নিলেন?",
   "review.resolveHint":
     "কী সিদ্ধান্ত নিলেন লিখুন; এটি রেকর্ডে থাকবে, কিছুই মুছে যাবে না।",

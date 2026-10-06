@@ -2,6 +2,7 @@ import type { ReviewReason } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -174,6 +175,9 @@ export const NeedsReview = ({ queue }: { queue: Asked<OpenReview> }) => {
   const { t } = useLanguage();
   const refused = useRefused();
   const [resolving, setResolving] = useState<OpenReview | null>(null);
+  // For a doubted weight: the Manager looked, and the reading is right — its doubt lifted, the ones after it judged again.
+  const [readingStands, setReadingStands] = useState(false);
+  const aWeight = resolving?.reason === "implausible_weight";
   const inFlight = useInFlight();
   const resolve = useMutation(
     orpc.reviewQueue.resolve.mutationOptions({
@@ -214,7 +218,11 @@ export const NeedsReview = ({ queue }: { queue: Asked<OpenReview> }) => {
         description={t("review.resolveHint")}
         handleSubmit={(resolution) => {
           if (resolving) {
-            resolve.mutate({ id: resolving.id, resolution });
+            resolve.mutate({
+              id: resolving.id,
+              resolution,
+              ...(aWeight && readingStands ? { readingStands: true } : {}),
+            });
           }
         }}
         key={resolving?.id ?? "none"}
@@ -222,13 +230,28 @@ export const NeedsReview = ({ queue }: { queue: Asked<OpenReview> }) => {
         onOpenChange={(open) => {
           if (!open) {
             setResolving(null);
+            setReadingStands(false);
           }
         }}
         open={resolving !== null}
         pending={resolving !== null && inFlight.has(resolving.id)}
         submitLabel={t("review.resolve")}
         title={t("review.resolve")}
-      />
+      >
+        {aWeight ? (
+          <label
+            className="has-data-checked:border-primary/40 has-data-checked:bg-primary/5 hover:bg-muted/50 flex h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm md:h-9"
+            htmlFor="review-reading-stands"
+          >
+            <Checkbox
+              checked={readingStands}
+              id="review-reading-stands"
+              onCheckedChange={(checked) => setReadingStands(checked === true)}
+            />
+            {t("review.weightIsRight")}
+          </label>
+        ) : null}
+      </ReasonDialog>
     </div>
   );
 };

@@ -1,8 +1,10 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { eq } from "@OpenFarm/db/operators";
+import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { weighIn } from "@OpenFarm/db/schema/fattening";
+import { needsReview } from "@OpenFarm/db/schema/review";
 import {
   KG_DECIMALS,
+  implausibleAfterArrival,
   implausibleChange,
   roundKg,
   weighedShort,
@@ -93,6 +95,181 @@ const judgeHerFirstWeighIn = async (
 };
 
 /**
+ * What the farm doubts about a reading, in its own words, or nothing: set against her last reading before it that the
+ * farm did not doubt — not simply her latest, because an entry that synced late belongs where it happened, and a
+ * misweighing set beside the right figure after it would make that read as wrong too — or, before any, what she
+ * was bought at, the lorry allowed for (`implausibleAfterArrival`), so a first reading typed wrong is caught too.
+ */
+const doubtAbout = async (
+  tx: Tx,
+  reading: {
+    farmId: string;
+    animalId: string;
+    completionId: string;
+    weightKg: number;
+    weighedAt: Date;
+  }
+): Promise<string | null> => {
+  const previous = await tx.query.weighIn.findFirst({
+    where: {
+      animalId: reading.animalId,
+      weighedAt: { lt: reading.weighedAt },
+      completionId: { ne: reading.completionId },
+      flaggedNote: { isNull: true },
+    },
+    orderBy: { weighedAt: "desc", id: "desc" },
+    columns: { weightKg: true, weighedAt: true },
+  });
+  const arrived = previous
+    ? undefined
+    : await tx.query.intake.findFirst({
+        where: { farmId: reading.farmId, animalId: reading.animalId },
+        columns: { weightKg: true, arrivedAt: true },
+      });
+  const now = { weightKg: reading.weightKg, weighedAt: reading.weighedAt };
+  // Against her last trusted reading as any other; with none, against what she was bought at, the lorry allowed for.
+  let doubtful: ReturnType<typeof implausibleChange> = null;
+  if (previous) {
+    doubtful = implausibleChange(
+      { weightKg: Number(previous.weightKg), weighedAt: previous.weighedAt },
+      now
+    );
+  } else if (arrived) {
+    doubtful = implausibleAfterArrival(
+      { weightKg: Number(arrived.weightKg), arrivedAt: arrived.arrivedAt },
+      now
+    );
+  }
+  // The farm's own words, kept with the reading: a figure that looks wrong a year from now
+  // should say what was doubtful about it without anybody having to work it out again.
+  return doubtful
+    ? `${roundKg(doubtful.dailyKg)} kg/day over ${Math.round(doubtful.days)} days from ${doubtful.lastKg} kg`
+    : null;
+};
+
+/** Why the farm stopped doubting a reading by itself, as the Manager's question is closed with it. */
+const NO_LONGER_DOUBTED =
+  "No longer doubted: the reading before it was put right, or found right";
+
+/** A doubt about a reading that no longer holds: the Manager's question about it closed, saying why. */
+const liftTheDoubt = async (
+  tx: Tx,
+  farmId: string,
+  completionId: string,
+  now: Date
+): Promise<void> => {
+  await tx
+    .update(needsReview)
+    .set({ resolvedAt: now, resolution: NO_LONGER_DOUBTED })
+    .where(
+      and(
+        eq(needsReview.farmId, farmId),
+        eq(needsReview.entity, "weigh_in"),
+        eq(needsReview.entityId, completionId),
+        eq(needsReview.reason, "implausible_weight"),
+        isNull(needsReview.resolvedAt)
+      )
+    );
+};
+
+/** A reading the farm now doubts, asked of the Manager as any doubted reading is. */
+const askAboutTheWeight = async (
+  tx: Tx,
+  doubt: {
+    farmId: string;
+    completionId: string;
+    weightKg: number;
+    note: string;
+    now: Date;
+    eventId?: string;
+  }
+): Promise<void> => {
+  await tell(
+    tx,
+    doubt.farmId,
+    {
+      kind: "needs_review",
+      about: {
+        id: doubt.completionId,
+        entity: "weigh_in",
+        auditEventId: doubt.eventId ?? "",
+      },
+      facts: {
+        reason: "implausible_weight",
+        weightKg: doubt.weightKg,
+        note: doubt.note,
+      },
+    },
+    doubt.now
+  );
+};
+
+/**
+ * Judges again every reading of hers after a moment, oldest first, each against what now stands before it: a reading
+ * put right, or one the Manager found right, changes what the ones after it are set against. A doubt that no longer
+ * holds is lifted, and the Manager's question about it closed; one that now holds is kept and asked about.
+ */
+export const judgeAgainAfter = async (
+  tx: Tx,
+  input: {
+    farmId: string;
+    animalId: string;
+    after: Date;
+    now: Date;
+    eventId?: string;
+  }
+): Promise<void> => {
+  const later = await tx.query.weighIn.findMany({
+    where: {
+      farmId: input.farmId,
+      animalId: input.animalId,
+      weighedAt: { gt: input.after },
+    },
+    orderBy: { weighedAt: "asc", id: "asc" },
+    columns: {
+      id: true,
+      completionId: true,
+      weightKg: true,
+      weighedAt: true,
+      flaggedNote: true,
+    },
+  });
+  for (const one of later) {
+    // One after the other: each is set against what the ones before it now say.
+    // oxlint-disable-next-line no-await-in-loop
+    const note = await doubtAbout(tx, {
+      farmId: input.farmId,
+      animalId: input.animalId,
+      completionId: one.completionId ?? "",
+      weightKg: Number(one.weightKg),
+      weighedAt: one.weighedAt,
+    });
+    if ((note === null) === (one.flaggedNote === null)) {
+      continue;
+    }
+    // oxlint-disable-next-line no-await-in-loop
+    await tx
+      .update(weighIn)
+      .set({ flaggedNote: note })
+      .where(eq(weighIn.id, one.id));
+    if (!one.completionId) {
+      continue;
+    }
+    // oxlint-disable-next-line no-await-in-loop
+    await (note === null
+      ? liftTheDoubt(tx, input.farmId, one.completionId, input.now)
+      : askAboutTheWeight(tx, {
+          farmId: input.farmId,
+          completionId: one.completionId,
+          weightKg: Number(one.weightKg),
+          note,
+          now: input.now,
+          eventId: input.eventId,
+        }));
+  }
+};
+
+/**
  * Records what one animal weighed on the scale this round.
  *
  * The reading is kept and never overwritten by the next one: the whole of fattening is the
@@ -125,27 +302,13 @@ const weighHer = async (tx: Tx, input: WeighInFacts): Promise<EffectResult> => {
   // Her last reading before this one — not simply her latest, because an entry that synced
   // late belongs where it happened and is judged against what came before it — and one the farm
   // did not doubt: set against a misweighing, the right figure after it would read as wrong too.
-  const previous = await tx.query.weighIn.findFirst({
-    where: {
-      animalId,
-      weighedAt: { lt: weighedAt },
-      completionId: { ne: input.completionId },
-      flaggedNote: { isNull: true },
-    },
-    orderBy: { weighedAt: "desc" },
-    columns: { weightKg: true, weighedAt: true },
+  const flaggedNote = await doubtAbout(tx, {
+    farmId: input.instance.farmId,
+    animalId,
+    completionId: input.completionId,
+    weightKg,
+    weighedAt,
   });
-  const doubtful = implausibleChange(
-    previous
-      ? { weightKg: Number(previous.weightKg), weighedAt: previous.weighedAt }
-      : null,
-    { weightKg, weighedAt }
-  );
-  // The farm's own words, kept with the reading: a figure that looks wrong a year from now
-  // should say what was doubtful about it without anybody having to work it out again.
-  const flaggedNote = doubtful
-    ? `${roundKg(doubtful.dailyKg)} kg/day over ${Math.round(doubtful.days)} days from ${doubtful.lastKg} kg`
-    : null;
   const values = {
     farmId: input.instance.farmId,
     animalId,
@@ -192,6 +355,14 @@ const weighHer = async (tx: Tx, input: WeighInFacts): Promise<EffectResult> => {
     );
   }
   await judgeHerFirstWeighIn(tx, input, animalId, { weightKg, weighedAt });
+  // Every reading after this one was judged against what came before it, this one among them: judged again.
+  await judgeAgainAfter(tx, {
+    farmId: input.instance.farmId,
+    animalId,
+    after: weighedAt,
+    now: input.now,
+    eventId: input.eventId,
+  });
   return { kind: "weigh_in", weightKg, flagged: flaggedNote !== null };
 };
 

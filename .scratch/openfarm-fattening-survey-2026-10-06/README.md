@@ -38,6 +38,6 @@ Three reviewers looked at growth and feeding, Seasons and Returns, and the scree
 | Group | Branch | Status |
 | ----- | ------ | ------ |
 | A     | fix/owner-on-the-day | Done (A3, a same-day round trip, left: rare) |
-| B     |        |        |
+| B     | fix/weigh-ins | Done (a first reading is read against the bought weight with the lorry allowed for; four test fixtures weighed bulls far over what they were bought at and were made real) |
 | C     |        |        |
 | D     |        |        |

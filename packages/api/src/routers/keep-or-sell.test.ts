@@ -448,12 +448,12 @@ describe("keep her or sell her", () => {
       const later = await as("owner", "2040-03-01T04:30:00.000Z");
       const { animals } = await later.client.fattening.prices();
       // Her last two readings are a fortnight apart, short of fifteen days: her gain since she came is read instead,
-      // 64 kg over the 43 days and 22 hours from 04:00 on the 2nd of January to 02:00 on the 15th of February, 1.46 kg
-      // a day. ৳320 a day over that is ৳219.18 a kilo, under the market's low price of ৳280: keeping her pays.
+      // 64 kg over the 44 farm days from the 2nd of January to the 15th of February, 1.45 kg a day. ৳320 a day over that
+      // is ৳220.69 a kilo, under the market's low price of ৳280: keeping her pays.
       expect(animals.find((one) => one.tagNumber === kept)?.keep).toMatchObject(
         {
-          dailyGainKg: 1.46,
-          costOfGainNowMoney: 219.18,
+          dailyGainKg: 1.45,
+          costOfGainNowMoney: 220.69,
           keeping: "pays",
         }
       );

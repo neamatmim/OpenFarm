@@ -86,7 +86,8 @@ beforeAll(async () => {
   });
   penId = pen.id;
   const weighing = await owner.client.sops.create({ content: weighInSop() });
-  weighed = await aBull(250);
+  // Bought at 300 kg: eight days on, 320 on the scale is a bull well over his lorry.
+  weighed = await aBull(300);
   unweighed = await aBull(260);
   // The first on the scale on the tenth: 320 kg. The second never weighed again after the lorry he came on.
   const manager = await as("manager", "2079-03-10T02:00:00.000Z");

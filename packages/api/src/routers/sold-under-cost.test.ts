@@ -41,8 +41,9 @@ beforeAll(async () => {
   });
 });
 
-/** A bull bought for ৳1,00,000 and ৳1,000 of Market toll: he has cost ৳1,01,000 before he eats anything. */
-const aBull = async (into = penId) => {
+/** A bull bought for ৳1,00,000 and ৳1,000 of Market toll: he has cost ৳1,01,000 before he eats anything. Bought at
+ *  250 kg unless said. */
+const aBull = async (into = penId, weightKg = 250) => {
   const manager = await as("manager", "2078-03-02T04:00:00.000Z");
   return await manager.client.intakes.record({
     penId: into,
@@ -50,7 +51,7 @@ const aBull = async (into = penId) => {
     seller: { name: `ব্যাপারী ${suffix}` },
     purchasePriceMoney: 100_000,
     marketTollMoney: 1000,
-    weightKg: 250,
+    weightKg,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2078-03-02T04:00:00.000Z"),
     ...WINDOW,
@@ -187,9 +188,11 @@ describe("a sale floored on her last weighing", () => {
       name: `ওজনের পেন ${suffix}`,
     });
     const weighing = await owner.client.sops.create({ content: weighInSop() });
+    // Each bought near what the scale will first read of him: a first reading far over the lorry's weight is doubted.
+    const boughtAt = { scale: 380, stale: 380, flagged: 280 };
     for (const key of Object.keys(bulls) as (keyof typeof bulls)[]) {
       // oxlint-disable-next-line no-await-in-loop -- one bull after another off the lorry
-      const bull = await aBull(pen.id);
+      const bull = await aBull(pen.id, boughtAt[key]);
       bulls[key] = bull.tagNumber;
     }
     const weigh = async (instant: string, readings: [string, number][]) => {

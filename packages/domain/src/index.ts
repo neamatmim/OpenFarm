@@ -100,6 +100,7 @@ export {
   daysOnFeedOf,
   wholeDaysFrom,
   fatteningView,
+  implausibleAfterArrival,
   implausibleChange,
 } from "./fattening";
 export type {

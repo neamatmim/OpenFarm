@@ -4419,6 +4419,7 @@ export const en = {
   "review.title": "Needs a look",
   "review.none": "Nothing waiting",
   "review.resolve": "Close this",
+  "review.weightIsRight": "The weight on the scale is right",
   "review.resolution": "What did you decide?",
   "review.resolveHint":
     "Write what you decided; it is kept with the record, and nothing is removed.",

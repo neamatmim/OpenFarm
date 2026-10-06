@@ -58,6 +58,39 @@ export const implausibleChange = (
   return impossible ? { dailyKg, days, lastKg: last.weightKg } : null;
 };
 
+/**
+ * The weight a lorry takes off a bull that rest puts back, as a share of what she was bought at: what a first reading
+ * may come above her bought weight before the days she has been here start to count.
+ */
+const LORRY_COMES_BACK = 0.1;
+
+/**
+ * Why a first reading should be queried against what she was bought at, or null: only a gain no rest and no feed could
+ * explain — her bought weight, a tenth of it back off the lorry, and two and a half kilos a day since. Never a loss: one
+ * lighter than she was bought at is a purchase to ask about (`weighedShort`), and the true reading that shows it is the
+ * one the farm most needs to trust.
+ */
+export const implausibleAfterArrival = (
+  arrived: { weightKg: number; arrivedAt: Date },
+  now: { weightKg: number; weighedAt: Date }
+): { dailyKg: number; days: number; lastKg: number } | null => {
+  const days =
+    (now.weighedAt.getTime() - arrived.arrivedAt.getTime()) /
+    (24 * 60 * 60 * 1000);
+  if (days < RATE_NEEDS_DAYS) {
+    return null;
+  }
+  const most =
+    arrived.weightKg * (1 + LORRY_COMES_BACK) + PLAUSIBLE_DAILY_GAIN_KG * days;
+  return now.weightKg > most
+    ? {
+        dailyKg: (now.weightKg - arrived.weightKg) / days,
+        days,
+        lastKg: arrived.weightKg,
+      }
+    : null;
+};
+
 /** One reading on the scale: what she weighed and when. */
 export interface WeighIn {
   weightKg: number;
@@ -156,7 +189,8 @@ const basisFrom = (
   windowOpensAt: Date | null,
   targetWeightKg: number | null
 ): GainBasis | null => {
-  const overDays = daysBetween(from.at, to.at);
+  // Farm days, as the gain on her Ration counts them: one board row never says two rates for the same two readings.
+  const overDays = farmDaysApart(farmDayOf(from.at), farmDayOf(to.at));
   // The same floor the plausibility check keeps: a daily rate over a few hours is noise, and
   // two weighings on one morning differ by what the animal drank.
   if (overDays < RATE_NEEDS_DAYS) {
