@@ -1566,6 +1566,16 @@ export const bn: Record<MessageKey, string> = {
   "refusal.noSuchBuyer": "এই নামে কারো কাছে খামার কখনো বিক্রি করেনি",
   "refusal.aBullCalfIsNoHeifer":
     "এঁড়ে বাছুর বকনা হিসেবে থাকে না — তার মোটাতাজাকরণ পেন বাছুন",
+  "refusal.owedBelowWrittenOff":
+    "এর ওপর {currencySign}{writtenOffMoney} বাকি বাদ দেওয়া আছে: আগে বাদ দেওয়াটা কমান, তারপর এটা ঠিক করুন",
+  "refusal.serviceOfACalf":
+    "বাছুরকে পাল দেওয়া হয় না: প্রথম পাল দেওয়ার এখনো অনেক মাস বাকি",
+  "refusal.pricedFromTheFuture":
+    "তার দাম গোনা হয় এমন দিন থেকে যা এসে গেছে: বড়জোর আজ থেকে",
+  "refusal.calvedLately":
+    "সে এত সম্প্রতি বাচ্চা দিয়েছে যে আবার দিতে পারে না: এটা একই বাচ্চা দেওয়া দুবার লেখা, নয়তো জমজের একটি — জমজ একটাই বাচ্চা দেওয়া, দুটো বাছুরসহ",
+  "refusal.calvedBeforeHerService":
+    "যে পাল দেওয়া থেকে সে গর্ভবতী, তার এত তাড়াতাড়ি বাচ্চা দেওয়া হতে পারে না: তারিখটা দেখুন",
   "refusal.writtenOffMoreThanOwed":
     "এর ওপর এখন বাকি মাত্র {currencySign}{owingMoney}",
   "refusal.nothingOwedOnIt": "এর ওপর কখনো কিছু বাকি ছিল না",
@@ -3194,6 +3204,7 @@ export const bn: Record<MessageKey, string> = {
   "dispatch.noneThatDay": "সেদিন কোনো দুধ দেওয়া হয়নি",
   "dispatch.day": "দিন",
   "dispatch.litres": "লিটার",
+  "dispatch.whenLeft": "কখন গেল",
   "dispatch.when": "কখন গেল (খালি রাখলে: এখন)",
   "dispatch.litresField": "লিটার",
   "dispatch.buyer": "ক্রেতা",
@@ -4797,6 +4808,7 @@ export const bn: Record<MessageKey, string> = {
   "returns.came.bought_from_venture": "ভেঞ্চার থেকে কেনা",
   "returns.cameLeft": "{came}, {left}",
   "returns.breakdownFailed": "এখন ভাগ করে দেখানো গেল না।",
+  "returns.left.culled": "বাদ দেওয়া হয়েছে",
   "returns.left.died": "মারা গেছে",
   "returns.left.lost": "হারিয়ে গেছে বলে বাদ",
   "returns.left.sold_to_venture": "ভেঞ্চারে বিক্রি",
@@ -5381,6 +5393,10 @@ export const bn: Record<MessageKey, string> = {
   "heatWatch.none": "গরম দেখার অপেক্ষায় থাকা কোনো গাভী নেই",
   "heatWatch.neverSeen": "বিয়ানোর {days} দিন, গরম দেখা যায়নি · {pen}",
   "heatWatch.quietSince": "বিয়ানোর {days} দিন, {day} থেকে গরম দেখা যায়নি · {pen}",
+  "heatWatch.heiferQuietSince":
+    "বকনাকে পাল দেওয়া হয়েছে, {day} থেকে গরম দেখা যায়নি · {pen}",
+  "heatWatch.calvingOverdue":
+    "{day} বাচ্চা দেওয়ার কথা ছিল, কিছু লেখা হয়নি: পশুচিকিৎসককে দেখান · {pen}",
   "heatWatch.returnDue": "আবার গরম হওয়ার সময় — পাল দেওয়া হয়েছে {day} · {pen}",
   "params.heatWatch": "গরমের দিকে নজর",
   "params.heatWatchHint":

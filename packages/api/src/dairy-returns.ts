@@ -155,9 +155,22 @@ export const dairyAnimalOf = async (
   floorDays: number,
   now: Date
 ) => {
-  const { runs } = await dairyRunsOf(db, farmId, books, floorDays, now);
+  const { runs, animals } = await dairyRunsOf(
+    db,
+    farmId,
+    books,
+    floorDays,
+    now
+  );
   const run = runs.find((one) => one.animalId === animalId);
+  const written = animals.find((one) => one.id === animalId)?.createdAt;
   return run
-    ? { run, calves: runs.filter((one) => one.damId === animalId) }
+    ? {
+        run,
+        calves: runs.filter((one) => one.damId === animalId),
+        /** The day she was written down on the farm's books, which her price counts from unless the Owner says — as
+         *  the Returns page's list offers it. */
+        onTheBooksFrom: farmDayOf(written ?? now),
+      }
     : null;
 };

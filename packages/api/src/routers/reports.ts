@@ -203,7 +203,7 @@ export const reportsRouter = {
             with: { shed: { columns: { name: true } } },
           },
           records: {
-            columns: { litres: true, destination: true, forced: true },
+            columns: { litres: true, destination: true, underWithdrawal: true },
           },
         },
         orderBy: { dueAt: "asc", id: "asc" },
@@ -216,7 +216,8 @@ export const reportsRouter = {
       >();
       for (const session of sessions) {
         for (const record of session.records) {
-          const underWithdrawal = record.forced ? "yes" : "no";
+          // Held when she was milked, whoever sent the milk to Discard: the phone, or the gate over it.
+          const underWithdrawal = record.underWithdrawal ? "yes" : "no";
           const id = `${session.id}|${record.destination}|${underWithdrawal}`;
           const line = lines.get(id) ?? {
             key: [

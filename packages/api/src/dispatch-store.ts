@@ -2,6 +2,7 @@ import type { Database } from "@OpenFarm/db";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import {
   MILK_ACCOUNT_DAYS,
+  calvesDrankADay,
   farmDayOf,
   milkAccountOf,
   paidAtTheGate,
@@ -220,16 +221,18 @@ export const milkAccountOn = async (
       columns: { id: true },
     }),
   ]);
-  let toCalves = 0;
+  const feeds: { at: Date; toCalves: number }[] = [];
   const intoTheTank = sessions.map((one) => {
     let toBulk = 0;
+    let toCalves = 0;
     for (const record of one.records) {
       if (record.destination === "bulk") {
         toBulk += Number(record.litres);
-      } else if (record.destination === "calves" && one.dueAt >= weekFrom) {
+      } else if (record.destination === "calves") {
         toCalves += Number(record.litres);
       }
     }
+    feeds.push({ at: one.dueAt, toCalves });
     return { at: one.dueAt, toBulk };
   });
   const account = milkAccountOf(
@@ -238,7 +241,7 @@ export const milkAccountOn = async (
     weekFrom,
     now
   );
-  const perDay = toCalves / MILK_ACCOUNT_DAYS;
+  const perDay = calvesDrankADay(feeds, new Date(startOfToday));
   return {
     ...account,
     since: farmDayOf(weekFrom),

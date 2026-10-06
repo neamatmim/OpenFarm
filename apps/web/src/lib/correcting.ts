@@ -1,4 +1,4 @@
-import { farmDayOf } from "@OpenFarm/domain";
+import { atFarmTime, farmDayOf, farmTimeOf } from "@OpenFarm/domain";
 
 // What putting a record right actually sends: the answers a Correction edits, what each one holds now, and what was
 // typed into it. The farm refuses a Correction that changes nothing and one made against values somebody has since
@@ -38,6 +38,22 @@ export const figure = (
   couldBeSent: (typed) => {
     const figured = Number(typed);
     return typed.trim() !== "" && !Number.isNaN(figured) && figured >= atLeast;
+  },
+});
+
+/** A figure a record may hold none of — the fat a collector did not measure: written in where nobody had, and an emptied
+ *  box sent as nothing, which clears it. */
+export const optionalFigure = (
+  held: number | null
+): Answer<number | null, number | null> => ({
+  holds: held,
+  shows: held === null ? "" : String(held),
+  sends: (typed) => (typed.trim() === "" ? null : Number(typed)),
+  same: (typed) =>
+    typed.trim() === "" ? held === null : Number(typed) === held,
+  couldBeSent: (typed) => {
+    const figured = Number(typed);
+    return typed.trim() === "" || (!Number.isNaN(figured) && figured >= 0);
   },
 });
 
@@ -108,6 +124,30 @@ export const day = (
     // A day rubbed out is not one the farm can take; a box that was empty and still is changes nothing — a Sale paid
     // in full holds no day the buyer promised to pay by, and the rest of it can still be put right.
     couldBeSent: (typed) => typed !== "" || said === null,
+  };
+};
+
+/**
+ * A moment, as a date-and-time box shows it on the farm's own clock: when a lorry collected the milk. The record's
+ * moment is what the farm is told it was shown, to the second; what is typed is sent as that farm day and time — a
+ * collection typed in after midnight is put back on the day it left.
+ */
+export const moment = (held: Date | string): Answer<string, Date> => {
+  const at = new Date(held);
+  const shows = `${farmDayOf(at)}T${farmTimeOf(at)}`;
+  return {
+    holds: at.toISOString(),
+    shows,
+    sends: (typed) =>
+      typed === ""
+        ? undefined
+        : atFarmTime(
+            typed.slice(0, "YYYY-MM-DD".length),
+            typed.slice("YYYY-MM-DDT".length)
+          ),
+    same: (typed) => typed === shows,
+    // A moment rubbed out is not one the farm can take: the milk left at some time.
+    couldBeSent: (typed) => typed !== "",
   };
 };
 

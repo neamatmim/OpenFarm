@@ -144,6 +144,8 @@ const setup = async () => {
     stepId: "milk",
     animalTag: held.tagNumber,
     evidence: [8],
+    // As the work screen sends it for a cow it shows locked: poured away, and nobody overruled.
+    destination: "discard",
   });
   await staff.client.work.completeStep({
     instanceId: work?.id ?? "",
@@ -302,6 +304,34 @@ describe("the milk dispatch", () => {
       buyerName: `ঘোষ ${suffix}`,
       buyerAddress: "উল্লাপাড়া",
     });
+  });
+
+  it("puts a collection typed in after midnight back on the day it left, as the screen sends it", async () => {
+    // Collected at seven on the 5th and typed in at half past twelve that night: stamped the 6th.
+    const typedIn = new Date("2036-02-05T18:30:00.000Z");
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock(typedIn),
+    });
+    const { id } = await manager.client.milk.dispatch({
+      dispatchedAt: typedIn,
+      litres: 6,
+      buyer,
+      pricePerLitreMoney: 55,
+    });
+    // The sheet sends the moment it was shown as the record holds it, to the second, and the farm-time moment typed.
+    await manager.client.milk.correctDispatch({
+      id,
+      changes: {
+        dispatchedAt: {
+          from: typedIn.toISOString(),
+          to: new Date("2036-02-05T01:00:00.000Z"),
+        },
+      },
+      reason: "রাতে লেখা হয়েছিল, গাড়ি সকালে গেছে",
+    });
+    const fifth = await manager.client.milk.day({ day: "2036-02-05" });
+    expect(fifth.dispatches.map((one) => one.id)).toContain(id);
   });
 
   it("produces the dispatch record with the buyer's name and address, and says it did each time", async () => {

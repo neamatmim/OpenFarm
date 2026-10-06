@@ -282,6 +282,53 @@ describe("withdrawal, from the last dose actually given", () => {
     expect(hers).toMatchObject({ destination: "discard", forced: true });
   });
 
+  it("leaves milk drawn before the first dose where the phone sent it, however late it reaches the farm", async () => {
+    // Milked at half past five on a phone with no signal; her first dose is at eight; the phone finds signal at nine.
+    // Her morning's milk was drawn before any Withdrawal began, and it is the tank's.
+    const milkedAt = new Date("2026-10-20T23:30:00.000Z");
+    const clock = new FakeClock("2026-10-21T02:00:00.000Z");
+    const { cow } = await onACourse(clock, 1);
+    await giveDose(clock, cow.tagNumber, 1);
+    clock.set(new Date("2026-10-21T03:00:00.000Z"));
+
+    const phone = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+      phone: { id: "test-phone-before", name: "আগের দোহন ফোন" },
+    });
+    await phone.client.work.ensureDue();
+    const today = await phone.client.work.today({ penId: world.pen.id });
+    const milking = today.find(
+      (row) => row.definitionId === world.milking.definitionId
+    );
+    if (!milking) {
+      throw new Error("expected the milking round");
+    }
+    const sent = await phone.client.sync.batch({
+      key: `before-${cow.tagNumber}`,
+      entries: [
+        {
+          id: `before-entry-${cow.tagNumber}`,
+          seq: 1,
+          recordedAt: milkedAt,
+          kind: "step_completion" as const,
+          instanceId: milking.id,
+          stepId: "litres",
+          animalTag: cow.tagNumber,
+          evidence: [11],
+          destination: "bulk" as const,
+        },
+      ],
+    });
+    expect(sent.results.every((one) => one.outcome === "applied")).toBe(true);
+    const session = await phone.client.milk.session({ instanceId: milking.id });
+    const hers = session.records.find(
+      (row) => row.animal.tagNumber === cow.tagNumber
+    );
+    expect(hers).toMatchObject({ destination: "bulk", forced: false });
+  });
+
   it("lets the Vet shorten it, with a reason, and nobody else at all", async () => {
     const clock = new FakeClock("2026-10-04T02:00:00.000Z");
     const { cow, vet, owner } = await onACourse(clock, 1);

@@ -792,7 +792,7 @@ export const animalsRouter = {
         }),
         context.db.query.animal.findFirst({
           where: { farmId: context.farm.id, tagNumber },
-          columns: { id: true },
+          columns: { id: true, expectedCalvingServiceId: true },
           with: {
             pen: {
               columns: { id: true, name: true },
@@ -924,6 +924,9 @@ export const animalsRouter = {
         // because it is the same question. Barn Staff work the shed and are not told whose money is
         // standing in it; the Vet treats whoever is in front of them.
         owner: theCost ? (herPage.owner ?? null) : null,
+        // Worked out from the service she is carrying from, never typed: the Correction is for a date given when she
+        // came, and her page offers it only for one.
+        expectedCalvingWorkedOut: herPage.expectedCalvingServiceId !== null,
         pen: herPage.pen,
         retags: herPage.retags,
         abortions: herPage.abortions,

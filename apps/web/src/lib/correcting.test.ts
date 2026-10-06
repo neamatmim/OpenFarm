@@ -10,7 +10,9 @@ import {
   day,
   figure,
   counterparty,
+  moment,
   note,
+  optionalFigure,
   words,
 } from "./correcting";
 
@@ -156,5 +158,39 @@ describe("the farm's kinds of field", () => {
       kind: { from: "died", to: "culled" },
     });
     expect(changesFrom({ kind: how }, { kind: "" })).toEqual({});
+  });
+});
+
+describe("a moment put right", () => {
+  it("shows the farm's clock, and sends the moment typed on it", () => {
+    // Collected at seven in the morning on the 3rd, farm time: one in the morning UTC.
+    const collected = moment("2036-02-03T01:00:00.000Z");
+    expect(collected.shows).toBe("2036-02-03T07:00");
+    expect(collected.same("2036-02-03T07:00")).toBe(true);
+    // Typed in after midnight it was stamped the 4th; put back on the 3rd at seven.
+    const late = moment("2036-02-03T18:30:00.000Z");
+    expect(
+      changesFrom({ dispatchedAt: late }, { dispatchedAt: "2036-02-03T07:00" })
+    ).toEqual({
+      dispatchedAt: {
+        from: "2036-02-03T18:30:00.000Z",
+        to: new Date("2036-02-03T01:00:00.000Z"),
+      },
+    });
+    expect(late.couldBeSent("")).toBe(false);
+  });
+});
+
+describe("a figure a record may hold none of", () => {
+  it("is written in where nobody had, and cleared to nothing", () => {
+    const fat = optionalFigure(null);
+    expect(changesFrom({ fat }, { fat: "4.1" })).toEqual({
+      fat: { from: null, to: 4.1 },
+    });
+    const measured = optionalFigure(4.1);
+    expect(changesFrom({ fat: measured }, { fat: "" })).toEqual({
+      fat: { from: 4.1, to: null },
+    });
+    expect(measured.couldBeSent("-1")).toBe(false);
   });
 });

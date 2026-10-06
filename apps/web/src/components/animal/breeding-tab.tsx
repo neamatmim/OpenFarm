@@ -148,7 +148,9 @@ const HerPregnancyChecks = ({
               when: formatDate(new Date(expectedCalvingAt), language),
             })}
           </p>
-          {mayCorrect ? (
+          {/* A date worked out from her service is put right by putting the service right; left out of a page this
+              phone kept from before, it is offered as it always was. */}
+          {mayCorrect && detail.expectedCalvingWorkedOut !== true ? (
             <ExpectedCalvingCorrection
               expectedCalvingAt={expectedCalvingAt}
               tagNumber={detail.tagNumber}

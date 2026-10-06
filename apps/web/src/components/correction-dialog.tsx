@@ -147,7 +147,7 @@ export const CorrectionAnswer = ({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  type?: "text" | "number" | "date" | "tel";
+  type?: "text" | "number" | "date" | "datetime-local" | "tel";
   inputMode?: "decimal" | "numeric" | "tel";
 }) => {
   const id = useId();

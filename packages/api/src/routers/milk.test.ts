@@ -738,4 +738,59 @@ describe("lactations", () => {
       )
     ).toBe(true);
   });
+
+  it("keeps a milking corrected after she calved again in the Lactation it was drawn in", async () => {
+    const clock = new FakeClock("2026-11-01T06:00:00.000Z");
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+    const cow = await owner.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "heifer",
+      penId: world.pen.id,
+      source: "born",
+      aliases: [],
+    });
+    await owner.client.animals.setState({
+      tagNumber: cow.tagNumber,
+      state: "pregnant_heifer",
+    });
+    await owner.client.animals.setState({
+      tagNumber: cow.tagNumber,
+      state: "milking",
+      calvedAt: new Date(clock.now().getTime() - 30 * DAY),
+    });
+    // Milked on the 2nd, in her first Lactation.
+    const { instance, staff } = await session("2026-11-02");
+    await staff.client.work.completeStep({
+      instanceId: instance.id,
+      stepId: "milk",
+      animalTag: cow.tagNumber,
+      evidence: [10],
+    });
+    const board = await staff.client.work.get({ id: instance.id });
+    const entry = board.completions.find(
+      (row) => row.stepId === "milk" && row.animalId === cow.id
+    );
+    // Dried off and calved again on the 3rd: her second Lactation.
+    clock.set("2026-11-03T06:00:00.000Z");
+    await owner.client.animals.setState({
+      tagNumber: cow.tagNumber,
+      state: "dry",
+    });
+    await owner.client.animals.setState({
+      tagNumber: cow.tagNumber,
+      state: "milking",
+    });
+    // The 2nd's litres put right on the 3rd are still the first Lactation's milk.
+    await correctStepAsShown(owner.client, {
+      completionId: entry?.id ?? "",
+      evidence: [11],
+      reason: "খাতায় দেখে ঠিক করা",
+    });
+    const record = await scratchDb().query.milkRecord.findFirst({
+      where: { completionId: entry?.id ?? "" },
+      columns: { litres: true, lactationNumber: true },
+    });
+    expect(record).toEqual({ litres: "11.00", lactationNumber: 1 });
+  });
 });

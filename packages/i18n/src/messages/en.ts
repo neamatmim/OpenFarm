@@ -1686,6 +1686,16 @@ export const en = {
   "refusal.noSuchBuyer": "The farm has never sold to anybody by that name",
   "refusal.aBullCalfIsNoHeifer":
     "A bull calf does not stay as a heifer — choose his fattening pen",
+  "refusal.owedBelowWrittenOff":
+    "{currencySign}{writtenOffMoney} is written off on it: lower the write-off first, then put this right",
+  "refusal.serviceOfACalf":
+    "A calf is not served: she is months from her first service",
+  "refusal.pricedFromTheFuture":
+    "Her price counts from a day that has come: today at the latest",
+  "refusal.calvedLately":
+    "She calved too lately to calve again: this is the same calving written twice, or a twin of it, which is one calving with two calves",
+  "refusal.calvedBeforeHerService":
+    "That is too soon after the service she is carrying from to be its calving: check the day",
   "refusal.writtenOffMoreThanOwed":
     "Only {currencySign}{owingMoney} is still owed on it",
   "refusal.nothingOwedOnIt": "Nothing was ever owed on that",
@@ -3418,6 +3428,7 @@ export const en = {
   "dispatch.noneThatDay": "No milk handed over that day",
   "dispatch.day": "Day",
   "dispatch.litres": "litres",
+  "dispatch.whenLeft": "When it left",
   "dispatch.when": "When it left (empty: now)",
   "dispatch.litresField": "Litres",
   "dispatch.buyer": "Buyer",
@@ -5129,6 +5140,7 @@ export const en = {
   "returns.came.bought_from_venture": "bought from a venture",
   "returns.cameLeft": "{came}, {left}",
   "returns.breakdownFailed": "This could not be opened out just now.",
+  "returns.left.culled": "culled",
   "returns.left.died": "died",
   "returns.left.lost": "written off as lost",
   "returns.left.sold_to_venture": "sold to a venture",
@@ -5753,6 +5765,10 @@ export const en = {
     "{days, plural, one {# day} other {# days}} since calving, no heat seen · {pen}",
   "heatWatch.quietSince":
     "{days, plural, one {# day} other {# days}} since calving, no heat since {day} · {pen}",
+  "heatWatch.heiferQuietSince":
+    "Heifer served, no heat seen since {day} · {pen}",
+  "heatWatch.calvingOverdue":
+    "Was due to calve {day}, nothing recorded: have the vet look at her · {pen}",
   "heatWatch.returnDue": "Due back in heat — served {day} · {pen}",
   "params.heatWatch": "Heat watch",
   "params.heatWatchHint":

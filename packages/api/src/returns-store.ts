@@ -16,6 +16,7 @@ import {
   backOf,
   bandStanding,
   capitalOf,
+  diedOrCulled,
   earliest,
   farmDayOf,
   rateInForceOn,
@@ -77,6 +78,8 @@ type Books = Omit<ReturnBooks, "bankRates"> & {
 /** What the Returns page needs to know of the farm: its floor, and what the animal prices read. */
 type ReturnsFarm = Parameters<typeof pricesOnTheSide>[1] & {
   returnYearFloorDays: number;
+  /** How many days old a weighing may be and still price a crossing. */
+  priceWeighInDays: number;
 };
 
 const booksOf = async (
@@ -118,7 +121,7 @@ const booksOf = async (
   });
   const deaths = await db.query.mortality.findMany({
     where: { farmId },
-    columns: { animalId: true, happenedAt: true },
+    columns: { animalId: true, happenedAt: true, kind: true },
   });
   const lost = await lostSince(db, farmId);
   // What the Farm paid each Venture to make its lost animals good: what came back for her.
@@ -195,6 +198,10 @@ const booksOf = async (
     ownedThenBy,
     intakes,
     died: new Map(deaths.map((one) => [one.animalId, one.happenedAt])),
+    // A cull is a death the farm chose, and is said as one.
+    culled: new Set(
+      deaths.filter((one) => one.kind === "culled").map((one) => one.animalId)
+    ),
     lost,
     madeGood: new Map(
       madeGood.flatMap((one) =>
@@ -302,7 +309,11 @@ const venturesOf = async (
  * crossed (the reading a price is struck from, or nothing, which the price refuses until somebody weighs her) and
  * the price she came in at, if any.
  */
-const crossingsOf = async (db: Database, farmId: string) => {
+const crossingsOf = async (
+  db: Database,
+  farmId: string,
+  priceWeighInDays: number
+) => {
   const rows = await db.query.fatteningJoining.findMany({
     where: {
       farmId,
@@ -325,7 +336,12 @@ const crossingsOf = async (db: Database, farmId: string) => {
   const out = [];
   for (const row of rows) {
     // oxlint-disable-next-line no-await-in-loop -- one client, one crossing at a time
-    const weighed = await weighedForTheCrossing(db, row.animalId, row.joinedOn);
+    const weighed = await weighedForTheCrossing(
+      db,
+      row.animalId,
+      row.joinedOn,
+      priceWeighInDays
+    );
     out.push({
       id: row.id,
       tagNumber: row.animal?.tagNumber ?? "",
@@ -354,7 +370,7 @@ export const returnsPage = async (
     ventures,
     dairy: await dairyOf(db, farm.id, books, floorDays, now),
     bankRates: books.bankRates,
-    crossings: await crossingsOf(db, farm.id),
+    crossings: await crossingsOf(db, farm.id, farm.priceWeighInDays),
     /** The one in force today, which the page marks: found by the rule every other reading uses, not a second one. */
     bankRateInForceId:
       rateInForceOn(books.bankRates, farmDayOf(now))?.id ?? null,
@@ -669,7 +685,7 @@ const linesOf = (
         row: {
           line,
           head: its.length,
-          died: its.filter((one) => one.left?.how === "died").length,
+          died: its.filter((one) => diedOrCulled(one.left)).length,
           lost: its.filter((one) => one.left?.how === "lost").length,
           costMoney: returned?.costMoney ?? 0,
           backMoney: returned?.backMoney ?? backOf(its),

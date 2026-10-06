@@ -330,6 +330,8 @@ describe("the pregnancy check", () => {
       new Date("2030-01-02T12:00:00.000Z").getTime() + 283 * DAY
     );
     expect(her.expectedCalvingAt?.toISOString()).toBe(expected.toISOString());
+    // Worked out from her service, not typed: her page offers no Correction the farm would refuse.
+    expect(her.expectedCalvingWorkedOut).toBe(true);
     expect(her.pregnancyChecks[0]).toMatchObject({ result: "positive" });
   });
 

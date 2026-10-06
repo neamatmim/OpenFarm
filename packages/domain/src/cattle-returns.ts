@@ -127,6 +127,8 @@ export interface ReturnBooks {
     on: Date;
   }[];
   died: ReadonlyMap<string, Date>;
+  /** Of those, the ones the farm culled. Left out, every death is a death. */
+  culled?: ReadonlySet<string>;
   /** Every Animal written off as Lost, and when she went missing for good. */
   lost: ReadonlyMap<string, Date>;
   /** What the Farm paid a Venture to make each of its lost Animals good, by the Animal. Left out where the books were
@@ -149,7 +151,13 @@ export interface ReturnBooks {
 export const whatHappenedTo = (
   books: Pick<
     ReturnBooks,
-    "animals" | "internal" | "died" | "lost" | "joinings" | "madeGood"
+    | "animals"
+    | "internal"
+    | "died"
+    | "culled"
+    | "lost"
+    | "joinings"
+    | "madeGood"
   >,
   animalId: string
 ): WhatHappened => {
@@ -163,6 +171,7 @@ export const whatHappenedTo = (
       ? { on: crossing.joinedAt, priceMoney: crossing.priceMoney }
       : null,
     died: books.died.get(animalId) ?? null,
+    culled: books.culled?.has(animalId) ?? false,
     lost: books.lost.get(animalId) ?? null,
     madeGood: books.madeGood?.get(animalId) ?? null,
   };
@@ -220,6 +229,10 @@ export const spentOn = (
     ).map((one) => ({ amount: one.amount, from: one.at, until })),
   ];
 };
+
+/** Whether a Holding ended in a death — the farm's own cull too: the dead, as a Season counts them. */
+export const diedOrCulled = (left: { how: string } | null | undefined) =>
+  left?.how === "died" || left?.how === "culled";
 
 /** What some holdings brought back: each one's Sale or Internal Sale out, nothing for the dead, nothing standing. */
 export const backOf = (holdings: readonly HoldingRead[]) =>
@@ -463,7 +476,7 @@ export const seasonsOf = (
         eid: season.eid,
         window: season.window,
         head: holdings.length,
-        died: holdings.filter((one) => one.left?.how === "died").length,
+        died: holdings.filter((one) => diedOrCulled(one.left)).length,
         lost: holdings.filter((one) => one.left?.how === "lost").length,
         ...worked,
         bankRate: bankRateFor(
@@ -620,7 +633,7 @@ export const ventureReturnOf = (
     name: venture.name,
     window: venture.window,
     head: holdings.length,
-    died: holdings.filter((one) => one.left?.how === "died").length,
+    died: holdings.filter((one) => diedOrCulled(one.left)).length,
     finished: worked.finished,
     returnOnCost: worked.returnOnCost,
     running: worked.running,

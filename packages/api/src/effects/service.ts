@@ -72,12 +72,20 @@ const recordTheService = async (
   // Pregnancy Check and Calving that count from it would be counting from a mistake.
   const cow = await tx.query.animal.findFirst({
     where: { id: cowId },
-    columns: { sex: true },
+    columns: { sex: true, state: true },
   });
   if (cow?.sex !== "female") {
     throw new ORPCError("BAD_REQUEST", {
       message: "Only a cow is served",
       data: { refusal: "service_of_a_male" },
+    });
+  }
+  // A heat seen on a calf raised work all the same where a procedure is written for the whole dairy side; she is
+  // months from being served, and a service would start a pregnancy the farm would go on expecting.
+  if (cow.state === "calf") {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A calf is not served",
+      data: { refusal: "service_of_a_calf" },
     });
   }
   const standing = await tx.query.service.findFirst({

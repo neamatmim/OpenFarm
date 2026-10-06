@@ -90,6 +90,7 @@ export type DairyBooks = Pick<
   | "joinings"
   | "internal"
   | "died"
+  | "culled"
   | "lost"
 > & { litres: ReadonlyMap<string, readonly LitresSent[]> };
 

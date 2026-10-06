@@ -1,6 +1,6 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { HEAT } from "@OpenFarm/domain";
+import { HEAT, standardPlaybook } from "@OpenFarm/domain";
 import {
   FakeClock,
   scratchDb,
@@ -253,6 +253,72 @@ describe("the service", () => {
     // And the work is done, not closed beside it — nobody is sent to serve a cow who has been.
     const board = await manager.client.work.get({ id: workId });
     expect(board.state).toBe("completed");
+  });
+
+  it("keeps a heifer it served on the heat watch, due back in heat if it did not take", async () => {
+    const heifer = await world.owner.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "heifer",
+      penId: world.pen.id,
+      source: "born",
+      aliases: [],
+    });
+    const workId = await inHeat("2027-11-20", heifer.tagNumber);
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2027-11-20T13:00:00.000Z"),
+    });
+    await manager.client.work.claim({ id: workId });
+    await manager.client.work.completeStep({
+      instanceId: workId,
+      stepId: "serve",
+      evidence: ["ai", "HF-2231-BD", "রহিম", "2027-11-20T13:00:00.000Z"],
+    });
+    // Twenty days on, nobody has seen her in heat and nobody has checked her: she should be back by now if it did not
+    // take, and the farm says so rather than forgetting her.
+    const later = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2027-12-10T04:00:00.000Z"),
+    });
+    const watched = await later.client.breeding.heatWatch();
+    expect(watched.find((one) => one.tag === heifer.tagNumber)).toMatchObject({
+      because: "return_due",
+      daysSinceCalving: null,
+    });
+  });
+
+  it("refuses to serve a calf, whatever a procedure raised for her", async () => {
+    // A heat seen on a two-month-old: a procedure written for the whole dairy side raises "serve her" all the same.
+    const calf = await world.owner.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "calf",
+      penId: world.pen.id,
+      source: "born",
+      aliases: [],
+    });
+    const workId = await inHeat("2027-11-22", calf.tagNumber);
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2027-11-22T13:00:00.000Z"),
+    });
+    await manager.client.work.claim({ id: workId });
+    await expect(
+      manager.client.work.completeStep({
+        instanceId: workId,
+        stepId: "serve",
+        evidence: ["ai", "HF-2231-BD", "রহিম", "2027-11-22T13:00:00.000Z"],
+      })
+    ).rejects.toMatchObject({ data: { refusal: "service_of_a_calf" } });
+  });
+
+  it("raises the farm's standard service for heifers and cows, never for a calf", () => {
+    const { appliesTo } = standardPlaybook().insemination;
+    expect(appliesTo?.states).toEqual(
+      expect.arrayContaining(["heifer", "milking", "dry"])
+    );
+    expect(appliesTo?.states).not.toContain("calf");
   });
 
   it("carries the day she was served, not the day it was written up", async () => {

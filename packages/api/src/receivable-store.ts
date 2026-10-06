@@ -738,6 +738,34 @@ export const owingOnItem = async (
   return { counterpartyId, owingMoney: owing.get(id) ?? 0 };
 };
 
+/**
+ * A Sale or Dispatch put right to leave its buyer owing less than the farm wrote off on it is refused: the write-off
+ * would be money he never owed, and the milk or the animal would have fetched less than nothing. The Owner lowers the
+ * write-off first — a Correction of its own — and then puts the price right.
+ */
+export const assertOwedCoversWrittenOff = async (
+  tx: Pick<Tx, "query">,
+  source: "sale" | "dispatch",
+  id: string,
+  receivableMoney: number
+) => {
+  const writeOffs = await tx.query.receivableWriteOff.findMany({
+    where: { source, sourceId: id },
+    columns: { amountMoney: true },
+  });
+  const writtenOffMoney = writeOffs.reduce(
+    (sum, one) => sum + Number(one.amountMoney),
+    0
+  );
+  if (receivableMoney < writtenOffMoney) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "More is written off on it than would be owed: lower the write-off first",
+      data: { refusal: "owed_below_written_off", writtenOffMoney },
+    });
+  }
+};
+
 /** More written off than is still owing is not a write-off: it is money the farm would be saying it lost twice. */
 export const assertWrittenOffNoMoreThanOwed = (
   amountMoney: number,

@@ -18,6 +18,7 @@ import {
   paymentMethodOf,
 } from "../money-store";
 import {
+  assertOwedCoversWrittenOff,
   receivableOrRefuse,
   paidNowInput,
   promisedByInput,
@@ -119,6 +120,14 @@ export const saleCorrection: CorrectionKind<
     const receivableMoved =
       receivable.receivableMoney !== row.receivableMoney ||
       receivable.promisedBy !== row.promisedBy;
+    if (receivable.receivableMoney < row.receivableMoney) {
+      await assertOwedCoversWrittenOff(
+        tx,
+        "sale",
+        row.id,
+        receivable.receivableMoney
+      );
+    }
     const putRight = {
       ...(to.priceMoney === undefined ? {} : { priceMoney: to.priceMoney }),
       ...(to.brokerMoney === undefined ? {} : { brokerMoney: to.brokerMoney }),

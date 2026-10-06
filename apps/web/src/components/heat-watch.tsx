@@ -28,15 +28,30 @@ const HeiferLine = ({ row }: { row: HeatWatchRows[number] }) => {
 /** Why she is on it, in words: due back from a service, no heat seen lately since calving, or a heifer not served. */
 const HeatWatchLine = ({ row }: { row: HeatWatchRows[number] }) => {
   const { t, language } = useLanguage();
-  if (row.daysSinceCalving === null) {
-    return <HeiferLine row={row} />;
+  // Missing from a list a phone kept from before an overdue calving was named.
+  if (row.because === "calving_overdue" && row.expectedCalvingAt) {
+    return t("heatWatch.calvingOverdue", {
+      day: formatDate(new Date(row.expectedCalvingAt), language, "date"),
+      pen: row.penName,
+    });
   }
-  const days = row.daysSinceCalving;
   if (row.because === "return_due" && row.servedAt) {
     return t("heatWatch.returnDue", {
       day: formatDate(new Date(row.servedAt), language, "date"),
       pen: row.penName,
     });
+  }
+  const days = row.daysSinceCalving;
+  if (days === null) {
+    // A heifer the farm has served and found empty is quiet since her service; one never served is her age's.
+    return row.because === "no_heat" && row.lastSignAt ? (
+      t("heatWatch.heiferQuietSince", {
+        day: formatDate(new Date(row.lastSignAt), language, "date"),
+        pen: row.penName,
+      })
+    ) : (
+      <HeiferLine row={row} />
+    );
   }
   return row.lastSignAt
     ? t("heatWatch.quietSince", {

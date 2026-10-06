@@ -122,6 +122,13 @@ export const returnsRouter = {
         });
       }
       const asOf = input.asOf ?? farmDayOf(her.createdAt);
+      // Counted from a day still to come, her milk and her keep until then would vanish from her figure.
+      if (asOf > farmDayOf(now)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A cow's price counts from a day that has come",
+          data: { refusal: "priced_from_the_future" },
+        });
+      }
       const price = {
         priceMoney: input.priceMoney,
         asOf,
@@ -312,7 +319,8 @@ export const returnsRouter = {
       const weighed = await weighedForTheCrossing(
         context.db,
         joining.animalId,
-        joining.joinedOn
+        joining.joinedOn,
+        context.farm.priceWeighInDays
       );
       if (!weighed) {
         throw new ORPCError("BAD_REQUEST", {

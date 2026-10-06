@@ -6,7 +6,7 @@ import { eq } from "@OpenFarm/db/operators";
 import { dlsReport } from "@OpenFarm/db/schema/health";
 import { animal } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
-import type { DoseRoute } from "@OpenFarm/domain";
+import type { DoseRoute, MilkHold } from "@OpenFarm/domain";
 import {
   illAgainOf,
   namesTheDisease,
@@ -217,10 +217,13 @@ const later = (a: Date | null, b: Date | null): Date | null => {
 const sameInstant = (a: Date | null, b: Date | null): boolean =>
   (a?.getTime() ?? null) === (b?.getTime() ?? null);
 
-/** What her Treatments alone say her two Withdrawals are: the last dose of each product plus
- *  that product's own days, whichever course it came from. */
-const fromHerDoses = async (tx: Tx, farmId: string, animalId: string) => {
-  const given = await tx.query.treatment.findMany({
+/** The doses she has actually been given, each with the days its product holds her milk and meat for. */
+const herDoses = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  animalId: string
+) =>
+  await tx.query.treatment.findMany({
     where: { farmId, animalId, givenAt: { isNotNull: true } },
     columns: {
       givenAt: true,
@@ -235,6 +238,33 @@ const fromHerDoses = async (tx: Tx, farmId: string, animalId: string) => {
       },
     },
   });
+
+/** The days a dose holds her milk for: the product's own, once written, else the Vet's default kept on the dose. */
+const milkDaysOf = (dose: Awaited<ReturnType<typeof herDoses>>[number]) =>
+  dose.product.milkWithdrawalDays ?? dose.milkWithdrawalDays;
+
+/**
+ * Each dose's hold on her milk, from when it was given to when its days run out: what tells the gate whether a
+ * Withdrawal had begun by a milking already past (`milkHeldAt`).
+ */
+export const milkHoldsOf = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  animalId: string
+): Promise<MilkHold[]> => {
+  const given = await herDoses(tx, farmId, animalId);
+  return given.flatMap((dose) => {
+    const days = milkDaysOf(dose);
+    return dose.givenAt && days !== null
+      ? [{ givenAt: dose.givenAt, until: withdrawalEndsAt(dose.givenAt, days) }]
+      : [];
+  });
+};
+
+/** What her Treatments alone say her two Withdrawals are: the last dose of each product plus
+ *  that product's own days, whichever course it came from. */
+const fromHerDoses = async (tx: Tx, farmId: string, animalId: string) => {
+  const given = await herDoses(tx, farmId, animalId);
   let milk: Date | null = null;
   let meat: Date | null = null;
   for (const dose of given) {
@@ -247,8 +277,7 @@ const fromHerDoses = async (tx: Tx, farmId: string, animalId: string) => {
     // — but they also cannot hold her, and nothing on the farm clears them. A dose not
     // prescribed of a product with no days took the Vet's Default Withdrawal Days, kept on
     // the dose itself; the product's own, once written, are the Drug List's word and win.
-    const milkWithdrawalDays =
-      dose.product.milkWithdrawalDays ?? dose.milkWithdrawalDays;
+    const milkWithdrawalDays = milkDaysOf(dose);
     const meatWithdrawalDays =
       dose.product.meatWithdrawalDays ?? dose.meatWithdrawalDays;
     milk = later(

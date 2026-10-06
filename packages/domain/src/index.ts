@@ -31,6 +31,7 @@ export type {
   CalfSex,
   CalvingEase,
   CalvingLead,
+  CalvingTooSoon,
   PregnancyCheckResult,
   ServiceMethod,
   HeatWatchBecause,
@@ -59,6 +60,9 @@ export {
   RETURN_HEAT_UNTIL_DAYS,
   attemptsThatFailed,
   calvingWorkDue,
+  calvingTooSoon,
+  calvingOverdueOf,
+  CALVING_OVERDUE_DAYS,
   expectedCalvingFrom,
   failedAttempts,
   heatsThatBegin,
@@ -230,6 +234,7 @@ export type {
   MilkDestination,
   MilkAccount,
   MilkDrop,
+  MilkHold,
   Reconciliation,
 } from "./milk";
 export {
@@ -244,9 +249,11 @@ export {
   litresTo,
   roundLitres,
   underMilkWithdrawal,
+  milkHeldAt,
   MILK_ACCOUNT_DAYS,
   MILK_USUAL_DAYS,
   milkAccountOf,
+  calvesDrankADay,
   milkDropOf,
 } from "./milk";
 export {
@@ -612,6 +619,7 @@ export {
   backOf,
   bankRateFor,
   capitalOf,
+  diedOrCulled,
   earliest,
   rateInForceOn,
   returnOfHoldings,

@@ -260,7 +260,11 @@ const artificialInsemination = (): SopContent => ({
     en: "Serve a cow in heat inside the AI window — record the straw and the technician",
   },
   triggers: [{ kind: "event", event: HEAT }],
-  appliesTo: { side: "dairy" },
+  // Heifers and cows: a heat seen on a calf raises nothing to serve.
+  appliesTo: {
+    side: "dairy",
+    states: ["heifer", "pregnant_heifer", "milking", "dry"],
+  },
   assignedRole: "manager",
   checkerRole: null,
   graceMinutes: 120,

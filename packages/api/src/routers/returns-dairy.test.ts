@@ -1,6 +1,7 @@
 import { eq } from "@OpenFarm/db/operators";
 import { animal, penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
+import { addDays, farmDayOf } from "@OpenFarm/domain";
 import {
   FakeClock,
   scratchDb,
@@ -10,6 +11,7 @@ import {
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // What the dairy herd returns, for the Owner: each dairy Animal her own run over her whole stay — one bred here from her
@@ -381,6 +383,13 @@ describe("a cow bought, or here before the books", () => {
     expect(dairy.toPrice.map((one) => one.tagNumber).toSorted()).toEqual(
       [tags.m, tags.u].toSorted()
     );
+    // Priced from her own page, she counts from the same day the list offers: the day she was written down, never
+    // today, which would leave her months of milk and keep out.
+    const { client: owner } = await as("owner", READ_AT);
+    const hers = await owner.returns.forAnimal({ animalId: ids.u });
+    expect(hers?.onTheBooksFrom).toBe(
+      dairy.toPrice.find((one) => one.tagNumber === tags.u)?.onTheBooksFrom
+    );
   });
 
   it("counts from the day the Owner's price says, her milk at each month's price, and her Sale at the end", async () => {
@@ -411,6 +420,23 @@ describe("a cow bought, or here before the books", () => {
       },
     });
     expect(dairy.toPrice.map((one) => one.tagNumber)).toEqual([tags.u]);
+  });
+
+  it("refuses a price that counts her from a day still to come", async () => {
+    // Started tomorrow, her milk and her keep until then would vanish from her figure.
+    const { client: owner } = await as("owner", READ_AT);
+    const tomorrow = addDays(farmDayOf(new Date(READ_AT)), 1);
+    await expect(
+      owner.returns.priceCow({
+        animalId: ids.m,
+        priceMoney: 80_000,
+        note: "ভুল দিন",
+        asOf: tomorrow,
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "priced_from_the_future" },
+    });
   });
 
   it("is never priced for one bred here, who is counted from her birth", async () => {
@@ -582,5 +608,28 @@ describe("whose it is", () => {
         highMoney: 90_000,
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("a cow the farm culled", () => {
+  it("is said to have been culled, not to have died", async () => {
+    const { client: owner } = await as("owner", "2045-03-01T04:00:00.000Z");
+    const register = await owner.animals.importRegister({
+      csv: [
+        "sex,side,state,pen,source,calved_at,expected_calving",
+        `female,dairy,milking,দোহন পেন ${suffix},bought,2044-12-01,`,
+      ].join("\n"),
+    });
+    const tag = register.imported[0]?.tagNumber ?? "";
+    const { client: manager } = await as("manager", "2045-03-20T04:00:00.000Z");
+    await manager.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
+      tagNumber: tag,
+      kind: "culled",
+      cause: "দুধ দেয় না",
+      disposal: "buried",
+    });
+    const { gone } = await dairyPage();
+    expect(gone(tag)).toMatchObject({ left: { how: "culled" } });
   });
 });

@@ -105,3 +105,32 @@ describe("a heifer not yet served", () => {
     expect(listed.map((one) => one.tag)).not.toContain(deshi);
   });
 });
+
+describe("a calving the farm is still waiting for", () => {
+  it("names a cow three weeks past her Expected Calving with none recorded, for the Vet to look at", async () => {
+    const owner = await as("owner", "2063-03-01T00:00:00.000Z");
+    const shed = await owner.client.sheds.create({ name: `${suffix}-overdue` });
+    const pen = await owner.client.sheds.pens.create({
+      shedId: shed.id,
+      name: `অপেক্ষার পেন ${suffix}`,
+    });
+    const her = await owner.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "pregnant_heifer",
+      penId: pen.id,
+      source: "bought",
+      aliases: [],
+      expectedCalvingOn: "2063-05-01",
+    });
+    // A date given when she came, which the Owner and the Manager may put right.
+    const page = await owner.client.animals.get({ tagNumber: her.tagNumber });
+    expect(page.expectedCalvingWorkedOut).toBe(false);
+    const early = await watchedOn("2063-05-20T04:00:00.000Z");
+    expect(early.map((one) => one.tag)).not.toContain(her.tagNumber);
+    const late = await watchedOn("2063-06-10T04:00:00.000Z");
+    expect(late.find((one) => one.tag === her.tagNumber)).toMatchObject({
+      because: "calving_overdue",
+    });
+  });
+});

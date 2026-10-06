@@ -198,4 +198,21 @@ describe("writing Receivable off", () => {
       fetchedPerLitreMoney: 0,
     });
   });
+
+  it("refuses a Dispatch put right below what was written off on it, and says to lower the write-off first", async () => {
+    // ৳7,000 written off on a hundred litres at seventy. At fifty a litre he would owe ৳5,000 and the farm would have
+    // written off ৳2,000 he never owed — milk that fetched less than nothing.
+    const owner = await as("owner", "2051-03-26T06:00:00.000Z");
+    await expect(
+      owner.client.milk.correctDispatch({
+        id: dispatchId,
+        changes: { pricePerLitreMoney: { from: 70, to: 50 } },
+        reason: "দাম ভুল লেখা হয়েছিল",
+      })
+    ).rejects.toMatchObject({
+      data: { refusal: "owed_below_written_off", writtenOffMoney: 7000 },
+    });
+    const after = await march();
+    expect(after?.dairy).toMatchObject({ milkSoldMoney: 0 });
+  });
 });
