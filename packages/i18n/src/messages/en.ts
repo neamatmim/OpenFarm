@@ -1735,6 +1735,14 @@ export const en = {
     "Her state has changed since this was made. Look at her page and do it again",
   "refusal.noSuchPen": "That pen is no longer on the farm's list",
   "refusal.penNotYours": "That pen isn't one of yours. Ask the manager",
+  "refusal.codeNotValid": "That code is not right. Ask for a new one.",
+  "refusal.tooManyCodes":
+    "Too many wrong codes. Wait fifteen minutes, then try again.",
+  "refusal.pinTooEasy":
+    "That PIN is one anybody would try first. Choose four digits that are not a run or one digit repeated.",
+  "refusal.pinFourDigits": "A PIN is four digits.",
+  "refusal.hasLeftTheFarm": "That person no longer works on this farm.",
+  "refusal.cannotDisableYourself": "You cannot disable yourself.",
   "refusal.phoneRevoked":
     "This phone is no longer one of the farm's. Ask the manager for a code to enrol it again",
   "refusal.tooManyPins":

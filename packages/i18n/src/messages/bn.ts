@@ -1613,6 +1613,14 @@ export const bn: Record<MessageKey, string> = {
   "refusal.stateChangedSince": "এটি করার পর তার অবস্থা বদলেছে। তার পাতা দেখে আবার করুন",
   "refusal.noSuchPen": "ওই পেন আর খামারের তালিকায় নেই",
   "refusal.penNotYours": "ওই পেন আপনার নয়। ম্যানেজারকে জিজ্ঞেস করুন",
+  "refusal.codeNotValid": "কোডটি ঠিক নয়। নতুন কোড চেয়ে নিন।",
+  "refusal.tooManyCodes":
+    "অনেকবার ভুল কোড দেওয়া হয়েছে। পনেরো মিনিট পরে আবার চেষ্টা করুন।",
+  "refusal.pinTooEasy":
+    "এই পিন সবাই আগে চেষ্টা করবে। একই সংখ্যা বারবার বা পরপর সংখ্যা ছাড়া চারটি সংখ্যা বেছে নিন।",
+  "refusal.pinFourDigits": "পিন চার সংখ্যার।",
+  "refusal.hasLeftTheFarm": "এই মানুষটি আর এই খামারে কাজ করেন না।",
+  "refusal.cannotDisableYourself": "নিজেকে বন্ধ করা যায় না।",
   "refusal.phoneRevoked":
     "এই ফোন আর খামারের নয়। আবার যুক্ত করতে ম্যানেজারের কাছে কোড চান",
   "refusal.tooManyPins":

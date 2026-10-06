@@ -14,6 +14,14 @@ const requireAuth = o.middleware(({ context, next }) => {
   // revoke it, are the gate (ADR 0003).
   const sessionExpired =
     session !== null && session.session.expiresAt <= context.clock.now();
+  // A Shed Phone taken off the farm's list is told so on whatever it asks, not only at its next PIN: it forgets its
+  // token and asks to be enrolled again, rather than pausing as if somebody had merely signed out.
+  if (context.deviceStatus === "revoked") {
+    throw new ORPCError("UNAUTHORIZED", {
+      message: "This phone has been taken off the farm",
+      data: { refusal: "phone_revoked" },
+    });
+  }
   if (!actor || sessionExpired || context.person?.disabledAt) {
     throw new ORPCError("UNAUTHORIZED");
   }

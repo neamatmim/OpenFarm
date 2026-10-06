@@ -260,6 +260,7 @@ export {
   PIN_LENGTH,
   derivePinHash,
   isPin,
+  isTooEasyPin,
   randomPinSalt,
   verifyPin,
 } from "./pin";

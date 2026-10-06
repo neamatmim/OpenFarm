@@ -137,6 +137,31 @@ describe("enrolling a Shed Phone", () => {
     });
   });
 
+  it("tells a revoked phone so on everything it asks, not only at its next PIN", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    const enrolled = await manager.client.devices.enrol({
+      name: `lost-again-${Date.now()}`,
+    });
+    const { token } = await manager.client.devices.claim({
+      code: enrolled.code,
+    });
+    await manager.client.devices.revoke({ id: enrolled.id });
+    const context = await createContext({
+      req: new Request("http://farm.test/rpc", {
+        headers: { [DEVICE_TOKEN_HEADER]: token },
+      }),
+      db: scratchDb(),
+    });
+    const phone = createRouterClient(appRouter, { context });
+    // Its Outbox sending what it held: told the phone is off the farm, so it forgets itself, not "signed out".
+    await expect(
+      phone.sync.batch({ key: `revoked-${Date.now()}`, entries: [] })
+    ).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+      data: { refusal: "phone_revoked" },
+    });
+  });
+
   it("only those who run the farm may enrol, and only from their own phone", async () => {
     const staff = await createTestClient(appRouter, { as: "staff" });
     const managerOnPhone = await createTestClient(appRouter, {
@@ -190,7 +215,7 @@ describe("PINs", () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
     await owner.client.people.setPin({
       userId: thePerson("staff").id,
-      pin: "1111",
+      pin: "3917",
     });
     const first = await scratchDb().query.staffPin.findFirst({
       where: { userId: thePerson("staff").id },
@@ -198,7 +223,7 @@ describe("PINs", () => {
 
     await owner.client.people.setPin({
       userId: thePerson("staff").id,
-      pin: "2222",
+      pin: "5284",
     });
     const second = await scratchDb().query.staffPin.findFirst({
       where: { userId: thePerson("staff").id },
@@ -206,10 +231,10 @@ describe("PINs", () => {
 
     expect(second?.hash).not.toBe(first?.hash);
     expect(
-      await verifyPin("2222", second?.salt ?? "", second?.hash ?? "")
+      await verifyPin("5284", second?.salt ?? "", second?.hash ?? "")
     ).toBe(true);
     expect(
-      await verifyPin("1111", second?.salt ?? "", second?.hash ?? "")
+      await verifyPin("3917", second?.salt ?? "", second?.hash ?? "")
     ).toBe(false);
   });
 
@@ -407,11 +432,11 @@ describe("review findings", () => {
     await expect(
       manager.client.people.setPin({
         userId: thePerson("owner").id,
-        pin: "1234",
+        pin: "4729",
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
-      manager.client.people.setPin({ userId: "nobody-here", pin: "1234" })
+      manager.client.people.setPin({ userId: "nobody-here", pin: "4729" })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
@@ -470,5 +495,96 @@ describe("keeping a phone awake", () => {
     expect(of(working)?.getTime()).toBeGreaterThan(
       Date.parse("2031-04-01T04:01:00.000Z")
     );
+  });
+});
+
+describe("PINs fired all at once", () => {
+  it("are counted as surely as one after another: no more than five are answered before the lock", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    await createTestClient(appRouter, { as: "otherStaff" });
+    await owner.client.people.setPin({
+      userId: thePerson("otherStaff").id,
+      pin: "6083",
+    });
+    const phone = await createTestClient(appRouter, {
+      as: "staff",
+      onShedPhone: true,
+      locked: true,
+      phone: { id: `phone-burst-${Date.now()}`, name: "একসাথে অনুমান" },
+    });
+    const guesses = Array.from({ length: 20 }, (_, at) =>
+      String(1000 + at * 7)
+    );
+    const answers = await Promise.allSettled(
+      guesses.map((pin) =>
+        phone.client.devices.switchUser({
+          userId: thePerson("otherStaff").id,
+          pin,
+        })
+      )
+    );
+    const wrong = answers.filter(
+      (one) =>
+        one.status === "rejected" &&
+        (one.reason as { data?: { refusal?: string } }).data?.refusal ===
+          "wrong_pin"
+    );
+    expect(wrong.length).toBeLessThanOrEqual(5);
+  });
+});
+
+describe("a PIN set anew", () => {
+  it("ends the stint opened with the old one: whoever overheard it is switched out", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    await createTestClient(appRouter, { as: "staff", onShedPhone: true });
+    const person = thePerson("staff").id;
+    const open = `overheard-${Date.now()}`;
+    const now = Date.now();
+    await scratchDb()
+      .insert(deviceSwitch)
+      .values({
+        id: open,
+        deviceId: theShedPhone().id,
+        userId: person,
+        tokenHash: `hash-${open}`,
+        expiresAt: new Date(now + 10 * 60_000),
+        createdAt: new Date(now - 60_000),
+      });
+    await owner.client.people.setPin({ userId: person, pin: "5927" });
+    const stint = await scratchDb().query.deviceSwitch.findFirst({
+      where: { id: open },
+      columns: { expiresAt: true },
+    });
+    expect(stint?.expiresAt.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+});
+
+describe("locking a Shed Phone", () => {
+  it("ends the stint of whoever locked it, never the next person's who switched in meanwhile", async () => {
+    const leaving = await createTestClient(appRouter, {
+      as: "staff",
+      onShedPhone: true,
+    });
+    await createTestClient(appRouter, { as: "otherStaff" });
+    const phone = theShedPhone();
+    const next = `next-${Date.now()}`;
+    const now = Date.now();
+    // The next milker PINned in just before the first one's Lock reached the farm on a slow signal.
+    await scratchDb()
+      .insert(deviceSwitch)
+      .values({
+        id: next,
+        deviceId: phone.id,
+        userId: thePerson("otherStaff").id,
+        tokenHash: `hash-${next}`,
+        expiresAt: new Date(now + 10 * 60_000),
+        createdAt: new Date(now),
+      });
+    await leaving.client.devices.lock();
+    const theirs = await scratchDb().query.deviceSwitch.findFirst({
+      where: { id: next },
+      columns: { expiresAt: true },
+    });
+    expect(theirs?.expiresAt.getTime()).toBeGreaterThan(Date.now());
   });
 });

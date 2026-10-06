@@ -121,6 +121,7 @@ export const devicesRouter = {
       if (lockedOut(guesses, now, CODE_ATTEMPTS)) {
         throw new ORPCError("TOO_MANY_REQUESTS", {
           message: "Too many wrong codes — wait fifteen minutes",
+          data: { refusal: "too_many_codes" },
         });
       }
       const phone = await context.db.query.shedPhone.findFirst({
@@ -133,7 +134,10 @@ export const devicesRouter = {
         phone.enrolmentExpiresAt <= now
       ) {
         countFailure(guesses, now, CODE_ATTEMPTS);
-        throw new ORPCError("NOT_FOUND", { message: "That code is not valid" });
+        throw new ORPCError("NOT_FOUND", {
+          message: "That code is not valid",
+          data: { refusal: "code_not_valid" },
+        });
       }
       const token = randomToken();
       let claimed: { id: string; name: string } | undefined;
@@ -165,12 +169,16 @@ export const devicesRouter = {
           if (!claimed) {
             throw new ORPCError("NOT_FOUND", {
               message: "That code is not valid",
+              data: { refusal: "code_not_valid" },
             });
           }
         }
       );
       if (!claimed) {
-        throw new ORPCError("NOT_FOUND", { message: "That code is not valid" });
+        throw new ORPCError("NOT_FOUND", {
+          message: "That code is not valid",
+          data: { refusal: "code_not_valid" },
+        });
       }
       return { token, device: claimed };
     }),
@@ -235,6 +243,9 @@ export const devicesRouter = {
           data: { refusal: "too_many_pins" },
         });
       }
+      // Counted now, nothing awaited since the lock was asked: PINs fired all at once each find those before them
+      // counted, where counting after the check let twenty through a lock of five. A right one is given back below.
+      countFailure(guesses, now, PIN_ATTEMPTS);
       const correct = await checkPin(
         context.db,
         device.farmId,
@@ -242,7 +253,6 @@ export const devicesRouter = {
         input.pin
       );
       if (!correct) {
-        countFailure(guesses, now, PIN_ATTEMPTS);
         throw new ORPCError("UNAUTHORIZED", {
           message: "That PIN is not right",
           data: { refusal: "wrong_pin" },
@@ -307,7 +317,15 @@ export const devicesRouter = {
   /** Locks the phone: the switch token stops naming anyone. */
   lock: publicProcedure.handler(async ({ context }) => {
     const device = requireDevice(context.device, context.deviceStatus);
-    await closeSwitches(context.db, device.id, context.clock.now());
+    // Whoever's switch the Lock carries, and nobody else's: a Lock reaching the farm late, on a slow signal, after the
+    // next person PINned in, must not end their stint. A Lock carrying nobody's switch ends nothing — the phone has
+    // locked itself already.
+    const switchedIn = context.actor?.id;
+    if (switchedIn) {
+      await closeSwitches(context.db, device.id, context.clock.now(), {
+        userId: switchedIn,
+      });
+    }
     return { locked: true };
   }),
 };

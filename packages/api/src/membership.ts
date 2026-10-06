@@ -13,7 +13,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, gt, inArray, isNull } from "@OpenFarm/db/operators";
 import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
-import { staffPin } from "@OpenFarm/db/schema/device";
+import { deviceSwitch, staffPin } from "@OpenFarm/db/schema/device";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import {
   ACTIVE_ROLE,
@@ -29,6 +29,7 @@ import {
   aManagerMayInvite,
   derivePinHash,
   isPin,
+  isTooEasyPin,
   randomPinSalt,
   shedPhoneOnlyAddressOf,
   startOfFarmDay,
@@ -477,7 +478,16 @@ export const newPin = async (
   pin: string
 ): Promise<{ salt: string; hash: string }> => {
   if (!isPin(pin)) {
-    throw new ORPCError("BAD_REQUEST", { message: "A PIN is four digits" });
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A PIN is four digits",
+      data: { refusal: "pin_four_digits" },
+    });
+  }
+  if (isTooEasyPin(pin)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That PIN is one anybody would try first",
+      data: { refusal: "pin_too_easy" },
+    });
   }
   const salt = randomPinSalt();
   return { salt, hash: await derivePinHash(pin, salt) };
@@ -526,6 +536,27 @@ export const setPin = async (
       target: [staffPin.userId, staffPin.farmId],
       set,
     });
+  // A new PIN is set because the old one is known to somebody: whoever is switched in with it is switched out, on every
+  // one of this farm's phones, and must PIN in again with the new one.
+  const phones = await tx.query.shedPhone.findMany({
+    where: { farmId },
+    columns: { id: true },
+  });
+  if (phones.length > 0) {
+    await tx
+      .update(deviceSwitch)
+      .set({ expiresAt: now })
+      .where(
+        and(
+          eq(deviceSwitch.userId, userId),
+          inArray(
+            deviceSwitch.deviceId,
+            phones.map((one) => one.id)
+          ),
+          gt(deviceSwitch.expiresAt, now)
+        )
+      );
+  }
 };
 
 /** Letters and digits nobody misreads when a code is read out across a shed: no 0/O, no 1/I. */
