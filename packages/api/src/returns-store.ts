@@ -26,7 +26,7 @@ import {
   seasonGroupsOf,
   seasonsOf,
   spentOn,
-  startOfFarmDay,
+  handedOverAt,
   ventureReturnOf,
   wholeDaysFrom,
 } from "@OpenFarm/domain";
@@ -41,7 +41,7 @@ import { bandOf } from "./feed-store";
 import { weighedForTheCrossing } from "./joining-store";
 import { lostSince } from "./missing-store";
 import { approvedSettlementOf } from "./settlement-store";
-import { ownedThenByOf } from "./venture-store";
+import { ownedThenByOf, whenEachCame } from "./venture-store";
 
 /**
  * What the money in the farm's cattle returned, for the Owner's Returns page: the Books read once — the costing, whose
@@ -88,6 +88,7 @@ const booksOf = async (
   // One client may be a transaction's, so these reads stay one after another.
   const costs = await farmCosts(db, farmId);
   const ownedThenBy = await ownedThenByOf(db, farmId);
+  const came = await whenEachCame(db, farmId);
   const intakes = await db.query.intake.findMany({
     where: { farmId },
     columns: {
@@ -207,9 +208,10 @@ const booksOf = async (
           : []
       )
     ),
+    // The moment each sale handed her over, as whose she was reads it: never before she came.
     internal: internal.map(({ soldOn, ...one }) => ({
       ...one,
-      on: startOfFarmDay(soldOn),
+      on: handedOverAt(soldOn, came.get(one.animalId)),
     })),
   };
 };

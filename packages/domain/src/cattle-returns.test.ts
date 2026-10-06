@@ -9,7 +9,7 @@ import {
 } from "./cattle-returns";
 import { startOfFarmDay } from "./farm-clock";
 import type { Charge } from "./holding";
-import { howSheLeft } from "./holding";
+import { handedOverAt, howSheLeft } from "./holding";
 
 // The Farm's own bulls fed for Eid-ul-Adha 2031, and Venture v1's. All bought on 4 January 2031.
 const WINDOW = {
@@ -123,6 +123,156 @@ describe("a Season of the Farm's own", () => {
       standingHighMoney: 105_000,
     });
     expect(season?.gaps).toEqual([{ tagNumber: "৪", why: "no_weight" }]);
+  });
+});
+
+describe("a bull sold to a Venture and bought back the same day", () => {
+  it("is charged what was charged at the hand-over once, by the Holding that took him back", () => {
+    // Sold to v1 on 10 March and bought back that afternoon: two Holdings of the Farm's, the first ending at the start
+    // of the 10th and the second beginning there. The ৳1,000 of feed stamped on that very moment is one feeding.
+    const handedOn = startOfFarmDay("2031-03-10");
+    const [season] = seasonsOf(
+      books({
+        intakes: [intake("৮", 80_000)],
+        animals: [
+          animal("৮", {
+            soldAt: "2031-05-20T05:00:00.000Z",
+            priceMoney: 120_000,
+          }),
+        ],
+        internal: [
+          {
+            id: "away",
+            animalId: "৮",
+            fromVentureId: null,
+            toVentureId: "v1",
+            priceMoney: 85_000,
+            createdAt: new Date("2031-03-10T04:00:00.000Z"),
+            on: handedOn,
+          },
+          {
+            id: "back",
+            animalId: "৮",
+            fromVentureId: "v1",
+            toVentureId: null,
+            priceMoney: 86_000,
+            createdAt: new Date("2031-03-10T09:00:00.000Z"),
+            on: handedOn,
+          },
+        ],
+        joinings: [
+          {
+            id: "j-back",
+            animalId: "৮",
+            joinedAt: new Date("2031-03-10T09:00:00.000Z"),
+            how: "bought_from_venture",
+            priceMoney: 86_000,
+            internalSaleId: "back",
+            ...WINDOW,
+          },
+        ],
+        // Whose he was at a moment: the last Internal Sale whose day had begun, as the store reads it — the Farm's, on
+        // and after the 10th, since he came back.
+        ownedThenBy: () => null,
+        charges: new Map([["৮", [feed("৮", handedOn.toISOString(), 1000)]]]),
+      }),
+      60,
+      today
+    );
+    // In: ৳80,000 and ৳86,000 for the bull, and the ৳1,000 of feed once.
+    expect(season?.returnOnCost?.costMoney).toBe(167_000);
+  });
+});
+
+describe("a bull sold on to a Venture the day he came", () => {
+  it("leaves his Market Toll with the Farm, whose Holding he was at the lorry", () => {
+    // Off the lorry at five and sold to v1 that day: the Farm's Holding is the moment he came, and the toll stamped
+    // on it is the Farm's — v1's time begins just after.
+    const toll: Charge = {
+      ...feed("৯", bought.toISOString(), 500),
+      kind: "market_toll",
+    };
+    const [season] = seasonsOf(
+      books({
+        intakes: [intake("৯", 80_000)],
+        animals: [animal("৯")],
+        internal: [
+          {
+            id: "on",
+            animalId: "৯",
+            fromVentureId: null,
+            toVentureId: "v1",
+            priceMoney: 81_000,
+            createdAt: new Date("2031-01-04T09:00:00.000Z"),
+            // As the books give it: the moment after he came.
+            on: handedOverAt("2031-01-04", bought),
+          },
+        ],
+        ownedThenBy: (_animalId, at) => (at > bought ? "v1" : null),
+        charges: new Map([["৯", [toll]]]),
+      }),
+      60,
+      today
+    );
+    expect(season?.returnOnCost?.costMoney).toBe(80_500);
+  });
+
+  it("charges his Market Toll once, bought back from the Venture that same day", () => {
+    const toll: Charge = {
+      ...feed("১০", bought.toISOString(), 500),
+      kind: "market_toll",
+    };
+    // As the books give both sales: the moment after he came off the lorry.
+    const sameDay = handedOverAt("2031-01-04", bought);
+    const [season] = seasonsOf(
+      books({
+        intakes: [intake("১০", 80_000)],
+        animals: [
+          animal("১০", {
+            soldAt: "2031-05-20T05:00:00.000Z",
+            priceMoney: 120_000,
+          }),
+        ],
+        internal: [
+          {
+            id: "on",
+            animalId: "১০",
+            fromVentureId: null,
+            toVentureId: "v1",
+            priceMoney: 81_000,
+            createdAt: new Date("2031-01-04T09:00:00.000Z"),
+            on: sameDay,
+          },
+          {
+            id: "back",
+            animalId: "১০",
+            fromVentureId: "v1",
+            toVentureId: null,
+            priceMoney: 82_000,
+            createdAt: new Date("2031-01-04T11:00:00.000Z"),
+            on: sameDay,
+          },
+        ],
+        joinings: [
+          {
+            id: "j-back",
+            animalId: "১০",
+            joinedAt: new Date("2031-01-04T11:00:00.000Z"),
+            how: "bought_from_venture",
+            priceMoney: 82_000,
+            internalSaleId: "back",
+            ...WINDOW,
+          },
+        ],
+        // The Farm's at the lorry, and the Farm's again once bought back: whose he was cannot split the toll.
+        ownedThenBy: () => null,
+        charges: new Map([["১০", [toll]]]),
+      }),
+      60,
+      today
+    );
+    // In: ৳80,000 and ৳82,000 for the bull, and the ৳500 toll once.
+    expect(season?.returnOnCost?.costMoney).toBe(162_500);
   });
 });
 

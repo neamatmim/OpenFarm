@@ -1,4 +1,5 @@
 import type { Costs } from "./costs";
+import { startOfFarmDay } from "./farm-clock";
 import type { Side } from "./lifecycle";
 
 /**
@@ -64,6 +65,25 @@ export const HER_KEEP: ReadonlySet<ChargeKind> = new Set([
   "herd",
 ]);
 
+/** The next moment there is after another: how long after she came an Internal Sale on the day she came hands her on. */
+const THE_NEXT_MOMENT_MS = 1;
+
+/**
+ * The moment an Internal Sale hands her to her new owner (CONTEXT.md, Internal Sale): the start of the day she was sold
+ * on — but never before she came to the Fattening side. Sold the day she came off the lorry, or the day she crossed,
+ * she was her first owner's when she came, with her Intake's charges, and is the new owner's from the moment after.
+ * The one rule whose she was, where each Holding begins and ends, and what she cost her owner are all read from.
+ */
+export const handedOverAt = (
+  soldOn: string,
+  came: Date | null | undefined
+): Date => {
+  const dayBegan = startOfFarmDay(soldOn);
+  return came && dayBegan <= came
+    ? new Date(came.getTime() + THE_NEXT_MOMENT_MS)
+    : dayBegan;
+};
+
 /** Whose an Animal was at a moment: a Venture's id, or `null` for the Farm's own. */
 export type OwnedThenBy = (animalId: string, at: Date) => string | null;
 
@@ -77,6 +97,11 @@ export interface Holding {
   side: Side;
   from: Date;
   until: Date | null;
+  /** Whether it ended in an Internal Sale away on a moment the next owner's Holding begins on, so a charge stamped on
+   *  it is theirs and not this one's — even where the next owner is this one again, bought back the same day, and who
+   *  owned her then cannot tell the two apart. Not for a Holding that is only the moment she came: the next owner's
+   *  time begins just after that. */
+  handedOver?: boolean;
 }
 
 /**
@@ -93,10 +118,21 @@ export const chargesOfOwner = (
     (one) => kinds.has(one.kind) && ownedThenBy(one.animalId, one.at) === owner
   );
 
+/** Whether a moment is inside a Holding's end: up to and on the moment she left, but short of it where she was handed
+ *  over, the next Holding beginning there. */
+const beforeItsEnd = (at: Date, { until, handedOver }: Holding): boolean => {
+  if (until === null) {
+    return true;
+  }
+  return handedOver ? at < until : at <= until;
+};
+
 /**
  * What one Holding was charged: her charges of the kinds asked for, on its Side, dated from the moment its owner took
  * her on to the moment she left them, and hers that day. The last of those settles a charge on the very moment she
- * changed hands, which both Holdings' dates would otherwise take in.
+ * changed hands, which both Holdings' dates would otherwise take in; where the hands are the same — the Farm's, sold
+ * to a Venture and bought back the same day — a Holding handed over stops short of that moment, and the one that
+ * begins on it takes the charge.
  */
 export const chargesInHolding = (
   charges: readonly Charge[],
@@ -110,7 +146,7 @@ export const chargesInHolding = (
       kinds.has(one.kind) &&
       one.side === holding.side &&
       one.at >= holding.from &&
-      (holding.until === null || one.at <= holding.until) &&
+      beforeItsEnd(one.at, holding) &&
       ownedThenBy(one.animalId, one.at) === holding.owner
   );
 

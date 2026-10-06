@@ -214,6 +214,7 @@ export const spentOn = (
         side: "fattening",
         from: holding.takenOn,
         until,
+        handedOver: holding.left?.how === "sold_to_venture",
       },
       books.ownedThenBy
     ).map((one) => ({ amount: one.amount, from: one.at, until })),
@@ -358,7 +359,8 @@ export const seasonGroupsOf = (books: ReturnBooks) => {
     );
   }
   const tagOf = new Map(books.animals.map((one) => [one.id, one.tagNumber]));
-  // A Joining by Internal Sale is stamped when the sale was saved; she was the Farm's from the start of its day.
+  // A Joining by Internal Sale is stamped when the sale was saved; she was the Farm's from the moment the sale handed
+  // her over (handedOverAt), which the books give as its `on`.
   const saleDay = new Map(books.internal.map((one) => [one.id, one.on]));
   for (const joining of books.joinings) {
     if (books.ownedThenBy(joining.animalId, joining.joinedAt) !== null) {

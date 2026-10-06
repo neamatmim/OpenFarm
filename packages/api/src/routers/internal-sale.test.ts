@@ -2,6 +2,7 @@ import { eq } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { venture as ventureTable } from "@OpenFarm/db/schema/venture";
 import type { SopContent } from "@OpenFarm/domain";
+import { seasonOf } from "@OpenFarm/domain";
 import {
   FakeClock,
   scratchDb,
@@ -850,5 +851,79 @@ describe("a bull sold to a Venture the day he arrived", () => {
         priceMoney: 72_000,
       })
     ).rejects.toMatchObject({ data: { refusal: "sold_before_she_came" } });
+  });
+});
+
+describe("a bull sold to a Venture and bought back the day he arrived", () => {
+  it("pays his Market Toll into the Farm's Season once, in the Holding he came off the lorry in", async () => {
+    // A window of his own, so his Season is finished once he is sold and can be opened out.
+    const window = { start: "2047-12-20", end: "2047-12-22" };
+    const manager = await as("manager", "2047-11-03T03:00:00.000Z");
+    const his = await manager.client.intakes.record({
+      penId,
+      sex: "male",
+      seller: { name: `হাটের ব্যাপারী ${suffix}` },
+      purchasePriceMoney: 60_000,
+      marketTollMoney: 1500,
+      weightKg: 180,
+      estimatedAgeMonths: 20,
+      arrivedAt: new Date("2047-11-03T03:00:00.000Z"),
+      targetWindowStart: window.start,
+      targetWindowEnd: window.end,
+    });
+    await weigh("2047-11-03", [[his.tagNumber, 180]]);
+    const owner = await as("owner", "2047-11-03T10:00:00.000Z");
+    await owner.client.ventures.sellInternally({
+      tagNumber: his.tagNumber,
+      toVentureId: ventureId,
+      rateMoneyPerKg: 400,
+      note: `সকালে বেচা ${suffix}`,
+      soldOn: "2047-11-03",
+      paymentMethod: "bank",
+      reference: `INT-ROUND-OUT-${suffix}`,
+      priceMoney: 72_000,
+    });
+    const later = await as("owner", "2047-11-03T12:00:00.000Z");
+    await later.client.ventures.sellInternally({
+      tagNumber: his.tagNumber,
+      rateMoneyPerKg: 410,
+      note: `বিকেলে ফেরত ${suffix}`,
+      soldOn: "2047-11-03",
+      paymentMethod: "bank",
+      reference: `INT-ROUND-BACK-${suffix}`,
+      priceMoney: 73_800,
+      targetWindow: window,
+    });
+    // What he has cost the Farm since it had him back: what it paid, and not the toll of the Holding before.
+    const pricing = await later.client.fattening.prices();
+    expect(
+      pricing.animals.find((one) => one.tagNumber === his.tagNumber)?.costMoney
+    ).toBe(73_800);
+    const selling = await as("manager", "2047-11-20T05:00:00.000Z");
+    await selling.client.sales.record({
+      tagNumber: his.tagNumber,
+      buyer: { name: `কসাই ${suffix}` },
+      destination: "গাবতলী",
+      vehicle: "ঢাকা মেট্রো-ট ১১-২২৩৭",
+      driver: "সোহেল",
+      priceMoney: 95_000,
+      weightKg: 200,
+    });
+
+    const reading = await as("owner", "2047-12-30T04:00:00.000Z");
+    const lines = await reading.client.returns.breakdown({
+      seasonKey: seasonOf(window).key,
+      by: "animal",
+    });
+    const cost = (came: string) =>
+      lines.find(
+        (one) =>
+          one.line.kind === "animal" &&
+          one.line.tagNumber === his.tagNumber &&
+          one.line.came === came
+      )?.costMoney;
+    // Bought at ৳60,000 with ৳1,500 of toll at the lorry; bought back at ৳73,800 just after, with no toll again.
+    expect(cost("intake")).toBe(61_500);
+    expect(cost("bought_from_venture")).toBe(73_800);
   });
 });

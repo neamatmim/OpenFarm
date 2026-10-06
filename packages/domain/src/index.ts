@@ -575,6 +575,7 @@ export {
   chargesInHolding,
   chargesOfOwner,
   costsOf,
+  handedOverAt,
   howSheLeft,
 } from "./holding";
 export type {
