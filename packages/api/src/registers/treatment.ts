@@ -1,6 +1,7 @@
 import type { DoseRoute } from "@OpenFarm/domain";
 import { farmDayOf, withdrawalEndsAt } from "@OpenFarm/domain";
 
+import { meatDaysOf, milkDaysOf } from "../health-store";
 import type { Db, Register } from "./register";
 import { NOTHING } from "./register";
 
@@ -82,13 +83,10 @@ const treatmentsBetween = async (
           : null,
         givenBy: one.giver?.name ?? null,
         prescribedBy: prescription?.vet?.name ?? null,
-        // The dose's own Default Withdrawal Days where its product had none, as her Withdrawal was worked out.
-        milkClearOn: clearOn(
-          product.milkWithdrawalDays ?? one.milkWithdrawalDays
-        ),
-        meatClearOn: clearOn(
-          product.meatWithdrawalDays ?? one.meatWithdrawalDays
-        ),
+        // The days kept on the dose, as her Withdrawal is worked out (health-store): days lowered on the Drug List
+        // since free nobody, and the register said they did.
+        milkClearOn: clearOn(milkDaysOf(one)),
+        meatClearOn: clearOn(meatDaysOf(one)),
       },
     ];
   });

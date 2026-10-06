@@ -29,6 +29,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
+import { heldNow, openedAt, shortenAsked } from "@/lib/shorten-asked";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
@@ -433,14 +434,32 @@ const AbortionDialog = ({ detail, open, onOpenChange }: ActProps) => {
   );
 };
 
-/** A Withdrawal cut short — the Vet's alone, with a reason. Left blank, a hold ends now; one she is not under is not
- *  touched at all. */
+/** A Withdrawal cut short — the Vet's alone, with a reason. Each hold opens where it stands; emptied, it ends now, and
+ *  left as it was, it is not touched (lib/shorten-asked). */
 const ShortenDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const { t } = useLanguage();
   const refused = useRefused();
-  const [milkUntil, setMilkUntil] = useState("");
-  const [meatUntil, setMeatUntil] = useState("");
+  const standing = {
+    milk: detail.milkWithdrawalUntil
+      ? new Date(detail.milkWithdrawalUntil)
+      : null,
+    meat: detail.meatWithdrawalUntil
+      ? new Date(detail.meatWithdrawalUntil)
+      : null,
+  };
+  const held = heldNow(standing, new Date());
+  const [milkUntil, setMilkUntil] = useState(() => openedAt(standing).milk);
+  const [meatUntil, setMeatUntil] = useState(() => openedAt(standing).meat);
   const [reason, setReason] = useState("");
+  // Opened again, it starts again from where her holds stand now.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setMilkUntil(openedAt(standing).milk);
+      setMeatUntil(openedAt(standing).meat);
+    }
+  }
   const shorten = useMutation(
     orpc.withdrawals.shorten.mutationOptions({
       onSuccess: () => {
@@ -451,28 +470,28 @@ const ShortenDialog = ({ detail, open, onOpenChange }: ActProps) => {
       onError: refused,
     })
   );
+  const asked = shortenAsked(
+    standing,
+    { milk: milkUntil, meat: meatUntil },
+    new Date()
+  );
   return (
     <FormDialog
       onOpenChange={onOpenChange}
       onSubmit={() =>
         shorten.mutate({
           animalTag: detail.tagNumber,
-          ...(detail.milkWithdrawalUntil
-            ? { milkUntil: milkUntil ? new Date(milkUntil) : null }
-            : {}),
-          ...(detail.meatWithdrawalUntil
-            ? { meatUntil: meatUntil ? new Date(meatUntil) : null }
-            : {}),
+          ...asked,
           reason: reason.trim(),
         })
       }
       open={open}
       pending={shorten.isPending}
-      ready={reason.trim() !== ""}
+      ready={reason.trim() !== "" && Object.keys(asked).length > 0}
       submitLabel={t("withdrawal.shorten")}
       title={`${t("withdrawal.shorten")} · ${detail.tagNumber}`}
     >
-      {detail.milkWithdrawalUntil ? (
+      {held.milk ? (
         <FormField
           hint={t("withdrawal.endNow")}
           id="milk-until"
@@ -486,8 +505,12 @@ const ShortenDialog = ({ detail, open, onOpenChange }: ActProps) => {
           />
         </FormField>
       ) : null}
-      {detail.meatWithdrawalUntil ? (
-        <FormField id="meat-until" label={t("withdrawal.meatUntil")}>
+      {held.meat ? (
+        <FormField
+          hint={t("withdrawal.endNow")}
+          id="meat-until"
+          label={t("withdrawal.meatUntil")}
+        >
           <Input
             id="meat-until"
             onChange={(event) => setMeatUntil(event.target.value)}

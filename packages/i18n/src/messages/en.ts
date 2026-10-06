@@ -4346,7 +4346,7 @@ export const en = {
   "withdrawal.meatUntil": "Meat held until",
   "withdrawal.reason": "Why it is being shortened",
   "withdrawal.shortened": "Withdrawal shortened",
-  "withdrawal.endNow": "End it now",
+  "withdrawal.endNow": "Empty the box to end it now",
   "home.meatWithdrawal": "Held back from sale",
   "home.lowStock": "Feed running low",
   "home.lowStockLine": "{feed}: {onHand} {unit} left, below {threshold}",

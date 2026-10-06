@@ -215,6 +215,16 @@ export const animal = pgTable(
       () => user.id
     ),
     withdrawalShortenedReason: text("withdrawal_shortened_reason"),
+    /** Where the Vet shortened each hold to, for the doses the farm knew of then — the Vet's own instant when the
+     *  hold was ended outright, null for a hold the Vet left alone. Kept beside what is in force because a dose
+     *  learnt of afterwards adds to the hold rather than replacing it: in force is the later of this, over the doses
+     *  it covered, and what the newer doses say. */
+    milkWithdrawalShortenedTo: timestamp("milk_withdrawal_shortened_to", {
+      withTimezone: true,
+    }),
+    meatWithdrawalShortenedTo: timestamp("meat_withdrawal_shortened_to", {
+      withTimezone: true,
+    }),
     /** When she reached the State she is in. A State-triggered SOP counts its days from
      *  here, and a cow who comes back to Milking next lactation reaches it afresh — which is
      *  what makes the work raised then a new occasion rather than one already done. */

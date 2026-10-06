@@ -235,11 +235,16 @@ export const treatment = pgTable(
     /** For a dose not prescribed: who advised it and why, in the words of whoever recorded it. Null for the others,
      *  whose Prescription or Campaign says why. */
     advice: text("advice"),
-    /** The Default Withdrawal Days this dose took because its product had none on the Drug List that day. Kept on the
-     *  dose, so a new default the Vet writes afterwards does not change what this dose held her for; days the Vet
-     *  writes for the product itself are the Drug List's word, and win. */
+    /** The days this dose holds her for: the product's own on the Drug List the day it was given, or the Vet's Default
+     *  Withdrawal Days where the product had none. Kept on the dose, so days written afterwards lower nothing she was
+     *  already given — the Vet frees an animal early by shortening her hold. Days raised on the Drug List reach back
+     *  to the doses already given, which is the safe side (the Owner, 2026-10-06). Null for a dose not yet given. */
     milkWithdrawalDays: integer("milk_withdrawal_days"),
     meatWithdrawalDays: integer("meat_withdrawal_days"),
+    /** When the farm learnt this dose was given — when the entry saying so was applied, however long before it went
+     *  in. A shortening covers the doses the Vet could have known of; one learnt afterwards is new, and holds her on
+     *  its own days. Null for a dose not yet given. */
+    learntAt: timestamp("learnt_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [

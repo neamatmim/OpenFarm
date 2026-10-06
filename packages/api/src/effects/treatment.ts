@@ -31,6 +31,9 @@ interface DoseGiven {
   completionId: string | null;
   givenBy: string | null;
   givenAt: Date | null;
+  learntAt: Date | null;
+  milkWithdrawalDays: number | null;
+  meatWithdrawalDays: number | null;
 }
 
 /**
@@ -137,7 +140,7 @@ const recordCampaignDose = async (
       target: [treatment.instanceId, treatment.animalId],
       set: { ...given, lotNumber },
     });
-  return { id, number: 1, prescriptionId: null, animalId };
+  return { id, number: 1, prescriptionId: null, animalId, productId };
 };
 
 /** How many doses the course this one belongs to calls for — one, for a campaign. */
@@ -228,6 +231,47 @@ const followTheArrivalDose = async (tx: Tx, input: TreatmentFacts) => {
 };
 
 /**
+ * What the dose's row says of its giving: who, when, when the farm learnt of it, and the days it holds her for — the
+ * product's on the Drug List now, kept on the dose so days lowered there afterwards free nobody. All of it nothing
+ * for a skip.
+ *
+ * Given no earlier than the work that asked for it was raised: a phone whose clock had been reset a month back sent a
+ * dose dated before its Prescription was written, and her hold was over before the dose went in. The farm's own time
+ * for raising it is the earliest the dose can have been.
+ */
+const doseGiven = async (
+  tx: Tx,
+  input: TreatmentFacts,
+  productId: string | undefined
+): Promise<DoseGiven> => {
+  if (input.skipped) {
+    return {
+      completionId: null,
+      givenBy: null,
+      givenAt: null,
+      learntAt: null,
+      milkWithdrawalDays: null,
+      meatWithdrawalDays: null,
+    };
+  }
+  const product = productId
+    ? await tx.query.drugProduct.findFirst({
+        where: { id: productId },
+        columns: { milkWithdrawalDays: true, meatWithdrawalDays: true },
+      })
+    : undefined;
+  const raised = input.instance.raisedAt;
+  return {
+    completionId: input.completionId,
+    givenBy: input.recordedBy,
+    givenAt: input.recordedAt < raised ? raised : input.recordedAt,
+    learntAt: input.now,
+    milkWithdrawalDays: product?.milkWithdrawalDays ?? null,
+    meatWithdrawalDays: product?.meatWithdrawalDays ?? null,
+  };
+};
+
+/**
  * Records that a dose was actually given — or, when the Step was skipped, that it was not
  * after all — and works her Withdrawals out afresh from everything she has had.
  *
@@ -244,7 +288,13 @@ const giveTheDose = async (
       instanceId: input.instance.id,
       ...(shape.animalId ? { animalId: shape.animalId } : {}),
     },
-    columns: { id: true, number: true, prescriptionId: true, animalId: true },
+    columns: {
+      id: true,
+      number: true,
+      prescriptionId: true,
+      animalId: true,
+      productId: true,
+    },
   });
   if (!(owed || shape.campaign)) {
     // The Treatment SOP was raised by something other than a Prescription — a schedule
@@ -254,13 +304,11 @@ const giveTheDose = async (
       message: "This work is not a dose of any prescription",
     });
   }
-  const given: DoseGiven = input.skipped
-    ? { completionId: null, givenBy: null, givenAt: null }
-    : {
-        completionId: input.completionId,
-        givenBy: input.recordedBy,
-        givenAt: input.recordedAt,
-      };
+  const given = await doseGiven(
+    tx,
+    input,
+    shape.campaign ? shape.productId : owed?.productId
+  );
 
   let dose = owed;
   if (shape.campaign) {

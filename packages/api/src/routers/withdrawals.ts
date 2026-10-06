@@ -63,6 +63,19 @@ const shorterThan = (
   return asked;
 };
 
+/** Where one hold is shortened to: as asked, ended now, or — left alone — where it stands under an earlier
+ *  shortening still in force (nothing, where none is). */
+const shortenedTo = (
+  asked: Date | null | undefined,
+  standingShortened: Date | null,
+  now: Date
+): Date | null => {
+  if (asked === undefined) {
+    return standingShortened;
+  }
+  return asked ?? now;
+};
+
 export const withdrawalsRouter = {
   /**
    * The Vet shortens or ends a Withdrawal of hers, with a reason the farm keeps.
@@ -112,6 +125,13 @@ export const withdrawalsRouter = {
         },
         async (tx) => {
           const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
+          const standing = await tx.query.animal.findFirst({
+            where: { id: her.id },
+            columns: {
+              milkWithdrawalShortenedTo: true,
+              meatWithdrawalShortenedTo: true,
+            },
+          });
           const milkUntil = shorterThan(
             her.milkWithdrawalUntil,
             input.milkUntil,
@@ -131,6 +151,23 @@ export const withdrawalsRouter = {
               ...(meatUntil === undefined
                 ? {}
                 : { meatWithdrawalUntil: meatUntil }),
+              // Where each hold now stands for the doses known today (health-store's holdInForce): ended outright is
+              // ended now. A hold left alone that an earlier shortening still caps is held where it stands, which
+              // is what that shortening and the doses since make of it.
+              milkWithdrawalShortenedTo: shortenedTo(
+                milkUntil,
+                standing?.milkWithdrawalShortenedTo
+                  ? (her.milkWithdrawalUntil ?? now)
+                  : null,
+                now
+              ),
+              meatWithdrawalShortenedTo: shortenedTo(
+                meatUntil,
+                standing?.meatWithdrawalShortenedTo
+                  ? (her.meatWithdrawalUntil ?? now)
+                  : null,
+                now
+              ),
               withdrawalShortenedAt: now,
               withdrawalShortenedBy: context.actor.id,
               withdrawalShortenedReason: input.reason,

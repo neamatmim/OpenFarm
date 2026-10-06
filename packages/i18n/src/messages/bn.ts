@@ -4079,7 +4079,7 @@ export const bn: Record<MessageKey, string> = {
   "withdrawal.meatUntil": "মাংস কত তারিখ পর্যন্ত",
   "withdrawal.reason": "কেন কমাচ্ছেন",
   "withdrawal.shortened": "সময় কমানো হয়েছে",
-  "withdrawal.endNow": "এখনই শেষ করুন",
+  "withdrawal.endNow": "এখনই শেষ করতে ঘরটি খালি করুন",
   "home.meatWithdrawal": "বিক্রয়ে আটকে আছে",
   "home.lowStock": "খাদ্য কমে আসছে",
   "home.lowStockLine": "{feed}: {onHand} {unit} বাকি, {threshold}-এর নিচে",

@@ -19,6 +19,7 @@ import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import type { FarmList } from "../farm-list";
 import { assertNameFree, bringBackToList, retireFromList } from "../farm-list";
+import { reachBackWithdrawalDays } from "../health-store";
 import { protectedProcedure } from "../index";
 import { assertNotExpiredWhenBought, lotFields } from "../lot-input";
 import { medicineStockOf, noMedicine } from "../medicine-stock";
@@ -436,8 +437,8 @@ export const drugsRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      await changeProduct(context, input.id, (tx) =>
-        tx
+      await changeProduct(context, input.id, async (tx) => {
+        const changed = await tx
           .update(drugProduct)
           .set({
             milkWithdrawalDays: input.milkWithdrawalDays,
@@ -451,8 +452,11 @@ export const drugsRouter = {
               eq(drugProduct.farmId, context.farm.id)
             )
           )
-          .returning({ id: drugProduct.id })
-      );
+          .returning({ id: drugProduct.id });
+        // Raised days hold every animal already given it; lowered ones free nobody (health-store).
+        await reachBackWithdrawalDays(tx, context.farm.id, input.id, input);
+        return changed;
+      });
       return { id: input.id };
     }),
 

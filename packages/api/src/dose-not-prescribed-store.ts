@@ -90,7 +90,9 @@ export const recordDoseNotPrescribed = async (
     givenBy: input.givenBy,
     givenAt: input.givenAt,
     advice: input.advice,
-    ...days,
+    milkWithdrawalDays: product.milkWithdrawalDays ?? days.milkWithdrawalDays,
+    meatWithdrawalDays: product.meatWithdrawalDays ?? days.meatWithdrawalDays,
+    learntAt: now,
     createdAt: now,
   });
   await recomputeWithdrawal(tx, farmId, her.id);
