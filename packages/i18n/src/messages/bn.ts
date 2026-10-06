@@ -1570,6 +1570,8 @@ export const bn: Record<MessageKey, string> = {
     "এর ওপর {currencySign}{writtenOffMoney} বাকি বাদ দেওয়া আছে: আগে বাদ দেওয়াটা কমান, তারপর এটা ঠিক করুন",
   "refusal.serviceOfACalf":
     "বাছুরকে পাল দেওয়া হয় না: প্রথম পাল দেওয়ার এখনো অনেক মাস বাকি",
+  "refusal.pricedFromTheFuture":
+    "তার দাম গোনা হয় এমন দিন থেকে যা এসে গেছে: বড়জোর আজ থেকে",
   "refusal.calvedLately":
     "সে এত সম্প্রতি বাচ্চা দিয়েছে যে আবার দিতে পারে না: এটা একই বাচ্চা দেওয়া দুবার লেখা, নয়তো জমজের একটি — জমজ একটাই বাচ্চা দেওয়া, দুটো বাছুরসহ",
   "refusal.calvedBeforeHerService":
@@ -4806,6 +4808,7 @@ export const bn: Record<MessageKey, string> = {
   "returns.came.bought_from_venture": "ভেঞ্চার থেকে কেনা",
   "returns.cameLeft": "{came}, {left}",
   "returns.breakdownFailed": "এখন ভাগ করে দেখানো গেল না।",
+  "returns.left.culled": "বাদ দেওয়া হয়েছে",
   "returns.left.died": "মারা গেছে",
   "returns.left.lost": "হারিয়ে গেছে বলে বাদ",
   "returns.left.sold_to_venture": "ভেঞ্চারে বিক্রি",

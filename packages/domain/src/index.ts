@@ -619,6 +619,7 @@ export {
   backOf,
   bankRateFor,
   capitalOf,
+  diedOrCulled,
   earliest,
   rateInForceOn,
   returnOfHoldings,

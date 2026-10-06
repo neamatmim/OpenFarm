@@ -591,9 +591,11 @@ export const DairyReturnsPanel = ({ animalId }: { animalId: string }) => {
             cow={{
               animalId: run.animalId,
               tagNumber: run.tagNumber,
+              // Unpriced, she counts from the day she was written down, as the list offers — never today, which would
+              // leave her months of milk and keep out. Left out of an answer kept from before: an empty box to fill.
               asOf: run.from
                 ? farmDayOf(new Date(run.from))
-                : farmDayOf(new Date()),
+                : (found.onTheBooksFrom ?? ""),
             }}
             onOpenChange={setPricing}
           />

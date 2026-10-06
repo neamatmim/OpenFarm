@@ -46,6 +46,8 @@ export interface HeadRecord {
   sides?: readonly SideStretch[];
   /** When she was born, where the farm knows; nothing for one bought in grown or on the opening register. */
   bornAt: Date | null;
+  /** When she was weaned, where she was: by hand before the weaning age, she is grown from then. */
+  weanedAt?: Date | null;
   /** When she came onto the farm: her Intake, her birth, or the day she was registered. */
   arrivedAt: Date;
   /** When she left the farm by any way out; nothing while she is here. */
@@ -73,14 +75,16 @@ export interface AdultDeaths {
 const later = (a: Date, b: Date) => (a > b ? a : b);
 const earlier = (a: Date, b: Date) => (a < b ? a : b);
 
-/** From when she counts as grown here: her arrival, or her weaning age if she was born later than that. */
-const grownFrom = (one: HeadRecord, weaningDays: number): Date =>
-  one.bornAt
-    ? later(
-        one.arrivedAt,
-        new Date(one.bornAt.getTime() + weaningDays * DAY_MS)
-      )
-    : one.arrivedAt;
+/** From when she counts as grown here: her arrival, or her weaning — the weaning age, or her weaning by hand where that
+ *  came first, which is where the calf-loss figure stops counting her — if she was born later than that. */
+const grownFrom = (one: HeadRecord, weaningDays: number): Date => {
+  if (!one.bornAt) {
+    return one.arrivedAt;
+  }
+  const weaningAge = new Date(one.bornAt.getTime() + weaningDays * DAY_MS);
+  const weaned = one.weanedAt ? earlier(one.weanedAt, weaningAge) : weaningAge;
+  return later(one.arrivedAt, weaned);
+};
 
 /** A Side before any animal is counted. */
 const blank = (): SideDeaths & { days: number } => ({

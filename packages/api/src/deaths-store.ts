@@ -36,6 +36,7 @@ const herdWithSides = async (db: Pick<Database, "query">, farmId: string) => {
     },
     with: {
       intake: { columns: { arrivedAt: true } },
+      weaning: { columns: { weanedAt: true } },
       mortality: { columns: { kind: true, happenedAt: true, cause: true } },
       calvings: { columns: { calvedAt: true, lactationNumber: true } },
       diagnoses: {
@@ -98,6 +99,7 @@ const deathsOf = (
         side: one.side,
         sides: sidesOf.get(one.id) ?? [],
         bornAt: one.birthDate,
+        weanedAt: one.weaning?.weanedAt ?? null,
         arrivedAt: one.intake?.arrivedAt ?? one.birthDate ?? one.createdAt,
         // A death is dated by when it happened, not when it was written up.
         leftAt: death?.at ?? exitOf(one)?.at ?? null,

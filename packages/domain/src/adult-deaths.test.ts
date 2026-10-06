@@ -97,4 +97,22 @@ describe("deaths among grown animals", () => {
     );
     expect(deaths.dairy).toMatchObject({ died: 0, headYears: 0 });
   });
+
+  it("counts a calf weaned early by hand, and dead before ninety days, as grown from her weaning", () => {
+    // Weaned at forty days, dead at sixty: the calf-loss figure stops at her weaning, so she is this figure's.
+    const deaths = adultDeaths(
+      [
+        {
+          side: "dairy",
+          bornAt: day("2026-03-01"),
+          weanedAt: day("2026-04-10"),
+          arrivedAt: day("2026-03-01"),
+          leftAt: day("2026-04-30"),
+          death: { kind: "died", at: day("2026-04-30"), cause: "নিউমোনিয়া" },
+        },
+      ],
+      year
+    );
+    expect(deaths.dairy.died).toBe(1);
+  });
 });

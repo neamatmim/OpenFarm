@@ -175,6 +175,7 @@ export const SinceSettlement = ({
 export const LEFT_WORD = {
   sold: "returns.left.sold",
   died: "returns.left.died",
+  culled: "returns.left.culled",
   lost: "returns.left.lost",
   sold_to_venture: "returns.left.sold_to_venture",
   crossed: "returns.left.crossed",

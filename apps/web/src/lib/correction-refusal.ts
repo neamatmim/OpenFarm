@@ -177,6 +177,7 @@ const WORDED_REFUSALS = {
   outcome_said: "refusal.outcomeSaid",
   written_off_more_than_owed: "refusal.writtenOffMoreThanOwed",
   calved_lately: "refusal.calvedLately",
+  priced_from_the_future: "refusal.pricedFromTheFuture",
   service_of_a_calf: "refusal.serviceOfACalf",
   calved_before_her_service: "refusal.calvedBeforeHerService",
   owed_below_written_off: "refusal.owedBelowWrittenOff",

@@ -14,8 +14,8 @@ import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // Newborn calf care from the Standard Playbook: two jobs raised for each live calf the moment her Calving is
-// recorded — the first colostrum and the rest, late at two hours; the second feed, late at twelve — and neither for a
-// stillborn calf or a bought bull.
+// recorded, counted from her birth (the Owner, 2026-10-06) — the first colostrum and the rest, late two hours after she
+// was born; the second feed, late at twelve — and neither for a stillborn calf or a bought bull.
 
 const suffix = `newborn-${Date.now()}`;
 
@@ -191,13 +191,14 @@ describe("newborn calf care", () => {
     );
     const first = work.find((row) => row.definitionId === newbornId);
     const second = work.find((row) => row.definitionId === secondFeedId);
-    // Due when her Calving was recorded; late two hours on, and the second feed twelve.
+    // Due from her birth, not from when her Calving was written down half an hour later: late two hours after she
+    // was born, and the second feed twelve.
     const due = first?.dueAt.getTime() ?? 0;
     expect(first?.graceMinutes).toBe(120);
     expect(second?.graceMinutes).toBe(720);
-    expect(Math.abs(due - new Date(RECORDED).getTime())).toBeLessThan(
-      60 * 60 * 1000
-    );
+    expect(
+      Math.abs(due - new Date(`${BORN}T00:30:00.000Z`).getTime())
+    ).toBeLessThan(60 * 1000);
   });
 
   it("weighs her, and writes down a calf not sucking as an Observation", async () => {

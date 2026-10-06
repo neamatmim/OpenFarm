@@ -358,3 +358,88 @@ describe("a crossing nobody weighed on the day she crossed", () => {
     expect(priced).toMatchObject({ weightKg: 160, priceMoney: 64_000 });
   });
 });
+
+/** The day's round of a weigh-in procedure in a Pen, walked by Barn Staff, reading one animal off the crush. */
+const weighOn = async (
+  penId: string,
+  procedure: string,
+  day: string,
+  tagNumber: string,
+  kg: number
+) => {
+  const { client: scheduler } = await as("owner", `${day}T07:30:00.000Z`);
+  await scheduler.work.ensureDue();
+  const today = await scheduler.work.today({ penId });
+  const instance = today.find((one) => one.definitionId === procedure);
+  if (!instance) {
+    throw new Error("expected a weigh-in instance");
+  }
+  const { client: staff } = await as("staff", `${day}T07:30:00.000Z`);
+  await staff.work.claim({ id: instance.id });
+  await staff.work.completeStep({
+    instanceId: instance.id,
+    stepId: "weigh",
+    animalTag: tagNumber,
+    evidence: [kg],
+  });
+};
+
+describe("a crossing whose last weighing before it is months old", () => {
+  it("is priced from her first reading after she crossed, not her weight at birth", async () => {
+    const { client: owner } = await as("owner", "2031-04-30T04:00:00.000Z");
+    const shed = await owner.sheds.create({ name: `${suffix}-birth` });
+    const nursery = await owner.sheds.pens.create({
+      shedId: shed.id,
+      name: `জন্মের পেন ${suffix}`,
+    });
+    await scratchDb()
+      .insert(penAssignment)
+      .values({
+        id: `pa-birth-${suffix}`,
+        farmId: theFarm().id,
+        userId: thePerson("staff").id,
+        penId: nursery.id,
+      })
+      .onConflictDoNothing();
+    // The farm weighs its calves at birth.
+    const { definitionId: atBirth } = await owner.sops.create({
+      content: {
+        ...weighInSop(),
+        name: { bn: `জন্মের ওজন ${suffix}`, en: "Weigh at birth" },
+        appliesTo: { side: "dairy", states: ["calf"] },
+      },
+    });
+    const calf = await owner.animals.register({
+      sex: "male",
+      side: "dairy",
+      state: "calf",
+      penId: nursery.id,
+      source: "born",
+      aliases: [],
+    });
+    await weighOn(nursery.id, atBirth, "2031-05-02", calf.tagNumber, 30);
+    // Four months on he is walked across, and weighed 120 kg two days after.
+    const { client: walking } = await as("manager", "2031-09-01T01:00:00.000Z");
+    await walking.animals.move({
+      tagNumber: calf.tagNumber,
+      toPenId: fatteningPenId,
+      toSide: "fattening",
+    });
+    await weighOn(
+      fatteningPenId,
+      definitionId,
+      "2031-09-03",
+      calf.tagNumber,
+      120
+    );
+    const { client: reading } = await as("owner", "2031-09-04T04:00:00.000Z");
+    const { crossings } = await reading.returns.list();
+    const joining = crossings.find((one) => one.tagNumber === calf.tagNumber);
+    const priced = await reading.returns.priceCrossing({
+      joiningId: joining?.id ?? "",
+      rateMoneyPerKg: 400,
+      note: `বাছুরের দর ${suffix}`,
+    });
+    expect(priced).toMatchObject({ weightKg: 120, priceMoney: 48_000 });
+  });
+});

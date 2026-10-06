@@ -187,6 +187,8 @@ export interface WhatHappened {
   /** Her crossing to the Fattening side, and the price the Owner put on it — or none yet. */
   crossing: { on: Date; priceMoney: number | null } | null;
   died: Date | null;
+  /** Whether that death was a cull: the farm put her down, which is said as what it was. */
+  culled?: boolean;
   /** When she was written off as Lost: gone, and nothing came back for her, as for a death — unless she was a
    *  Venture's, which the Farm made good. */
   lost: Date | null;
@@ -197,7 +199,7 @@ export interface WhatHappened {
 /** How a Holding ended: when, and what came back — nothing for a death or a loss, and not yet known for a crossing not
  *  priced. */
 export interface Left {
-  how: "sold" | "sold_to_venture" | "crossed" | "died" | "lost";
+  how: "sold" | "sold_to_venture" | "crossed" | "died" | "culled" | "lost";
   on: Date;
   backMoney: number | null;
 }
@@ -252,7 +254,7 @@ export const howSheLeft = (
     return { how: "sold", on: her.sale.soldAt, backMoney: her.sale.priceMoney };
   }
   if (her.died) {
-    return { how: "died", on: her.died, backMoney: 0 };
+    return { how: her.culled ? "culled" : "died", on: her.died, backMoney: 0 };
   }
   if (!her.lost) {
     return null;

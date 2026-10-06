@@ -3,7 +3,7 @@ import { eq } from "@OpenFarm/db/operators";
 import type { JoiningHow } from "@OpenFarm/db/schema/fattening";
 import { fatteningJoining } from "@OpenFarm/db/schema/fattening";
 import type { TargetWindow } from "@OpenFarm/domain";
-import { farmDayOf } from "@OpenFarm/domain";
+import { addDays, farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -108,21 +108,26 @@ export const priceTheJoining = async (
 
 /**
  * What she weighed for her crossing to be priced from: her latest Weigh-in the farm did not doubt by the end of the day she
- * crossed — the morning's round after she was walked over counts — or, nobody having weighed her by then, her first one
- * after it: a calf that would not go on the crush that morning is priced from the next round she did, rather than never,
- * which would leave her Season unfinished for good. None while she has never been weighed.
+ * crossed — the morning's round after she was walked over counts — so long as it is no older than the farm's days a
+ * price may be struck from, as an Internal Sale's is: a calf weighed at birth and crossed months later is not priced at
+ * her birth weight. Else her first one after it: a calf that would not go on the crush that morning is priced from the
+ * next round she did, rather than never, which would leave her Season unfinished for good. None while she has never
+ * been weighed.
  */
 export const weighedForTheCrossing = async (
   tx: Pick<Tx, "query">,
   animalId: string,
-  joinedOn: string
+  joinedOn: string,
+  /** The Farm Parameter: how many days old a weighing may be and still price her. */
+  priceWeighInDays: number
 ): Promise<{ id: string; weightKg: number } | null> => {
   const byThen = joiningWeighedBy(joinedOn);
+  const notBefore = startOfFarmDay(addDays(joinedOn, -priceWeighInDays));
   const reading =
     (await tx.query.weighIn.findFirst({
       where: {
         animalId,
-        weighedAt: { lt: byThen },
+        weighedAt: { gte: notBefore, lt: byThen },
         flaggedNote: { isNull: true },
       },
       columns: { id: true, weightKg: true },

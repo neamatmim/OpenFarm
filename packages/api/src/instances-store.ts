@@ -489,6 +489,30 @@ const calvingHappenings = async (
   });
 };
 
+/** The longest after her birth a calf born here may be written down and still have her care count from the birth: her
+ *  calving written up the next morning, or a few days late. One put on the farm's books later than that — a calf on
+ *  the opening register — is counted from the day she was written down, or every job of a calf's first days would be
+ *  raised long overdue. */
+const BORN_WRITTEN_UP_WITHIN_DAYS = 7;
+
+/**
+ * When an animal arrived, for the work her arrival raises: for a calf born here, her birth (the Owner, 2026-10-06) — a
+ * calf born at ten at night and written up on the morning round is due her colostrum from ten, and late at midnight,
+ * which is the truth the farm needs to see. Anything else from the moment she was written down.
+ */
+const arrivedOf = (beast: {
+  source: string;
+  birthDate: Date | null;
+  createdAt: Date;
+}): Date => {
+  const writtenUpSoon =
+    beast.source === "born" &&
+    beast.birthDate !== null &&
+    beast.createdAt.getTime() - beast.birthDate.getTime() <=
+      BORN_WRITTEN_UP_WITHIN_DAYS * DAY_MS;
+  return writtenUpSoon && beast.birthDate ? beast.birthDate : beast.createdAt;
+};
+
 /**
  * Everything that has happened lately and might call for work: Moves, arrivals, and the
  * State each animal is in with the moment she reached it. Read in one go, because the sweep
@@ -518,6 +542,8 @@ export const recentHappenings = async (
       state: true,
       stateChangedAt: true,
       createdAt: true,
+      source: true,
+      birthDate: true,
       lactationNumber: true,
       expectedCalvingAt: true,
       expectedCalvingServiceId: true,
@@ -643,7 +669,7 @@ export const recentHappenings = async (
       happenings.push({
         kind: "arrival",
         key: `arrival:${beast.id}`,
-        at: beast.createdAt,
+        at: arrivedOf(beast),
         animalId: beast.id,
         penId: beast.penId,
         side: beast.side,
