@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import {
   CorrectionAnswer,
+  CorrectionChoice,
   CorrectionDialog,
   useCorrecting,
 } from "@/components/correction-dialog";
@@ -15,7 +16,7 @@ import { CourseLine, DoseLine, stillOwed } from "@/components/course";
 import { EmptyState, Loaded } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { bilingual, note as writtenNote } from "@/lib/correcting";
+import { bilingual, choice, note as writtenNote } from "@/lib/correcting";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -100,6 +101,8 @@ const CorrectConclusion = ({ made }: { made: Made }) => {
   const correcting = useCorrecting({
     disease: bilingual(made.disease),
     note: writtenNote(made.note),
+    // How it ended is put right here too: a mis-tap on Recovered could not be undone on any screen.
+    outcome: choice(made.outcome ?? null),
   });
   const correct = useMutation(orpc.diagnoses.correct.mutationOptions({}));
   return (
@@ -126,6 +129,17 @@ const CorrectConclusion = ({ made }: { made: Made }) => {
         onChange={(value) => correcting.set("note", value)}
         value={correcting.typed.note ?? ""}
       />
+      {made.outcome ? (
+        <CorrectionChoice
+          label={t("vet.outcome")}
+          onChange={(value) => correcting.set("outcome", value)}
+          options={(["recovered", "not_recovered"] as const).map((one) => ({
+            value: one,
+            label: t(`animals.outcome.${one}`),
+          }))}
+          value={correcting.typed.outcome ?? ""}
+        />
+      ) : null}
     </CorrectionDialog>
   );
 };

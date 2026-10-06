@@ -80,6 +80,7 @@ const assertAnswerable = async (
     throw new ORPCError("BAD_REQUEST", {
       message:
         "That observation was corrected; answer the one that stands in its place",
+      data: { refusal: "observation_corrected" },
     });
   }
 };

@@ -6,8 +6,8 @@ import { rowsOfRegister } from "@OpenFarm/api/registers/rows";
 import type { TreatmentRow } from "@OpenFarm/api/registers/treatment";
 import type { VaccinationRow } from "@OpenFarm/api/registers/vaccination";
 import { startOfFarmDay } from "@OpenFarm/domain";
-import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate } from "@OpenFarm/i18n";
+import type { Language, MessageKey } from "@OpenFarm/i18n";
+import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
@@ -203,6 +203,14 @@ const VaccinationRegister = ({
 
 // Treatments (R4)
 
+const FIGURES = /\d+/gu;
+
+/** Where a course had got to — "3/6", as the register writes it — in the reader's digits. */
+const courseSaid = (course: string, language: Language) =>
+  course.replaceAll(FIGURES, (figure) =>
+    formatDigits(Number(figure), language)
+  );
+
 const TreatmentLine = ({ row }: { row: TreatmentRow }) => {
   const { t, language } = useLanguage();
   const clearOn = (farmDay: string | null) =>
@@ -213,7 +221,7 @@ const TreatmentLine = ({ row }: { row: TreatmentRow }) => {
       {row.diagnosis ? ` · ${row.diagnosis}` : ""} · {row.drug}
       {row.dose ? ` · ${row.dose}` : ""}
       {row.route ? ` · ${t(`route.${row.route}`)}` : ""}
-      {row.course ? ` · ${row.course}` : ""}
+      {row.course ? ` · ${courseSaid(row.course, language)}` : ""}
       <span className="text-muted-foreground block text-xs">
         {t("inspector.givenBy", {
           giver: row.givenBy ?? "—",
@@ -242,11 +250,13 @@ const MeatClearCell = ({ row }: { row: { original: TreatmentRow } }) => (
 
 /** The drug, and under it how it was given: the dose, the route and the course, as far as they were written. */
 const DrugCell = ({ row }: { row: { original: TreatmentRow } }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { dose, route, course, drug } = row.original;
-  const how = [dose, route ? t(`route.${route}`) : null, course].filter(
-    Boolean
-  );
+  const how = [
+    dose,
+    route ? t(`route.${route}`) : null,
+    course ? courseSaid(course, language) : null,
+  ].filter(Boolean);
   return (
     <div className="flex flex-col gap-0.5">
       <span>{drug}</span>

@@ -1,5 +1,5 @@
 import type { DoseRoute } from "@OpenFarm/domain";
-import { MAX_COURSE_DAYS, ROUTES } from "@OpenFarm/domain";
+import { ROUTES } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -9,26 +9,22 @@ import { useState } from "react";
 import { productName } from "@/components/drugs/drug-types";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { courseDaysOf, courseTimesOf } from "@/lib/course-times";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { Made } from "./vet-types";
 import { AnimalLink, useRefusal } from "./vet-types";
 
-/** The times as the Vet types them: separated by commas. */
-const timesOf = (typed: string) =>
-  typed
-    .split(",")
-    .map((time) => time.trim())
-    .filter(Boolean);
-
 /** How many doses the order comes to, worked out as it is typed: a piece of work for somebody in the shed each. */
 const DosesToCome = ({ times, days }: { times: string; days: string }) => {
   const { t, language } = useLanguage();
-  const count = timesOf(times).length * Number(days);
-  if (!(count > 0)) {
+  const each = courseTimesOf(times);
+  const many = courseDaysOf(days);
+  if (!(each && many)) {
     return null;
   }
+  const count = each.length * many;
   return (
     <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
       {t("prescribe.dosesPreview", { doses: formatNumber(count, language) })}
@@ -72,6 +68,9 @@ export const PrescribeSheet = ({
   // Only what may actually be prescribed: a product whose withdrawal days nobody has written
   // is milk nobody could call safe afterwards, and offering it would only end in a refusal.
   const prescribable = (drugs.data ?? []).filter((one) => one.prescribable);
+  // Read as the farm takes them, so Save waits for a course the farm will write (lib/course-times).
+  const asTimes = courseTimesOf(times);
+  const asDays = courseDaysOf(days);
 
   return (
     <FormSheet
@@ -81,19 +80,28 @@ export const PrescribeSheet = ({
         if (!made) {
           return;
         }
+        if (!(asTimes && asDays)) {
+          return;
+        }
         write.mutate({
           animalTag: made.tagNumber,
           diagnosisId: made.id,
           productId,
           dose: dose.trim(),
           route,
-          times: timesOf(times),
-          days: Number(days),
+          times: asTimes,
+          days: asDays,
         });
       }}
       open={made !== null}
       pending={write.isPending}
-      ready={made !== null && productId !== "" && dose.trim() !== ""}
+      ready={
+        made !== null &&
+        productId !== "" &&
+        dose.trim() !== "" &&
+        asTimes !== null &&
+        asDays !== null
+      }
       submitLabel={t("prescribe.write")}
       title={t("prescribe.write")}
     >
@@ -160,11 +168,7 @@ export const PrescribeSheet = ({
           <Input
             id={`days-${idPrefix}`}
             inputMode="numeric"
-            max={MAX_COURSE_DAYS}
-            min={1}
             onChange={(event) => setDays(event.target.value)}
-            step="1"
-            type="number"
             value={days}
           />
         </FormField>

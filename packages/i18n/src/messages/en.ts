@@ -1700,6 +1700,12 @@ export const en = {
     "This dose is not due yet. Give the dose before it first, or wait until nearer its time",
   "refusal.courseStopped": "The vet has already stopped this course",
   "refusal.countedTwice": "Each medicine is counted once in a count",
+  "refusal.notShorter":
+    "A withdrawal can only be made shorter. Choose a day and time before the one it stands at",
+  "refusal.noWithdrawalDays":
+    "The vet has written no withdrawal days for this medicine, so it cannot be given yet",
+  "refusal.observationCorrected":
+    "That sighting was corrected since this list was opened. Answer the one in its place",
   "refusal.phoneRevoked":
     "This phone is no longer one of the farm's. Ask the manager for a code to enrol it again",
   "refusal.tooManyPins":
@@ -4193,6 +4199,7 @@ export const en = {
     "Choose from the list, or write another disease in your own words.",
   "vet.notifiableNamed":
     "{disease} must be reported to DLS: saving this raises the letter to the office at once.",
+  "vet.outcome": "How it ended",
   "vet.note": "What you found",
   "vet.record": "Record the diagnosis",
   "vet.recorded": "Diagnosis recorded",
@@ -5775,6 +5782,7 @@ export const en = {
   "params.soresTellAnimals": "Animals in one pen",
   "params.soresTellHours": "Within",
   "params.animals": "animals",
+  "animals.outcomeSaid": "Saved how it ended",
   "animals.outcome.recovered": "Recovered",
   "animals.outcome.not_recovered": "Not recovered",
   "home.illAgain": "Ill again and again",

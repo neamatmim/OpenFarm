@@ -26,6 +26,7 @@ import {
 import { FarmAccountField } from "@/components/payment-method";
 import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
 import { useLanguage } from "@/i18n/language-provider";
+import { momentOfField } from "@/lib/farm-moment";
 import { useMoney } from "@/lib/money";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
@@ -608,7 +609,8 @@ const DoseDialog = ({ detail, open, onOpenChange }: ActProps) => {
           animalTag: detail.tagNumber,
           productId,
           advice: advice.trim(),
-          ...(givenAt ? { givenAt: new Date(givenAt) } : {}),
+          // Read as the farm's day and time, not the phone's (lib/farm-moment).
+          ...(givenAt ? { givenAt: new Date(momentOfField(givenAt)) } : {}),
         })
       }
       open={open}

@@ -181,6 +181,11 @@ const WORDED_REFUSALS = {
   dose_not_due_yet: "refusal.doseNotDueYet",
   course_stopped: "refusal.courseStopped",
   counted_twice: "refusal.countedTwice",
+  not_shorter: "refusal.notShorter",
+  no_withdrawal_days: "refusal.noWithdrawalDays",
+  // A product retired from the Drug List since the list was read: why it may not be prescribed.
+  retired: "refusal.productRetired",
+  observation_corrected: "refusal.observationCorrected",
   wrong_pin: "device.wrongPin",
   too_many_pins: "refusal.tooManyPins",
   cannot_work_here: "refusal.cannotWorkHere",

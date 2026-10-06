@@ -16,6 +16,7 @@ import { VetCases } from "@/components/vet-cases";
 import { DiagnosisSheet } from "@/components/vet/diagnosis-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { AnimalDetail, AnimalPowers } from "./animal-types";
@@ -61,7 +62,14 @@ const HowItEnded = ({
   mayClose: boolean;
 }) => {
   const { t, language } = useLanguage();
-  const close = useMutation(orpc.diagnoses.close.mutationOptions({}));
+  // Said as it went: a refusal — said already on another screen, or she has gone — is told, not swallowed.
+  const refused = useRefused();
+  const close = useMutation(
+    orpc.diagnoses.close.mutationOptions({
+      onSuccess: () => toast.success(t("animals.outcomeSaid")),
+      onError: refused,
+    })
+  );
   if (made.outcome) {
     return (
       <p className="text-sm">
@@ -286,15 +294,19 @@ const ExcuseDose = ({
 const DosesOwed = ({
   tagNumber,
   isVet,
+  mayRead,
 }: {
   tagNumber: string;
   isVet: boolean;
+  /** Not for a Vet on a visit: the farm does not open it to them, and asking drew a refusal every time. */
+  mayRead: boolean;
 }) => {
   const { t, language } = useLanguage();
   const [excusing, setExcusing] = useState<Owed | null>(null);
-  const owed = useQuery(
-    orpc.animals.dosesOwed.queryOptions({ input: { tagNumber } })
-  );
+  const owed = useQuery({
+    ...orpc.animals.dosesOwed.queryOptions({ input: { tagNumber } }),
+    enabled: mayRead,
+  });
   const rows = owed.data ?? [];
   if (rows.length === 0) {
     return null;
@@ -392,10 +404,15 @@ export const HealthTab = ({
           <DoseTable doses={detail.treatments} />
         </Section>
       ) : null}
-      <DosesOwed isVet={powers.isVet} tagNumber={detail.tagNumber} />
+      <DosesOwed
+        isVet={powers.isVet}
+        mayRead={!(powers.isVet && !powers.fullVet)}
+        tagNumber={detail.tagNumber}
+      />
       {/* Calling a vet to her is for an animal still here; the cases she had stay listed either way. */}
       <VetCases
         mayCall={powers.runsTheFarm && powers.stillHere}
+        mayRead={powers.runsTheFarm}
         tagNumber={detail.tagNumber}
       />
     </div>

@@ -561,7 +561,7 @@ const DaysDialog = ({
  * days yet. Shown to everybody who reads the list; written by the in-house Vet alone.
  */
 const DefaultDays = ({ isVet }: { isVet: boolean }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const refused = useRefused();
   const byDefault = useQuery(orpc.drugs.defaultDays.queryOptions());
   const [open, setOpen] = useState(false);
@@ -585,7 +585,7 @@ const DefaultDays = ({ isVet }: { isVet: boolean }) => {
         <span className="font-medium">{t("drugs.defaultDays")}</span>
         <span className="text-muted-foreground text-xs">
           {written
-            ? `${t("drugs.milkDays")}: ${daysTyped(milkDays)} · ${t("drugs.meatDays")}: ${daysTyped(meatDays)}`
+            ? `${t("drugs.milkDays")}: ${formatNumber(milkDays, language)} · ${t("drugs.meatDays")}: ${formatNumber(meatDays, language)}`
             : t("drugs.defaultNone")}
         </span>
       </div>

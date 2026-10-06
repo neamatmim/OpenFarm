@@ -1579,6 +1579,12 @@ export const bn: Record<MessageKey, string> = {
     "এই ডোজের সময় এখনো হয়নি। আগের ডোজটি আগে দিন, বা এর সময়ের কাছাকাছি পর্যন্ত অপেক্ষা করুন",
   "refusal.courseStopped": "পশুচিকিৎসক এই কোর্স আগেই বন্ধ করেছেন",
   "refusal.countedTwice": "এক গণনায় প্রতিটি ওষুধ একবারই গোনা হয়",
+  "refusal.notShorter":
+    "আটকে রাখার সময় শুধু কমানো যায়। এখন যে দিন ও সময় আছে, তার আগের একটি বেছে নিন",
+  "refusal.noWithdrawalDays":
+    "পশুচিকিৎসক এই ওষুধের আটকে রাখার দিন লেখেননি, তাই এটি এখনো দেওয়া যাবে না",
+  "refusal.observationCorrected":
+    "এই তালিকা খোলার পর ঘটনাটি সংশোধন হয়েছে। তার জায়গার ঘটনাটির উত্তর দিন",
   "refusal.phoneRevoked":
     "এই ফোন আর খামারের নয়। আবার যুক্ত করতে ম্যানেজারের কাছে কোড চান",
   "refusal.tooManyPins":
@@ -3919,6 +3925,7 @@ export const bn: Record<MessageKey, string> = {
   "vet.diseaseHint": "তালিকা থেকে বাছুন, অথবা নিজের ভাষায় অন্য রোগ লিখুন।",
   "vet.notifiableNamed":
     "{disease} ডিএলএস-কে জানাতে হয়: সংরক্ষণ করলেই অফিসে চিঠির কাজ সাথে সাথে উঠবে।",
+  "vet.outcome": "কীভাবে শেষ হলো",
   "vet.note": "যা পেলেন",
   "vet.record": "রোগ লিখুন",
   "vet.recorded": "রোগ লেখা হয়েছে",
@@ -3960,7 +3967,7 @@ export const bn: Record<MessageKey, string> = {
   "prescribe.calledOff": "বাতিল",
   "prescribe.course": "চিকিৎসার কোর্স",
   "prescribe.sheetHint": "প্রতিটি ডোজ আপনার দেওয়া সময়ে শেডের কারও জন্য একটি কাজ হবে।",
-  "prescribe.timesHint": "কমা দিয়ে আলাদা করুন, যেমন 08:00, 20:00",
+  "prescribe.timesHint": "কমা দিয়ে আলাদা করুন, যেমন ০৮:০০, ২০:০০",
   "prescribe.dosesPreview": "{doses}টি ডোজের কাজ তৈরি হবে",
   "route.intramuscular": "মাংসে ইনজেকশন",
   "route.intravenous": "শিরায় ইনজেকশন",
@@ -5403,6 +5410,7 @@ export const bn: Record<MessageKey, string> = {
   "params.soresTellAnimals": "এক পেনে পশু",
   "params.soresTellHours": "সময়ের মধ্যে",
   "params.animals": "টি পশু",
+  "animals.outcomeSaid": "কীভাবে শেষ হলো তা রাখা হয়েছে",
   "animals.outcome.recovered": "সেরে উঠেছে",
   "animals.outcome.not_recovered": "সারেনি",
   "home.illAgain": "বারবার অসুস্থ",
