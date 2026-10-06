@@ -389,6 +389,10 @@ export const passwordCode = pgTable(
 
 export const INVITE_STATUSES = ["pending", "approved", "revoked"] as const;
 
+/** How long an invitation's code stands untaken before it lapses (the Owner, 2026-10-07): a code given a fortnight ago
+ *  and never used is not one anybody is still waiting to use. A new code starts it again. */
+export const INVITE_LAPSE_DAYS = 14;
+
 /** A person invited to the Farm with Roles to be granted when the invite is approved and
  *  the person exists. A Manager's invite waits for the Owner; an Owner's is approved at once. */
 export const invite = pgTable(
@@ -416,6 +420,9 @@ export const invite = pgTable(
     codeHash: text("code_hash"),
     /** When the invited person took it up with the code. */
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    /** When its code was last given: it lapses `INVITE_LAPSE_DAYS` after. Null for one written before this was kept,
+     *  which counts from when it was made. */
+    codeIssuedAt: timestamp("code_issued_at", { withTimezone: true }),
     /** For a Barn Staff member who works only on the Shed Phones: the person it was written for, already made, with
      *  no login. Taken up the moment it is approved — they have no code to enter. */
     forUserId: text("for_user_id").references(() => user.id),

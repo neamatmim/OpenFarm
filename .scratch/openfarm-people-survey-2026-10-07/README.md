@@ -72,7 +72,7 @@ Defaults taken without asking, as the obvious reading:
 
 | Group | Branch | Status |
 | ----- | ------ | ------ |
-| A     |        |        |
-| B     |        |        |
-| C     |        |        |
-| D     |        |        |
+| A     | fix/pins-and-phones | Done (a PIN guess counted before the check; a new PIN ends every stint opened with the old one; `phone_revoked` on whatever a revoked phone asks, and the web forgets its token there; Lock ends only its own person's stint; the pad counts offline wrong PINs, five per person in fifteen minutes (lib/offline-pin-guesses); `isTooEasyPin` refuses repeats and runs; enrolment and PIN refusals worded. A7 left: a lockout per person across phones would let anybody lock a milker out of every phone) |
+| B     | fix/when-somebody-leaves | Done (disabled people left out of every audience, so the Owner fallback fires; disabling releases pinned and claimed work and ends Pen Assignments, `has_left_the_farm`; `push_subscription.session_id`, migration 20261006192838, revoked when that session is signed out; Shed Phone work done before leaving taken in as theirs, `evenIfLeft`; a switch token from any of the farm's phones proves its stint. B6 left with A6's offline design) |
+| C     | fix/wages | Done (names kept and found in NFC; a wage judged whole, `otherPiecesOf`; a draw asked "entered already?", with `sameAgain`; a draw takes a Side, read by the export; the payday note matches as the farm does. C5 left: the payday note already says the whole wage, the draws and what is paid) |
+| D     | fix/invitations-and-words | Done (`people.withdrawInvite`; `invite.code_issued_at`, migration 20261006201248, lapse after `INVITE_LAPSE_DAYS` at take-up and at the sign-up door, a new code restarts it; lapsed shown on the People page with Withdraw beside New code; an Investor's acts on the trail are the Owner's alone; join, forgotten-password and membership refusals worded) |

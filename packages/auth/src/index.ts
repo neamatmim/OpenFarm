@@ -3,6 +3,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { Database } from "@OpenFarm/db";
 import { sharedDatabase } from "@OpenFarm/db";
 import * as schema from "@OpenFarm/db/schema/auth";
+import { INVITE_LAPSE_DAYS } from "@OpenFarm/db/schema/farm";
 import { env } from "@OpenFarm/env/server";
 import { DEFAULT_LANGUAGE, isLanguage, translate } from "@OpenFarm/i18n";
 import { betterAuth } from "better-auth";
@@ -72,11 +73,20 @@ const turnAwayWhoWasNotAsked = (db: Database) =>
     }
     // By the address alone, not by which Farm the invite is on: one database holds one farm, and the address
     // is what the invite was written against.
+    // Only an invitation still standing: withdrawn, or lapsed a fortnight after its code was given, it opens nothing
+    // (the Owner, 2026-10-07).
+    const lapsedBefore = new Date(
+      Date.now() - INVITE_LAPSE_DAYS * 24 * 60 * 60 * 1000
+    );
     const asked = await db.query.invite.findFirst({
       where: {
         email: email.toLowerCase(),
         status: { in: ["pending", "approved"] },
         acceptedAt: { isNull: true },
+        OR: [
+          { codeIssuedAt: { gt: lapsedBefore } },
+          { codeIssuedAt: { isNull: true }, createdAt: { gt: lapsedBefore } },
+        ],
       },
       columns: { id: true, forUserId: true },
     });

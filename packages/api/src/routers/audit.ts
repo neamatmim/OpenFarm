@@ -62,6 +62,15 @@ export const auditRouter = {
       const toExclusive = input.toDay
         ? new Date(startOfFarmDay(input.toDay).getTime() + ONE_DAY_MS)
         : undefined;
+      // What an Investor did — in the portal, under their own account — is the Owner's alone: that somebody has an
+      // account there at all says who has money in a Venture, which the People page keeps from the Manager.
+      const investors = seesTheMoney
+        ? []
+        : await context.db.query.investorAccess.findMany({
+            where: { farmId: context.farm.id, userId: { isNotNull: true } },
+            columns: { userId: true },
+          });
+      const investorIds = investors.flatMap((one) => one.userId ?? []);
       const rows = await context.db.query.auditEvent.findMany({
         where: {
           farmId: context.farm.id,
@@ -71,6 +80,14 @@ export const auditRouter = {
           entityId: input.entityId,
           actorId,
           receivedAt: { gte: from, lt: toExclusive },
+          ...(investorIds.length > 0
+            ? {
+                OR: [
+                  { actorId: { isNull: true } },
+                  { actorId: { notIn: investorIds } },
+                ],
+              }
+            : {}),
         },
         // The id breaks the tie: two events can share a received instant — an entry and the Correction
         // that follows it in the same second — and uuidv7 carries a counter so ids made in one

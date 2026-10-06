@@ -119,3 +119,22 @@ describe("a consent withdrawn after access was taken away", () => {
     ).rejects.toMatchObject({ data: { refusal: "wrong_code" } });
   });
 });
+
+describe("what an Investor does in the portal, on the farm's trail", () => {
+  it("is the Owner's to read, never the Manager's: who has money in a Venture is hers alone", async () => {
+    const them = await anInvitedInvestor(
+      { name: `ভাষা ${run}`, phone: phoneOf(7) },
+      AT
+    );
+    await them.client.language.set({ language: "en" });
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock(AT),
+    });
+    const managers = await manager.client.audit.list({ actorId: them.userId });
+    expect(managers).toEqual([]);
+    const owner = await as("owner");
+    const owners = await owner.audit.list({ actorId: them.userId });
+    expect(owners.length).toBeGreaterThan(0);
+  });
+});

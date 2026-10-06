@@ -1,0 +1,1 @@
+ALTER TABLE "invite" ADD COLUMN "code_issued_at" timestamp with time zone;

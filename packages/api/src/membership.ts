@@ -11,11 +11,12 @@
  */
 
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, gt, inArray, isNull } from "@OpenFarm/db/operators";
+import { and, eq, gt, inArray, isNull, sql } from "@OpenFarm/db/operators";
 import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
 import { deviceSwitch, staffPin } from "@OpenFarm/db/schema/device";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import {
+  INVITE_LAPSE_DAYS,
   ACTIVE_ROLE,
   invite,
   passwordCode,
@@ -86,11 +87,15 @@ export const accessIsTheirsToGive = async (
   if (held.length === 0) {
     throw new ORPCError("NOT_FOUND", {
       message: "That person is not on this farm",
+      data: { refusal: "not_on_this_farm" },
     });
   }
   const staffOnly = held.every((role) => role === "staff");
   if (by.role === "manager" && !staffOnly) {
-    throw new ORPCError("FORBIDDEN", { message: refused });
+    throw new ORPCError("FORBIDDEN", {
+      message: refused,
+      data: { refusal: "manager_staff_only" },
+    });
   }
 };
 
@@ -218,6 +223,7 @@ export const setRoles = async (
   ) {
     throw new ORPCError("BAD_REQUEST", {
       message: "The farm must keep at least one other Owner",
+      data: { refusal: "keep_another_owner" },
     });
   }
   await revokeRoles(
@@ -375,6 +381,7 @@ export const signOutOf = async (
   if (!row) {
     throw new ORPCError("NOT_FOUND", {
       message: "They are not signed in there",
+      data: { refusal: "not_signed_in_there" },
     });
   }
   // And that phone stops being told: a phone left in a yard, signed out, must not go on showing the farm's notices on
@@ -593,6 +600,7 @@ const endOfVisit = (day: string, now: Date): Date => {
   if (end <= now) {
     throw new ORPCError("BAD_REQUEST", {
       message: "A visit has to last until today at least",
+      data: { refusal: "visit_until_today" },
     });
   }
   return end;
@@ -644,6 +652,7 @@ export const planInvite = async (
   ) {
     throw new ORPCError("BAD_REQUEST", {
       message: "Only a Vet is invited for a visit",
+      data: { refusal: "visit_is_for_vets" },
     });
   }
   if (
@@ -652,6 +661,7 @@ export const planInvite = async (
   ) {
     throw new ORPCError("FORBIDDEN", {
       message: "A Manager may only invite Staff or a visiting Vet",
+      data: { refusal: "manager_staff_or_visiting" },
     });
   }
   return {
@@ -689,8 +699,61 @@ export const writeInvite = async (
     codeHash: planned.codeHash,
     vetScope: planned.visitUntil === null ? null : "visiting",
     accessUntil: planned.accessUntil,
+    codeIssuedAt: planned.at,
     createdAt: planned.at,
   });
+};
+
+/** The moment before which a code given has lapsed: `INVITE_LAPSE_DAYS` back from now. */
+const lapsedBefore = (now: Date) =>
+  new Date(now.getTime() - INVITE_LAPSE_DAYS * 24 * 60 * 60 * 1000);
+
+/** That an invitation's code still stands: given within `INVITE_LAPSE_DAYS`, or made then where none was kept. */
+const codeStillStands = (now: Date) =>
+  sql`coalesce(${invite.codeIssuedAt}, ${invite.createdAt}) > ${lapsedBefore(now)}`;
+
+/**
+ * Withdraws an invitation nobody has taken up — written to the wrong address, or one the Owner does not want — so its
+ * code works for nobody and its address opens no account. The Owner's, or the Manager's for an invitation he could
+ * have written. The address may be invited again.
+ */
+export const withdrawInvite = async (
+  tx: Tx,
+  farmId: string,
+  id: string,
+  by: { role: RoleName | null }
+): Promise<void> => {
+  const waiting = await tx.query.invite.findFirst({
+    where: { id, farmId, acceptedAt: { isNull: true } },
+    columns: { roles: true, vetScope: true },
+  });
+  if (
+    by.role === "manager" &&
+    waiting &&
+    !aManagerMayInvite(waiting.roles, waiting.vetScope === "visiting")
+  ) {
+    throw new ORPCError("FORBIDDEN", {
+      message: "A Manager may only withdraw a Staff or visiting Vet invite",
+      data: { refusal: "manager_staff_or_visiting" },
+    });
+  }
+  const [row] = await tx
+    .update(invite)
+    .set({ status: "revoked", codeHash: null })
+    .where(
+      and(
+        eq(invite.id, id),
+        eq(invite.farmId, farmId),
+        isNull(invite.acceptedAt)
+      )
+    )
+    .returning({ id: invite.id });
+  if (!row) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "No invite waiting to be taken up",
+      data: { refusal: "no_invite_waiting" },
+    });
+  }
 };
 
 /** A new code for an invitation not yet taken up — the first one lost, or never written down. The old code
@@ -702,7 +765,7 @@ export const reissueInvite = async (
   farmId: string,
   id: string,
   codeHash: string,
-  by: { role: RoleName | null }
+  by: { role: RoleName | null; now: Date }
 ): Promise<void> => {
   const waiting = await tx.query.invite.findFirst({
     where: { id, farmId, acceptedAt: { isNull: true } },
@@ -716,11 +779,13 @@ export const reissueInvite = async (
     throw new ORPCError("FORBIDDEN", {
       message:
         "A Manager may only re-issue the code of a Staff or visiting Vet invite",
+      data: { refusal: "manager_staff_or_visiting" },
     });
   }
   const [row] = await tx
     .update(invite)
-    .set({ codeHash })
+    // A new code stands its own fourteen days.
+    .set({ codeHash, codeIssuedAt: by.now })
     .where(
       and(
         eq(invite.id, id),
@@ -732,6 +797,7 @@ export const reissueInvite = async (
   if (!row) {
     throw new ORPCError("NOT_FOUND", {
       message: "No invite waiting to be taken up",
+      data: { refusal: "no_invite_waiting" },
     });
   }
 };
@@ -759,7 +825,9 @@ export const acceptInvite = async (
         eq(invite.codeHash, taker.codeHash),
         eq(invite.email, taker.email),
         eq(invite.status, "approved"),
-        isNull(invite.acceptedAt)
+        isNull(invite.acceptedAt),
+        // A code a fortnight old and never used has lapsed.
+        codeStillStands(now)
       )
     )
     .returning({
@@ -1021,6 +1089,9 @@ export const spendPasswordCode = async (
     )
     .returning({ id: passwordCode.id });
   if (!spent) {
-    throw new ORPCError("NOT_FOUND", { message: "That code is not right" });
+    throw new ORPCError("NOT_FOUND", {
+      message: "That code is not right",
+      data: { refusal: "code_not_valid" },
+    });
   }
 };

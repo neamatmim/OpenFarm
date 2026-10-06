@@ -198,6 +198,17 @@ const PeoplePage = () => {
     })
   );
 
+  const withdraw = useMutation(
+    orpc.people.withdrawInvite.mutationOptions({
+      onMutate: ({ id }) => inFlight.start(`withdraw:${id}`),
+      onSettled: (_data, _error, { id }) => inFlight.end(`withdraw:${id}`),
+      onSuccess: () => {
+        toast.success(t("people.inviteWithdrawn"));
+      },
+      onError,
+    })
+  );
+
   const rows = useMemo(() => listedFrom(list.data), [list.data]);
   const shown = matching(rows, filter);
   const figures = usePeopleFigures(rows);
@@ -250,6 +261,7 @@ const PeoplePage = () => {
                 busy: inFlight.has,
                 handleApprove: (id) => approve.mutate({ id }),
                 handleNewCode: (id) => reissue.mutate({ id }),
+                handleWithdraw: (id) => withdraw.mutate({ id }),
                 mayApprove: isOwner,
                 givesAnyCode: isOwner,
               }}
