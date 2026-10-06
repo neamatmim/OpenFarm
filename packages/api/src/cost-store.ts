@@ -30,6 +30,7 @@ import {
   roundMoney,
   roundedCosts,
   herdShares,
+  handedOverAt,
   startOfFarmDay,
   sidesOverTime,
   tripShares,
@@ -39,7 +40,7 @@ import { THE_FARMS_PURSE } from "./money-store";
 import { writtenOffByItem } from "./receivable-store";
 import { movementsByItem } from "./stock-store";
 import { tripCostOf } from "./trip-store";
-import { ownersOverTime } from "./venture-store";
+import { ownersOverTime, whenEachCame } from "./venture-store";
 import { insideATransaction, keptUntilAWrite } from "./writes-seen";
 
 type Db = Pick<Database, "query" | "execute">;
@@ -871,33 +872,37 @@ const groupedLines = (charges: readonly Charge[]): ConsumedLine[] => {
     .filter((line) => line.amount > 0);
 };
 
-/** The last Internal Sale that put each animal where she is, by its price and day: what her owner now paid for her. */
+/** The last Internal Sale that put each animal where she is, by its price and the moment it handed her over
+ *  (handedOverAt): what her owner now paid for her, and from when. */
 export const boughtInOf = async (
   db: Pick<Database, "query">,
   farmId: string
 ): Promise<
   Map<
     string,
-    { toVentureId: string | null; priceMoney: number; soldOn: string }
+    { toVentureId: string | null; priceMoney: number; handedOver: Date }
   >
 > => {
-  const sales = await db.query.internalSale.findMany({
-    where: { farmId },
-    columns: {
-      animalId: true,
-      toVentureId: true,
-      priceMoney: true,
-      soldOn: true,
-    },
-    orderBy: { soldOn: "asc", id: "asc" },
-  });
+  const [sales, came] = await Promise.all([
+    db.query.internalSale.findMany({
+      where: { farmId },
+      columns: {
+        animalId: true,
+        toVentureId: true,
+        priceMoney: true,
+        soldOn: true,
+      },
+      orderBy: { soldOn: "asc", id: "asc" },
+    }),
+    whenEachCame(db, farmId),
+  ]);
   return new Map(
     sales.map((one) => [
       one.animalId,
       {
         toVentureId: one.toVentureId,
         priceMoney: one.priceMoney,
-        soldOn: one.soldOn,
+        handedOver: handedOverAt(one.soldOn, came.get(one.animalId)),
       },
     ])
   );
@@ -912,13 +917,10 @@ const takenOnBy = (
   animal: Pick<FarmAnimal, "id" | "intake">,
   owner: string | null,
   ownedThenBy: OwnedThenBy,
-  boughtIn: { priceMoney: number; soldOn: string } | undefined
+  boughtIn: { priceMoney: number; handedOver: Date } | undefined
 ): { at: Date; priceMoney: number } | null => {
   if (boughtIn) {
-    return {
-      at: startOfFarmDay(boughtIn.soldOn),
-      priceMoney: boughtIn.priceMoney,
-    };
+    return { at: boughtIn.handedOver, priceMoney: boughtIn.priceMoney };
   }
   if (animal.intake) {
     return ownedThenBy(animal.id, animal.intake.arrivedAt) === owner
@@ -942,7 +944,7 @@ export const costToItsOwner = (
   animal: Pick<FarmAnimal, "id" | "intake">,
   owner: string | null,
   /** The Internal Sale that last brought her to this owner, where one did. */
-  boughtIn?: { priceMoney: number; soldOn: string }
+  boughtIn?: { priceMoney: number; handedOver: Date }
 ): number | null => {
   const takenOn = takenOnBy(animal, owner, ownedThenBy, boughtIn);
   if (!takenOn) {

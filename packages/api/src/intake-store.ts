@@ -2,14 +2,18 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
-import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf, handedOverAt } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
 import type { Booking } from "./money-store";
 import { bookMoney, moneySnapshotOf, paymentMethodOf } from "./money-store";
-import { assertCattleBudgetHolds, assertTripIsOpen } from "./venture-store";
+import {
+  assertCattleBudgetHolds,
+  assertTripIsOpen,
+  whenEachCame,
+} from "./venture-store";
 
 /** The arrival as the trail records it: the Animal it made and what the farm paid for it. */
 export const readIntake = async (tx: Tx, animalId: string) => {
@@ -77,6 +81,8 @@ export const herVenturesAround = async (
     columns: { fromVentureId: true, toVentureId: true, soldOn: true },
     orderBy: { soldOn: "asc", id: "asc" },
   });
+  const cameOf = await whenEachCame(tx, farmId, animalId);
+  const came = cameOf.get(animalId);
   const now = await tx.query.animal.findFirst({
     where: { id: animalId, farmId },
     columns: { ownerVentureId: true },
@@ -87,7 +93,8 @@ export const herVenturesAround = async (
       ? (now?.ownerVentureId ?? null)
       : (sales[0]?.fromVentureId ?? null);
   for (const one of sales) {
-    if (startOfFarmDay(one.soldOn) <= at) {
+    // Whose she was as ownersOverTime reads it: from the moment the sale handed her over, never before she came.
+    if (handedOverAt(one.soldOn, came) <= at) {
       then = one.toVentureId;
     }
   }

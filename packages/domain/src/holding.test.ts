@@ -15,6 +15,7 @@ import {
   chargesInHolding,
   chargesOfOwner,
   costsOf,
+  handedOverAt,
   howSheLeft,
 } from "./holding";
 
@@ -72,6 +73,24 @@ const hisCharges = [
 
 const total = (charges: readonly Charge[]) =>
   charges.reduce((sum, one) => sum + one.amount, 0);
+
+describe("the moment an Internal Sale hands her over", () => {
+  it("is the start of its day, for one here before it", () => {
+    expect(
+      handedOverAt("2031-03-10", new Date("2031-01-04T05:00:00.000Z"))
+    ).toEqual(startOfFarmDay("2031-03-10"));
+    expect(handedOverAt("2031-03-10", null)).toEqual(
+      startOfFarmDay("2031-03-10")
+    );
+  });
+
+  it("is the moment after she came, for one sold the day she came: she was her first owner's at the lorry", () => {
+    const came = new Date("2031-03-10T03:00:00.000Z");
+    expect(handedOverAt("2031-03-10", came)).toEqual(
+      new Date("2031-03-10T03:00:00.001Z")
+    );
+  });
+});
 
 describe("the charges inside a Holding", () => {
   it("add up across his Holdings to everything he was charged, nothing lost and nothing twice", () => {

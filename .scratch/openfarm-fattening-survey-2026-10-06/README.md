@@ -37,7 +37,7 @@ Three reviewers looked at growth and feeding, Seasons and Returns, and the scree
 
 | Group | Branch | Status |
 | ----- | ------ | ------ |
-| A     | fix/owner-on-the-day | Done (A3, a same-day round trip, left: rare) |
+| A     | fix/owner-on-the-day, fix/same-day-round-trip | Done (A3 after: one `handedOverAt` moment, never before she came off the lorry or crossed, for whose she was, every Holding and cost to her owner; a Holding handed over stops short of it) |
 | B     | fix/weigh-ins | Done (a first reading is read against the bought weight with the lorry allowed for; four test fixtures weighed bulls far over what they were bought at and were made real) |
 | C     | fix/seasons-and-feed | Done (the female figure is crossbred cows only; a month's Herd Cost counts in her keep by its days inside the window) |
 | D     | fix/fattening-screens | Done (the trip form takes a day and offers the beasts sold that day; Ration lines, band, bank rate and breed share say what is wrong under the box) |

@@ -9,6 +9,7 @@ import {
   addDays,
   EXIT_STATES,
   farmDayOf,
+  handedOverAt,
   hasEnded,
   isRunning,
   isStillBuying,
@@ -677,9 +678,32 @@ export const readInternalSale = async (tx: Tx, farmId: string, id: string) => {
     : null;
 };
 
-/** A sale's moment, never before she came: the instant after her arrival where its day began earlier. */
-const notBeforeShe = (arrived: Date | undefined, from: Date): Date =>
-  arrived && from <= arrived ? new Date(arrived.getTime() + 1) : from;
+/**
+ * When each Animal came to the Fattening side, the earliest an Internal Sale can hand her on (handedOverAt): the day
+ * she crossed from Dairy, for one that did, else the moment she came off the lorry at her Intake. One Animal's alone
+ * where one is named.
+ */
+export const whenEachCame = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  animalId?: string
+): Promise<Map<string, Date>> => {
+  const [arrivals, crossings] = await Promise.all([
+    tx.query.intake.findMany({
+      where: { farmId, animalId },
+      columns: { animalId: true, arrivedAt: true },
+    }),
+    tx.query.fatteningJoining.findMany({
+      where: { farmId, animalId, how: "crossed" },
+      columns: { animalId: true, joinedAt: true },
+    }),
+  ]);
+  return new Map([
+    ...arrivals.map((one) => [one.animalId, one.arrivedAt] as const),
+    // A cow bought in for the dairy came to the Fattening side when she crossed, not off the lorry years before.
+    ...crossings.map((one) => [one.animalId, one.joinedAt] as const),
+  ]);
+};
 
 /**
  * Who owned each Animal, and from when.
@@ -689,14 +713,14 @@ const notBeforeShe = (arrived: Date | undefined, from: Date): Date =>
  * is charged to whoever owned her the day she ate it — not to whoever happens to own her when the
  * Reimbursement is made, which would have one Venture repaying days another one's animals ate.
  *
- * A sale is hers from the start of its day — but never before she came: sold the day she came off the lorry, she was
- * her buyer at the lorry's until just after she arrived, and her Intake is that buyer's.
+ * A sale is hers from the moment it hands her over (handedOverAt): the start of its day, but never before she came —
+ * sold the day she came off the lorry or crossed, she was her first owner's until just after, and her Intake is theirs.
  */
 export const ownersOverTime = async (
   tx: Pick<Tx, "query">,
   farmId: string
 ): Promise<Map<string, { from: Date; ventureId: string | null }[]>> => {
-  const [sales, arrivals] = await Promise.all([
+  const [sales, came] = await Promise.all([
     tx.query.internalSale.findMany({
       where: { farmId },
       columns: {
@@ -707,14 +731,8 @@ export const ownersOverTime = async (
       },
       orderBy: { soldOn: "asc", id: "asc" },
     }),
-    tx.query.intake.findMany({
-      where: { farmId },
-      columns: { animalId: true, arrivedAt: true },
-    }),
+    whenEachCame(tx, farmId),
   ]);
-  const arrivedAt = new Map(
-    arrivals.map((one) => [one.animalId, one.arrivedAt])
-  );
   const byAnimal = new Map<string, typeof sales>();
   for (const one of sales) {
     byAnimal.set(one.animalId, [...(byAnimal.get(one.animalId) ?? []), one]);
@@ -730,7 +748,7 @@ export const ownersOverTime = async (
     owners.set(animalId, [
       { from: new Date(0), ventureId: first.fromVentureId },
       ...hers.map((one) => ({
-        from: notBeforeShe(arrivedAt.get(animalId), startOfFarmDay(one.soldOn)),
+        from: handedOverAt(one.soldOn, came.get(animalId)),
         ventureId: one.toVentureId,
       })),
     ]);

@@ -9,6 +9,7 @@ import {
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { whenEachCame } from "../venture-store";
 import { appRouter } from "./index";
 
 // An animal joining the Farm's Fattening side other than by Intake: a calf walked across from Dairy. She joins the
@@ -210,6 +211,19 @@ describe("a calf walked across from Dairy joins a Season", () => {
       head: 1,
       gaps: [{ tagNumber: calfB, why: "not_priced" }],
     });
+  });
+});
+
+describe("when a crossed animal came to the Fattening side", () => {
+  it("is the moment she crossed, the earliest an Internal Sale can hand her on", async () => {
+    const calf = await scratchDb().query.animal.findFirst({
+      where: { farmId: theFarm().id, tagNumber: calfA },
+      columns: { id: true },
+    });
+    const came = await whenEachCame(scratchDb(), theFarm().id, calf?.id);
+    expect(came.get(calf?.id ?? "")).toEqual(
+      new Date("2030-10-01T01:00:00.000Z")
+    );
   });
 });
 
