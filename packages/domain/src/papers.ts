@@ -186,9 +186,12 @@ export interface DoseGiven {
   givenOn: string;
   /** Null when the product holds nothing for meat. */
   meatClearOn: string | null;
-  /** The Vet who prescribed it, or null for a dose given on a campaign over her Pen. A buyer
+  /** The Vet who prescribed it, or null for a dose given on a campaign over her Pen, or without a Prescription. A buyer
    *  and a slaughter vet are entitled to ask whose prescription it was. */
   prescribedBy: string | null;
+  /** For a dose given without a Prescription, who advised it and why — said, never taken for a campaign. Null for a
+   *  course's dose or a campaign's. */
+  advice: string | null;
   /** Who actually gave it. */
   givenBy: string | null;
 }
@@ -230,11 +233,23 @@ export interface AnimalPassport {
   /** True when a list on this paper is longer than the paper: the farm says so rather than
    *  letting a reader believe they have seen everything. */
   moreThanShown: boolean;
-  /** How she left, when she has. */
+  /** Where she went, when she was sold. */
   leftFor: string | null;
+  /** How she left and when, for a death, a cull or a write-off as Lost; nothing for a Sale or while she is here. */
+  left?: string | null;
   producedBy: string;
   producedAt: string;
 }
+
+/** Where a dose came from: a Vet's course, a campaign over her Pen, or advice without a Prescription. */
+const doseSource = (dose: DoseGiven): string => {
+  if (dose.prescribedBy) {
+    return `ব্যবস্থাপত্র / prescribed by: ${dose.prescribedBy}`;
+  }
+  return dose.advice === null
+    ? "পেনভিত্তিক কর্মসূচি / campaign"
+    : `ব্যবস্থাপত্র ছাড়া / not prescribed: ${dose.advice}`;
+};
 
 /** One dose, with what it holds and where it came from. */
 const doseLine = (dose: DoseGiven): string =>
@@ -243,9 +258,7 @@ const doseLine = (dose: DoseGiven): string =>
     dose.meatClearOn
       ? `মাংসের জন্য মুক্ত / clear for meat: ${dose.meatClearOn}`
       : "মাংসে অপেক্ষা নেই / no meat withdrawal",
-    dose.prescribedBy
-      ? `ব্যবস্থাপত্র / prescribed by: ${dose.prescribedBy}`
-      : "পেনভিত্তিক কর্মসূচি / campaign",
+    doseSource(dose),
     dose.givenBy ? `দিয়েছেন / given by: ${dose.givenBy}` : null,
   ]
     .filter((part) => part !== null)
@@ -295,6 +308,7 @@ export const animalPassport = (passport: AnimalPassport): string =>
         }`,
     passport.arrived ? field("আসার তারিখ", "Arrived", passport.arrived) : null,
     passport.leftFor ? field("যেখানে গেছে", "Left for", passport.leftFor) : null,
+    passport.left ? field("চলে গেছে", "Left", passport.left) : null,
     "",
     "যেসব পেনে ছিল / Pen history",
     ...(passport.pens.length > 0

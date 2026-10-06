@@ -118,3 +118,39 @@ describe("an animal who dies while missing", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("the movement log", () => {
+  it("says an animal written off as Lost leaving, and found coming back", async () => {
+    const heifer = await aHeifer();
+    const manager = await as("manager", "2068-04-01T04:00:00.000Z");
+    await manager.client.animals.notFound({ tagNumber: heifer.tagNumber });
+    const owner = await as("owner", "2068-04-15T04:00:00.000Z");
+    await owner.client.animals.writeOff({
+      tagNumber: heifer.tagNumber,
+      ...LOST,
+    });
+    const later = await as("owner", "2068-04-20T04:00:00.000Z");
+    await later.client.animals.found({ tagNumber: heifer.tagNumber });
+    // A register for an inspector is written under the farm's registration.
+    const keeper = await as("manager", "2068-04-20T04:00:00.000Z");
+    const identity = await keeper.client.farm.identity();
+    if (identity.registrationMissing) {
+      await keeper.client.farm.setIdentity({
+        registrationNumber: "DLS/SAV/2068/০০১",
+      });
+    }
+    const reading = await as("owner", "2068-04-21T04:00:00.000Z");
+    const log = await reading.client.inspectorView.print({
+      register: "movement_log",
+      format: "csv",
+      from: "2068-04-01",
+      to: "2068-04-30",
+    });
+    const kinds = (log.csv ?? "")
+      .split("\r\n")
+      .map((row) => row.split(","))
+      .filter(([, tag]) => tag === heifer.tagNumber)
+      .map((row) => row[2]);
+    expect(kinds).toEqual(["lost", "found"]);
+  });
+});

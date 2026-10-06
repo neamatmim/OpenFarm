@@ -267,12 +267,14 @@ type HerDose = Awaited<ReturnType<typeof herDoses>>[number];
  * raised there reach the dose by being written onto it (`reachBackWithdrawalDays`). The product's own are read only
  * for a dose that somehow kept none.
  */
-export const milkDaysOf = (
-  dose: Pick<HerDose, "milkWithdrawalDays" | "product">
-) => dose.milkWithdrawalDays ?? dose.product.milkWithdrawalDays;
-export const meatDaysOf = (
-  dose: Pick<HerDose, "meatWithdrawalDays" | "product">
-) => dose.meatWithdrawalDays ?? dose.product.meatWithdrawalDays;
+export const milkDaysOf = (dose: {
+  milkWithdrawalDays: number | null;
+  product: { milkWithdrawalDays: number | null };
+}) => dose.milkWithdrawalDays ?? dose.product.milkWithdrawalDays;
+export const meatDaysOf = (dose: {
+  meatWithdrawalDays: number | null;
+  product: { meatWithdrawalDays: number | null };
+}) => dose.meatWithdrawalDays ?? dose.product.meatWithdrawalDays;
 
 /**
  * Each dose's hold on her milk, from when it was given to when its days run out: what tells the gate whether a

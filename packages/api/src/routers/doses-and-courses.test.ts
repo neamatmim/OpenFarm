@@ -229,3 +229,30 @@ describe("a dose not prescribed", () => {
     expect(told.filter((one) => one.lotNumber === "SOON-1")).toHaveLength(1);
   });
 });
+
+describe("the treatment register", () => {
+  it("says a course the Vet stopped is stopped, not abandoned", async () => {
+    const clock = new FakeClock("2033-04-01T15:00:00.000Z");
+    const { heifer, vet, course } = await onACourse(clock, 3);
+    await record(clock, heifer.tagNumber, 1);
+    await vet.client.prescriptions.stop({ id: course.id, reason: "সেরে গেছে" });
+    const keeper = await createTestClient(appRouter, { as: "manager", clock });
+    const identity = await keeper.client.farm.identity();
+    if (identity.registrationMissing) {
+      await keeper.client.farm.setIdentity({
+        registrationNumber: "DLS/SAV/2033/০০১",
+      });
+    }
+    const reader = await createTestClient(appRouter, { as: "owner", clock });
+    const register = await reader.client.inspectorView.print({
+      register: "treatment_register",
+      format: "csv",
+      from: "2033-04-01",
+      to: "2033-04-30",
+    });
+    const hers = (register.csv ?? "")
+      .split("\r\n")
+      .filter((row) => row.includes(heifer.tagNumber));
+    expect(hers.join("\n")).toContain("stopped");
+  });
+});

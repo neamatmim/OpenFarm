@@ -47,6 +47,6 @@ Three reviewers each took one part: the money reports, Returns and Ventures' pap
 | Group | Branch | Status |
 | ----- | ------ | ------ |
 | A     | fix/void-guards | Done (a Sale or death void refused once her Venture's Settlement is approved — `already_approved`; a cash Sale's void refused once deposited — `money_moved_since`; a bank-paid Venture Sale's movement moves with a corrected day; no exit before the Internal Sale that made her the new owner's — `before_she_was_here`. The death's void check has no test of its own: an approved Venture has no live animal to kill) |
-| B     |        |        |
+| B     | fix/papers-registers | Done (`doseWords` reads the dose's own days through `meatDaysOf`; a dose not prescribed is said with its advice, never as a campaign; the movement log has `lost` and `found`; the passport says her sex in Bangla (`sexWords`) and how she left by a death, a cull or a write-off (`leftWords`); the treatment register's course says it was stopped) |
 | C     |        |        |
 | D     |        |        |
