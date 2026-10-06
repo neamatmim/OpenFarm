@@ -201,6 +201,8 @@ export interface Context {
     quietFrom: string;
     quietUntil: string;
     alertsSweptFrom: Date | null;
+    /** The last farm day whose scheduled work was raised (`theDaysWork`). */
+    workRaisedOn: string | null;
   } | null;
   person: Person | null;
   /** Roles the signed-in person holds on the Farm; empty when signed out or disabled. On a Shed Phone, Barn Staff

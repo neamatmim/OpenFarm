@@ -85,7 +85,7 @@ const EXAMPLE: NoticeFacts = {
     month: "2038-03",
     owedMoney: 41_250,
   },
-  entry_rejected: { count: 2, reason: "পশুটি আর খামারে নেই" },
+  entry_rejected: { count: 2, reason: "পশুটি আর খামারে নেই", why: "wrong" },
   day_not_turning: { since: "2038-03-01T00:00:00.000Z" },
   backup_overdue: { since: "2038-03-01T00:00:00.000Z" },
   lot_expiring: {
@@ -300,6 +300,36 @@ describe("what a Notice's words are filled with", () => {
     expect(noticeFilling("lot_expired", EXAMPLE.lot_expired, "en").left).toBe(
       "12.5 kg"
     );
+  });
+});
+
+describe("an entry the farm would not take", () => {
+  it("says why in the reader's words, never the server's English", () => {
+    const said = translate(
+      "bn",
+      "alerts.entryRejected",
+      noticeFilling(
+        "entry_rejected",
+        {
+          count: 1,
+          reason: "sequence 7 is already used by another entry",
+          why: "wrong",
+        },
+        "bn"
+      )
+    );
+    expect(said).not.toMatch(/[A-Za-z0-9]/u);
+    // And one raised before the farm kept why, with only the server's English: said as the farm would say it now.
+    const older = translate(
+      "bn",
+      "alerts.entryRejected",
+      noticeFilling(
+        "entry_rejected",
+        { count: 1, reason: "sequence 7 is already used by another entry" },
+        "bn"
+      )
+    );
+    expect(older).not.toMatch(/[A-Za-z0-9]/u);
   });
 });
 

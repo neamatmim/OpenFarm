@@ -297,6 +297,10 @@ export const farm = pgTable("farm", {
    *  this instant has been said; older work lives on the Overdue list, not in anyone's
    *  notifications. Null until the first sweep. */
   alertsSweptFrom: timestamp("alerts_swept_from", { withTimezone: true }),
+  /** The last farm day whose scheduled work has been raised, `YYYY-MM-DD`: a day after it and before today went by
+   *  unturned — the server down — and its work is raised on the next turn, already late. Null until the first turn,
+   *  which catches up nothing. */
+  workRaisedOn: text("work_raised_on"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

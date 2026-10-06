@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "work_raised_on" text;

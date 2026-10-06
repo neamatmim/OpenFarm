@@ -432,7 +432,8 @@ describe("review findings", () => {
 
   it("records against the Alert what became of telling somebody", async () => {
     const post = listeningPost();
-    const { instance, clock } = await lateWork("2027-03-14");
+    // After every other day this file turns: a turn catches up the days it missed, and an earlier one must not.
+    const { instance, clock } = await lateWork("2027-03-25");
     const manager = await createTestClient(appRouter, {
       as: "manager",
       clock,
@@ -444,7 +445,7 @@ describe("review findings", () => {
       auth: "secret",
     });
 
-    clock.set(after("2027-03-14", 45));
+    clock.set(after("2027-03-25", 45));
     const sweeper = await createTestClient(appRouter, {
       as: "manager",
       clock,

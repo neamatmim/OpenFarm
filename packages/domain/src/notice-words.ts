@@ -19,6 +19,18 @@ const MINUTES_PER_HOUR = 60;
 export const hoursLate = (minutes: number): number =>
   Math.max(1, Math.round(minutes / MINUTES_PER_HOUR));
 
+/** Why an entry was not taken, as its notice says it. */
+const ENTRY_REFUSED_WHY = {
+  wrong: {
+    bn: "লেখা যেভাবে ছিল সেভাবে নেওয়া যায়নি; কারণ ফোনের পাঠানো তালিকায় আছে",
+    en: "it could not be taken as written; the phone's sent list says why",
+  },
+  not_yours: {
+    bn: "এটি লেখা আপনার কাজ নয়",
+    en: "it was not yours to record",
+  },
+} as const satisfies Record<"wrong" | "not_yours", Record<Language, string>>;
+
 /** A name the farm keeps in both languages, in the reader's — the Bangla where no English was written. */
 const named = (bn: unknown, en: unknown, language: Language) =>
   String((language === "bn" ? bn : en) ?? bn ?? "");
@@ -276,9 +288,11 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     // Whole taka, as the sheet it opens says the transfer: paisa in one and not the other read as two figures.
     amount: Math.round(Number(facts.owedMoney)),
   }),
-  entry_rejected: (facts) => ({
+  // Why, in the reader's own words: the server's message is English for a log, and the phone's Outbox says each
+  // entry's own reason.
+  entry_rejected: (facts, language) => ({
     count: Number(facts.count),
-    reason: facts.reason,
+    reason: ENTRY_REFUSED_WHY[facts.why ?? "wrong"][language],
   }),
   day_not_turning: (facts, language) => ({
     since: saidDate(facts.since, language, "dateTime"),

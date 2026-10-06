@@ -225,7 +225,13 @@ export interface NoticeFacts {
     /** What the transfer comes to: the month's own figure and every line it carries. */
     owedMoney: number;
   };
-  entry_rejected: { count: number; reason: string };
+  /** `reason` is the server's own message, kept for the trail; `why` is what the notice says — missing from one raised
+   *  before it was kept, which is said as `wrong`. */
+  entry_rejected: {
+    count: number;
+    reason: string;
+    why?: "wrong" | "not_yours";
+  };
   /** When the Day Turning last turned whole, as an ISO instant: the screen says it in the reader's own date. */
   day_not_turning: { since: string };
   /** When a copy last succeeded — or, for a farm whose copies have never once worked, when the first was tried. */

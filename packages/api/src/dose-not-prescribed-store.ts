@@ -96,7 +96,7 @@ export const recordDoseNotPrescribed = async (
     learntAt: now,
     createdAt: now,
   });
-  await recomputeWithdrawal(tx, farmId, her.id);
+  await recomputeWithdrawal(tx, farmId, her.id, now);
   await tellIfItsLotHadExpired(tx, farmId, id, now);
   return { id, animalId: her.id };
 };
