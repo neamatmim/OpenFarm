@@ -876,6 +876,25 @@ describe("a bull sold to a Venture the day he arrived", () => {
       })
     ).rejects.toMatchObject({ data: { refusal: "sold_before_she_came" } });
   });
+
+  it("is refused a sale dated on a day that has not come yet", async () => {
+    // A day typed ten days on would make him the Venture's at once, and his death before that day unsayable.
+    const his = await bull("2047-10-06T03:00:00.000Z");
+    await weigh("2047-10-06", [[his.tagNumber, 180]]);
+    const owner = await as("owner", "2047-10-06T10:00:00.000Z");
+    await expect(
+      owner.client.ventures.sellInternally({
+        tagNumber: his.tagNumber,
+        toVentureId: ventureId,
+        rateMoneyPerKg: 400,
+        note: `পরের তারিখে ${suffix}`,
+        soldOn: "2047-10-16",
+        paymentMethod: "bank",
+        reference: `INT-AHEAD-${suffix}`,
+        priceMoney: 72_000,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "sold_in_the_future" } });
+  });
 });
 
 describe("a bull sold to a Venture and bought back the day he arrived", () => {

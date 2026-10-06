@@ -316,6 +316,34 @@ describe("a Sale put right", () => {
     const [booked] = await bookedFor(sold.id);
     expect(booked).toMatchObject({ amountMoney: 105_000 });
   });
+
+  it("refuses her day moved past the day he promised to pay by", async () => {
+    // Sold on the 10th with the rest promised by the 15th, written up on the 20th; she cannot have left on the 18th
+    // with a promise that came before it.
+    const bull = await buy("2048-03-02T06:20:00.000Z");
+    const manager = await as("manager", "2048-03-20T06:00:00.000Z");
+    const soldAt = new Date("2048-03-10T06:00:00.000Z");
+    const sold = await manager.client.sales.record({
+      tagNumber: bull.tagNumber,
+      ...aTrader,
+      priceMoney: 100_000,
+      paidNowMoney: 60_000,
+      promisedBy: "2048-03-15",
+      soldAt,
+    });
+    await expect(
+      manager.client.sales.correct({
+        id: sold.id,
+        reason: "আসলে ১৮ তারিখে গিয়েছিল",
+        changes: {
+          soldAt: {
+            from: soldAt.toISOString(),
+            to: new Date("2048-03-18T06:00:00.000Z"),
+          },
+        },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "promise_before_it_left" } });
+  });
 });
 
 describe("the receipt", () => {

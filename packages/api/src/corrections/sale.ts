@@ -1,7 +1,13 @@
 import { eq, inArray } from "@OpenFarm/db/operators";
-import { sale } from "@OpenFarm/db/schema/fattening";
+import { sale, sellingTripAnimal } from "@OpenFarm/db/schema/fattening";
 import { moneyEvent, moneyReceipt } from "@OpenFarm/db/schema/money";
-import { receivablePutRight, farmDayOf, paidAtTheGate } from "@OpenFarm/domain";
+import { sellingTrip } from "@OpenFarm/db/schema/trip";
+import {
+  receivablePutRight,
+  farmDayOf,
+  paidAtTheGate,
+  underMeatWithdrawal,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -151,6 +157,60 @@ const voidTheSale = async (
   );
 };
 
+/**
+ * Moves the day she left, asking of the new day what the Sale was asked when written: not one still to come, not inside
+ * her meat Withdrawal, not before a Selling Trip that carried her, and not before she was here.
+ */
+const moveTheDay = async (
+  tx: Tx,
+  row: { id: string; farmId: string; animalId: string },
+  soldAt: Date,
+  now: Date
+) => {
+  if (soldAt > now) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A Sale cannot be on a day that has not come yet",
+      data: { refusal: "sold_in_the_future" },
+    });
+  }
+  // The gate the Sale was written through is asked again about the day it moves to: a Sale written up after her
+  // days and corrected back into them is the back-dating the gate exists to stop (`sales.record`).
+  const hers = await tx.query.animal.findFirst({
+    where: { id: row.animalId },
+    columns: { meatWithdrawalUntil: true },
+  });
+  if (hers && underMeatWithdrawal(hers, soldAt)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "On that day she was still inside her meat withdrawal",
+      data: { refusal: "inside_withdrawal_that_day" },
+    });
+  }
+  // A lorry that went to market after the day she is now said to have left could not have carried her.
+  const lorries = await tx
+    .select({ wentOn: sellingTrip.wentOn })
+    .from(sellingTripAnimal)
+    .innerJoin(sellingTrip, eq(sellingTrip.id, sellingTripAnimal.sellingTripId))
+    .where(eq(sellingTripAnimal.animalId, row.animalId));
+  const leftOn = farmDayOf(soldAt);
+  if (lorries.some((one) => farmDayOf(one.wentOn) > leftOn)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "She was on a Selling Trip after that day",
+      data: { refusal: "left_before_her_lorry" },
+    });
+  }
+  // Her leaving moves with it — not before she was here (herd-store) — and the money is booked on the day again.
+  await correctHowSheLeft(
+    tx,
+    row.farmId,
+    { id: row.animalId },
+    {
+      at: soldAt,
+      now,
+    }
+  );
+  await tx.update(sale).set({ soldAt }).where(eq(sale.id, row.id));
+};
+
 /** What a Sale's Correction may change: what she fetched, what she weighed on the day, who bought her, how he paid,
  *  what he paid there and then, the day he promised to pay the rest by, and what the broker took. */
 export const saleCorrectionInput = correctionInput({
@@ -212,26 +272,7 @@ export const saleCorrection: CorrectionKind<
       return;
     }
     if (to.soldAt) {
-      if (to.soldAt > now) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "A Sale cannot be on a day that has not come yet",
-          data: { refusal: "sold_in_the_future" },
-        });
-      }
-      // Her leaving moves with it — not before she was here (herd-store) — and the money is booked on the day again.
-      await correctHowSheLeft(
-        tx,
-        row.farmId,
-        { id: row.animalId },
-        {
-          at: to.soldAt,
-          now,
-        }
-      );
-      await tx
-        .update(sale)
-        .set({ soldAt: to.soldAt })
-        .where(eq(sale.id, row.id));
+      await moveTheDay(tx, row, to.soldAt, now);
     }
     // What he paid stands unless the Correction says otherwise: a price mistyped is not cash handed back.
     const receivable = receivableOrRefuse(
@@ -244,7 +285,8 @@ export const saleCorrection: CorrectionKind<
         worthMoney: to.priceMoney ?? row.priceMoney,
         paidNowMoney: to.paidNowMoney,
         promisedBy: to.promisedBy,
-        leftOn: farmDayOf(row.soldAt),
+        // The day she left as corrected: a promise of payment before she went is no promise.
+        leftOn: farmDayOf(to.soldAt ?? row.soldAt),
         promiseRequired: true,
       })
     );
@@ -299,9 +341,11 @@ export const saleCorrection: CorrectionKind<
         to.heldBy
       )
     );
-    // A price, a broker's fee or her weight put right may take her under her cost or the market; told once about the
-    // Sale, as when it was made.
+    // A price, a broker's fee, her weight or her day put right may take her under her cost or the market — a later day
+    // has more of her keep in her cost, and another last weighing before it; told once about the Sale, as when it was
+    // made.
     const worthMoved =
+      to.soldAt !== undefined ||
       to.priceMoney !== undefined ||
       to.brokerMoney !== undefined ||
       to.weightKg !== undefined;

@@ -94,6 +94,13 @@ export const recordInternalSale = async (
 ): Promise<{ id: string; weightKg: number; priceMoney: number }> => {
   const { now, actorId } = booking;
   const farmId = booking.farm.id;
+  // A day that has not come yet: she would be the new owner's at once, and her death or Sale before that day refused.
+  if (hand.soldOn > farmDayOf(now)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "She cannot change hands on a day that has not come yet",
+      data: { refusal: "sold_in_the_future" },
+    });
+  }
   await assertSoldAfterShe(tx, farmId, hand.animalId, hand.soldOn);
   const priceMoney =
     hand.madeGood?.priceMoney ??

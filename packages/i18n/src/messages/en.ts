@@ -1719,6 +1719,8 @@ export const en = {
     "A ration a pen is on still feeds it ({ration}). Change that ration first",
   "refusal.arrivedBeforeTheTrip":
     "She can't have come home before the outing that brought her went. Check the day",
+  "refusal.wentInTheFuture":
+    "A lorry can't have gone on a day that hasn't come yet",
   "refusal.beforeSheWasHere":
     "She wasn't here yet then, or was moved after that time. Check the day and time",
   "refusal.bornInTheFuture": "A birth date can't be in the future",
@@ -1730,6 +1732,10 @@ export const en = {
   "refusal.notOnThatLorry":
     "Not on that day's lorry: {tags}. Only animals still standing, or sold that day, can be",
   "refusal.soldInTheFuture": "A sale can't be on a day that hasn't come yet",
+  "refusal.insideWithdrawalThatDay":
+    "On that day she was still inside her meat withdrawal, so the sale can't be moved there",
+  "refusal.leftBeforeHerLorry":
+    "She went on a selling trip after that day, so she can't have left before it",
   "refusal.moneyMovedSince":
     "Money has moved on this since: the buyer has paid, something was written off, or the venture is settled. Correct it instead",
   "refusal.cannotBeVoided":
@@ -4813,6 +4819,8 @@ export const en = {
   "intake.months": "{months, plural, one {# month} other {# months}}",
   "intake.pen": "Pen",
   "intake.penHint": "It starts in quarantine, in a quarantine pen.",
+  "intake.arrivedAt": "When she came",
+  "intake.arrivedAtHint": "Leave empty if she came off the lorry just now",
   "intake.noQuarantinePen":
     "The farm has no quarantine pen marked yet — a bought animal comes in only through one. Mark a pen as a quarantine pen first.",
   "intake.markAQuarantinePen": "Go to sheds and pens",
@@ -5394,6 +5402,8 @@ export const en = {
   "sale.again": "Use the last buyer and lorry again",
   "sale.noneReady": "Nothing is ready for sale",
   "sale.soldOn": "Sold on",
+  "sale.soldAt": "When she left",
+  "sale.soldAtHint": "Leave empty if she left just now",
   "sale.howSheLeft": "How she left the farm",
   "sale.soldTo": "Buyer",
   "sale.sheetDescription":

@@ -1,3 +1,4 @@
+import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -52,11 +53,16 @@ export const BuyingTripSheet = ({
   const [paymentMethod, setPaymentMethod] =
     useState<IntakeFields["paymentMethod"]>("cash");
   const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
+  const today = farmDayOf(new Date());
+  // The day the lorry went, written up the next morning as often as not. Today is sent as nothing, which the server
+  // reads as now; an earlier day as its first moment, so every beast that came home on it came after it went.
+  const [wentOnDay, setWentOnDay] = useState(today);
   const record = useMutation(
     orpc.buyingTrips.record.mutationOptions({
       onError: refused,
       onSuccess: (made) => {
         setOuting(NOTHING_YET);
+        setWentOnDay(today);
         onOpenChange(false);
         // The arrival being written up came home on it; the ones after pick it from the list.
         onRecorded(made.id);
@@ -71,6 +77,7 @@ export const BuyingTripSheet = ({
       onSubmit={() =>
         record.mutate({
           wentTo: outing.wentTo,
+          ...(wentOnDay === today ? {} : { wentOn: startOfFarmDay(wentOnDay) }),
           brokerMoney: orNothing(outing.brokerMoney),
           transportMoney: orNothing(outing.transportMoney),
           keepMoney: orNothing(outing.keepMoney),
@@ -96,6 +103,16 @@ export const BuyingTripSheet = ({
           }
           required
           value={outing.wentTo}
+        />
+      </FormField>
+      <FormField id="trip-went-on" label={t("selling.wentOn")}>
+        <Input
+          id="trip-went-on"
+          max={today}
+          onChange={(event) => setWentOnDay(event.target.value || today)}
+          required
+          type="date"
+          value={wentOnDay}
         />
       </FormField>
       <div className="grid gap-4 sm:grid-cols-3">

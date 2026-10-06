@@ -10,6 +10,7 @@ import { Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
+import { fieldOfMoment } from "@/lib/farm-moment";
 import { useMoney } from "@/lib/money";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -148,6 +149,19 @@ export const AnimalSection = ({
             </option>
           ))}
         </NativeSelect>
+      </FormField>
+      <FormField
+        hint={t("intake.arrivedAtHint")}
+        id="intake-arrived-at"
+        label={t("intake.arrivedAt")}
+      >
+        <Input
+          id="intake-arrived-at"
+          max={fieldOfMoment(new Date().toISOString())}
+          onChange={(event) => onEdit({ arrivedAt: event.target.value })}
+          type="datetime-local"
+          value={fields.arrivedAt}
+        />
       </FormField>
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField id="intake-sex" label={t("animals.sex")}>

@@ -1598,6 +1598,7 @@ export const bn: Record<MessageKey, string> = {
     "একটি পেন যে রেশনে আছে তাতে এটি এখনো খাওয়ানো হয় ({ration})। আগে সেই রেশন বদলান",
   "refusal.arrivedBeforeTheTrip":
     "যে যাত্রায় এসেছে তা যাওয়ার আগে সে আসতে পারে না। দিনটি দেখে নিন",
+  "refusal.wentInTheFuture": "এমন দিনে ট্রাক যেতে পারে না যা এখনো আসেনি",
   "refusal.beforeSheWasHere":
     "তখন সে এখানে ছিল না, বা তার পরে তাকে সরানো হয়েছে। দিন ও সময় দেখে নিন",
   "refusal.bornInTheFuture": "জন্মের দিন ভবিষ্যতে হতে পারে না",
@@ -1609,6 +1610,10 @@ export const bn: Record<MessageKey, string> = {
   "refusal.notOnThatLorry":
     "সেদিনের ট্রাকে ছিল না: {tags}। শুধু যারা এখনো আছে, বা সেদিন বিক্রি হয়েছে, তারাই থাকতে পারে",
   "refusal.soldInTheFuture": "বিক্রি এমন দিনে হতে পারে না যা এখনো আসেনি",
+  "refusal.insideWithdrawalThatDay":
+    "সেদিন তার মাংস ওষুধের জন্য আটকে ছিল, তাই বিক্রয় সেই দিনে সরানো যাবে না",
+  "refusal.leftBeforeHerLorry":
+    "সে ওই দিনের পরে হাটে নেওয়ার যাত্রায় গিয়েছিল, তাই তার আগে চলে যেতে পারে না",
   "refusal.moneyMovedSince":
     "এরপর টাকা নড়েছে: ক্রেতা টাকা দিয়েছেন, কিছু বাদ দেওয়া হয়েছে, বা উদ্যোগ নিষ্পত্তি হয়েছে। এর বদলে সংশোধন করুন",
   "refusal.cannotBeVoided":
@@ -4505,6 +4510,8 @@ export const bn: Record<MessageKey, string> = {
   "intake.months": "{months} মাস",
   "intake.pen": "পেন",
   "intake.penHint": "পশুটি প্রথমে কোয়ারেন্টিনে থাকবে, কোয়ারেন্টিন পেনে।",
+  "intake.arrivedAt": "কখন এল",
+  "intake.arrivedAtHint": "এইমাত্র ট্রাক থেকে নামলে খালি রাখুন",
   "intake.noQuarantinePen":
     "খামারে এখনো কোনো কোয়ারেন্টিন পেন চিহ্নিত নেই — কেনা পশু কোয়ারেন্টিন পেনেই ওঠে। আগে একটি পেন কোয়ারেন্টিন পেন হিসেবে চিহ্নিত করুন।",
   "intake.markAQuarantinePen": "শেড ও পেনে যান",
@@ -5053,6 +5060,8 @@ export const bn: Record<MessageKey, string> = {
   "sale.again": "শেষ ক্রেতা ও গাড়ি আবার নিন",
   "sale.noneReady": "বিক্রয়ের জন্য প্রস্তুত কোনো পশু নেই",
   "sale.soldOn": "বিক্রয়ের তারিখ",
+  "sale.soldAt": "কখন গেল",
+  "sale.soldAtHint": "এইমাত্র গেলে খালি রাখুন",
   "sale.howSheLeft": "যেভাবে খামার ছেড়েছে",
   "sale.soldTo": "ক্রেতা",
   "sale.sheetDescription":

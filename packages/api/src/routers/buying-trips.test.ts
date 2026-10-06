@@ -170,7 +170,59 @@ describe("a Buying Trip", () => {
         wentOn: new Date("2041-02-01T04:00:00.000Z"),
         paymentMethod: "cash",
       })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "went_in_the_future" },
+    });
+  });
+
+  it("puts right the day a lorry written up the next morning went, and its money with it", async () => {
+    const manager = await as("manager", "2041-01-16T04:00:00.000Z");
+    const trip = await manager.client.buyingTrips.record({
+      wentTo: `পরদিন লেখা ${suffix}`,
+      transportMoney: 3000,
+      paymentMethod: "cash",
+    });
+    const wentOn = new Date("2041-01-15T03:00:00.000Z");
+    await manager.client.buyingTrips.correct({
+      id: trip.id,
+      reason: "গতকাল গিয়েছিল",
+      changes: {
+        wentOn: { from: "2041-01-16T04:00:00.000Z", to: wentOn },
+      },
+    });
+    const money = await manager.client.money.list(PERIOD);
+    expect(money.events.filter((one) => one.sourceId === trip.id)).toEqual([
+      expect.objectContaining({ amountMoney: 3000, occurredAt: wentOn }),
+    ]);
+
+    // Not past the day a bull it brought came home, and not to a day still to come.
+    await buy(manager, 50_000, trip.id);
+    await expect(
+      manager.client.buyingTrips.correct({
+        id: trip.id,
+        reason: "আসলে পরশু",
+        changes: {
+          wentOn: {
+            from: wentOn.toISOString(),
+            to: new Date("2041-01-17T03:00:00.000Z"),
+          },
+        },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "went_in_the_future" } });
+    const later = await as("manager", "2041-01-20T04:00:00.000Z");
+    await expect(
+      later.client.buyingTrips.correct({
+        id: trip.id,
+        reason: "আসলে ১৮ তারিখ",
+        changes: {
+          wentOn: {
+            from: wentOn.toISOString(),
+            to: new Date("2041-01-18T03:00:00.000Z"),
+          },
+        },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "arrived_before_the_trip" } });
   });
 
   it("charges a Trip that brought nobody home to nobody, and says so", async () => {

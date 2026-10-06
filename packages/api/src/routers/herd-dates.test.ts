@@ -94,6 +94,28 @@ describe("an Intake written up a day late", () => {
       aBull("2069-01-20T05:00:00.000Z", "2069-01-10T04:00:00.000Z", trip.id)
     ).rejects.toMatchObject({ data: { refusal: "arrived_before_the_trip" } });
   });
+
+  it("is refused a Correction onto an outing that went after he came", async () => {
+    const bull = await aBull(
+      "2069-01-22T04:00:00.000Z",
+      "2069-01-21T04:00:00.000Z"
+    );
+    const manager = await as("manager", "2069-01-25T04:00:00.000Z");
+    const later = await manager.client.buyingTrips.record({
+      wentTo: `পরের হাট ${suffix}`,
+      brokerMoney: 0,
+      transportMoney: 1000,
+      keepMoney: 0,
+      paymentMethod: "cash",
+    });
+    await expect(
+      manager.client.intakes.correct({
+        id: bull.intakeId,
+        reason: "এই ট্রিপে এসেছিল",
+        changes: { buyingTrip: { from: null, to: later.id } },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "arrived_before_the_trip" } });
+  });
 });
 
 describe("leaving before coming", () => {

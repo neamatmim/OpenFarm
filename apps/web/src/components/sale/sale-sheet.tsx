@@ -23,6 +23,7 @@ import { useShrinkWords } from "@/components/sale/shrink-words";
 import { SearchablePicker } from "@/components/searchable-picker";
 import { WhoseHandField } from "@/components/whose-hand";
 import { useLanguage } from "@/i18n/language-provider";
+import { fieldOfMoment, momentOfField } from "@/lib/farm-moment";
 import { usePenNames } from "@/lib/pen-names";
 import type { ReceivableTyped } from "@/lib/receivable";
 import { NO_RECEIVABLE, receivableSent, somethingPaid } from "@/lib/receivable";
@@ -59,6 +60,8 @@ export interface SaleAnswers {
   receivable: ReceivableTyped;
   /** What the broker at the livestock market took for this sale, where one was used; empty where none was. */
   brokerMoney: string;
+  /** When she left, in a date-and-time box: a Sale written up the next morning keeps its own day. Empty for now. */
+  soldAt: string;
 }
 
 export const NOTHING_TYPED: SaleAnswers = {
@@ -77,6 +80,7 @@ export const NOTHING_TYPED: SaleAnswers = {
   account: NO_ACCOUNT,
   receivable: NO_RECEIVABLE,
   brokerMoney: "",
+  soldAt: "",
 };
 
 /** A part of the sheet with a name, and — for the buyer — the button that fills it in from the last sale. */
@@ -226,6 +230,19 @@ const AnimalPart = ({
           {t(typing ? "sale.fromList" : "sale.otherAnimal")}
         </Button>
       )}
+      <FormField
+        hint={t("sale.soldAtHint")}
+        id="sale-sold-at"
+        label={t("sale.soldAt")}
+      >
+        <Input
+          id="sale-sold-at"
+          max={fieldOfMoment(new Date().toISOString())}
+          onChange={(event) => onEdit({ soldAt: event.target.value })}
+          type="datetime-local"
+          value={answers.soldAt}
+        />
+      </FormField>
     </SheetPart>
   );
 };
@@ -418,6 +435,10 @@ export const SaleSheet = ({
             : {}),
           ...receivableSent(answers.receivable),
           ...brokerSent(answers),
+          // Read as the farm's day and time, not the phone's (lib/farm-moment); the Withdrawal gate is asked about it.
+          ...(answers.soldAt
+            ? { soldAt: new Date(momentOfField(answers.soldAt)) }
+            : {}),
         })
       }
       open={open}
