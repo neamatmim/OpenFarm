@@ -1,5 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
+import type { SIDES } from "@OpenFarm/db/schema/herd";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import { wageDraw, wageDrawTaken } from "@OpenFarm/db/schema/money";
 import { roundMoney } from "@OpenFarm/domain";
@@ -118,6 +119,8 @@ export const recordWageDraw = async (
     paymentMethod: PaymentMethod | undefined;
     /** Whose hand the cash came out of, where the writer named another's. */
     heldBy?: string;
+    /** The Side the person works on, as their wage says it: a draw is part of it. */
+    side?: (typeof SIDES)[number] | null;
   }
 ): Promise<{ id: string }> => {
   const id = uuidv7(booking.now);
@@ -140,6 +143,7 @@ export const recordWageDraw = async (
     counterpartyId: input.counterpartyId,
     paymentMethod: input.paymentMethod,
     ...(input.heldBy === undefined ? {} : { heldBy: input.heldBy }),
+    side: input.side ?? null,
   });
   return { id };
 };

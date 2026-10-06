@@ -4,7 +4,12 @@ import { counterparty } from "@OpenFarm/db/schema/fattening";
 
 import type { Tx } from "./audit";
 
-/** The trader this farm wrote down by this name, whatever letters were capitalised; the first where two differ only so. */
+/** A name as the farm keeps and compares it: one Unicode form — য় typed as one letter or as য and its nukta is the same
+ *  name — trimmed. */
+const oneForm = (name: string) => name.normalize("NFC").trim();
+
+/** The trader this farm wrote down by this name, whatever letters were capitalised and however the keyboard spelled its
+ *  letters; the first where two differ only so. */
 const knownAs = async (tx: Tx, farmId: string, name: string) => {
   const [known] = await tx
     .select({
@@ -16,7 +21,7 @@ const knownAs = async (tx: Tx, farmId: string, name: string) => {
     .where(
       and(
         eq(counterparty.farmId, farmId),
-        sql`lower(${counterparty.name}) = lower(${name})`
+        sql`lower(normalize(${counterparty.name}, NFC)) = lower(${oneForm(name)})`
       )
     )
     .orderBy(asc(counterparty.createdAt), asc(counterparty.id))
@@ -65,7 +70,8 @@ export const counterpartyNamed = async (
     .values({
       id,
       farmId,
-      name: said.name,
+      // Kept in the one form it is compared in.
+      name: oneForm(said.name),
       address: said.address ?? null,
       phone: said.phone ?? null,
       createdAt: now,

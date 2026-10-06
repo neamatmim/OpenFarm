@@ -189,3 +189,77 @@ describe("a Wage Draw", () => {
     expect(await openOf(name)).toBe(0);
   });
 });
+
+describe("a wage and its draws, however a name is typed", () => {
+  // "মিয়া" typed on two keyboards: য় as one letter, or as য and its nukta — the same name to anybody reading it.
+  const ONE_LETTER = `সেলিম মিয়া ${suffix}`;
+  const TWO_LETTERS = `সেলিম মিয়া ${suffix}`;
+
+  it("is one person: the draw comes off the wage, and the month takes one wage", async () => {
+    await draw(ONE_LETTER, 3000, "2073-10-05");
+    const wage = await payWage(TWO_LETTERS, 12_000, "2073-10", "2073-11-01");
+    expect(wage.drawsTakenMoney).toBe(3000);
+    await expect(
+      payWage(ONE_LETTER, 12_000, "2073-10", "2073-11-02")
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("is judged whole against the Approval Threshold, whatever its draws took off it", async () => {
+    // A 25,000 wage over the farm's 20,000 line, 6,000 of it drawn a month before payday.
+    const name = `জামাল ${suffix}`;
+    await draw(name, 6000, "2073-12-05");
+    const wage = await payWage(name, 25_000, "2073-12", "2074-01-01");
+    const booked = await scratchDb().query.moneyEvent.findFirst({
+      where: { id: wage.id },
+      columns: { amountMoney: true, approval: true },
+    });
+    expect(booked).toMatchObject({ amountMoney: 19_000, approval: "awaiting" });
+  });
+
+  it("asks about a draw written twice, as any money entered by hand is asked", async () => {
+    const name = `কামাল ${suffix}`;
+    await draw(name, 2000, "2074-02-03");
+    await expect(draw(name, 2000, "2074-02-03")).rejects.toMatchObject({
+      data: { refusal: "looks_entered_already" },
+    });
+  });
+});
+
+describe("a Dairy milker's wage, part drawn", () => {
+  it("is the Dairy side's whole, on the accountant's paper as on Costs by Side", async () => {
+    const manager = await as("manager", "2074-04-02T06:00:00.000Z");
+    const identity = await manager.client.farm.identity();
+    if (identity.registrationMissing) {
+      await manager.client.farm.setIdentity({
+        registrationNumber: `DLS/SAV/2074/${suffix}`,
+      });
+    }
+    const name = `দুধের মজুর ${suffix}`;
+    const drawer = await as("manager", "2074-03-10T06:00:00.000Z");
+    await drawer.client.money.drawWage({
+      counterparty: { name },
+      amountMoney: 3000,
+      drawnOn: "2074-03-10",
+      side: "dairy",
+    });
+    const payer = await as("manager", "2074-03-31T06:00:00.000Z");
+    await payer.client.money.enter({
+      categoryId: wagesId,
+      amountMoney: 12_000,
+      occurredOn: "2074-03-31",
+      counterparty: { name },
+      wageMonth: "2074-03",
+      side: "dairy",
+    });
+    const owner = await as("owner", "2074-04-02T06:00:00.000Z");
+    const { summary } = await owner.client.reports.accountantExport({
+      from: "2074-03-01",
+      to: "2074-03-31",
+      format: "paper",
+    });
+    expect(summary?.bySide.find((one) => one.side === null)).toBeUndefined();
+    expect(summary?.bySide.find((one) => one.side === "dairy")).toMatchObject({
+      outMoney: 12_000,
+    });
+  });
+});

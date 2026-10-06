@@ -439,6 +439,8 @@ export const moneyForTheAccountant = async (
   return events.map((one) => {
     const fact = facts.get(factKey(one.source, one.sourceId));
     const byHand = one.source === "by_hand";
+    // A Wage Draw says its own Side, as its wage does: the two are one wage, on one Side.
+    const saysItsSide = byHand || one.source === "wage_draw";
     const { amountMoney } = one;
     return {
       id: one.id,
@@ -453,7 +455,9 @@ export const moneyForTheAccountant = async (
       sourceId: one.sourceId,
       sides: sharesOf(
         amountMoney,
-        byHand ? [{ side: one.side, part: 1 }] : (fact?.sides ?? WHOLE_FARM)
+        saysItsSide
+          ? [{ side: one.side, part: 1 }]
+          : (fact?.sides ?? WHOLE_FARM)
       ),
       reference: byHand ? one.wageMonth : (fact?.reference ?? null),
       transactionId: one.reference,

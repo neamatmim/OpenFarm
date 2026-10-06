@@ -19,6 +19,8 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { SideField } from "@/components/money/side-field";
+import type { SideChoice } from "@/components/money/side-field";
 import { EmptyState } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
@@ -62,6 +64,8 @@ const DrawDialog = ({
   const [note, setNote] = useState("");
   // Whose hand it came out of, where the Owner writes up somebody else's draw: hers where nothing is chosen.
   const [heldBy, setHeldBy] = useState("");
+  // The Side the person works on, as their wage will say it: a draw is part of the wage.
+  const [side, setSide] = useState<SideChoice>("");
   const drawWage = useMutation(
     orpc.money.drawWage.mutationOptions({
       onSuccess: () => {
@@ -88,6 +92,7 @@ const DrawDialog = ({
           ...accountSent(paymentMethod, account),
           ...(note.trim() ? { note: note.trim() } : {}),
           ...(paymentMethod === "cash" && heldBy ? { heldBy } : {}),
+          ...(side ? { side } : {}),
         })
       }
       open={open}
@@ -106,6 +111,7 @@ const DrawDialog = ({
           value={name}
         />
       </FormField>
+      <SideField id="draw-side" onChange={setSide} value={side} />
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField id="draw-amount" label={t("cash.amount")}>
           <Input
@@ -432,6 +438,11 @@ export const WageDrawsTab = () => {
   );
 };
 
+/** A name as the farm finds a person by it: one Unicode form, whatever the capitals — a name typed on another keyboard
+ *  is the same person, whose draws the farm will take off. */
+const asTheFarmReads = (said: string) =>
+  said.normalize("NFC").trim().toLowerCase();
+
 /**
  * On a wage being entered: what the person has drawn ahead and still owes, how much of it this wage takes off, and so
  * what is paid now — and what carries over, where the draws come to more than the wage. Nothing for a person owing none.
@@ -446,7 +457,9 @@ export const WageDrawsNote = ({
   const { t } = useLanguage();
   const asMoney = useMoney();
   const open = useQuery(orpc.money.openDraws.queryOptions());
-  const person = (open.data ?? []).find((one) => one.name === name.trim());
+  const person = (open.data ?? []).find(
+    (one) => asTheFarmReads(one.name) === asTheFarmReads(name)
+  );
   if (!person) {
     return null;
   }
