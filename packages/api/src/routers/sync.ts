@@ -17,8 +17,9 @@ import { entryInput } from "../sync-entries";
 import { batchUnder, fingerprint, sourceKeyFor } from "../sync-store";
 
 /** How long before a PIN reached the farm the work it covers may have been recorded: a PIN entered with no signal
- *  is proved when signal comes back, after the work — within a shift, with room. */
-const PROOF_BEFORE_MS = 24 * 60 * 60 * 1000;
+ *  is proved when signal comes back, after the work — and a phone can be out of signal for days, a weekend in a
+ *  drawer and more, without the work done on it coming back as nobody's. A week. */
+const PROOF_BEFORE_MS = 7 * 24 * 60 * 60 * 1000;
 /** And after the switch ran out, for a phone's clock a little ahead of the farm's. */
 const PROOF_AFTER_MS = 10 * 60 * 1000;
 
@@ -127,6 +128,9 @@ export const syncRouter = {
          *  is exactly what an outbox is for — but how far the phone thinks it is from the
          *  farm, at the same instant, says everything. */
         sentAt: z.coerce.date().optional(),
+        /** The Outbox's own id, kept on the device it lives on: a person on their own laptop and their own phone keeps
+         *  two counts, each starting at one. Left out by a phone from before, which counts as the person. */
+        outboxId: z.string().trim().min(1).max(64).optional(),
         // As much as a phone sends and no more: a request of two hundred photographs is not one a phone ever makes.
         entries: z
           .array(entryInput)
@@ -168,7 +172,7 @@ export const syncRouter = {
 
       const { results, told } = await applyBatch(context.db, context, input, {
         receivedAt,
-        sourceKey: sourceKeyFor(context),
+        sourceKey: sourceKeyFor(context, input.outboxId),
         requestHash,
         recorderFor: recordersFor(context),
       });

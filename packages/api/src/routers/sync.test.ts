@@ -216,6 +216,21 @@ describe("a batch arriving", () => {
     expect(loaded.records).toHaveLength(1);
   });
 
+  it("answers a phone that asks again while its batch is still being applied, rather than refusing the work", async () => {
+    // The first send's answer was lost on a weak signal, and the phone asks again while the farm is still writing it.
+    const { instance, clock, staff } = await session("2027-01-08");
+    const at = clock.now();
+    const batchKey = key();
+    const entries = [milkEntry(instance.id, tagOf(0), 12, at)];
+    const both = await Promise.allSettled([
+      staff.sync.batch({ key: batchKey, entries }),
+      staff.sync.batch({ key: batchKey, entries }),
+    ]);
+    expect(both.map((one) => one.status)).toEqual(["fulfilled", "fulfilled"]);
+    const loaded = await staff.milk.session({ instanceId: instance.id });
+    expect(loaded.records).toHaveLength(1);
+  });
+
   it("refuses the same key carrying different work", async () => {
     const { instance, clock, staff } = await session("2027-01-04");
     const at = clock.now();
@@ -507,15 +522,40 @@ describe("review findings", () => {
       entries: [{ ...milkEntry(instance.id, tagOf(0), 11, at), seq: used }],
     });
 
-    const sent = await staff.sync.batch({
-      key: key(),
-      entries: [{ ...milkEntry(instance.id, tagOf(1), 9, at), seq: used }],
-    });
+    const clashing = { ...milkEntry(instance.id, tagOf(1), 9, at), seq: used };
+    const sent = await staff.sync.batch({ key: key(), entries: [clashing] });
 
     // Two different entries under one number: the phone's own count is wrong, and taking
     // the second would leave the farm unable to say which is which.
     expect(sent.results[0]).toMatchObject({ outcome: "rejected" });
     expect(sent.results[0]?.reason).toContain("already used");
+    // And kept, whole, as every entry the farm could not take is: nothing a person wrote down is lost.
+    const kept = await scratchDb().query.syncEntry.findFirst({
+      where: { id: clashing.id },
+      columns: { outcome: true, payload: true },
+    });
+    expect(kept).toMatchObject({
+      outcome: "rejected",
+      payload: expect.objectContaining({ evidence: [9] }),
+    });
+  });
+
+  it("counts each of a person's own devices apart, so a laptop and a phone may both start at one", async () => {
+    const { instance, clock, staff } = await session("2027-01-27");
+    const at = clock.now();
+    // Each browser's Outbox counts from one; the same number from two of them is two entries, not a clash.
+    const fromLaptop = await staff.sync.batch({
+      key: key(),
+      outboxId: "laptop",
+      entries: [{ ...milkEntry(instance.id, tagOf(0), 11, at), seq: 1 }],
+    });
+    const fromPhone = await staff.sync.batch({
+      key: key(),
+      outboxId: "phone",
+      entries: [{ ...milkEntry(instance.id, tagOf(1), 9, at), seq: 1 }],
+    });
+    expect(fromLaptop.results[0]?.outcome).toBe("applied");
+    expect(fromPhone.results[0]?.outcome).toBe("applied");
   });
 
   it("leaves nothing behind when an entry fails halfway through", async () => {

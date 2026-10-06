@@ -495,6 +495,8 @@ export const createContext = async ({
     return buildContext({
       session: null,
       device: resolved?.device ?? null,
+      // Carried, not dropped: a phone the Manager took off the farm's list is told so, rather than read as no phone.
+      ...(resolved ? { deviceStatus: resolved.status } : {}),
       callerAddress,
       clock,
       db,

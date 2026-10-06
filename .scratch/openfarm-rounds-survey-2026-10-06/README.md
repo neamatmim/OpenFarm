@@ -55,5 +55,5 @@ Three reviewers each took one area: scheduling and the life of a piece of work, 
 | ----- | ------ | ------ |
 | A     | fix/rounds-scheduling | Done (renewal keyed by the expiry day, none raised while one is open, due at the end of its last good day; a new Version calls off the old one's unstarted work still to come and raises nothing already late; `sop_definition.restored_at`, migration 20261006073911; put-off work not raised under a retired SOP — its due time left exact, as tested) |
 | B     | fix/rounds-steps | Done (`skip_reason_not_offered` where the Step gives reasons; `work_about_another_animal`; a Step's feeding/counts/renewal kept as `step_completion.extras`, migration 20261006075859, so a second, different report is refused; work about her takes her after she has gone) |
-| C     |        |        |
+| C     | fix/rounds-phone | Done (a revoked phone is told `phone_revoked` and forgets its token; the PIN goes to the farm first and only no signal falls back to the roster; a retry mid-apply is answered from the stored batch; keep-awake extends only the open stint; a clashing entry is kept under its own key, and each Outbox sends an `outboxId`; offline PIN proof covers a week) |
 | D     |        |        |

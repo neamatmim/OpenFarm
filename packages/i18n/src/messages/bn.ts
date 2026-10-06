@@ -1575,6 +1575,12 @@ export const bn: Record<MessageKey, string> = {
   "refusal.workAboutAnotherAnimal": "এই কাজ অন্য একটি পশুর জন্য: সেটির নামেই লিখুন",
   "refusal.skipReasonNotOffered":
     "এটা এই ধাপ বাদ দেওয়ার কারণগুলোর একটি নয়: তালিকা থেকে একটি বেছে নিন",
+  "refusal.phoneRevoked":
+    "এই ফোন আর খামারের নয়। আবার যুক্ত করতে ম্যানেজারের কাছে কোড চান",
+  "refusal.tooManyPins":
+    "অনেকবার ভুল পিন: পনেরো মিনিট অপেক্ষা করুন, নয়তো ম্যানেজারকে বলুন",
+  "refusal.cannotWorkHere": "এই ব্যক্তি এখন এই খামারে কাজ করতে পারেন না",
+  "refusal.staffOnlyOnShedPhone": "শেডের ফোনে শুধু খামারকর্মীরা কাজ করেন",
   "refusal.calvedLately":
     "সে এত সম্প্রতি বাচ্চা দিয়েছে যে আবার দিতে পারে না: এটা একই বাচ্চা দেওয়া দুবার লেখা, নয়তো জমজের একটি — জমজ একটাই বাচ্চা দেওয়া, দুটো বাছুরসহ",
   "refusal.calvedBeforeHerService":

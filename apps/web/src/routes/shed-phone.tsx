@@ -49,6 +49,7 @@ import {
 import { useFarmName } from "@/lib/farm-name";
 import { initialsOf } from "@/lib/initials";
 import { phoneOutbox } from "@/lib/outbox-client";
+import { pinAnswerOf } from "@/lib/pin-answer";
 import { currentListener } from "@/lib/push";
 import { handOverThisPhone } from "@/lib/query-cache";
 import { useRefused } from "@/lib/refused";
@@ -244,13 +245,8 @@ const DevicePage = () => {
   const submitPin = useCallback(
     async (entry: RosterEntry, typed: string) => {
       setPin("");
-      // Checked here first so a phone with no signal can still switch; the server proves it
-      // again and issues the token that actually authorises writes (ADR 0003).
-      const correctHere = await verifyPin(typed, entry.salt, entry.hash);
-      if (!correctHere) {
-        toast.error(t("device.wrongPin"));
-        return;
-      }
+      // Asked of the farm first, so its count of wrong PINs counts every one and a lockout starts; the phone checks
+      // against the roster it holds only when the farm cannot answer (ADR 0003).
       try {
         const proved = await switchUser.mutateAsync({
           userId: entry.userId,
@@ -258,8 +254,25 @@ const DevicePage = () => {
         });
         setSwitchToken(proved.token);
         clearHeldStint();
-      } catch {
-        // Offline: work is captured locally, and the PIN — held in memory, never stored — is proved to the farm
+      } catch (error) {
+        const answer = pinAnswerOf(error);
+        if (answer === "revoked") {
+          // Taken off the farm's list: it forgets its token, and the Manager's code enrols it again.
+          setDeviceToken(null);
+          refused(error);
+          return;
+        }
+        if (answer === "refused") {
+          // A wrong PIN, a lockout, a person who may not work here: said, and nobody let in on the cached roster.
+          refused(error);
+          return;
+        }
+        const correctHere = await verifyPin(typed, entry.salt, entry.hash);
+        if (!correctHere) {
+          toast.error(t("device.wrongPin"));
+          return;
+        }
+        // No signal: work is captured locally, and the PIN — held in memory, never stored — is proved to the farm
         // as soon as the phone finds signal.
         setSwitchToken(null);
         holdUnprovedSwitch({ userId: entry.userId, pin: typed });
@@ -291,7 +304,7 @@ const DevicePage = () => {
       setChosen(null);
       await navigate({ href: afterUnlock(lockedOn, entry.userId) });
     },
-    [switchUser, listenAgain, queryClient, t, navigate, lockedOn]
+    [switchUser, listenAgain, queryClient, t, navigate, lockedOn, refused]
   );
 
   if (!token) {

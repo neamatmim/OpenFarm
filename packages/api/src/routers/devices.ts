@@ -225,13 +225,14 @@ export const devicesRouter = {
   switchUser: publicProcedure
     .input(z.object({ userId: z.string(), pin: z.string().trim() }))
     .handler(async ({ context, input }) => {
-      const device = requireDevice(context.device);
+      const device = requireDevice(context.device, context.deviceStatus);
       const now = context.clock.now();
       const guesses = `pin:${device.id}:${input.userId}`;
       if (lockedOut(guesses, now, PIN_ATTEMPTS)) {
         throw new ORPCError("TOO_MANY_REQUESTS", {
           message:
             "Too many wrong PINs — wait fifteen minutes, or ask the Manager",
+          data: { refusal: "too_many_pins" },
         });
       }
       const correct = await checkPin(
@@ -244,6 +245,7 @@ export const devicesRouter = {
         countFailure(guesses, now, PIN_ATTEMPTS);
         throw new ORPCError("UNAUTHORIZED", {
           message: "That PIN is not right",
+          data: { refusal: "wrong_pin" },
         });
       }
       forgetFailures(guesses);
@@ -254,6 +256,7 @@ export const devicesRouter = {
       if (!person || person.disabledAt) {
         throw new ORPCError("FORBIDDEN", {
           message: "That person cannot work here",
+          data: { refusal: "cannot_work_here" },
         });
       }
       // A Shed Phone holds Barn Staff alone, whatever PIN somebody set before it did.
@@ -261,6 +264,7 @@ export const devicesRouter = {
       if (!held.includes("staff")) {
         throw new ORPCError("FORBIDDEN", {
           message: "Only Barn Staff work on a Shed Phone",
+          data: { refusal: "staff_only_on_shed_phone" },
         });
       }
       const token = randomToken();
@@ -288,7 +292,7 @@ export const devicesRouter = {
 
   /** Keeps the phone unlocked while it is being used, rather than locking mid-task. */
   keepAwake: publicProcedure.handler(async ({ context }) => {
-    const device = requireDevice(context.device);
+    const device = requireDevice(context.device, context.deviceStatus);
     if (!context.actor) {
       throw new ORPCError("UNAUTHORIZED");
     }
@@ -296,13 +300,13 @@ export const devicesRouter = {
     const minutes =
       context.farm?.pinAutoLockMinutes ?? DEFAULT_AUTO_LOCK_MINUTES;
     const until = new Date(now.getTime() + minutes * MINUTE_MS);
-    await extendSwitch(context.db, device.id, context.actor.id, until);
+    await extendSwitch(context.db, device.id, context.actor.id, until, now);
     return { until };
   }),
 
   /** Locks the phone: the switch token stops naming anyone. */
   lock: publicProcedure.handler(async ({ context }) => {
-    const device = requireDevice(context.device);
+    const device = requireDevice(context.device, context.deviceStatus);
     await closeSwitches(context.db, device.id, context.clock.now());
     return { locked: true };
   }),

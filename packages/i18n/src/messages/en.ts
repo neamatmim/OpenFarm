@@ -1696,6 +1696,12 @@ export const en = {
     "This work is about another animal: record it against her",
   "refusal.skipReasonNotOffered":
     "That is not one of this step's reasons to skip: choose one from the list",
+  "refusal.phoneRevoked":
+    "This phone is no longer one of the farm's. Ask the manager for a code to enrol it again",
+  "refusal.tooManyPins":
+    "Too many wrong PINs: wait fifteen minutes, or ask the manager",
+  "refusal.cannotWorkHere": "That person cannot work on this farm now",
+  "refusal.staffOnlyOnShedPhone": "Only barn staff work on a shed phone",
   "refusal.calvedLately":
     "She calved too lately to calve again: this is the same calving written twice, or a twin of it, which is one calving with two calves",
   "refusal.calvedBeforeHerService":

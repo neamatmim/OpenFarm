@@ -196,6 +196,23 @@ describe("who recorded work on a Shed Phone", () => {
     expect(event?.roleUsed).toBe("staff");
   });
 
+  it("keeps the name of the person whose PIN reached the farm days after the work, the phone out of signal since", async () => {
+    // Milked on the 10th with no signal; the phone found signal on the 12th and proved her PIN then.
+    const { instance, clock, staff, other } = await morning("2031-03-10");
+    const milkedAt = clock.now();
+    clock.advance(2 * 24 * 60 * 60 * 1000);
+    const token = await provedPin(thePerson("staff").id, clock.now());
+    const sent = await other.sync.batch({
+      key: `attr-${suffix}-${counted()}`,
+      entries: [milked(instance.id, thePerson("staff").id, milkedAt, token)],
+    });
+    expect(sent.results[0]?.outcome).toBe("applied");
+    const board = await staff.work.get({ id: instance.id });
+    expect(board.completions[0]).toMatchObject({
+      recordedBy: thePerson("staff").id,
+    });
+  });
+
   it("refuses work naming somebody without the token their PIN earned on this phone for it", async () => {
     const { instance, clock, other } = await morning("2031-03-04");
     // They did enter their PIN here this morning — but whoever sends cannot just say so.

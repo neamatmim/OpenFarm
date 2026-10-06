@@ -1,5 +1,5 @@
 import type { Database } from "@OpenFarm/db";
-import { and, eq } from "@OpenFarm/db/operators";
+import { and, eq, gt } from "@OpenFarm/db/operators";
 import { deviceSwitch, shedPhone } from "@OpenFarm/db/schema/device";
 import { verifyPin } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -175,13 +175,20 @@ export const extendSwitch = async (
   db: Database,
   deviceId: string,
   userId: string,
-  until: Date
+  until: Date,
+  now: Date
 ): Promise<void> => {
+  // Only the stint still open: one the phone locked, or that ran out, stays ended — waking it would make good again
+  // every old token the phone still holds.
   await db
     .update(deviceSwitch)
     .set({ expiresAt: until })
     .where(
-      and(eq(deviceSwitch.deviceId, deviceId), eq(deviceSwitch.userId, userId))
+      and(
+        eq(deviceSwitch.deviceId, deviceId),
+        eq(deviceSwitch.userId, userId),
+        gt(deviceSwitch.expiresAt, now)
+      )
     );
 };
 
@@ -198,8 +205,20 @@ export const closeSwitches = async (
     .where(eq(deviceSwitch.deviceId, deviceId));
 };
 
-export const requireDevice = <T>(device: T | null): T => {
+/** The shed phone this request comes from, or a refusal: one taken off the farm's list — revoked, or forgotten — is told
+ *  so in a word the phone acts on, forgetting its token so it can be enrolled again, rather than passing for a phone
+ *  with no signal and keeping its work from the farm. */
+export const requireDevice = <T>(
+  device: T | null,
+  status: DeviceStatus = "none"
+): T => {
   if (!device) {
+    if (status === "revoked" || status === "unknown") {
+      throw new ORPCError("FORBIDDEN", {
+        message: "This phone is no longer one of the farm's: enrol it again",
+        data: { refusal: "phone_revoked" },
+      });
+    }
     throw new ORPCError("FORBIDDEN", {
       message: "Only a shed phone may do this",
     });

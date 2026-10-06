@@ -16,6 +16,7 @@ import { audited } from "../audit";
 import { refuseCommonPassword } from "../chosen-password";
 import { correct } from "../corrections/correction";
 import { nameCorrection, nameCorrectionInput } from "../corrections/name";
+import { requireDevice } from "../device";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
 import {
@@ -786,6 +787,7 @@ export const peopleRouter = {
   /** The roster a Shed Phone caches: who may PIN Switch on it, and what to check against.
    *  Only reachable with a device token — that token is the gate, and it is revocable. */
   roster: publicProcedure.handler(async ({ context }) => {
+    requireDevice(context.device, context.deviceStatus);
     if (!context.device) {
       throw new ORPCError("FORBIDDEN", {
         message: "Only a shed phone may read the roster",
