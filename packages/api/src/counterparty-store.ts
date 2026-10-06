@@ -9,8 +9,13 @@ import type { Tx } from "./audit";
 const oneForm = (name: string) => name.normalize("NFC").trim();
 
 /** The trader this farm wrote down by this name, whatever letters were capitalised and however the keyboard spelled its
- *  letters; the first where two differ only so. */
-const knownAs = async (tx: Tx, farmId: string, name: string) => {
+ *  letters; the first where two differ only so. Asked by the sheets as a Sale finds him, so what they say of his debts is
+ *  said of the man the Sale goes to. */
+export const knownAs = async (
+  tx: Pick<Tx, "select">,
+  farmId: string,
+  name: string
+) => {
   const [known] = await tx
     .select({
       id: counterparty.id,

@@ -281,6 +281,31 @@ describe("ready for sale", () => {
     ).toEqual(["window"]);
   });
 
+  it("suggests on the window from the farm's days before Eid, for the haat week", async () => {
+    // Ten days before his window opens, as the farm's parameter stands: the livestock markets sell Qurbani cattle then.
+    const early = await asManager("2027-03-06");
+    const suggested = await early.client.readyForSale.suggestions();
+    expect(
+      suggested.find((row) => row.tagNumber === tagOf(1))?.grounds
+    ).toEqual(["window"]);
+    const tooEarly = await asManager("2027-03-05");
+    const notYet = await tooEarly.client.readyForSale.suggestions();
+    expect(
+      notYet.find((row) => row.tagNumber === tagOf(1))?.grounds ?? []
+    ).not.toContain("window");
+    // A farm that sells on the day itself says none.
+    await early.client.farm.setParameters({ readyLeadDays: 0 });
+    try {
+      const sameDay = await asManager("2027-03-06");
+      const onTheDay = await sameDay.client.readyForSale.suggestions();
+      expect(
+        onTheDay.find((row) => row.tagNumber === tagOf(1))?.grounds ?? []
+      ).not.toContain("window");
+    } finally {
+      await early.client.farm.setParameters({ readyLeadDays: 10 });
+    }
+  });
+
   it("will not let the other door past the withdrawal gate", async () => {
     const manager = await asManager("2027-03-16");
     // A gate on one door and not the other is no gate: setting the State by hand would have

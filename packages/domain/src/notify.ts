@@ -89,6 +89,9 @@ export const DELIVERY = {
   // A buyer gone past the day he promised is a call to make today, not a buzz: the farm is told once, in the evening's
   // post, and never the buyer (the Owner, 2026-09-29).
   receivable_overdue: { when: "digest" },
+  // Credit to a buyer the farm once wrote off is the evening's question for the Owner: the Manager has already been
+  // warned on the sheet, and the lending is done.
+  credit_after_write_off: { when: "digest" },
   // An animal the round could not find may be on a lorry to a livestock market: the Owner and the Manager hear at once, by push
   // and not by text (the Owner, 2026-09-29). Not at night — the round is walked in the morning.
   animal_missing: { when: "immediate" },
@@ -254,6 +257,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   receivable_overdue: {
     app: "alerts.receivableOverdue",
     digest: "digest.receivableOverdue",
+  },
+  credit_after_write_off: {
+    app: "alerts.creditAfterWriteOff",
+    digest: "digest.creditAfterWriteOff",
   },
   animal_missing: {
     app: "alerts.animalMissing",

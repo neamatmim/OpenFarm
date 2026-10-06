@@ -562,8 +562,11 @@ export const overdueOfBuyer = (
     ),
     owingMoney: buyer.owingMoney,
     overdueSince: first,
-    soldAgainWhileOverdue: buyer.kinds.some((standing) =>
-      soldOnCreditWhileOverdue(standing.items, receivableDays)
+    // Whichever kind was late and whichever was lent again: his milk overdue and a bull sold him on credit is the farm
+    // lending more to somebody who has not paid what is late, as two bulls are.
+    soldAgainWhileOverdue: soldOnCreditWhileOverdue(
+      buyer.kinds.flatMap((standing) => standing.items),
+      receivableDays
     ),
     items,
   };
@@ -597,10 +600,15 @@ export interface OverdueToTell {
   buyer: Pick<OverdueBuyer, "counterpartyId" | "name">;
 }
 
+/** What an overdue Receivable is told under: the Sale or Dispatch and the day it went past — a promise moved later is a
+ *  new day to keep, and told again when that one goes by too. */
+const overdueKey = (item: Pick<OverdueItem, "id" | "overdueFrom">) =>
+  `${item.id}@${item.overdueFrom}`;
+
 /**
- * The overdue Receivable somebody who hears of it has not been told about yet — each Sale or Dispatch told once, the day it
- * first goes past its day, however many mornings it stays late. Nothing at all asked of the transaction when there is
- * nothing to tell, which is most mornings.
+ * The overdue Receivable somebody who hears of it has not been told about yet — each Sale or Dispatch told once for each
+ * day it goes past, however many mornings it stays late. Nothing at all asked of the transaction when there is nothing
+ * to tell, which is most mornings.
  */
 export const overdueToTell = async (
   db: Db,
@@ -619,13 +627,59 @@ export const overdueToTell = async (
     where: {
       farmId: farm.id,
       kind: "receivable_overdue",
-      entityId: { in: all.map((one) => one.item.id) },
+      entityId: { in: all.map((one) => overdueKey(one.item)) },
     },
     columns: { entityId: true, userId: true },
   });
   const said = new Set(told.map((row) => `${row.userId}|${row.entityId}`));
   return all.filter(({ item }) =>
-    people.some((userId) => !said.has(`${userId}|${item.id}`))
+    people.some((userId) => !said.has(`${userId}|${overdueKey(item)}`))
+  );
+};
+
+/**
+ * Tells the Owner of credit lent to a buyer the farm once wrote off — the sheet warned whoever sold to him, and the
+ * lending is done, so it is told rather than refused (the Owner, 2026-10-07). Nothing for one who paid in full, nor for
+ * one never written off.
+ */
+export const tellIfLentAfterWriteOff = async (
+  tx: Tx,
+  farmId: string,
+  item: { id: string; counterpartyId: string; receivableMoney: number },
+  now: Date
+) => {
+  if (item.receivableMoney <= 0) {
+    return;
+  }
+  const writtenOff = await tx.query.receivableWriteOff.findFirst({
+    where: { farmId, counterpartyId: item.counterpartyId },
+    columns: { id: true },
+  });
+  if (!writtenOff) {
+    return;
+  }
+  const [his] = await receivableOfBuyers(tx, farmId, {
+    counterpartyId: item.counterpartyId,
+    settledToo: true,
+  });
+  if (!(his?.lastWrittenOffOn && his.writtenOffMoney > 0)) {
+    return;
+  }
+  await tell(
+    tx,
+    farmId,
+    {
+      kind: "credit_after_write_off",
+      about: { id: item.id },
+      facts: {
+        counterpartyId: item.counterpartyId,
+        buyer: his.name,
+        lentMoney: item.receivableMoney,
+        writtenOffMoney: his.writtenOffMoney,
+        writtenOffOn: his.lastWrittenOffOn,
+      },
+    },
+    now
   );
 };
 
@@ -646,7 +700,7 @@ export const raiseOverdueReceivable = async (
       farmId,
       {
         kind: "receivable_overdue",
-        about: { id: item.id },
+        about: { id: overdueKey(item) },
         facts: {
           counterpartyId: buyer.counterpartyId,
           buyer: buyer.name,

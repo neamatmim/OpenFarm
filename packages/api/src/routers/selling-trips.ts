@@ -58,7 +58,7 @@ const STANDING = ["quarantine", "fattening", "ready_for_sale"] as const;
 export const sellingTripsRouter = {
   /**
    * The beasts a day's lorry may have carried, to tick: every one still standing on the Fattening side, and every one
-   * sold that farm day — the day is often written up after the market, by when the ones sold off the lorry are gone
+   * of that side sold that farm day — the day is often written up after the market, by when the ones sold off the lorry are gone
    * from the board. One sold on another day is not offered; she was not on this lorry to be sold.
    */
   whoCouldHaveGone: protectedProcedure
@@ -81,7 +81,7 @@ export const sellingTripsRouter = {
         context.db.query.sale.findMany({
           where: { farmId: context.farm.id, soldAt: { gte: from, lt: until } },
           columns: { id: true },
-          with: { animal: { columns: { tagNumber: true } } },
+          with: { animal: { columns: { tagNumber: true, side: true } } },
           orderBy: { soldAt: "asc", id: "asc" },
         }),
       ]);
@@ -92,12 +92,16 @@ export const sellingTripsRouter = {
           ready: one.state === "ready_for_sale",
           soldThatDay: false,
         })),
-        ...sold.map((one) => ({
-          tagNumber: one.animal.tagNumber,
-          penName: null,
-          ready: false,
-          soldThatDay: true,
-        })),
+        // A Fattening beast alone, as the trip itself takes: a dairy cow culled to a butcher that day went on no lorry
+        // of this, and would only be refused.
+        ...sold
+          .filter((one) => one.animal.side === "fattening")
+          .map((one) => ({
+            tagNumber: one.animal.tagNumber,
+            penName: null,
+            ready: false,
+            soldThatDay: true,
+          })),
       ];
     }),
 

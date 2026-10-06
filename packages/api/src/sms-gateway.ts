@@ -9,6 +9,17 @@ import { silentSms } from "./sms";
 const SEND_TIMEOUT_MS = 5000;
 
 /**
+ * Whether the gateway took the message: a 2xx, and — where the farm has said what its provider answers on success —
+ * that word in the answer. Many Bangladeshi gateways answer 200 with an error code inside, and a text counted as sent
+ * is never tried again.
+ */
+export const tookIt = (
+  ok: boolean,
+  answer: string,
+  successWord?: string
+): boolean => ok && (!successWord || answer.includes(successWord));
+
+/**
  * The farm's own SMS gateway, over plain HTTP form posts — which is what the local Bangladeshi
  * providers offer, and what the Owner will have credentials for.
  *
@@ -20,6 +31,7 @@ export const smsGateway = (): SmsTransport => {
   const url = env.SMS_GATEWAY_URL;
   const key = env.SMS_GATEWAY_KEY;
   const from = env.SMS_GATEWAY_FROM;
+  const successWord = env.SMS_GATEWAY_SUCCESS?.trim() || undefined;
   if (!(url && key)) {
     return silentSms;
   }
@@ -37,7 +49,8 @@ export const smsGateway = (): SmsTransport => {
           }),
           signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
         });
-        return { delivered: response.ok };
+        const answer = successWord ? await response.text() : "";
+        return { delivered: tookIt(response.ok, answer, successWord) };
       } catch {
         // The gateway is somebody else's server. A farm whose text did not go still has the
         // Alert in the app, and a throw here would take the whole sweep down with it.

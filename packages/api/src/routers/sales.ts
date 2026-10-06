@@ -35,6 +35,7 @@ import {
   receivableOrRefuse,
   paidNowInput,
   promisedByInput,
+  tellIfLentAfterWriteOff,
 } from "../receivable-store";
 import { requireRole } from "../roles";
 import {
@@ -270,6 +271,16 @@ export const salesRouter = {
           );
           // Told, never refused: the livestock market is the Manager's call, and what she cost is the Owner's to read.
           await tellIfSoldUnderCost(tx, context.farm.id, id, now);
+          await tellIfLentAfterWriteOff(
+            tx,
+            context.farm.id,
+            {
+              id,
+              counterpartyId: buyerId,
+              receivableMoney: receivable.receivableMoney,
+            },
+            now
+          );
           await tellIfShrankTooMuch(tx, context.farm.id, id, now);
           ({ workClosed: closed } = await leaves(tx, context.farm.id, her, {
             state: "sold",

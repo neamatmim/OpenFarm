@@ -77,6 +77,9 @@ export const farm = pgTable("farm", {
   fatteningTargetWeightKg: integer("fattening_target_weight_kg")
     .notNull()
     .default(350),
+  /** How many days before Eid day 1 an animal aimed at it is suggested for sale on her Target Window: Qurbani cattle
+   *  sell at the livestock markets in the week before, not on the day (the Owner, 2026-10-07). */
+  readyLeadDays: integer("ready_lead_days").notNull().default(10),
   /** How many days back a fattening animal's gain is read when it is set beside her Ration's Expected Gain: from her
    *  latest Weigh-in to the latest one at least this long before it. Nearer readings say more about what she drank that
    *  morning than what she grew — a full gut moves a bull by five kilos, which over a fortnight reads as a third of a

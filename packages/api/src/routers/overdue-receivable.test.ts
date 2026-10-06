@@ -22,7 +22,11 @@ const SHOP = `দেরির দোকান ${suffix}`;
 
 let penId = "";
 
-const sellOnCredit = async (instant: string, promisedBy: string) => {
+const sellOnCredit = async (
+  instant: string,
+  promisedBy: string,
+  buyer = TRADER
+) => {
   const manager = await as("manager", instant);
   const bull = await manager.client.intakes.record({
     penId,
@@ -36,7 +40,7 @@ const sellOnCredit = async (instant: string, promisedBy: string) => {
   });
   return await manager.client.sales.record({
     tagNumber: bull.tagNumber,
-    buyer: { name: TRADER, phone: "+8801711000099" },
+    buyer: { name: buyer, phone: "+8801711000099" },
     priceMoney: 120_000,
     paidNowMoney: 100_000,
     promisedBy,
@@ -166,5 +170,54 @@ describe("overdue Receivable in the Digest", () => {
     expect(await told()).toBe(1);
     await sweepOn("2050-03-17T06:00:00.000Z");
     expect(await told()).toBe(1);
+  });
+});
+
+describe("a buyer late with one kind and lent the other", () => {
+  it("tells the Owner he was sold to on credit again while his milk was late", async () => {
+    // The sweet shop's milk has been late since the sixteenth; on the eighteenth it takes a bull on credit.
+    await sellOnCredit("2050-03-18T05:00:00.000Z", "2050-03-25", SHOP);
+    const owner = await as("owner", "2050-03-18T08:00:00.000Z");
+    const home = await owner.client.overview.get();
+    expect(
+      home.needsYou.receivableOverdue.find((one) => one.name === SHOP)
+    ).toMatchObject({ soldAgainWhileOverdue: true });
+  });
+});
+
+describe("a promise moved later", () => {
+  it("is told again when the new day goes by too", async () => {
+    const promiser = `কথা দেওয়া ${suffix}`;
+    const sold = await sellOnCredit(
+      "2050-04-01T05:00:00.000Z",
+      "2050-04-05",
+      promiser
+    );
+    const told = async () => {
+      const rows = await scratchDb().query.alert.findMany({
+        where: { kind: "receivable_overdue", userId: thePerson("manager").id },
+        columns: { params: true },
+      });
+      return rows.filter(
+        (one) => (one.params as { buyer?: string }).buyer === promiser
+      ).length;
+    };
+    const sweepOn = async (instant: string) => {
+      const manager = await as("manager", instant);
+      await manager.client.alerts.sweep();
+    };
+    await sweepOn("2050-04-06T06:00:00.000Z");
+    expect(await told()).toBe(1);
+    // He rang: the fifteenth. Kept, and the farm waits for it.
+    const manager = await as("manager", "2050-04-07T06:00:00.000Z");
+    await manager.client.sales.correct({
+      id: sold.id,
+      reason: "১৫ তারিখে দেবে বলেছে",
+      changes: { promisedBy: { from: "2050-04-05", to: "2050-04-15" } },
+    });
+    await sweepOn("2050-04-10T06:00:00.000Z");
+    expect(await told()).toBe(1);
+    await sweepOn("2050-04-16T06:00:00.000Z");
+    expect(await told()).toBe(2);
   });
 });

@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "ready_lead_days" integer DEFAULT 10 NOT NULL;

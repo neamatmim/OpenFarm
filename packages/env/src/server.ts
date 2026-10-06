@@ -31,6 +31,9 @@ export const env = createEnv({
     SMS_GATEWAY_KEY: z.string().optional(),
     /** The sender id the provider registered for this farm, where one is needed. */
     SMS_GATEWAY_FROM: z.string().optional(),
+    /** What the provider's answer says when it took the message: many local gateways answer 200 with an error inside, and
+     *  with this set a text counts as sent only when the answer says so. Absent, a 2xx is taken at its word. */
+    SMS_GATEWAY_SUCCESS: z.string().optional(),
     /** The outside watch's check-in address, pinged after each whole turn of the farm's day: a server down or an app
      *  dead stops the pings, and the watch tells the Owner (deploy runbook, "The outside watch"). Absent, nothing. */
     OPENFARM_WATCH_URL: z.url().optional(),

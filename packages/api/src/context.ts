@@ -82,6 +82,8 @@ export interface Context {
     expiryWarnDays: number;
     /** What a bought-in fattening animal is fed towards unless the Manager says otherwise. */
     fatteningTargetWeightKg: number;
+    /** How many days before Eid day 1 an animal aimed at it is suggested for sale. */
+    readyLeadDays: number;
     /** How many days back a fattening animal's gain is read against her Ration's Expected Gain. */
     gainReadDays: number;
     /** The shares of a Ration's Expected Gain a deshi animal and a cow or heifer are judged against, as percentages. */
