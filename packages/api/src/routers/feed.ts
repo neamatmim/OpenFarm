@@ -1,9 +1,10 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, ne } from "@OpenFarm/db/operators";
+import { and, eq, isNull, ne } from "@OpenFarm/db/operators";
 import {
   FEED_UNITS,
   feedItem,
   penRation,
+  penRationSpell,
   ration,
 } from "@OpenFarm/db/schema/feed";
 import {
@@ -579,6 +580,30 @@ export const feedRouter = {
                 message:
                   "That ration is retired: restore it to feed a Pen on it",
                 data: { refusal: "ration_retired" },
+              });
+            }
+            // The Pen's Ration history: the spell it was on ends now, and one on this Ration begins — unless it is on it
+            // already, when nothing changes.
+            const was = await tx.query.penRation.findFirst({
+              where: { penId: input.penId },
+              columns: { rationId: true },
+            });
+            if (was?.rationId !== input.rationId) {
+              await tx
+                .update(penRationSpell)
+                .set({ until: now })
+                .where(
+                  and(
+                    eq(penRationSpell.penId, input.penId),
+                    isNull(penRationSpell.until)
+                  )
+                );
+              await tx.insert(penRationSpell).values({
+                id: uuidv7(now),
+                farmId: context.farm.id,
+                penId: input.penId,
+                rationId: input.rationId,
+                from: now,
               });
             }
             await tx

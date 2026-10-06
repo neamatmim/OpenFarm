@@ -254,6 +254,7 @@ describe("a Ration by weight", () => {
       targetKg: 11.5,
       givenKg: 11.5,
       leftoverKg: 0,
+      foundKg: 0,
     });
   });
 });

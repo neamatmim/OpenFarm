@@ -12,10 +12,12 @@ import type {
   WeightBand,
 } from "@OpenFarm/domain";
 import {
+  exitOf,
   feedUnitOf,
   herdWeightOf,
   isByWeight,
   mayGoByWeight,
+  penHistoryOf,
   sessionKgOf,
   sessionsPerDayOf,
 } from "@OpenFarm/domain";
@@ -230,6 +232,102 @@ const animalsInPen = async (
   return rows.filter((row) => isOnTheFarm(row)).map(weighedAs);
 };
 
+/**
+ * The animals that stood in the Pen at a moment past, each as the scale said by then — read from each animal's own
+ * Pen history, as the costs split the same Feeding (`penHistoryOf`). A phone that fed the Pen at seven and found
+ * signal in the evening was set against the animals standing at sync: four more arrived at noon, and a Pen fed in full
+ * was told it was half short, while its feed was charged to the four.
+ */
+const animalsInPenAt = async (
+  db: Pick<Database, "query"> | Tx,
+  farmId: string,
+  penId: string,
+  at: Date
+): Promise<WeighedAnimal[]> => {
+  const into = await db.query.animalMove.findMany({
+    where: { farmId, toPenId: penId, movedAt: { lte: at } },
+    columns: { animalId: true },
+  });
+  const ids = [...new Set(into.map((one) => one.animalId))];
+  if (ids.length === 0) {
+    return [];
+  }
+  const rows = await db.query.animal.findMany({
+    where: { farmId, id: { in: ids } },
+    columns: { id: true, state: true, stateChangedAt: true },
+    with: {
+      moves: {
+        columns: {
+          id: true,
+          animalId: true,
+          toPenId: true,
+          toSide: true,
+          movedAt: true,
+        },
+      },
+      weighIns: {
+        where: { flaggedNote: { isNull: true }, weighedAt: { lte: at } },
+        columns: { weightKg: true, weighedAt: true },
+        orderBy: { weighedAt: "desc", id: "desc" },
+        limit: 1,
+      },
+      intake: { columns: { weightKg: true, arrivedAt: true } },
+    },
+  });
+  const leftAt = new Map(
+    rows.flatMap((one) => {
+      const exit = exitOf(one);
+      return exit ? [[one.id, exit.at] as const] : [];
+    })
+  );
+  const standing = new Set(
+    penHistoryOf(
+      rows.flatMap((one) => one.moves),
+      leftAt
+    )
+      .filter(
+        (line) =>
+          line.penId === penId &&
+          line.from <= at &&
+          (line.until === null || line.until > at)
+      )
+      .map((line) => line.animalId)
+  );
+  return rows.filter((one) => standing.has(one.id)).map(weighedAs);
+};
+
+/** The Ration a Pen was on at a moment: its spell then (`pen_ration_spell`), else the one it is on now. */
+const rationOfPenAt = async (
+  db: Pick<Database, "query"> | Tx,
+  farmId: string,
+  penId: string,
+  at: Date
+) => {
+  const [spell] = await db.query.penRationSpell.findMany({
+    where: {
+      farmId,
+      penId,
+      from: { lte: at },
+      OR: [{ until: { isNull: true } }, { until: { gt: at } }],
+    },
+    orderBy: { from: "desc", id: "desc" },
+    limit: 1,
+  });
+  const now = spell
+    ? undefined
+    : await db.query.penRation.findFirst({
+        where: { penId, farmId },
+        columns: { rationId: true },
+      });
+  const rationId = spell?.rationId ?? now?.rationId;
+  return rationId
+    ? db.query.ration.findFirst({
+        where: { id: rationId, farmId },
+        columns: { id: true, nameBn: true, nameEn: true },
+      })
+    : undefined;
+};
+
 /** One line of what a Pen is owed. Exported because it is the shape `feedingTargetForPen` answers
  *  with, and the routers' own types are written in terms of it, though nobody names it. */
 export type FeedingTargetLine = RationLine & {
@@ -339,7 +437,10 @@ export const feedingTargetForPen = async (
   rationAsOf: Date,
   /** How often this Pen is fed. Given by work that knows — the Version doing the feeding —
    *  and looked up only for a screen asking about a Pen with no work in front of it. */
-  fedTimesADay?: number
+  fedTimesADay?: number,
+  /** The moment it was fed, for a Feeding already past: the animals standing then, as the scale said by then. Left
+   *  out, those standing now. */
+  standingAt?: Date
 ): Promise<{
   rationId: string;
   rationVersionId: string;
@@ -351,13 +452,12 @@ export const feedingTargetForPen = async (
   sessionsPerDay: number;
   items: FeedingTargetLine[];
 } | null> => {
-  const assigned = await db.query.penRation.findFirst({
-    where: { penId, farmId },
-    with: { ration: { columns: { id: true, nameBn: true, nameEn: true } } },
-  });
-  if (!assigned) {
+  // The Ration the Pen was on when the work was raised, not the one it is on now.
+  const onRation = await rationOfPenAt(db, farmId, penId, rationAsOf);
+  if (!onRation) {
     return null;
   }
+  const assigned = { rationId: onRation.id, ration: onRation };
   const version = await rationInForceAt(db, assigned.rationId, rationAsOf);
   if (!version) {
     return null;
@@ -367,7 +467,9 @@ export const feedingTargetForPen = async (
   if (sessionsPerDay === null) {
     return null;
   }
-  const standing = await animalsInPen(db, farmId, penId);
+  const standing = standingAt
+    ? await animalsInPenAt(db, farmId, penId, standingAt)
+    : await animalsInPen(db, farmId, penId);
   const animals = standing.length;
   const herd = herdWeightOf(standing);
   return {

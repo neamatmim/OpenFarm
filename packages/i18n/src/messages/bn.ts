@@ -4049,7 +4049,7 @@ export const bn: Record<MessageKey, string> = {
   "work.skipWhy": "কেন বাদ?",
   "work.noRation": "এই পেনের রেশন এই ফোনে নেই — সংযোগ পেলে খুলুন",
   "work.given": "যা দেওয়া হলো (কেজি)",
-  "work.leftover": "যা পড়ে ছিল (কেজি)",
+  "work.leftover": "আগের বেলার যা পড়ে ছিল (কেজি)",
   "work.shortFed": "রেশনের চেয়ে {percent}% কম",
   "work.back": "ফিরে যান",
   "work.confirm": "হয়ে গেছে",

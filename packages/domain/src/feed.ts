@@ -264,7 +264,12 @@ export interface FeedingLine {
   feedItemId: string;
   targetKg: number;
   givenKg: number;
+  /** What was left of this Feeding — found in the trough at the next feed, and written there. */
   leftoverKg: number;
+  /** What was found in the trough when this feed went in: the feeding before's Leftover, as this entry said it.
+   *  Missing from a Feeding written before the Leftover was the last feed's (2026-10-06), whose `leftoverKg` is what
+   *  its own entry said. */
+  foundKg?: number;
 }
 
 /**

@@ -111,6 +111,31 @@ export const penRation = pgTable("pen_ration", {
   assignedAt: timestamp("assigned_at", { withTimezone: true }).notNull(),
 });
 
+/**
+ * Each time a Pen was on a Ration, from when to when — the Pen's own Ration history. A Feeding is read against the
+ * Ration in force when its work was raised; with only the Ration the Pen is on now, a meal written down — or put right —
+ * after the Pen moved Ration was read against the new one, and the feed it was given dropped out of the store and the
+ * costs. Written by putting a Pen on a Ration; the spell open now has no end.
+ */
+export const penRationSpell = pgTable(
+  "pen_ration_spell",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    penId: text("pen_id")
+      .notNull()
+      .references(() => pen.id),
+    rationId: text("ration_id")
+      .notNull()
+      .references(() => ration.id),
+    from: timestamp("from", { withTimezone: true }).notNull(),
+    until: timestamp("until", { withTimezone: true }),
+  },
+  (table) => [index("pen_ration_spell_pen_idx").on(table.penId, table.from)]
+);
+
 /** One published statement of a Ration. Never updated: the next change is the next Version. */
 export const rationVersion = pgTable(
   "ration_version",

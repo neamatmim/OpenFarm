@@ -55,6 +55,6 @@ The root: the feeding effect works out the Ration and the head count from the Pe
 | Group | Branch | Status |
 | ----- | ------ | ------ |
 | A     | fix/feed-stock | Done (a delivery written down on its own day comes in at that moment — `cameInAt`, for feed and medicine; feed Lots replayed with `replayLots` in domain/lots.ts, which medicine now shares; every count line read again, so a matched count shows once a late entry makes it short; a count compared with the book floored at nothing — `countedOverTheBook`) |
-| B     |        |        |
+| B     | fix/feeding-as-it-was | Done (a Pen's Ration history kept as `pen_ration_spell`, migration 20261006100519, backfilled from each Pen's current Ration; a Feeding read against the Ration of its work's raising and the animals standing when fed (`animalsInPenAt`); a Correction keeps the Feeding's own target and herd; feed given that was not owed is kept as a line; leftovers found at a feed are the feeding before's (`foundKg`, `passTheLeftovers`), never more than it gave; CONTEXT Leftover reworded) |
 | C     |        |        |
 | D     |        |        |

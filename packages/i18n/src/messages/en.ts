@@ -4316,7 +4316,7 @@ export const en = {
   "work.noRation":
     "This phone does not have this pen's ration — open it once with signal",
   "work.given": "Given (kg)",
-  "work.leftover": "Left over (kg)",
+  "work.leftover": "Left from the last feed (kg)",
   "work.shortFed": "{percent}% under the ration",
   "work.back": "Back",
   "work.confirm": "Done",
