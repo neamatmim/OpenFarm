@@ -150,6 +150,8 @@ export interface KeepCharge {
   fed: boolean;
   /** False for feed with no price, or a dose of something the farm never bought: her keep is short by it. */
   priced: boolean;
+  /** The days it is for, where it is for a stretch of them — her part of a month's Herd Cost — rather than a moment. */
+  over?: { from: Date; until: Date };
 }
 
 /** What keeping her has cost over the days her keep is read back over. */
@@ -189,9 +191,22 @@ export const keptOver = ({
   readDays: number;
 }): Kept => {
   const from = now.getTime() - readDays * DAY_MS;
-  const inside = charges.filter((one) =>
-    inTheKeepWindow(one.at, now, readDays)
-  );
+  // A charge for a moment counts whole where it falls inside; one for a stretch of days — a month's Herd Cost, dated
+  // wherever in the month it was entered — by the share of its days that are inside, so her keep does not jump by a
+  // month's wages the day they are entered.
+  const shareInside = (one: KeepCharge): number => {
+    if (!one.over) {
+      return inTheKeepWindow(one.at, now, readDays) ? 1 : 0;
+    }
+    const span = one.over.until.getTime() - one.over.from.getTime();
+    const overlap =
+      Math.min(one.over.until.getTime(), now.getTime()) -
+      Math.max(one.over.from.getTime(), from);
+    return span > 0 && overlap > 0 ? overlap / span : 0;
+  };
+  const insideOf = (one: KeepCharge): number => one.amount * shareInside(one);
+  // Inside by its days, not by what it came to: feed nobody priced is inside at nothing, and says her keep is short.
+  const inside = charges.filter((one) => shareInside(one) > 0);
   let ms = 0;
   for (const spell of stood) {
     const start = Math.max(spell.from.getTime(), from);
@@ -199,7 +214,7 @@ export const keptOver = ({
     ms += Math.max(0, end - start);
   }
   return {
-    amount: inside.reduce((sum, one) => sum + one.amount, 0),
+    amount: inside.reduce((sum, one) => sum + insideOf(one), 0),
     days: ms / DAY_MS,
     fed: inside.some((one) => one.fed),
     whole: inside.every((one) => one.priced),

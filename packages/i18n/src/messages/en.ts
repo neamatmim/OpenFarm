@@ -1759,7 +1759,7 @@ export const en = {
   "refusal.bankRateFromTheFuture":
     "A bank's rate holds from a day that has come, not one still ahead",
   "refusal.crossingUnweighed":
-    "Nobody weighed her by the end of the day she crossed; weigh her first, then price her",
+    "Nobody has weighed her since she crossed. Weigh her first",
   "refusal.joiningNeedsAWindow":
     "Say which target window she is being fed towards; the next Eid could not be worked out",
   "refusal.anAnimalStillStands": "An Animal of this venture is still standing",
@@ -3202,7 +3202,7 @@ export const en = {
   "farmGains.group.cross": "crossbred bulls",
   "farmGains.group.deshi": "deshi bulls",
   "farmGains.group.unrecorded": "bulls, breed not recorded",
-  "farmGains.group.female": "cows and heifers",
+  "farmGains.group.female": "crossbred cows and heifers",
   "farmGains.figure": "{group} {gain} ({count})",
   "farmGains.offer":
     "Your crossbred bulls on this ration, middle half: {range} ({count})",
@@ -5089,7 +5089,7 @@ export const en = {
   "returns.crossingsNone": "No crossing waits on a price.",
   "returns.crossingLine": "{tag}, crossed {day}",
   "returns.crossingWeighed": "weighed {kg} kg by that day",
-  "returns.crossingUnweighed": "not weighed by that day — weigh her first",
+  "returns.crossingUnweighed": "not weighed yet — weigh her first",
   "returns.priceIt": "Price her",
   "returns.priceAgain": "Price again",
   "returns.crossingPriced": "priced {price}, {rate} a kilo",

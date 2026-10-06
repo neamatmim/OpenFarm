@@ -63,6 +63,8 @@ let calfB = "";
 let joiningA = "";
 let joiningB = "";
 let fatteningPenId = "";
+/** The weigh-in round the Pen is walked on. */
+let definitionId = "";
 
 beforeAll(async () => {
   const { client: owner } = await as("owner", "2030-09-01T04:00:00.000Z");
@@ -93,7 +95,7 @@ beforeAll(async () => {
       penId: fattening.id,
     })
     .onConflictDoNothing();
-  const { definitionId } = await owner.sops.create({ content: weighInSop() });
+  ({ definitionId } = await owner.sops.create({ content: weighInSop() }));
 
   const { client: manager } = await as("manager", "2030-09-01T05:00:00.000Z");
   const calf = async () =>
@@ -312,5 +314,33 @@ describe("an Eid announced moves a crossed animal's window with the bought ones'
     expect(board.find((row) => row.tagNumber === calfB)?.targetWindow).toEqual(
       WINTER
     );
+  });
+});
+
+describe("a crossing nobody weighed on the day she crossed", () => {
+  it("is priced from her first reading after it, so her Season can finish", async () => {
+    // B would not go on the crush on the first; on the third she weighed 160 kg.
+    const { client: scheduler } = await as("owner", "2030-10-03T07:30:00.000Z");
+    await scheduler.work.ensureDue();
+    const today = await scheduler.work.today({ penId: fatteningPenId });
+    const instance = today.find((one) => one.definitionId === definitionId);
+    if (!instance) {
+      throw new Error("expected a weigh-in instance");
+    }
+    const { client: staff } = await as("staff", "2030-10-03T07:30:00.000Z");
+    await staff.work.claim({ id: instance.id });
+    await staff.work.completeStep({
+      instanceId: instance.id,
+      stepId: "weigh",
+      animalTag: calfB,
+      evidence: [160],
+    });
+    const { client: owner } = await as("owner", "2030-10-04T04:00:00.000Z");
+    const priced = await owner.returns.priceCrossing({
+      joiningId: joiningB,
+      rateMoneyPerKg: 400,
+      note: `বাছুরের দর ${suffix}`,
+    });
+    expect(priced).toMatchObject({ weightKg: 160, priceMoney: 64_000 });
   });
 });

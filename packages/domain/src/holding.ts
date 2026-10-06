@@ -34,6 +34,8 @@ export interface Charge {
   unpricedKg: number;
   /** False where the sum is short by it: feed with no price, or a dose of a product never bought. */
   priced: boolean;
+  /** The days it is for, where it is for a stretch of them — her part of a month's Herd Cost — rather than a moment. */
+  over?: { from: Date; until: Date };
 }
 
 /**

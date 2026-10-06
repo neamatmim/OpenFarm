@@ -1629,8 +1629,7 @@ export const bn: Record<MessageKey, string> = {
   "refusal.nothingLeftToBuy": "এই ভেঞ্চারের আর কোনো গরু কেনার নেই",
   "refusal.bankRateFromTheFuture":
     "ব্যাংকের হার আসা দিন থেকে ধরা হয়, সামনের দিন থেকে নয়",
-  "refusal.crossingUnweighed":
-    "পার হওয়ার দিন শেষ হওয়া পর্যন্ত কেউ তার ওজন নেয়নি; আগে ওজন নিন, তারপর দাম লিখুন",
+  "refusal.crossingUnweighed": "পার হওয়ার পর থেকে তার ওজন নেওয়া হয়নি। আগে ওজন নিন",
   "refusal.joiningNeedsAWindow":
     "কোন বিক্রির সময়ের জন্য তাকে খাওয়ানো হচ্ছে তা বলুন; পরের ঈদ বের করা যায়নি",
   "refusal.anAnimalStillStands": "এই ভেঞ্চারের একটি গরু এখনও আছে",
@@ -2999,7 +2998,7 @@ export const bn: Record<MessageKey, string> = {
   "farmGains.group.cross": "সংকর ষাঁড়",
   "farmGains.group.deshi": "দেশি ষাঁড়",
   "farmGains.group.unrecorded": "জাত লেখা নেই এমন ষাঁড়",
-  "farmGains.group.female": "গাভী ও বকনা",
+  "farmGains.group.female": "সংকর গাভী ও বকনা",
   "farmGains.figure": "{group} {gain} ({count}টি)",
   "farmGains.offer": "এই রেশনে আপনার সংকর ষাঁড়দের মাঝের অর্ধেক: {range} ({count}টি)",
   "farmGains.use": "এটি নিন",
@@ -4758,7 +4757,7 @@ export const bn: Record<MessageKey, string> = {
   "returns.crossingsNone": "কোনো পারাপারের দাম বাকি নেই।",
   "returns.crossingLine": "{tag}, পার হয়েছে {day}",
   "returns.crossingWeighed": "সেদিনের মধ্যে ওজন {kg} কেজি",
-  "returns.crossingUnweighed": "সেদিনের মধ্যে ওজন নেওয়া হয়নি — আগে ওজন নিন",
+  "returns.crossingUnweighed": "এখনো ওজন নেওয়া হয়নি — আগে ওজন নিন",
   "returns.priceIt": "দাম লিখুন",
   "returns.priceAgain": "আবার দাম লিখুন",
   "returns.crossingPriced": "দাম {price}, প্রতি কেজি {rate}",

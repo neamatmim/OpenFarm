@@ -1,5 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq } from "@OpenFarm/db/operators";
+import { and, eq, ne } from "@OpenFarm/db/operators";
 import {
   FEED_UNITS,
   feedItem,
@@ -597,6 +597,9 @@ export const feedRouter = {
                   assignedBy: context.actor.id,
                   assignedAt: now,
                 },
+                // Put on the Ration it is already on, the Pen keeps the day it went on it: every gain on the Ration is
+                // counted from then, and starting it again would send each animal back to "too soon to say".
+                setWhere: ne(penRation.rationId, input.rationId),
               });
           }
         );

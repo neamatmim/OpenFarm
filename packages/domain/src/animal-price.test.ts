@@ -101,6 +101,18 @@ const feeding = (day: string, amount: number, priced = true) => ({
   priced,
 });
 
+/** ৳600 of February 2040's wages, her part for her twenty-nine days of it, entered on a day of the month. */
+const februarysWages = (enteredOn: string) => ({
+  at: new Date(`${enteredOn}T00:00:00.000Z`),
+  amount: 600,
+  fed: false,
+  priced: true,
+  over: {
+    from: new Date("2040-01-31T18:00:00.000Z"),
+    until: new Date("2040-02-29T18:00:00.000Z"),
+  },
+});
+
 describe("what her keep has cost over the days the farm reads it over", () => {
   // Four weeks back from the 1st of March is the 2nd of February, at the same hour.
   const now = new Date("2040-03-01T04:00:00.000Z");
@@ -125,6 +137,21 @@ describe("what her keep has cost over the days the farm reads it over", () => {
       readDays: 28,
     });
     expect(kept).toEqual({ amount: 8540, days: 28, fed: true, whole: true });
+  });
+
+  it("counts a month's Herd Cost by the days of it inside the four weeks, wherever in the month it was entered", () => {
+    // Entered on the 1st or the 29th, it is the same keep.
+    // Four weeks back from 04:00 on the 1st of March: 27 days and 14 hours of February's 29 days are inside.
+    const share = (600 * (27 + 14 / 24)) / 29;
+    for (const day of ["2040-02-01", "2040-02-29"]) {
+      const kept = keptOver({
+        charges: [februarysWages(day)],
+        stood: here,
+        now,
+        readDays: 28,
+      });
+      expect(kept.amount).toBeCloseTo(share, 2);
+    }
   });
 
   it("reads as many days back as the farm says", () => {

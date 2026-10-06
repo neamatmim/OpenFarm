@@ -316,8 +316,7 @@ export const returnsRouter = {
       );
       if (!weighed) {
         throw new ORPCError("BAD_REQUEST", {
-          message:
-            "Nobody has weighed her by the day she crossed: weigh her first",
+          message: "Nobody has weighed her since she crossed: weigh her first",
           data: { refusal: "crossing_unweighed" },
         });
       }
