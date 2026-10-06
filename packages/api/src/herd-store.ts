@@ -12,6 +12,7 @@ import {
 import { dryOff } from "@OpenFarm/db/schema/breeding";
 import { animal, animalMove, tagSequence } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
+import { missing } from "@OpenFarm/db/schema/missing";
 import type {
   AnimalState,
   CalvingLead,
@@ -824,6 +825,20 @@ export const leaves = async (
       message: "This animal has already left the farm",
     });
   }
+  // Missing no more: a Missing still open — not written off — when she is sold, dies or is culled is closed at her
+  // leaving. Left open, her page went on saying she was missing, and a Found took her back.
+  if (state !== "lost") {
+    await tx
+      .update(missing)
+      .set({ foundAt: at })
+      .where(
+        and(
+          eq(missing.animalId, her.id),
+          isNull(missing.foundAt),
+          isNull(missing.writtenOffAt)
+        )
+      );
+  }
   // Work about her outlives her otherwise: a dose due tomorrow, a weigh-in raised last week,
   // both going late and sending somebody to fetch an animal who is not there. The calving work
   // her forecast raised is among it. Called Off, not Missed: nobody fell short, and her leaving
@@ -1048,11 +1063,28 @@ export const comesBack = async (
   tx: Tx,
   farmId: string,
   her: { id: string },
-  { state, since, now }: { state: AnimalState; since: Date; now: Date }
+  {
+    state,
+    since,
+    now,
+    expectedCalving,
+  }: {
+    state: AnimalState;
+    since: Date;
+    now: Date;
+    /** The calving she was expected to make when written off, and its Service: she comes back carrying it. */
+    expectedCalving: { at: Date | null; serviceId: string | null };
+  }
 ): Promise<void> => {
   const [back] = await tx
     .update(animal)
-    .set({ state, stateChangedAt: since, updatedAt: now })
+    .set({
+      state,
+      stateChangedAt: since,
+      expectedCalvingAt: expectedCalving.at,
+      expectedCalvingServiceId: expectedCalving.serviceId,
+      updatedAt: now,
+    })
     .where(
       and(
         eq(animal.id, her.id),

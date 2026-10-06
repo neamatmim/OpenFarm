@@ -36,6 +36,7 @@ import {
   pregnancyTimesOf,
 } from "../breeding-store";
 import { calfLossesOf } from "../calf-losses-store";
+import { followExpectedCalving } from "../calving-work";
 import type { Context } from "../context";
 import { correct, reasonInput } from "../corrections/correction";
 import {
@@ -70,6 +71,7 @@ import {
   requireAnimal,
 } from "../herd-store";
 import { protectedProcedure } from "../index";
+import { isOnTheFarm } from "../instances-store";
 import { costToDateOf, makeGood, takenOnByTheFarm } from "../made-good-store";
 import {
   markFound,
@@ -1418,6 +1420,13 @@ export const animalsRouter = {
           after: (tx) => readMissing(tx, target.id),
         },
         async (tx) => {
+          // Found is for one still here, or one written off as Lost: a death or a Sale is never undone by a Found.
+          if (!isOnTheFarm(target) && target.state !== "lost") {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "This animal has left the farm",
+              data: { refusal: "she_is_gone" },
+            });
+          }
           const open = await missingOf(tx, target.id);
           const writtenOff = open?.writtenOffAt ?? null;
           if (writtenOff && context.roleUsed !== "owner") {
@@ -1431,13 +1440,28 @@ export const animalsRouter = {
             animalId: target.id,
             by: context.actor.id,
             now,
+            writtenOff: writtenOff !== null,
           });
           if (writtenOff && open?.stateBefore && open.stateChangedBefore) {
+            const expectedCalving = {
+              at: open.expectedCalvingBefore,
+              serviceId: open.expectedCalvingServiceBefore,
+            };
             await comesBack(tx, context.farm.id, target, {
               state: open.stateBefore,
               since: open.stateChangedBefore,
               now,
+              expectedCalving,
             });
+            // Her calving work, called off when she was written off, comes back with her calving.
+            if (expectedCalving.at) {
+              await followExpectedCalving(
+                tx,
+                { ...target, expectedCalvingAt: expectedCalving.at },
+                pregnancyTimesOf(context.farm).calvingLeadDays,
+                { expectedAgain: true, trail: audited(context).recordEvent }
+              );
+            }
           }
           // A Venture's animal the Farm made good is the Farm's once found: it paid the Venture for her.
           if (writtenOff && target.ownerVentureId) {
@@ -1583,12 +1607,22 @@ export const animalsRouter = {
               ...input.madeGood,
             });
           }
+          const carrying = await tx.query.animal.findFirst({
+            where: { id: her.id },
+            columns: { expectedCalvingServiceId: true },
+          });
           const written = await markWrittenOff(tx, {
             farmId: context.farm.id,
             animalId: her.id,
             by: context.actor.id,
             now,
-            was: { state: her.state, stateChangedAt: her.stateChangedAt },
+            was: {
+              state: her.state,
+              stateChangedAt: her.stateChangedAt,
+              expectedCalvingAt: her.expectedCalvingAt,
+              expectedCalvingServiceId:
+                carrying?.expectedCalvingServiceId ?? null,
+            },
             why: {
               cause: input.cause,
               stolen: input.stolen,

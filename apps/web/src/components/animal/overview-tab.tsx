@@ -24,6 +24,7 @@ import { breedName } from "@/lib/breed";
 import { choice, words } from "@/lib/correcting";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
 import type { Photo } from "@/lib/photo";
+import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
@@ -478,7 +479,15 @@ const WrittenOff = ({
   mayFind: boolean;
 }) => {
   const { t, language } = useLanguage();
-  const found = useMutation(orpc.animals.found.mutationOptions({}));
+  // Said as it went: refused — found already by somebody else, or she has gone — is told, not swallowed.
+  const refused = useRefused();
+  const found = useMutation(
+    orpc.animals.found.mutationOptions({
+      onSuccess: () =>
+        toast.success(t("animals.foundDone", { tag: detail.tagNumber })),
+      onError: refused,
+    })
+  );
   const gone = detail.missing?.writtenOff;
   if (!gone) {
     return null;
@@ -489,10 +498,7 @@ const WrittenOff = ({
         mayFind ? (
           <Button
             disabled={found.isPending}
-            onClick={async () => {
-              await found.mutateAsync({ tagNumber: detail.tagNumber });
-              toast.success(t("animals.foundDone", { tag: detail.tagNumber }));
-            }}
+            onClick={() => found.mutate({ tagNumber: detail.tagNumber })}
             size="sm"
             type="button"
             variant="outline"
@@ -528,7 +534,15 @@ const NotFound = ({
   onAct: (act: AnimalAct) => void;
 }) => {
   const { t, language } = useLanguage();
-  const found = useMutation(orpc.animals.found.mutationOptions({}));
+  // Said as it went: refused — found already by somebody else, or she has gone — is told, not swallowed.
+  const refused = useRefused();
+  const found = useMutation(
+    orpc.animals.found.mutationOptions({
+      onSuccess: () =>
+        toast.success(t("animals.foundDone", { tag: detail.tagNumber })),
+      onError: refused,
+    })
+  );
   if (!detail.missing || detail.missing.writtenOff) {
     return null;
   }
@@ -539,12 +553,7 @@ const NotFound = ({
           <>
             <Button
               disabled={found.isPending}
-              onClick={async () => {
-                await found.mutateAsync({ tagNumber: detail.tagNumber });
-                toast.success(
-                  t("animals.foundDone", { tag: detail.tagNumber })
-                );
-              }}
+              onClick={() => found.mutate({ tagNumber: detail.tagNumber })}
               size="sm"
               type="button"
               variant="outline"
