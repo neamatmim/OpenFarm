@@ -159,7 +159,9 @@ export const bookIntakeMoney = async (
   tx: Tx,
   booking: Booking,
   intakeId: string,
-  paymentMethod: PaymentMethod | undefined
+  paymentMethod: PaymentMethod | undefined,
+  /** Whose hand paid in cash, where the writer named another's: the Owner writing up the Manager's lorry. */
+  heldBy?: string
 ) => {
   const row = await tx.query.intake.findFirst({ where: { id: intakeId } });
   if (!row) {
@@ -179,6 +181,7 @@ export const bookIntakeMoney = async (
       occurredAt: row.arrivedAt,
       counterpartyId: row.counterpartyId,
       paymentMethod,
+      ...(heldBy === undefined ? {} : { heldBy }),
       // Whose money bought her. A Venture's buying is its own cost from the first beast, and the
       // Farm's books never carry a taka of it — whoever she has been sold on to since.
       purseVentureId: await ownerWhenBought(tx, row.animalId),

@@ -11,12 +11,65 @@ import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
+/** The Float's sum as the Owner types: what went out, what it bought, what should be back, and how far what she typed
+ *  is from it — short positive, as notes that should have come home and did not. */
+const floatSumOf = (
+  float: { amountMoney: number; boughtMoney: number } | null,
+  cashBack: string
+) => {
+  const went = float?.amountMoney ?? 0;
+  const bought = float?.boughtMoney ?? 0;
+  const shouldBeBack = went - bought;
+  const cash = Number(cashBack);
+  const short = shouldBeBack - cash;
+  return {
+    went,
+    bought,
+    shouldBeBack,
+    cash,
+    balances: Math.abs(short) < 0.01,
+    short,
+  };
+};
+
+/** Why a Float does not balance, asked with how far it is out and which way. */
+const WhyItDiffers = ({
+  short,
+  why,
+  onChange,
+}: {
+  short: number;
+  why: string;
+  onChange: (why: string) => void;
+}) => {
+  const { t } = useLanguage();
+  const asMoney = useMoney();
+  return (
+    <FormField
+      hint={t(short > 0 ? "ventures.floatShort" : "ventures.floatOver", {
+        amount: asMoney(Math.abs(short)),
+      })}
+      id="count-why"
+      label={t("ventures.floatWhy")}
+    >
+      <Input
+        autoComplete="off"
+        id="count-why"
+        maxLength={300}
+        onChange={(event) => onChange(event.target.value)}
+        value={why}
+      />
+    </FormField>
+  );
+};
+
 /**
  * The Float counted when the trip comes home.
  *
  * The sheet works the sum out as the Owner types, because the refusal it would otherwise meet is a
  * number she would have to do the arithmetic to understand: what went out, less the animals and the
- * outing's costs, is what should be in her hand to deposit.
+ * outing's costs, is what should be in her hand to deposit. One that does not balance says by how much, and is
+ * counted home only with why — ৳500 lost on the road, or the Farm's notes added for a dear bull.
  */
 export const CountFloatSheet = ({
   venture,
@@ -35,11 +88,13 @@ export const CountFloatSheet = ({
   const [cashBack, setCashBack] = useState("");
   const [movedOn, setMovedOn] = useState("");
   const [reference, setReference] = useState("");
+  const [why, setWhy] = useState("");
   useFreshFor(venture?.id, () => {
     setBuyingTripId("");
     setCashBack("");
     setMovedOn("");
     setReference("");
+    setWhy("");
   });
   // Every outing still holding this Venture's Float, however long ago it went: the latest twenty would
   // lose an old one, and a Float nobody can pick is one the run can never count home.
@@ -57,6 +112,7 @@ export const CountFloatSheet = ({
         setCashBack("");
         setMovedOn("");
         setReference("");
+        setWhy("");
         onOpenChange(false);
         toast.success(t("ventures.floatCounted"));
       },
@@ -71,14 +127,16 @@ export const CountFloatSheet = ({
       one.float.ventureId === venture?.id
   );
   const chosen = stillOut.find((one) => one.id === buyingTripId);
-  const bought = chosen?.float?.boughtMoney ?? 0;
-  const went = chosen?.float?.amountMoney ?? 0;
-  const shouldBeBack = went - bought;
-  const cash = Number(cashBack);
-  const balances = Math.abs(cash - shouldBeBack) < 0.01;
+  const { went, bought, shouldBeBack, cash, balances, short } = floatSumOf(
+    chosen?.float ?? null,
+    cashBack
+  );
+  const typedCash = cashBack.trim() !== "";
+  const saidWhy = why.trim() !== "";
   const ready =
     buyingTripId !== "" &&
-    balances &&
+    typedCash &&
+    (balances || saidWhy) &&
     (cash === 0 || (movedOn !== "" && reference.trim() !== ""));
   return (
     <FormSheet
@@ -90,6 +148,7 @@ export const CountFloatSheet = ({
           cashBackMoney: cash,
           movedOn: movedOn || undefined,
           reference: reference || undefined,
+          ...(balances ? {} : { differenceReason: why.trim() }),
         })
       }
       open={open}
@@ -136,6 +195,9 @@ export const CountFloatSheet = ({
           value={cashBack}
         />
       </FormField>
+      {chosen && typedCash && !balances ? (
+        <WhyItDiffers onChange={setWhy} short={short} why={why} />
+      ) : null}
       {cash === 0 ? null : (
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField id="count-moved-on" label={t("ventures.depositedOn")}>

@@ -1,9 +1,13 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 
+import { BuyingTripSheet } from "@/components/intake/buying-trip";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import { WhoseHandField } from "@/components/whose-hand";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import { useRefused } from "@/lib/refused";
@@ -15,6 +19,8 @@ interface Drawing {
   amountMoney: string;
   movedOn: string;
   reference: string;
+  /** Who carries its notes: another Owner or Manager, or empty for the Owner's own hand. */
+  carriedBy: string;
 }
 
 const NOTHING_YET: Drawing = {
@@ -22,7 +28,21 @@ const NOTHING_YET: Drawing = {
   amountMoney: "",
   movedOn: "",
   reference: "",
+  carriedBy: "",
 };
+
+/** An outing a Float may still be drawn for: not given one already — the Venture's or the Farm's — not counted home,
+ *  and bringing nobody home yet, since every animal on an outing with no Float is the Farm's. */
+const mayBeFunded = (one: {
+  float: unknown;
+  farmFloat?: boolean;
+  countedHome?: boolean;
+  animals: number;
+}) =>
+  one.float === null &&
+  !(one.farmFloat ?? false) &&
+  !(one.countedHome ?? false) &&
+  one.animals === 0;
 
 /**
  * The Buying Float: what the Manager takes to the livestock market, drawn from one Venture for one outing.
@@ -44,6 +64,8 @@ export const DrawFloatSheet = ({
   const [drawing, setDrawing] = useState<Drawing>(NOTHING_YET);
   useFreshFor(venture?.id, () => setDrawing(NOTHING_YET));
   const trips = useQuery(orpc.buyingTrips.list.queryOptions());
+  const me = useQuery(orpc.people.me.queryOptions());
+  const [writingTrip, setWritingTrip] = useState(false);
   const drawingIt = useMutation(
     orpc.ventures.floats.draw.mutationOptions({
       onError: refused,
@@ -80,6 +102,8 @@ export const DrawFloatSheet = ({
           movedOn: drawing.movedOn,
           paymentMethod: "bank",
           reference: drawing.reference,
+          // Whose hand its notes are in until it is counted home: the one named, else the Owner's own.
+          carriedBy: drawing.carriedBy || me.data?.id,
         })
       }
       open={open}
@@ -93,23 +117,47 @@ export const DrawFloatSheet = ({
         id="float-trip"
         label={t("ventures.floatTrip")}
       >
-        <NativeSelect
-          id="float-trip"
-          onChange={(event) =>
-            setDrawing({ ...drawing, buyingTripId: event.target.value })
-          }
-          value={drawing.buyingTripId}
-        >
-          <option value="">—</option>
-          {(trips.data ?? [])
-            .filter((one) => one.float === null)
-            .map((one) => (
+        <div className="flex gap-2">
+          <NativeSelect
+            className="min-w-0 flex-1"
+            id="float-trip"
+            onChange={(event) =>
+              setDrawing({ ...drawing, buyingTripId: event.target.value })
+            }
+            value={drawing.buyingTripId}
+          >
+            <option value="">—</option>
+            {(trips.data ?? []).filter(mayBeFunded).map((one) => (
               <option key={one.id} value={one.id}>
                 {`${one.wentTo} · ${formatDate(one.wentOn, language, "date")}`}
               </option>
             ))}
-        </NativeSelect>
+          </NativeSelect>
+          <Button
+            className="h-11 shrink-0 md:h-9"
+            onClick={() => setWritingTrip(true)}
+            type="button"
+            variant="outline"
+          >
+            <Plus aria-hidden data-icon="inline-start" />
+            {t("intake.newTrip")}
+          </Button>
+        </div>
       </FormField>
+      <BuyingTripSheet
+        onOpenChange={setWritingTrip}
+        onRecorded={async (tripId) => {
+          await trips.refetch();
+          setDrawing((was) => ({ ...was, buyingTripId: tripId }));
+        }}
+        open={writingTrip}
+      />
+      <WhoseHandField
+        id="float-carried-by"
+        label={t("ventures.carriedBy")}
+        onChange={(carriedBy) => setDrawing({ ...drawing, carriedBy })}
+        value={drawing.carriedBy}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField
           hint={t("ventures.floatMost", {

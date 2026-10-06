@@ -32,6 +32,8 @@ export interface IntakeFields {
   /** When she came off the lorry, in a date-and-time box: a lorry written up the next morning keeps its own day.
    *  Empty for now. */
   arrivedAt: string;
+  /** Whose hand paid her in cash, where the Owner names another's; empty for the writer's own. */
+  heldBy: string;
 }
 
 /** The Venture an animal is being taken in for, when she is one's: her Target Window is its, not the form's. */
@@ -91,6 +93,7 @@ export const EMPTY: IntakeFields = {
   paidOn: "",
   farmAccountId: "",
   arrivedAt: "",
+  heldBy: "",
 };
 
 /** A Venture's bull with no outing: paid straight from its account by bank, the Owner's to take in. */

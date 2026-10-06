@@ -13,7 +13,9 @@ import { currencyWords } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import type { Tx } from "../../audit";
 import { audited } from "../../audit";
+import { assertTheHand } from "../../cash-store";
 import { isTheFarmsOwn } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
 import { protectedProcedure } from "../../index";
@@ -91,6 +93,39 @@ const theAgreement = async (context: Context, id: string) => {
     throw new ORPCError("NOT_FOUND", { message: "No such Agreement" });
   }
   return row;
+};
+
+/**
+ * An outing already bringing the Farm's or another Venture's animals home cannot be funded by this one: the
+ * reconciliation counts the Animals bought on the trip for the Venture that paid, and money and animals pointing at
+ * different purses is a sum nobody could ever make balance — and the lorry would move into this Venture's purse with
+ * them.
+ */
+const assertTheOutingIsFree = async (
+  tx: Tx,
+  farmId: string,
+  { buyingTripId, ventureId }: { buyingTripId: string; ventureId: string }
+) => {
+  const brought = await tx.query.intake.findMany({
+    where: { farmId, buyingTripId },
+    columns: { animalId: true },
+  });
+  const owners = await theOwnersOf(
+    tx,
+    brought.map((one) => one.animalId)
+  );
+  if (owners.includes(null)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That outing is bringing the Farm's own animals home",
+      data: { refusal: "trip_is_the_farms" },
+    });
+  }
+  if (owners.some((owner) => owner !== ventureId)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That outing is bringing another Venture's animals home",
+      data: { refusal: "trip_is_another_ventures" },
+    });
+  }
 };
 
 export const capitalProcedures = {
@@ -312,6 +347,9 @@ export const capitalProcedures = {
           movedOn: farmDay,
           paymentMethod: z.enum(PAYMENT_METHODS),
           reference: z.string().trim().min(1).max(120),
+          /** Who carries its notes to the livestock market: they are in that hand until the Float is counted home, and
+           *  a Cash Count there expects them (the Owner, 2026-10-07). */
+          carriedBy: z.string().min(1).optional(),
         })
       )
       .handler(async ({ context, input }) => {
@@ -331,30 +369,6 @@ export const capitalProcedures = {
         if (!trip) {
           throw new ORPCError("NOT_FOUND", { message: "No such outing" });
         }
-        // An outing already bringing the Farm's or another Venture's animals home cannot be funded by this one: the
-        // reconciliation counts the Animals bought on the trip for the Venture that paid, and money and animals
-        // pointing at different purses is a sum nobody could ever make balance — and the lorry would move into this
-        // Venture's purse with them.
-        const brought = await context.db.query.intake.findMany({
-          where: { farmId: context.farm.id, buyingTripId: input.buyingTripId },
-          columns: { animalId: true },
-        });
-        const owners = await theOwnersOf(
-          context.db,
-          brought.map((one) => one.animalId)
-        );
-        if (owners.includes(null)) {
-          throw new ORPCError("BAD_REQUEST", {
-            message: "That outing is bringing the Farm's own animals home",
-            data: { refusal: "trip_is_the_farms" },
-          });
-        }
-        if (owners.some((owner) => owner !== row.id)) {
-          throw new ORPCError("BAD_REQUEST", {
-            message: "That outing is bringing another Venture's animals home",
-            data: { refusal: "trip_is_another_ventures" },
-          });
-        }
         const id = uuidv7(now);
         await actOnVenture(context, {
           ventureId: row.id,
@@ -370,6 +384,12 @@ export const capitalProcedures = {
             after: (tx) => readMovement(tx, context.farm.id, id),
           },
           apply: async (tx, standing) => {
+            // Asked behind the lock, as a Farm bull taken in on this outing takes it: read before, a bull written up
+            // at the same moment would leave the outing mixed and its lorry in this Venture's purse.
+            await assertTheOutingIsFree(tx, context.farm.id, {
+              buyingTripId: input.buyingTripId,
+              ventureId: row.id,
+            });
             // Counted inside the write, behind the same lock every other Venture count takes: what the
             // Cattle Budget holds is only true until the next Float commits.
             await assertCattleBudgetHolds(
@@ -410,6 +430,13 @@ export const capitalProcedures = {
               amountMoney: input.amountMoney,
               movedOn: input.movedOn,
               reference: input.reference,
+              heldBy:
+                (await assertTheHand(
+                  tx,
+                  context.farm.id,
+                  { id: context.actor.id, roles: context.roles },
+                  input.carriedBy
+                )) ?? null,
               recordedBy: context.actor.id,
               createdAt: now,
             });
@@ -429,9 +456,11 @@ export const capitalProcedures = {
      * Venture, plus the outing's own costs, plus the cash brought back and deposited.
      *
      * A reconciliation that does not add up is refused, and says by how much and which way — a Float that
-     * nearly balances is a Float nobody has actually counted. Once it is counted the outing is closed: no
-     * animal and no cost may be added to it afterwards, because the sum it was counted against would stop
-     * being true.
+     * nearly balances is a Float nobody has actually counted — unless the Owner says why, as a Cash Count's
+     * difference is said: ৳500 lost on the road, or the Farm's notes added for a dear bull. The difference is
+     * kept with the homecoming, and the Float is closed on it (the Owner, 2026-10-07). Once it is counted the
+     * outing is closed: no animal and no cost may be added to it afterwards, because the sum it was counted
+     * against would stop being true.
      */
     reconcile: protectedProcedure
       .use(requireOnly("owner", OWNER_ONLY))
@@ -444,6 +473,9 @@ export const capitalProcedures = {
           /** The day it was deposited, and the slip's number. Left out when nothing came back. */
           movedOn: farmDay.optional(),
           reference: z.string().trim().max(120).optional(),
+          /** Why it does not balance to the taka, where it does not. Left out, a Float that does not balance is
+           *  refused with the gap. */
+          differenceReason: z.string().trim().min(1).max(300).optional(),
         })
       )
       .handler(async ({ context, input }) => {
@@ -500,7 +532,9 @@ export const capitalProcedures = {
               bought.animalsMoney + bought.tripMoney + input.cashBackMoney
             );
             const outMoney = roundMoney(float.amountMoney);
-            if (accountedFor !== outMoney) {
+            // Short is positive: notes that should have come home and did not.
+            const differenceMoney = roundMoney(outMoney - accountedFor);
+            if (differenceMoney !== 0 && !input.differenceReason) {
               const gapMoney = roundMoney(Math.abs(accountedFor - outMoney));
               throw new ORPCError("BAD_REQUEST", {
                 message: `That is ${gapMoney} ${
@@ -525,6 +559,12 @@ export const capitalProcedures = {
               movedOn: input.movedOn ?? float.movedOn,
               reference: input.reference ?? "",
               refundsId: float.id,
+              ...(differenceMoney === 0
+                ? {}
+                : {
+                    differenceMoney,
+                    differenceReason: input.differenceReason ?? null,
+                  }),
               recordedBy: context.actor.id,
               createdAt: now,
             });

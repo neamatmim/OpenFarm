@@ -152,6 +152,39 @@ const assertReadyToBuy = async (
   }
 };
 
+/**
+ * Refuses buying closed while a Buying Float is still out: the bulls on that lorry would be neither the Venture's — it
+ * is no longer buying — nor the Farm's, which did not pay for them, and the Float could never be counted home (the
+ * Owner, 2026-10-07). Names the outing, so the Owner knows which to count first.
+ */
+const assertNoFloatOut = async (tx: Tx, farmId: string, ventureId: string) => {
+  const out = await tx.query.ventureMovement.findFirst({
+    where: {
+      farmId,
+      ventureId,
+      kind: "float_out",
+      reconciledAt: { isNull: true },
+    },
+    columns: { buyingTripId: true },
+  });
+  if (out) {
+    const trip = out.buyingTripId
+      ? await tx.query.buyingTrip.findFirst({
+          where: { id: out.buyingTripId, farmId },
+          columns: { wentTo: true },
+        })
+      : undefined;
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "A Buying Float is still out; count it home before buying closes",
+      data: {
+        refusal: "float_still_out",
+        wentTo: trip?.wentTo ?? "",
+      },
+    });
+  }
+};
+
 /** Moves a Venture on by hand, and says why not when the lifecycle does not allow it. */
 const moveTo = async (
   context: Context,
@@ -191,6 +224,9 @@ const moveTo = async (
       // Its money counted behind the lock too: capital sent back at the same moment is not money to start on.
       if (to === "buying") {
         await assertReadyToBuy(tx, context.farm.id, standing);
+      }
+      if (to === "fattening") {
+        await assertNoFloatOut(tx, context.farm.id, row.id);
       }
       await tx.update(venture).set({ state: to }).where(eq(venture.id, row.id));
       // Taking no more capital — one paid before buying once it buys, one paid by the month once it sells: a note of

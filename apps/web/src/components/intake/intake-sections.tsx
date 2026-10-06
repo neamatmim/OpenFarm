@@ -9,6 +9,7 @@ import { BreedField } from "@/components/breed-field";
 import { Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
+import { WhoseHandField } from "@/components/whose-hand";
 import { useLanguage } from "@/i18n/language-provider";
 import { fieldOfMoment } from "@/lib/farm-moment";
 import { useMoney } from "@/lib/money";
@@ -110,6 +111,45 @@ const PhotoField = ({
       />
     </div>
   );
+};
+
+/** Whose hand paid her in cash, where the Owner names another's: asked only of cash, and never of a Venture's bull paid
+ *  from its account. */
+const CashHandField = ({
+  fields,
+  onEdit,
+  fromTheAccount,
+}: PartProps & { fromTheAccount: boolean }) =>
+  !fromTheAccount && fields.paymentMethod === "cash" ? (
+    <WhoseHandField
+      id="intake-whose-hand"
+      onChange={(heldBy) => onEdit({ heldBy })}
+      value={fields.heldBy}
+    />
+  ) : null;
+
+/**
+ * The outing she is put on, and whose she is with it: an outing on a Venture's Float bought for that Venture, one on the
+ * Farm's for the Farm — she is the purse's that paid, and nobody else's. Off a Float's outing onto one with none, the
+ * Float's Venture goes with it: it was never chosen, and its box was hidden.
+ */
+const outingChosen = (
+  trips: readonly {
+    id: string;
+    float: { ventureId: string } | null;
+    farmFloat?: boolean;
+  }[],
+  wasId: string,
+  pickedId: string
+): Partial<IntakeFields> => {
+  const picked = trips.find((one) => one.id === pickedId);
+  const was = trips.find((one) => one.id === wasId);
+  const leftAFloat = Boolean(was?.float) && !picked?.float;
+  return {
+    buyingTripId: pickedId,
+    ...(picked?.float ? { ventureId: picked.float.ventureId } : {}),
+    ...(picked?.farmFloat || leftAFloat ? { ventureId: "" } : {}),
+  };
 };
 
 /** Where it goes first and what it is: the Quarantine Pen, its sex and breed, and its photograph. */
@@ -408,16 +448,11 @@ export const PriceSection = ({
           <NativeSelect
             className="min-w-0 flex-1"
             id="intake-trip"
-            onChange={(event) => {
-              const picked = trips.find((one) => one.id === event.target.value);
-              // An outing on a Venture's Float bought for that Venture, one on the Farm's for the Farm: she is the
-              // purse's that paid, and nobody else's.
-              onEdit({
-                buyingTripId: event.target.value,
-                ...(picked?.float ? { ventureId: picked.float.ventureId } : {}),
-                ...(picked?.farmFloat ? { ventureId: "" } : {}),
-              });
-            }}
+            onChange={(event) =>
+              onEdit(
+                outingChosen(trips, fields.buyingTripId, event.target.value)
+              )
+            }
             value={fields.buyingTripId}
           >
             <option value="">{t("intake.noTrip")}</option>
@@ -488,6 +523,11 @@ export const PriceSection = ({
           value={fields.paymentMethod}
         />
       )}
+      <CashHandField
+        fields={fields}
+        fromTheAccount={fromTheAccount}
+        onEdit={onEdit}
+      />
       {!isOwner && ventures.length !== 0 && float === null ? (
         <p className="text-muted-foreground text-xs">
           {t("intake.ventureAtTheGate")}

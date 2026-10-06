@@ -165,9 +165,101 @@ interface HandMovement {
 }
 
 /**
+ * A Venture's Buying Float in the hand that carries it (the Owner, 2026-10-07): its notes in from when it was drawn,
+ * out again as the outing spends them in cash — its bulls and its lorry — and what was left out when it is counted
+ * home: what was banked again, and any short. A Float that went over came home having spent the hand's own notes,
+ * which stay spent. One drawn before carriers were named was in nobody's hand.
+ */
+const floatMovementsOf = async (
+  db: Db,
+  farmId: string
+): Promise<HandMovement[]> => {
+  const floats = await db.query.ventureMovement.findMany({
+    where: { farmId, kind: "float_out", heldBy: { isNotNull: true } },
+    columns: {
+      id: true,
+      ventureId: true,
+      buyingTripId: true,
+      amountMoney: true,
+      heldBy: true,
+      createdAt: true,
+      reconciledAt: true,
+    },
+  });
+  if (floats.length === 0) {
+    return [];
+  }
+  const tripIds = floats.flatMap((one) =>
+    one.buyingTripId ? [one.buyingTripId] : []
+  );
+  const [brought, homecomings] = await Promise.all([
+    db.query.intake.findMany({
+      where: { farmId, buyingTripId: { in: tripIds } },
+      columns: { id: true, buyingTripId: true },
+    }),
+    db.query.ventureMovement.findMany({
+      where: {
+        farmId,
+        kind: "float_back",
+        refundsId: { in: floats.map((one) => one.id) },
+      },
+      columns: { refundsId: true, amountMoney: true, differenceMoney: true },
+    }),
+  ]);
+  const tripOfIntake = new Map(
+    brought.map((one) => [one.id, one.buyingTripId])
+  );
+  const spent = await db.query.moneyEvent.findMany({
+    where: {
+      farmId,
+      paymentMethod: "cash",
+      purseVentureId: { isNotNull: true },
+      OR: [
+        { source: "intake", sourceId: { in: [...tripOfIntake.keys()] } },
+        { source: "buying_trip", sourceId: { in: tripIds } },
+      ],
+    },
+    columns: {
+      source: true,
+      sourceId: true,
+      purseVentureId: true,
+      amountMoney: true,
+      occurredAt: true,
+    },
+  });
+  const moved: HandMovement[] = [];
+  for (const float of floats) {
+    if (!(float.heldBy && float.buyingTripId)) {
+      continue;
+    }
+    const userId = float.heldBy;
+    moved.push({ userId, at: float.createdAt, amount: float.amountMoney });
+    for (const one of spent) {
+      const onThisOuting =
+        one.source === "intake"
+          ? tripOfIntake.get(one.sourceId) === float.buyingTripId
+          : one.sourceId === float.buyingTripId;
+      if (onThisOuting && one.purseVentureId === float.ventureId) {
+        moved.push({ userId, at: one.occurredAt, amount: -one.amountMoney });
+      }
+    }
+    const home = homecomings.find((one) => one.refundsId === float.id);
+    if (float.reconciledAt && home) {
+      const short = Math.max(home.differenceMoney ?? 0, 0);
+      moved.push({
+        userId,
+        at: float.reconciledAt,
+        amount: -(home.amountMoney + short),
+      });
+    }
+  }
+  return moved;
+};
+
+/**
  * Every movement of cash through the farm's hands, dated by when the notes moved — not by when anybody wrote it up:
- * the Farm's cash Money Events that named a hand, in less out; the Handovers to and from a hand; and a Venture's sale
- * cash, in the hand from its Sale until the deposit that banked it. A Sale written before sale cash was kept in hands,
+ * the Farm's cash Money Events that named a hand, in less out; the Handovers to and from a hand; a Venture's sale
+ * cash, in the hand from its Sale until the deposit that banked it; and a Venture's Buying Float, in its carrier's. A Sale written before sale cash was kept in hands,
  * its movement already there with no deposit behind it, never was in one.
  */
 const handMovementsOf = async (
@@ -288,6 +380,7 @@ const handMovementsOf = async (
       });
     }
   }
+  moved.push(...(await floatMovementsOf(db, farmId)));
   return moved;
 };
 

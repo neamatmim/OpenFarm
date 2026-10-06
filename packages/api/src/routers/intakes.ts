@@ -6,6 +6,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
+import { assertTheHand } from "../cash-store";
 import { correct } from "../corrections/correction";
 import { intakeCorrection, intakeCorrectionInput } from "../corrections/intake";
 import { counterpartyNamed } from "../counterparty-store";
@@ -68,6 +69,8 @@ const recordInput = z
     paymentMethod: paymentMethodInput,
     /** Which Farm Account mobile money or bank money went into or came out of. */
     farmAccountId: farmAccountIdInput,
+    /** Whose hand paid the cash, where it was not the writer's: the Owner writing up the Manager's lorry. */
+    heldBy: z.string().optional(),
     /** A Venture's bull with no outing is paid from its account by bank: the transfer or cheque, and what it is
      *  numbered. */
     reference: z.string().trim().min(1).max(120).optional(),
@@ -287,8 +290,10 @@ export const intakesRouter = {
         async (tx) => {
           // A Venture's bull may move its money, so the Farm is locked first, as every writer of a Venture's money
           // locks it: the Venture's state and its Cattle Budget are only true until a Float drawn or a Venture moved on
-          // at the same moment commits. Before her tag number, so the two locks are always taken in that order.
-          if (input.ventureId) {
+          // at the same moment commits. A bull on an outing too, whoever's: its Float may be being counted home, or
+          // drawn, at the same moment, and either reads the outing's animals behind this lock. Before her tag number, so
+          // the two locks are always taken in that order.
+          if (input.ventureId || input.buyingTripId) {
             await lockTheFarm(tx, context.farm.id);
           }
           // Asked before she is written down: what may refuse her should refuse her in the farm's own
@@ -357,7 +362,13 @@ export const intakesRouter = {
               accountSaid(["intake"], input)
             ),
             intakeId,
-            input.paymentMethod
+            input.paymentMethod,
+            await assertTheHand(
+              tx,
+              context.farm.id,
+              { id: context.actor.id, roles: context.roles },
+              input.heldBy
+            )
           );
           await bookBoughtByBank(tx, intakeId, {
             reference: input.reference,

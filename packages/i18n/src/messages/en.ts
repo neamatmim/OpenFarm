@@ -1650,6 +1650,11 @@ export const en = {
   "ventures.floatSum":
     "{currencySign}{went} went out · {currencySign}{bought} in animals and costs · {currencySign}{back} should come back",
   "ventures.cashBack": "Cash brought back",
+  "ventures.floatWhy": "Why it does not balance",
+  "ventures.floatShort":
+    "{amount} short of what should be back: say why, and it is counted home short",
+  "ventures.floatOver":
+    "{amount} more spent than the float held: say why, and it is counted home over",
   "ventures.cashBackHint": "What is left of the float, going into the bank",
   "ventures.depositedOn": "Deposited on",
   "ventures.slip": "Deposit slip",
@@ -1660,6 +1665,7 @@ export const en = {
   "ventures.floatTrip": "Which outing",
   "ventures.floatTripHint":
     "One float per outing, so it can be counted when it comes home",
+  "ventures.carriedBy": "Who carries it to the livestock market",
   "ventures.floatMost": "At most {currencySign}{cattle}",
   "money.purseWas": "{venture}'s money",
   "ventures.outOfTheAccount": "Out of the account · paid out",
@@ -1725,6 +1731,8 @@ export const en = {
     "She can't have come home before the outing that brought her went. Check the day",
   "refusal.wentInTheFuture":
     "A lorry can't have gone on a day that hasn't come yet",
+  "refusal.floatStillOut":
+    "The livestock market money for {wentTo} is still out: count it home before buying closes",
   "refusal.beforeSheWasHere":
     "She wasn't here yet then, or was moved after that time. Check the day and time",
   "refusal.bornInTheFuture": "A birth date can't be in the future",

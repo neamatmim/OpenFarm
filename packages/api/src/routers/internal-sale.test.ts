@@ -1140,3 +1140,65 @@ describe("a bull the Farm sold to a Venture and bought back", () => {
     ).toMatchObject({ standing: false });
   });
 });
+
+describe("a bull the Farm's float bought, sold to a Venture before the float is counted home", () => {
+  it("is still what the float bought, whoever owns him now", async () => {
+    const owner = await as("owner", "2047-10-20T03:00:00.000Z");
+    const taker = await funded(owner, 9);
+    const manager = await as("manager", "2047-10-20T03:00:00.000Z");
+    const trip = await manager.client.buyingTrips.record({
+      wentTo: `ফ্লোটের হাট ${suffix}`,
+      transportMoney: 2000,
+      paymentMethod: "cash",
+      wentOn: new Date("2047-10-20T03:00:00.000Z"),
+    });
+    await owner.client.cash.handOver({
+      from: { userId: thePerson("owner").id },
+      to: { userId: thePerson("manager").id },
+      amountMoney: 150_000,
+      buyingTripId: trip.id,
+    });
+    const bought = [];
+    for (const name of ["ক", "খ"]) {
+      // One lorry, one bull after the other.
+      // oxlint-disable-next-line no-await-in-loop
+      const one = await manager.client.intakes.record({
+        penId,
+        sex: "male",
+        seller: { name: `ব্যাপারী ${name} ${suffix}` },
+        purchasePriceMoney: 60_000,
+        weightKg: 180,
+        estimatedAgeMonths: 20,
+        arrivedAt: new Date("2047-10-20T03:00:00.000Z"),
+        buyingTripId: trip.id,
+        paymentMethod: "cash",
+        targetWindowStart: "2047-05-17",
+        targetWindowEnd: "2047-05-19",
+      });
+      bought.push(one);
+    }
+    const [first] = bought;
+    await weigh("2047-10-21", [[first?.tagNumber ?? "", 180]]);
+    const selling = await as("owner", "2047-10-21T10:00:00.000Z");
+    await selling.client.ventures.sellInternally({
+      tagNumber: first?.tagNumber ?? "",
+      toVentureId: taker,
+      rateMoneyPerKg: 400,
+      note: `ফ্লোট গোনার আগে ${suffix}`,
+      soldOn: "2047-10-21",
+      paymentMethod: "bank",
+      reference: `INT-FLOAT-${suffix}`,
+      priceMoney: 72_000,
+    });
+    const floats = await selling.client.cash.tripFloats();
+    // Both bulls and the lorry: ৳122,000 bought, ৳28,000 to come back.
+    expect(floats.find((one) => one.tripId === trip.id)).toMatchObject({
+      handedMoney: 150_000,
+      boughtMoney: 122_000,
+    });
+    await selling.client.cash.countFloatHome({
+      tripId: trip.id,
+      cashBackMoney: 28_000,
+    });
+  });
+});

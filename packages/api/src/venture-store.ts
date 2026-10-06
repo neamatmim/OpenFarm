@@ -28,7 +28,6 @@ import { ORPCError } from "@orpc/server";
 import type { SnapshotValue, Tx } from "./audit";
 import type { BankStanding } from "./bank-standing";
 import { NEVER_CHECKED, standingOf } from "./bank-standing";
-import { tripCostOf } from "./trip-store";
 import type { AuditEntity } from "./whose-trail";
 
 /** Struck in the domain, because the screen that shows the Owner the price strikes it too. */
@@ -592,8 +591,12 @@ export const assertTripIsOpen = async (
 };
 
 /**
- * What a Buying Float has to account for: the Animals it brought home for its Venture — each one's price
- * and the livestock market's toll on her — and the outing's own costs, the broker, the lorry and keeping the men.
+ * What a Buying Float has to account for: the Animals it bought for its purse — each one's price and the livestock
+ * market's toll on her — and the outing's own costs, the broker, the lorry and keeping the men.
+ *
+ * Read off what each was booked as: the purse that bought her (`ownerWhenBought`), whoever she has been sold on to
+ * since, and only what was paid in cash, which is all a Float's notes could have paid for — a bull paid by mobile money
+ * or the bank on the same outing came out of an account, not the hand (the Owner, 2026-10-07).
  *
  * Whatever is left of the Float is the cash the Manager should be bringing back.
  */
@@ -609,33 +612,40 @@ export const whatTheFloatBought = async (
     ventureId: string | null;
   }
 ) => {
-  const trip = await tx.query.buyingTrip.findFirst({
-    where: { id: buyingTripId, farmId },
-  });
   const brought = await tx.query.intake.findMany({
     where: { farmId, buyingTripId },
-    columns: {
-      animalId: true,
-      purchasePriceMoney: true,
-      marketTollMoney: true,
-    },
+    columns: { id: true },
   });
-  const owners = await tx.query.animal.findMany({
-    where: { farmId, id: { in: brought.map((one) => one.animalId) } },
-    columns: { id: true, ownerVentureId: true },
-  });
-  const whose = new Map(owners.map((one) => [one.id, one.ownerVentureId]));
-  const animalsMoney = brought
-    .filter((one) => whose.get(one.animalId) === ventureId)
-    .reduce(
-      (sum, one) => sum + one.purchasePriceMoney + one.marketTollMoney,
-      0
-    );
+  const purse = ventureId ?? { isNull: true as const };
+  const [paid, outing] = await Promise.all([
+    brought.length === 0
+      ? []
+      : tx.query.moneyEvent.findMany({
+          where: {
+            farmId,
+            source: "intake",
+            sourceId: { in: brought.map((one) => one.id) },
+            purseVentureId: purse,
+            paymentMethod: "cash",
+          },
+          columns: { amountMoney: true },
+        }),
+    tx.query.moneyEvent.findFirst({
+      where: {
+        farmId,
+        source: "buying_trip",
+        sourceId: buyingTripId,
+        paymentMethod: "cash",
+      },
+      columns: { amountMoney: true },
+    }),
+  ]);
   return {
-    animalsMoney,
-    tripMoney: trip ? tripCostOf(trip) : 0,
-    animals: brought.filter((one) => whose.get(one.animalId) === ventureId)
-      .length,
+    animalsMoney: roundMoney(
+      paid.reduce((sum, one) => sum + one.amountMoney, 0)
+    ),
+    tripMoney: outing?.amountMoney ?? 0,
+    animals: paid.length,
   };
 };
 

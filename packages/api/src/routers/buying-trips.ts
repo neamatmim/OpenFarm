@@ -4,6 +4,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
+import { assertTheHand } from "../cash-store";
 import {
   buyingTripCorrection,
   buyingTripCorrectionInput,
@@ -40,6 +41,8 @@ const recordInput = z.object({
   paymentMethod: paymentMethodInput,
   /** Which Farm Account mobile money or bank money went into or came out of. */
   farmAccountId: farmAccountIdInput,
+  /** Whose hand paid the cash, where it was not the writer's: the Owner writing up the Manager's lorry. */
+  heldBy: z.string().optional(),
   /** Its transaction ID, or the cheque's or slip's number. */
   reference: referenceInput,
 });
@@ -224,7 +227,13 @@ export const buyingTripsRouter = {
               accountSaid(["buying_trip"], input)
             ),
             id,
-            input.paymentMethod
+            input.paymentMethod,
+            await assertTheHand(
+              tx,
+              context.farm.id,
+              { id: context.actor.id, roles: context.roles },
+              input.heldBy
+            )
           );
         }
       );

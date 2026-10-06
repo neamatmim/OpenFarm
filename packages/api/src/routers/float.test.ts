@@ -456,3 +456,64 @@ describe("an outing a Float paid for", () => {
     });
   });
 });
+
+describe("buying closed with a Float still out", () => {
+  it("is refused, naming the outing, until the Float is counted home", async () => {
+    const owner = await as("owner", "2046-12-20T04:00:00.000Z");
+    const closing = await funded(owner, 7, 400_000);
+    const trip = await outing(owner, 7);
+    await owner.client.ventures.floats.draw({
+      ventureId: closing,
+      buyingTripId: trip,
+      amountMoney: 100_000,
+      movedOn: "2046-12-20",
+      paymentMethod: "bank",
+      reference: `FLT-${suffix}-7`,
+    });
+    await expect(
+      owner.client.ventures.startFattening({ id: closing })
+    ).rejects.toMatchObject({
+      data: { refusal: "float_still_out", wentTo: `হাট 7 ${suffix}` },
+    });
+    // Nothing bought: the whole of it banked again, and buying may close.
+    await owner.client.ventures.floats.reconcile({
+      buyingTripId: trip,
+      cashBackMoney: 100_000,
+      movedOn: "2046-12-20",
+      reference: `DEP-${suffix}-7`,
+    });
+    await owner.client.ventures.startFattening({ id: closing });
+  });
+});
+
+describe("a Float drawn at the moment a Farm bull is taken in on the same outing", () => {
+  it("is drawn or the bull is taken in, never both", async () => {
+    const owner = await as("owner", "2046-12-21T04:00:00.000Z");
+    const racing = await funded(owner, 8, 400_000);
+    const trip = await outing(owner, 8);
+    const manager = await as("manager", "2046-12-21T04:00:00.000Z");
+    const tries = await Promise.allSettled([
+      owner.client.ventures.floats.draw({
+        ventureId: racing,
+        buyingTripId: trip,
+        amountMoney: 100_000,
+        movedOn: "2046-12-21",
+        paymentMethod: "bank",
+        reference: `FLT-${suffix}-8`,
+      }),
+      manager.client.intakes.record({
+        penId,
+        sex: "male",
+        seller: { name: `ব্যাপারী একসাথে ${suffix}` },
+        purchasePriceMoney: 50_000,
+        weightKg: 200,
+        estimatedAgeMonths: 18,
+        arrivedAt: new Date("2046-12-21T04:00:00.000Z"),
+        buyingTripId: trip,
+        targetWindowStart: plan.targetWindowStart,
+        targetWindowEnd: plan.targetWindowEnd,
+      }),
+    ]);
+    expect(tries.filter((one) => one.status === "fulfilled")).toHaveLength(1);
+  });
+});

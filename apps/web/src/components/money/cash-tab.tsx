@@ -51,7 +51,7 @@ const HandOverDialog = ({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const onError = useRefused();
   // Whom it may go to: every hand holding the farm's cash, by name — a Manager hands their takings to the Owner.
   const holders = useQuery(orpc.cash.holders.queryOptions());
@@ -77,9 +77,11 @@ const HandOverDialog = ({
   const [note, setNote] = useState("");
   const [tripId, setTripId] = useState("");
   const toTheBank = to === BANK || toAnAccount;
-  // The Farm's own outings a float may go on: none a Venture's Buying Float paid for.
+  // The Farm's own outings a float may go on: none a Venture's Buying Float paid for, and none counted home already.
   const trips = useQuery(orpc.buyingTrips.list.queryOptions());
-  const farmsTrips = (trips.data ?? []).filter((one) => one.float === null);
+  const farmsTrips = (trips.data ?? []).filter(
+    (one) => one.float === null && !(one.countedHome ?? false)
+  );
   const handOver = useMutation(
     orpc.cash.handOver.mutationOptions({
       onSuccess: () => {
@@ -169,7 +171,7 @@ const HandOverDialog = ({
             <option value="">{t("cash.noTrip")}</option>
             {farmsTrips.map((one) => (
               <option key={one.id} value={one.id}>
-                {one.wentTo}
+                {`${one.wentTo} · ${formatDate(new Date(one.wentOn), language, "date")}`}
               </option>
             ))}
           </NativeSelect>
@@ -535,6 +537,8 @@ const CountHomeDialog = ({
   const { t } = useLanguage();
   const onError = useRefused();
   const due = float.handedMoney - float.boughtMoney - float.backMoney;
+  // Filled in when it opens — mounted afresh each time, by its key — so a bull or a cost written up since the page was
+  // drawn is in what is due.
   const [back, setBack] = useState(String(Math.max(0, due)));
   const countHome = useMutation(
     orpc.cash.countFloatHome.mutationOptions({
@@ -608,6 +612,7 @@ const FloatLine = ({ float, isOwner }: { float: Float; isOwner: boolean }) => {
           </Button>
           <CountHomeDialog
             float={float}
+            key={counting ? "counting" : "shut"}
             onOpenChange={setCounting}
             open={counting}
           />
@@ -677,6 +682,7 @@ const FloatCountCell = ({ row }: FloatCell) => {
       </Button>
       <CountHomeDialog
         float={float}
+        key={counting ? "counting" : "shut"}
         onOpenChange={setCounting}
         open={counting}
       />

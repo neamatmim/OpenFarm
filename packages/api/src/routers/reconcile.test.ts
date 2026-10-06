@@ -1,4 +1,4 @@
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -311,5 +311,72 @@ describe("the Float comes home", () => {
         reference: `DEP-${suffix}-5`,
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("a Float carried to the livestock market", () => {
+  /** What the Manager's hand holds, the Farm's and any Venture's notes together, as a Cash Count would find. */
+  const managersHand = async (instant: string) => {
+    const owner = await as("owner", instant);
+    const hands = await owner.client.cash.inHand();
+    return (
+      hands.find((one) => one.userId === thePerson("manager").id)?.amount ?? 0
+    );
+  };
+
+  it("is in the carrier's hand until it is counted home, and comes home ৳500 short with a reason", async () => {
+    const owner = await as("owner", "2047-02-01T03:00:00.000Z");
+    const before = await managersHand("2047-02-01T03:00:00.000Z");
+    const trip = await owner.client.buyingTrips.record({
+      wentTo: `বহন ${suffix}`,
+      wentOn: "2047-02-01",
+      brokerMoney: 0,
+      transportMoney: 0,
+      keepMoney: 0,
+    });
+    await owner.client.ventures.floats.draw({
+      ventureId,
+      buyingTripId: trip.id,
+      amountMoney: 100_000,
+      movedOn: "2047-02-01",
+      paymentMethod: "bank",
+      reference: `FLT-${suffix}-carried`,
+      carriedBy: thePerson("manager").id,
+    });
+    expect(await managersHand("2047-02-01T04:00:00.000Z")).toBe(
+      before + 100_000
+    );
+    // A bull at ৳60,000 paid out of those notes.
+    await bull(trip.id, 60_000, 0, "2047-02-01T06:00:00.000Z");
+    expect(await managersHand("2047-02-01T07:00:00.000Z")).toBe(
+      before + 40_000
+    );
+    // ৳39,500 banked again: ৳500 lost on the road. Refused as short until the Owner says why.
+    const counting = await as("owner", "2047-02-02T04:00:00.000Z");
+    const home = {
+      buyingTripId: trip.id,
+      cashBackMoney: 39_500,
+      movedOn: "2047-02-02",
+      reference: `DEP-${suffix}-carried`,
+    };
+    await expect(
+      counting.client.ventures.floats.reconcile(home)
+    ).rejects.toMatchObject({
+      data: { refusal: "float_short", gapMoney: 500 },
+    });
+    await counting.client.ventures.floats.reconcile({
+      ...home,
+      differenceReason: "রাস্তায় ৫০০ টাকা হারিয়েছে",
+    });
+    // Nothing of it left in the hand: what came back was banked, and the ৳500 is gone.
+    expect(await managersHand("2047-02-02T05:00:00.000Z")).toBe(before);
+    const back = await scratchDb().query.ventureMovement.findFirst({
+      where: { buyingTripId: trip.id, kind: "float_back" },
+      columns: { differenceMoney: true, differenceReason: true },
+    });
+    expect(back).toEqual({
+      differenceMoney: 500,
+      differenceReason: "রাস্তায় ৫০০ টাকা হারিয়েছে",
+    });
   });
 });

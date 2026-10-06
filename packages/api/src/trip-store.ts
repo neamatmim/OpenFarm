@@ -63,7 +63,8 @@ const bookOuting = async (
     | undefined,
   source: TripSource,
   paymentMethod: PaymentMethod | undefined,
-  purseVentureId?: string | null
+  purseVentureId?: string | null,
+  heldBy?: string
 ) => {
   if (!row) {
     return;
@@ -81,6 +82,7 @@ const bookOuting = async (
       counterpartyId: null,
       paymentMethod,
       purseVentureId,
+      ...(heldBy === undefined ? {} : { heldBy }),
     });
   }
 };
@@ -165,7 +167,9 @@ export const bookTripMoney = async (
   tx: Tx,
   booking: Booking,
   tripId: string,
-  paymentMethod: PaymentMethod | undefined
+  paymentMethod: PaymentMethod | undefined,
+  /** Whose hand paid in cash, where the writer named another's. */
+  heldBy?: string
 ) => {
   const row = await tx.query.buyingTrip.findFirst({ where: { id: tripId } });
   await bookOuting(
@@ -174,7 +178,8 @@ export const bookTripMoney = async (
     row,
     "buying_trip",
     paymentMethod,
-    row ? await fundedBy(tx, row.farmId, row.id) : undefined
+    row ? await fundedBy(tx, row.farmId, row.id) : undefined,
+    heldBy
   );
 };
 

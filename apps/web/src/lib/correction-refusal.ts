@@ -205,6 +205,7 @@ const WORDED_REFUSALS = {
   not_on_that_lorry: "refusal.notOnThatLorry",
   sold_in_the_future: "refusal.soldInTheFuture",
   went_in_the_future: "refusal.wentInTheFuture",
+  float_still_out: "refusal.floatStillOut",
   inside_withdrawal_that_day: "refusal.insideWithdrawalThatDay",
   left_before_her_lorry: "refusal.leftBeforeHerLorry",
   money_moved_since: "refusal.moneyMovedSince",

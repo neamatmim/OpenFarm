@@ -10,6 +10,11 @@ import { EARLY_DAYS } from "./early-days";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** One livestock market or one seller however its name was typed: one Unicode form, spaces closed up, any capitals. The first
+ *  spelling seen is the one shown. */
+const nameKey = (name: string): string =>
+  name.normalize("NFC").trim().replaceAll(/\s+/gu, " ").toLowerCase();
+
 /** One animal the farm bought: who sold her, where, and when she came. */
 export interface BoughtIn {
   animalId: string;
@@ -55,7 +60,8 @@ const counted = (
     if (!name) {
       continue;
     }
-    const row = byName.get(name) ?? {
+    const key = nameKey(name);
+    const row = byName.get(key) ?? {
       name,
       bought: 0,
       died: 0,
@@ -69,7 +75,7 @@ const counted = (
     row.culled += how.culled ? 1 : 0;
     row.diagnosed += how.diagnosed ? 1 : 0;
     row.weighedShort += how.weighedShort ? 1 : 0;
-    byName.set(name, row);
+    byName.set(key, row);
   }
   return [...byName.values()]
     .filter(
