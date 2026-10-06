@@ -300,6 +300,22 @@ describe("the sale", () => {
       soldAt: new Date("2027-04-18T09:00:00.000Z"),
     });
     expect(sold.state).toBe("sold");
+
+    // Nor is the gate got around by writing the Sale on a day after her days and correcting it back into them.
+    await expect(
+      manager.client.sales.correct({
+        id: sold.id,
+        reason: "আসলে ১০ তারিখে বিক্রি হয়েছিল",
+        changes: {
+          soldAt: {
+            from: "2027-04-18T09:00:00.000Z",
+            to: new Date("2027-04-10T09:00:00.000Z"),
+          },
+        },
+      })
+    ).rejects.toMatchObject({
+      data: { refusal: "inside_withdrawal_that_day" },
+    });
   });
 
   it("refuses a sale written for a time that has not come yet", async () => {

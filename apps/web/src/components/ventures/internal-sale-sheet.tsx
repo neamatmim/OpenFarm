@@ -291,6 +291,7 @@ export const InternalSaleSheet = ({
         <FormField id="internal-sold-on" label={t("ventures.soldOn")}>
           <Input
             id="internal-sold-on"
+            max={farmDayOf(new Date())}
             onChange={(event) => setSoldOn(event.target.value)}
             type="date"
             value={soldOn}

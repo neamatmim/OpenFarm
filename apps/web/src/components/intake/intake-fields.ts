@@ -29,6 +29,9 @@ export interface IntakeFields {
   paidOn: string;
   /** Which Farm Account the Farm's own bull was paid from by mobile money or the bank. */
   farmAccountId: string;
+  /** When she came off the lorry, in a date-and-time box: a lorry written up the next morning keeps its own day.
+   *  Empty for now. */
+  arrivedAt: string;
 }
 
 /** The Venture an animal is being taken in for, when she is one's: her Target Window is its, not the form's. */
@@ -87,6 +90,7 @@ export const EMPTY: IntakeFields = {
   reference: "",
   paidOn: "",
   farmAccountId: "",
+  arrivedAt: "",
 };
 
 /** A Venture's bull with no outing: paid straight from its account by bank, the Owner's to take in. */

@@ -53,6 +53,7 @@ const loadIntake = (tx: Tx, farmId: string, id: string) =>
       purchasePriceMoney: true,
       marketTollMoney: true,
       buyingTripId: true,
+      arrivedAt: true,
       targetWindowStart: true,
       targetWindowEnd: true,
       recordedBy: true,
@@ -209,7 +210,13 @@ export const intakeCorrection: CorrectionKind<
     // The outing she is on now, and the one she is being moved to: a Float already counted may neither
     // gain an animal nor lose one, because the sum it was counted against would stop being true.
     await assertTripIsOpen(tx, row.farmId, row.buyingTripId);
-    await assertTripIsOurs(tx, row.farmId, to.buyingTrip ?? undefined);
+    // Not onto an outing that went after she came home, as on recording (`arrived_before_the_trip`).
+    await assertTripIsOurs(
+      tx,
+      row.farmId,
+      to.buyingTrip ?? undefined,
+      row.arrivedAt
+    );
     const wasOwnedBy = await ownerOf(tx, row.animalId);
     assertTheWindowIsTheOwners({
       wasOwnedBy,

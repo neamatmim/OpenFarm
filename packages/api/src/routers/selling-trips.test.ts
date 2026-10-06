@@ -181,6 +181,40 @@ describe("a Selling Trip", () => {
     expect(await costOf(two)).toMatchObject({ tripMoney: 1500 });
   });
 
+  it("will not have her Sale moved to before the lorry that carried her", async () => {
+    const buyer = await as("manager", "2041-03-22T04:00:00.000Z");
+    const bull = await buy(buyer);
+    const manager = await as("manager", "2041-03-25T10:00:00.000Z");
+    const sold = await manager.client.sales.record({
+      tagNumber: bull,
+      buyer: { name: `হাটের ক্রেতা ${suffix}` },
+      priceMoney: 90_000,
+      weightKg: 300,
+      destination: "গাবতলী",
+      vehicle: "ঢাকা মেট্রো ট-১-৩৩৩৩",
+      driver: "রফিক",
+      paymentMethod: "cash",
+    });
+    await manager.client.sellingTrips.record({
+      wentTo: `হাট ${suffix}`,
+      transportMoney: 2000,
+      animals: [bull],
+      paymentMethod: "cash",
+    });
+    await expect(
+      manager.client.sales.correct({
+        id: sold.id,
+        reason: "আসলে ২৩ তারিখে বিক্রি",
+        changes: {
+          soldAt: {
+            from: "2041-03-25T10:00:00.000Z",
+            to: new Date("2041-03-23T08:00:00.000Z"),
+          },
+        },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "left_before_her_lorry" } });
+  });
+
   it("offers to tick the beasts sold that day, with the ones still standing", async () => {
     const manager = await as("manager", "2041-05-01T04:00:00.000Z");
     const [home, soldBefore, soldThatDay] = [

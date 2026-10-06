@@ -191,6 +191,7 @@ export const buyingTripsRouter = {
       if (wentOn.getTime() > now.getTime()) {
         throw new ORPCError("BAD_REQUEST", {
           message: "A lorry cannot have gone tomorrow",
+          data: { refusal: "went_in_the_future" },
         });
       }
       const id = uuidv7(now);

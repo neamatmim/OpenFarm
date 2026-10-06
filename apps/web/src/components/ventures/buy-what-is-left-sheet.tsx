@@ -302,6 +302,7 @@ export const BuyWhatIsLeftSheet = ({
         <FormField id="wind-up-day" label={t("ventures.soldOn")}>
           <Input
             id="wind-up-day"
+            max={farmDayOf(new Date())}
             onChange={(event) => setBoughtOn(event.target.value)}
             type="date"
             value={boughtOn}

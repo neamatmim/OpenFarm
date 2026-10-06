@@ -29,6 +29,7 @@ import { Notice, Page, PageHeader } from "@/components/page";
 import { accountSent } from "@/components/payment-method";
 import { PastOutings } from "@/components/trips/past-outings";
 import { useT } from "@/i18n/language-provider";
+import { momentOfField } from "@/lib/farm-moment";
 import { onlyFor } from "@/lib/guard";
 import { shrinkAnimalPhoto } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
@@ -142,6 +143,11 @@ const IntakePage = () => {
           record.mutate({
             penId: fields.penId,
             sex: fields.sex,
+            // Read as the farm's day and time, not the phone's (lib/farm-moment): her Quarantine, her money and her
+            // outing are dated from it.
+            ...(fields.arrivedAt
+              ? { arrivedAt: new Date(momentOfField(fields.arrivedAt)) }
+              : {}),
             seller: {
               name: fields.sellerName,
               address: fields.sellerPlace || undefined,
