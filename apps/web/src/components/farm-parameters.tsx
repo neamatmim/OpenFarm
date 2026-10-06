@@ -32,6 +32,7 @@ type NumberKey =
   | "registrationRenewalLeadDays"
   | "expiryWarnDays"
   | "fatteningTargetWeightKg"
+  | "readyLeadDays"
   | "gainReadDays"
   | "deshiGainPercent"
   | "femaleGainPercent"
@@ -683,6 +684,13 @@ const GROUPS: {
         unit: "params.kg",
         min: 1,
         max: 2000,
+      },
+      {
+        key: "readyLeadDays",
+        label: "params.readyLeadDays",
+        unit: "params.days",
+        min: 0,
+        max: 60,
       },
       {
         key: "gainReadDays",

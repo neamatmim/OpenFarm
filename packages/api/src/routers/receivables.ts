@@ -1,5 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
+import { eq } from "@OpenFarm/db/operators";
+import { counterparty } from "@OpenFarm/db/schema/fattening";
 import {
   RECEIVABLE_KINDS as KINDS,
   RECEIVABLE_SOURCES,
@@ -21,6 +23,7 @@ import {
   writeOffCorrection,
   writeOffCorrectionInput,
 } from "../corrections/receivable-write-off";
+import { knownAs } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { enteredOn } from "../money-by-hand-store";
@@ -53,12 +56,10 @@ import {
 
 const buyerNameInput = z.string().trim().min(1).max(120);
 
-/** The buyer a name names on this farm, or nobody. */
+/** The buyer a name names on this farm, or nobody: found as a Sale finds him, whatever the capitals and however the
+ *  keyboard spelled its letters (`knownAs`). */
 const buyerNamed = (db: Database, farmId: string, name: string) =>
-  db.query.counterparty.findFirst({
-    where: { farmId, name },
-    columns: { id: true },
-  });
+  knownAs(db, farmId, name);
 
 export const receivablesRouter = {
   /**
@@ -281,4 +282,45 @@ export const receivablesRouter = {
     .handler(({ context, input }) =>
       correct(context, receivablePaymentCorrection, input)
     ),
+
+  /**
+   * A buyer's phone put right: the number the overdue list gives the Manager to ring. A later Sale never overwrites the one
+   * the farm has, so a number that changed is changed here — by the Owner or the Manager, with why, the old number kept on
+   * the trail (the Owner, 2026-10-07).
+   */
+  setPhone: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(
+      z.object({
+        counterpartyId: z.string().min(1),
+        phone: z.string().trim().min(3).max(40),
+        reason: z.string().trim().min(1).max(300),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const his = await context.db.query.counterparty.findFirst({
+        where: { id: input.counterpartyId, farmId: context.farm.id },
+        columns: { id: true, phone: true },
+      });
+      if (!his) {
+        throw new ORPCError("NOT_FOUND", { message: "No such buyer" });
+      }
+      await audited(context).write(
+        {
+          entity: "receivable",
+          entityId: his.id,
+          action: "update",
+          reason: input.reason,
+          before: () => Promise.resolve({ phone: his.phone }),
+          after: () => Promise.resolve({ phone: input.phone }),
+        },
+        async (tx) => {
+          await tx
+            .update(counterparty)
+            .set({ phone: input.phone })
+            .where(eq(counterparty.id, his.id));
+        }
+      );
+      return { phone: input.phone };
+    }),
 };

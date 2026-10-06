@@ -134,6 +134,13 @@ const EXAMPLE: NoticeFacts = {
     sentOn: "2038-01-05",
     way: "mobile_money",
   },
+  credit_after_write_off: {
+    counterpartyId: "buyer-1",
+    buyer: "করিম ব্যাপারী",
+    lentMoney: 30_000,
+    writtenOffMoney: 12_000,
+    writtenOffOn: "2038-02-20",
+  },
   receivable_overdue: {
     counterpartyId: "buyer-1",
     buyer: "করিম ব্যাপারী",

@@ -46,5 +46,6 @@ export const ALERT_KINDS = [
   "mortality_undiagnosed",
   "monthly_sum_missed",
   "pay_in_note_sent",
+  "credit_after_write_off",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];

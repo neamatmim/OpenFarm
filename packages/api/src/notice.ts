@@ -139,6 +139,12 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [{ roles: ["owner", "manager"] }],
     entity: "receivable",
   },
+  // Lending again to a buyer the Owner wrote off is the Owner's to hear; about the Sale or the Dispatch, so it is told
+  // once (the Owner, 2026-10-07).
+  credit_after_write_off: {
+    audience: [theOwner],
+    entity: "receivable",
+  },
   // The Manager walks the farm for her; the Owner answers for an animal gone, and a Venture's is Investors' money. Each
   // Missing told once, however many mornings the round cannot find her.
   animal_missing: {

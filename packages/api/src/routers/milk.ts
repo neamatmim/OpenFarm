@@ -46,6 +46,7 @@ import {
   owingNowOf,
   paidNowInput,
   promisedByInput,
+  tellIfLentAfterWriteOff,
 } from "../receivable-store";
 import { requireRole } from "../roles";
 import { isPenInScope, requireLookUp } from "../scope";
@@ -163,6 +164,16 @@ export const milkRouter = {
             ),
             id,
             input.paymentMethod
+          );
+          await tellIfLentAfterWriteOff(
+            tx,
+            context.farm.id,
+            {
+              id,
+              counterpartyId: buyer.buyerId,
+              receivableMoney: receivable.receivableMoney,
+            },
+            now
           );
         }
       );

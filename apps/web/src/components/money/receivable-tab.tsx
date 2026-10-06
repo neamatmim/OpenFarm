@@ -15,6 +15,7 @@ import { phoneLink } from "@/components/investors/phone-link";
 import { Nothing } from "@/components/list-cells";
 import { useIsOwner } from "@/components/money";
 import {
+  BuyerPhoneCorrection,
   ReceivablePaymentCorrection,
   WriteOffCorrection,
 } from "@/components/money/receivable-corrections";
@@ -237,6 +238,9 @@ const BuyerBreakdown = ({
   mayWriteOff: boolean;
 }) => (
   <div className="flex flex-col gap-5">
+    <div className="flex justify-end">
+      <BuyerPhoneCorrection buyer={buyer} />
+    </div>
     {buyer.kinds.map((standing) => (
       <KindPart
         key={standing.kind}

@@ -83,7 +83,12 @@ export const readyForSaleRouter = {
         if (underMeatWithdrawal(row, now)) {
           return [];
         }
-        const grounds = readyGrounds(row.view, row.window, now);
+        const grounds = readyGrounds(
+          row.view,
+          row.window,
+          now,
+          context.farm.readyLeadDays
+        );
         if (!stillWorthSaying(grounds, row.setAside, row.stateChangedAt)) {
           return [];
         }

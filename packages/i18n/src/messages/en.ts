@@ -2275,6 +2275,7 @@ export const en = {
   "params.calvingPrepLead": "Calving pen before calving",
   "params.repeatBreeder": "Repeat breeder after",
   "params.fatteningTarget": "Default fattening target",
+  "params.readyLeadDays": "Suggest for sale this many days before Eid",
   "params.gainReadDays": "Judge a bull's gain against his ration over at least",
   "params.deshiGainPercent":
     "Judge a deshi animal at this share of its ration's expected gain",
@@ -4146,6 +4147,8 @@ export const en = {
     "{count, plural, one {# withdrawal} other {# withdrawals}} changed",
   "digest.receivableOverdue":
     "{count, plural, one {# receivable} other {# receivables}} gone past the day",
+  "digest.creditAfterWriteOff":
+    "{count, plural, one {# buyer} other {# buyers}} the farm wrote off took credit again",
   "digest.lowStock":
     "{count, plural, one {# feed} other {# feeds}} running low",
   "digest.investorStatementDue":
@@ -4159,6 +4162,8 @@ export const en = {
   "alerts.lowStock": "{feed} is running low — {onHand} {unit} left",
   "alerts.receivableOverdue":
     "Receivable overdue since {since}: {currencySign}{amount} from {buyer}",
+  "alerts.creditAfterWriteOff":
+    "{buyer} took {currencySign}{lent} on credit again; {currencySign}{written} of his was written off, last on {day}",
   "alerts.monthlySumMissed":
     "{investor} has missed {currencySign}{amount} of monthly sums on {venture}, the latest due {day}",
   "digest.monthlySumMissed":
@@ -5475,6 +5480,7 @@ export const en = {
   "receivable.writeOffLine": "{currencySign}{amount} written off on {day}",
   "receivable.record": "Record a payment",
   "receivable.paymentTitle": "Money received towards a receivable",
+  "receivable.correctPhone": "Put his phone right",
   "receivable.paymentDescription":
     "What he paid, for what, and when. It clears his oldest receivable first.",
   "receivable.buyer": "Buyer",

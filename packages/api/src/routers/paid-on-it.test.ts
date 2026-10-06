@@ -1,4 +1,4 @@
-import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -274,5 +274,87 @@ describe("a payment put right while another is taken", () => {
       }),
     ]);
     expect(outcomes.filter((one) => one.status === "rejected")).toHaveLength(1);
+  });
+});
+
+describe("a buyer named another way on the sheet", () => {
+  it("is warned of what he owes however his name is typed", async () => {
+    // য় typed as one letter, as one Bangla keyboard does; the farm keeps it as য and its nukta.
+    const miya = `মিয়া ${suffix}`;
+    await sellOnCredit(miya, "2052-03-25T05:00:00.000Z");
+    const manager = await as("manager", "2052-03-26T05:00:00.000Z");
+    expect(
+      await manager.client.receivables.ofBuyer({ name: miya })
+    ).toMatchObject({
+      owingMoney: 40_000,
+    });
+    // And in other capitals, as the Sale finds him.
+    await sellOnCredit(`Rahim Traders ${suffix}`, "2052-03-25T05:10:00.000Z");
+    expect(
+      await manager.client.receivables.ofBuyer({
+        name: `rahim traders ${suffix}`,
+      })
+    ).toMatchObject({ owingMoney: 40_000 });
+  });
+});
+
+describe("credit to a buyer the farm wrote off", () => {
+  it("is told to the Owner, with what was written off and when", async () => {
+    const gone = `পালানো ${suffix}`;
+    const first = await sellOnCredit(gone, "2052-03-27T05:00:00.000Z");
+    const owner = await as("owner", "2052-03-28T05:00:00.000Z");
+    await owner.client.receivables.writeOff({
+      source: "sale",
+      id: first.id,
+      amountMoney: 40_000,
+      why: "এলাকা ছেড়েছে",
+    });
+    const again = await sellOnCredit(gone, "2052-03-29T05:00:00.000Z");
+    const told = await scratchDb().query.alert.findMany({
+      where: {
+        kind: "credit_after_write_off",
+        userId: thePerson("owner").id,
+        entityId: again.id,
+      },
+      columns: { params: true },
+    });
+    expect(told.map((one) => one.params)).toEqual([
+      expect.objectContaining({
+        buyer: gone,
+        lentMoney: 40_000,
+        writtenOffMoney: 40_000,
+        writtenOffOn: "2052-03-28",
+      }),
+    ]);
+  });
+});
+
+describe("a buyer's phone", () => {
+  it("is put right by the Manager, with why, and the old number kept on the trail", async () => {
+    const trader = `নতুন নম্বর ${suffix}`;
+    await sellOnCredit(trader, "2052-03-30T05:00:00.000Z");
+    const manager = await as("manager", "2052-03-30T06:00:00.000Z");
+    const listed = await manager.client.receivables.list();
+    const his = listed.find((one) => one.name === trader);
+    if (!his) {
+      throw new Error("expected the trader on the list");
+    }
+    await manager.client.receivables.setPhone({
+      counterpartyId: his.counterpartyId,
+      phone: "01711000123",
+      reason: "পুরনো নম্বর বন্ধ",
+    });
+    const after = await manager.client.receivables.list();
+    expect(after.find((one) => one.name === trader)?.phone).toBe("01711000123");
+    const owner = await as("owner", "2052-03-30T07:00:00.000Z");
+    const trail = await owner.client.audit.list({
+      entity: "receivable",
+      entityId: his.counterpartyId,
+    });
+    expect(trail[0]).toMatchObject({
+      reason: "পুরনো নম্বর বন্ধ",
+      before: { phone: null },
+      after: { phone: "01711000123" },
+    });
   });
 });

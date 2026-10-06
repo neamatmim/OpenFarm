@@ -119,3 +119,37 @@ export const WriteOffCorrection = ({
     </CorrectionDialog>
   );
 };
+
+/** A buyer's phone put right, with why: a later Sale never overwrites the number the farm has, so a number that changed
+ *  is changed here, and the old one stays on the trail. */
+export const BuyerPhoneCorrection = ({
+  buyer,
+}: {
+  buyer: { counterpartyId: string; phone: string | null };
+}) => {
+  const { t } = useLanguage();
+  const correcting = useCorrecting({ phone: words(buyer.phone ?? "") });
+  const setPhone = useMutation(orpc.receivables.setPhone.mutationOptions({}));
+  return (
+    <CorrectionDialog
+      onOpen={correcting.handleOpen}
+      onSave={async (reason) => {
+        await setPhone.mutateAsync({
+          counterpartyId: buyer.counterpartyId,
+          phone: correcting.typed.phone ?? "",
+          reason,
+        });
+      }}
+      ready={correcting.changed}
+      title={t("receivable.correctPhone")}
+      trigger={t("receivable.correctPhone")}
+    >
+      <CorrectionAnswer
+        inputMode="tel"
+        label={t("sale.buyerPhone")}
+        onChange={(value) => correcting.set("phone", value)}
+        value={correcting.typed.phone ?? ""}
+      />
+    </CorrectionDialog>
+  );
+};

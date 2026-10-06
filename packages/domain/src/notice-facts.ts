@@ -186,6 +186,15 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") the round could not find her. */
     since: string;
   };
+  credit_after_write_off: {
+    counterpartyId: string;
+    buyer: string;
+    /** What this Sale or Dispatch left him owing. */
+    lentMoney: number;
+    /** What stays written off of all he took, and the farm day the Owner last wrote any off. */
+    writtenOffMoney: number;
+    writtenOffOn: string;
+  };
   receivable_overdue: {
     counterpartyId: string;
     buyer: string;

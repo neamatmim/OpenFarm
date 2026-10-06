@@ -246,7 +246,10 @@ const WhereItLeads = ({
   if (place) {
     return <place.Way>{t(place.label)}</place.Way>;
   }
-  if (notice.kind === "receivable_overdue") {
+  if (
+    notice.kind === "receivable_overdue" ||
+    notice.kind === "credit_after_write_off"
+  ) {
     return (
       <Link className={LEADS_CLASS} to="/money/receivables">
         {t("alerts.seeWhoOwes")}

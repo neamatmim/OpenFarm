@@ -15,11 +15,15 @@ export type ReadyReason = (typeof READY_REASONS)[number];
  *
  * A suggestion, never a decision: whether an animal is ready to sell is a judgement about the
  * animal standing in front of you, and the farm knows only two things about her.
+ *
+ * Her window is a ground from `leadDays` before it opens: Qurbani cattle sell at the livestock markets in the week
+ * before Eid, and a bull suggested on Eid day 1 has missed them (the Owner, 2026-10-07).
  */
 export const readyGrounds = (
   view: { latestKg: number | null; targetWeightKg: number | null },
   window: { opensAt: Date; closesAt: Date } | null,
-  now: Date
+  now: Date,
+  leadDays = 0
 ): ReadyReason[] => {
   const grounds: ReadyReason[] = [];
   if (
@@ -32,7 +36,7 @@ export const readyGrounds = (
   // An open window stays a ground after it closes. A beast whose Eid has gone by is still
   // eating, and the farm has *more* reason to look at her, not less — the screen says the
   // window has passed rather than the farm going quiet about her.
-  if (window && window.opensAt.getTime() <= now.getTime()) {
+  if (window && window.opensAt.getTime() - leadDays * DAY_MS <= now.getTime()) {
     grounds.push("window");
   }
   return grounds;

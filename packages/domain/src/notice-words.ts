@@ -250,6 +250,12 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     pen: facts.pen,
     since: saidDate(facts.since, language),
   }),
+  credit_after_write_off: (facts, language) => ({
+    buyer: facts.buyer,
+    lent: Number(facts.lentMoney),
+    written: Number(facts.writtenOffMoney),
+    day: saidDate(facts.writtenOffOn, language),
+  }),
   receivable_overdue: (facts, language) => ({
     buyer: facts.buyer,
     amount: Number(facts.owingMoney),

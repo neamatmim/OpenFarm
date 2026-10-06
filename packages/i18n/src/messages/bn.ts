@@ -2115,6 +2115,7 @@ export const bn: Record<MessageKey, string> = {
   "params.calvingPrepLead": "বাছুর হওয়ার আগে প্রসব পেনে",
   "params.repeatBreeder": "বারবার প্রজননকারী ধরা হবে",
   "params.fatteningTarget": "মোটাতাজাকরণের সাধারণ লক্ষ্য",
+  "params.readyLeadDays": "ঈদের এত দিন আগে থেকে বিক্রির জন্য প্রস্তাব",
   "params.gainReadDays": "রেশনের সাথে ষাঁড়ের বৃদ্ধি মেলানো হবে অন্তত এত দিনের ওজনে",
   "params.deshiGainPercent": "দেশি পশু মাপা হবে রেশনের প্রত্যাশিত বৃদ্ধির এত ভাগে",
   "params.femaleGainPercent": "গাভী বা বকনা মাপা হবে তার এত ভাগে",
@@ -3889,6 +3890,7 @@ export const bn: Record<MessageKey, string> = {
   "digest.withdrawalChanged": "{count}টি পশুর আটকে রাখার সময় বদলেছে",
   "digest.lowStock": "{count}টি খাদ্য কমে আসছে",
   "digest.receivableOverdue": "{count}টি বাকির তারিখ পেরিয়ে গেছে",
+  "digest.creditAfterWriteOff": "বাকি বাদ দেওয়া {count} জন আবার বাকিতে নিলেন",
   "digest.investorStatementDue":
     "{count}টি ভেঞ্চারের বিনিয়োগকারীদের অগ্রগতিপত্র পাওনা",
   "digest.reimbursementDue": "{count}টি ভেঞ্চারের মাসের খরচ ফেরত পাওনা",
@@ -3898,6 +3900,8 @@ export const bn: Record<MessageKey, string> = {
   "alerts.lowStock": "{feed} কমে আসছে — {onHand} {unit} বাকি",
   "alerts.receivableOverdue":
     "{buyer}-এর কাছে {currencySign}{amount} বাকি, {since} থেকে মেয়াদোত্তীর্ণ",
+  "alerts.creditAfterWriteOff":
+    "{buyer} আবার {currencySign}{lent} বাকিতে নিলেন; তার {currencySign}{written} বাদ দেওয়া হয়েছিল, শেষবার {day}",
   "alerts.monthlySumMissed":
     "{investor} {venture}-এ মাসের {currencySum} {currencySign}{amount} দেননি, শেষটি {day} তারিখে দেওয়ার কথা ছিল",
   "digest.monthlySumMissed": "{count} জন বিনিয়োগকারী মাসের {currencyIn} পিছিয়ে",
@@ -5125,6 +5129,7 @@ export const bn: Record<MessageKey, string> = {
   "receivable.writeOffLine": "{day}-এ {currencySign}{amount} বাদ দেওয়া হয়েছে",
   "receivable.record": "{currencySum} পাওয়া লিখুন",
   "receivable.paymentTitle": "বাকির {currencySum} পাওয়া গেল",
+  "receivable.correctPhone": "ফোন নম্বর ঠিক করুন",
   "receivable.paymentDescription":
     "কী বাবদ কত দিলেন, কবে। সবচেয়ে পুরনো বাকি আগে শোধ হয়।",
   "receivable.buyer": "ক্রেতা",
