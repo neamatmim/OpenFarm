@@ -93,24 +93,20 @@ Run once, in the provider's console as the owner, with a new password from the p
 
 ```sql
 CREATE ROLE openfarm_app LOGIN PASSWORD '…';
-GRANT CONNECT ON DATABASE "<name>" TO openfarm_app;
-GRANT USAGE ON SCHEMA public TO openfarm_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO openfarm_app;
--- What is kept as written: read and added to, never changed or taken away. A paper's Version takes
--- its review once, so it keeps UPDATE; the database's own guard lets nothing else through.
-REVOKE UPDATE, DELETE, TRUNCATE ON audit_event, sop_version, ration_version FROM openfarm_app;
-REVOKE DELETE, TRUNCATE ON paper_template_version FROM openfarm_app;
--- Readiness asks which migration the database has applied.
-GRANT USAGE ON SCHEMA drizzle TO openfarm_app;
-GRANT SELECT ON drizzle.__drizzle_migrations TO openfarm_app;
--- Tables a migration adds later are the app's to use too, as the owner makes them.
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO openfarm_app;
+```
+
+Then give it what it may do, from the repository, still as the owner. The grants are kept in one
+file, `scripts/app-login-grants.sql`, which a restore into a new database runs too, so the two can
+never say different things:
+
+```sh
+psql "<the owner's database url>" -v ON_ERROR_STOP=1 -v app_role=openfarm_app \
+  -f scripts/app-login-grants.sql
 ```
 
 Then put `postgresql://openfarm_app:…@…` in `/etc/openfarm/app.env` as `DATABASE_URL`, restart,
 and check `/api/ready`. If a migration ever adds a table the app is refused, its grant was made by a
-login other than the owner's: run the `GRANT … ON ALL TABLES` line again.
+login other than the owner's: run `scripts/app-login-grants.sql` again.
 
 ## Every deploy
 
@@ -217,6 +213,27 @@ journalctl -u openfarm --since today
 The environment file contains the runtime values from `.env.example`. `BETTER_AUTH_URL`
 must be the public HTTPS origin. The service runs unprivileged, restarts after failures, and
 writes structured application events to the system journal.
+
+## The outside watch
+
+The farm tells the Owner itself when its day stops turning or its copies stop coming, but only
+while the app is running to say so. A server that is down, or an app that has died, says nothing.
+So something outside the farm listens for it, once, at go-live:
+
+1. Make a check at a check-in service (healthchecks.io's free tier is enough): expected every
+   **5 minutes**, with **30 minutes'** grace, alerting the Owner by email and SMS.
+2. Put its address in `/etc/openfarm/app.env` as `OPENFARM_WATCH_URL`, and restart. After each
+   whole turn of the farm's day the server tells it; when it stops, the watch tells the Owner.
+3. And for the service itself, so a crash loop is heard of at once, not after the grace:
+
+```sh
+sudo systemctl edit openfarm   # add, under [Unit]:
+#   OnFailure=openfarm-failed.service
+# where openfarm-failed.service runs once, e.g.
+#   ExecStart=/usr/bin/curl -fsS -m 10 --retry 3 "<the watch's address>/fail"
+```
+
+Test it once: stop the service and wait for the watch to say so.
 
 ## The Investor Portal's own address
 

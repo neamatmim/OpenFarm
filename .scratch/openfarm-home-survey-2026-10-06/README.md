@@ -83,7 +83,7 @@ Defaults I'm taking, as the obvious reading:
 
 | Group | Branch | Status |
 | ----- | ------ | ------ |
-| A     |        |        |
-| B     |        |        |
-| C     |        |        |
-| D     |        |        |
+| A     | fix/sweep-and-audience | Done (a notice whose people are gone falls back to the Owner — not news of one's own act or work, nor `mortality_undiagnosed`; each telling in the sweep stands alone and a failure reports the sweep gone wrong; `farm.work_raised_on`, migration 20261006174856, raises a missed day's scheduled work on the next turn, up to 7 days; a dose starting a milk hold tells the Manager; a refused entry's notice says why in the reader's words; `settled-notices` clears late work done, Missing found, backup and day alarms put right; a dismissed judgement raised again; the day's raising filed under the farm day. Untested: the Missing, backup and day-turning clearing) |
+| B     | fix/push-delivery | Done (a push claims `carriedAt`; each awake sweep carries immediate notices uncarried a day or less — night pushes in the morning, `expired_dose_given`; migration 20261006182921 marks those already sent; sign-out revokes the browser, a revoked browser or the same Shed Phone moves to whoever subscribes; the digest claimed and carried in one transaction; pushes open where the list leads) |
+| C     | fix/home-tiles | Done (Owner's Withdrawal-ending list milk-held only; late work unwindowed with `overdueTotal`; money page opens on `from`/`to` in its address, waiting money's figure on the Farm's oldest waiting day, each row on its own day or its Venture's money page; Farm Accounts → /farm/money; cows held → held=milk; stillborn said as born dead) |
+| D     | fix/restore-and-watch | Done (`restore.sh --into-new-database` restores only into an empty database and runs `scripts/app-login-grants.sql`, shared with the deploy runbook — checked in a throwaway Postgres; `OPENFARM_WATCH_URL` pinged after each whole turn, `the-watch.ts`, and the runbook's outside watch with `OnFailure=`. D2 left: counting inside the dump's snapshot would leave the job's own row out of the copy; a drill tripped by the few seconds' window passes when run again) |
