@@ -60,6 +60,6 @@ The four count defects share one root cause: a Medicine Count stores the book's 
 | Group | Branch | Status |
 | ----- | ------ | ------ |
 | A     | fix/withdrawal-holds | Done (a shortening caps only the doses learnt of before it — `treatment.learnt_at`, `animal.*_withdrawal_shortened_to`, migration 20261006084248, `holdInForce` in domain; a dose keeps the days it was given on, raised days reach back via `reachBackWithdrawalDays`; a dose is never dated before its work was raised; the Shorten dialog sends only the hold changed, opens at the dates in force, on the farm's clock; fit for sale to the hour; the Summary lists any dose still holding her) |
-| B     |        |        |
+| B     | fix/doses-and-courses | Done (a course's dose from half-way after the one before, else `dose_not_due_yet`; a skipped dose carries `skippedBecause` and is owed no more; the expired-Lot notice reaches a dose not prescribed; `prescriptions.stop` with a reason calls off the doses still owed — `prescription.stopped_*`, migration 20261006090044 — open to a visiting Vet within scope, and a Stop button on the Vet's courses) |
 | C     |        |        |
 | D     |        |        |

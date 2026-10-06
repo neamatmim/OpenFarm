@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { stillOwed } from "@/components/course";
 import { Page, PageHeader } from "@/components/page";
 import type { Figure, PageTab } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
@@ -41,17 +42,12 @@ const IN_HOUSE_TABS: readonly Tab[] = [
   "fee",
 ];
 
-/** Doses ordered that nobody has given yet and that are still to be given. */
+/** Doses ordered that nobody has given yet and that are still to be given — a skipped dose is owed no more. */
 const owedOf = (mine: Made[]) =>
   mine
     .flatMap((made) => made.prescriptions)
     .flatMap((course) => course.doses)
-    .filter(
-      (dose) =>
-        dose.givenAt === null &&
-        dose.state !== "called_off" &&
-        dose.state !== "missed"
-    ).length;
+    .filter(stillOwed).length;
 
 interface VetCounts {
   waiting: number;

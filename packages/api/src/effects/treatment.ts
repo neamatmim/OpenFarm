@@ -140,7 +140,14 @@ const recordCampaignDose = async (
       target: [treatment.instanceId, treatment.animalId],
       set: { ...given, lotNumber },
     });
-  return { id, number: 1, prescriptionId: null, animalId, productId };
+  return {
+    id,
+    number: 1,
+    prescriptionId: null,
+    animalId,
+    productId,
+    dueAt: input.instance.dueAt,
+  };
 };
 
 /** How many doses the course this one belongs to calls for — one, for a campaign. */
@@ -161,12 +168,14 @@ const dosesInTheCourse = async (
 /**
  * Says so when a dose just given came out of a Lot already past its day — warned of, not refused: an animal that
  * needed treating was treated, and the Vet, who answers for what went into her, and the Manager, who keeps the box
- * it came out of, hear of it at once. Keyed on the dose, so a phone sending it twice tells nobody twice.
+ * it came out of, hear of it at once. Keyed on the dose, so a phone sending it twice tells nobody twice. Every dose
+ * given is asked — a course's, a Campaign's, and one not prescribed, which once was never.
  */
-const tellIfItsLotHadExpired = async (
+export const tellIfItsLotHadExpired = async (
   tx: Tx,
-  input: TreatmentFacts,
-  doseId: string
+  farmId: string,
+  doseId: string,
+  now: Date
 ) => {
   const dose = await tx.query.treatment.findFirst({
     where: { id: doseId },
@@ -182,7 +191,7 @@ const tellIfItsLotHadExpired = async (
   // Read on the day it was given: only whether the Lot had passed its day is asked, so no warning is wanted.
   const lot = await lotOfTheLatestDose(
     tx,
-    input.instance.farmId,
+    farmId,
     dose.productId,
     expiryWindow(dose.givenAt, 0)
   );
@@ -191,7 +200,7 @@ const tellIfItsLotHadExpired = async (
   }
   await tell(
     tx,
-    input.instance.farmId,
+    farmId,
     {
       kind: "expired_dose_given",
       about: { id: doseId },
@@ -202,7 +211,7 @@ const tellIfItsLotHadExpired = async (
         expiresOn: lot.expiresOn,
       },
     },
-    input.now
+    now
   );
 };
 
@@ -272,6 +281,36 @@ const doseGiven = async (
 };
 
 /**
+ * A course's dose is taken no earlier than half-way from the dose before it: closer to its own time than to the
+ * last one's. Recording a dose only ever checked its work's state, so the third of a three-day course could be
+ * tapped the first morning — the course looked finished, her Withdrawal ran from the wrong day, and the real dose
+ * then had nowhere to be written. The first dose has no dose before it, and is taken whenever it is given.
+ */
+const assertDoseIsDue = async (
+  tx: Tx,
+  dose: { number: number; prescriptionId: string | null; dueAt: Date },
+  givenAt: Date
+) => {
+  if (!dose.prescriptionId || dose.number <= 1) {
+    return;
+  }
+  const before = await tx.query.treatment.findFirst({
+    where: { prescriptionId: dose.prescriptionId, number: dose.number - 1 },
+    columns: { dueAt: true },
+  });
+  if (!before) {
+    return;
+  }
+  const halfway = new Date((before.dueAt.getTime() + dose.dueAt.getTime()) / 2);
+  if (givenAt < halfway) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `Dose ${dose.number} is not due yet: it may be given from ${halfway.toISOString()}`,
+      data: { refusal: "dose_not_due_yet", from: halfway.toISOString() },
+    });
+  }
+};
+
+/**
  * Records that a dose was actually given — or, when the Step was skipped, that it was not
  * after all — and works her Withdrawals out afresh from everything she has had.
  *
@@ -294,6 +333,7 @@ const giveTheDose = async (
       prescriptionId: true,
       animalId: true,
       productId: true,
+      dueAt: true,
     },
   });
   if (!(owed || shape.campaign)) {
@@ -309,6 +349,9 @@ const giveTheDose = async (
     input,
     shape.campaign ? shape.productId : owed?.productId
   );
+  if (owed && given.givenAt) {
+    await assertDoseIsDue(tx, owed, given.givenAt);
+  }
 
   let dose = owed;
   if (shape.campaign) {
@@ -329,7 +372,7 @@ const giveTheDose = async (
     dose?.animalId ?? shape.animalId ?? ""
   );
   if (dose && !input.skipped) {
-    await tellIfItsLotHadExpired(tx, input, dose.id);
+    await tellIfItsLotHadExpired(tx, input.instance.farmId, dose.id, input.now);
   }
   await followTheArrivalDose(tx, input);
   return {

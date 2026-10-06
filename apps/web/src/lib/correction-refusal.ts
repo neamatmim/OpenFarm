@@ -178,6 +178,8 @@ const WORDED_REFUSALS = {
   written_off_more_than_owed: "refusal.writtenOffMoreThanOwed",
   calved_lately: "refusal.calvedLately",
   phone_revoked: "refusal.phoneRevoked",
+  dose_not_due_yet: "refusal.doseNotDueYet",
+  course_stopped: "refusal.courseStopped",
   wrong_pin: "device.wrongPin",
   too_many_pins: "refusal.tooManyPins",
   cannot_work_here: "refusal.cannotWorkHere",

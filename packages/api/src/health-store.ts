@@ -125,7 +125,11 @@ interface DoseRow {
   givenAt: Date | null;
   giver: { name: string } | null;
   /** Always there for a course's dose: the work its Prescription raised. Only a dose not prescribed has none. */
-  instance: { id: string; state: string } | null;
+  instance: {
+    id: string;
+    state: string;
+    completions?: { skipReason: string | null }[];
+  } | null;
 }
 
 /** A Prescription and its doses, as the database hands them over. */
@@ -137,6 +141,8 @@ interface PrescriptionRow {
   times: string[];
   days: number;
   prescribedAt: Date;
+  stoppedAt: Date | null;
+  stoppedReason: string | null;
   product: { nameBn: string; nameEn: string | null };
   vet: { name: string };
   treatments: DoseRow[];
@@ -160,6 +166,10 @@ export const prescriptionView = (row: PrescriptionRow) => ({
   productNameBn: row.product.nameBn,
   productNameEn: row.product.nameEn,
   prescribedByName: row.vet.name,
+  /** When the Vet gave it up and why; nothing for a course running or run its length. */
+  stopped: row.stoppedAt
+    ? { at: row.stoppedAt, reason: row.stoppedReason }
+    : null,
   doses: row.treatments
     .toSorted((a, b) => a.number - b.number)
     .flatMap(({ instance, ...dose }) =>
@@ -173,6 +183,11 @@ export const prescriptionView = (row: PrescriptionRow) => ({
               instanceId: instance.id,
               state: instance.state,
               givenByName: dose.giver?.name ?? null,
+              /** Why it was not given, for a dose skipped — "ওষুধ শেষ" — so the Vet can prescribe again. Never for
+               *  a dose given. */
+              skippedBecause: dose.givenAt
+                ? null
+                : (instance.completions?.[0]?.skipReason ?? null),
             },
           ]
         : []
@@ -184,7 +199,16 @@ export const thePrescription = {
   vet: { columns: { name: true } },
   treatments: {
     with: {
-      instance: { columns: { id: true, state: true } },
+      instance: {
+        columns: { id: true, state: true },
+        // Why a dose was not given, where the Step was skipped: its work closes as done, and the dose is owed no more.
+        with: {
+          completions: {
+            where: { skipReason: { isNotNull: true } },
+            columns: { skipReason: true },
+          },
+        },
+      },
       giver: { columns: { name: true } },
     },
   },

@@ -1696,6 +1696,9 @@ export const en = {
     "This work is about another animal: record it against her",
   "refusal.skipReasonNotOffered":
     "That is not one of this step's reasons to skip: choose one from the list",
+  "refusal.doseNotDueYet":
+    "This dose is not due yet. Give the dose before it first, or wait until nearer its time",
+  "refusal.courseStopped": "The vet has already stopped this course",
   "refusal.phoneRevoked":
     "This phone is no longer one of the farm's. Ask the manager for a code to enrol it again",
   "refusal.tooManyPins":
@@ -2273,6 +2276,7 @@ export const en = {
   "audit.calledOffBy.calving_no_longer_expected":
     "Called off: her calving is no longer expected",
   "audit.calledOffBy.report_withdrawn": "Called off: the report was withdrawn",
+  "audit.calledOffBy.course_stopped": "Called off: the vet stopped the course",
   "audit.calledOffBy.version_published":
     "Called off: a new version moved its time",
   "audit.calledOffBy.sop_retired": "Called off: the procedure was retired",
@@ -4222,6 +4226,12 @@ export const en = {
   "prescribe.given": "given by {name}",
   "prescribe.owed": "not given yet",
   "prescribe.missed": "not given",
+  "prescribe.skipped": "skipped: {reason}",
+  "prescribe.stopped": "stopped",
+  "prescribe.stop": "Stop the course",
+  "prescribe.stopReason": "Why it is stopped",
+  "prescribe.stoppedDone":
+    "Course stopped; the doses still to give are owed no more",
   "prescribe.calledOff": "called off",
   "prescribe.course": "Course of treatment",
   "prescribe.sheetHint":

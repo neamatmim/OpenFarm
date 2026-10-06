@@ -170,6 +170,11 @@ export const prescription = pgTable(
       .references(() => user.id),
     prescribedAt: timestamp("prescribed_at", { withTimezone: true }).notNull(),
     recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
+    /** When a Vet gave the course up, who, and why. The doses still to give are called off; those given stand, and
+     *  hold her as they did. Null for a course running or run its length. */
+    stoppedAt: timestamp("stopped_at", { withTimezone: true }),
+    stoppedBy: text("stopped_by").references(() => user.id),
+    stoppedReason: text("stopped_reason"),
   },
   (table) => [
     index("prescription_animal_idx").on(table.animalId, table.prescribedAt),

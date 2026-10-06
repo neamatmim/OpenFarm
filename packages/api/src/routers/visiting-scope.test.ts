@@ -50,6 +50,7 @@ const OPEN_TO_A_VISIT = new Set<string>([
   "papers.withdrawalSummary",
   "prescriptions.prescribe",
   "prescriptions.forAnimal",
+  "prescriptions.stop",
   "push.key",
   "push.subscribe",
   "push.unsubscribe",

@@ -1,5 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
+import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
 import { ROUTES, prescription, treatment } from "@OpenFarm/db/schema/health";
+import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { SopContent } from "@OpenFarm/domain";
 import {
   MAX_COURSE_DAYS,
@@ -12,6 +14,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { reasonInput } from "../corrections/correction";
 import {
   prescriptionView,
   doseTimesFor,
@@ -23,6 +26,7 @@ import { raiseDueInstances } from "../instances-store";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
 import { requireClinicalInScope, requireLookUp } from "../scope";
 import { contentOf, publishedContent } from "../sop-content";
+import { callOffWork } from "../work-transitions";
 
 /** A Prescription is the Vet's act in law, like the Diagnosis it answers (BVC Act 2019). */
 const VET_ONLY = {
@@ -144,6 +148,13 @@ const raiseCourse = async (
   }
 };
 
+/** A course's stopping, as the trail records it either side. */
+const readStopped = async (tx: Tx, id: string) =>
+  (await tx.query.prescription.findFirst({
+    where: { id },
+    columns: { stoppedAt: true, stoppedReason: true },
+  })) ?? null;
+
 export const prescriptionsRouter = {
   /**
    * The Vet's order for one animal, and the work it raises: one Instance of the Treatment SOP
@@ -253,6 +264,71 @@ export const prescriptionsRouter = {
         }
       );
       return { id, doses: doseTimes.length };
+    }),
+
+  /**
+   * The Vet gives a course up — she is better, or the product is not working — with a reason the farm keeps. The
+   * doses still to give are called off and owed no more; those given stand and hold her as they did. Without this a
+   * course the Vet had abandoned stayed raised as work and went Overdue, dose after dose.
+   */
+  stop: protectedProcedure
+    .use(requireOnly("vet", VET_ONLY, { visitingVet: true }))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string(), reason: reasonInput }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      let calledOff: string[] = [];
+      await audited(context).write(
+        {
+          entity: "prescription",
+          entityId: input.id,
+          action: "update",
+          reason: input.reason,
+          before: (tx) => readStopped(tx, input.id),
+          after: (tx) => readStopped(tx, input.id),
+        },
+        async (tx) => {
+          const course = await tx.query.prescription.findFirst({
+            where: { id: input.id, farmId: context.farm.id },
+            columns: { animalId: true, stoppedAt: true },
+          });
+          if (!course) {
+            throw new ORPCError("NOT_FOUND", { message: "No such course" });
+          }
+          requireClinicalInScope(context.scope, course.animalId);
+          if (course.stoppedAt) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "That course is already stopped",
+              data: { refusal: "course_stopped" },
+            });
+          }
+          await tx
+            .update(prescription)
+            .set({
+              stoppedAt: now,
+              stoppedBy: context.actor.id,
+              stoppedReason: input.reason,
+            })
+            .where(eq(prescription.id, input.id));
+          // The work of every dose not given yet, whoever has taken it: the Vet's word ends the course.
+          const owed = tx
+            .select({ id: treatment.instanceId })
+            .from(treatment)
+            .where(
+              and(
+                eq(treatment.prescriptionId, input.id),
+                isNull(treatment.givenAt)
+              )
+            );
+          calledOff = await callOffWork(
+            tx,
+            context.farm.id,
+            inArray(sopInstance.id, owed),
+            { trail: audited(context).recordEvent, by: "course_stopped" }
+          );
+        }
+      );
+      return { id: input.id, calledOff: calledOff.length };
     }),
 
   /** Every course this animal has been on, newest first, with each dose and its work. The

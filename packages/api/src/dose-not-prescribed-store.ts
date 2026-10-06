@@ -5,6 +5,7 @@ import { daysOfADoseNotPrescribed } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import { tellIfItsLotHadExpired } from "./effects/treatment";
 import { recomputeWithdrawal } from "./health-store";
 import { loadLiveAnimal } from "./herd-store";
 import type { Raised } from "./notice";
@@ -96,6 +97,7 @@ export const recordDoseNotPrescribed = async (
     createdAt: now,
   });
   await recomputeWithdrawal(tx, farmId, her.id);
+  await tellIfItsLotHadExpired(tx, farmId, id, now);
   return { id, animalId: her.id };
 };
 

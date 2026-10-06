@@ -1,7 +1,9 @@
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
-import { ChevronDown, ClipboardList, Pill } from "lucide-react";
+import { ChevronDown, CircleStop, ClipboardList, Pill } from "lucide-react";
+import { useState } from "react";
 
 import {
   CorrectionAnswer,
@@ -9,16 +11,64 @@ import {
   useCorrecting,
 } from "@/components/correction-dialog";
 import type { Course as CourseOfTreatment } from "@/components/course";
-import { CourseLine, DoseLine } from "@/components/course";
+import { CourseLine, DoseLine, stillOwed } from "@/components/course";
 import { EmptyState, Loaded } from "@/components/page";
+import { FormDialog, FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { bilingual, note as writtenNote } from "@/lib/correcting";
+import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { Made } from "./vet-types";
 import { AnimalLink } from "./vet-types";
 
-/** A course that followed a conclusion: the one sentence about it, and its doses opened beneath when asked for. */
+/** The Vet giving a course up, with a reason the farm keeps: the doses still to give are owed no more. */
+const StopCourse = ({ course }: { course: CourseOfTreatment }) => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const stop = useMutation(
+    orpc.prescriptions.stop.mutationOptions({
+      onSuccess: () => {
+        setReason("");
+        setOpen(false);
+        toast.success(t("prescribe.stoppedDone"));
+      },
+      onError: refused,
+    })
+  );
+  return (
+    <>
+      <Button onClick={() => setOpen(true)} size="sm" variant="outline">
+        <CircleStop data-icon="inline-start" />
+        {t("prescribe.stop")}
+      </Button>
+      <FormDialog
+        onOpenChange={setOpen}
+        onSubmit={() => stop.mutate({ id: course.id, reason: reason.trim() })}
+        open={open}
+        pending={stop.isPending}
+        ready={reason.trim() !== ""}
+        submitLabel={t("prescribe.stop")}
+        title={t("prescribe.stop")}
+      >
+        <FormField id={`stop-${course.id}`} label={t("prescribe.stopReason")}>
+          <Input
+            id={`stop-${course.id}`}
+            onChange={(event) => setReason(event.target.value)}
+            required
+            value={reason}
+          />
+        </FormField>
+      </FormDialog>
+    </>
+  );
+};
+
+/** A course that followed a conclusion: the one sentence about it, and its doses opened beneath when asked for — and,
+ *  while doses are still owed, the Vet's way to stop it. */
 const CourseOfDoses = ({ course }: { course: CourseOfTreatment }) => (
   <details className="group bg-muted/40 rounded-lg border">
     <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm md:min-h-9 [&::-webkit-details-marker]:hidden">
@@ -35,6 +85,11 @@ const CourseOfDoses = ({ course }: { course: CourseOfTreatment }) => (
         <DoseLine dose={dose} key={dose.id} />
       ))}
     </ul>
+    {!course.stopped && course.doses.some(stillOwed) ? (
+      <div className="flex justify-end border-t px-3 py-2">
+        <StopCourse course={course} />
+      </div>
+    ) : null}
   </details>
 );
 

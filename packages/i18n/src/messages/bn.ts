@@ -1575,6 +1575,9 @@ export const bn: Record<MessageKey, string> = {
   "refusal.workAboutAnotherAnimal": "এই কাজ অন্য একটি পশুর জন্য: সেটির নামেই লিখুন",
   "refusal.skipReasonNotOffered":
     "এটা এই ধাপ বাদ দেওয়ার কারণগুলোর একটি নয়: তালিকা থেকে একটি বেছে নিন",
+  "refusal.doseNotDueYet":
+    "এই ডোজের সময় এখনো হয়নি। আগের ডোজটি আগে দিন, বা এর সময়ের কাছাকাছি পর্যন্ত অপেক্ষা করুন",
+  "refusal.courseStopped": "পশুচিকিৎসক এই কোর্স আগেই বন্ধ করেছেন",
   "refusal.phoneRevoked":
     "এই ফোন আর খামারের নয়। আবার যুক্ত করতে ম্যানেজারের কাছে কোড চান",
   "refusal.tooManyPins":
@@ -2111,6 +2114,7 @@ export const bn: Record<MessageKey, string> = {
   "audit.calledOffBy.calving_no_longer_expected":
     "বাতিল: তার বাচ্চা দেওয়া আর প্রত্যাশিত নয়",
   "audit.calledOffBy.report_withdrawn": "বাতিল: রিপোর্ট ফিরিয়ে নেওয়া হয়েছে",
+  "audit.calledOffBy.course_stopped": "বাতিল: পশুচিকিৎসক কোর্স বন্ধ করেছেন",
   "audit.calledOffBy.version_published": "বাতিল: নতুন সংস্করণে সময় বদলেছে",
   "audit.calledOffBy.sop_retired": "বাতিল: কার্যপ্রণালীটি বাদ দেওয়া হয়েছে",
   "audit.calledOffBy.released": "বাতিল: পশুটি কোয়ারেন্টিন থেকে ছাড়া পেয়েছে",
@@ -3947,6 +3951,11 @@ export const bn: Record<MessageKey, string> = {
   "prescribe.given": "{name} দিয়েছেন",
   "prescribe.owed": "এখনও দেওয়া হয়নি",
   "prescribe.missed": "দেওয়া হয়নি",
+  "prescribe.skipped": "দেওয়া হয়নি: {reason}",
+  "prescribe.stopped": "বন্ধ",
+  "prescribe.stop": "কোর্স বন্ধ করুন",
+  "prescribe.stopReason": "কেন বন্ধ",
+  "prescribe.stoppedDone": "কোর্স বন্ধ হয়েছে; বাকি ডোজ আর দিতে হবে না",
   "prescribe.calledOff": "বাতিল",
   "prescribe.course": "চিকিৎসার কোর্স",
   "prescribe.sheetHint": "প্রতিটি ডোজ আপনার দেওয়া সময়ে শেডের কারও জন্য একটি কাজ হবে।",
