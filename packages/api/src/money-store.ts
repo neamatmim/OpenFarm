@@ -572,7 +572,11 @@ const assertTheAccount = async (
   }
 };
 
-/** That the reference is there, and not on another Money Event of the same account. */
+/** A reference as a pattern matching only itself: its own `%`, `_` and `\` are letters, not wildcards. */
+const literally = (reference: string): string =>
+  reference.replaceAll(/[\\%_]/gu, (letter) => `\\${letter}`);
+
+/** That the reference is there, and not on another Money Event of the same account, whatever its case. */
 const assertTheReference = async (
   tx: Tx,
   farmAccountId: string,
@@ -585,8 +589,13 @@ const assertTheReference = async (
       "Money by mobile money or the bank carries its transaction ID or reference"
     );
   }
+  // Matched whatever the case: a transaction ID read off a phone's message is the same one typed in small letters.
   const twice = await tx.query.moneyEvent.findFirst({
-    where: { farmAccountId, reference, id: { ne: id } },
+    where: {
+      farmAccountId,
+      reference: { ilike: literally(reference) },
+      id: { ne: id },
+    },
     columns: { id: true },
   });
   if (twice) {

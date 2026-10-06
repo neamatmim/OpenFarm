@@ -7,8 +7,9 @@ import type { ReactNode } from "react";
 import { HerCull } from "@/components/culling/cull-list";
 import { HerPrice } from "@/components/fattening/animal-prices";
 import { categoryName, useReadsMoney } from "@/components/money";
-import { SUBHEADING } from "@/components/page";
+import { Notice, SUBHEADING } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { wordedRefusal } from "@/lib/correction-refusal";
 import { usePerHeadPerDay, useMoney, useMoneyRate } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
@@ -240,6 +241,16 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
   const report = useQuery(
     orpc.costs.bySide.queryOptions({ input: { from, to } })
   );
+  // A period the farm refuses — backwards, or longer than any year — says why, as the register does, rather than
+  // loading for ever.
+  if (report.isError) {
+    return (
+      <Notice
+        title={wordedRefusal(report.error, t) ?? t("common.error")}
+        tone="danger"
+      />
+    );
+  }
   if (!report.data) {
     return <Skeleton className="h-64 rounded-xl" />;
   }

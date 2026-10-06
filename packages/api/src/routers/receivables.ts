@@ -235,13 +235,20 @@ export const receivablesRouter = {
               data: { refusal: "nothing_owed_on_it" },
             });
           }
-          // Held while what is owing is read, as a payment is.
+          // Held while what is owing is read, as a payment is — and read again behind it: what was owing a moment ago
+          // may have been paid or written off by another phone since.
           await tx.execute(
             sql`select 1 from counterparty where id = ${standing.counterpartyId} for update`
           );
+          const owingNow = await owingOnItem(
+            tx,
+            context.farm.id,
+            input.source,
+            input.id
+          );
           assertWrittenOffNoMoreThanOwed(
             input.amountMoney,
-            standing.owingMoney
+            owingNow?.owingMoney ?? 0
           );
           await tx.insert(receivableWriteOff).values({
             id,

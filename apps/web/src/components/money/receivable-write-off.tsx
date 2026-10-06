@@ -46,7 +46,11 @@ export const WriteOffButton = ({
   return (
     <>
       <Button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          // From what is owed now: a payment or a write-off since the last time would leave an old figure past it.
+          setAmount(String(owingMoney));
+          setOpen(true);
+        }}
         size="sm"
         type="button"
         variant="ghost"
@@ -65,7 +69,11 @@ export const WriteOffButton = ({
         submitLabel={t("receivable.writeOff")}
         title={t("receivable.writeOffTitle")}
       >
-        <FormField id={`write-off-${id}-amount`} label={t("receivable.amount")}>
+        <FormField
+          hint={t("receivable.owed", { amount: owingMoney })}
+          id={`write-off-${id}-amount`}
+          label={t("receivable.amount")}
+        >
           <Input
             id={`write-off-${id}-amount`}
             inputMode="numeric"

@@ -45,4 +45,4 @@ Three read-only reviewers looked at the farm's own books, its reports, and the m
 | A     | fix/cash-counts | Done   |
 | B     | fix/approval-line | Done   |
 | C     | fix/money-reports | Done (C5 left: a Herd Cost on a Side nobody stood on is unplaced on the Monthly report, though its money is in the books) |
-| D     |        |        |
+| D     | fix/money-forms | Done (D9 one transfer for two kinds of debt left: the account takes a transaction ID once, a choice for the Owner; D10 the receivable lock was there for payments, the write-off now reads behind it — traced, not tested) |

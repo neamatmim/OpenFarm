@@ -28,6 +28,7 @@ import {
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { PAYMENT_METHOD_WORD } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
+import { saidMonth } from "@/lib/months";
 import type { orpc } from "@/utils/orpc";
 
 /** How many entries the register shows before the next page. */
@@ -145,11 +146,14 @@ const Approval = ({ event }: { event: MoneyEvent }) => {
 
 /** Where the entry came from and how it was paid, with the wage month and any note. */
 const Detail = ({ event }: { event: MoneyEvent }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const parts = [
     t(SOURCE_WORD[event.source]),
     t(PAYMENT_METHOD_WORD[event.paymentMethod]),
-    event.wageMonth ? t("byHand.wageFor", { month: event.wageMonth }) : "",
+    // The month by its name, in the reader's language and numerals: never "2026-09" in a Bangla sentence.
+    event.wageMonth
+      ? t("byHand.wageFor", { month: saidMonth(event.wageMonth, language) })
+      : "",
     // Whose money, where it was not the Farm's. Said on the entry itself, because a register that
     // mixed two purses without saying so would add up to a figure that is nobody's.
     event.purse ? t("money.purseWas", { venture: event.purse.name }) : "",
@@ -190,6 +194,9 @@ const EntryActions = ({ row }: { row: MoneyRow }) => {
             name: event.counterpartyName ?? "",
             drawnAt: event.occurredAt,
             paymentMethod: event.paymentMethod,
+            // Missing from an answer kept from before money named its account.
+            farmAccountId: event.farmAccountId ?? null,
+            reference: event.reference ?? null,
           }}
         />
       ) : null}

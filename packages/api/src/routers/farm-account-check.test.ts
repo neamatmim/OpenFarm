@@ -182,6 +182,21 @@ describe("a Farm Account's monthly check", () => {
     await expect(checked("2083-03", 9000)).rejects.toMatchObject({
       data: { refusal: "before_the_first_reading" },
     });
+    // And says so before anything is typed, rather than offering a month before it as a first reading.
+    const owner = await as("owner", "2083-07-02T10:00:00.000Z");
+    const before = await owner.client.farmAccounts.expectedAtMonthEnd({
+      id: accountId,
+      month: "2083-03",
+    });
+    expect(before).toMatchObject({
+      expectedMoney: null,
+      beforeFirstReading: true,
+    });
+    const after = await owner.client.farmAccounts.expectedAtMonthEnd({
+      id: accountId,
+      month: "2083-06",
+    });
+    expect(after.beforeFirstReading).toBe(false);
   });
 
   it("is the Owner's alone", async () => {

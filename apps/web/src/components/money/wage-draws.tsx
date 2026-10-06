@@ -24,10 +24,12 @@ import { FormDialog, FormField } from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
 import {
   accountSent,
+  FarmAccountField,
   NO_ACCOUNT,
   PAYMENT_METHOD_WORD,
   PaymentMethodField,
 } from "@/components/payment-method";
+import { WhoseHandField } from "@/components/whose-hand";
 import { useLanguage } from "@/i18n/language-provider";
 import type { Answers } from "@/lib/correcting";
 import {
@@ -58,6 +60,8 @@ const DrawDialog = ({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
   const [note, setNote] = useState("");
+  // Whose hand it came out of, where the Owner writes up somebody else's draw: hers where nothing is chosen.
+  const [heldBy, setHeldBy] = useState("");
   const drawWage = useMutation(
     orpc.money.drawWage.mutationOptions({
       onSuccess: () => {
@@ -65,6 +69,7 @@ const DrawDialog = ({
         setName("");
         setAmount("");
         setNote("");
+        setHeldBy("");
         onOpenChange(false);
       },
       onError,
@@ -82,6 +87,7 @@ const DrawDialog = ({
           paymentMethod,
           ...accountSent(paymentMethod, account),
           ...(note.trim() ? { note: note.trim() } : {}),
+          ...(paymentMethod === "cash" && heldBy ? { heldBy } : {}),
         })
       }
       open={open}
@@ -128,6 +134,13 @@ const DrawDialog = ({
         onChange={setPaymentMethod}
         value={paymentMethod}
       />
+      {paymentMethod === "cash" ? (
+        <WhoseHandField
+          id="draw-whose-hand"
+          onChange={setHeldBy}
+          value={heldBy}
+        />
+      ) : null}
       <FormField id="draw-note" label={t("cash.note")}>
         <Input
           id="draw-note"
@@ -141,8 +154,9 @@ const DrawDialog = ({
 };
 
 /**
- * A Wage Draw put right: how much, who drew it, the day, how it was paid — and the note, where the screen knows it. Put
- * to nothing, a draw that never happened is taken back; what a payday has taken off it stays taken.
+ * A Wage Draw put right: how much, who drew it, the day, how it was paid — with the Farm Account and its transaction ID
+ * where it was by mobile money or the bank — and the note, where the screen knows it. Put to nothing, a draw that never
+ * happened is taken back; what a payday has taken off it stays taken.
  */
 export const DrawCorrection = ({
   draw,
@@ -153,11 +167,20 @@ export const DrawCorrection = ({
     name: string;
     drawnAt: Date | string;
     paymentMethod: PaymentMethod;
+    /** The Farm Account and transaction ID it named, where the screen holds them; nothing for cash. */
+    farmAccountId?: string | null;
+    reference?: string | null;
     /** Left out where the screen does not hold the draw's own note: the money register does not. */
     note?: string | null;
   };
 }) => {
   const { t } = useLanguage();
+  // The account and its transaction ID it names: what a farm listing its accounts asks of money not paid in cash.
+  const namedNow: AccountTyped = {
+    farmAccountId: draw.farmAccountId ?? "",
+    reference: draw.reference ?? "",
+  };
+  const [account, setAccount] = useState<AccountTyped>(namedNow);
   const answers: Answers = {
     // Nothing is a real answer: it takes the draw back.
     amountMoney: figure(draw.amountMoney),
@@ -168,18 +191,44 @@ export const DrawCorrection = ({
   };
   const correcting = useCorrecting(answers);
   const correct = useMutation(orpc.money.correctDraw.mutationOptions({}));
+  const paidBy = (correcting.typed.paymentMethod ||
+    draw.paymentMethod) as PaymentMethod;
+  const reference = account.reference.trim();
+  // Named afresh: another account, or another transaction ID, on money not paid in cash.
+  const accountChanged =
+    paidBy !== "cash" &&
+    account.farmAccountId !== "" &&
+    reference !== "" &&
+    (account.farmAccountId !== namedNow.farmAccountId ||
+      reference !== namedNow.reference);
   return (
     <CorrectionDialog
       description={t("wageDraw.correctHint")}
-      onOpen={correcting.handleOpen}
+      onOpen={() => {
+        correcting.handleOpen();
+        setAccount(namedNow);
+      }}
       onSave={async (reason) => {
         await correct.mutateAsync({
           id: draw.id,
-          changes: correcting.changes(),
+          changes: {
+            ...correcting.changes(),
+            ...(accountChanged
+              ? {
+                  farmAccount: {
+                    from: {
+                      farmAccountId: draw.farmAccountId ?? null,
+                      reference: draw.reference ?? null,
+                    },
+                    to: { farmAccountId: account.farmAccountId, reference },
+                  },
+                }
+              : {}),
+          },
           reason,
         });
       }}
-      ready={correcting.changed}
+      ready={correcting.changed || accountChanged}
       title={t("wageDraw.correct")}
       trigger={t("wageDraw.correct")}
     >
@@ -210,6 +259,23 @@ export const DrawCorrection = ({
         }))}
         value={correcting.typed.paymentMethod ?? draw.paymentMethod}
       />
+      {paidBy === "cash" ? null : (
+        <>
+          <FarmAccountField
+            id={`draw-account-${draw.id}`}
+            kind={paidBy === "mobile_money" ? "mobile_money" : "bank"}
+            onChange={(farmAccountId) =>
+              setAccount({ ...account, farmAccountId })
+            }
+            value={account.farmAccountId}
+          />
+          <CorrectionAnswer
+            label={t("money.reference")}
+            onChange={(typed) => setAccount({ ...account, reference: typed })}
+            value={account.reference}
+          />
+        </>
+      )}
       {draw.note === undefined ? null : (
         <CorrectionAnswer
           label={t("cash.note")}

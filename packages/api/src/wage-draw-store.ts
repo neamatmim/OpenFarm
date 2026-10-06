@@ -116,6 +116,8 @@ export const recordWageDraw = async (
     drawnAt: Date;
     note: string | null;
     paymentMethod: PaymentMethod | undefined;
+    /** Whose hand the cash came out of, where the writer named another's. */
+    heldBy?: string;
   }
 ): Promise<{ id: string }> => {
   const id = uuidv7(booking.now);
@@ -137,6 +139,7 @@ export const recordWageDraw = async (
     occurredAt: input.drawnAt,
     counterpartyId: input.counterpartyId,
     paymentMethod: input.paymentMethod,
+    ...(input.heldBy === undefined ? {} : { heldBy: input.heldBy }),
   });
   return { id };
 };

@@ -199,3 +199,43 @@ describe("cash in hand", () => {
     }
   });
 });
+
+describe("cash the Owner writes up for somebody else", () => {
+  it("goes into the hand that took it, as the Owner names it — and nobody else may name another's", async () => {
+    const owner = await as("owner");
+    const categories = await owner.client.money.categories.list();
+    const manure = categories.find((one) => one.key === "manure_sales");
+    const managerBefore = await handOf("manager");
+    const ownerBefore = await handOf("owner");
+    // The Manager sold the manure and holds the notes; the Owner writes it up that evening.
+    await owner.client.money.enter({
+      categoryId: manure?.id ?? "",
+      amountMoney: 800,
+      occurredOn: NOW.slice(0, 10),
+      counterparty: { name: `গোবর ক্রেতা ${suffix}` },
+      paymentMethod: "cash",
+      heldBy: thePerson("manager").id,
+    });
+    expect(await handOf("manager")).toBe(managerBefore + 800);
+    expect(await handOf("owner")).toBe(ownerBefore);
+    // A Wage Draw paid out of the Manager's hand, written up by the Owner, comes out of it.
+    await owner.client.money.drawWage({
+      counterparty: { name: `রাখাল ${suffix}` },
+      amountMoney: 300,
+      drawnOn: NOW.slice(0, 10),
+      heldBy: thePerson("manager").id,
+    });
+    expect(await handOf("manager")).toBe(managerBefore + 500);
+    const manager = await as("manager");
+    await expect(
+      manager.client.money.enter({
+        categoryId: manure?.id ?? "",
+        amountMoney: 100,
+        occurredOn: NOW.slice(0, 10),
+        counterparty: { name: `গোবর ক্রেতা ${suffix}` },
+        paymentMethod: "cash",
+        heldBy: thePerson("owner").id,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "owner_only" } });
+  });
+});
