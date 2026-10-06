@@ -71,6 +71,16 @@ const heldUntil = async (tagNumber: string) => {
   };
 };
 
+/** What the Manager has been told of holds starting or changing. */
+const heldNews = () =>
+  scratchDb().query.alert.findMany({
+    where: {
+      kind: "withdrawal_changed",
+      userId: thePerson("manager").id,
+    },
+    columns: { params: true },
+  });
+
 const after = (days: number) =>
   new Date(new Date(NOW).getTime() + days * DAY_MS).toISOString();
 
@@ -180,6 +190,51 @@ describe("a dose not prescribed", () => {
       userId: thePerson("vet").id,
       params: { tag, advice: `গা গরম ${suffix}` },
     });
+  });
+
+  it("tells the Manager her milk is held from now, once, and not again for a second dose inside the hold", async () => {
+    const tag = await aCow(`দুধ আটকানো ${suffix}`);
+    const manager = await as("manager");
+    const already = await heldNews();
+    const before = already.length;
+    await manager.client.treatments.giveNotPrescribed({
+      animalTag: tag,
+      productId: known,
+      givenAt: new Date(NOW),
+      advice: `জ্বর ${suffix}`,
+    });
+    // A second dose the next morning only lengthens the hold she is already under: nothing new for the tank.
+    const nextDay = await as("manager", after(1));
+    await nextDay.client.treatments.giveNotPrescribed({
+      animalTag: tag,
+      productId: known,
+      givenAt: new Date(after(1)),
+      advice: `জ্বর ${suffix}`,
+    });
+    const now = await heldNews();
+    expect(now.length - before).toBe(1);
+  });
+
+  it("is on the Owner's Withdrawal-ending list while her milk hold is nearly over, and off it once it is", async () => {
+    const tag = await aCow(`শেষ হচ্ছে ${suffix}`);
+    const manager = await as("manager");
+    await manager.client.treatments.giveNotPrescribed({
+      animalTag: tag,
+      productId: known,
+      givenAt: new Date(NOW),
+      advice: `জ্বর ${suffix}`,
+    });
+    const listed = async (at: string) => {
+      const owner = await as("owner", at);
+      const home = await owner.client.overview.get();
+      return home.needsYou.endingWithdrawal.some(
+        (one) => one.tagNumber === tag
+      );
+    };
+    // Four days of milk: three and a half days on, nearly over.
+    expect(await listed(after(3.5))).toBe(true);
+    // Nine days on her milk is clear five days since — her meat still held — and nothing is ending.
+    expect(await listed(after(9))).toBe(false);
   });
 
   it("is the Owner's or the Manager's to write, and the default days the Vet's alone", async () => {

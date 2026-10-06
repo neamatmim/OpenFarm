@@ -121,8 +121,19 @@ Work in this order:
 
 1. **Stop writing.** Take the app down rather than let it write into a half-restored farm.
 2. **Try point-in-time recovery first.** It loses minutes; the nightly copy loses a day.
-3. **Fall back to the nightly copy** only if the provider itself is gone. Restore into a new
-   database, run the checks above, and point the app at it.
+3. **Fall back to the nightly copy** only if the provider itself is gone. Make a new, empty
+   database, with the farm's owner login, and restore into it. The script refuses a database
+   that holds anything, so the live farm can't be written over. It runs the same checks a
+   drill does, and gives the app's own login back its grants (`scripts/app-login-grants.sql`),
+   which a copy never carries:
+
+   ```sh
+   scripts/restore.sh --into-new-database openfarm-nightly-<when>.sql.age \
+     postgres://<owner>:…@<host>:5432/<new database>
+   ```
+
+   Then point `DATABASE_URL` in `/etc/openfarm/app.env` at it, as `openfarm_app`, restart, and
+   check `/api/ready`.
 4. **Tell the milkers before they sync.** Their phones are holding work; an outbox replays
    into whatever it is pointed at, and it will fill the gap the restore left.
 5. **Write down what happened**, while it is still fresh, in the same ops log.

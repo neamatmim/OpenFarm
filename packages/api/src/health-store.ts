@@ -312,6 +312,41 @@ const holdsOf = (
       : [];
   });
 
+/** One cow's one Withdrawal, as the thing a notice is about. */
+export const withdrawalNoticeId = (animalId: string, until: Date): string =>
+  `${animalId}:${until.toISOString()}`;
+
+/**
+ * Tells the Manager that a cow's Withdrawal has changed: a dose has started one, or a Vet has
+ * shortened one.
+ *
+ * The farm's notification table asks for this, and it is a different question from the one the
+ * ending answers: a hold beginning takes her milk out of tomorrow's tank, and a hold shortened
+ * puts it back. Told once per cow per hold, so a course of six doses is one piece of news rather
+ * than six.
+ */
+export const raiseWithdrawalChanged = async (
+  tx: Tx,
+  farmId: string,
+  told: { animalId: string; tagNumber: string; until: Date | null },
+  now: Date
+): Promise<RaisedAlert[]> =>
+  await tell(
+    tx,
+    farmId,
+    {
+      kind: "withdrawal_changed",
+      about: {
+        id: withdrawalNoticeId(told.animalId, told.until ?? new Date(0)),
+      },
+      facts: {
+        tag: told.tagNumber,
+        until: told.until?.toISOString() ?? "",
+      },
+    },
+    now
+  );
+
 /**
  * Works out both of a cow's Withdrawals from the Treatments she has actually been given, and
  * writes them where the gates read them.
@@ -329,12 +364,16 @@ const holdsOf = (
 export const recomputeWithdrawal = async (
   tx: Tx,
   farmId: string,
-  animalId: string
+  animalId: string,
+  /** When a dose is being given now: a milk hold it starts is told to the Manager, once (`raiseWithdrawalChanged`). */
+  givenNow?: Date
 ): Promise<{ milkUntil: Date | null; meatUntil: Date | null }> => {
   const given = await herDoses(tx, farmId, animalId);
   const her = await tx.query.animal.findFirst({
     where: { id: animalId, farmId },
     columns: {
+      tagNumber: true,
+      milkWithdrawalUntil: true,
       withdrawalShortenedAt: true,
       milkWithdrawalShortenedTo: true,
       meatWithdrawalShortenedTo: true,
@@ -374,6 +413,21 @@ export const recomputeWithdrawal = async (
           }),
     })
     .where(eq(animal.id, animalId));
+  // A dose that starts a milk hold — none in force before it, one now — takes her milk out of tomorrow's tank, which is
+  // the Manager's to know (the notice table). A dose that only lengthens a hold already running tells nothing more.
+  const heldBefore =
+    her?.milkWithdrawalUntil !== null &&
+    her?.milkWithdrawalUntil !== undefined &&
+    givenNow !== undefined &&
+    her.milkWithdrawalUntil > givenNow;
+  if (givenNow && !heldBefore && milk.until && milk.until > givenNow) {
+    await raiseWithdrawalChanged(
+      tx,
+      farmId,
+      { animalId, tagNumber: her?.tagNumber ?? "", until: milk.until },
+      givenNow
+    );
+  }
   return { milkUntil: milk.until, meatUntil: meat.until };
 };
 
@@ -473,10 +527,6 @@ export const withdrawalsEndingSoon = async (
         (b.milkWithdrawalUntil?.getTime() ?? 0)
     );
 };
-
-/** One cow's one Withdrawal, as the thing a notice is about. */
-export const withdrawalNoticeId = (animalId: string, until: Date): string =>
-  `${animalId}:${until.toISOString()}`;
 
 /**
  * Tells the Manager, and the milkers of her Pen, that a milk Withdrawal is nearly over — the
@@ -755,37 +805,6 @@ export const raiseNotifiableAlerts = async (
       kind: "notifiable_diagnosis",
       about: { id: told.diagnosisId },
       facts: { tag: told.tagNumber, disease: told.disease },
-    },
-    now
-  );
-
-/**
- * Tells the Manager that a cow's Withdrawal has changed: a dose has started one, or a Vet has
- * shortened one.
- *
- * The farm's notification table asks for this, and it is a different question from the one the
- * ending answers: a hold beginning takes her milk out of tomorrow's tank, and a hold shortened
- * puts it back. Told once per cow per hold, so a course of six doses is one piece of news rather
- * than six.
- */
-export const raiseWithdrawalChanged = async (
-  tx: Tx,
-  farmId: string,
-  told: { animalId: string; tagNumber: string; until: Date | null },
-  now: Date
-): Promise<RaisedAlert[]> =>
-  await tell(
-    tx,
-    farmId,
-    {
-      kind: "withdrawal_changed",
-      about: {
-        id: withdrawalNoticeId(told.animalId, told.until ?? new Date(0)),
-      },
-      facts: {
-        tag: told.tagNumber,
-        until: told.until?.toISOString() ?? "",
-      },
     },
     now
   );

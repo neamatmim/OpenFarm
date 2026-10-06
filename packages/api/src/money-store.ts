@@ -15,7 +15,12 @@ import {
   moneyEvent,
 } from "@OpenFarm/db/schema/money";
 import type { ApprovedTerms, MoneyApproval } from "@OpenFarm/domain";
-import { approvalOf, roundMoney, termsUnchanged } from "@OpenFarm/domain";
+import {
+  approvalOf,
+  farmDayOf,
+  roundMoney,
+  termsUnchanged,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -989,18 +994,27 @@ export const bookMoney = async (
 export const awaitingApproval = async (
   db: Pick<Tx, "select">,
   farmId: string
-): Promise<{ count: number; totalMoney: number }> => {
+): Promise<{
+  count: number;
+  totalMoney: number;
+  /** The farm day of the Farm's own oldest entry waiting — where the money page opens to find every one of them — or
+   *  nothing where none of the Farm's own waits (a Venture's waits on its own page). */
+  farmsOldestOn: string | null;
+}> => {
   const [row] = await db
     .select({
       count: sql<number>`count(*)::int`,
       totalMoney: sql<string>`coalesce(sum(${moneyEvent.amountMoney}), 0)`,
+      farmsOldestAt: sql<Date | null>`min(${moneyEvent.occurredAt}) filter (where ${moneyEvent.purseVentureId} is null)`,
     })
     .from(moneyEvent)
     .where(
       and(eq(moneyEvent.farmId, farmId), eq(moneyEvent.approval, "awaiting"))
     );
+  const oldest = row?.farmsOldestAt ? new Date(row.farmsOldestAt) : null;
   return {
     count: Number(row?.count ?? 0),
     totalMoney: roundMoney(Number(row?.totalMoney ?? 0)),
+    farmsOldestOn: oldest ? farmDayOf(oldest) : null,
   };
 };

@@ -24,7 +24,10 @@ if (!url) {
   throw new Error("DATABASE_URL is required");
 }
 const name = (url.split("/").pop() ?? "").split("?")[0] ?? "";
-if (!name.includes("scratch")) {
+// A disaster's restore goes into a new database named as the Owner likes, and restore.sh has made sure it held nothing
+// before: it says so here.
+const intoNew = process.env.RESTORE_INTO_NEW_DATABASE === "yes";
+if (!(name.includes("scratch") || intoNew)) {
   throw new Error(
     `refusing: '${name}' is not a scratch database, and this drops nothing but reads everything`
   );

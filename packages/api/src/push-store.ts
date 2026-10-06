@@ -176,7 +176,8 @@ export const pushAlerts = async (
  * The endpoint is the browser's own name for itself, so subscribing twice is one
  * subscription — but only ever this person's own. A browser somebody else registered is
  * somebody else's: rewriting it would silently stop them being told, and an endpoint is not
- * a secret worth resting that on.
+ * a secret worth resting that on. Two exceptions, both the browser's own say: one its last
+ * person gave up by signing out, and a Shed Phone the next milker is PIN-switched in on.
  */
 export const rememberPushBrowser = async (
   tx: Tx,
@@ -192,9 +193,22 @@ export const rememberPushBrowser = async (
 ): Promise<string> => {
   const standing = await tx.query.pushSubscription.findFirst({
     where: { farmId: browser.farmId, endpoint: browser.endpoint },
-    columns: { id: true, userId: true },
+    columns: { id: true, userId: true, deviceId: true, revokedAt: true },
   });
-  if (standing && standing.userId !== browser.userId) {
+  // Somebody else's, and theirs still: never rewritten — unless they gave it up by signing out, or it is the Shed
+  // Phone they were PIN-switched in on, which now speaks for whoever is (the Owner, 2026-10-06).
+  const givenUp =
+    standing?.revokedAt !== null && standing?.revokedAt !== undefined;
+  const sameShedPhone =
+    standing?.deviceId !== null &&
+    standing?.deviceId !== undefined &&
+    standing.deviceId === browser.deviceId;
+  if (
+    standing &&
+    standing.userId !== browser.userId &&
+    !givenUp &&
+    !sameShedPhone
+  ) {
     throw new ORPCError("CONFLICT", {
       message: "That browser is already listening for somebody else",
     });
@@ -206,6 +220,8 @@ export const rememberPushBrowser = async (
     .onConflictDoUpdate({
       target: [pushSubscription.farmId, pushSubscription.endpoint],
       set: {
+        // Whoever subscribes it now: theirs again, or the next person's on a Shed Phone or after a sign-out.
+        userId: browser.userId,
         deviceId: browser.deviceId,
         p256dh: browser.p256dh,
         auth: browser.auth,

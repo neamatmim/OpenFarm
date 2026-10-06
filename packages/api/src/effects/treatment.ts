@@ -369,7 +369,8 @@ const giveTheDose = async (
   const { milkUntil } = await recomputeWithdrawal(
     tx,
     input.instance.farmId,
-    dose?.animalId ?? shape.animalId ?? ""
+    dose?.animalId ?? shape.animalId ?? "",
+    input.skipped ? undefined : input.now
   );
   if (dose && !input.skipped) {
     await tellIfItsLotHadExpired(tx, input.instance.farmId, dose.id, input.now);

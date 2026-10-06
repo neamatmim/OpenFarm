@@ -432,6 +432,10 @@ export const applyBatch = async (
                 facts: {
                   count: refused.length,
                   reason: refused[0]?.reason ?? "",
+                  why:
+                    refused[0]?.refusal?.category === "not_yours"
+                      ? "not_yours"
+                      : "wrong",
                 },
               },
               receivedAt

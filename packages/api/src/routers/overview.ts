@@ -31,7 +31,7 @@ import { requireRole } from "../roles";
 import { setupLeftOn } from "../setup-store";
 import { contentOf } from "../sop-content";
 import { runningLow, storeCountLate } from "../stock-store";
-import { DAY_MS, LATE_SINCE_DAYS, QUEUE_LIMIT } from "./home";
+import { DAY_MS, QUEUE_LIMIT } from "./home";
 
 /** How many milkings the Owner's tile shows beside today's: a week of them, which is what
  *  a farm reads a day against. */
@@ -78,12 +78,9 @@ export const overviewRouter = {
         lostYear,
         accountsOut,
       ] = await Promise.all([
-        findLate(
-          context.db,
-          farmId,
-          now,
-          new Date(now.getTime() - LATE_SINCE_DAYS * DAY_MS)
-        ),
+        // Every piece of late work still open, as the Overdue list holds it: one a month old is still late, and a home
+        // that said nothing was late while the list held it was wrong (the Owner, 2026-10-06).
+        findLate(context.db, farmId, now),
         context.db.query.sopProposal.findMany({
           where: { farmId, status: "pending" },
           columns: { id: true, definitionId: true, note: true },
@@ -104,6 +101,8 @@ export const overviewRouter = {
             },
           },
           columns: { id: true, kind: true },
+          // A calf born dead is written as a death, but the farm says it as born dead, as the calf panel beside it does.
+          with: { animal: { columns: { calfOutcome: true } } },
         }),
         // Work waiting on the Owner's own word. Money Events join this row in increment 6;
         // today the only thing anybody waits on an Owner to approve is work whose Version
@@ -198,6 +197,8 @@ export const overviewRouter = {
       return {
         needsYou: {
           farmAccountsOut: accountsOut,
+          /** How much late work there is in all: the list below is its longest-waiting, at most `QUEUE_LIMIT`. */
+          overdueTotal: late.length,
           overdue: late
             .map((instance) => ({
               id: instance.id,
@@ -222,8 +223,11 @@ export const overviewRouter = {
           needsReview: await withTheirWork(context.db, farmId, review),
           lowStock,
           endingWithdrawal: held
+            // Her milk still held, and coming off within the day — not held for her meat alone, her milk clear days
+            // since, as the Manager's own list reads it.
             .filter(
               (beast) =>
+                underMilkWithdrawal(beast, now) &&
                 beast.milkWithdrawalUntil !== null &&
                 beast.milkWithdrawalUntil.getTime() - now.getTime() <= DAY_MS
             )
@@ -244,6 +248,8 @@ export const overviewRouter = {
             occurredAt: row.occurredAt,
             /** Whose money is waiting, where it is not the Farm's. */
             purseName: row.purse?.name ?? null,
+            /** The Venture whose money it is, where it is not the Farm's: its own page is where it is found. */
+            purseVentureId: row.purseVentureId,
             /** Who entered it: the Owner asks them about it. */
             recordedByName: row.recorder?.name ?? null,
             /** The terms she reads, which her approval names: corrected under her since, it is refused. */
@@ -288,7 +294,15 @@ export const overviewRouter = {
             underMilkWithdrawal(beast, now)
           ).length,
           /** What the farm has lost in the last thirty days, and how. */
-          died: mortalities.filter((row) => row.kind === "died").length,
+          died: mortalities.filter(
+            (row) =>
+              row.kind === "died" && row.animal?.calfOutcome !== "stillborn"
+          ).length,
+          /** Calves born dead in the same thirty days: their own line, never counted as died as well. */
+          bornDead: mortalities.filter(
+            (row) =>
+              row.kind === "died" && row.animal?.calfOutcome === "stillborn"
+          ).length,
           culled: mortalities.filter((row) => row.kind === "culled").length,
           /** Written off as Lost in the last year, and what they had cost the farm. */
           lostYear,

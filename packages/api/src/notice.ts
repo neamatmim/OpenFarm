@@ -1,4 +1,6 @@
+import { and, eq, inArray, isNotNull } from "@OpenFarm/db/operators";
 import type { AlertKind } from "@OpenFarm/db/schema/alert";
+import { alert } from "@OpenFarm/db/schema/alert";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import type { NoticeFacts } from "@OpenFarm/domain";
 
@@ -61,6 +63,8 @@ export interface NoticeKind {
   wantsJudgement?: true;
   /** Left out: whoever wrote the thing it is about. A person is not told what they have just written themselves. */
   leavesOutTheWriter?: true;
+  /** Never told to the Owner for want of its own people: the Owner hears of the same thing by another kind already. */
+  noOwnerFallback?: true;
   /** What the thing is, as the trail and the screens name it — for the kinds that are always about one sort of thing.
    *  A Needs Review is about whatever was being put right, so it says so when it is raised. */
   entity?: string;
@@ -202,6 +206,8 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [theVet],
     entity: "mortality",
     leavesOutTheWriter: true,
+    // With no Vet, the Owner already hears of the death itself (`mortality_recorded`).
+    noOwnerFallback: true,
   },
   // The Owner signs the count off and asks where the cash went; the Manager counted it. About the one count, so a count
   // put right is not told again.
@@ -352,6 +358,43 @@ const peopleFor = async (
   return [...new Set(people)];
 };
 
+/** Raises again, as new, the notices of this about these people have dismissed: what comes back is what was raised. */
+const raiseAgain = async (
+  tx: Tx,
+  farmId: string,
+  people: readonly string[],
+  written: {
+    kind: AlertKind;
+    entityId: string;
+    params: Record<string, unknown>;
+  },
+  now: Date
+): Promise<{ id: string; userId: string }[]> =>
+  people.length === 0
+    ? []
+    : await tx
+        .update(alert)
+        .set({
+          dismissedAt: null,
+          carriedAt: null,
+          createdAt: now,
+          params: written.params,
+        })
+        .where(
+          and(
+            eq(alert.farmId, farmId),
+            eq(alert.kind, written.kind),
+            eq(alert.entityId, written.entityId),
+            inArray(alert.userId, [...people]),
+            isNotNull(alert.dismissedAt)
+          )
+        )
+        .returning({ id: alert.id, userId: alert.userId });
+
+/** Whether a kind's people, all gone, leave it to the Owner: not news about one person's own act or work. */
+const fallsToTheOwner = (audience: Audience) =>
+  !audience.some((one) => one === "whoseActItWas" || one === "whoDoesThisWork");
+
 /**
  * Tells the farm's people one thing, once.
  *
@@ -394,16 +437,31 @@ export const tell = async <Kind extends AlertKind>(
     about,
     remembering
   );
-  const people =
+  const named =
     kind.leavesOutTheWriter && about.writtenBy
       ? everyone.filter((one) => one !== about.writtenBy)
       : everyone;
+  // Nobody of its people on the farm — the Vet gone, no Manager yet — and it still reaches somebody: the Owner, who is
+  // always there (the Owner, 2026-10-06). Never for news only one person's own act or work is about. Once raised it is
+  // told, so the sweep that asks what is untold stops raising it again on every turn.
+  const people =
+    // Its people gone, not only the writer left out of them: news of one's own act is still nobody's.
+    everyone.length === 0 &&
+    !kind.noOwnerFallback &&
+    fallsToTheOwner(kind.audience)
+      ? await peopleFor(tx, farmId, [theOwner], about, remembering)
+      : named;
   const written = {
     kind: notice.kind,
     entity,
     entityId: about.id,
     params,
   };
+  // A judgement owed again on a record whose last notice was read and dismissed is new work for the Manager: the notice
+  // is raised again rather than dropped by the once-only index, or the second review waits on a list nobody is pointed at.
+  const reopened = kind.wantsJudgement
+    ? await raiseAgain(tx, farmId, people, written, now)
+    : [];
   const rows = await raiseAlerts(tx, farmId, people, written, now);
-  return rows.map((row) => ({ ...row, ...written }));
+  return [...reopened, ...rows].map((row) => ({ ...row, ...written }));
 };

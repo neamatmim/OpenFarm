@@ -31,6 +31,9 @@ export const env = createEnv({
     SMS_GATEWAY_KEY: z.string().optional(),
     /** The sender id the provider registered for this farm, where one is needed. */
     SMS_GATEWAY_FROM: z.string().optional(),
+    /** The outside watch's check-in address, pinged after each whole turn of the farm's day: a server down or an app
+     *  dead stops the pings, and the watch tells the Owner (deploy runbook, "The outside watch"). Absent, nothing. */
+    OPENFARM_WATCH_URL: z.url().optional(),
     /** Where the farm is (ADR 0013): the ISO 4217 code its money is counted in, the IANA time zone its own day is read
      *  on, the ISO 3166 country a phone number written without its country code is read in, and the month, 1 to 12,
      *  its financial year begins in (ADR 0016). Unset, a farm in Bangladesh — taka, Asia/Dhaka, BD, July. Fixed when

@@ -331,7 +331,10 @@ describe("the two alerts worth a text message", () => {
     const told = await manager.client.alerts.mine({
       entityId: `${cow.id}:${held.milkWithdrawalUntil?.toISOString()}`,
     });
-    expect(told).toHaveLength(1);
+    // The hold's ending; its starting was told on the day of the dose.
+    expect(told.filter((one) => one.kind === "withdrawal_ending")).toHaveLength(
+      1
+    );
   });
 
   it("tells the person whose entry the farm would not take", async () => {

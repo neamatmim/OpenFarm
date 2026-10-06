@@ -160,3 +160,108 @@ describe("the day turning", () => {
     expect(turned.workRaised).toBe(0);
   });
 });
+
+describe("the sweep, when one thing it tells of cannot be read", () => {
+  it("still tells of late work, and says the sweep went wrong", async () => {
+    // Half past eleven in Dhaka: the eight o'clock work is late, and the turn raises it and finds it so.
+    const context = await buildContext({
+      session: null,
+      clock: new FakeClock("2049-05-18T05:30:00.000Z"),
+      db: scratchDb(),
+      farmId: theFarm().id,
+    });
+    const { farm } = context;
+    if (!farm) {
+      throw new Error("expected the test farm");
+    }
+    // The animals missing cannot be read — one telling of thirteen — and the rest must still be told.
+    const turned = await theDayTurns({
+      ...context,
+      farm,
+      db: {
+        ...context.db,
+        transaction: context.db.transaction.bind(context.db),
+        update: context.db.update.bind(context.db),
+        query: {
+          ...context.db.query,
+          missing: {
+            ...context.db.query.missing,
+            findMany: () => Promise.reject(new Error("missing is shut")),
+          },
+        },
+      } as unknown as Turning["db"],
+    });
+
+    expect(turned.overdue).toBeGreaterThan(0);
+    expect(turned.wentWrong).toEqual(["the sweep"]);
+  });
+});
+
+describe("a day the server was down for", () => {
+  it("has its work raised when the farm next turns, already late", async () => {
+    // Turned on the 1st of June at half past eight, then not again until the 3rd: the 2nd went by unturned.
+    await turnTheDay("2049-06-01T02:30:00.000Z");
+    await turnTheDay("2049-06-03T02:30:00.000Z");
+    const raised = await scratchDb().query.sopInstance.findMany({
+      where: {
+        farmId: theFarm().id,
+        definitionId: world.definitionId,
+        penId: world.penId,
+        dueAt: {
+          gte: new Date("2049-06-01T00:00:00.000Z"),
+          lt: new Date("2049-06-04T00:00:00.000Z"),
+        },
+      },
+      columns: { dueAt: true },
+      orderBy: { dueAt: "asc" },
+    });
+    // Eight o'clock in Dhaka on each of the three days — the 2nd's too, which nobody was there to raise.
+    expect(raised.map((one) => one.dueAt.toISOString())).toEqual([
+      "2049-06-01T02:00:00.000Z",
+      "2049-06-02T02:00:00.000Z",
+      "2049-06-03T02:00:00.000Z",
+    ]);
+  });
+});
+
+describe("a notice whose cause is gone", () => {
+  it("clears itself: late work since done is no longer late in anybody's list", async () => {
+    // Half past eleven on the 22nd: the eight o'clock work is late, and the turn says so.
+    await turnTheDay("2049-06-22T05:30:00.000Z");
+    const late = await scratchDb().query.sopInstance.findFirst({
+      where: {
+        farmId: theFarm().id,
+        definitionId: world.definitionId,
+        dueAt: { eq: new Date("2049-06-22T02:00:00.000Z") },
+      },
+      columns: { id: true },
+    });
+    const id = late?.id ?? "";
+    const open = () =>
+      scratchDb().query.alert.findMany({
+        where: {
+          farmId: theFarm().id,
+          kind: "instance_overdue",
+          entityId: id,
+          dismissedAt: { isNull: true },
+        },
+        columns: { id: true },
+      });
+    const raised = await open();
+    expect(raised.length).toBeGreaterThan(0);
+    // The Manager does it at noon.
+    const { client: staff } = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2049-06-22T06:00:00.000Z"),
+    });
+    await staff.work.claim({ id });
+    await staff.work.completeStep({
+      instanceId: id,
+      stepId: "look",
+      evidence: [true],
+    });
+    await staff.work.complete({ id });
+    await turnTheDay("2049-06-22T06:05:00.000Z");
+    expect(await open()).toEqual([]);
+  });
+});

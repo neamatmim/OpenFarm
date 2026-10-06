@@ -1,6 +1,11 @@
 import { eq } from "@OpenFarm/db/operators";
 import { farm } from "@OpenFarm/db/schema/farm";
-import { farmDayOf, isQuiet } from "@OpenFarm/domain";
+import {
+  atFarmTime,
+  farmDaysApart,
+  farmDayOf,
+  isQuiet,
+} from "@OpenFarm/domain";
 
 import { audited } from "./audit";
 import type { Tx } from "./audit";
@@ -36,13 +41,14 @@ import {
 import { missingToTell, tellOfMissing } from "./missing-store";
 import { missedToTell, raiseMissedSums } from "./monthly-sums-store";
 import { tell } from "./notice";
-import { carryThePost, pushRaised } from "./push-send";
+import { carryThePost, carryWhatWasHeld, pushRaised } from "./push-send";
 import { overdueToTell, raiseOverdueReceivable } from "./receivable-store";
 import { openRenewalsOf, tellOfRenewals } from "./registration-store";
 import {
   reimbursementsToTell,
   tellAboutReimbursementsDue,
 } from "./reimbursement-store";
+import { settleWhatIsSettled } from "./settled-notices";
 import { textAgainWhatDidNotGo, textTheSafetyAlerts } from "./sms-send";
 import { contentOf } from "./sop-content";
 import { soresToTell, tellOfSores } from "./sores-store";
@@ -157,6 +163,38 @@ const raisedBy = (
 
 /** The day's work, raised: every schedule slot due by now, and the work things that happened call for. Idempotent — a
  *  slot already raised is not raised again — so the server's own timer and whoever opens the app can both run it. */
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** How far back a turn catches up the days the server was down for: a week of milkings is as much backlog as anybody
+ *  answers; a server down longer than that is a farm that knows it was. */
+const CATCH_UP_DAYS = 7;
+
+/** The farm days after the last one whose work was raised and before today: those nobody turned, at most a week of
+ *  them, the latest. None on the first turn ever, which has nothing to catch up. */
+const daysMissedSince = (raisedOn: string | null, today: string): string[] => {
+  if (raisedOn === null) {
+    return [];
+  }
+  const gone = Math.min(farmDaysApart(raisedOn, today) - 1, CATCH_UP_DAYS);
+  return Array.from({ length: Math.max(0, gone) }, (_, back) =>
+    new Date(Date.parse(`${today}T00:00:00Z`) - (gone - back) * DAY_MS)
+      .toISOString()
+      .slice(0, "YYYY-MM-DD".length)
+  );
+};
+
+/** Remembers the day's scheduled work as raised — once a day, outside the trail: it is the timer's own bookkeeping, as
+ *  the sweep's watermark is. */
+const rememberTheDayRaised = async (context: Turning, today: string) => {
+  if (context.farm.workRaisedOn === today) {
+    return;
+  }
+  await context.db
+    .update(farm)
+    .set({ workRaisedOn: today })
+    .where(eq(farm.id, context.farm.id));
+};
+
 export const theDaysWork = async (context: Turning) => {
   const now = context.clock.now();
   const definitions = await context.db.query.sopDefinition.findMany({
@@ -208,7 +246,22 @@ export const theDaysWork = async (context: Turning) => {
     pregnancyCheckAfterDays: context.farm.pregnancyCheckAfterDays,
     calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
   };
-  const onTheSchedule = dueSlotsFor(now, sops, animals);
+  // Today's scheduled work, and that of any day the server was down for since the last one raised: a day nobody turned
+  // still had its milkings, and they are raised now, already late, for the Manager to answer (the Owner, 2026-10-06).
+  const today = farmDayOf(now);
+  const missedDays = daysMissedSince(context.farm.workRaisedOn, today);
+  const inForceSince = new Map(
+    sops.map((sop) => [sop.definitionId, sop.triggersInForceSince])
+  );
+  const onTheSchedule = [
+    ...missedDays.flatMap((day) =>
+      dueSlotsFor(atFarmTime(day, "12:00"), sops, animals).filter(
+        // Never work owed before its procedure was in force.
+        (slot) => slot.dueAt >= (inForceSince.get(slot.definitionId) ?? now)
+      )
+    ),
+    ...dueSlotsFor(now, sops, animals),
+  ];
   // Work the clock does not raise: a Move, an arrival, a cow reaching a State. Same pass, because whatever opened
   // the app wants the whole day's work, not the half of it a schedule accounts for.
   const byWhatHappened = happeningSlotsFor(
@@ -235,6 +288,7 @@ export const theDaysWork = async (context: Turning) => {
   );
   const slots = [...onTheSchedule, ...byWhatHappened, ...forTheRenewal];
   if (slots.length === 0) {
+    await rememberTheDayRaised(context, today);
     return { raised: 0 };
   }
   let raised = { byTheSchedule: 0, byWhatHappened: 0, forTheRenewal: 0 };
@@ -245,7 +299,8 @@ export const theDaysWork = async (context: Turning) => {
     .write(
       {
         entity: "sop_instance",
-        entityId: `schedule:${now.toISOString().slice(0, 10)}`,
+        // The farm's day, not UTC's: the first turn after midnight in Savar is still yesterday in UTC.
+        entityId: `schedule:${today}`,
         action: "create",
         after: () =>
           Promise.resolve({
@@ -284,6 +339,7 @@ export const theDaysWork = async (context: Turning) => {
         throw error;
       }
     });
+  await rememberTheDayRaised(context, today);
   return {
     raised: raised.byTheSchedule + raised.byWhatHappened + raised.forTheRenewal,
   };
@@ -675,29 +731,47 @@ export const theSweep = async (context: Turning) => {
   const now = context.clock.now();
   // Three things that have nothing to do with each other: work that went late, cows coming off a
   // Withdrawal, and feed running low. The other two are told about first, because late work
-  // having nothing to say is the steady state and must not silence them.
-  await tellAboutWithdrawals(context, now);
-  await tellAboutMissing(context, now);
-  await tellAboutHeadCounts(context, now);
-  await tellAboutDosesNotPrescribed(context, now);
-  await tellAboutSores(context, now);
-  await tellAboutUnaccountedMilk(context, now);
-  await tellAboutEidLeftovers(context, now);
-  await tellAboutLowStock(context, now);
-  await tellAboutTheStore(context, now);
-  await tellAboutOverdueReceivable(context, now);
-  await tellAboutMissedSums(context, now);
-  await tellAboutPapers(context, now);
-  await tellAboutReimbursements(context, now);
-  // And the safety texts that did not go when their notice was raised, tried again until they do.
-  await textAgainWhatDidNotGo(context);
+  // having nothing to say is the steady state and must not silence them. Each told on its own: one that cannot be read
+  // is logged and named, and never silences those behind it — late milkings above all.
+  const couldNotTell: string[] = [];
+  const tellings: [string, () => Promise<unknown>][] = [
+    // First, what has been put right since: a notice whose cause is gone clears, before anything new is said.
+    ["settled", () => settleWhatIsSettled(context)],
+    ["withdrawals", () => tellAboutWithdrawals(context, now)],
+    ["missing", () => tellAboutMissing(context, now)],
+    ["head counts", () => tellAboutHeadCounts(context, now)],
+    ["doses not prescribed", () => tellAboutDosesNotPrescribed(context, now)],
+    ["sores", () => tellAboutSores(context, now)],
+    ["milk unaccounted", () => tellAboutUnaccountedMilk(context, now)],
+    ["Eid leftovers", () => tellAboutEidLeftovers(context, now)],
+    ["low stock", () => tellAboutLowStock(context, now)],
+    ["the store", () => tellAboutTheStore(context, now)],
+    ["overdue Receivables", () => tellAboutOverdueReceivable(context, now)],
+    ["missed sums", () => tellAboutMissedSums(context, now)],
+    ["papers", () => tellAboutPapers(context, now)],
+    ["Reimbursements", () => tellAboutReimbursements(context, now)],
+    // And the safety texts that did not go when their notice was raised, tried again until they do.
+    ["texts", () => textAgainWhatDidNotGo(context)],
+    // And the pushes the quiet hours held, or nothing carried, once the farm is awake.
+    ["held pushes", () => carryWhatWasHeld(context, now)],
+  ];
+  for (const [what, telling] of tellings) {
+    try {
+      // oxlint-disable-next-line no-await-in-loop -- one at a time, on one client, as they always were
+      await telling();
+    } catch (error) {
+      couldNotTell.push(what);
+      // oxlint-disable-next-line no-console
+      console.error(`the sweep: ${what}`, asLogged(error));
+    }
+  }
   const pending = await findPendingNotices(context.db, context.farm, now);
   // A sweep with nothing to say is not an event, and opens no transaction: everyone
   // calls this on opening the app, and in steady state there is nothing new to say.
   // The watermark stays where it is — a window with nothing in it costs nothing to
   // look at again.
   if (pending.overdue.length + pending.escalated.length === 0) {
-    return { overdue: 0, escalated: 0 };
+    return { overdue: 0, escalated: 0, couldNotTell };
   }
   // Audited against each Instance the notice is about, not against the sweep: an
   // entityId no row carries is a trail entry nothing can find its way back to. Reading
@@ -728,7 +802,7 @@ export const theSweep = async (context: Turning) => {
   // never inside the transaction that made them: a push is a call to somebody else's
   // server, and a hung one would hold a lock every phone in the shed is waiting on.
   await pushRaised(context, swept.raised, now);
-  return { overdue: swept.overdue, escalated: swept.escalated };
+  return { overdue: swept.overdue, escalated: swept.escalated, couldNotTell };
 };
 
 export const theDigest = async (context: Turning) => {
@@ -797,6 +871,10 @@ export const theDayTurns = async (
   );
   const work = await turn("the day's work", () => theDaysWork(context));
   const swept = await turn("the sweep", () => theSweep(context));
+  // The sweep told what it could; one telling it could not is still the sweep gone wrong, and the Owner hears so.
+  if (swept && swept.couldNotTell.length > 0) {
+    wentWrong.push("the sweep");
+  }
   const digest = await turn("the digest", () => theDigest(context));
   return {
     visitsEnded: visitsEnded ?? 0,

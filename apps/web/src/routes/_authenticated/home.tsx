@@ -143,7 +143,8 @@ const ManagerHome = () => {
     {
       label: t("home.cowsHeld"),
       value: (
-        <Link className={FIGURE_LINK} to="/animals">
+        // The cows it counts — her milk held — not the whole herd.
+        <Link className={FIGURE_LINK} search={{ held: "milk" }} to="/animals">
           {count(tiles.underWithdrawal)}
         </Link>
       ),

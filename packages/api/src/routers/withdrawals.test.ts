@@ -443,11 +443,16 @@ describe("withdrawal, from the last dose actually given", () => {
     const about = {
       entityId: `${cow.id}:${held.milkWithdrawalUntil?.toISOString()}`,
     };
-    expect(await manager.client.alerts.mine(about)).toHaveLength(1);
+    // Its ending: its starting, on the same hold, was told the day of the dose.
+    const ending = async () => {
+      const told = await manager.client.alerts.mine(about);
+      return told.filter((one) => one.kind === "withdrawal_ending");
+    };
+    expect(await ending()).toHaveLength(1);
 
     // Said once, however often anybody opens the app.
     await manager.client.alerts.sweep();
-    expect(await manager.client.alerts.mine(about)).toHaveLength(1);
+    expect(await ending()).toHaveLength(1);
   });
   it("puts the day she is fit for sale in front of the Manager", async () => {
     const clock = new FakeClock("2026-10-08T02:00:00.000Z");

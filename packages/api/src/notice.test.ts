@@ -1,3 +1,5 @@
+import { eq } from "@OpenFarm/db/operators";
+import { alert } from "@OpenFarm/db/schema/alert";
 import { auditEvent } from "@OpenFarm/db/schema/audit";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { ALERT_KINDS, SAYS, goesNow } from "@OpenFarm/domain";
@@ -178,6 +180,51 @@ describe("who hears a Notice", () => {
       kind: "needs_review",
       params: { because: "moved_since" },
     });
+  });
+
+  it("tells the Manager again of a second judgement owed on the same record, the first notice dismissed", async () => {
+    const id = `judged-twice-${suffix}`;
+    const owe = (eventId: string, at: string) =>
+      db().transaction(async (tx) => {
+        await tx.insert(auditEvent).values({
+          id: eventId,
+          farmId: theFarm().id,
+          entity: "step_completion",
+          entityId: id,
+          action: "correct",
+          actorId: thePerson("manager").id,
+          roleUsed: "manager",
+          recordedAt: new Date(at),
+          receivedAt: new Date(at),
+        });
+        await tell(
+          tx,
+          theFarm().id,
+          {
+            kind: "needs_review",
+            about: { id, entity: "step_completion", auditEventId: eventId },
+            facts: { reason: "irreversible_effect", because: "moved_since" },
+          },
+          new Date(at)
+        );
+      });
+    await owe(`first-${suffix}`, AT);
+    // The Manager reads it and taps it away; the review itself is settled.
+    await db()
+      .update(alert)
+      .set({ dismissedAt: new Date(AT) })
+      .where(eq(alert.entityId, id));
+    // A day on, the same record is corrected again, and a second judgement is owed.
+    await owe(`second-${suffix}`, "2044-03-03T04:00:00.000Z");
+    const showing = await db().query.alert.findMany({
+      where: {
+        entityId: id,
+        userId: thePerson("manager").id,
+        dismissedAt: { isNull: true },
+      },
+      columns: { kind: true },
+    });
+    expect(showing).toEqual([{ kind: "needs_review" }]);
   });
 
   it("tells the Owner what is the Owner's, and nobody else", async () => {

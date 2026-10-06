@@ -33,10 +33,6 @@ import { runningLow } from "../stock-store";
  *  the list is not going to solve. */
 export const QUEUE_LIMIT = 50;
 
-/** How far back the day's late work is worth listing. Older than this and it is not a queue
- *  any more; it is a conversation the farm needs to have about the month. */
-export const LATE_SINCE_DAYS = 30;
-
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const homeRouter = {
@@ -70,12 +66,9 @@ export const homeRouter = {
         heatWatch,
         givingLess,
       ] = await Promise.all([
-        findLate(
-          context.db,
-          farmId,
-          now,
-          new Date(now.getTime() - LATE_SINCE_DAYS * DAY_MS)
-        ),
+        // Every piece of late work still open, as the Overdue list holds it: one a month old is still late, and a home
+        // that said nothing was late while the list held it was wrong (the Owner, 2026-10-06).
+        findLate(context.db, farmId, now),
         workAwaitingSignOff(context.db, farmId, context.roles, QUEUE_LIMIT),
         openReviews(context.db, farmId, QUEUE_LIMIT),
         heldByWithdrawal(context.db, farmId, now),
@@ -174,6 +167,8 @@ export const homeRouter = {
           // Latest first and bounded, the way the Overdue screen itself reads: a Manager
           // opening this in a shed is handed the work that has waited longest, not a year
           // of it in whatever order the database found it.
+          /** How much late work there is in all: the list below is its longest-waiting, at most `QUEUE_LIMIT`. */
+          overdueTotal: late.length,
           overdue: late
             .map((instance) => ({
               id: instance.id,

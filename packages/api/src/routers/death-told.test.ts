@@ -274,6 +274,16 @@ describe("a death told to the Owner", () => {
     expect(theirs(tags.asleep)).toEqual([]);
   });
 
+  it("is pushed in the morning, once, when the quiet hours end", async () => {
+    // Eight the next morning, farm time: the farm is awake, and the first sweep carries what the night held.
+    const morning = await as("owner", "2090-04-02T02:00:00.000Z");
+    await morning.client.alerts.sweep();
+    expect(theirs(tags.asleep)).toHaveLength(1);
+    // And once: the next sweep has nothing left to carry.
+    await morning.client.alerts.sweep();
+    expect(theirs(tags.asleep)).toHaveLength(1);
+  });
+
   it("is told of a stillborn calf when her disposal is written, not at her Calving", async () => {
     expect(await toldOf(tags.stillborn, "owner")).toEqual([]);
     const manager = await as("manager", `${DAY}T06:00:00.000Z`);
@@ -283,5 +293,17 @@ describe("a death told to the Owner", () => {
       photo: A_DEATH_PHOTO,
     });
     expect(await toldOf(tags.stillborn, "owner")).toHaveLength(1);
+  });
+
+  it("is said as born dead on the Owner's home, never counted as died as well", async () => {
+    const owner = await as("owner", `${DAY}T08:00:00.000Z`);
+    const { tiles } = await owner.client.overview.get();
+    const deaths = await scratchDb().query.mortality.findMany({
+      where: { farmId: theFarm().id, kind: "died" },
+      columns: { id: true },
+    });
+    // The stillborn calf of this file is one of its deaths, and in the born-dead line alone.
+    expect(tiles.bornDead).toBeGreaterThanOrEqual(1);
+    expect(tiles.died + tiles.bornDead).toBe(deaths.length);
   });
 });

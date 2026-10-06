@@ -118,8 +118,11 @@ const MoneyPage = () => {
   const navigate = useNavigate({ from: Route.fullPath });
   const tab = useTabOfPath(TAB_PATHS) ?? "register";
   const me = useQuery(orpc.people.me.queryOptions());
-  const [from, setFrom] = useState(firstOfTheMonth);
-  const [to, setTo] = useState(() => farmDayOf(new Date()));
+  // Opened on the period the address names — the home sends the Owner to the money waiting for her, however old — or
+  // on this month.
+  const asked = Route.useSearch();
+  const [from, setFrom] = useState(() => asked.from ?? firstOfTheMonth());
+  const [to, setTo] = useState(() => asked.to ?? farmDayOf(new Date()));
   const [entering, setEntering] = useState(false);
   const money = useQuery(orpc.money.list.queryOptions({ input: { from, to } }));
   const isOwner = me.data?.roles.includes("owner") ?? false;
@@ -223,7 +226,23 @@ const MoneyPage = () => {
   );
 };
 
+/** A farm day the address may name, or nothing. */
+const FARM_DAY = /^\d{4}-\d{2}-\d{2}$/u;
+const dayOr = (value: unknown) =>
+  typeof value === "string" && FARM_DAY.test(value) ? value : undefined;
+
+/** The period the address may open the money on. */
+interface MoneySearch {
+  from?: string;
+  to?: string;
+}
+
 export const Route = createFileRoute("/_authenticated/money")({
+  validateSearch: (search: Record<string, unknown>): MoneySearch => {
+    const from = dayOr(search.from);
+    const to = dayOr(search.to);
+    return { ...(from ? { from } : {}), ...(to ? { to } : {}) };
+  },
   beforeLoad: ({ context }) => {
     // Barn Staff never see money, and the Vet's is on the Vet's own screen.
     const { roles } = context.me;

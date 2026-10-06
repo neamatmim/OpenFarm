@@ -129,7 +129,8 @@ export type QueueKind = (typeof QUEUE_KINDS)[number];
 const countsOf = (queue: ManagerQueueData): Record<QueueKind, number> => ({
   // Missing from an answer a phone kept from before a Missing was written down.
   missing: queue.missing?.length ?? 0,
-  overdue: queue.overdue.length,
+  // All of it, not the longest-waiting fifty the list shows; an answer kept from before the total was said has its list.
+  overdue: queue.overdueTotal ?? queue.overdue.length,
   signOff: queue.signOff.length,
   review: queue.needsReview.length,
   withdrawal: queue.withdrawal.length,
