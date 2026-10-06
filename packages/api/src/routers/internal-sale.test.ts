@@ -969,3 +969,45 @@ describe("an Intake put right after an Internal Sale", () => {
     ).rejects.toMatchObject({ data: { refusal: "sold_on_since" } });
   });
 });
+
+describe("a Sale of hers put right", () => {
+  it("is not dated before the Internal Sale that made her the Venture's", async () => {
+    const farmBull = await bull("2047-06-01T05:00:00.000Z", 250);
+    await weigh("2047-06-19", [[farmBull.tagNumber, 250]]);
+    const owner = await as("owner", "2047-06-20T04:00:00.000Z");
+    await owner.client.ventures.sellInternally({
+      tagNumber: farmBull.tagNumber,
+      toVentureId: ventureId,
+      rateMoneyPerKg: 300,
+      note: `দর ${suffix}`,
+      soldOn: "2047-06-20",
+      paymentMethod: "bank",
+      reference: `INT-DAY-${suffix}`,
+      priceMoney: 75_000,
+    });
+    const manager = await as("manager", "2047-07-15T05:00:00.000Z");
+    const sold = await manager.client.sales.record({
+      tagNumber: farmBull.tagNumber,
+      buyer: { name: `ক্রেতা ${suffix}` },
+      priceMoney: 97_000,
+      weightKg: 300,
+      destination: `হাট ${suffix}`,
+      vehicle: `ট্রাক ${suffix}`,
+      driver: `চালক ${suffix}`,
+      paymentMethod: "bank",
+      reference: `SALE-DAY-${suffix}`,
+    });
+    await expect(
+      manager.client.sales.correct({
+        id: sold.id,
+        reason: `দিন ভুল ${suffix}`,
+        changes: {
+          soldAt: {
+            from: "2047-07-15T05:00:00.000Z",
+            to: new Date("2047-06-15T05:00:00.000Z"),
+          },
+        },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "before_she_was_here" } });
+  });
+});

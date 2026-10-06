@@ -32,6 +32,7 @@ import {
   prefixForOrigin,
   sideOfState,
   stateAfterSideChange,
+  startOfFarmDay,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -818,6 +819,22 @@ const assertWasHereAt = async (tx: Tx, animalId: string, at: Date) => {
     orderBy: { movedAt: "desc", id: "desc" },
     limit: 1,
   });
+  // Nor before the Internal Sale that made her whose she is: an Internal Sale writes no Move, and a Sale put before it
+  // was read as the old owner's, her new owner's Holding of her never ending.
+  const [handedOver] = await tx.query.internalSale.findMany({
+    where: { animalId },
+    columns: { soldOn: true },
+    orderBy: { soldOn: "desc", id: "desc" },
+    limit: 1,
+  });
+  const theirsFrom = handedOver ? startOfFarmDay(handedOver.soldOn) : null;
+  if (theirsFrom && at < theirsFrom) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "She was sold on after that: she cannot leave before she was her new owner's",
+      data: { refusal: "before_she_was_here", since: theirsFrom.toISOString() },
+    });
+  }
   if (last && at < last.movedAt) {
     throw new ORPCError("BAD_REQUEST", {
       message:

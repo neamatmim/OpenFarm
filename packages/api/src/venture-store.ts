@@ -1118,7 +1118,7 @@ export const bookSaleProceeds = async (
 ) => {
   const already = await tx.query.ventureMovement.findFirst({
     where: { farmId: sale.farmId, saleId: sale.id },
-    columns: { id: true },
+    columns: { id: true, handoverId: true },
   });
   const itsOwn = sale.priceMoney > 0 ? sale.ventureId : null;
   if (already && itsOwn === null) {
@@ -1149,7 +1149,13 @@ export const bookSaleProceeds = async (
     // what she fetched belongs where she did.
     await tx
       .update(ventureMovement)
-      .set({ ventureId: itsOwn, amountMoney: sale.priceMoney })
+      .set({
+        ventureId: itsOwn,
+        amountMoney: sale.priceMoney,
+        // Paid by bank, it reached the account the day she was sold, and moves with that day when it is put right; a
+        // deposit of cash keeps the day it went in.
+        ...(already.handoverId ? {} : { movedOn: farmDayOf(sale.soldAt) }),
+      })
       .where(
         and(
           eq(ventureMovement.id, already.id),
