@@ -185,6 +185,8 @@ export const rememberPushBrowser = async (
     farmId: string;
     userId: string;
     deviceId: string | null;
+    /** The sign-in it is agreed under, where a person's own. */
+    sessionId: string | null;
     endpoint: string;
     p256dh: string;
     auth: string;
@@ -223,6 +225,7 @@ export const rememberPushBrowser = async (
         // Whoever subscribes it now: theirs again, or the next person's on a Shed Phone or after a sign-out.
         userId: browser.userId,
         deviceId: browser.deviceId,
+        sessionId: browser.sessionId,
         p256dh: browser.p256dh,
         auth: browser.auth,
         // Subscribing again is asking to be told again.

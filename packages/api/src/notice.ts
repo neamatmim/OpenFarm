@@ -391,6 +391,22 @@ const raiseAgain = async (
         )
         .returning({ id: alert.id, userId: alert.userId });
 
+/** Of these people, those not disabled. */
+const stillHere = async (
+  tx: Tx,
+  userIds: readonly string[]
+): Promise<string[]> => {
+  if (userIds.length === 0) {
+    return [];
+  }
+  const gone = await tx.query.user.findMany({
+    where: { id: { in: [...userIds] }, disabledAt: { isNotNull: true } },
+    columns: { id: true },
+  });
+  const left = new Set(gone.map((one) => one.id));
+  return userIds.filter((one) => !left.has(one));
+};
+
 /** Whether a kind's people, all gone, leave it to the Owner: not news about one person's own act or work. */
 const fallsToTheOwner = (audience: Audience) =>
   !audience.some((one) => one === "whoseActItWas" || one === "whoDoesThisWork");
@@ -430,12 +446,11 @@ export const tell = async <Kind extends AlertKind>(
     );
   }
   const params = notice.facts as Record<string, unknown>;
-  const everyone = await peopleFor(
+  // Only people still at the farm: one the Owner has disabled holds their Roles on paper, to be given back, but is
+  // nobody to tell — and counted, they kept the Owner from hearing what was theirs.
+  const everyone = await stillHere(
     tx,
-    farmId,
-    kind.audience,
-    about,
-    remembering
+    await peopleFor(tx, farmId, kind.audience, about, remembering)
   );
   const named =
     kind.leavesOutTheWriter && about.writtenBy

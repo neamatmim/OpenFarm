@@ -32,6 +32,9 @@ export const pushSubscription = pgTable(
     deviceId: text("device_id").references(() => shedPhone.id, {
       onDelete: "cascade",
     }),
+    /** The sign-in it was agreed under, where a person's own: signing that session out, from the People page or the
+     *  browser itself, stops this browser being told. Kept as written; the session row is never deleted. */
+    sessionId: text("session_id"),
     /** Where the push service takes a message for this browser. */
     endpoint: text("endpoint").notNull(),
     /** The browser's own keys. Without them a message cannot be encrypted to it. */

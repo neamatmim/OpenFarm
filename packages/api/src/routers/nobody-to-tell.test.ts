@@ -8,6 +8,7 @@ import {
 } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { tell } from "../notice";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -83,5 +84,36 @@ describe("a dose not prescribed on a farm with no Vet", () => {
       columns: { id: true },
     });
     expect(trail).toHaveLength(1);
+  });
+});
+
+describe("a notice for the farm's only Manager, once the Owner has disabled them", () => {
+  it("is told to the Owner: a person who has left is nobody to tell", async () => {
+    const owner = await as("owner");
+    await owner.client.people.disable({ userId: thePerson("manager").id });
+    const id = `low-stock-${suffix}`;
+    await scratchDb().transaction((tx) =>
+      tell(
+        tx,
+        theFarm().id,
+        {
+          kind: "low_stock",
+          about: { id },
+          facts: {
+            feedItemId: id,
+            nameBn: `দানাদার ${suffix}`,
+            onHand: 2,
+            unit: "kg",
+            threshold: 10,
+          },
+        },
+        new Date(NOW)
+      )
+    );
+    const told = await scratchDb().query.alert.findMany({
+      where: { kind: "low_stock", entityId: id },
+      columns: { userId: true },
+    });
+    expect(told).toEqual([{ userId: thePerson("owner").id }]);
   });
 });

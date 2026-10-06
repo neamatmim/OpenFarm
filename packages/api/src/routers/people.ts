@@ -575,7 +575,12 @@ export const peopleRouter = {
           before: (tx) => whoTheyAre(tx, input.userId),
           after: (tx) => whoTheyAre(tx, input.userId),
         },
-        (tx) => endMembership(tx, input.userId, { by, now })
+        (tx) =>
+          endMembership(tx, input.userId, {
+            by,
+            now,
+            farmId: context.farm.id,
+          })
       );
       return { userId: input.userId, disabled: true };
     }),

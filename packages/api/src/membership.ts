@@ -22,7 +22,10 @@ import {
   roleAssignment,
 } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ASSIGNMENT, penAssignment } from "@OpenFarm/db/schema/herd";
+import { sopInstance } from "@OpenFarm/db/schema/instance";
+import { pushSubscription } from "@OpenFarm/db/schema/push";
 import {
+  OPEN_INSTANCE_STATES,
   aManagerMayInvite,
   derivePinHash,
   isPin,
@@ -252,11 +255,12 @@ const markDisabled = async (
 export const endMembership = async (
   tx: Tx,
   userId: string,
-  { by, now }: { by: Acting; now: Date }
+  { by, now, farmId }: { by: Acting; now: Date; farmId: string }
 ): Promise<void> => {
   if (userId === by.id) {
     throw new ORPCError("BAD_REQUEST", {
       message: "You cannot disable yourself",
+      data: { refusal: "cannot_disable_yourself" },
     });
   }
   await markDisabled(tx, userId, now);
@@ -264,6 +268,40 @@ export const endMembership = async (
     .update(sessionTable)
     .set({ expiresAt: now, updatedAt: now })
     .where(eq(sessionTable.userId, userId));
+  // What was theirs to do goes back to everyone (the Owner, 2026-10-07): work pinned to them or in their hands, which
+  // nobody else could touch while it stayed theirs, and the Pens they kept, whose notices would go on reaching them.
+  // Their Roles stay, to be given back; these do not come back with them.
+  const stillOwed = [...OPEN_INSTANCE_STATES];
+  await tx
+    .update(sopInstance)
+    .set({ assignedTo: null })
+    .where(
+      and(
+        eq(sopInstance.farmId, farmId),
+        eq(sopInstance.assignedTo, userId),
+        inArray(sopInstance.state, stillOwed)
+      )
+    );
+  await tx
+    .update(sopInstance)
+    .set({ claimedBy: null, claimedAt: null })
+    .where(
+      and(
+        eq(sopInstance.farmId, farmId),
+        eq(sopInstance.claimedBy, userId),
+        inArray(sopInstance.state, stillOwed)
+      )
+    );
+  await tx
+    .update(penAssignment)
+    .set({ endedAt: now })
+    .where(
+      and(
+        eq(penAssignment.farmId, farmId),
+        eq(penAssignment.userId, userId),
+        isNull(penAssignment.endedAt)
+      )
+    );
 };
 
 /** Somebody back at work: they sign in again, and the Roles they held are the Roles they held. */
@@ -338,6 +376,17 @@ export const signOutOf = async (
       message: "They are not signed in there",
     });
   }
+  // And that phone stops being told: a phone left in a yard, signed out, must not go on showing the farm's notices on
+  // its lock screen.
+  await tx
+    .update(pushSubscription)
+    .set({ revokedAt: now })
+    .where(
+      and(
+        eq(pushSubscription.sessionId, sessionId),
+        isNull(pushSubscription.revokedAt)
+      )
+    );
 };
 
 /** The Pens a Staff member keeps today, in an order two readings can be compared in. */
