@@ -3117,6 +3117,12 @@ export const bn: Record<MessageKey, string> = {
   "stock.levelSaved": "সীমা সংরক্ষিত",
   "stock.allItems": "সব উপাদান",
   "stock.filterItem": "উপাদান দিয়ে ছাঁকুন",
+  "stock.olderNotShown":
+    "শুধু নতুন {count}টি দেখানো হচ্ছে। পুরোনোগুলো দেখতে একটি খাবার বেছে নিন",
+  "stock.olderOfOneNotShown": "এই খাবারের শুধু নতুন {count}টি দেখানো হচ্ছে",
+  "stock.noPriceYet": "এখনো দাম নেই",
+  "stock.harvestUnpriced":
+    "এই খাবারের নিজের ফসলের দাম এখনো ঠিক হয়নি। কাটা খাবারটি রাখা হবে, মালিক দাম ঠিক করলে তার দাম ধরা হবে",
   "stock.noArrivals": "এখনো কিছু আসেনি",
   "stock.noCounts": "এখনো গণনা হয়নি",
   "stock.noStock": "গুদামে কিছু নেই — আগে খাদ্য উপাদান যোগ করুন",

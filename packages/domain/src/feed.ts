@@ -757,3 +757,13 @@ export const lastFellBelow = (
   }
   return onHand < level ? fell : null;
 };
+
+/** How many arrivals the feed history reads at once, newest first: the screen says when there are older ones. */
+export const FEED_IN_SHOWN = 200;
+
+/** The least the store keeps of anything: a tenth of the feed's own unit. The screens and the farm read the one figure,
+ *  so a box the screen takes is never one the farm refuses in English. */
+export const SMALLEST_FEED_AMOUNT = 0.1;
+
+/** The most one bag may weigh, in kilos: a sack of bran is fifty. */
+export const MAX_BAG_KG = 200;

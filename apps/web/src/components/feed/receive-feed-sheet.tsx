@@ -1,6 +1,7 @@
 import type { FeedPack, PaymentMethod } from "@OpenFarm/domain";
 import {
   FEED_PACK_WORDS,
+  SMALLEST_FEED_AMOUNT,
   farmDayOf,
   feedUnitEach,
   feedUnitOf,
@@ -13,7 +14,7 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { SegmentedControl } from "@/components/page";
+import { Notice, SegmentedControl } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
 import {
@@ -22,6 +23,7 @@ import {
   PaymentMethodField,
 } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
+import { keptAmount } from "@/lib/feed-figures";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -74,14 +76,15 @@ const weighedOf = (draft: Draft, item: FeedItemRow): number | null => {
   return draft.kind === "purchase" &&
     feedUnitOf(item.unit) === "kg" &&
     draft.weighed.trim() !== "" &&
-    typed > 0
+    typed >= SMALLEST_FEED_AMOUNT
     ? typed
     : null;
 };
 
 /** Whether the scale box holds something that is not a weight: empty is fine, it is optional. */
 const weighedIsWrong = (draft: Draft) =>
-  draft.weighed.trim() !== "" && !(Number(draft.weighed) > 0);
+  draft.weighed.trim() !== "" &&
+  !(Number(draft.weighed) >= SMALLEST_FEED_AMOUNT);
 
 /** Whether the sheet says what its kind needs: a Purchase its price and seller, and the scale only a weight or nothing;
  *  a Harvest nothing more. */
@@ -100,6 +103,39 @@ const waysToCount = (item: FeedItemRow): CountedIn[] => {
   return item.bagSizeKg === null ? ["own", "maund"] : ["own", "bag", "maund"];
 };
 
+/** A cut of a feed with no Fodder Price yet is kept, and priced when the Owner sets one — said as it is cut. */
+const UnpricedCut = ({
+  item,
+  kind,
+}: {
+  item: FeedItemRow | null;
+  kind: Draft["kind"];
+}) => {
+  const { t } = useLanguage();
+  return kind === "harvest" && item?.fodderPriceMoney === null ? (
+    <Notice title={t("stock.harvestUnpriced")} tone="info" />
+  ) : null;
+};
+
+/**
+ * Opened with nothing typed, it is today's lorry: the sheet is made once with the page, and a page left open overnight
+ * wrote this morning's under yesterday.
+ */
+const useTodayWhenOpened = (
+  open: boolean,
+  draft: Draft,
+  setDraft: (change: (current: Draft) => Draft) => void
+) => {
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    const today = farmDayOf(new Date());
+    if (open && draft.quantity === "" && draft.receivedOn !== today) {
+      setDraft((current) => ({ ...current, receivedOn: today }));
+    }
+  }
+};
+
 /** What was typed, in the feed's own unit: as it stands, or the bags or maunds worked out into kilos. Nothing for
  *  what cannot be. */
 const amountOf = (
@@ -111,14 +147,15 @@ const amountOf = (
   if (!(typed > 0)) {
     return null;
   }
+  // No less than the store keeps, as the farm reads it: less was refused, in English.
   if (countedIn === "own") {
-    return typed;
+    return keptAmount(typed);
   }
   const packed = quantityOfPacks(
     { kind: countedIn, count: typed },
     { unit: feedUnitOf(item.unit), bagSizeKg: item.bagSizeKg }
   );
-  return "quantity" in packed ? packed.quantity : null;
+  return "quantity" in packed ? keptAmount(packed.quantity) : null;
 };
 
 /** How far the price typed moves on the last purchase, to a tenth of a percent. */
@@ -331,6 +368,7 @@ export const ReceiveFeedSheet = ({
   );
   // One id per filling-in of the sheet: a second tap is the same lorry, not another.
   const [entryId, setEntryId] = useState(() => crypto.randomUUID());
+  useTodayWhenOpened(open, draft, setDraft);
   const chosen =
     live.find((item) => item.id === draft.feedItemId) ?? live[0] ?? null;
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
@@ -429,6 +467,8 @@ export const ReceiveFeedSheet = ({
                 value={draft.kind}
               />
             </div>
+
+            <UnpricedCut item={chosen} kind={draft.kind} />
 
             {ways.length > 1 ? (
               <div className="flex flex-col gap-1.5">

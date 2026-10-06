@@ -3329,6 +3329,12 @@ export const en = {
   "stock.levelSaved": "Level saved",
   "stock.allItems": "All feed items",
   "stock.filterItem": "Filter by feed item",
+  "stock.olderNotShown":
+    "Only the newest {count} are shown. Choose a feed to see its older ones",
+  "stock.olderOfOneNotShown": "Only the newest {count} of this feed are shown",
+  "stock.noPriceYet": "No price yet",
+  "stock.harvestUnpriced":
+    "What this home-grown fodder is worth is not set yet. The cut is kept, and priced when the owner sets it",
   "stock.noArrivals": "Nothing has come in yet",
   "stock.noCounts": "No counts yet",
   "stock.noStock": "Nothing in the store — add a feed item first",

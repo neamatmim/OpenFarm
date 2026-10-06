@@ -9,6 +9,8 @@ import {
   ration,
 } from "@OpenFarm/db/schema/feed";
 import {
+  MAX_BAG_KG,
+  SMALLEST_FEED_AMOUNT,
   STANDARD_FEED_ITEMS,
   findBandProblems,
   findExpectedGainProblems,
@@ -50,7 +52,7 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const LEFTOVER_PERIODS = [7, 14, 30] as const;
 
 /** What one bag of a feed weighs, in kilos: a sack of bran is fifty, a bag of mineral mixture five. */
-const bagSizeInput = z.number().positive().max(200);
+const bagSizeInput = z.number().positive().max(MAX_BAG_KG);
 
 /** A bag is a weight in kilos, so only feed counted in kilos is bought by it. */
 const refuseBagOfNonKilos = (unit: string, bagSizeKg: number | undefined) => {
@@ -423,7 +425,11 @@ export const feedRouter = {
       .input(
         z.object({
           feedItemId: z.string(),
-          threshold: z.number().min(0.1).max(10_000_000).nullable(),
+          threshold: z
+            .number()
+            .min(SMALLEST_FEED_AMOUNT)
+            .max(10_000_000)
+            .nullable(),
         })
       )
       .handler(async ({ context, input }) => {

@@ -23,6 +23,7 @@ import {
   startOfFarmDay,
   stockLedger,
   countedOverTheBook,
+  SMALLEST_FEED_AMOUNT,
   unitPriceOf,
 } from "@OpenFarm/domain";
 import type {
@@ -772,7 +773,10 @@ export const sellerInput = z.object({
 });
 
 /** A tenth of the Feed Item's unit is the smallest amount the store keeps. */
-export const quantityInput = z.number().min(0.1).max(1_000_000);
+export const quantityInput = z
+  .number()
+  .min(SMALLEST_FEED_AMOUNT)
+  .max(1_000_000);
 
 export const feedPriceInput = z.number().positive().max(100_000_000);
 

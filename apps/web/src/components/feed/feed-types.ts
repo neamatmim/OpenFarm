@@ -13,6 +13,8 @@ export interface FeedItemRow {
   /** What one of its bags weighs, in kilos, where the farm has said: what lets it be bought by the bag. */
   bagSizeKg: number | null;
   retiredAt: Date | null;
+  /** What the Owner says its home-grown fodder is worth a unit, for those who read money; missing for the rest. */
+  fodderPriceMoney?: number | null;
 }
 
 /** A Ration: its name, its version, what each Feed Item is in a day — by the head or by weight — and the Pens on it. */
