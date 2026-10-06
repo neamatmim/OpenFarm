@@ -677,6 +677,10 @@ export const readInternalSale = async (tx: Tx, farmId: string, id: string) => {
     : null;
 };
 
+/** A sale's moment, never before she came: the instant after her arrival where its day began earlier. */
+const notBeforeShe = (arrived: Date | undefined, from: Date): Date =>
+  arrived && from <= arrived ? new Date(arrived.getTime() + 1) : from;
+
 /**
  * Who owned each Animal, and from when.
  *
@@ -684,21 +688,33 @@ export const readInternalSale = async (tx: Tx, farmId: string, id: string) => {
  * her on, so her whole history is the sales walked backwards from where she stands now. A month's feed
  * is charged to whoever owned her the day she ate it — not to whoever happens to own her when the
  * Reimbursement is made, which would have one Venture repaying days another one's animals ate.
+ *
+ * A sale is hers from the start of its day — but never before she came: sold the day she came off the lorry, she was
+ * her buyer at the lorry's until just after she arrived, and her Intake is that buyer's.
  */
 export const ownersOverTime = async (
   tx: Pick<Tx, "query">,
   farmId: string
 ): Promise<Map<string, { from: Date; ventureId: string | null }[]>> => {
-  const sales = await tx.query.internalSale.findMany({
-    where: { farmId },
-    columns: {
-      animalId: true,
-      fromVentureId: true,
-      toVentureId: true,
-      soldOn: true,
-    },
-    orderBy: { soldOn: "asc", id: "asc" },
-  });
+  const [sales, arrivals] = await Promise.all([
+    tx.query.internalSale.findMany({
+      where: { farmId },
+      columns: {
+        animalId: true,
+        fromVentureId: true,
+        toVentureId: true,
+        soldOn: true,
+      },
+      orderBy: { soldOn: "asc", id: "asc" },
+    }),
+    tx.query.intake.findMany({
+      where: { farmId },
+      columns: { animalId: true, arrivedAt: true },
+    }),
+  ]);
+  const arrivedAt = new Map(
+    arrivals.map((one) => [one.animalId, one.arrivedAt])
+  );
   const byAnimal = new Map<string, typeof sales>();
   for (const one of sales) {
     byAnimal.set(one.animalId, [...(byAnimal.get(one.animalId) ?? []), one]);
@@ -714,7 +730,7 @@ export const ownersOverTime = async (
     owners.set(animalId, [
       { from: new Date(0), ventureId: first.fromVentureId },
       ...hers.map((one) => ({
-        from: startOfFarmDay(one.soldOn),
+        from: notBeforeShe(arrivedAt.get(animalId), startOfFarmDay(one.soldOn)),
         ventureId: one.toVentureId,
       })),
     ]);

@@ -5,7 +5,8 @@ import { animal } from "@OpenFarm/db/schema/herd";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import type { TargetWindow } from "@OpenFarm/domain";
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { joinTheFattening } from "./joining-store";
@@ -46,6 +47,37 @@ export interface Handover {
 }
 
 /**
+ * Refuses an Internal Sale dated before she came off the lorry, or before the last that changed her hands: she cannot
+ * have been sold by an owner who did not have her yet, and whose she was on each day is read from these days.
+ */
+const assertSoldAfterShe = async (
+  tx: Tx,
+  farmId: string,
+  animalId: string,
+  soldOn: string
+): Promise<void> => {
+  const [arrived, last] = await Promise.all([
+    tx.query.intake.findFirst({
+      where: { farmId, animalId },
+      columns: { arrivedAt: true },
+    }),
+    tx.query.internalSale.findFirst({
+      where: { farmId, animalId },
+      orderBy: { soldOn: "desc", id: "desc" },
+      columns: { soldOn: true },
+    }),
+  ]);
+  const cameOn = arrived ? farmDayOf(arrived.arrivedAt) : null;
+  if ((cameOn && soldOn < cameOn) || (last && soldOn < last.soldOn)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "She cannot be sold on a day before she came, or before she last changed hands",
+      data: { refusal: "sold_before_she_came" },
+    });
+  }
+};
+
+/**
  * Records one Internal Sale, whole: the sale itself, a movement for each Venture side, the Farm's own
  * Money Event where the Farm is one of the sides, and her owner changing with the money.
  *
@@ -62,6 +94,7 @@ export const recordInternalSale = async (
 ): Promise<{ id: string; weightKg: number; priceMoney: number }> => {
   const { now, actorId } = booking;
   const farmId = booking.farm.id;
+  await assertSoldAfterShe(tx, farmId, hand.animalId, hand.soldOn);
   const priceMoney =
     hand.madeGood?.priceMoney ??
     priceAtWeight(hand.weighed.weightKg, hand.rateMoneyPerKg);

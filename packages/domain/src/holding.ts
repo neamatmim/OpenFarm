@@ -152,8 +152,8 @@ export interface WhatHappened {
   /** When she was written off as Lost: gone, and nothing came back for her, as for a death — unless she was a
    *  Venture's, which the Farm made good. */
   lost: Date | null;
-  /** What the Farm paid her Venture to make her good, where she was a Venture's and was lost; left out otherwise. */
-  madeGoodMoney?: number | null;
+  /** What the Farm paid which Venture to make her good, where she was a Venture's and was lost; left out otherwise. */
+  madeGood?: { ventureId: string; amountMoney: number } | null;
 }
 
 /** How a Holding ended: when, and what came back — nothing for a death or a loss, and not yet known for a crossing not
@@ -216,7 +216,13 @@ export const howSheLeft = (
   if (her.died) {
     return { how: "died", on: her.died, backMoney: 0 };
   }
-  return her.lost
-    ? { how: "lost", on: her.lost, backMoney: her.madeGoodMoney ?? 0 }
-    : null;
+  if (!her.lost) {
+    return null;
+  }
+  // Made good to the Venture that lost her, and to it alone: the Farm, that paid it, got nothing back for her.
+  const madeGoodHere =
+    her.madeGood && her.madeGood.ventureId === holding.owner
+      ? her.madeGood.amountMoney
+      : 0;
+  return { how: "lost", on: her.lost, backMoney: madeGoodHere };
 };

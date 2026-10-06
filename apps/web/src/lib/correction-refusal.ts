@@ -230,6 +230,7 @@ const WORDED_REFUSALS = {
   split_not_the_farms: "refusal.splitNotTheFarms",
   handed_later_than_now: "refusal.handedLaterThanNow",
   terms_changed: "refusal.termsChanged",
+  sold_before_she_came: "refusal.soldBeforeSheCame",
   a_price_is_missing: "refusal.aPriceIsMissing",
   a_float_is_open: "refusal.aFloatIsOpen",
   a_reimbursement_is_owed: "refusal.aReimbursementIsOwed",

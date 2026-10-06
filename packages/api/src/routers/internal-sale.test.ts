@@ -805,3 +805,50 @@ describe("a bull the Farm bought back from a Venture", () => {
     ).toBe(16_400);
   });
 });
+
+describe("a bull sold to a Venture the day he arrived", () => {
+  it("is the Venture's once, at what it paid for him — and his price at the lorry is the Farm's", async () => {
+    // What the Venture is charged for buying, as its Settlement reads it: its own buying, and what it paid to take
+    // animals on.
+    const bought = async (instant: string) => {
+      const owner = await as("owner", instant);
+      const worked = await owner.client.ventures.settlement.get({ ventureId });
+      return worked.charges.find((one) => one.word === "bought")?.amount ?? 0;
+    };
+    const before = await bought("2047-10-01T02:00:00.000Z");
+    // Off the lorry at nine in the morning at ৳60,000, weighed at noon, sold to the Venture that afternoon at 180 kg ×
+    // ৳400: the Venture paid ৳72,000 for him, and nothing for the Farm's buying at the lorry.
+    const his = await bull("2047-10-01T03:00:00.000Z");
+    await weigh("2047-10-01", [[his.tagNumber, 180]]);
+    const selling = await as("owner", "2047-10-01T10:00:00.000Z");
+    await selling.client.ventures.sellInternally({
+      tagNumber: his.tagNumber,
+      toVentureId: ventureId,
+      rateMoneyPerKg: 400,
+      note: `একই দিনে ${suffix}`,
+      soldOn: "2047-10-01",
+      paymentMethod: "bank",
+      reference: `INT-SAMEDAY-${suffix}`,
+      priceMoney: 72_000,
+    });
+    expect((await bought("2047-10-01T11:00:00.000Z")) - before).toBe(72_000);
+  });
+
+  it("is refused a sale dated before he came", async () => {
+    const his = await bull("2047-10-05T03:00:00.000Z");
+    await weigh("2047-10-05", [[his.tagNumber, 180]]);
+    const owner = await as("owner", "2047-10-05T10:00:00.000Z");
+    await expect(
+      owner.client.ventures.sellInternally({
+        tagNumber: his.tagNumber,
+        toVentureId: ventureId,
+        rateMoneyPerKg: 400,
+        note: `আগের তারিখে ${suffix}`,
+        soldOn: "2047-10-04",
+        paymentMethod: "bank",
+        reference: `INT-BEFORE-${suffix}`,
+        priceMoney: 72_000,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "sold_before_she_came" } });
+  });
+});
