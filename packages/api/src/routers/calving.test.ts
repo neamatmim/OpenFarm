@@ -362,6 +362,48 @@ describe("the calving", () => {
     });
   });
 
+  it("refuses her calving again the next morning: the same calving written twice, and no second calf", async () => {
+    const registrar = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2032-04-01T00:00:00.000Z"),
+    });
+    const heifer = await registrar.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "pregnant_heifer",
+      penId: world.pen.id,
+      source: "bought",
+      aliases: [],
+      expectedCalvingOn: "2032-04-10",
+    });
+    const calved = (at: string) => ({
+      stepId: "calved",
+      animalTag: heifer.tagNumber,
+      evidence: [at, "unassisted", "male", "alive", "", ""],
+    });
+    const first = await morningRound("2032-04-10", "manager");
+    await first.client.client.work.completeStep({
+      instanceId: first.id,
+      ...calved("2032-04-10T00:30:00.000Z"),
+    });
+    // She is still in the calving pen the next morning, and the round taps her "calved" again.
+    const next = await morningRound("2032-04-11", "manager");
+    await expect(
+      next.client.client.work.completeStep({
+        instanceId: next.id,
+        ...calved("2032-04-11T00:30:00.000Z"),
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "calved_lately" },
+    });
+    const dam = await registrar.client.animals.get({
+      tagNumber: heifer.tagNumber,
+    });
+    expect(dam.calvings).toHaveLength(1);
+    expect(dam.lactationNumber).toBe(1);
+  });
+
   it("lets a calf written up alive be put right as stillborn, and asks before undoing a calving", async () => {
     const { id, client, manager } = await morningRound("2032-03-24");
     await client.client.work.completeStep({

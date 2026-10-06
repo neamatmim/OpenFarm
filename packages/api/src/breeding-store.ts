@@ -21,6 +21,8 @@ import {
   expectedCalvingFrom,
   ageOf,
   farmDayOf,
+  CALVING_OVERDUE_DAYS,
+  calvingOverdueOf,
   heatWatchOf,
   heiferWatchOf,
   isExitState,
@@ -536,7 +538,7 @@ export interface HeatWatchRow {
   animalId: string;
   tag: string;
   penName: string;
-  because: HeatWatchBecause | HeiferWatchBecause;
+  because: HeatWatchBecause | HeiferWatchBecause | "calving_overdue";
   /** For a cow: whole days since she calved. Nothing for a heifer. */
   daysSinceCalving: number | null;
   lastSignAt: Date | null;
@@ -545,6 +547,8 @@ export interface HeatWatchRow {
   ageMonths: number | null;
   ageEstimated: boolean;
   dueAtMonths: number | null;
+  /** For a calving overdue: the day she was expected to calve. */
+  expectedCalvingAt: Date | null;
 }
 
 /**
@@ -563,7 +567,7 @@ export const heatWatchOn = async (
   },
   now: Date
 ): Promise<HeatWatchRow[]> => {
-  const [cows, heifers] = await Promise.all([
+  const [cows, heifers, overdue] = await Promise.all([
     db.query.animal.findMany({
       where: {
         farmId: farm.id,
@@ -592,13 +596,36 @@ export const heatWatchOn = async (
     }),
     db.query.animal.findMany({
       where: { farmId: farm.id, sex: "female", side: "dairy", state: "heifer" },
-      columns: { id: true, tagNumber: true, state: true, birthDate: true },
+      columns: {
+        id: true,
+        tagNumber: true,
+        state: true,
+        birthDate: true,
+        expectedCalvingAt: true,
+      },
       with: {
         pen: { columns: { name: true } },
         breed: { columns: { deshi: true } },
         intake: { columns: { estimatedAgeMonths: true, arrivedAt: true } },
-        services: { columns: { id: true }, limit: 1 },
+        services: { columns: { id: true, servedAt: true } },
+        pregnancyChecks: { columns: { serviceId: true, checkedAt: true } },
+        observations: {
+          where: { saw: HEAT, withdrawnAt: { isNull: true } },
+          columns: { seenAt: true },
+        },
       },
+    }),
+    db.query.animal.findMany({
+      where: {
+        farmId: farm.id,
+        sex: "female",
+        side: "dairy",
+        expectedCalvingAt: {
+          lte: new Date(now.getTime() - CALVING_OVERDUE_DAYS * DAY_MS),
+        },
+      },
+      columns: { id: true, tagNumber: true, expectedCalvingAt: true },
+      with: { pen: { columns: { name: true } } },
     }),
   ]);
   const cowRows = cows
@@ -625,6 +652,7 @@ export const heatWatchOn = async (
               ageMonths: null,
               ageEstimated: false,
               dueAtMonths: null,
+              expectedCalvingAt: null,
             },
           ]
         : [];
@@ -640,6 +668,33 @@ export const heatWatchOn = async (
         { birthDate: her.birthDate, ageAtIntake: her.intake ?? null },
         now
       );
+      // Served on the farm, she is watched as an open cow is: back in heat after a service, or quiet since.
+      const asACow = heatWatchOf(
+        {
+          id: her.id,
+          state: her.state,
+          expectedCalvingAt: her.expectedCalvingAt,
+          lastCalvedAt: null,
+          heats: her.observations.map((one) => one.seenAt),
+          services: her.services,
+          checks: her.pregnancyChecks,
+        },
+        now,
+        farm.heatWatchAfterCalvingDays
+      );
+      if (asACow) {
+        return [
+          {
+            ...asACow,
+            tag: her.tagNumber,
+            penName: her.pen.name,
+            ageMonths: age?.months ?? null,
+            ageEstimated: age?.estimated ?? false,
+            dueAtMonths: null,
+            expectedCalvingAt: null,
+          },
+        ];
+      }
       const watched = heiferWatchOf(
         {
           state: her.state,
@@ -662,6 +717,7 @@ export const heatWatchOn = async (
               ageMonths: age?.months ?? null,
               ageEstimated: age?.estimated ?? false,
               dueAtMonths: watched.dueAtMonths,
+              expectedCalvingAt: null,
             },
           ]
         : [];
@@ -670,5 +726,32 @@ export const heatWatchOn = async (
       (a, b) =>
         (b.ageMonths ?? -1) - (a.ageMonths ?? -1) || a.tag.localeCompare(b.tag)
     );
-  return [...cowRows, ...heiferRows];
+  // Past her Expected Calving by three weeks and nothing recorded: the longest overdue first.
+  const overdueRows = overdue
+    .flatMap((her): HeatWatchRow[] => {
+      const late = calvingOverdueOf(her, now);
+      return late
+        ? [
+            {
+              animalId: her.id,
+              tag: her.tagNumber,
+              penName: her.pen.name,
+              because: late.because,
+              daysSinceCalving: null,
+              lastSignAt: null,
+              servedAt: null,
+              ageMonths: null,
+              ageEstimated: false,
+              dueAtMonths: null,
+              expectedCalvingAt: late.expectedCalvingAt,
+            },
+          ]
+        : [];
+    })
+    .toSorted(
+      (a, b) =>
+        (a.expectedCalvingAt?.getTime() ?? 0) -
+          (b.expectedCalvingAt?.getTime() ?? 0) || a.tag.localeCompare(b.tag)
+    );
+  return [...overdueRows, ...cowRows, ...heiferRows];
 };

@@ -14,6 +14,8 @@ import {
   isRepeatBreeder,
   SAME_HEAT_WITHIN_HOURS,
   sinceSheLastCalved,
+  calvingTooSoon,
+  calvingOverdueOf,
 } from "./breeding";
 import { startOfFarmDay } from "./farm-clock";
 
@@ -315,6 +317,29 @@ describe("the heat watch", () => {
     expect(heatWatchOf(servedOnce, day(95), 60)).toBeNull();
   });
 
+  it("watches a heifer once she has been served, as it watches a cow after calving", () => {
+    // Served on the farm, she is past the age for her first service: from then she is watched as any open cow is.
+    const heifer = cow({
+      state: "heifer",
+      lastCalvedAt: null,
+      services: [{ id: "h", servedAt: day(0) }],
+    });
+    expect(heatWatchOf(heifer, day(20), 60)).toMatchObject({
+      because: "return_due",
+      servedAt: day(0),
+      daysSinceCalving: null,
+    });
+    // Found empty at the check, and never seen in heat since: named, not lost.
+    const empty = {
+      ...heifer,
+      checks: [{ serviceId: "h", checkedAt: day(35) }],
+    };
+    expect(heatWatchOf(empty, day(60), 60)).toMatchObject({
+      because: "no_heat",
+      lastSignAt: day(0),
+    });
+  });
+
   it("takes her off once she came back into heat or was checked, and watches her again as open", () => {
     const back = cow({
       services: [{ id: "s", servedAt: day(70) }],
@@ -397,5 +422,68 @@ describe("the heifer not yet served", () => {
     expect(heiferWatchOf(heifer({ age: null }), farm)).toMatchObject({
       because: "age_unknown",
     });
+  });
+});
+
+/** The first moment of a day, as a test writes one. */
+const midnightOf = (on: string) => new Date(`${on}T00:00:00.000Z`);
+
+describe("a calving the farm could not have seen", () => {
+  it("is one too soon after her last: the same calving written twice, or twins written as two", () => {
+    expect(
+      calvingTooSoon({
+        at: midnightOf("2032-03-20"),
+        lastCalvedAt: midnightOf("2032-03-19"),
+        servedAt: null,
+      })
+    ).toBe("calved_lately");
+    // A year on is her next one.
+    expect(
+      calvingTooSoon({
+        at: midnightOf("2033-03-25"),
+        lastCalvedAt: midnightOf("2032-03-19"),
+        servedAt: null,
+      })
+    ).toBeNull();
+  });
+
+  it("is one before the service she is carrying from has had time to come to anything", () => {
+    // Served on 20 January, her calving typed as the 10th: before the service it would have to come from.
+    expect(
+      calvingTooSoon({
+        at: midnightOf("2032-01-10"),
+        lastCalvedAt: null,
+        servedAt: midnightOf("2032-01-20"),
+      })
+    ).toBe("calved_before_her_service");
+    expect(
+      calvingTooSoon({
+        at: midnightOf("2032-10-30"),
+        lastCalvedAt: null,
+        servedAt: midnightOf("2032-01-20"),
+      })
+    ).toBeNull();
+  });
+});
+
+describe("a calving the farm is still waiting for", () => {
+  const due = new Date("2031-06-01T00:00:00.000Z");
+  const day = (n: number) => new Date(due.getTime() + n * 24 * 3_600_000);
+  const carrying = { expectedCalvingAt: due };
+
+  it("is named three weeks past her date, with nothing recorded", () => {
+    expect(calvingOverdueOf(carrying, day(20))).toBeNull();
+    expect(calvingOverdueOf(carrying, day(21))).toEqual({
+      because: "calving_overdue",
+      expectedCalvingAt: due,
+      daysOverdue: 21,
+    });
+    expect(calvingOverdueOf(carrying, day(40))).toMatchObject({
+      daysOverdue: 40,
+    });
+  });
+
+  it("is nothing for a cow with no calving expected", () => {
+    expect(calvingOverdueOf({ expectedCalvingAt: null }, day(90))).toBeNull();
   });
 });

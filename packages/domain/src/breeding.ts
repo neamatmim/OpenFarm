@@ -292,6 +292,38 @@ export const CALVING_RECORDERS = ["owner", "manager", "staff"] as const;
  *  that never happened — still in milk. */
 export const MAY_CALVE_FROM = ["pregnant_heifer", "dry", "milking"] as const;
 
+/** The fewest days a cow carries a calf the farm records as calved: anything sooner is an Abortion, or a mistake. */
+export const SHORTEST_CARRYING_DAYS = 200;
+
+/** Why a calving cannot have happened when it is said to have. */
+export type CalvingTooSoon = "calved_lately" | "calved_before_her_service";
+
+/**
+ * Whether a calving is too soon to be one: under the fewest days a cow carries after her last calving — the same
+ * calving written twice, or twins written as two — or after the service she is carrying from, which takes a calving
+ * typed before the service with it. Nothing for one that could have happened. Pure.
+ */
+export const calvingTooSoon = ({
+  at,
+  lastCalvedAt,
+  servedAt,
+}: {
+  at: Date;
+  lastCalvedAt: Date | null;
+  /** The first service of the attempt she was found carrying from, where the farm served her. */
+  servedAt: Date | null;
+}): CalvingTooSoon | null => {
+  const carried = (from: Date) =>
+    at.getTime() - from.getTime() >= SHORTEST_CARRYING_DAYS * DAY_MS;
+  if (lastCalvedAt && !carried(lastCalvedAt)) {
+    return "calved_lately";
+  }
+  if (servedAt && !carried(servedAt)) {
+    return "calved_before_her_service";
+  }
+  return null;
+};
+
 /**
  * The work Expected Calving pulls towards it, each named for the Farm Parameter that says how long
  * before her Expected Calving: drying her off, and walking her to the calving pen. The days are the farm's,
@@ -337,8 +369,8 @@ export type HeatWatchBecause = "no_heat" | "return_due";
 export interface HeatWatched {
   animalId: string;
   because: HeatWatchBecause;
-  /** Whole days since she last calved. */
-  daysSinceCalving: number;
+  /** Whole days since she last calved; nothing for a heifer, who never has. */
+  daysSinceCalving: number | null;
   /** The last sign of heat since she calved — a Heat seen, or a service — or nothing. */
   lastSignAt: Date | null;
   /** The service she is due back from, for `return_due`. */
@@ -363,7 +395,8 @@ const latestOf = (moments: readonly Date[]): Date | null => {
 
 /**
  * Whether the farm expects a cow in heat that nobody has seen (the heat watch), and why. Only an open cow — in milk or
- * dry, not carrying — who has calved on the farm's record:
+ * dry, not carrying — who has calved on the farm's record, or a heifer the farm has served and is not carrying (a heifer
+ * never served is `heiferWatchOf`'s):
  * - **return due:** her latest attempt since calving is 18–24 days old, with no heat since and no Pregnancy Check yet;
  * - **no heat:** past the farm's days after calving (60: DLS re-examines a cow not in heat by 50–60 days), with no sign
  *   of heat in the last 24 days — a cycle and its slack — and no attempt waiting on its check.
@@ -383,15 +416,21 @@ export const heatWatchOf = (
   now: Date,
   afterCalvingDays: number
 ): HeatWatched | null => {
-  const open =
+  const openCow =
     (her.state === "milking" || her.state === "dry") &&
     her.expectedCalvingAt === null &&
     her.lastCalvedAt !== null;
-  if (!(open && her.lastCalvedAt)) {
+  // A heifer the farm has served is past her first-service age and is watched from then as an open cow is: back in
+  // heat after a service that did not hold, or quiet with no heat at all (CONTEXT.md, Heat; Abortion).
+  const servedHeifer =
+    her.state === "heifer" &&
+    her.expectedCalvingAt === null &&
+    her.services.length > 0;
+  if (!(openCow || servedHeifer)) {
     return null;
   }
   const calved = her.lastCalvedAt;
-  const since = (at: Date) => at > calved && at <= now;
+  const since = (at: Date) => (calved === null || at > calved) && at <= now;
   const heats = her.heats.filter(since);
   const served = attemptsThatBegin(
     her.services
@@ -403,7 +442,7 @@ export const heatWatchOf = (
     ...heats,
     ...(lastAttempt ? [lastAttempt.servedAt] : []),
   ]);
-  const daysSinceCalving = wholeDays(calved, now);
+  const daysSinceCalving = calved === null ? null : wholeDays(calved, now);
   const row = { animalId: her.id, daysSinceCalving, lastSignAt };
 
   if (lastAttempt) {
@@ -424,8 +463,41 @@ export const heatWatchOf = (
   }
   const quiet =
     lastSignAt === null || wholeDays(lastSignAt, now) > RETURN_HEAT_UNTIL_DAYS;
-  return daysSinceCalving >= afterCalvingDays && quiet
+  // A cow is given the farm's days after calving to come back into heat; a heifer has none to be given.
+  const pastHerDays =
+    daysSinceCalving === null || daysSinceCalving >= afterCalvingDays;
+  return pastHerDays && quiet
     ? { ...row, because: "no_heat", servedAt: null }
+    : null;
+};
+
+/** How far past her Expected Calving a cow is named with nothing recorded: three weeks, past the days either side of a
+ *  gestation's own length. */
+export const CALVING_OVERDUE_DAYS = 21;
+
+/**
+ * Whether the farm is still waiting for a calving it should have seen: three weeks past her Expected Calving and none
+ * recorded. Lost unseen, or never carrying from a date given at intake, she would otherwise go on reading as in calf —
+ * off the heat watch, off the cull list — for as long as nobody looked. Named for the Vet to look at her. Pure.
+ */
+export const calvingOverdueOf = (
+  her: { expectedCalvingAt: Date | null },
+  now: Date
+): {
+  because: "calving_overdue";
+  expectedCalvingAt: Date;
+  daysOverdue: number;
+} | null => {
+  if (her.expectedCalvingAt === null) {
+    return null;
+  }
+  const daysOverdue = wholeDays(her.expectedCalvingAt, now);
+  return daysOverdue >= CALVING_OVERDUE_DAYS
+    ? {
+        because: "calving_overdue",
+        expectedCalvingAt: her.expectedCalvingAt,
+        daysOverdue,
+      }
     : null;
 };
 

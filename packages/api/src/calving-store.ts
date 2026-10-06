@@ -3,8 +3,13 @@ import { eq } from "@OpenFarm/db/operators";
 import { calving } from "@OpenFarm/db/schema/breeding";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { animal } from "@OpenFarm/db/schema/herd";
-import type { CalfOutcome, CalfSex, CalvingEase } from "@OpenFarm/domain";
-import { STILLBIRTH, isExitState } from "@OpenFarm/domain";
+import type {
+  CalfOutcome,
+  CalfSex,
+  CalvingEase,
+  CalvingTooSoon,
+} from "@OpenFarm/domain";
+import { STILLBIRTH, calvingTooSoon, isExitState } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx, Trail } from "./audit";
@@ -175,6 +180,42 @@ const putRight = async (
   };
 };
 
+const CALVING_TOO_SOON_SAID: Record<CalvingTooSoon, string> = {
+  calved_lately:
+    "She calved too lately to calve again: this is the same calving written twice, or a twin of it",
+  calved_before_her_service:
+    "That is too soon after the service she is carrying from to be its calving",
+};
+
+/** A calving too soon after her last, or after the service she is carrying from, refused in its words: the same
+ *  calving written twice would make a second calf and a Lactation she never began (`calvingTooSoon`). */
+const refuseACalvingTooSoon = async (
+  tx: Tx,
+  dam: {
+    lactationStartedAt: Date | null;
+    expectedCalvingServiceId: string | null;
+  },
+  at: Date
+) => {
+  const carrying = dam.expectedCalvingServiceId
+    ? await tx.query.service.findFirst({
+        where: { id: dam.expectedCalvingServiceId },
+        columns: { servedAt: true },
+      })
+    : undefined;
+  const tooSoon = calvingTooSoon({
+    at,
+    lastCalvedAt: dam.lactationStartedAt,
+    servedAt: carrying?.servedAt ?? null,
+  });
+  if (tooSoon) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: CALVING_TOO_SOON_SAID[tooSoon],
+      data: { refusal: tooSoon },
+    });
+  }
+};
+
 /**
  * Records that she calved, and does what a calving does.
  *
@@ -230,6 +271,7 @@ export const recordCalving = async (
       state: true,
       penId: true,
       lactationNumber: true,
+      lactationStartedAt: true,
       expectedCalvingServiceId: true,
     },
   });
@@ -242,6 +284,7 @@ export const recordCalving = async (
       data: { refusal: "calving_of_a_male" },
     });
   }
+  await refuseACalvingTooSoon(tx, dam, entry.calved.at);
 
   const { at, ease, calves: calvesBorn } = entry.calved;
   const calvingId = uuidv7(entry.now);

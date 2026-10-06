@@ -60,5 +60,5 @@ Three reviewers each took one part of the dairy: milking and milk money, breedin
 | ----- | ------ | ------ |
 | A     | fix/milk-withdrawal | Done (a hold no dose of hers can trace stays shut; the gate's answer is kept as `milk_record.under_withdrawal`, migration 20261006061322, backfilled from `forced`) |
 | B     | fix/milk-money | Done (a Sale or Dispatch put right below its write-off is refused `owed_below_written_off`; the Dispatch Correction takes its time, fat, SNF and note) |
-| C     |        |        |
+| C     | fix/breeding-records | Done (a calving needs 200 days carried since her last or her service; a served heifer is watched as an open cow; three weeks past Expected Calving is on the heat watch; the standard AI leaves calves out, a farm's own older Version still raises it but the service is refused) |
 | D     |        |        |
