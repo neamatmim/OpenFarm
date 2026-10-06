@@ -176,6 +176,7 @@ const WORDED_REFUSALS = {
   draw_already_taken: "refusal.drawAlreadyTaken",
   outcome_said: "refusal.outcomeSaid",
   written_off_more_than_owed: "refusal.writtenOffMoreThanOwed",
+  owed_below_written_off: "refusal.owedBelowWrittenOff",
   nothing_owed_on_it: "refusal.nothingOwedOnIt",
   venture_owns_her: "refusal.ventureOwnsHer",
   not_a_ventures_animal: "refusal.notAVenturesAnimal",

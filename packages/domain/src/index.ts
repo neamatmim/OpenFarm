@@ -249,6 +249,7 @@ export {
   MILK_ACCOUNT_DAYS,
   MILK_USUAL_DAYS,
   milkAccountOf,
+  calvesDrankADay,
   milkDropOf,
 } from "./milk";
 export {

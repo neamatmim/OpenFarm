@@ -1686,6 +1686,8 @@ export const en = {
   "refusal.noSuchBuyer": "The farm has never sold to anybody by that name",
   "refusal.aBullCalfIsNoHeifer":
     "A bull calf does not stay as a heifer — choose his fattening pen",
+  "refusal.owedBelowWrittenOff":
+    "{currencySign}{writtenOffMoney} is written off on it: lower the write-off first, then put this right",
   "refusal.writtenOffMoreThanOwed":
     "Only {currencySign}{owingMoney} is still owed on it",
   "refusal.nothingOwedOnIt": "Nothing was ever owed on that",
@@ -3418,6 +3420,7 @@ export const en = {
   "dispatch.noneThatDay": "No milk handed over that day",
   "dispatch.day": "Day",
   "dispatch.litres": "litres",
+  "dispatch.whenLeft": "When it left",
   "dispatch.when": "When it left (empty: now)",
   "dispatch.litresField": "Litres",
   "dispatch.buyer": "Buyer",

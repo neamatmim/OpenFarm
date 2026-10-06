@@ -59,6 +59,6 @@ Three reviewers each took one part of the dairy: milking and milk money, breedin
 | Group | Branch | Status |
 | ----- | ------ | ------ |
 | A     | fix/milk-withdrawal | Done (a hold no dose of hers can trace stays shut; the gate's answer is kept as `milk_record.under_withdrawal`, migration 20261006061322, backfilled from `forced`) |
-| B     |        |        |
+| B     | fix/milk-money | Done (a Sale or Dispatch put right below its write-off is refused `owed_below_written_off`; the Dispatch Correction takes its time, fat, SNF and note) |
 | C     |        |        |
 | D     |        |        |

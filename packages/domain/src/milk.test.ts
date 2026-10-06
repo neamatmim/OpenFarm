@@ -7,6 +7,7 @@ import {
   lactationView,
   litresPerCowMilked,
   litresTo,
+  calvesDrankADay,
   milkAccountOf,
   milkDropOf,
   reconcile,
@@ -268,7 +269,8 @@ describe("the week's milk, accounted for", () => {
     );
     // Twenty litres short on each of the seven mornings in the week.
     expect(account.notAccounted).toBe(140);
-    expect(account.notAccountedPercent).toBe(9);
+    // 140 of 1,500 is 9.33%: past a 9% line, which a whole percent would round back onto and never tell.
+    expect(account.notAccountedPercent).toBe(9.33);
   });
 
   it("counts a day nobody collected as still in the tank", () => {
@@ -360,5 +362,27 @@ describe("litres to Bulk for each cow milked, a day", () => {
     expect(
       litresPerCowMilked([], { from: new Date(0), until: new Date(1) })
     ).toBeNull();
+  });
+});
+
+describe("what the calves drank a day", () => {
+  it("is read over the week's whole days, not spread over a morning not yet over", () => {
+    const startOfToday = new Date("2031-07-10T18:00:00.000Z");
+    const hour = 60 * 60 * 1000;
+    // Ten litres a feed, morning and evening, for nine days; today only the morning's.
+    const feeds = Array.from({ length: 9 }, (_, back) => back).flatMap(
+      (back) => {
+        const dayBegan = startOfToday.getTime() - (back + 1) * 24 * hour;
+        return [
+          { at: new Date(dayBegan + 6 * hour), toCalves: 10 },
+          { at: new Date(dayBegan + 17 * hour), toCalves: 10 },
+        ];
+      }
+    );
+    feeds.push({
+      at: new Date(startOfToday.getTime() + 6 * hour),
+      toCalves: 10,
+    });
+    expect(calvesDrankADay(feeds, startOfToday)).toBe(20);
   });
 });

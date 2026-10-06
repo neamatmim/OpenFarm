@@ -241,6 +241,25 @@ export const milkDropOf = (
 /** The days the milk into the tank is set against the milk out of the gate. A week. */
 export const MILK_ACCOUNT_DAYS = 7;
 
+/**
+ * What the calves drank a day: the milk fed them over the week's seven whole days before today, over seven. Today's is
+ * left out — read at breakfast, a morning's feed spread over a whole day would make the calves look as if they drank
+ * less than they do.
+ */
+export const calvesDrankADay = (
+  feeds: readonly { at: Date; toCalves: number }[],
+  startOfToday: Date
+): number => {
+  const from = startOfToday.getTime() - MILK_ACCOUNT_DAYS * DAY_MS;
+  let drank = 0;
+  for (const one of feeds) {
+    if (one.at.getTime() >= from && one.at < startOfToday) {
+      drank += one.toCalves;
+    }
+  }
+  return drank / MILK_ACCOUNT_DAYS;
+};
+
 /** The week's milk, as the farm can account for it: in, out, still in the tank, and what is left over. */
 export interface MilkAccount {
   /** What was in the tank when the week began: milked since the last Dispatch before it. */
@@ -315,8 +334,10 @@ export const milkAccountOf = (
     dispatched: roundLitres(dispatched),
     stillInTank: roundLitres(stillInTank),
     notAccounted: roundLitres(notAccounted),
+    // To the two decimals the farm keeps a percentage to: a whole percent rounds 3.4% back onto a 3% line, and the
+    // milk past it is never told.
     notAccountedPercent:
-      wentIn > 0 ? Math.round((notAccounted / wentIn) * 100) : 0,
+      wentIn > 0 ? roundPercent((notAccounted / wentIn) * 100) : 0,
   };
 };
 

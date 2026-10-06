@@ -101,6 +101,21 @@ describe("a cow giving less", () => {
     expect(listed.map((one) => one.tag)).not.toContain(cow.tag);
   });
 
+  it("reads her whole oldest day, its morning milking too", async () => {
+    // Four litres on the 1st, ten on the 2nd to the 7th, eight on the 8th and 9th. Her week is the 1st to the 7th: 64
+    // litres over seven mornings, 9.14 a morning, and eight is 12% under it — not a fifth. Leave the 1st's morning out
+    // and her week is ten, and eight reads as a fifth under.
+    const cow = await aCowInMilk(`কম পেন ঘ ${suffix}`);
+    await milkNineDays(cow, (day) => {
+      if (day === 1) {
+        return 4;
+      }
+      return day >= 8 ? 8 : 10;
+    });
+    const listed = await givingLessOn(NEXT_MORNING);
+    expect(listed.map((one) => one.tag)).not.toContain(cow.tag);
+  });
+
   it("counts milk thrown away under a Withdrawal as what she gave", async () => {
     const cow = await aCowInMilk(`কম পেন গ ${suffix}`);
     await milkNineDays(cow, (day) => (day >= 8 ? 6 : 10));

@@ -27,22 +27,29 @@ import {
   counterparty,
   day as promisedDay,
   figure,
+  moment,
   note,
+  optionalFigure,
 } from "@/lib/correcting";
 import { orpc } from "@/utils/orpc";
 
 import type { Dispatch, MilkDay } from "./milk-types";
 import { shiftDay, worthOf } from "./milk-types";
 
-/** The Manager puts a Dispatch right — litres, price, buyer, delivery note, what was paid then or the day promised — with the
- *  reason. */
+/** The Manager puts a Dispatch right — when it left, litres, price, buyer, delivery note, fat and SNF, its note, what was paid
+ *  then or the day promised — with the reason. */
 const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
   const { t } = useLanguage();
   const correcting = useCorrecting({
+    // A collection typed in after midnight is put back on the day the milk left.
+    dispatchedAt: moment(dispatch.dispatchedAt),
     litres: amount(dispatch.litres),
     pricePerLitreMoney: amount(dispatch.pricePerLitreMoney),
     buyer: counterparty(dispatch.buyerName),
     deliveryNote: note(dispatch.deliveryNote),
+    fatPercent: optionalFigure(dispatch.fatPercent ?? null),
+    snfPercent: optionalFigure(dispatch.snfPercent ?? null),
+    note: note(dispatch.note ?? null),
     // Left out of a day cached before Receivable was written down: paid in full, as every such Dispatch was.
     paidNowMoney: figure(
       paidAtTheGate(
@@ -66,6 +73,12 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
       ready={correcting.changed}
       title={t("correct.dispatch")}
     >
+      <CorrectionAnswer
+        label={t("dispatch.whenLeft")}
+        onChange={(value) => correcting.set("dispatchedAt", value)}
+        type="datetime-local"
+        value={correcting.typed.dispatchedAt ?? ""}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <CorrectionAnswer
           inputMode="decimal"
@@ -91,6 +104,27 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
         label={t("dispatch.deliveryNote")}
         onChange={(value) => correcting.set("deliveryNote", value)}
         value={correcting.typed.deliveryNote ?? ""}
+      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CorrectionAnswer
+          inputMode="decimal"
+          label={t("dispatch.fat")}
+          onChange={(value) => correcting.set("fatPercent", value)}
+          type="number"
+          value={correcting.typed.fatPercent ?? ""}
+        />
+        <CorrectionAnswer
+          inputMode="decimal"
+          label={t("dispatch.snf")}
+          onChange={(value) => correcting.set("snfPercent", value)}
+          type="number"
+          value={correcting.typed.snfPercent ?? ""}
+        />
+      </div>
+      <CorrectionAnswer
+        label={t("dispatch.note")}
+        onChange={(value) => correcting.set("note", value)}
+        value={correcting.typed.note ?? ""}
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <CorrectionAnswer

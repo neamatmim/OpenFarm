@@ -1566,6 +1566,8 @@ export const bn: Record<MessageKey, string> = {
   "refusal.noSuchBuyer": "এই নামে কারো কাছে খামার কখনো বিক্রি করেনি",
   "refusal.aBullCalfIsNoHeifer":
     "এঁড়ে বাছুর বকনা হিসেবে থাকে না — তার মোটাতাজাকরণ পেন বাছুন",
+  "refusal.owedBelowWrittenOff":
+    "এর ওপর {currencySign}{writtenOffMoney} বাকি বাদ দেওয়া আছে: আগে বাদ দেওয়াটা কমান, তারপর এটা ঠিক করুন",
   "refusal.writtenOffMoreThanOwed":
     "এর ওপর এখন বাকি মাত্র {currencySign}{owingMoney}",
   "refusal.nothingOwedOnIt": "এর ওপর কখনো কিছু বাকি ছিল না",
@@ -3194,6 +3196,7 @@ export const bn: Record<MessageKey, string> = {
   "dispatch.noneThatDay": "সেদিন কোনো দুধ দেওয়া হয়নি",
   "dispatch.day": "দিন",
   "dispatch.litres": "লিটার",
+  "dispatch.whenLeft": "কখন গেল",
   "dispatch.when": "কখন গেল (খালি রাখলে: এখন)",
   "dispatch.litresField": "লিটার",
   "dispatch.buyer": "ক্রেতা",

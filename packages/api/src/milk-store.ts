@@ -5,6 +5,9 @@ import { milkRecord, milkingSession } from "@OpenFarm/db/schema/milk";
 import type { MilkDestination, Reconciliation } from "@OpenFarm/domain";
 import {
   LITRE_DECIMALS,
+  addDays,
+  farmDayOf,
+  startOfFarmDay,
   destinationFor,
   reconcile,
   roundLitres,
@@ -249,8 +252,10 @@ export const milkDropsOn = async (
   },
   now: Date
 ) => {
-  const readFrom = new Date(
-    now.getTime() - (farm.milkDropDays + MILK_USUAL_DAYS) * DAY_MS_DROP
+  // From the start of her oldest farm day, its morning milking too: her days are counted as the farm counts them
+  // (milkDropOf), not as so many hours back from now.
+  const readFrom = startOfFarmDay(
+    addDays(farmDayOf(now), -(farm.milkDropDays + MILK_USUAL_DAYS))
   );
   const sessions = await db.query.milkingSession.findMany({
     where: { farmId: farm.id, dueAt: { gte: readFrom, lt: now } },
