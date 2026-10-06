@@ -15,6 +15,7 @@ import {
 } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { blockerSaid } from "@/lib/sop-blockers";
 
 import { StepsSection } from "./sop-steps";
 import { WhenSection } from "./sop-when";
@@ -259,7 +260,7 @@ export const SopEditor = ({
           <Notice title={t("sop.cannotPublish")} tone="warning">
             <ul className="list-disc pl-5">
               {blockers.map((blocker) => (
-                <li key={blocker}>{blocker}</li>
+                <li key={blocker}>{blockerSaid(blocker, t)}</li>
               ))}
             </ul>
           </Notice>

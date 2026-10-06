@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 
 import { Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
+import { ListInput } from "@/components/playbook/list-input";
 import { useT } from "@/i18n/language-provider";
 import type { HappeningTrigger } from "@/lib/sop-draft";
 import {
@@ -369,13 +370,13 @@ export const WhenSection = ({
           id="times"
           label={t("sop.times")}
         >
-          <Input
+          <ListInput
             id="times"
-            onChange={(e) =>
-              onChange(withScheduleTimes(content, splitList(e.target.value)))
+            onTyped={(typed) =>
+              onChange(withScheduleTimes(content, splitList(typed)))
             }
             placeholder={t("sop.timesHelp")}
-            value={scheduleTimes(content).join(", ")}
+            shown={scheduleTimes(content).join(", ")}
           />
         </FormField>
         <ScheduleDays content={content} onChange={onChange} />

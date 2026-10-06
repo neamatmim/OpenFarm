@@ -12,6 +12,7 @@ import { ArrowDown, ArrowUp, ListOrdered, Plus, Trash2 } from "lucide-react";
 
 import { EmptyState, Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
+import { ListInput } from "@/components/playbook/list-input";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import {
   emptyStep,
@@ -21,6 +22,7 @@ import {
   needsUnit,
   toBilingualList,
   toChoices,
+  withFirstEvidence,
   withEffect,
   withProduct,
 } from "@/lib/sop-draft";
@@ -58,7 +60,10 @@ const EvidenceFields = ({
           onChange={(e) =>
             onChange({
               ...step,
-              evidence: [{ ...evidence, type: e.target.value as EvidenceType }],
+              ...withFirstEvidence(step, {
+                ...evidence,
+                type: e.target.value as EvidenceType,
+              }),
             })
           }
           value={evidence.type}
@@ -77,22 +82,19 @@ const EvidenceFields = ({
           id={`${step.id}-choices`}
           label={t("sop.choices")}
         >
-          <Input
+          <ListInput
             id={`${step.id}-choices`}
-            onChange={(e) =>
-              onChange({
-                ...step,
-                evidence: [
-                  {
-                    ...evidence,
-                    type: "choice",
-                    choices: toChoices(e.target.value, evidence.choices),
-                  },
-                ],
-              })
+            onTyped={(typed) =>
+              onChange(
+                withFirstEvidence(step, {
+                  ...evidence,
+                  type: "choice",
+                  choices: toChoices(typed, evidence.choices),
+                })
+              )
             }
             placeholder={t("sop.choicesHelp")}
-            value={fromChoices(evidence.choices)}
+            shown={fromChoices(evidence.choices)}
           />
         </FormField>
       ) : null}
@@ -102,10 +104,12 @@ const EvidenceFields = ({
             <Input
               id={`${step.id}-unit`}
               onChange={(e) =>
-                onChange({
-                  ...step,
-                  evidence: [{ ...evidence, unit: { bn: e.target.value } }],
-                })
+                onChange(
+                  withFirstEvidence(step, {
+                    ...evidence,
+                    unit: { bn: e.target.value },
+                  })
+                )
               }
               value={evidence.unit?.bn ?? ""}
             />
@@ -114,10 +118,12 @@ const EvidenceFields = ({
             <Input
               id={`${step.id}-min`}
               onChange={(e) =>
-                onChange({
-                  ...step,
-                  evidence: [{ ...evidence, min: Number(e.target.value) }],
-                })
+                onChange(
+                  withFirstEvidence(step, {
+                    ...evidence,
+                    min: Number(e.target.value),
+                  })
+                )
               }
               type="number"
               value={evidence.min ?? 0}
@@ -127,10 +133,12 @@ const EvidenceFields = ({
             <Input
               id={`${step.id}-max`}
               onChange={(e) =>
-                onChange({
-                  ...step,
-                  evidence: [{ ...evidence, max: Number(e.target.value) }],
-                })
+                onChange(
+                  withFirstEvidence(step, {
+                    ...evidence,
+                    max: Number(e.target.value),
+                  })
+                )
               }
               type="number"
               value={evidence.max ?? 0}
@@ -320,19 +328,16 @@ const StepEditor = ({
             id={`${step.id}-skip`}
             label={t("sop.skipReasons")}
           >
-            <Input
+            <ListInput
               id={`${step.id}-skip`}
-              onChange={(e) =>
+              onTyped={(typed) =>
                 onChange({
                   ...step,
-                  skipReasons: toBilingualList(
-                    e.target.value,
-                    step.skipReasons
-                  ),
+                  skipReasons: toBilingualList(typed, step.skipReasons),
                 })
               }
               placeholder={t("sop.skipHelp")}
-              value={fromBilingualList(step.skipReasons)}
+              shown={fromBilingualList(step.skipReasons)}
             />
           </FormField>
         ) : null}

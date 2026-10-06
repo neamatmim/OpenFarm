@@ -393,6 +393,18 @@ export const splitList = (value: string): string[] =>
     .map((part) => part.trim())
     .filter(Boolean);
 
+/** Whether two lists as typed say the same: a comma just typed after the last, before the next is written, changes
+ *  nothing — so a box rebuilt from the list would swallow it, and one kept as typed does not. */
+export const sameList = (typed: string, shown: string): boolean =>
+  splitList(typed).join(",") === splitList(shown).join(",");
+
+/** A Step with its first Evidence put right and every other kept: the editor's unit, range and choices are the first
+ *  slot's, and a weigh-in's condition score after it is the Step's too. */
+export const withFirstEvidence = (step: Step, first: Evidence): Step => ({
+  ...step,
+  evidence: [first, ...step.evidence.slice(1)],
+});
+
 /**
  * Skip reasons, as the Owner types them: a comma-separated list in Bangla. A reason still in the list keeps what it
  * had — its English, and what it means to the farm — so rewording the others does not quietly stop "Animal not found"
@@ -413,17 +425,29 @@ export const fromBilingualList = (values: Bilingual[]): string =>
  * What may be chosen, as the Owner types it: a comma-separated list in Bangla. A new choice
  * takes its own label as its value, so the record keeps the word somebody actually chose.
  *
- * A choice already in the list keeps the value it had, whatever its label becomes. Records
- * point at values: rewriting them because somebody reworded the list would orphan every
- * Observation the farm has already made.
+ * A choice already in the list keeps the value it had. Records point at values: a choice still
+ * there by its words keeps its own, wherever it has moved to and whatever was taken out around it
+ * — matched by place, taking out "lame" handed the next choice its value, and a heat was then a
+ * lame sighting. Reworded where it stood, in a list as long as it was, it keeps its value too:
+ * rewriting records because somebody reworded the list would orphan every Observation already made.
  */
-export const toChoices = (value: string, existing: Choice[] = []): Choice[] =>
-  splitList(value).map((bn, index) => {
+export const toChoices = (value: string, existing: Choice[] = []): Choice[] => {
+  const labels = splitList(value);
+  const byLabel = new Map(existing.map((choice) => [choice.label.bn, choice]));
+  const stillThere = new Set(labels.filter((bn) => byLabel.has(bn)));
+  const reworded = labels.length === existing.length;
+  return labels.map((bn, index) => {
+    const same = byLabel.get(bn);
+    if (same) {
+      return same;
+    }
     const before = existing[index];
-    return before
-      ? { ...before, label: { ...before.label, bn } }
-      : { value: bn, label: { bn } };
+    if (reworded && before && !stillThere.has(before.label.bn)) {
+      return { ...before, label: { ...before.label, bn } };
+    }
+    return { value: bn, label: { bn } };
   });
+};
 
 export const fromChoices = (choices: Choice[] | undefined): string =>
   (choices ?? []).map((choice) => choice.label.bn).join(", ");
