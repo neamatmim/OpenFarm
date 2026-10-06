@@ -76,6 +76,9 @@ export const milkRecord = pgTable(
      *  chosen — so milk poured away under a gate reads apart from milk poured away by
      *  judgement. */
     forced: boolean("forced").notNull().default(false),
+    /** She was under a milk Withdrawal when she was milked, as the gate judged it: the milk is withheld milk whether
+     *  the phone sent it to Discard itself or the gate had to. What the production report shows apart. */
+    underWithdrawal: boolean("under_withdrawal").notNull().default(false),
     /** The lactation this milking belongs to, as it stood when recorded. */
     lactationNumber: integer("lactation_number"),
     recordedBy: text("recorded_by")

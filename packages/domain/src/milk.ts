@@ -32,6 +32,32 @@ export const underMilkWithdrawal = (
   animal.milkWithdrawalUntil !== null &&
   animal.milkWithdrawalUntil.getTime() > now.getTime();
 
+/** One dose's hold on her milk: when it was given, and when its days run out. */
+export interface MilkHold {
+  givenAt: Date;
+  until: Date;
+}
+
+/**
+ * Was her milk held at a moment already past — the milking a phone sends late, or one put right afterwards: inside her
+ * Withdrawal, and inside a hold that had begun by then. A dose given after the milking cannot reach back and pour away
+ * milk drawn before it. Where none of her doses is on the books to say when a hold began, the hold stands as written:
+ * a gate that cannot trace a hold keeps it shut.
+ */
+export const milkHeldAt = (
+  animal: { milkWithdrawalUntil: Date | null },
+  holds: readonly MilkHold[],
+  at: Date
+): boolean => {
+  if (!underMilkWithdrawal(animal, at)) {
+    return false;
+  }
+  if (holds.length === 0) {
+    return true;
+  }
+  return holds.some((hold) => hold.givenAt <= at && hold.until > at);
+};
+
 /**
  * The Destination a Milk Record actually gets. A cow under Withdrawal goes to Discard
  * whatever the phone asked for — the phone evaluates the gate from its last sync and may be

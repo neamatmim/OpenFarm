@@ -8,12 +8,13 @@ import {
   destinationFor,
   reconcile,
   roundLitres,
-  underMilkWithdrawal,
+  milkHeldAt,
   MILK_USUAL_DAYS,
   milkDropOf,
 } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
+import { milkHoldsOf } from "./health-store";
 
 /** Litres live in a numeric column and come back as a string; they are money-like, so they
  *  are converted at the edge rather than left to drift as floats in the middle. */
@@ -78,6 +79,28 @@ export const sumBulkLitres = async (
 };
 
 /**
+ * The Lactation a milking drawn at a moment belongs to: her current one, from the day it began; else the one her last
+ * recorded calving before it started — a phone that sends a milking only after she has calved again; else none the farm
+ * can name, rather than the wrong one.
+ */
+const lactationAt = async (
+  tx: Pick<Tx, "query">,
+  animalId: string,
+  her: { lactationNumber: number | null; lactationStartedAt: Date | null },
+  at: Date
+): Promise<number | null> => {
+  if (!her.lactationStartedAt || at >= her.lactationStartedAt) {
+    return her.lactationNumber;
+  }
+  const before = await tx.query.calving.findFirst({
+    where: { damId: animalId, calvedAt: { lte: at } },
+    columns: { lactationNumber: true },
+    orderBy: { calvedAt: "desc", id: "desc" },
+  });
+  return before?.lactationNumber ?? null;
+};
+
+/**
  * Writes the litres one cow gave. Keyed on the Step Completion, so replaying the entry — or
  * correcting it — replaces the record rather than adding a second one. The Destination is
  * re-decided here from the cow's Withdrawal: the phone's answer was worked out from its last
@@ -99,7 +122,11 @@ export const writeMilkRecord = async (
 ): Promise<{ destination: MilkDestination; forced: boolean }> => {
   const beast = await tx.query.animal.findFirst({
     where: { id: entry.animalId },
-    columns: { milkWithdrawalUntil: true, lactationNumber: true },
+    columns: {
+      milkWithdrawalUntil: true,
+      lactationNumber: true,
+      lactationStartedAt: true,
+    },
   });
   if (!beast) {
     throw new Error(`no animal ${entry.animalId}`);
@@ -111,9 +138,12 @@ export const writeMilkRecord = async (
   const gateAt = new Date(
     Math.min(entry.recordedAt.getTime(), entry.now.getTime())
   );
+  // And asked of the Withdrawal as it stood then: a dose given after the milking does not reach back.
+  const holds = await milkHoldsOf(tx, entry.farmId, entry.animalId);
+  const underWithdrawal = milkHeldAt(beast, holds, gateAt);
   const { destination, forced } = destinationFor(
     entry.requested,
-    underMilkWithdrawal(beast, gateAt)
+    underWithdrawal
   );
   const values = {
     farmId: entry.farmId,
@@ -122,7 +152,7 @@ export const writeMilkRecord = async (
     litres: asLitres(entry.litres),
     destination,
     forced,
-    lactationNumber: beast.lactationNumber,
+    underWithdrawal,
     recordedBy: entry.recordedBy,
     recordedAt: entry.recordedAt,
   };
@@ -132,7 +162,15 @@ export const writeMilkRecord = async (
       id: uuidv7(entry.now),
       completionId: entry.completionId,
       ...values,
+      lactationNumber: await lactationAt(
+        tx,
+        entry.animalId,
+        beast,
+        entry.recordedAt
+      ),
     })
+    // Put right, she keeps the Lactation she was first written in: a Correction changes her litres, not the milking
+    // she gave them at, and a cow who has calved since is in another Lactation now.
     .onConflictDoUpdate({ target: milkRecord.completionId, set: values });
   return { destination, forced };
 };

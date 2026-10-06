@@ -230,6 +230,7 @@ export type {
   MilkDestination,
   MilkAccount,
   MilkDrop,
+  MilkHold,
   Reconciliation,
 } from "./milk";
 export {
@@ -244,6 +245,7 @@ export {
   litresTo,
   roundLitres,
   underMilkWithdrawal,
+  milkHeldAt,
   MILK_ACCOUNT_DAYS,
   MILK_USUAL_DAYS,
   milkAccountOf,

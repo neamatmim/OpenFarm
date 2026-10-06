@@ -144,6 +144,8 @@ const setup = async () => {
     stepId: "milk",
     animalTag: held.tagNumber,
     evidence: [8],
+    // As the work screen sends it for a cow it shows locked: poured away, and nobody overruled.
+    destination: "discard",
   });
   await staff.client.work.completeStep({
     instanceId: work?.id ?? "",
