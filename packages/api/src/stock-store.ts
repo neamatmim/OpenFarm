@@ -22,10 +22,17 @@ import {
   shortfallOf,
   startOfFarmDay,
   stockLedger,
+  countedOverTheBook,
+  SMALLEST_FEED_AMOUNT,
   unitPriceOf,
 } from "@OpenFarm/domain";
-import type { ExpiryStanding, ExpiryWindow } from "@OpenFarm/domain/lots";
-import { runsLow, storeOfLots } from "@OpenFarm/domain/lots";
+import type {
+  ExpiryStanding,
+  ExpiryWindow,
+  LotHappening,
+  LotIn,
+} from "@OpenFarm/domain/lots";
+import { cameInAt, replayLots, runsLow } from "@OpenFarm/domain/lots";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -83,6 +90,9 @@ export interface StockLine {
 
 const MS_PER_SECOND = 1000;
 
+/** One delivery of feed as its Lot: what came, its bag's number and day. */
+type FeedLot = LotIn & { lotNumber: string | null };
+
 /**
  * Every movement in and out of the farm's store, by Feed Item: what came in, what each Feeding gave,
  * and what each Stock Count found. Feedings are read in the database, a line per item per session,
@@ -96,10 +106,14 @@ const everyMovement = async (
   const arrivals = await db.query.feedIn.findMany({
     where: { farmId },
     columns: {
+      id: true,
       feedItemId: true,
       quantity: true,
       priceMoney: true,
       receivedOn: true,
+      recordedAt: true,
+      lotNumber: true,
+      expiresOn: true,
     },
   });
   // A Feeding's lines are in each Feed Item's own unit; `givenKg` is the name the line was given
@@ -134,9 +148,11 @@ const everyMovement = async (
   for (const one of arrivals) {
     add(one.feedItemId, {
       kind: "in",
-      at: one.receivedOn,
+      // Written down on its own day, it came in by then — after a count that morning, not before it (`cameInAt`).
+      at: cameInAt(one.receivedOn, one.recordedAt),
       quantity: Number(one.quantity),
       priceMoney: one.priceMoney === null ? null : one.priceMoney,
+      lot: { id: one.id, lotNumber: one.lotNumber, expiresOn: one.expiresOn },
     });
   }
   for (const one of counts) {
@@ -266,7 +282,7 @@ export const stockOnHand = async (
   /** The moment and the farm's line its days of feed are read against; without it, no days are said. */
   reading?: DaysReading
 ): Promise<StockLine[]> => {
-  const [items, movements, arrivals] = await Promise.all([
+  const [items, movements] = await Promise.all([
     db.query.feedItem.findMany({
       where: { farmId },
       columns: {
@@ -281,37 +297,33 @@ export const stockOnHand = async (
       orderBy: { nameBn: "asc", id: "asc" },
     }),
     movementsByItem(db, farmId),
-    db.query.feedIn.findMany({
-      where: { farmId },
-      columns: {
-        id: true,
-        feedItemId: true,
-        quantity: true,
-        lotNumber: true,
-        expiresOn: true,
-        receivedOn: true,
-      },
-    }),
   ]);
   return items.map((item) => {
     const mine = movements.get(item.id) ?? [];
     const ledger = stockLedger(mine);
-    // Whatever is not on hand was used, whether fed or found short at a count, and it is taken from the
-    // deliveries in the order a careful storeman feeds them: first to expire, first out.
-    const delivered = arrivals.filter((one) => one.feedItemId === item.id);
-    const cameIn = delivered.reduce(
-      (sum, one) => sum + Number(one.quantity),
-      0
-    );
-    const store = storeOfLots(
-      delivered.map((one) => ({
-        id: one.id,
-        quantity: Number(one.quantity),
-        expiresOn: one.expiresOn,
-        cameInOn: one.receivedOn.toISOString(),
-        lotNumber: one.lotNumber,
-      })),
-      cameIn - Math.max(0, ledger.onHand),
+    // Each delivery's feed, replayed in the order things happened (`replayLots`): fed from the deliveries first to
+    // expire among those already in, a count taking what it did not find the same way.
+    const store = replayLots(
+      mine.flatMap((one): LotHappening<FeedLot>[] => {
+        if (one.kind === "in") {
+          return one.lot
+            ? [
+                {
+                  kind: "in",
+                  at: one.at,
+                  lot: {
+                    ...one.lot,
+                    quantity: one.quantity,
+                    cameInOn: one.at.toISOString(),
+                  },
+                },
+              ]
+            : [];
+        }
+        return one.kind === "out"
+          ? [{ kind: "out", at: one.at, quantity: one.quantity }]
+          : [{ kind: "counted", at: one.at, counted: one.counted }];
+      }),
       window
     );
     const lastIn = mine
@@ -572,7 +584,7 @@ export const recordStockCount = async (
       counted,
       expected,
       priceMoney: averagePriceMoney,
-      difference: roundKg(counted - expected),
+      difference: countedOverTheBook(counted, expected),
       reason: line.reason?.trim() || null,
     };
   });
@@ -640,9 +652,10 @@ const countRowsOf = (
   which: { feedItemId?: string; from?: Date; to?: Date; limit?: number }
 ) =>
   db.query.stockCount.findMany({
+    // Every count's lines, whether or not they differed when made: one that matched is short once a delivery dated
+    // before it is written down after it, and was once dropped from the adjustments and the shortfall for good.
     where: {
       farmId,
-      reason: { isNotNull: true },
       ...(which.feedItemId ? { feedItemId: which.feedItemId } : {}),
       ...(which.from && which.to
         ? { countedAt: { gte: which.from, lt: which.to } }
@@ -689,7 +702,7 @@ const readTheCounts = async (
       row.countedAt
     );
     const counted = Number(row.counted);
-    const difference = roundKg(counted - expected);
+    const difference = countedOverTheBook(counted, expected);
     out.push({
       id: row.id,
       feedItemId: row.feedItemId,
@@ -725,7 +738,9 @@ export const adjustmentsOf = async (
   feedItemId?: string
 ) => {
   const rows = await countRowsOf(db, farmId, { feedItemId, limit: 200 });
-  return rows.length === 0 ? [] : readTheCounts(db, farmId, rows);
+  const read = rows.length === 0 ? [] : await readTheCounts(db, farmId, rows);
+  // What differs as it reads now: a count that matched, and still does, books nothing.
+  return read.filter((one) => one.difference !== 0);
 };
 
 /**
@@ -758,7 +773,10 @@ export const sellerInput = z.object({
 });
 
 /** A tenth of the Feed Item's unit is the smallest amount the store keeps. */
-export const quantityInput = z.number().min(0.1).max(1_000_000);
+export const quantityInput = z
+  .number()
+  .min(SMALLEST_FEED_AMOUNT)
+  .max(1_000_000);
 
 export const feedPriceInput = z.number().positive().max(100_000_000);
 

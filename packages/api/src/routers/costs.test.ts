@@ -1,4 +1,5 @@
 import { and, eq, inArray } from "@OpenFarm/db/operators";
+import { feedItem } from "@OpenFarm/db/schema/feed";
 import { animal, penAssignment } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
@@ -477,11 +478,12 @@ afterAll(async () => {
       .delete(penAssignment)
       .where(eq(penAssignment.id, `pa-costs-${pen.id}`));
   }
-  const manager = await as("manager", "2039-02-01T04:00:00.000Z");
-  for (const item of [world.concentrate, world.grass]) {
-    // oxlint-disable-next-line no-await-in-loop
-    await manager.client.feed.items.retire({ id: item.id });
-  }
+  // Retired where they stand, as the procedures are: this file's Pens are still on Rations that feed them, which
+  // the farm refuses to retire a feed under, and only the cleaning-up is wanted.
+  await db
+    .update(feedItem)
+    .set({ retiredAt: new Date() })
+    .where(inArray(feedItem.id, [world.concentrate.id, world.grass.id]));
 });
 
 describe("what an animal costs, and what a litre costs", () => {

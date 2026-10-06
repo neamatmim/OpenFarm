@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  cameInAt,
   expiryStanding,
   expiryWindow,
   leftOfEachLot,
@@ -150,5 +151,18 @@ describe("a store running low", () => {
   it("is never low when nobody watches it, or when it is retired", () => {
     expect(runsLow({ onHand: 0, level: null, retired: false })).toBe(false);
     expect(runsLow({ onHand: 0, level: 10, retired: true })).toBe(false);
+  });
+});
+
+describe("when a delivery came in", () => {
+  const friday = new Date("2036-01-04T18:00:00.000Z");
+  it("is the moment it was written down, written down on its own day", () => {
+    const fourPm = new Date("2036-01-05T10:00:00.000Z");
+    expect(cameInAt(friday, fourPm)).toEqual(fourPm);
+  });
+  it("is its day's start, written down another day", () => {
+    expect(cameInAt(friday, new Date("2036-01-06T10:00:00.000Z"))).toEqual(
+      friday
+    );
   });
 });

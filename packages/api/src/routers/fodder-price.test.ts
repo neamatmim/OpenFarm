@@ -163,13 +163,14 @@ describe("the Fodder Price", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("changes what is cut afterwards, and never what was cut before", async () => {
+  it("prices a cut that had no price when the price is first set, and changes nothing priced before", async () => {
     const owner = await as("owner", "2042-03-15T04:00:00.000Z");
     const item = await owner.client.feed.items.create({
       name: { bn: `খড় ${suffix}` },
     });
     const manager = await as("manager", "2042-03-15T04:00:00.000Z");
-    // Cut before the farm put a price on it: worth nothing, and it stays worth nothing.
+    // Cut before the farm put a price on it: it takes the first price set (the Owner, 2026-10-06), or a Pen fed from it
+    // stays unpriced, and a Venture fed from it can never settle.
     await harvest(manager, item.id, 100, "2042-03-15");
     await owner.client.feed.items.setFodderPrice({
       feedItemId: item.id,
@@ -178,10 +179,19 @@ describe("the Fodder Price", () => {
     const later = await as("manager", "2042-03-16T04:00:00.000Z");
     await harvest(later, item.id, 100, "2042-03-16");
     const store = await manager.client.stock.onHand();
-    // Two hundred kilos: a hundred at nothing and a hundred at six, so three taka a kilo.
+    // Two hundred kilos, both at six.
     expect(store.find((one) => one.feedItemId === item.id)).toMatchObject({
       onHand: 200,
-      averagePriceMoney: 3,
+      averagePriceMoney: 6,
+    });
+    // Changed afterwards, it reaches only what is cut from then on.
+    await owner.client.feed.items.setFodderPrice({
+      feedItemId: item.id,
+      fodderPriceMoney: 9,
+    });
+    const after = await manager.client.stock.onHand();
+    expect(after.find((one) => one.feedItemId === item.id)).toMatchObject({
+      averagePriceMoney: 6,
     });
   });
 });

@@ -1,7 +1,13 @@
-import { FEED_PACK_WORDS, feedUnitEach, feedUnitWord } from "@OpenFarm/domain";
+import {
+  FEED_IN_SHOWN,
+  FEED_PACK_WORDS,
+  SMALLEST_FEED_AMOUNT,
+  feedUnitEach,
+  feedUnitWord,
+} from "@OpenFarm/domain";
 import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { ClipboardList, Truck } from "lucide-react";
 import { useState } from "react";
 
@@ -36,9 +42,10 @@ const HISTORY_PAGE = 20;
 /** Feed that came in written up wrong: how much, what it cost, or the day — with the reason. */
 const ArrivalCorrection = ({ arrival }: { arrival: Arrival }) => {
   const { t, language } = useLanguage();
+  // As the farm takes them: a tenth of the unit at least, and a price above nothing.
   const correcting = useCorrecting({
-    quantity: amountArrived(arrival.quantity),
-    priceMoney: figure(arrival.priceMoney),
+    quantity: figure(arrival.quantity, SMALLEST_FEED_AMOUNT),
+    priceMoney: amountArrived(arrival.priceMoney),
     receivedOn: day(arrival.receivedOn),
   });
   const correct = useMutation(orpc.stock.correct.mutationOptions({}));
@@ -381,7 +388,15 @@ export const ArrivalsTab = ({
   const { t } = useLanguage();
   const [itemId, setItemId] = useState("");
   const [kind, setKind] = useState<KindFilter>("");
-  const shown = arrivals.filter(
+  // One feed's arrivals asked of the farm, not picked out of the newest across every feed: daily cuts of napier
+  // pushed a month-old concentrate lorry out of those.
+  const ofOneFeed = useQuery({
+    ...orpc.stock.feedIn.queryOptions({ input: { feedItemId: itemId } }),
+    enabled: itemId !== "",
+  });
+  const read = itemId === "" ? arrivals : (ofOneFeed.data ?? []);
+  const olderNotShown = read.length >= FEED_IN_SHOWN;
+  const shown = read.filter(
     (one) =>
       (itemId === "" || one.feedItemId === itemId) &&
       (kind === "" || kind === one.kind)
@@ -423,6 +438,18 @@ export const ArrivalsTab = ({
             table={table}
           />
         )}
+        {olderNotShown ? (
+          <p className="text-muted-foreground text-xs">
+            {t(
+              itemId === ""
+                ? "stock.olderNotShown"
+                : "stock.olderOfOneNotShown",
+              {
+                count: FEED_IN_SHOWN,
+              }
+            )}
+          </p>
+        ) : null}
       </div>
     </div>
   );

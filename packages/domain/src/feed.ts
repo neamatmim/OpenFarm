@@ -264,7 +264,12 @@ export interface FeedingLine {
   feedItemId: string;
   targetKg: number;
   givenKg: number;
+  /** What was left of this Feeding — found in the trough at the next feed, and written there. */
   leftoverKg: number;
+  /** What was found in the trough when this feed went in: the feeding before's Leftover, as this entry said it.
+   *  Missing from a Feeding written before the Leftover was the last feed's (2026-10-06), whose `leftoverKg` is what
+   *  its own entry said. */
+  foundKg?: number;
 }
 
 /**
@@ -360,6 +365,8 @@ export type StockMovement =
       quantity: number;
       /** What the lot cost; null for a Harvest from the farm's own fields. */
       priceMoney: number | null;
+      /** The delivery it was, and what its bag says, for reading what is left of each. */
+      lot?: { id: string; lotNumber: string | null; expiresOn: string | null };
     }
   | { kind: "out"; at: Date; quantity: number }
   /** A Stock Count: what was really there. It wins over whatever the store was thought to hold. The Step it was
@@ -446,6 +453,14 @@ export const stockLedger = (
     averagePriceMoney: price === null ? null : roundMoney(price),
   };
 };
+
+/**
+ * What a count found over the book: what it counted, less what the store was thought to hold — and a store thought to
+ * hold less than nothing held nothing. Feed fed from a delivery nobody wrote down left the book below nothing, and a
+ * count of an empty store then asked why it had found more, and booked feed found that never was.
+ */
+export const countedOverTheBook = (counted: number, book: number): number =>
+  roundKg(counted - Math.max(0, book));
 
 /**
  * What a Stock Count's differences come to in taka: each at the store's average price when it was counted, which is
@@ -742,3 +757,13 @@ export const lastFellBelow = (
   }
   return onHand < level ? fell : null;
 };
+
+/** How many arrivals the feed history reads at once, newest first: the screen says when there are older ones. */
+export const FEED_IN_SHOWN = 200;
+
+/** The least the store keeps of anything: a tenth of the feed's own unit. The screens and the farm read the one figure,
+ *  so a box the screen takes is never one the farm refuses in English. */
+export const SMALLEST_FEED_AMOUNT = 0.1;
+
+/** The most one bag may weigh, in kilos: a sack of bran is fifty. */
+export const MAX_BAG_KG = 200;

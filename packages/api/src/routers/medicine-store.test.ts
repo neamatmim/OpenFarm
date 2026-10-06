@@ -203,6 +203,27 @@ describe("the medicine on the shelf", () => {
   });
 });
 
+describe("a box bought on a count's day", () => {
+  it("is kept when it came after the morning's count", async () => {
+    const product = await aProduct("বিকেলের বাক্স");
+    await buy(product, "2086-07-20", 10);
+    await count("2086-08-02", {});
+    // Four in the afternoon on the count's day: ten more.
+    const manager = await as("manager", "2086-08-02T10:00:00.000Z");
+    await manager.client.drugs.purchase({
+      drugProductId: product,
+      quantity: "১০ ডোজ",
+      doses: 10,
+      priceMoney: 1000,
+      seller: { name: `ওষুধের দোকান ${suffix}` },
+      purchasedOn: "2086-08-02",
+      paymentMethod: "cash",
+    });
+    const stock = await stockOf(product, "2086-08-02T11:00:00.000Z");
+    expect(stock?.onHand).toBe(20);
+  });
+});
+
 describe("a Medicine Purchase put right", () => {
   it("puts the store, and the money it paid, right with it", async () => {
     const product = await aProduct("ভুল লেখা");

@@ -358,6 +358,10 @@ export {
   scaleShortOf,
   sellersOnTheScale,
   shortfallOf,
+  MAX_BAG_KG,
+  SMALLEST_FEED_AMOUNT,
+  FEED_IN_SHOWN,
+  countedOverTheBook,
   stockLedger,
   unitPriceOf,
 } from "./feed";

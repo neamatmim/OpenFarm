@@ -33,6 +33,7 @@ import {
 } from "@/components/page-kit";
 import { useRetireConfirm } from "@/components/retire-confirm";
 import { useLanguage } from "@/i18n/language-provider";
+import { bagSizeTakes } from "@/lib/feed-figures";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -209,7 +210,7 @@ const BagSizeDialog = ({
       }}
       open={item !== null}
       pending={setBagSize.isPending}
-      ready={item !== null}
+      ready={item !== null && bagSizeTakes(typed)}
       submitLabel={t("common.save")}
       title={item ? `${t("feed.setBagSize")} — ${item.nameBn}` : ""}
     >

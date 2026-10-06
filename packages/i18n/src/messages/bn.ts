@@ -1585,6 +1585,8 @@ export const bn: Record<MessageKey, string> = {
     "পশুচিকিৎসক এই ওষুধের আটকে রাখার দিন লেখেননি, তাই এটি এখনো দেওয়া যাবে না",
   "refusal.observationCorrected":
     "এই তালিকা খোলার পর ঘটনাটি সংশোধন হয়েছে। তার জায়গার ঘটনাটির উত্তর দিন",
+  "refusal.feedOnARation":
+    "একটি পেন যে রেশনে আছে তাতে এটি এখনো খাওয়ানো হয় ({ration})। আগে সেই রেশন বদলান",
   "refusal.phoneRevoked":
     "এই ফোন আর খামারের নয়। আবার যুক্ত করতে ম্যানেজারের কাছে কোড চান",
   "refusal.tooManyPins":
@@ -2951,6 +2953,7 @@ export const bn: Record<MessageKey, string> = {
   "feed.addItem": "উপাদান যোগ করুন",
   "feed.retire": "বাদ দিন",
   "feed.atMostADay": "দিনে {kg}-এর বেশি নয়",
+  "feed.retiredLine": "এই খাবার বাদ দেওয়া হয়েছে: রেশন রাখতে এই ঘরটি খালি করুন",
   "feed.retired": "বাদ দেওয়া",
   "feed.restore": "ফিরিয়ে আনুন",
   "feed.rename": "নাম বদলান",
@@ -3114,6 +3117,12 @@ export const bn: Record<MessageKey, string> = {
   "stock.levelSaved": "সীমা সংরক্ষিত",
   "stock.allItems": "সব উপাদান",
   "stock.filterItem": "উপাদান দিয়ে ছাঁকুন",
+  "stock.olderNotShown":
+    "শুধু নতুন {count}টি দেখানো হচ্ছে। পুরোনোগুলো দেখতে একটি খাবার বেছে নিন",
+  "stock.olderOfOneNotShown": "এই খাবারের শুধু নতুন {count}টি দেখানো হচ্ছে",
+  "stock.noPriceYet": "এখনো দাম নেই",
+  "stock.harvestUnpriced":
+    "এই খাবারের নিজের ফসলের দাম এখনো ঠিক হয়নি। কাটা খাবারটি রাখা হবে, মালিক দাম ঠিক করলে তার দাম ধরা হবে",
   "stock.noArrivals": "এখনো কিছু আসেনি",
   "stock.noCounts": "এখনো গণনা হয়নি",
   "stock.noStock": "গুদামে কিছু নেই — আগে খাদ্য উপাদান যোগ করুন",
@@ -4049,7 +4058,7 @@ export const bn: Record<MessageKey, string> = {
   "work.skipWhy": "কেন বাদ?",
   "work.noRation": "এই পেনের রেশন এই ফোনে নেই — সংযোগ পেলে খুলুন",
   "work.given": "যা দেওয়া হলো (কেজি)",
-  "work.leftover": "যা পড়ে ছিল (কেজি)",
+  "work.leftover": "আগের বেলার যা পড়ে ছিল (কেজি)",
   "work.shortFed": "রেশনের চেয়ে {percent}% কম",
   "work.back": "ফিরে যান",
   "work.confirm": "হয়ে গেছে",

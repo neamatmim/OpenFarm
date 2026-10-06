@@ -92,8 +92,10 @@ const useStoreFigures = (
   const short = shortOf(lines, fed);
   const worth = live.reduce((sum, line) => sum + (valueOf(line) ?? 0), 0);
   const month = farmDayOf(new Date()).slice(0, 7);
+  // Bought, not cut: a Harvest carries what its fodder is worth, which nobody paid.
   const bought = arrivals.filter(
     (one) =>
+      one.kind === "purchase" &&
       one.priceMoney !== null &&
       farmDayOf(new Date(one.receivedOn)).slice(0, 7) === month
   );

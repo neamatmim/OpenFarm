@@ -1,12 +1,16 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, ne } from "@OpenFarm/db/operators";
+import { and, eq, isNull, ne, sql } from "@OpenFarm/db/operators";
 import {
   FEED_UNITS,
+  feedIn,
   feedItem,
   penRation,
+  penRationSpell,
   ration,
 } from "@OpenFarm/db/schema/feed";
 import {
+  MAX_BAG_KG,
+  SMALLEST_FEED_AMOUNT,
   STANDARD_FEED_ITEMS,
   findBandProblems,
   findExpectedGainProblems,
@@ -48,7 +52,7 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const LEFTOVER_PERIODS = [7, 14, 30] as const;
 
 /** What one bag of a feed weighs, in kilos: a sack of bran is fifty, a bag of mineral mixture five. */
-const bagSizeInput = z.number().positive().max(200);
+const bagSizeInput = z.number().positive().max(MAX_BAG_KG);
 
 /** A bag is a weight in kilos, so only feed counted in kilos is bought by it. */
 const refuseBagOfNonKilos = (unit: string, bagSizeKg: number | undefined) => {
@@ -144,6 +148,28 @@ const FEED_ITEMS = {
     message: "The farm already has a feed by that name",
   },
 } satisfies FarmList & Parameters<typeof assertNameFree>[2];
+
+/** The names of the Rations a Pen is on whose Version now gives this feed. */
+const rationsStillFeeding = async (
+  tx: Tx,
+  farmId: string,
+  feedItemId: string
+) => {
+  const rations = await tx.query.ration.findMany({
+    where: { farmId },
+    columns: { nameBn: true },
+    with: { currentVersion: true, pens: { columns: { penId: true } } },
+  });
+  return rations
+    .filter(
+      (one) =>
+        one.pens.length > 0 &&
+        linesOf(one.currentVersion?.items).some(
+          (line) => line.feedItemId === feedItemId
+        )
+    )
+    .map((one) => one.nameBn);
+};
 
 export const feedRouter = {
   /** The Feed Items the store holds and the farm feeds. */
@@ -251,7 +277,27 @@ export const feedRouter = {
       .use(requireRole("owner", "manager"))
       .input(z.object({ id: z.string() }))
       .handler(async ({ context, input }) => {
-        await retireFromList(context, FEED_ITEMS, input.id);
+        await retireFromList(context, FEED_ITEMS, input.id, {
+          // Not while a Pen is still fed it: it would go on being fed, but could no longer be counted, bought or
+          // warned of running low, and its store would drift out of sight. The Ration is changed first.
+          refuseWhile: async (tx) => {
+            const feeding = await rationsStillFeeding(
+              tx,
+              context.farm.id,
+              input.id
+            );
+            if (feeding.length > 0) {
+              throw new ORPCError("BAD_REQUEST", {
+                message:
+                  "A Ration a Pen is on still feeds it; change the Ration first",
+                data: {
+                  refusal: "feed_on_a_ration",
+                  ration: feeding.join(", "),
+                },
+              });
+            }
+          },
+        });
         return { id: input.id };
       }),
 
@@ -343,11 +389,28 @@ export const feedRouter = {
             },
             after: { nameBn: existing.nameBn, fodderPriceMoney },
           },
-          (tx) =>
-            tx
+          async (tx) => {
+            await tx
               .update(feedItem)
               .set({ fodderPriceMoney })
-              .where(eq(feedItem.id, existing.id))
+              .where(eq(feedItem.id, existing.id));
+            // The cuts made before the farm said what its fodder is worth take this price: none could be priced,
+            // a Correction may not type one on a Harvest, and a Venture fed from them could never settle.
+            if (fodderPriceMoney !== null) {
+              await tx
+                .update(feedIn)
+                .set({
+                  priceMoney: sql`round(${feedIn.quantity} * ${fodderPriceMoney}, 2)`,
+                })
+                .where(
+                  and(
+                    eq(feedIn.feedItemId, existing.id),
+                    eq(feedIn.kind, "harvest"),
+                    isNull(feedIn.priceMoney)
+                  )
+                );
+            }
+          }
         );
         return { fodderPriceMoney: input.fodderPriceMoney };
       }),
@@ -362,7 +425,11 @@ export const feedRouter = {
       .input(
         z.object({
           feedItemId: z.string(),
-          threshold: z.number().min(0.1).max(10_000_000).nullable(),
+          threshold: z
+            .number()
+            .min(SMALLEST_FEED_AMOUNT)
+            .max(10_000_000)
+            .nullable(),
         })
       )
       .handler(async ({ context, input }) => {
@@ -579,6 +646,30 @@ export const feedRouter = {
                 message:
                   "That ration is retired: restore it to feed a Pen on it",
                 data: { refusal: "ration_retired" },
+              });
+            }
+            // The Pen's Ration history: the spell it was on ends now, and one on this Ration begins — unless it is on it
+            // already, when nothing changes.
+            const was = await tx.query.penRation.findFirst({
+              where: { penId: input.penId },
+              columns: { rationId: true },
+            });
+            if (was?.rationId !== input.rationId) {
+              await tx
+                .update(penRationSpell)
+                .set({ until: now })
+                .where(
+                  and(
+                    eq(penRationSpell.penId, input.penId),
+                    isNull(penRationSpell.until)
+                  )
+                );
+              await tx.insert(penRationSpell).values({
+                id: uuidv7(now),
+                farmId: context.farm.id,
+                penId: input.penId,
+                rationId: input.rationId,
+                from: now,
               });
             }
             await tx

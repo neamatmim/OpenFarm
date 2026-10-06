@@ -168,6 +168,7 @@ describe("feeding a Pen", () => {
         targetKg: 6,
         givenKg: 6,
         leftoverKg: 0,
+        foundKg: 0,
       },
     ]);
   });
@@ -182,13 +183,32 @@ describe("feeding a Pen", () => {
     expect(board.fed?.flaggedAt).not.toBeNull();
   });
 
-  it("counts what was left in the trough against what was eaten", async () => {
+  it("counts what was left in the trough against the feed it was left of", async () => {
     const clock = new FakeClock("2027-08-04T02:00:00.000Z");
-    const { owner, instance } = await fedWith(clock, 6, 3);
+    const { owner, instance } = await fedWith(clock, 6);
+    // At the evening feed, half the morning's was still in the trough: the Pen is off its feed, which is exactly what
+    // the Manager needs to hear — of the morning's meal, which is the one it left.
+    const evening = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2027-08-04T11:30:00.000Z"),
+    });
+    await evening.client.work.ensureDue();
+    const rounds = await evening.client.work.today({ penId: world.pen.id });
+    const second = rounds.find(
+      (row) =>
+        row.definitionId === world.sop.definitionId && row.state === "due"
+    );
+    await evening.client.work.claim({ id: second?.id ?? "" });
+    await evening.client.work.completeStep({
+      instanceId: second?.id ?? "",
+      stepId: "feed",
+      evidence: [true],
+      feeding: [
+        { feedItemId: world.concentrate.id, givenKg: 6, leftoverKg: 3 },
+      ],
+    });
 
     const board = await owner.client.work.get({ id: instance.id });
-    // Everything was put out, and half of it came back: the Pen is off its feed, which is
-    // exactly what the Manager needs to hear.
     expect(board.fed?.shortfallPercent).toBe(50);
     expect(board.fed?.flaggedAt).not.toBeNull();
   });
@@ -232,6 +252,7 @@ describe("feeding a Pen", () => {
         targetKg: 6,
         givenKg: 6,
         leftoverKg: 0,
+        foundKg: 0,
       },
     ]);
   });
@@ -273,6 +294,7 @@ describe("feeding a Pen", () => {
         targetKg: 6,
         givenKg: 6,
         leftoverKg: 0,
+        foundKg: 0,
       },
     ]);
     // And the flag the first entry raised is gone, because the meal is no longer short.
@@ -319,6 +341,7 @@ describe("feeding a Pen", () => {
         targetKg: 6,
         givenKg: 3,
         leftoverKg: 0,
+        foundKg: 0,
       },
     ]);
 

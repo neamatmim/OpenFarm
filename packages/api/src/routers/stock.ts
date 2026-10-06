@@ -1,7 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { FEED_IN_KINDS, FEED_PACKS, feedIn } from "@OpenFarm/db/schema/feed";
 import type { FeedPack, FeedUnit } from "@OpenFarm/domain";
-import { maundsOf, quantityOfPacks } from "@OpenFarm/domain";
+import { FEED_IN_SHOWN, maundsOf, quantityOfPacks } from "@OpenFarm/domain";
 import { expiryStanding, expiryWindow } from "@OpenFarm/domain/lots";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -130,7 +130,7 @@ export const stockRouter = {
           seller: { columns: { name: true } },
         },
         orderBy: { receivedOn: "desc", id: "desc" },
-        limit: 200,
+        limit: FEED_IN_SHOWN,
       });
       const window = expiryWindow(
         context.clock.now(),

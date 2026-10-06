@@ -1706,6 +1706,8 @@ export const en = {
     "The vet has written no withdrawal days for this medicine, so it cannot be given yet",
   "refusal.observationCorrected":
     "That sighting was corrected since this list was opened. Answer the one in its place",
+  "refusal.feedOnARation":
+    "A ration a pen is on still feeds it ({ration}). Change that ration first",
   "refusal.phoneRevoked":
     "This phone is no longer one of the farm's. Ask the manager for a code to enrol it again",
   "refusal.tooManyPins":
@@ -3152,6 +3154,7 @@ export const en = {
   "feed.addItem": "Add a feed",
   "feed.retire": "Retire",
   "feed.atMostADay": "No more than {kg} a day",
+  "feed.retiredLine": "This feed is retired: empty its line to save the ration",
   "feed.retired": "Retired",
   "feed.restore": "Restore",
   "feed.rename": "Rename",
@@ -3326,6 +3329,12 @@ export const en = {
   "stock.levelSaved": "Level saved",
   "stock.allItems": "All feed items",
   "stock.filterItem": "Filter by feed item",
+  "stock.olderNotShown":
+    "Only the newest {count} are shown. Choose a feed to see its older ones",
+  "stock.olderOfOneNotShown": "Only the newest {count} of this feed are shown",
+  "stock.noPriceYet": "No price yet",
+  "stock.harvestUnpriced":
+    "What this home-grown fodder is worth is not set yet. The cut is kept, and priced when the owner sets it",
   "stock.noArrivals": "Nothing has come in yet",
   "stock.noCounts": "No counts yet",
   "stock.noStock": "Nothing in the store — add a feed item first",
@@ -4316,7 +4325,7 @@ export const en = {
   "work.noRation":
     "This phone does not have this pen's ration — open it once with signal",
   "work.given": "Given (kg)",
-  "work.leftover": "Left over (kg)",
+  "work.leftover": "Left from the last feed (kg)",
   "work.shortFed": "{percent}% under the ration",
   "work.back": "Back",
   "work.confirm": "Done",

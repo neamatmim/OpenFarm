@@ -20,6 +20,7 @@ import type { Tone } from "@/components/page";
 import { EmptyState, StatusBadge } from "@/components/page";
 import { FormDialog, FormField, RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { figureTakes } from "@/lib/feed-figures";
 import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
@@ -335,8 +336,13 @@ const StockCard = ({ row }: { row: StockRow }) => {
           </span>
         )}
         <span className="text-muted-foreground text-xs tabular-nums">
+          {/* No price yet is not the farm's own fodder: a bought feed that has not come in has none either. */}
           {row.averagePriceMoney === null
-            ? t("stock.harvest")
+            ? t(
+                row.fodderPriceMoney === null
+                  ? "stock.noPriceYet"
+                  : "stock.harvest"
+              )
             : `${t("stock.averagePrice", {
                 amount: formatNumber(row.averagePriceMoney, language),
                 unit: feedUnitEach(row.unit, language),
@@ -426,7 +432,7 @@ const FigureDialog = ({
       }}
       open={line !== null}
       pending={save.isPending}
-      ready={line !== null}
+      ready={line !== null && figureTakes(kind, value)}
       submitLabel={t("common.save")}
       title={line ? `${t(words.title)} — ${line.nameBn}` : ""}
     >
