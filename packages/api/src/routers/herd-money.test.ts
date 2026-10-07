@@ -16,7 +16,7 @@ import { appRouter } from "./index";
 const suffix = `herd-money-${Date.now()}`;
 let penId = "";
 
-const as = (role: "owner" | "manager", instant: string) =>
+const as = (role: "owner" | "manager" | "staff", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 beforeAll(async () => {
@@ -203,5 +203,16 @@ describe("a death written against the wrong animal", () => {
       columns: { from: true, contentType: true },
     });
     expect(kept).toEqual([{ from: "death", contentType: "image/jpeg" }]);
+    // On her page, for those who run the farm, with who voided it; never Barn Staff's.
+    const shown = await owner.client.animals.voidedPhotos({
+      tagNumber: bull.tagNumber,
+    });
+    expect(shown).toMatchObject([
+      { from: "death", voidedByName: thePerson("owner").name },
+    ]);
+    const staff = await as("staff", "2070-06-05T07:00:00.000Z");
+    await expect(
+      staff.client.animals.voidedPhotos({ tagNumber: bull.tagNumber })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

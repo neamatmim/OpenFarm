@@ -1838,6 +1838,39 @@ export const animalsRouter = {
       });
     }),
 
+  /**
+   * The photographs kept from a record of hers the Owner voided — a death written against the wrong animal shows the
+   * tag of the one that really died, and a Sale's receipt the money that moved — oldest first, with who voided it and
+   * when. The Owner's and the Manager's: a receipt is money, and a voided record is theirs to put right.
+   */
+  voidedPhotos: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ tagNumber: tagInput }))
+    .handler(async ({ context, input }) => {
+      const target = await requireAnimal(
+        context.db,
+        context.farm.id,
+        input.tagNumber.toUpperCase()
+      );
+      const kept = await context.db.query.voidedPhoto.findMany({
+        where: { farmId: context.farm.id, animalId: target.id },
+        columns: {
+          id: true,
+          from: true,
+          contentType: true,
+          data: true,
+          takenAt: true,
+          voidedAt: true,
+        },
+        with: { voider: { columns: { name: true } } },
+        orderBy: { takenAt: "asc", id: "asc" },
+      });
+      return kept.map(({ voider, ...one }) => ({
+        ...one,
+        voidedByName: voider?.name ?? null,
+      }));
+    }),
+
   /** An Animal's photo, whole or as its thumbnail. A list asks for the thumbnail; a photo taken before thumbnails were
    *  made has none and is sent whole either way. */
   photo: protectedProcedure
