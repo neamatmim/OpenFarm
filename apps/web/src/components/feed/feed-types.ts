@@ -17,15 +17,27 @@ export interface FeedItemRow {
   fodderPriceMoney?: number | null;
 }
 
-/** A Feed Item's name in the reader's language, and its name in the other language where the farm gave one. */
-export const feedItemNames = (
-  item: Pick<FeedItemRow, "nameBn" | "nameEn">,
+/** A name the farm keeps in Bangla, and in English where it gave one: a Feed Item's or a Ration's. */
+export interface Named {
+  nameBn: string;
+  nameEn?: string | null;
+}
+
+/** The name in the reader's language, and the name in the other language where the farm gave one. */
+export const namesIn = (
+  named: Named,
   language: string
 ): { shown: string; other: string | null } => {
-  const shown = language === "en" && item.nameEn ? item.nameEn : item.nameBn;
-  const other = language === "en" ? item.nameBn : item.nameEn;
+  const shown = language === "en" && named.nameEn ? named.nameEn : named.nameBn;
+  const other = language === "en" ? named.nameBn : named.nameEn;
   return { shown, other: other && other !== shown ? other : null };
 };
+
+/** A Ration's name in the shape `namesIn` reads. */
+export const rationNamed = (ration: Pick<RationRow, "name">): Named => ({
+  nameBn: ration.name.bn,
+  nameEn: ration.name.en,
+});
 
 /** A Ration: its name, its version, what each Feed Item is in a day — by the head or by weight — and the Pens on it. */
 export interface RationRow {

@@ -38,7 +38,8 @@ import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
-import { feedItemNames } from "./feed-types";
+import { OtherName, TwoNames } from "./feed-name";
+import { namesIn } from "./feed-types";
 import type { FeedItemRow } from "./feed-types";
 
 interface ItemRow extends FeedItemRow {
@@ -50,26 +51,9 @@ interface ItemRow extends FeedItemRow {
   bringingBack: boolean;
 }
 
-/** The other language's name, under the one the reader reads, where the farm gave both. */
-const OtherName = ({ item }: { item: FeedItemRow }) => {
-  const { language } = useLanguage();
-  const { other } = feedItemNames(item, language);
-  return other ? (
-    <span className="text-muted-foreground text-xs">{other}</span>
-  ) : null;
-};
-
-const NameCell = ({ row }: { row: { original: ItemRow } }) => {
-  const { language } = useLanguage();
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className={nameTone(row.original)}>
-        {feedItemNames(row.original, language).shown}
-      </span>
-      <OtherName item={row.original} />
-    </div>
-  );
-};
+const NameCell = ({ row }: { row: { original: ItemRow } }) => (
+  <TwoNames className={nameTone(row.original)} named={row.original} />
+);
 
 /** In use or retired, as a word with its colour. */
 const ItemStanding = ({ retired }: { retired: boolean }) => {
@@ -105,7 +89,7 @@ const UnitCell = ({ row }: { row: { original: ItemRow } }) => (
 const ItemMenu = ({ row }: { row: ItemRow }) => {
   const { t, language } = useLanguage();
   const { handleRetire, handleBringBack, handleRename, handleSetBagSize } = row;
-  const { shown } = feedItemNames(row, language);
+  const { shown } = namesIn(row, language);
   const label = t("feed.itemActions", { name: shown });
   if (row.retiredAt) {
     return (
@@ -184,9 +168,9 @@ const ItemCard = ({ row }: { row: ItemRow }) => {
     <div className="flex items-center justify-between gap-3">
       <div className="flex min-w-0 flex-col gap-1">
         <span className={nameTone(row)}>
-          {feedItemNames(row, language).shown} · <UnitOf item={row} />
+          {namesIn(row, language).shown} · <UnitOf item={row} />
         </span>
-        <OtherName item={row} />
+        <OtherName named={row} />
         <ItemStanding retired={row.retiredAt !== null} />
       </div>
       <ItemMenu row={row} />

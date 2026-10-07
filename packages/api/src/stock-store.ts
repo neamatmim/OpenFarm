@@ -665,7 +665,7 @@ const countRowsOf = (
         : {}),
     },
     with: {
-      feedItem: { columns: { nameBn: true, unit: true } },
+      feedItem: { columns: { nameBn: true, nameEn: true, unit: true } },
       counter: { columns: { name: true } },
     },
     orderBy: { countedAt: "desc", id: "desc" },
@@ -710,6 +710,7 @@ const readTheCounts = async (
       id: row.id,
       feedItemId: row.feedItemId,
       nameBn: row.feedItem.nameBn,
+      nameEn: row.feedItem.nameEn,
       unit: row.feedItem.unit,
       completionId: row.completionId,
       countedAt: row.countedAt,

@@ -29,6 +29,7 @@ import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { FeedItemRow } from "./feed-types";
+import { namesIn } from "./feed-types";
 import { PriceChange } from "./price-change";
 
 type Kind = "purchase" | "harvest";
@@ -448,7 +449,7 @@ export const ReceiveFeedSheet = ({
               >
                 {live.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.nameBn}
+                    {namesIn(item, language).shown}
                   </option>
                 ))}
               </NativeSelect>

@@ -38,7 +38,9 @@ import {
 import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
+import { OtherName, TwoNames } from "./feed-name";
 import type { Adjustment, Arrival, FeedItemRow } from "./feed-types";
+import { namesIn } from "./feed-types";
 import { PriceChange } from "./price-change";
 import { ScaleBySeller } from "./scale-by-seller";
 
@@ -120,7 +122,7 @@ const ReceivedOnCell = ({ row }: { row: { original: ArrivalRow } }) => (
 );
 
 const ArrivalItemCell = ({ row }: { row: { original: ArrivalRow } }) => (
-  <span className="font-medium">{row.original.nameBn}</span>
+  <TwoNames className="font-medium" named={row.original} />
 );
 
 /** Bought or cut from the farm's own land, as a word with its colour. */
@@ -325,9 +327,10 @@ const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium">{row.nameBn}</span>
+          <span className="font-medium">{namesIn(row, language).shown}</span>
           <KindBadge harvest={row.kind === "harvest"} />
         </div>
+        <OtherName named={row} />
         <span className="font-semibold tabular-nums">
           {formatNumber(row.quantity, language)}{" "}
           {feedUnitWord(row.unit, language)}
@@ -371,7 +374,7 @@ const ItemFilter = ({
   value: string;
   onChange: (value: string) => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <NativeSelect
       aria-label={t("stock.filterItem")}
@@ -382,7 +385,7 @@ const ItemFilter = ({
       <option value="">{t("stock.allItems")}</option>
       {items.map((item) => (
         <option key={item.id} value={item.id}>
-          {item.nameBn}
+          {namesIn(item, language).shown}
         </option>
       ))}
     </NativeSelect>
@@ -474,7 +477,7 @@ const CountedOnCell = ({ row }: { row: { original: Adjustment } }) => (
 );
 
 const CountItemCell = ({ row }: { row: { original: Adjustment } }) => (
-  <span className="font-medium">{row.original.nameBn}</span>
+  <TwoNames className="font-medium" named={row.original} />
 );
 
 /** A figure from a Stock Count, in the reader's digits. */
@@ -578,12 +581,13 @@ const CountCard = ({ row }: { row: Adjustment }) => {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between gap-2">
-        <span className="font-medium">{row.nameBn}</span>
+        <span className="font-medium">{namesIn(row, language).shown}</span>
         <span className="flex items-center gap-2">
           <DifferenceCell row={{ original: row }} />
           <ValueCell row={{ original: row }} />
         </span>
       </div>
+      <OtherName named={row} />
       <span className="text-muted-foreground text-xs">
         {formatDate(row.countedAt, language)} ·{" "}
         {t("stock.adjustment", {

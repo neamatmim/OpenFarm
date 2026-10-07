@@ -69,9 +69,11 @@ const setup = async () => {
     pen("গ পেন"),
     pen("ঘ পেন"),
   ]);
-  const item = async (bn: string) =>
-    await manager.client.feed.items.create({ name: { bn: `${bn} ${suffix}` } });
-  const straw = await item("খড়");
+  const item = async (bn: string, en?: string) =>
+    await manager.client.feed.items.create({
+      name: { bn: `${bn} ${suffix}`, ...(en ? { en: `${en} ${suffix}` } : {}) },
+    });
+  const straw = await item("খড়", "Straw");
   const concentrate = await item("দানাদার");
   // Never bought and never priced: what is left of it is worth a figure nobody knows.
   const grass = await item("ঘাস");
@@ -84,7 +86,7 @@ const setup = async () => {
     receivedOn: "2035-02-01",
   });
   const ration = await manager.client.feed.rations.save({
-    name: { bn: `মোটাতাজাকরণ ${suffix}` },
+    name: { bn: `মোটাতাজাকরণ ${suffix}`, en: `Fattening ${suffix}` },
     items: [
       { feedItemId: straw.id, kgPerAnimalPerDay: 4 },
       { feedItemId: concentrate.id, kgPerAnimalPerDay: 2 },
@@ -101,6 +103,7 @@ const setup = async () => {
     rationVersionId: saved?.currentVersionId ?? "",
     work,
     rationName: `মোটাতাজাকরণ ${suffix}`,
+    rationNameEn: `Fattening ${suffix}`,
   };
 };
 
@@ -221,8 +224,10 @@ describe("the Leftovers", () => {
       penId: world.pens.wasting.id,
       penName: `উচ্ছিষ্ট ${suffix} / ক পেন`,
       rationName: world.rationName,
+      rationNameEn: world.rationNameEn,
       feedItemId: world.items.straw.id,
       itemName: `খড় ${suffix}`,
+      itemNameEn: `Straw ${suffix}`,
       unit: "kg",
       givenKg: 140,
       leftoverKg: 28,

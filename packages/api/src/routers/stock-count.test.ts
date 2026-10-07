@@ -43,7 +43,7 @@ const setup = async () => {
     name: `গুদাম ${suffix}`,
   });
   const concentrate = await manager.client.feed.items.create({
-    name: { bn: `দানাদার ${suffix}` },
+    name: { bn: `দানাদার ${suffix}`, en: `Concentrate ${suffix}` },
   });
   const grass = await manager.client.feed.items.create({
     name: { bn: `খড় ${suffix}` },
@@ -249,6 +249,8 @@ describe("the stock count", () => {
     });
     expect(adjustments).toMatchObject([
       {
+        nameBn: `দানাদার ${suffix}`,
+        nameEn: `Concentrate ${suffix}`,
         expected: 1000,
         counted: 950,
         difference: -50,

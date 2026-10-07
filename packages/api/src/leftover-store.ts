@@ -25,8 +25,12 @@ export interface PenLeftovers {
   penName: string;
   /** The Ration it was last fed on in the period — what to change, where it is wasting. */
   rationName: string | null;
+  /** The Ration's English name, where the farm gave one. */
+  rationNameEn: string | null;
   feedItemId: string;
   itemName: string;
+  /** The Feed Item's English name, where the farm gave one. */
+  itemNameEn: string | null;
   unit: string;
   givenKg: number;
   leftoverKg: number;
@@ -156,20 +160,20 @@ export const leftoversOf = async (
       farmId,
       id: { in: [...new Set(tallies.map((one) => one.feedItemId))] },
     },
-    columns: { id: true, nameBn: true, unit: true },
+    columns: { id: true, nameBn: true, nameEn: true, unit: true },
   });
   const versions = await db.query.rationVersion.findMany({
     where: {
       id: { in: [...new Set(tallies.map((one) => one.rationVersionId))] },
     },
     columns: { id: true },
-    with: { ration: { columns: { nameBn: true } } },
+    with: { ration: { columns: { nameBn: true, nameEn: true } } },
   });
   const priceOf = await pricesOf(db, farmId, tallies);
   const penOf = new Map(pens.map((one) => [one.id, one]));
   const itemOf = new Map(items.map((one) => [one.id, one]));
   const rationOf = new Map(
-    versions.map((one) => [one.id, one.ration.nameBn] as const)
+    versions.map((one) => [one.id, one.ration] as const)
   );
 
   // The trough as a whole: a Pen that left anything of anything is a Pen fed enough, whatever it cleared.
@@ -189,9 +193,11 @@ export const leftoversOf = async (
     return {
       penId: tally.penId,
       penName: pen ? `${pen.shed.name} / ${pen.name}` : "",
-      rationName: rationOf.get(tally.rationVersionId) ?? null,
+      rationName: rationOf.get(tally.rationVersionId)?.nameBn ?? null,
+      rationNameEn: rationOf.get(tally.rationVersionId)?.nameEn ?? null,
       feedItemId: tally.feedItemId,
       itemName: item?.nameBn ?? "",
+      itemNameEn: item?.nameEn ?? null,
       unit: item?.unit ?? "kg",
       givenKg,
       leftoverKg,
