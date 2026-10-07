@@ -89,7 +89,7 @@ const setup = async () => {
     });
   // A cow for each question, so no test's heats become another test's history.
   const cows = [];
-  for (let index = 0; index < 6; index += 1) {
+  for (let index = 0; index < 7; index += 1) {
     // Sequential: Tag Numbers are handed out in order from one counter.
     // oxlint-disable-next-line no-await-in-loop
     cows.push(await heifer());
@@ -405,5 +405,27 @@ describe("a heat, and the window it opens", () => {
     // points to nothing; the first raised her AI work and links to it.
     expect(her.heats[0]?.workId).toBeNull();
     expect(her.heats[1]?.workId).not.toBeNull();
+  });
+
+  it("raises the AI work for a heat seen on a phone before a new Version and sent after it", async () => {
+    // Seen at nine on a Shed Phone out of signal; at ten the Owner puts a word of the AI procedure right; the round
+    // reaches the farm at eleven. The heat trigger was in force under both Versions.
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2027-09-20T04:00:00.000Z"),
+    });
+    await owner.client.sops.publish({
+      definitionId: world.ai.definitionId,
+      content: { ...aiSop(), graceMinutes: 90 },
+      note: "বানান ঠিক",
+    });
+    await watchRound(
+      "2027-09-20T05:00:00.000Z",
+      tagOf(6),
+      HEAT,
+      "2027-09-20T03:00:00.000Z"
+    );
+    const raised = await aiWorkFor("2027-09-20T05:30:00.000Z", tagOf(6));
+    expect(raised).toHaveLength(1);
   });
 });

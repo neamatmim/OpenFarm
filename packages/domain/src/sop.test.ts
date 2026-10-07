@@ -270,3 +270,38 @@ describe("the words above a shaped Step's answers", () => {
     );
   });
 });
+
+describe("a Version's Steps", () => {
+  it("each has its own id, and each choice its own value", () => {
+    const { biosecurity } = standardPlaybook();
+    const [first, ...rest] = biosecurity.steps;
+    if (!first) {
+      throw new Error("the biosecurity check has steps");
+    }
+    // Two Steps with one id: answering the first finished the work, and the second was never asked.
+    expect(
+      findStructuralProblems({
+        ...biosecurity,
+        steps: [first, { ...first, text: { bn: "আবার" } }, ...rest],
+      }).some((problem) => problem.includes("already the id"))
+    ).toBe(true);
+    const choosing = {
+      ...first,
+      evidence: [
+        {
+          type: "choice" as const,
+          required: true,
+          choices: [
+            { value: "yes", label: { bn: "হ্যাঁ" } },
+            { value: "yes", label: { bn: "হ্যাঁ আবার" } },
+          ],
+        },
+      ],
+    };
+    expect(
+      findStructuralProblems({ ...biosecurity, steps: [choosing] }).some(
+        (problem) => problem.includes("share one value")
+      )
+    ).toBe(true);
+  });
+});
