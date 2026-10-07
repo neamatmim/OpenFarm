@@ -8,6 +8,7 @@ import {
 } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { theirHerdStory } from "../investor-statement-store";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -876,6 +877,34 @@ describe("what a Settlement is", () => {
       state: "selling",
       settlementApproved: true,
     });
+    // An Investor's payout is the approved Settlement's own figure: typed over, the Venture would settle at less or
+    // more than nothing. Its day and reference are still put right.
+    const payout = await scratchDb().query.ventureMovement.findFirst({
+      where: { ventureId, kind: "payout" },
+      columns: { id: true, amountMoney: true, reference: true },
+    });
+    await expect(
+      owner.client.ventures.movements.correct({
+        id: payout?.id ?? "",
+        reason: `ভুল অঙ্ক ${suffix}`,
+        changes: {
+          amountMoney: {
+            from: payout?.amountMoney ?? 0,
+            to: (payout?.amountMoney ?? 0) + 10_000,
+          },
+        },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "settlement_figure" } });
+    await owner.client.ventures.movements.correct({
+      id: payout?.id ?? "",
+      reason: `রেফারেন্স ভুল ${suffix}`,
+      changes: {
+        reference: {
+          from: payout?.reference ?? "",
+          to: `${payout?.reference ?? ""}-ঠিক`,
+        },
+      },
+    });
 
     const booksBefore = await owner.client.money.list({
       from: "2047-04-01",
@@ -1065,12 +1094,27 @@ describe("what a Settlement is", () => {
 
   it("pays one the Investors gained by, out of the Farm's own books", async () => {
     const owner = await as("owner", "2047-04-13T04:00:00.000Z");
+    const storyBefore = await theirHerdStory(
+      scratchDb(),
+      theFarm().id,
+      ventureId
+    );
     // The buyer had underpaid and made it up: the Sale is put right upwards, months after settling.
     await owner.client.sales.correct({
       id: saleIds[0] ?? "",
       reason: `ক্রেতা বাকি টাকা দিয়েছে ${suffix}`,
       changes: { priceMoney: { from: 202_505, to: 260_000 } },
     });
+    // Its closed account is not reopened by it: the difference is the Adjustment's, from the Farm's own books.
+    const ventures = await owner.client.ventures.list();
+    expect(ventures.find((one) => one.id === ventureId)?.balanceMoney).toBe(0);
+    // And the statement, which says its figures were frozen on the day of approval, tells its herd in them too.
+    const storyAfter = await theirHerdStory(
+      scratchDb(),
+      theFarm().id,
+      ventureId
+    );
+    expect(storyAfter.averageSoldMoney).toBe(storyBefore.averageSoldMoney);
     const raised = await owner.client.ventures.settlement.adjustments.raise({
       ventureId,
       reason: `বিক্রির দাম সংশোধন ${suffix}`,

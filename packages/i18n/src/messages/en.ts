@@ -1564,6 +1564,19 @@ export const en = {
   "ventures.kind.madeGood": "A lost animal made good by the farm",
   "ventures.kind.reimbursement": "Reimbursed the farm",
   "ventures.kind.advance": "Your own money in",
+  "ventures.correctInternalSale": "Put the internal sale right",
+  "ventures.correctInternalSaleHint":
+    "The rate, the day or the reference. Both sides of the sale and the farm's books move together; the weight stays the reading she was priced at.",
+  "ventures.ratePerKg": "Rate per kg",
+  "ventures.soldOnDay": "The day she changed hands",
+  "refusal.settlementApproved":
+    "A settlement has been approved on these figures: raise a settlement adjustment instead",
+  "refusal.madeGoodNotPriced":
+    "She was made good at what she had cost the venture: there is no rate to put right",
+  "refusal.pricedFromThisWeighing":
+    "A price was struck from this weighing: put the sale right instead",
+  "refusal.settlementFigure":
+    "That is the settlement's own figure: put its day or reference right, never its amount",
   "ventures.correctMovement": "Put it right",
   "ventures.correctMovementHint":
     "What this movement says — how much, the day the bank moved it, the reference. Not whether it happened.",

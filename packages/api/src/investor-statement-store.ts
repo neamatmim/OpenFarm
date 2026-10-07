@@ -533,6 +533,12 @@ export const hisSettlement = async (
   };
 };
 
+/** What the account took for a Sale, where it took anything; else what the Sale says. */
+const priceTakenFor = (
+  tookFor: ReadonlyMap<string | null, number>,
+  sale: { id: string; priceMoney: number }
+): number => tookFor.get(sale.id) ?? sale.priceMoney;
+
 /**
  * What became of a Venture's cattle over the whole run: how many it bought and at what average, how many
  * went to a buyer and at what average, how many the Farm bought back at wind-up, and how many it lost.
@@ -565,6 +571,13 @@ export const theirHerdStory = async (
     }),
   ]);
   const byId = new Map(costs.animals.map((one) => [one.id, one]));
+  // What the account took for each Sale: the figure the Settlement was approved on, which a Sale put right after the
+  // account closed does not move — the statement says its figures were frozen, and its story is told in them too.
+  const taken = await tx.query.ventureMovement.findMany({
+    where: { farmId, ventureId, kind: "sale_in", saleId: { isNotNull: true } },
+    columns: { saleId: true, amountMoney: true },
+  });
+  const tookFor = new Map(taken.map((one) => [one.saleId, one.amountMoney]));
   // Every event asks whose she was at *that* moment, which is the only way the four counts do not
   // overlap. A bull the Farm bought back at wind-up and sold on afterwards was not this Venture's when
   // the buyer took him, and a bull sold across to another Venture was that Venture's from the day he
@@ -581,7 +594,7 @@ export const theirHerdStory = async (
       bought.push(one.intake.purchasePriceMoney);
     }
     if (one.sale && ownedThenBy(one.id, one.sale.soldAt) === ventureId) {
-      sold.push(one.sale.priceMoney);
+      sold.push(priceTakenFor(tookFor, one.sale));
     }
     const exit = exitOf(one);
     if (

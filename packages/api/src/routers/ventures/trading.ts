@@ -14,6 +14,11 @@ import { z } from "zod";
 
 import type { Tx } from "../../audit";
 import { audited } from "../../audit";
+import { correct } from "../../corrections/correction";
+import {
+  internalSaleCorrection,
+  internalSaleCorrectionInput,
+} from "../../corrections/internal-sale";
 import { farmDay, targetWindowInput } from "../../farm-clock";
 import { protectedProcedure } from "../../index";
 import { recordInternalSale } from "../../internal-sale-store";
@@ -107,6 +112,17 @@ const assertWeighedLately = (
 };
 
 export const tradingProcedures = {
+  /** An Internal Sale or the buy-back put right — the rate, the day, the reference — by the Owner, until a Settlement
+   *  on either side is approved (`internalSaleCorrection`). */
+  correctInternalSale: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(internalSaleCorrectionInput)
+    .handler(async ({ context, input }) => {
+      await correct(context, internalSaleCorrection, input);
+      return { id: input.id };
+    }),
+
   /**
    * The animals that may move from one purse to another, for the Owner choosing one: bought-in Fattening animals
    * still on the farm, not yet Ready for Sale, weighed at least once, and in a purse that still trades — the Farm's

@@ -1459,6 +1459,19 @@ export const bn: Record<MessageKey, string> = {
   "ventures.kind.madeGood": "হারানো পশুর ক্ষতিপূরণ, খামার থেকে জমা",
   "ventures.kind.reimbursement": "খামারকে ফেরত",
   "ventures.kind.advance": "আপনার নিজের {currencySum}",
+  "ventures.correctInternalSale": "ভেতরের বিক্রি ঠিক করুন",
+  "ventures.correctInternalSaleHint":
+    "দর, দিন বা রেফারেন্স। বিক্রির দুই দিক আর খামারের হিসাব একসাথে বদলাবে; ওজন থাকবে যে মাপে দাম ধরা হয়েছিল।",
+  "ventures.ratePerKg": "কেজিপ্রতি দর",
+  "ventures.soldOnDay": "যেদিন হাত বদল হয়েছে",
+  "refusal.settlementApproved":
+    "এই হিসাবের ওপর হিসাব নিকাশ অনুমোদন হয়ে গেছে: হিসাব নিকাশ সমন্বয় তুলুন",
+  "refusal.madeGoodNotPriced":
+    "ভেঞ্চারের যা খরচ হয়েছিল তা দিয়ে পূরণ করা হয়েছে: ঠিক করার মতো কোনো দর নেই",
+  "refusal.pricedFromThisWeighing":
+    "এই ওজন থেকে দাম ধরা হয়েছে: বরং বিক্রিটি ঠিক করুন",
+  "refusal.settlementFigure":
+    "এটি হিসাব নিকাশের নিজের অঙ্ক: এর দিন বা রেফারেন্স ঠিক করুন, অঙ্ক নয়",
   "ventures.correctMovement": "ঠিক করুন",
   "ventures.correctMovementHint":
     "এই লেনদেনে যা লেখা আছে — কত, ব্যাংক কোন দিন পাঠিয়েছে, রেফারেন্স। হয়েছিল কি না, তা নয়।",

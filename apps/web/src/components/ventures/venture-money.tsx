@@ -17,7 +17,10 @@ import { TagLink } from "@/components/fattening/fattening-words";
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { EmptyState, Section } from "@/components/page";
 import { NativeSelect } from "@/components/page-kit";
-import { CorrectMovement } from "@/components/ventures/correct-movement";
+import {
+  CorrectInternalSale,
+  CorrectMovement,
+} from "@/components/ventures/correct-movement";
 import { Line } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
@@ -159,10 +162,19 @@ const AfterCell = ({ row }: MovementCell) => {
   return <span className="font-medium">{asMoney(row.original.after)}</span>;
 };
 
-/** Only where the farm will take a Correction: not a Sale's or an Internal Sale's money, not a counted Float, not a
- *  settled or called-off Venture — the farm's own word for each. */
-const Correct = ({ movement }: { movement: MovementRow }) =>
-  movement.whyItStands ? null : <CorrectMovement movement={movement} />;
+/** Only where the farm will take a Correction: not a Sale's money, not a counted Float, not a settled or called-off
+ *  Venture — the farm's own word for each. An Internal Sale's side is put right through the sale itself. */
+const Correct = ({ movement }: { movement: MovementRow }) => {
+  if (movement.whyItStands === "one_side_of_a_sale" && movement.internalSale) {
+    return (
+      <CorrectInternalSale
+        reference={movement.reference}
+        sale={movement.internalSale}
+      />
+    );
+  }
+  return movement.whyItStands ? null : <CorrectMovement movement={movement} />;
+};
 
 const CorrectCell = ({ row }: MovementCell) => (
   <Correct movement={row.original} />

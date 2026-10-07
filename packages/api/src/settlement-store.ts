@@ -37,6 +37,7 @@ import {
   heldByEach,
   NOTHING_HELD,
   ownedThenByOf,
+  saleNewsSinceClosing,
   stillHersOf,
   termsInForceOn,
 } from "./venture-store";
@@ -477,7 +478,11 @@ export const settlementOf = async (
   const named = new Map(people.map((one) => [one.id, one.name]));
 
   // ---- what the run made ----
-  const proceedsMoney = roundMoney(what?.proceedsMoney ?? 0);
+  // What the account took, and what its Sales say since the account closed: a Sale put right after settling is late news.
+  const proceedsMoney = roundMoney(
+    (what?.proceedsMoney ?? 0) +
+      (await saleNewsSinceClosing(db, farmId, venture.id))
+  );
   const { charged, charges } = whatItWasCharged(
     costs,
     ownedThenBy,
