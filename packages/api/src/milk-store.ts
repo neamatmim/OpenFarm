@@ -120,6 +120,8 @@ export const writeMilkRecord = async (
     requested: MilkDestination;
     recordedBy: string;
     recordedAt: Date;
+    /** When she was milked by the farm's clock, where the phone was found behind it. */
+    recordedAtByTheFarm?: Date;
     now: Date;
   }
 ): Promise<{ destination: MilkDestination; forced: boolean }> => {
@@ -138,12 +140,14 @@ export const writeMilkRecord = async (
   // shut. The phone's clock alone would let a device running fast — or one sending a made-up
   // time — walk a treated cow's milk into the tank; the server's clock alone would let milk
   // drawn under a Withdrawal through if the phone only reached signal after it ended.
-  const gateAt = new Date(
-    Math.min(entry.recordedAt.getTime(), entry.now.getTime())
-  );
+  // A phone found behind the farm's clock is asked about at the farm's time too: it may have been put back before the
+  // milking, and then the dose the Manager gave at half past four came before a milking it dates at four.
+  const gateAts = [entry.recordedAt, entry.recordedAtByTheFarm]
+    .filter((at): at is Date => at !== undefined)
+    .map((at) => new Date(Math.min(at.getTime(), entry.now.getTime())));
   // And asked of the Withdrawal as it stood then: a dose given after the milking does not reach back.
   const holds = await milkHoldsOf(tx, entry.farmId, entry.animalId);
-  const underWithdrawal = milkHeldAt(beast, holds, gateAt);
+  const underWithdrawal = gateAts.some((at) => milkHeldAt(beast, holds, at));
   const { destination, forced } = destinationFor(
     entry.requested,
     underWithdrawal

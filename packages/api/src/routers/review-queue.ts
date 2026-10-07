@@ -1,15 +1,21 @@
 import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { weighIn } from "@OpenFarm/db/schema/fattening";
 import { needsReview } from "@OpenFarm/db/schema/review";
+import { syncEntry } from "@OpenFarm/db/schema/sync";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { takeInHeld } from "../batch-store";
+import type { Recorder } from "../completion-store";
+import type { Context } from "../context";
+import { buildContext } from "../context";
 import { judgeAgainAfter } from "../effects/weigh-in";
 import { protectedProcedure } from "../index";
-import { withTheirWork } from "../review-store";
-import { requireRole } from "../roles";
+import { withTheirWork, withWhatWasHeld } from "../review-store";
+import { pickRoleUsed, requireRole } from "../roles";
+import { workingAs } from "../scope";
 
 /** How much of the queue a screen is handed at once. */
 const QUEUE_LIMIT = 100;
@@ -38,34 +44,73 @@ const letTheReadingStand = async (
   }
 };
 
+/** Somebody whose held work is being taken in, read as they were on the phone it came from — a Shed Phone holds Barn
+ *  Staff alone — and as they were until they left, for work done before. */
+const readAsTheyWorked =
+  (context: Context) =>
+  async (actorId: string, deviceId: string | null): Promise<Recorder> => {
+    const phone = deviceId
+      ? await context.db.query.shedPhone.findFirst({
+          where: { id: deviceId },
+          columns: { id: true, name: true, farmId: true },
+        })
+      : undefined;
+    const theirs = await buildContext({
+      session: null,
+      device: phone ? { ...phone, activeUserId: actorId } : null,
+      personId: phone ? null : actorId,
+      clock: context.clock,
+      db: context.db,
+      push: context.push,
+      sms: context.sms,
+      evenIfLeft: true,
+    });
+    const roleUsed = pickRoleUsed(theirs.roles, [
+      "owner",
+      "manager",
+      "staff",
+      "vet",
+    ]);
+    if (!(theirs.actor && theirs.farm && roleUsed)) {
+      throw new ORPCError("FORBIDDEN", {
+        message: "Recorded under somebody who no longer works on this farm",
+      });
+    }
+    return { ...theirs, ...workingAs(theirs, roleUsed) } as Recorder;
+  };
+
 export const reviewQueueRouter = {
   /** What the system could not put right on its own, oldest first — the things that have
    *  been waiting longest are the ones most likely to have been forgotten. */
   list: protectedProcedure
     .use(requireRole("owner", "manager"))
     .handler(async ({ context }) =>
-      withTheirWork(
+      withWhatWasHeld(
         context.db,
         context.farm.id,
-        await context.db.query.needsReview.findMany({
-          where: { farmId: context.farm.id, resolvedAt: { isNull: true } },
-          // Narrowed: the queue needs the Correction's reason and who made it, not the
-          // before-and-after snapshots of the entry it changed.
-          with: {
-            raisedBy: {
-              columns: {
-                id: true,
-                action: true,
-                reason: true,
-                actorId: true,
-                roleUsed: true,
-                recordedAt: true,
+        await withTheirWork(
+          context.db,
+          context.farm.id,
+          await context.db.query.needsReview.findMany({
+            where: { farmId: context.farm.id, resolvedAt: { isNull: true } },
+            // Narrowed: the queue needs the Correction's reason and who made it, not the
+            // before-and-after snapshots of the entry it changed.
+            with: {
+              raisedBy: {
+                columns: {
+                  id: true,
+                  action: true,
+                  reason: true,
+                  actorId: true,
+                  roleUsed: true,
+                  recordedAt: true,
+                },
               },
             },
-          },
-          orderBy: { raisedAt: "asc" },
-          limit: QUEUE_LIMIT,
-        })
+            orderBy: { raisedAt: "asc" },
+            limit: QUEUE_LIMIT,
+          })
+        )
       )
     ),
 
@@ -133,5 +178,108 @@ export const reviewQueueRouter = {
         }
       );
       return { id: input.id, resolved: true };
+    }),
+
+  /**
+   * Work a phone sent that the farm held for a person, taken into the records: the Manager has looked at it and says it
+   * was done. Written as it was recorded — under whoever did it, dated when they did it — and the Needs Review closed
+   * with the Manager's word for it, in one act. Refused with the Entry's own reason where the farm still cannot take
+   * it, and then nothing changes.
+   */
+  takeIn: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(
+      z.object({
+        id: z.string(),
+        note: z.string().trim().min(1).max(400).optional(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const review = await context.db.query.needsReview.findFirst({
+        where: {
+          id: input.id,
+          farmId: context.farm.id,
+          resolvedAt: { isNull: true },
+        },
+        columns: { entity: true, entityId: true, reason: true },
+      });
+      if (!review) {
+        throw new ORPCError("NOT_FOUND", {
+          message: "That is not waiting to be looked at",
+          data: { refusal: "review_closed" },
+        });
+      }
+      const held =
+        review.entity === "sync_entry" && review.reason === "late_entry"
+          ? await context.db.query.syncEntry.findFirst({
+              where: {
+                id: review.entityId,
+                farmId: context.farm.id,
+                outcome: "kept",
+              },
+            })
+          : undefined;
+      if (!held?.payload) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Only work a phone sent and the farm held can be taken in",
+          data: { refusal: "not_held_work" },
+        });
+      }
+      const batch = await context.db.query.syncBatch.findFirst({
+        where: { key: held.batchKey },
+        columns: { actorId: true },
+      });
+      const resolution = input.note ?? "Taken into the records";
+      await audited(context).write(
+        {
+          entity: "needs_review",
+          entityId: input.id,
+          action: "update",
+          reason: resolution,
+          after: {
+            resolvedAt: now.toISOString(),
+            resolvedBy: context.actor.id,
+            takenIn: held.id,
+          },
+        },
+        async (tx) => {
+          const [row] = await tx
+            .update(needsReview)
+            .set({ resolvedAt: now, resolvedBy: context.actor.id, resolution })
+            .where(
+              and(
+                eq(needsReview.id, input.id),
+                eq(needsReview.farmId, context.farm.id),
+                isNull(needsReview.resolvedAt)
+              )
+            )
+            .returning({ id: needsReview.id });
+          if (!row) {
+            throw new ORPCError("NOT_FOUND", {
+              message: "That is not waiting to be looked at",
+              data: { refusal: "review_closed" },
+            });
+          }
+          await takeInHeld(
+            tx,
+            {
+              id: held.id,
+              farmId: context.farm.id,
+              payload: held.payload,
+              sourceKey: held.sourceKey,
+              seq: held.seq,
+              sentBy: batch?.actorId ?? context.actor.id,
+            },
+            { recorderOf: readAsTheyWorked(context), now }
+          );
+          // In the records now, as a phone asking about it again is told.
+          await tx
+            .update(syncEntry)
+            .set({ outcome: "applied", refusal: null })
+            .where(eq(syncEntry.id, held.id));
+        }
+      );
+      return { id: input.id, takenIn: true };
     }),
 };

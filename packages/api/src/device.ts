@@ -1,5 +1,5 @@
 import type { Database } from "@OpenFarm/db";
-import { and, eq, gt } from "@OpenFarm/db/operators";
+import { and, eq, gt, lt } from "@OpenFarm/db/operators";
 import { deviceSwitch, shedPhone } from "@OpenFarm/db/schema/device";
 import { verifyPin } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -190,6 +190,19 @@ export const extendSwitch = async (
         gt(deviceSwitch.expiresAt, now)
       )
     );
+};
+
+/** Keeps one stint open until at least `until`, for work the farm hears of late that was done on it: what the phone
+ *  recorded is proof it was in her hands then. Only ever later — a stint already open longer keeps its own end. */
+export const stretchSwitch = async (
+  db: Pick<Database, "update">,
+  id: string,
+  until: Date
+): Promise<void> => {
+  await db
+    .update(deviceSwitch)
+    .set({ expiresAt: until })
+    .where(and(eq(deviceSwitch.id, id), lt(deviceSwitch.expiresAt, until)));
 };
 
 /** Locks a phone: its switch sessions expire at once. Rows stay, so the audit of who was

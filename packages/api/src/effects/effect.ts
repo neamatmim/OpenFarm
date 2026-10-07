@@ -231,6 +231,9 @@ export interface EffectInput {
   sessionsPerDay: number;
   recordedBy: string;
   recordedAt: Date;
+  /** When it was done by the farm's clock, where the phone that held it was found behind: a gate that must hold asks at
+   *  both this and `recordedAt`. */
+  recordedAtByTheFarm?: Date;
   now: Date;
   /** The trail of the request recording it now — the person putting a Step right, not the one who first did it: work
    *  it calls off or raises again is written there. */

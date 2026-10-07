@@ -67,6 +67,14 @@ export interface EntryTimes {
   /** When the work was done: now, with signal; the phone's own time, for work it held. */
   doneAt: Date;
   receivedAt: Date;
+  /** When it was done by the farm's clock, where the phone that held it was found behind the farm's by more than the
+   *  farm allows: its own time put forward by as much. Which of the two is true the farm cannot tell — the clock may
+   *  have been put back before the work or after it — so a gate that must hold asks at both. */
+  doneAtByTheFarm?: Date;
+  /** Held for a person and taken into the records by the Owner or the Manager from Needs Review: they have looked at
+   *  it, and say it was done. A Step is then written on work they had closed as Missed meanwhile — the dose was given,
+   *  whatever the work's state says. */
+  takenIn?: boolean;
 }
 
 /** The Audit Event an Entry is written under: what it is about, what it did, and that thing as it stood either side.
@@ -173,6 +181,38 @@ export const recordNow = async <Input, Result>(
 };
 
 /**
+ * A Staff member's Scope as it stood when the work was done: a Pen handed to somebody else after she milked it, while
+ * the phone was still out of signal, was hers when she did the work. The world moved after it, and work is not refused
+ * for that (ADR 0004).
+ */
+const withPensHeldThen = async (
+  tx: Tx,
+  context: Recorder,
+  doneAt: Date
+): Promise<Recorder> => {
+  const { scope } = context;
+  if (scope.kind !== "pens" && scope.kind !== "pens_or_cases") {
+    return context;
+  }
+  const since = await tx.query.penAssignment.findMany({
+    where: {
+      farmId: context.farm.id,
+      userId: context.actor.id,
+      createdAt: { lte: doneAt },
+      endedAt: { gt: doneAt },
+    },
+    columns: { penId: true },
+  });
+  if (since.length === 0) {
+    return context;
+  }
+  const penIds = [
+    ...new Set([...scope.penIds, ...since.map((one) => one.penId)]),
+  ];
+  return { ...context, scope: { ...scope, penIds } };
+};
+
+/**
  * Recorded from a phone's Outbox, on the Batch's transaction: under the Role it would have been done under with signal,
  * dated when it was done — never later than the farm heard of it, whatever the phone's clock says — and with the
  * phone and its Sequence Number in the trail.
@@ -188,6 +228,10 @@ export const recordHeld = async <Input, Result>(
     id: string;
     eventId: string;
     device: { id: string | null; seq: number };
+    /** How far behind the farm's the phone's clock was when it sent, where by more than the farm allows. */
+    phoneBehindMs?: number;
+    /** See `EntryTimes.takenIn`. */
+    takenIn?: boolean;
   }
 ): Promise<Result> => {
   const roleUsed = roleFor(recorder, kind.roles);
@@ -207,12 +251,28 @@ export const recordHeld = async <Input, Result>(
   if (refused) {
     throw new ORPCError("BAD_REQUEST", { message: refused });
   }
-  const context: Recorder = { ...recorder, ...workingAs(recorder, roleUsed) };
-  const times = {
+  const doneAt =
+    held.recordedAt > held.receivedAt ? held.receivedAt : held.recordedAt;
+  const context = await withPensHeldThen(
+    tx,
+    { ...recorder, ...workingAs(recorder, roleUsed) },
+    doneAt
+  );
+  const times: EntryTimes = {
     id: held.id,
-    doneAt:
-      held.recordedAt > held.receivedAt ? held.receivedAt : held.recordedAt,
+    doneAt,
     receivedAt: held.receivedAt,
+    ...(held.takenIn ? { takenIn: true } : {}),
+    ...(held.phoneBehindMs
+      ? {
+          doneAtByTheFarm: new Date(
+            Math.min(
+              doneAt.getTime() + held.phoneBehindMs,
+              held.receivedAt.getTime()
+            )
+          ),
+        }
+      : {}),
   };
   const trail = kind.trail(context, input, times);
   const before = (await trail.before?.(tx)) ?? null;

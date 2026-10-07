@@ -142,7 +142,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Milk Record**: The litres one cow gave in one Milking Session, with a Destination. Captured as a Step Completion of the milking SOP. _Avoid_: Yield entry, milk log, production record
 
-**Destination**: Where a Milk Record's litres went: Bulk, Calves, or Discard. Withdrawal forces Discard. _Avoid_: Use, allocation
+**Destination**: Where a Milk Record's litres went: Bulk, Calves, or Discard. Withdrawal forces Discard — asked at the time the phone gave the milking and, where that phone's clock was found behind the farm's, at the farm's time for it too, since a Shed Phone put back a day dates a milking before the dose that holds it. _Avoid_: Use, allocation
 
 **Bulk**: The saleable milk pooled from a Milking Session. Its recorded total is reconciled against the per-cow Milk Records. _Avoid_: Tank, total milk
 
@@ -437,7 +437,7 @@ One still gathering capital comes from its plan alone: every band bought at its 
 
 ## Offline
 
-**Entry**: One thing a person recorded that the farm takes the same way however it arrives — at once, or held in an Outbox and sent in a Batch: a claim, a Step Completion, a Step photo, a finish, a Move, an Observation. Recorded under the Role it was done in and dated when it was done, with when the farm received it kept beside; when the world has moved since — the animal has left, someone else took the work — it is kept for a person rather than refused. _Avoid_: Write, mutation, record (a record is what an Entry leaves in the farm's books)
+**Entry**: One thing a person recorded that the farm takes the same way however it arrives — at once, or held in an Outbox and sent in a Batch: a claim, a Step Completion, a Step photo, a finish, a Move, an Observation. Recorded under the Role it was done in and dated when it was done, with when the farm received it kept beside; when the world has moved since — the animal has left, someone else took the work, the Manager closed it as Missed — it is kept for a person rather than refused. Held while a phone was out of signal, it is judged as the world stood when it was done: the Pens the person then had, and their stint on a Shed Phone running on from one thing they recorded to the next, as a tap would have kept it. _Avoid_: Write, mutation, record (a record is what an Entry leaves in the farm's books)
 
 **Batch**: One send from an Outbox: the entries a phone has been holding, with one key for the lot, applied with their Audit Events in a single transaction. Frozen when it is formed — the entries are written down exactly as they will be sent, proof of who recorded them included — so every attempt under its key carries the same thing, whatever the phone learns in between. _Avoid_: Sync, upload, push
 
@@ -449,7 +449,7 @@ One still gathering capital comes from its plan alone: every band bought at its 
 
 **Outbox**: The durable on-device queue of entries made without signal, sent in order when signal returns. Never emptied without the server's acknowledgement. _Avoid_: Cache, buffer, pending list (that's what the user _sees_)
 
-**Needs Review**: Something the system accepted but could not settle on its own, waiting for a person: an entry the server took although the world had changed since it was recorded, or a Correction whose effects it cannot walk back. Raised by the system, resolved by the Manager with their judgement recorded; never discarded. _Avoid_: Conflict (a Correction made against a record changed since is refused, not kept), rejected, error
+**Needs Review**: Something the system accepted but could not settle on its own, waiting for a person: an entry the server took although the world had changed since it was recorded, or a Correction whose effects it cannot walk back. Raised by the system, resolved by the Manager with their judgement recorded; never discarded. An entry a phone sent and the farm kept is shown with what was entered, about which animal, by whom and when, and the Owner or the Manager may take it into the records: written as it was entered, under whoever did it and when, with their word for why they are sure — a Step on work closed as Missed meanwhile included, since the dose was given whatever the work says; where the farm still cannot take it, it stays waiting. _Avoid_: Conflict (a Correction made against a record changed since is refused, not kept), rejected, error
 
 ## Audit
 

@@ -17,6 +17,7 @@ import { stepPhotoEntry } from "./entries/step-photo";
 import type { RaisedAlert } from "./instances-store";
 import { tell } from "./notice";
 import type { Entry, EntryResult } from "./sync-entries";
+import { entryInput } from "./sync-entries";
 import {
   batchUnder,
   clockIsOut,
@@ -54,7 +55,8 @@ const applyEntry = (
   receivedAt: Date,
   /** Made before the entry is applied, because an effect may have to hang a Needs Review on
    *  it inside this same transaction. The Audit Event is then written under the same id. */
-  eventId: string
+  eventId: string,
+  phoneBehindMs: number
 ): Promise<unknown> =>
   recordHeld(
     tx,
@@ -67,6 +69,7 @@ const applyEntry = (
       id: entry.id,
       eventId,
       device: { id: context.device?.id ?? null, seq: entry.seq },
+      phoneBehindMs,
     }
   );
 
@@ -234,6 +237,12 @@ const applyEntries = async (
   const skewed =
     input.sentAt !== undefined &&
     clockIsOut(input.sentAt, receivedAt, context.farm.clockSkewMinutes);
+  // A phone behind the farm dates its work early, and a gate asked only at the phone's time would let through what a
+  // dose already on the farm's books holds back — a Shed Phone put back a day when its battery died.
+  const phoneBehindMs =
+    skewed && input.sentAt && input.sentAt < receivedAt
+      ? receivedAt.getTime() - input.sentAt.getTime()
+      : 0;
   const seen = await highestSeq(tx, sourceKey);
   const missing = missingSeqs(
     seen,
@@ -295,7 +304,7 @@ const applyEntries = async (
       // entry is still read, which is what stops it being offered for ever.
       // oxlint-disable-next-line no-await-in-loop
       await tx.transaction((entryTx) =>
-        applyEntry(entryTx, recorder, entry, receivedAt, eventId)
+        applyEntry(entryTx, recorder, entry, receivedAt, eventId, phoneBehindMs)
       );
     } catch (error) {
       refusal = refusalOf(error);
@@ -444,3 +453,56 @@ export const applyBatch = async (
       return { results: applied, told };
     })
   );
+
+/**
+ * An entry a phone sent that the farm held for a person — the world had moved, or nothing showed who was switched in —
+ * taken into the records by the Owner or the Manager from Needs Review, who have looked at it and say it was done. It is
+ * written as it would have been: under the person who recorded it, dated when they did it, on the phone it came from,
+ * by its own Entry. Their saying so is the Needs Review's resolution, on the caller's own transaction. Refused, with the
+ * Entry's own reason, where the farm still cannot take it — she has left, somebody else's answer stands.
+ */
+export const takeInHeld = async (
+  tx: Tx,
+  held: {
+    id: string;
+    farmId: string;
+    payload: unknown;
+    sourceKey: string;
+    seq: number;
+    sentBy: string;
+  },
+  {
+    recorderOf,
+    now,
+  }: {
+    /** Who it was recorded by, read as they were on the phone it came from. */
+    recorderOf: (actorId: string, deviceId: string | null) => Promise<Recorder>;
+    now: Date;
+  }
+): Promise<void> => {
+  const entry = entryInput.parse(held.payload);
+  const phone = await tx.query.shedPhone.findFirst({
+    where: { id: held.sourceKey, farmId: held.farmId },
+    columns: { id: true },
+  });
+  const recorder = await recorderOf(
+    entry.actorId ?? held.sentBy,
+    phone?.id ?? null
+  );
+  await tx.transaction((entryTx) =>
+    recordHeld(
+      entryTx,
+      recorder,
+      ENTRIES[entry.kind] as EntryKind<Entry, unknown>,
+      entry,
+      {
+        recordedAt: entry.recordedAt,
+        receivedAt: now,
+        id: entry.id,
+        eventId: uuidv7(now),
+        device: { id: phone?.id ?? null, seq: held.seq },
+        takenIn: true,
+      }
+    )
+  );
+};

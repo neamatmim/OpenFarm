@@ -159,6 +159,7 @@ const effectOfStep = (
     eventId,
     recordedBy,
     recordedAt,
+    recordedAtByTheFarm,
     now,
   }: {
     work: WorkForEffect;
@@ -170,6 +171,8 @@ const effectOfStep = (
     eventId: string;
     recordedBy: string;
     recordedAt: Date;
+    /** See `EntryTimes.doneAtByTheFarm`. */
+    recordedAtByTheFarm?: Date;
     now: Date;
   }
 ): Promise<EffectResult> =>
@@ -206,6 +209,7 @@ const effectOfStep = (
     roleUsed: context.roleUsed,
     recordedBy,
     recordedAt,
+    recordedAtByTheFarm,
     now,
     trail: audited(context).recordEvent,
   });
@@ -283,7 +287,12 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
         ? "The Registration's renewal is recorded from the Owner's own phone, with signal"
         : undefined,
 
-    apply: async (tx, context, input, { id, doneAt, receivedAt, eventId }) => {
+    apply: async (
+      tx,
+      context,
+      input,
+      { id, doneAt, doneAtByTheFarm, receivedAt, eventId, takenIn }
+    ) => {
       // Held while the Step is written: whether the work is still owed is then what it is, not what it was a moment ago
       // — a Step cannot land on work called off under it, and two Steps begun together both start it without either
       // finding it changed.
@@ -298,7 +307,11 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
         throw new ORPCError("NOT_FOUND");
       }
       // Only on work still owed: finished work is corrected, and work closed as Missed or Called Off is not done at all.
-      requireMayTransition(work, "record");
+      // Work closed as Missed while the phone held the Step is still written when the Manager takes the Step in: the
+      // dose was given, and its Withdrawal is owed whatever the work's state says.
+      if (!(takenIn && work.state === "missed")) {
+        requireMayTransition(work, "record");
+      }
       assertMayWork(context, work);
       const content = contentOf(work.version);
       const step = stepOf(content, input.stepId);
@@ -378,6 +391,7 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
         eventId,
         recordedBy: context.actor.id,
         recordedAt: doneAt,
+        recordedAtByTheFarm: doneAtByTheFarm,
         now: receivedAt,
       });
       // The farm has moved past what this Step says — she was walked on while the phone held it: the Step is a late Entry,

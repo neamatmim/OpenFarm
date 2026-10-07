@@ -557,6 +557,60 @@ describe("review findings", () => {
       .where(eq(animal.tagNumber, world.sickCow.tagNumber));
   });
 
+  it("holds a treated cow's milk from the tank when the Shed Phone's clock was put back a day", async () => {
+    const { instance, clock } = await session("2026-12-03", world.sickPen.id);
+    const vet = await createTestClient(appRouter, { as: "vet", clock });
+    const product = await vet.client.drugs.create({
+      name: { bn: `অক্সিটেট্রাসাইক্লিন ${suffix}` },
+      milkWithdrawalDays: 4,
+      meatWithdrawalDays: 21,
+    });
+    // Dosed at half past four by the Manager, with signal.
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+    });
+    await manager.client.treatments.giveNotPrescribed({
+      animalTag: world.sickCow.tagNumber,
+      productId: product.id,
+      givenAt: new Date(clock.now().getTime() - 60 * 60_000),
+      advice: "জ্বর, ফার্মেসির পরামর্শে",
+    });
+
+    // Milked at half past five on a Shed Phone whose battery died in the night: its clock came back a day behind.
+    const phone = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+      phone: { id: "test-phone-milk-slow", name: "পিছিয়ে থাকা ফোন" },
+    });
+    const entryId = `milk-slow-clock-${instance.id}`;
+    const sent = await phone.client.sync.batch({
+      key: entryId,
+      sentAt: new Date(clock.now().getTime() - DAY),
+      entries: [
+        {
+          id: entryId,
+          seq: 1,
+          kind: "step_completion" as const,
+          instanceId: instance.id,
+          stepId: "milk",
+          animalTag: world.sickCow.tagNumber,
+          evidence: [9],
+          destination: "bulk",
+          recordedAt: new Date(clock.now().getTime() - DAY),
+        },
+      ],
+    });
+
+    expect(sent.results[0]?.outcome).toBe("flagged");
+    const record = await scratchDb().query.milkRecord.findFirst({
+      where: { completionId: entryId },
+      columns: { destination: true, forced: true },
+    });
+    expect(record).toEqual({ destination: "discard", forced: true });
+  });
+
   it("refuses a destination on a step that records no milk", async () => {
     const { instance, staff } = await session("2026-10-15");
 
