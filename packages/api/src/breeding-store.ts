@@ -307,7 +307,7 @@ export const rederivePregnancy = async (
     tx,
     her.farmId,
     { id: animalId, side: her.side, state: her.state },
-    { state, at, now }
+    { state, at, now, trail }
   );
   return followExpectedCalving(
     tx,

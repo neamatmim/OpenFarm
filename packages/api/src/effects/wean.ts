@@ -90,6 +90,7 @@ const weanHer = async (tx: Tx, input: WeanFacts): Promise<EffectResult> => {
       state: "heifer",
       at: input.recordedAt,
       now: input.now,
+      trail: input.trail,
     });
   } else {
     await requirePen(tx, farmId, chosen);

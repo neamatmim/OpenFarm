@@ -8,7 +8,7 @@ import { asPublished } from "./evidence";
 
 type DryOffFacts = Pick<
   EffectInput,
-  "instance" | "animalId" | "skipped" | "recordedAt" | "now"
+  "instance" | "animalId" | "skipped" | "recordedAt" | "now" | "trail"
 >;
 
 /**
@@ -60,6 +60,7 @@ const dryHerOff = async (tx: Tx, input: DryOffFacts): Promise<EffectResult> => {
     state: "dry",
     at: input.recordedAt,
     now: input.now,
+    trail: input.trail,
   });
   return { kind: "dry_off", dried: true, standsAside: null };
 };

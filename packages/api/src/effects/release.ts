@@ -4,11 +4,7 @@ import type { Tx } from "../audit";
 import { pensThatSuit } from "../band-store";
 import { AS_WEIGHED, weighedAs } from "../feed-store";
 import { entersState, loadLiveAnimal, walkByStep } from "../herd-store";
-import {
-  assertNoDoseOwed,
-  callOffPutOffReleases,
-  raiseThePutOff,
-} from "../put-off-store";
+import { raiseThePutOff } from "../put-off-store";
 import type { EffectInput, EffectResult, EffectKind } from "./effect";
 import { asPublished } from "./evidence";
 
@@ -84,21 +80,14 @@ const letHimOut = async (
       standsAside: null,
     };
   }
-  // Not while an arrival dose is still owed him and the Vet has not said why it is not needed.
-  await assertNoDoseOwed(tx, farmId, live.id, input.recordedAt);
+  // Not while an arrival dose is owed him; and out, any Release raised again for him is owed no more.
   await entersState(tx, farmId, live, {
     state: "fattening",
     at: input.recordedAt,
     now: input.now,
+    trail: input.trail,
+    byWork: input.instance.id,
   });
-  // Out: any Release raised again for him is owed no more.
-  await callOffPutOffReleases(
-    tx,
-    farmId,
-    live.id,
-    input.trail,
-    input.instance.id
-  );
   const weighed = await tx.query.animal.findFirst({
     where: { id: animalId, farmId },
     columns: { id: true },

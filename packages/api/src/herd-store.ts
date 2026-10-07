@@ -42,6 +42,7 @@ import type { CalvingWorkFollowed } from "./calving-work";
 import { followExpectedCalving } from "./calving-work";
 import { joinTheFattening } from "./joining-store";
 import { lateEntry } from "./late";
+import { assertNoDoseOwed, callOffPutOffReleases } from "./put-off-store";
 import type { CalledOffBy } from "./work-transitions";
 import { callOffWork } from "./work-transitions";
 
@@ -717,6 +718,9 @@ const stillIn = (farmId: string, her: { id: string; state: AnimalState }) =>
  * down — anything a State raises counts from there. Every date about a pregnancy is breeding's to work out. Dried off
  * from milk, the day is kept as her Lactation's Dry-off, which her next calving does not overwrite.
  *
+ * Leaving Quarantine, by the Release's Step or by hand, he goes only when no arrival dose is owed him, and any Release
+ * raised again for him is owed no more: said here so that no way out of Quarantine can forget either.
+ *
  * Not calving, which is `calves`; not a way across to the other Side, which is a Move (`walkTo`); not out of the herd,
  * which is `leaves`. And nothing she has left may enter anything.
  */
@@ -724,11 +728,26 @@ export const entersState = async (
   tx: Tx,
   farmId: string,
   her: { id: string; side: Side; state: AnimalState },
-  { state, at, now }: { state: AnimalState; at: Date; now: Date }
+  {
+    state,
+    at,
+    now,
+    trail,
+    byWork = null,
+  }: {
+    state: AnimalState;
+    at: Date;
+    now: Date;
+    /** Where what follows a change of State is written: the Release work called off. */
+    trail: Trail;
+    /** The work this change is recorded on, which is done rather than called off. */
+    byWork?: string | null;
+  }
 ): Promise<void> => {
   if (state === her.state) {
     return;
   }
+  const leavingQuarantine = her.state === "quarantine";
   if (
     state === "milking" ||
     isExitState(state) ||
@@ -743,6 +762,9 @@ export const entersState = async (
       message: `An animal cannot go from ${her.state} to ${state}`,
       data: { refusal: "no_such_change_of_state" },
     });
+  }
+  if (leavingQuarantine) {
+    await assertNoDoseOwed(tx, farmId, her.id, at);
   }
   const [reached] = await tx
     .update(animal)
@@ -773,6 +795,9 @@ export const entersState = async (
         createdAt: now,
       })
       .onConflictDoNothing();
+  }
+  if (leavingQuarantine) {
+    await callOffPutOffReleases(tx, farmId, reached.id, trail, byWork);
   }
 };
 

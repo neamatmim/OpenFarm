@@ -107,11 +107,7 @@ import {
 } from "../mortality-store";
 import type { Raised } from "../notice";
 import { pushRaised } from "../push-send";
-import {
-  arrivalDosesOwed,
-  assertNoDoseOwed,
-  callOffPutOffReleases,
-} from "../put-off-store";
+import { arrivalDosesOwed } from "../put-off-store";
 import { owingOnHerSale } from "../receivable-store";
 import { forbidden, requirePersonalSession, requireRole } from "../roles";
 import {
@@ -1443,10 +1439,6 @@ export const animalsRouter = {
             });
             return;
           }
-          // Let out of Quarantine by hand: the same gate as the Release's — not while an arrival dose is owed.
-          if (current.state === "quarantine") {
-            await assertNoDoseOwed(tx, context.farm.id, current.id, now);
-          }
           // Carrying set by hand says when she is expected to calve, as she would be registered; not carrying, the
           // calving she was expected to make — and its work — goes. Once neither was asked, and a heifer set carrying had
           // nothing ever fall due, or one set back kept her calving work open.
@@ -1459,10 +1451,13 @@ export const animalsRouter = {
                   context.farm.gestationDays
                 )
               : null;
+          // Let out of Quarantine by hand, as by the Release: not while an arrival dose is owed, and any Release
+          // raised again for him called off (`entersState`).
           await entersState(tx, context.farm.id, current, {
             state: input.state,
             at: now,
             now,
+            trail: audited(context).recordEvent,
           });
           if (calving) {
             await tx
@@ -1478,15 +1473,6 @@ export const animalsRouter = {
               calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
               trail: audited(context).recordEvent,
             });
-          }
-          // Let out by hand: any Release raised again for him is owed no more.
-          if (current.state === "quarantine") {
-            await callOffPutOffReleases(
-              tx,
-              context.farm.id,
-              current.id,
-              audited(context).recordEvent
-            );
           }
         }
       );
