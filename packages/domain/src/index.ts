@@ -989,6 +989,13 @@ export { OWNERS_TRAIL, WHOSE_TRAIL } from "./whose-trail";
 export type { AuditEntity } from "./whose-trail";
 export { nameAsCompared, sameName } from "./names";
 export {
+  PAY_IN_ANCHOR,
+  REQUESTS_ANCHOR,
+  addressOf,
+  whereANoticeLeads,
+} from "./notice-place";
+export type { NoticeAsKept, NoticePath, NoticePlace } from "./notice-place";
+export {
   ALL_FARM_PARAMETERS,
   FARM_PARAMETERS,
   TIME_PARAMETERS,

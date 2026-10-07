@@ -1,5 +1,5 @@
-import type { AlertKind } from "@OpenFarm/domain";
-import { SAYS, noticeFilling } from "@OpenFarm/domain";
+import type { AlertKind, NoticeAsKept } from "@OpenFarm/domain";
+import { SAYS, noticeFilling, whereANoticeLeads } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -13,12 +13,9 @@ import {
   ChevronUp,
   OctagonAlert,
 } from "lucide-react";
-import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { StatusBadge } from "@/components/page";
-import { REQUESTS_ANCHOR } from "@/components/ventures/request-parts";
-import { PAY_IN_ANCHOR } from "@/components/ventures/venture-pay-in-notes";
 import { useLanguage } from "@/i18n/language-provider";
 import { STANDING_ASIDE_WORDS } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
@@ -74,229 +71,8 @@ const NoticeWords = ({
   );
 };
 
-/** Which Venture a notice is about, read as defensively as the rest of the snapshotted params are. */
-const ventureOf = (params: unknown): string | null => {
-  const id = (params as { ventureId?: unknown } | null)?.ventureId;
-  return typeof id === "string" && id !== "" ? id : null;
-};
-
-/** Which animal a notice names, where it names one by her tag. */
-const tagOf = (params: unknown): string | null => {
-  const tag = (params as { tag?: unknown } | null)?.tag;
-  return typeof tag === "string" && tag !== "" ? tag : null;
-};
-
-/** The notices about a procedure itself — retired, brought back — which lead to its card. */
-const ABOUT_A_PROCEDURE: ReadonlySet<string> = new Set([
-  "sop_retired",
-  "sop_restored",
-]);
-
-/** Which procedure a notice is about, for the way to its card. */
-const procedureOf = (notice: {
-  kind: string;
-  params: unknown;
-}): string | null => {
-  if (!ABOUT_A_PROCEDURE.has(notice.kind)) {
-    return null;
-  }
-  const id = (notice.params as { definitionId?: unknown } | null)?.definitionId;
-  return typeof id === "string" && id !== "" ? id : null;
-};
-
 const LEADS_CLASS =
   "text-primary mt-1 block text-sm font-medium hover:underline";
-/** A place a notice leads to: the words of the way there, and the way itself. */
-interface Place {
-  label: MessageKey;
-  Way: (props: { children: ReactNode }) => ReactNode;
-}
-
-/**
- * The notices that lead to one place whatever they name: the list where what they ask about is answered — the money
- * waiting for approval, a proposal to read, an entry the farm sent back, the backups, the feed store, the medicines,
- * the milk that does not add up.
- */
-const TO_THE_MEDICINES: Place = {
-  label: "alerts.openTheMedicines",
-  Way: ({ children }) => (
-    <Link className={LEADS_CLASS} to="/drugs">
-      {children}
-    </Link>
-  ),
-};
-const TO_WHO_OWES: Place = {
-  label: "alerts.seeWhoOwes",
-  Way: ({ children }) => (
-    <Link className={LEADS_CLASS} to="/money/receivables">
-      {children}
-    </Link>
-  ),
-};
-const TO_THE_BACKUPS: Place = {
-  label: "alerts.openTheBackups",
-  Way: ({ children }) => (
-    <Link className={LEADS_CLASS} to="/farm/backups">
-      {children}
-    </Link>
-  ),
-};
-const PLACES = {
-  money_awaiting_approval: {
-    label: "alerts.openTheMoney",
-    Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/money">
-        {children}
-      </Link>
-    ),
-  },
-  sop_proposed: {
-    label: "alerts.readTheProposals",
-    Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/sops/proposals">
-        {children}
-      </Link>
-    ),
-  },
-  sop_published: {
-    label: "alerts.openTheProcedures",
-    Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/sops">
-        {children}
-      </Link>
-    ),
-  },
-  entry_rejected: {
-    label: "alerts.openTheOutbox",
-    Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/outbox">
-        {children}
-      </Link>
-    ),
-  },
-  day_not_turning: TO_THE_BACKUPS,
-  backup_overdue: TO_THE_BACKUPS,
-  monthly_copy_failed: TO_THE_BACKUPS,
-  receivable_overdue: TO_WHO_OWES,
-  credit_after_write_off: TO_WHO_OWES,
-  pen_sores_seen: {
-    label: "alerts.openObservations",
-    Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/observations">
-        {children}
-      </Link>
-    ),
-  },
-  still_here_after_eid: {
-    label: "alerts.openTheEids",
-    Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/farm/eid-dates">
-        {children}
-      </Link>
-    ),
-  },
-  cash_short: {
-    label: "alerts.openTheCash",
-    Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/money/cash">
-        {children}
-      </Link>
-    ),
-  },
-  store_shortfall: {
-    label: "alerts.openTheCounts",
-    Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/feed/stock-counts">
-        {children}
-      </Link>
-    ),
-  },
-  needs_review: {
-    label: "alerts.openTheReviews",
-    Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/review-queue/needs-review">
-        {children}
-      </Link>
-    ),
-  },
-  work_missed: {
-    label: "alerts.openTheOverdue",
-    Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/review-queue/overdue">
-        {children}
-      </Link>
-    ),
-  },
-  low_stock: {
-    label: "alerts.openTheStore",
-    Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/feed">
-        {children}
-      </Link>
-    ),
-  },
-  settings_changed: {
-    label: "alerts.openTheTrail",
-    Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/audit">
-        {children}
-      </Link>
-    ),
-  },
-  feed_price_jump: {
-    label: "alerts.openTheArrivals",
-    Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/feed/feed-in">
-        {children}
-      </Link>
-    ),
-  },
-  lot_expiring: TO_THE_MEDICINES,
-  lot_expired: TO_THE_MEDICINES,
-  medicine_low_stock: TO_THE_MEDICINES,
-  medicine_short: TO_THE_MEDICINES,
-  milk_unaccounted: {
-    label: "alerts.openTheMilk",
-    Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/milk/reconciliation">
-        {children}
-      </Link>
-    ),
-  },
-} satisfies Partial<Record<AlertKind, Place>>;
-
-/** Where a notice of this kind leads, if it is one that always leads to the same place. */
-const placeOf = (kind: string): Place | undefined =>
-  (PLACES as Partial<Record<string, Place>>)[kind];
-
-/** The notices that lead to a Venture's Investors tab — named by the Venture they carry — with what the link says and,
- *  for a section further down the tab, where on it. */
-const TO_INVESTORS = {
-  investor_statement_due: { label: "alerts.makeThePaper", hash: undefined },
-  monthly_sum_missed: { label: "alerts.seeWhoIsBehind", hash: undefined },
-  pay_in_note_sent: {
-    label: "alerts.checkThePayInNotes",
-    hash: PAY_IN_ANCHOR,
-  },
-  join_requested: { label: "alerts.readTheRequests", hash: REQUESTS_ANCHOR },
-} as const satisfies Partial<
-  Record<AlertKind, { label: MessageKey; hash: string | undefined }>
->;
-
-const investorsTabOf = (kind: string) =>
-  (
-    TO_INVESTORS as Partial<
-      Record<string, { label: MessageKey; hash: string | undefined }>
-    >
-  )[kind];
-
-/** The notices about a procedure: its pages are for those who run the farm. A milker or the Vet is told what changed,
- *  and has nowhere there to be sent — the work list is where the procedure reaches them. */
-const ABOUT_THE_PROCEDURES: ReadonlySet<string> = new Set([
-  "sop_published",
-  "sop_retired",
-  "sop_restored",
-]);
 
 /** Whether the reader runs the farm: the Owner or a Manager. */
 const useRunsTheFarm = (): boolean => {
@@ -306,114 +82,28 @@ const useRunsTheFarm = (): boolean => {
   );
 };
 
-/** A Lot of feed near its day: it is in the feed store, not among the medicines. */
-const isAFeedLot = (notice: { kind: string; params: unknown }): boolean =>
-  (notice.kind === "lot_expiring" || notice.kind === "lot_expired") &&
-  (notice.params as { what?: unknown } | null)?.what === "feed";
-
 /**
- * Where a notice leads: to what it is about, so the notice is a way there rather than a sentence to go and act on
- * somewhere else — the work that is late or was sent back, the animal it names, the Venture whose Investors are
- * owed a paper, the Requests to Join waiting for an answer. A notice about none of these has nowhere to go, and "got
- * it" is its only answer.
+ * Where a notice leads (`whereANoticeLeads`, which the push opens by too): to what it is about, so the notice is a way
+ * there rather than a sentence to go and act on somewhere else. A notice about none of the farm's pages has nowhere to
+ * go, and "got it" is its only answer.
  */
-const WhereItLeads = ({
-  notice,
-}: {
-  notice: { kind: string; params: unknown; entity: string; entityId: string };
-}) => {
+const WhereItLeads = ({ notice }: { notice: NoticeAsKept }) => {
   const { t } = useLanguage();
   const runsTheFarm = useRunsTheFarm();
-  if (ABOUT_THE_PROCEDURES.has(notice.kind) && !runsTheFarm) {
-    return (
-      <Link className={LEADS_CLASS} to="/work">
-        {t("alerts.openTheWorkList")}
-      </Link>
-    );
+  const place = whereANoticeLeads(notice, { runsTheFarm });
+  if (!place) {
+    return null;
   }
-  if (isAFeedLot(notice)) {
-    return (
-      <Link className={LEADS_CLASS} to="/feed">
-        {t("alerts.openTheStore")}
-      </Link>
-    );
-  }
-  const place = placeOf(notice.kind);
-  if (place) {
-    return <place.Way>{t(place.label)}</place.Way>;
-  }
-  if (notice.kind === "reimbursement_due") {
-    const ventureId = ventureOf(notice.params);
-    const { month } = notice.params as { month?: unknown };
-    return ventureId === null ? null : (
-      <Link
-        className={LEADS_CLASS}
-        params={{ ventureId }}
-        search={typeof month === "string" ? { reimburse: month } : {}}
-        to="/ventures/$ventureId"
-      >
-        {t("alerts.reimburseNow")}
-      </Link>
-    );
-  }
-  if (notice.kind === "entered_twice") {
-    // The day it was for, not this month: money entered twice in another month is not on this month's page.
-    const day = (notice.params as { day?: unknown } | null)?.day;
-    return (
-      <Link
-        className={LEADS_CLASS}
-        search={typeof day === "string" ? { from: day, to: day } : {}}
-        to="/money"
-      >
-        {t("alerts.openTheMoney")}
-      </Link>
-    );
-  }
-  const toInvestors = investorsTabOf(notice.kind);
-  if (toInvestors) {
-    const ventureId = ventureOf(notice.params);
-    return ventureId === null ? null : (
-      <Link
-        className={LEADS_CLASS}
-        hash={toInvestors.hash}
-        params={{ ventureId }}
-        to="/ventures/$ventureId/investors"
-      >
-        {t(toInvestors.label)}
-      </Link>
-    );
-  }
-  const definitionId = procedureOf(notice);
-  if (definitionId !== null) {
-    return (
-      <Link
-        className={LEADS_CLASS}
-        params={{ definitionId }}
-        to="/sops/$definitionId/card"
-      >
-        {t("alerts.openTheCard")}
-      </Link>
-    );
-  }
-  if (notice.entity === "sop_instance") {
-    return (
-      <Link
-        className={LEADS_CLASS}
-        params={{ instanceId: notice.entityId }}
-        to="/work/$instanceId"
-      >
-        {t("alerts.openTheWork")}
-      </Link>
-    );
-  }
-  const tagNumber = tagOf(notice.params);
-  return tagNumber === null ? null : (
+  return (
     <Link
       className={LEADS_CLASS}
-      params={{ tagNumber }}
-      to="/animals/$tagNumber"
+      hash={place.hash}
+      // The domain says the way in the router's own paths; every one is a route (notice-place.test.ts).
+      params={place.params as never}
+      search={place.search as never}
+      to={place.to as never}
     >
-      {t("alerts.openHer", { tag: tagNumber })}
+      {t(place.label, place.labelParams)}
     </Link>
   );
 };
