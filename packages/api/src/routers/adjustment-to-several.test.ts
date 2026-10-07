@@ -202,4 +202,25 @@ describe("a Settlement Adjustment paid to several Investors", () => {
       expect(his?.per100).toBe(4.8);
     }
   });
+
+  it("is opened again with a reason: its money comes off the Farm's books, and it waits to be sent afresh", async () => {
+    const { client: owner } = await at("2097-02-03T04:00:00.000Z");
+    const before = await owner.ventures.settlement.approved({ ventureId });
+    const [adjustment] = before?.adjustments ?? [];
+    expect(adjustment?.outcome).toBe("paid");
+
+    await owner.ventures.settlement.adjustments.reopen({
+      ventureId,
+      adjustmentId: adjustment?.id ?? "",
+      reason: `ভুল অ্যাকাউন্টে পাঠানো হয়েছিল ${suffix}`,
+    });
+
+    const after = await owner.ventures.settlement.approved({ ventureId });
+    expect(after?.adjustments.at(0)?.outcome).toBe("outstanding");
+    const booked = await scratchDb().query.moneyEvent.findMany({
+      where: { farmId: theFarm().id, source: "settlement_adjustment" },
+      columns: { id: true },
+    });
+    expect(booked).toEqual([]);
+  });
 });

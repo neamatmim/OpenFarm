@@ -5,6 +5,7 @@ import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { TakeItBack } from "@/components/animal/take-it-back";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -151,6 +152,30 @@ export const WaiveAdjustmentSheet = ({
   );
 };
 
+/** A paid or waived Adjustment opened again, with the Owner's reason: what it sent comes off the Farm's books. */
+const ReopenAdjustment = ({
+  ventureId,
+  adjustmentId,
+}: {
+  ventureId: string;
+  adjustmentId: string;
+}) => {
+  const { t } = useLanguage();
+  const reopen = useMutation(
+    orpc.ventures.settlement.adjustments.reopen.mutationOptions({})
+  );
+  return (
+    <TakeItBack
+      choice={t("ventures.reopenIt")}
+      hint={t("ventures.reopenHint")}
+      onSave={(reason) =>
+        reopen.mutateAsync({ ventureId, adjustmentId, reason })
+      }
+      title={t("ventures.reopen")}
+    />
+  );
+};
+
 /**
  * What one Adjustment says: what turned up, what the run would come to now against what was frozen, and
  * what became of it.
@@ -159,12 +184,14 @@ export const WaiveAdjustmentSheet = ({
  * and which is today's is an Owner about to read the wrong one to an Investor.
  */
 const OneAdjustment = ({
+  ventureId,
   adjustment,
   frozen,
   shares,
   onPay,
   onWaive,
 }: {
+  ventureId: string;
   adjustment: Adjustment;
   frozen: { profitMoney: number; perUnitMoney: number };
   shares: Approved["shares"];
@@ -239,6 +266,14 @@ const OneAdjustment = ({
             ))}
         </div>
       ) : null}
+      {adjustment.outcome === "paid" || adjustment.outcome === "waived" ? (
+        <div className="flex justify-end">
+          <ReopenAdjustment
+            adjustmentId={adjustment.id}
+            ventureId={ventureId}
+          />
+        </div>
+      ) : null}
       {adjustment.outcome === "outstanding" ? (
         <div className="flex justify-end gap-2">
           {adjustment.perUnitToPayMoney <= 0 ? null : (
@@ -276,11 +311,13 @@ const OneAdjustment = ({
  * run would come to now *and* what was frozen, side by side, rather than leaving her to wonder.
  */
 export const Adjustments = ({
+  ventureId,
   approved,
   onRaise,
   onPay,
   onWaive,
 }: {
+  ventureId: string;
   approved: Approved;
   onRaise: () => void;
   onPay: (what: { adjustmentId: string; amountMoney: number }) => void;
@@ -303,6 +340,7 @@ export const Adjustments = ({
         ) : null}
         {approved.adjustments.map((one) => (
           <OneAdjustment
+            ventureId={ventureId}
             adjustment={one}
             frozen={approved}
             key={one.id}

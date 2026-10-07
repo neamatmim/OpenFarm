@@ -233,3 +233,53 @@ export const closeAdjustment = (
         eq(settlementAdjustment.farmId, farmId)
       )
     );
+
+/**
+ * A paid or waived Adjustment opened again — paid on a mistaken figure, waived when it should have gone — so it can be
+ * dealt with afresh: the money it sent is taken off the Farm's books, and the waiver's words go. Refused once a later
+ * Adjustment stands on it, which worked out what it still had to send from what this one had.
+ */
+export const reopenAdjustment = async (
+  tx: Tx,
+  farmId: string,
+  settlementId: string,
+  id: string
+): Promise<{ outcome: AdjustmentOutcome }> => {
+  const row = await tx.query.settlementAdjustment.findFirst({
+    where: { id, farmId, settlementId },
+  });
+  if (!row) {
+    throw new ORPCError("NOT_FOUND", { message: "No such Adjustment" });
+  }
+  if (row.outcome !== "paid" && row.outcome !== "waived") {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That Adjustment is not closed",
+      data: { refusal: "adjustment_not_closed" },
+    });
+  }
+  const later = await tx.query.settlementAdjustment.findFirst({
+    where: { farmId, settlementId, raisedAt: { gt: row.raisedAt } },
+    columns: { id: true },
+  });
+  if (later) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A later Adjustment was worked out from this one",
+      data: { refusal: "later_adjustment_rests_on_it" },
+    });
+  }
+  await tx
+    .update(settlementAdjustment)
+    .set({
+      outcome: "outstanding",
+      waivedNote: null,
+      closedAt: null,
+      closedBy: null,
+    })
+    .where(
+      and(
+        eq(settlementAdjustment.id, id),
+        eq(settlementAdjustment.farmId, farmId)
+      )
+    );
+  return { outcome: row.outcome };
+};

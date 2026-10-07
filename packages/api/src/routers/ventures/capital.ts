@@ -37,7 +37,12 @@ import {
   requireRole,
 } from "../../roles";
 import { paidFromTheFloat } from "../../trip-store";
-import { actOnVenture, assertNotSettledUp, ours } from "../../venture-act";
+import {
+  actOnVenture,
+  assertNotSettledUp,
+  ours,
+  uncountVentureFloat,
+} from "../../venture-act";
 import {
   assertCattleBudgetHolds,
   lockTheFarm,
@@ -604,6 +609,41 @@ export const capitalProcedures = {
           }
         );
         return { ...counted, cashBackMoney: input.cashBackMoney };
+      }),
+
+    /**
+     * A Float's count taken back, with the Owner's reason: counted against the wrong figure, or the cash back typed
+     * wrong. The homecoming goes and the Float is open again, to be counted afresh — the outing takes animals and costs
+     * again until it is. Refused once the Venture is settled up, whose figures it is part of.
+     */
+    uncount: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(
+        z.object({
+          buyingTripId: z.string(),
+          reason: z.string().trim().min(1).max(400),
+        })
+      )
+      .handler(async ({ context, input }) => {
+        let floatId = "";
+        await audited(context).write(
+          {
+            entity: "venture_movement",
+            entityId: () => floatId,
+            action: "correct",
+            reason: input.reason,
+            after: (tx) => readMovement(tx, context.farm.id, floatId),
+          },
+          async (tx) => {
+            ({ id: floatId } = await uncountVentureFloat(
+              tx,
+              context.farm.id,
+              input.buyingTripId
+            ));
+          }
+        );
+        return { id: floatId };
       }),
   },
 };

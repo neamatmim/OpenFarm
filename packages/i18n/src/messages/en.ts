@@ -1543,6 +1543,14 @@ export const en = {
   "ventures.wasPaid": "Paid on top",
   "ventures.wasWaived": "Let go",
   "ventures.waive": "Let it go",
+  "ventures.uncount": "Count again",
+  "ventures.uncountHint":
+    "Counted against the wrong slip, or the cash back typed wrong: its homecoming goes and the float is open again, to be counted afresh.",
+  "ventures.uncountIt": "Take the count back: it was counted wrong",
+  "ventures.reopen": "Open again",
+  "ventures.reopenHint":
+    "Paid on a mistaken figure, or waived when it should have gone: what it sent comes off the farm's books, and it waits to be sent or waived afresh.",
+  "ventures.reopenIt": "Open it again: it was dealt with by mistake",
   "ventures.waiveHint":
     "Deciding this is not worth moving money over. Say why — it is a decision you stand behind.",
   "ventures.whyLetItGo": "Why you are letting it go",
@@ -1795,6 +1803,17 @@ export const en = {
     "Her death is put down to it: put her death right first",
   "refusal.reportDelivered":
     "Its report has reached the office: a letter that went, went",
+  "refusal.adjustmentNotClosed": "That adjustment is not paid or waived",
+  "refusal.laterAdjustmentRestsOnIt":
+    "A later adjustment was worked out from this one: open that one first",
+  "refusal.countedSince":
+    "A cash count of that hand since stands on it: put the count right first",
+  "refusal.handoverOfAnOuting":
+    "That cash went with an outing or into a venture: put it right there",
+  "refusal.floatNotCounted": "That float has not been counted",
+  "refusal.notExcused": "That dose was not excused",
+  "refusal.releasedOnIt":
+    "He has been released on it: give the dose in the herd",
   "refusal.notOnTheFarm":
     "The farm does not have that record: it has not arrived yet from a phone, or was taken away. Open the page again in a moment",
   "refusal.recordedByALeaver":
@@ -2994,6 +3013,10 @@ export const en = {
   "animals.doseComesRound": "comes round again {day}",
   "animals.doseNotRaised": "not raised again yet",
   "animals.doseNotNeeded": "Not needed",
+  "animals.excuseTakeBack": "Take back",
+  "animals.excuseTakeBackHint":
+    "The reason was for another animal: the dose is owed again and raised again for him. Not once he is released on it.",
+  "animals.excuseTakeBackIt": "Take the excuse back: the dose is owed",
   "animals.doseNotNeededWhy": "Why it is not needed",
   "animals.doseNotNeededHint":
     "Write why this dose is not needed — given at the farm he came from, say, and you saw the card. It is then not owed, and he may leave quarantine.",
@@ -4967,6 +4990,8 @@ export const en = {
   "abortion.when": "When",
   "abortion.stageMonths": "How many months along",
   "abortion.note": "Vet's note",
+  "abortion.voidIt":
+    "Take it away: it was not hers. Her pregnancy is found again with a check",
   "abortion.record": "Record an abortion",
   "abortion.recorded": "Abortion recorded",
   "refusal.abortionOfACowNotCarrying":
@@ -6272,6 +6297,12 @@ export const en = {
   "cash.col.bought": "Bought",
   "cash.col.due": "To come back",
   "cash.none": "No cash has moved through this hand yet.",
+  "cash.uncountHint":
+    "Counted home against the wrong figure: the cash it brought back goes back to the hand that carried it, and the outing is counted afresh.",
+  "cash.voidHandover": "Take back",
+  "cash.voidHandoverHint":
+    "Written twice, or to the wrong hand: the cash is back in the hand it never left. A count of either hand since stands on it.",
+  "cash.voidHandoverIt": "Void it: the cash never changed hands",
   "cash.heldBy": "in {name}'s hand",
   "cash.neverCounted": "Not counted yet",
   "cash.forTrip": "A buying trip's float",

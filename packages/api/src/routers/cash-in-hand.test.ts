@@ -239,3 +239,26 @@ describe("cash the Owner writes up for somebody else", () => {
     ).rejects.toMatchObject({ data: { refusal: "owner_only" } });
   });
 });
+
+describe("a Handover written by mistake", () => {
+  it("is voided by whoever wrote it, and the cash is back in the hand it never left", async () => {
+    const manager = await as("manager");
+    const managerBefore = await handOf("manager");
+    const ownerBefore = await handOf("owner");
+    const handed = await manager.client.cash.handOver({
+      from: { userId: thePerson("manager").id },
+      to: { userId: thePerson("owner").id },
+      amountMoney: 400,
+    });
+    expect(await handOf("manager")).toBe(managerBefore - 400);
+
+    await manager.client.cash.correctHandover({
+      id: handed.id,
+      reason: "দুবার লেখা হয়েছিল",
+      changes: { voided: { from: false, to: true } },
+    });
+
+    expect(await handOf("manager")).toBe(managerBefore);
+    expect(await handOf("owner")).toBe(ownerBefore);
+  });
+});

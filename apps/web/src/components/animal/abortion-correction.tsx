@@ -2,15 +2,16 @@ import { useMutation } from "@tanstack/react-query";
 
 import {
   CorrectionAnswer,
+  CorrectionChoice,
   CorrectionDialog,
   useCorrecting,
 } from "@/components/correction-dialog";
 import { useLanguage } from "@/i18n/language-provider";
-import { day, figure, words } from "@/lib/correcting";
+import { day, figure, voiding, words } from "@/lib/correcting";
 import { orpc } from "@/utils/orpc";
 
-/** An abortion put right by the Vet — the day, how far along she was, or the note — with the reason. What it did to
- *  her pregnancy stands: one recorded against the wrong cow is a pregnancy to find again with a check. */
+/** An abortion put right by the Vet — the day, how far along she was, or the note — or taken away, written against the
+ *  wrong cow, with the reason. What it did to her pregnancy stands: that is found again with a check. */
 export const AbortionCorrection = ({
   abortion,
 }: {
@@ -26,6 +27,7 @@ export const AbortionCorrection = ({
     abortedAt: day(abortion.abortedAt),
     stageMonths: figure(abortion.stageMonths, 1),
     note: words(abortion.note ?? ""),
+    voided: voiding(),
   });
   const correct = useMutation(
     orpc.breeding.correctAbortion.mutationOptions({})
@@ -62,6 +64,13 @@ export const AbortionCorrection = ({
         label={t("abortion.note")}
         onChange={(value) => correcting.set("note", value)}
         value={correcting.typed.note ?? ""}
+      />
+      <CorrectionChoice
+        label={t("vet.voidWhy")}
+        onChange={(value) => correcting.set("voided", value)}
+        options={[{ value: "void", label: t("abortion.voidIt") }]}
+        unchosen={t("correct.keep")}
+        value={correcting.typed.voided ?? ""}
       />
     </CorrectionDialog>
   );

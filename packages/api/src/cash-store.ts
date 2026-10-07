@@ -859,6 +859,56 @@ export const reconcileFarmFloat = async (
     .where(eq(buyingTrip.id, input.tripId));
 };
 
+/**
+ * A Farm Float's count taken back — the cash back typed wrong, or counted too soon: the cash it handed back to the Owner
+ * goes, and the outing is open again to take its costs and be counted afresh. Refused once a count of either hand since
+ * stands on that cash.
+ */
+export const uncountFarmFloat = async (
+  tx: Tx,
+  input: { farmId: string; tripId: string }
+): Promise<void> => {
+  await lockTheFarm(tx, input.farmId);
+  const trip = await tx.query.buyingTrip.findFirst({
+    where: { id: input.tripId, farmId: input.farmId },
+    columns: { floatReconciledAt: true },
+  });
+  if (!trip?.floatReconciledAt) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That float has not been counted home",
+      data: { refusal: "float_not_counted" },
+    });
+  }
+  const back = await tx.query.handover.findFirst({
+    where: { farmId: input.farmId, buyingTripId: input.tripId, float: "back" },
+    columns: { id: true, fromUserId: true, toUserId: true, handedAt: true },
+  });
+  if (back) {
+    const hands = [back.fromUserId, back.toUserId].filter(
+      (one): one is string => one !== null
+    );
+    const since = await tx.query.cashCount.findFirst({
+      where: {
+        farmId: input.farmId,
+        userId: { in: hands },
+        countedAt: { gte: back.handedAt },
+      },
+      columns: { id: true },
+    });
+    if (since) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "A cash count since stands on the cash it brought back",
+        data: { refusal: "counted_since" },
+      });
+    }
+    await tx.delete(handover).where(eq(handover.id, back.id));
+  }
+  await tx
+    .update(buyingTrip)
+    .set({ floatReconciledAt: null, floatReconciledBy: null })
+    .where(eq(buyingTrip.id, input.tripId));
+};
+
 /** One end of a Handover: a person's hand, or the bank. */
 export type HandEnd =
   | { userId: string }

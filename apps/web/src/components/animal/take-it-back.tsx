@@ -13,7 +13,7 @@ import { orpc } from "@/utils/orpc";
  * A record that is taken back rather than retyped — written against the wrong cow, written twice — with the reason the
  * dialog asks for kept in the trail. Written again as it really was, if it happened at all.
  */
-const TakeItBack = ({
+export const TakeItBack = ({
   title,
   hint,
   choice,

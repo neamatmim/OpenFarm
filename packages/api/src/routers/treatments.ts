@@ -10,7 +10,7 @@ import {
 } from "../corrections/dose-not-prescribed";
 import { recordDoseNotPrescribed } from "../dose-not-prescribed-store";
 import { protectedProcedure } from "../index";
-import { excuseArrivalDose } from "../put-off-store";
+import { takeBackTheExcuse, excuseArrivalDose } from "../put-off-store";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
 
 /** Whether a dose is needed is the Vet's to say. */
@@ -127,6 +127,48 @@ export const treatmentsRouter = {
             vetId: context.actor.id,
             now,
             trail: audited(context).recordEvent,
+          })
+      );
+      return { tagNumber: input.tagNumber.toUpperCase() };
+    }),
+
+  /** The Vet's excuse for an arrival dose taken back, with a reason (`takeBackTheExcuse`). The Vet's alone. */
+  takeBackExcuse: protectedProcedure
+    .use(requireOnly("vet", EXCUSED_BY_THE_VET))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        tagNumber: z.string().trim().min(1).max(32),
+        definitionId: z.string(),
+        reason: z.string().trim().min(3).max(300),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const him = await context.db.query.animal.findFirst({
+        where: {
+          farmId: context.farm.id,
+          tagNumber: input.tagNumber.toUpperCase(),
+        },
+        columns: { id: true },
+      });
+      if (!him) {
+        throw new ORPCError("NOT_FOUND", { message: "No such animal" });
+      }
+      await audited(context).write(
+        {
+          entity: "excused_dose",
+          entityId: `${him.id}:${input.definitionId}`,
+          action: "correct",
+          reason: input.reason,
+          after: () => Promise.resolve(null),
+        },
+        (tx) =>
+          takeBackTheExcuse(tx, {
+            farmId: context.farm.id,
+            animalId: him.id,
+            definitionId: input.definitionId,
+            now,
           })
       );
       return { tagNumber: input.tagNumber.toUpperCase() };

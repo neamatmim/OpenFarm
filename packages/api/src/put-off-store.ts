@@ -341,3 +341,53 @@ export const excuseArrivalDose = async (
     { trail: input.trail, by: "excused" }
   );
 };
+
+/**
+ * The Vet's excuse taken back — the card from the other farm was for another bull: the dose is owed again, and raised
+ * again for him after the farm's days as one put off is. Refused once he has left Quarantine, whose Release went ahead
+ * on the excuse: his doses are then the Vet's to give him in the herd.
+ */
+export const takeBackTheExcuse = async (
+  tx: Tx,
+  input: { farmId: string; animalId: string; definitionId: string; now: Date }
+): Promise<void> => {
+  const excuse = await tx.query.excusedDose.findFirst({
+    where: {
+      farmId: input.farmId,
+      animalId: input.animalId,
+      definitionId: input.definitionId,
+    },
+    columns: { id: true },
+  });
+  if (!excuse) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That dose was not excused",
+      data: { refusal: "not_excused" },
+    });
+  }
+  const him = await tx.query.animal.findFirst({
+    where: { id: input.animalId, farmId: input.farmId },
+    columns: { state: true },
+  });
+  if (him?.state !== "quarantine") {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "He has been released on it: give the dose in the herd",
+      data: { refusal: "released_on_it" },
+    });
+  }
+  await tx.delete(excusedDose).where(eq(excusedDose.id, excuse.id));
+  // Raised again from the last work that asked for it, as a skip would have raised it.
+  const last = await tx.query.sopInstance.findFirst({
+    where: {
+      farmId: input.farmId,
+      animalId: input.animalId,
+      definitionId: input.definitionId,
+      cause: { like: `arrival:${input.animalId}:+%` },
+    },
+    orderBy: { dueAt: "desc", id: "desc" },
+    columns: { id: true },
+  });
+  if (last) {
+    await raiseThePutOff(tx, input.farmId, last.id, input.now, input.now);
+  }
+};

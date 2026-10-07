@@ -1,5 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -295,6 +295,38 @@ describe("a settled Venture's records", () => {
       code: "BAD_REQUEST",
       data: { refusal: "venture_is_settled" },
     });
+  });
+
+  it("lets the last payout's reference be put right, never its amount", async () => {
+    const owner = await as("owner", "2048-03-03T05:30:00.000Z");
+    const payout = await scratchDb().query.ventureMovement.findFirst({
+      where: { farmId: theFarm().id, ventureId, kind: "payout" },
+      columns: { id: true, amountMoney: true, reference: true },
+    });
+    await owner.client.ventures.movements.correct({
+      id: payout?.id ?? "",
+      reason: `ব্যাংকের স্লিপে অন্য নম্বর ${suffix}`,
+      changes: {
+        reference: { from: payout?.reference ?? "", to: `PAY-FIXED-${suffix}` },
+      },
+    });
+    const now = await scratchDb().query.ventureMovement.findFirst({
+      where: { id: payout?.id ?? "" },
+      columns: { reference: true },
+    });
+    expect(now?.reference).toBe(`PAY-FIXED-${suffix}`);
+    await expect(
+      owner.client.ventures.movements.correct({
+        id: payout?.id ?? "",
+        reason: `অঙ্ক ${suffix}`,
+        changes: {
+          amountMoney: {
+            from: payout?.amountMoney ?? 0,
+            to: (payout?.amountMoney ?? 0) + 1,
+          },
+        },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "settlement_figure" } });
   });
 
   it("refuses how one of its Animals left put right", async () => {

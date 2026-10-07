@@ -2,10 +2,11 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { ScrollText } from "lucide-react";
 import { useState } from "react";
 
+import { TakeItBack } from "@/components/animal/take-it-back";
 import {
   ActionsHeader,
   DataTable,
@@ -162,6 +163,20 @@ const AfterCell = ({ row }: MovementCell) => {
   return <span className="font-medium">{asMoney(row.original.after)}</span>;
 };
 
+/** A Float's count taken back, with the Owner's reason: its homecoming goes, and it is counted again. */
+const UncountVentureFloat = ({ buyingTripId }: { buyingTripId: string }) => {
+  const { t } = useLanguage();
+  const uncount = useMutation(orpc.ventures.floats.uncount.mutationOptions({}));
+  return (
+    <TakeItBack
+      choice={t("ventures.uncountIt")}
+      hint={t("ventures.uncountHint")}
+      onSave={(reason) => uncount.mutateAsync({ buyingTripId, reason })}
+      title={t("ventures.uncount")}
+    />
+  );
+};
+
 /** Only where the farm will take a Correction: not a Sale's money, not a counted Float, not a settled or called-off
  *  Venture — the farm's own word for each. An Internal Sale's side is put right through the sale itself. */
 const Correct = ({ movement }: { movement: MovementRow }) => {
@@ -172,6 +187,10 @@ const Correct = ({ movement }: { movement: MovementRow }) => {
         sale={movement.internalSale}
       />
     );
+  }
+  // A Float's homecoming is not retyped: its count is taken back, and counted afresh.
+  if (movement.kind === "float_back" && movement.buyingTripId) {
+    return <UncountVentureFloat buyingTripId={movement.buyingTripId} />;
   }
   return movement.whyItStands ? null : <CorrectMovement movement={movement} />;
 };

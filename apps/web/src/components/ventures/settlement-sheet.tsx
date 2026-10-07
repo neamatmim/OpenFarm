@@ -582,6 +582,7 @@ const SettlingUp = ({
       <WhatTheAccountHolds heldNowMoney={heldNowMoney} settlement={figures} />
       {approved ? (
         <Adjustments
+          ventureId={venture?.id ?? ""}
           approved={approved}
           onPay={(what) =>
             onPay({
