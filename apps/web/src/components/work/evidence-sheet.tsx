@@ -53,6 +53,7 @@ import type {
 } from "@/components/work/work-types";
 import { useLanguage } from "@/i18n/language-provider";
 import { fieldOfMoment, momentOfField } from "@/lib/farm-moment";
+import { namesIn } from "@/lib/names-in";
 import type { Photo } from "@/lib/photo";
 import { photoProblem, shrink } from "@/lib/photo";
 import type { MedicineCountEntry, StockCountEntry } from "@/lib/record-offline";
@@ -147,13 +148,18 @@ const useMedicineCount = (
 
 /** What a Step that counts the medicine is handed: the products on the Drug List, and what it counted before. */
 interface MedicineCountBoard {
-  items: { drugProductId: string; nameBn: string }[];
+  items: { drugProductId: string; nameBn: string; nameEn?: string | null }[];
   counted: { drugProductId: string; counted: number; reason: string | null }[];
 }
 
 /** What a Step that counts the store is handed: the Feed Items, and what it counted before. */
 interface StockCountBoard {
-  items: { feedItemId: string; nameBn: string; unit: string }[];
+  items: {
+    feedItemId: string;
+    nameBn: string;
+    nameEn?: string | null;
+    unit: string;
+  }[];
   counted: { feedItemId: string; counted: number; reason: string | null }[];
 }
 
@@ -349,7 +355,7 @@ const StockCountFields = ({
       {...boxes}
       items={items.map((item) => ({
         id: item.feedItemId,
-        name: item.nameBn,
+        name: namesIn(item, language).shown,
         unit: feedUnitWord(item.unit, language),
       }))}
     />
@@ -369,6 +375,7 @@ const FeedingFields = ({
   rows: {
     feedItemId: string;
     nameBn: string;
+    nameEn?: string | null;
     unit: string;
     /** Nothing for a line by weight in a Pen nobody weighed. */
     quantity: number | null;
@@ -389,7 +396,7 @@ const FeedingFields = ({
       {rows.map((line) => (
         <div className="surface flex flex-col gap-2 p-3" key={line.feedItemId}>
           <p className="text-sm font-medium">
-            {line.nameBn}{" "}
+            {namesIn(line, language).shown}{" "}
             {line.quantity === null ? null : (
               <span className="text-muted-foreground font-normal">
                 · {t("feed.target")}: {formatNumber(line.quantity, language)}{" "}
@@ -402,7 +409,7 @@ const FeedingFields = ({
           ) : null}
           <div className="grid grid-cols-2 gap-2">
             <Input
-              aria-label={`${line.nameBn} ${t("work.given")}`}
+              aria-label={`${namesIn(line, language).shown} ${t("work.given")}`}
               className="h-14 text-lg md:h-12 md:text-lg"
               inputMode="decimal"
               onChange={(event) =>
@@ -419,7 +426,7 @@ const FeedingFields = ({
               }
             />
             <Input
-              aria-label={`${line.nameBn} ${t("work.leftover")}`}
+              aria-label={`${namesIn(line, language).shown} ${t("work.leftover")}`}
               className="h-14 text-lg md:h-12 md:text-lg"
               inputMode="decimal"
               onChange={(event) =>
@@ -535,6 +542,7 @@ const feedingState = (
         items: {
           feedItemId: string;
           nameBn: string;
+          nameEn?: string | null;
           unit: string;
           /** Nothing for a line by weight in a Pen nobody weighed. */
           quantity: number | null;
@@ -1024,6 +1032,7 @@ export const EvidenceSheet = ({
     items: {
       feedItemId: string;
       nameBn: string;
+      nameEn?: string | null;
       unit: string;
       /** Nothing for a line by weight in a Pen nobody weighed. */
       quantity: number | null;
@@ -1197,7 +1206,7 @@ export const EvidenceSheet = ({
         counted={medicine.counted}
         items={medicine.items.map((item) => ({
           id: item.drugProductId,
-          name: item.nameBn,
+          name: namesIn(item, language).shown,
           unit: t("drugs.doseWord"),
         }))}
         onCounted={medicine.handleCounted}

@@ -22,13 +22,14 @@ import { FormDialog, FormField, RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { figureTakes } from "@/lib/feed-figures";
 import { useMoney } from "@/lib/money";
+import { namesIn } from "@/lib/names-in";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import { OtherName, TwoNames } from "./feed-name";
 import type { StockLine, StockStanding } from "./feed-types";
-import { namesIn, standingOf, valueOf } from "./feed-types";
+import { standingOf, valueOf } from "./feed-types";
 
 const STANDING_TONE: Record<StockStanding, Tone> = {
   out: "danger",

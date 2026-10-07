@@ -37,6 +37,7 @@ import {
   RowMenu,
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { namesIn } from "@/lib/names-in";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -45,7 +46,7 @@ import { bandSaid, expectedGainSaid } from "./band-words";
 import { FarmGainsLine, FarmGainsOffer, useFarmGains } from "./farm-gains";
 import { OtherName } from "./feed-name";
 import type { FeedItemRow, RationRow } from "./feed-types";
-import { amountOf, namesIn, rationNamed } from "./feed-types";
+import { amountOf, rationNamed } from "./feed-types";
 
 /** A Ration's band, open at both ends where it has none — or where the list was cached before Rations had bands. */
 const bandOfRow = (ration: RationRow | null): WeightBand =>

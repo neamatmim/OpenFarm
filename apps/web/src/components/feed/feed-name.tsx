@@ -1,7 +1,6 @@
 import { useLanguage } from "@/i18n/language-provider";
-
-import type { Named } from "./feed-types";
-import { namesIn } from "./feed-types";
+import type { Named } from "@/lib/names-in";
+import { namesIn } from "@/lib/names-in";
 
 /** The name in the other language, small beneath the one the reader reads, where the farm gave both. */
 export const OtherName = ({ named }: { named: Named }) => {

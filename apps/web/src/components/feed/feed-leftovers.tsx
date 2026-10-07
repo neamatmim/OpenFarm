@@ -23,11 +23,11 @@ import {
 import { FilterBar } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
+import type { Named } from "@/lib/names-in";
+import { namesIn } from "@/lib/names-in";
 import { orpc } from "@/utils/orpc";
 
 import { OtherName, TwoNames } from "./feed-name";
-import type { Named } from "./feed-types";
-import { namesIn } from "./feed-types";
 
 type LeftoverRow = Awaited<ReturnType<typeof orpc.feed.leftovers.call>>[number];
 

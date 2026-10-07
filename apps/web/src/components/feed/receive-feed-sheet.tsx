@@ -24,12 +24,12 @@ import {
 } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { keptAmount } from "@/lib/feed-figures";
+import { namesIn } from "@/lib/names-in";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { FeedItemRow } from "./feed-types";
-import { namesIn } from "./feed-types";
 import { PriceChange } from "./price-change";
 
 type Kind = "purchase" | "harvest";

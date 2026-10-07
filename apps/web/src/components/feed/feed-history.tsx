@@ -36,11 +36,11 @@ import {
   voiding,
 } from "@/lib/correcting";
 import { useMoney } from "@/lib/money";
+import { namesIn } from "@/lib/names-in";
 import { orpc } from "@/utils/orpc";
 
 import { OtherName, TwoNames } from "./feed-name";
 import type { Adjustment, Arrival, FeedItemRow } from "./feed-types";
-import { namesIn } from "./feed-types";
 import { PriceChange } from "./price-change";
 import { ScaleBySeller } from "./scale-by-seller";
 

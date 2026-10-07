@@ -31,6 +31,7 @@ import { Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import { moneyTotals } from "@/lib/money-totals";
+import { namesIn } from "@/lib/names-in";
 import { orpc } from "@/utils/orpc";
 
 export { useMoney } from "@/lib/money";
@@ -489,7 +490,7 @@ export const FeedPanel = () => {
               {short.slice(0, LOW_FEEDS_NAMED).map((line) => (
                 <li className="text-warning" key={line.feedItemId}>
                   {t("owner.feedLow", {
-                    feed: line.nameBn,
+                    feed: namesIn(line, language).shown,
                     onHand: formatNumber(Math.max(line.onHand, 0), language),
                     unit: feedUnitWord(line.unit, language),
                   })}

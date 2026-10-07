@@ -34,12 +34,12 @@ import {
 import { useRetireConfirm } from "@/components/retire-confirm";
 import { useLanguage } from "@/i18n/language-provider";
 import { bagSizeTakes } from "@/lib/feed-figures";
+import { namesIn } from "@/lib/names-in";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import { OtherName, TwoNames } from "./feed-name";
-import { namesIn } from "./feed-types";
 import type { FeedItemRow } from "./feed-types";
 
 interface ItemRow extends FeedItemRow {
