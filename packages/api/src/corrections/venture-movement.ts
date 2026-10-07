@@ -189,7 +189,30 @@ export const ventureMovementCorrectionInput = correctionInput({
   amountMoney: changeOf(amountInput, z.number()),
   movedOn: changeOf(farmDay, z.string()),
   reference: changeOf(z.string().trim().min(1).max(120), z.string()),
+  /** An Investor's capital payment written twice: voided by the Owner with a reason, kept in the trail as voided (the
+   *  Owner, 2026-10-07). Only that: any other movement is an act that happened, put right but never undone. */
+  voided: changeOf(z.literal(true), z.boolean()),
 });
+
+/** Refuses a void of anything but a capital payment, and of one a Pay-in Note was confirmed into: the note says it came. */
+const assertMayBeVoided = async (tx: Tx, row: MovementRow) => {
+  if (row.kind !== "capital_in") {
+    throw refuse(
+      "Only a capital payment written twice is voided; this money moved",
+      "only_capital_is_voided"
+    );
+  }
+  const note = await tx.query.payInNote.findFirst({
+    where: { farmId: row.farmId, movementId: row.id },
+    columns: { id: true },
+  });
+  if (note) {
+    throw refuse(
+      "This payment was confirmed from the Investor's own Pay-in Note; void the other one",
+      "confirmed_from_a_note"
+    );
+  }
+};
 
 /**
  * A Reimbursement's figure is what that month's costs came to, and the month may not be reimbursed again, so
@@ -258,8 +281,9 @@ const assertWithinItsUnits = async (
 /**
  * A movement of a Venture's money put right: what it says, not whether it happened.
  *
- * Never deleted and never replaced by a second movement — an Investor's money moving and then appearing
- * never to have moved is the one thing these records must not be able to say. What the correction changes
+ * Never replaced by a second movement, and never deleted but for a capital payment written twice — voided by the Owner,
+ * the trail keeping what it said — because an Investor's money moving and then appearing never to have moved is the one
+ * thing these records must not be able to say. What the correction changes
  * flows through everything read from the movements themselves: what the account holds, what each budget
  * holds, what the Venture owes the Owner, and the Floor it may start buying on.
  *
@@ -284,9 +308,15 @@ export const ventureMovementCorrection: CorrectionKind<
       amountMoney: row.amountMoney,
       movedOn: row.movedOn,
       reference: row.reference,
+      voided: false,
     }),
   trail: (tx, row) => readMovement(tx, row.farmId, row.id),
   apply: async (tx, row, to, { context, now }) => {
+    if (to.voided) {
+      await assertMayBeVoided(tx, row);
+      await tx.delete(ventureMovement).where(eq(ventureMovement.id, row.id));
+      return;
+    }
     if (to.amountMoney !== undefined) {
       assertTheFigureIsHersToChange(row);
       const { filled } = await assertWithinItsUnits(tx, row, to.amountMoney);

@@ -9,6 +9,7 @@ import type { Language } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { Beef, MapPinOff, Milk, Shovel, TimerOff } from "lucide-react";
 import type { ReactNode } from "react";
@@ -143,6 +144,43 @@ const PutItRight = ({
           value={correcting.typed.voided ?? ""}
         />
       ) : null}
+    </CorrectionDialog>
+  );
+};
+
+/**
+ * An animal registered twice, or a calf written down who was never born, taken back — while nothing has been written
+ * about her since; one bought in is voided from her Intake. Her page is gone with her, so the herd list follows.
+ */
+const VoidRegistration = ({ tagNumber }: { tagNumber: string }) => {
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+  const correcting = useCorrecting({ voided: voiding() });
+  const correct = useMutation(
+    orpc.animals.correctRegistration.mutationOptions({})
+  );
+  return (
+    <CorrectionDialog
+      onOpen={correcting.handleOpen}
+      onSave={async (reason) => {
+        await correct.mutateAsync({
+          tagNumber,
+          changes: correcting.changes(),
+          reason,
+        });
+        await navigate({ to: "/animals" });
+      }}
+      ready={correcting.changed}
+      title={t("correct.registration")}
+      trigger={t("correct.registration")}
+    >
+      <CorrectionChoice
+        label={t("correct.voidWhy")}
+        onChange={(value) => correcting.set("voided", value)}
+        options={[{ value: "void", label: t("correct.voidAnimal") }]}
+        unchosen={t("correct.keep")}
+        value={correcting.typed.voided ?? ""}
+      />
     </CorrectionDialog>
   );
 };
@@ -646,6 +684,11 @@ export const OverviewTab = ({
           <AboutHer detail={detail} />
           {powers.runsTheFarm ? (
             <VoidedPhotos tagNumber={detail.tagNumber} />
+          ) : null}
+          {powers.runsTheFarm && powers.stillHere && !detail.intake ? (
+            <div>
+              <VoidRegistration tagNumber={detail.tagNumber} />
+            </div>
           ) : null}
         </div>
         {held ? (

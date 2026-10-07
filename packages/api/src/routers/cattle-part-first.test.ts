@@ -58,14 +58,19 @@ const signed = async (owner: Owner, ventureId: string, units: number) => {
   return agreement.id;
 };
 
-const pay = async (owner: Owner, agreementId: string, amountMoney: number) =>
-  await owner.ventures.takeCapital({
+/** Each transfer its own reference: the farm refuses one already taken on the Venture. */
+let transfers = 0;
+
+const pay = async (owner: Owner, agreementId: string, amountMoney: number) => {
+  transfers += 1;
+  return await owner.ventures.takeCapital({
     agreementId,
     amountMoney,
     movedOn: "2074-01-05",
     paymentMethod: "bank",
-    reference: `TRF-${agreementId.slice(-6)}-${amountMoney}`,
+    reference: `TRF-${agreementId.slice(-6)}-${amountMoney}-${transfers}`,
   });
+};
 
 const listed = async (owner: Owner, id: string) => {
   const all = await owner.ventures.list();

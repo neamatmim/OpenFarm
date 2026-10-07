@@ -128,6 +128,28 @@ const assertTheOutingIsFree = async (
   }
 };
 
+/** Refuses capital under a reference this Venture's capital already holds: the same transfer written up twice. */
+const assertReferenceNotTaken = async (
+  tx: Tx,
+  {
+    farmId,
+    ventureId,
+    reference,
+  }: { farmId: string; ventureId: string; reference: string }
+) => {
+  const taken = await tx.query.ventureMovement.findMany({
+    where: { farmId, ventureId, kind: "capital_in" },
+    columns: { reference: true },
+  });
+  const said = reference.trim().toLowerCase();
+  if (taken.some((one) => one.reference.trim().toLowerCase() === said)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This Venture has already taken capital under that reference",
+      data: { refusal: "capital_reference_taken" },
+    });
+  }
+};
+
 export const capitalProcedures = {
   /**
    * The Investors' capital as it lands: which paper it came against, how much, the day the bank moved
@@ -210,6 +232,13 @@ export const capitalProcedures = {
               data: { refusal: "agreement_has_no_paper" },
             });
           }
+          // One transfer is one payment: the same reference taken twice raised an Investor's share of the profit by money
+          // he never sent.
+          await assertReferenceNotTaken(tx, {
+            farmId: context.farm.id,
+            ventureId: agreement.ventureId,
+            reference: input.reference,
+          });
           await tx.insert(ventureMovement).values({
             id,
             farmId: context.farm.id,

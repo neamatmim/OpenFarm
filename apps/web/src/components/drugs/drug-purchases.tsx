@@ -4,6 +4,7 @@ import { ShoppingCart } from "lucide-react";
 
 import {
   CorrectionAnswer,
+  CorrectionChoice,
   CorrectionDialog,
   useCorrecting,
 } from "@/components/correction-dialog";
@@ -19,7 +20,7 @@ import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Loaded } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { amount as amountHeld, day } from "@/lib/correcting";
+import { amount as amountHeld, day, voiding } from "@/lib/correcting";
 import { orpc } from "@/utils/orpc";
 
 import type { DrugProduct, Purchase } from "./drug-types";
@@ -33,6 +34,7 @@ const HISTORY_PAGE = 20;
 const PurchaseCorrection = ({ purchase }: { purchase: Purchase }) => {
   const { t } = useLanguage();
   const correcting = useCorrecting({
+    voided: voiding(),
     doses: amountHeld(purchase.doses),
     priceMoney: amountHeld(purchase.priceMoney),
     purchasedOn: day(purchase.purchasedOn),
@@ -70,6 +72,13 @@ const PurchaseCorrection = ({ purchase }: { purchase: Purchase }) => {
         onChange={(value) => correcting.set("purchasedOn", value)}
         type="date"
         value={correcting.typed.purchasedOn ?? ""}
+      />
+      <CorrectionChoice
+        label={t("correct.voidWhy")}
+        onChange={(value) => correcting.set("voided", value)}
+        options={[{ value: "void", label: t("correct.voidIt") }]}
+        unchosen={t("correct.keep")}
+        value={correcting.typed.voided ?? ""}
       />
     </CorrectionDialog>
   );

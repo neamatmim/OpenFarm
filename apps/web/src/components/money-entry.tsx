@@ -20,8 +20,9 @@ import { ReceiptText } from "lucide-react";
 import { useState } from "react";
 
 import {
-  CorrectionDialog,
   CorrectionAnswer,
+  CorrectionChoice,
+  CorrectionDialog,
   useCorrecting,
 } from "@/components/correction-dialog";
 import { categoryName } from "@/components/money";
@@ -43,7 +44,7 @@ import {
 import { PhotoField } from "@/components/photo-field";
 import { WhoseHandField } from "@/components/whose-hand";
 import { useLanguage } from "@/i18n/language-provider";
-import { amount, note } from "@/lib/correcting";
+import { amount, note, voiding } from "@/lib/correcting";
 import { useMoney } from "@/lib/money";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
@@ -534,6 +535,7 @@ export const CorrectEntered = ({
 }) => {
   const { t } = useLanguage();
   const correcting = useCorrecting({
+    voided: voiding(),
     amountMoney: amount(entered.amountMoney),
     note: note(entered.note),
   });
@@ -573,6 +575,13 @@ export const CorrectEntered = ({
       <ReceiptField
         id={`correct-receipt-${entered.id}`}
         onChange={setReceipt}
+      />
+      <CorrectionChoice
+        label={t("correct.voidWhy")}
+        onChange={(value) => correcting.set("voided", value)}
+        options={[{ value: "void", label: t("correct.voidIt") }]}
+        unchosen={t("correct.keep")}
+        value={correcting.typed.voided ?? ""}
       />
     </CorrectionDialog>
   );

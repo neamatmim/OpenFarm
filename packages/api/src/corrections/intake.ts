@@ -42,6 +42,7 @@ import {
   herVenturesAround,
   somethingChanged,
 } from "./correction";
+import { voidTheAnimal } from "./registration";
 
 const loadIntake = (tx: Tx, farmId: string, id: string) =>
   tx.query.intake.findFirst({
@@ -131,6 +132,9 @@ export const intakeCorrectionInput = correctionInput({
    *  right here rather than carried into her Cost of Gain for good. */
   weightKg: changeOf(z.number().positive().max(2000), z.number()),
   estimatedAgeMonths: changeOf(z.number().int().min(0).max(360), z.number()),
+  /** Written twice, or she never came: she and her Intake taken back while nothing else stands on her (`voidTheAnimal`),
+   *  by whoever may correct it in their window, the Owner at any time (the Owner, 2026-10-07). */
+  voided: changeOf(z.literal(true), z.boolean()),
 });
 
 /** Whose she will be after a Correction: the owner it names, else whose she was. */
@@ -239,11 +243,18 @@ export const intakeCorrection: CorrectionKind<
       reference: await boughtByBankReference(tx, row.farmId, row.id),
       weightKg: Number(row.weightKg),
       estimatedAgeMonths: row.estimatedAgeMonths,
+      voided: false,
     };
   },
   shownAs: { seller: (to) => to.name },
   trail: (tx, row) => readIntake(tx, row.animalId),
   apply: async (tx, row, to, { context, now }) => {
+    if (to.voided) {
+      // A Float already counted was counted with her in it: the outing's sum would stop being true.
+      await assertTripIsOpen(tx, row.farmId, row.buyingTripId);
+      await voidTheAnimal(tx, row.farmId, row.animalId);
+      return;
+    }
     if (to.owner !== undefined) {
       await refuseAnOwnerSoldOnSince(tx, row.animalId);
     }

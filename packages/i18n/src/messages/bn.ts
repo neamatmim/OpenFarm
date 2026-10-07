@@ -1591,6 +1591,20 @@ export const bn: Record<MessageKey, string> = {
     "এর ওপর {currencySign}{writtenOffMoney} বাকি বাদ দেওয়া আছে: আগে বাদ দেওয়াটা কমান, তারপর এটা ঠিক করুন",
   "refusal.owedBelowPaid":
     "তার দেওয়া টাকায় এর {currencySign}{paidMoney} শোধ হয়ে গেছে: এর বদলে সেই টাকা দেওয়ার হিসাবটা ঠিক করুন",
+  "refusal.paidOnIt":
+    "এর ওপর তিনি টাকা দিয়েছেন, বা কিছু বাদ দেওয়া হয়েছে: আগে সেগুলো ঠিক করুন",
+  "refusal.sheIsBuiltOn":
+    "আসার পর তার নামে কিছু লেখা হয়েছে — সরানো, ওজন, ওষুধ: সে এখন সত্যিকারের পশু",
+  "refusal.voidHerIntake": "তাকে কিনে আনা হয়েছিল: তার আগমন বাতিল করুন",
+  "refusal.onlyCapitalIsVoided":
+    "শুধু দুবার লেখা মূলধন জমা বাতিল হয়; এই টাকা সত্যিই নড়েছে",
+  "refusal.confirmedFromANote":
+    "এই জমা বিনিয়োগকারীর নিজের জমার খবর থেকে নিশ্চিত হয়েছে: অন্যটি বাতিল করুন",
+  "refusal.capitalReferenceTaken": "এই রেফারেন্সে এই ভেঞ্চার আগেই মূলধন নিয়েছে",
+  "correct.voidWhy": "দুবার লেখা হয়েছে, বা আসলে হয়নি",
+  "correct.voidIt": "বাতিল করুন: খামারের হিসাব থেকে উঠে যাবে, টাকাসহ",
+  "correct.voidAnimal": "বাতিল করুন: দুবার লেখা হয়েছে, বা সে আসেইনি",
+  "correct.voidCapital": "এই জমা বাতিল করুন: দুবার লেখা হয়েছে",
   "refusal.paidOnByThisBuyer":
     "এর ওপর তিনি টাকা দিয়েছেন, বা কিছু বাদ দেওয়া হয়েছে: অন্য ক্রেতার নাম দেওয়ার আগে সেগুলো ঠিক করুন",
   "refusal.serviceOfACalf":
@@ -4305,6 +4319,7 @@ export const bn: Record<MessageKey, string> = {
   "correct.dispatch": "এই দুধ দেওয়া সংশোধন",
   "correct.purchase": "এই কেনা সংশোধন",
   "correct.soldAt": "কখন চলে গেছে",
+  "correct.registration": "এই নিবন্ধন বাতিল করুন",
   "correct.void": "ভুল পশুর নামে লেখা হয়েছে",
   "correct.voidSale": "এই বিক্রি বাতিল করুন: সে আগের মতো ফিরে আসবে",
   "correct.voidPaymentWhy": "দুবার লেখা, ভুল ক্রেতার নামে, বা ভুল খাতে",

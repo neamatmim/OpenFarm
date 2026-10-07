@@ -13,6 +13,7 @@ import { useState } from "react";
 
 import {
   CorrectionAnswer,
+  CorrectionChoice,
   CorrectionDialog,
   useCorrecting,
 } from "@/components/correction-dialog";
@@ -28,7 +29,12 @@ import { Nothing } from "@/components/list-cells";
 import { EmptyState, SegmentedControl, StatusBadge } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { amount as amountArrived, day, figure } from "@/lib/correcting";
+import {
+  amount as amountArrived,
+  day,
+  figure,
+  voiding,
+} from "@/lib/correcting";
 import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
@@ -44,6 +50,7 @@ const ArrivalCorrection = ({ arrival }: { arrival: Arrival }) => {
   const { t, language } = useLanguage();
   // As the farm takes them: a tenth of the unit at least, and a price above nothing.
   const correcting = useCorrecting({
+    voided: voiding(),
     quantity: figure(arrival.quantity, SMALLEST_FEED_AMOUNT),
     priceMoney: amountArrived(arrival.priceMoney),
     receivedOn: day(arrival.receivedOn),
@@ -85,6 +92,13 @@ const ArrivalCorrection = ({ arrival }: { arrival: Arrival }) => {
         onChange={(value) => correcting.set("receivedOn", value)}
         type="date"
         value={correcting.typed.receivedOn ?? ""}
+      />
+      <CorrectionChoice
+        label={t("correct.voidWhy")}
+        onChange={(value) => correcting.set("voided", value)}
+        options={[{ value: "void", label: t("correct.voidIt") }]}
+        unchosen={t("correct.keep")}
+        value={correcting.typed.voided ?? ""}
       />
     </CorrectionDialog>
   );

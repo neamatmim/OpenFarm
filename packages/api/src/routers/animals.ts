@@ -47,6 +47,10 @@ import {
   mortalityCorrection,
   mortalityCorrectionInput,
 } from "../corrections/mortality";
+import {
+  registrationCorrection,
+  registrationCorrectionInput,
+} from "../corrections/registration";
 import { parseCsvRecords } from "../csv";
 import { tellOfTheDeath } from "../death-notice";
 import { adultDeathsOf, herdHealthOf } from "../deaths-store";
@@ -1428,6 +1432,23 @@ export const animalsRouter = {
         }
       );
       return { tagNumber, state: input.state };
+    }),
+
+  /** A registration taken back: an animal registered twice, or a calf never born (`registrationCorrection`). */
+  correctRegistration: protectedProcedure
+    .use(requireRole(...registrationCorrection.roles))
+    .input(registrationCorrectionInput)
+    .handler(async ({ context, input: { tagNumber, ...input } }) => {
+      const her = await requireAnimal(
+        context.db,
+        context.farm.id,
+        tagNumber.toUpperCase()
+      );
+      await correct(context, registrationCorrection, {
+        ...input,
+        id: her.id,
+      });
+      return { tagNumber: her.tagNumber };
     }),
 
   /**

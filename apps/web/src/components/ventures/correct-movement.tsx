@@ -2,11 +2,12 @@ import { useMutation } from "@tanstack/react-query";
 
 import {
   CorrectionAnswer,
+  CorrectionChoice,
   CorrectionDialog,
   useCorrecting,
 } from "@/components/correction-dialog";
 import { useLanguage } from "@/i18n/language-provider";
-import { amount, day, words } from "@/lib/correcting";
+import { amount, day, voiding, words } from "@/lib/correcting";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -23,6 +24,8 @@ export const CorrectMovement = ({
     amountMoney: number;
     movedOn: string;
     reference: string;
+    /** A capital payment, which alone may be voided: one written twice. */
+    kind?: string;
   };
 }) => {
   const { t } = useLanguage();
@@ -30,6 +33,7 @@ export const CorrectMovement = ({
     amountMoney: amount(movement.amountMoney),
     movedOn: day(movement.movedOn),
     reference: words(movement.reference),
+    voided: voiding(),
   });
   const correct = useMutation(
     orpc.ventures.movements.correct.mutationOptions({})
@@ -67,6 +71,15 @@ export const CorrectMovement = ({
         onChange={(value) => correcting.set("reference", value)}
         value={correcting.typed.reference ?? ""}
       />
+      {movement.kind === "capital_in" ? (
+        <CorrectionChoice
+          label={t("correct.voidWhy")}
+          onChange={(value) => correcting.set("voided", value)}
+          options={[{ value: "void", label: t("correct.voidCapital") }]}
+          unchosen={t("correct.keep")}
+          value={correcting.typed.voided ?? ""}
+        />
+      ) : null}
     </CorrectionDialog>
   );
 };

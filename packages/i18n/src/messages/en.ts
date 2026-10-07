@@ -1711,6 +1711,21 @@ export const en = {
     "{currencySign}{writtenOffMoney} is written off on it: lower the write-off first, then put this right",
   "refusal.owedBelowPaid":
     "His payments have already cleared {currencySign}{paidMoney} of it: put the payment right instead",
+  "refusal.paidOnIt":
+    "He has paid on it, or some was written off: put those right first",
+  "refusal.sheIsBuiltOn":
+    "Something has been written about her since she came — a move, a weighing, a dose: she is a real animal now",
+  "refusal.voidHerIntake": "She was bought in: void her intake instead",
+  "refusal.onlyCapitalIsVoided":
+    "Only a capital payment written twice is voided; this money moved",
+  "refusal.confirmedFromANote":
+    "This payment was confirmed from the investor's own pay-in note: void the other one",
+  "refusal.capitalReferenceTaken":
+    "This venture has already taken capital under that reference",
+  "correct.voidWhy": "Entered twice, or it never happened",
+  "correct.voidIt": "Void it: it comes off the farm's books, with its money",
+  "correct.voidAnimal": "Void her: written down twice, or she never came",
+  "correct.voidCapital": "Void this payment: written twice",
   "refusal.paidOnByThisBuyer":
     "He has paid on it, or some was written off: put those right before naming another buyer",
   "refusal.serviceOfACalf":
@@ -3943,7 +3958,8 @@ export const en = {
   "alerts.workMissed":
     "{count, plural, one {# piece} other {# pieces}} of work went late between {since} and now, while the farm's day was not turning. They are on the overdue list.",
   "push.workMissedTitle": "Work went late while the farm was down",
-  "push.workMissedBody": "{count, plural, one {# piece} other {# pieces}} of work — see the overdue list",
+  "push.workMissedBody":
+    "{count, plural, one {# piece} other {# pieces}} of work — see the overdue list",
   "alerts.openTheOverdue": "Open the overdue list",
   "digest.monthlyCopyFailed": "The monthly copy failed",
   "digest.passwordGuessed": "Somebody guessed at {who}'s password",
@@ -4602,6 +4618,7 @@ export const en = {
   "correct.dispatch": "Correct this dispatch",
   "correct.purchase": "Correct this purchase",
   "correct.soldAt": "When she left",
+  "correct.registration": "Void this registration",
   "correct.void": "Written against the wrong animal",
   "correct.voidSale": "Void this sale: she comes back as she was",
   "correct.voidPaymentWhy":
