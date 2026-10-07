@@ -1468,6 +1468,17 @@ export const enCore = {
   "sop.min": "Least",
   "sop.max": "Most",
   "sop.noLimit": "Empty for no limit",
+  "sop.draftKept": "You were writing “{name}” on this device",
+  "sop.draftCarryOn": "Carry on writing",
+  "sop.draftLetGo": "Let it go",
+  "sop.draftStay": "Keep writing",
+  "sop.draftLeave": "Leave",
+  "sop.draftLeaveTitle": "Leave the procedure you are writing?",
+  "sop.draftLeaveWhy":
+    "It is kept on this device, and the playbook offers it back when you return.",
+  "sop.draftLetGoTitle": "Let this draft go?",
+  "sop.draftLetGoWhy":
+    "What you have written here is not published and will not be kept.",
   "sop.meanings": "What the farm does with these",
   "sop.meaning.heat": "a heat: sends the breeding work",
   "sop.meaning.urgent": "urgent: the manager within the hour",
