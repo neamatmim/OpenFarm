@@ -4120,6 +4120,13 @@ export const en = {
   "mortality.noPhoto": "No photograph — written before one was asked for",
   "mortality.photoAlt": "{tag}'s death photograph",
   "mortality.photoReplaced": "replaced by a newer one",
+  "voided.photos": "Photos from records voided",
+  "voided.photosHint":
+    "Kept when a record of hers was voided. A death's photo shows the tag of the animal that really died.",
+  "voided.fromDeath": "From a voided death",
+  "voided.fromSale": "From a voided sale's receipt",
+  "voided.deathPhotoAlt": "The photo taken for a death written against {tag}",
+  "voided.receiptAlt": "The receipt of a sale written against {tag}",
   "mortality.recorded": "Recorded",
   "alerts.notifiableDiagnosis":
     "{tag} — {disease}: must be reported to DLS without delay",

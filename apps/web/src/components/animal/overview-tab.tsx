@@ -14,7 +14,11 @@ import { Beef, MapPinOff, Milk, Shovel, TimerOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { DeathPhotoField, DeathPhotos } from "@/components/animal/death-photo";
+import {
+  DeathPhotoField,
+  DeathPhotos,
+  VoidedPhotos,
+} from "@/components/animal/death-photo";
 import { HerLactation } from "@/components/animal/her-lactation";
 import {
   CorrectionAnswer,
@@ -640,6 +644,9 @@ export const OverviewTab = ({
           <HerFirstDay detail={detail} />
           <HerLactation detail={detail} />
           <AboutHer detail={detail} />
+          {powers.runsTheFarm ? (
+            <VoidedPhotos tagNumber={detail.tagNumber} />
+          ) : null}
         </div>
         {held ? (
           <div className="flex min-w-0 flex-col gap-6 max-lg:order-first">

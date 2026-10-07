@@ -164,6 +164,7 @@ const isPortalQuery = (queryKey: readonly unknown[]): boolean => {
  *  the fortnight's cache tens of megabytes, written out again on every change. */
 const WHOLE_PHOTOS = new Set([
   "animals.deathPhotos",
+  "animals.voidedPhotos",
   "farm.certificate",
   "money.receipt",
 ]);

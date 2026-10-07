@@ -3861,6 +3861,13 @@ export const bn: Record<MessageKey, string> = {
   "mortality.noPhoto": "ছবি নেই — ছবি চাওয়ার আগে লেখা",
   "mortality.photoAlt": "{tag}-এর মৃত্যুর ছবি",
   "mortality.photoReplaced": "নতুন ছবি দিয়ে বদলানো",
+  "voided.photos": "বাতিল রেকর্ডের ছবি",
+  "voided.photosHint":
+    "এর কোনো রেকর্ড বাতিল করার সময় রাখা হয়েছে। মৃত্যুর ছবিতে যে পশু আসলে মারা গেছে তার ট্যাগ দেখা যায়।",
+  "voided.fromDeath": "বাতিল মৃত্যুর ছবি",
+  "voided.fromSale": "বাতিল বিক্রির রসিদ",
+  "voided.deathPhotoAlt": "{tag}-এর নামে লেখা মৃত্যুর জন্য তোলা ছবি",
+  "voided.receiptAlt": "{tag}-এর নামে লেখা বিক্রির রসিদ",
   "mortality.recorded": "লেখা হয়েছে",
   "alerts.notifiableDiagnosis":
     "{tag} — {disease}: ডিএলএস-কে জানাতে হবে, দেরি না করে",

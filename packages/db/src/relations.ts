@@ -16,6 +16,9 @@ export const relations = defineRelations(schema, (r) => ({
   shed: {
     pens: r.many.pen({ from: r.shed.id, to: r.pen.shedId }),
   },
+  voidedPhoto: {
+    voider: r.one.user({ from: r.voidedPhoto.voidedBy, to: r.user.id }),
+  },
   pen: {
     shed: r.one.shed({ from: r.pen.shedId, to: r.shed.id, optional: false }),
     animals: r.many.animal({ from: r.pen.id, to: r.animal.penId }),

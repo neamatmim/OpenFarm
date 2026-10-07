@@ -2,6 +2,7 @@ import { formatDate } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { Section } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
@@ -73,5 +74,46 @@ export const DeathPhotos = ({ tagNumber }: { tagNumber: string }) => {
         </figure>
       ))}
     </div>
+  );
+};
+
+/**
+ * The photographs kept from a record of hers the Owner voided — a death written against the wrong animal, whose picture
+ * shows the tag of the one that really died, and a Sale's receipt — with what each came from and who voided it. Nothing
+ * at all where nothing was voided, which is every animal but a few. The Owner's and the Manager's.
+ */
+export const VoidedPhotos = ({ tagNumber }: { tagNumber: string }) => {
+  const { t, language } = useLanguage();
+  const kept = useQuery(
+    orpc.animals.voidedPhotos.queryOptions({ input: { tagNumber } })
+  );
+  if (!kept.data?.length) {
+    return null;
+  }
+  return (
+    <Section description={t("voided.photosHint")} title={t("voided.photos")}>
+      <div className="flex flex-wrap gap-3">
+        {kept.data.map((one) => (
+          <figure className="flex w-40 flex-col gap-1" key={one.id}>
+            <img
+              alt={t(
+                one.from === "death"
+                  ? "voided.deathPhotoAlt"
+                  : "voided.receiptAlt",
+                { tag: tagNumber }
+              )}
+              className="aspect-square w-40 rounded-md border object-cover"
+              src={`data:${one.contentType};base64,${one.data}`}
+            />
+            <figcaption className="text-muted-foreground text-xs">
+              {t(one.from === "death" ? "voided.fromDeath" : "voided.fromSale")}
+              {" · "}
+              {formatDate(new Date(one.voidedAt), language, "date")}
+              {one.voidedByName ? ` · ${one.voidedByName}` : ""}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </Section>
   );
 };
