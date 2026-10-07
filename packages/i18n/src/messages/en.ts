@@ -943,6 +943,13 @@ export const en = {
   "auth.accountSlowed":
     "Too many wrong passwords for this account. Wait a minute and try again.",
   "auth.refused": "Could not sign you in",
+  "auth.wrongEmailOrPassword":
+    "That email and password do not go together: check both",
+  "auth.wrongPassword": "That is not your present password",
+  "auth.passwordTooLong": "That password is too long",
+  "auth.alreadyHasAccount": "Somebody already has an account with that email",
+  "auth.signInAgainFirst":
+    "Sign in again first: it has been a while since you did",
   "auth.passwordTooShort":
     "Password must be at least {min, plural, one {# character} other {# characters}}",
   "auth.passwordTooCommon":
@@ -1788,6 +1795,8 @@ export const en = {
     "Her death is put down to it: put her death right first",
   "refusal.reportDelivered":
     "Its report has reached the office: a letter that went, went",
+  "refusal.notOnTheFarm":
+    "The farm does not have that record: it has not arrived yet from a phone, or was taken away. Open the page again in a moment",
   "refusal.recordedByALeaver":
     "Recorded under somebody who no longer works on this farm: give it back to them, or write it again yourself",
   "refusal.alreadySold": "She has already been sold",

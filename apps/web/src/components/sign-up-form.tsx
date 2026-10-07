@@ -11,6 +11,7 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { PasswordInput } from "@/components/auth/password-input";
+import { sayAuthRefusal } from "@/components/auth/refused-notice";
 import { BackToSignIn } from "@/components/door-screen";
 import { Notice } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
@@ -57,7 +58,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
             toast.success(t("auth.signUpSuccess"));
           },
           onError: (error) => {
-            setRefused(error.error.message || error.error.statusText);
+            setRefused(sayAuthRefusal(error.error, t, t("common.error")));
           },
         }
       );

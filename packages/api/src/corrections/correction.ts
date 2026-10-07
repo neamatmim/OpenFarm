@@ -407,7 +407,11 @@ export const correct = async <
       );
       const row = await kind.load(tx, context.farm.id, input.id);
       if (!row) {
-        throw new ORPCError("NOT_FOUND", { message: kind.missing });
+        // Not on the farm yet — sent from a phone still holding it — or taken away since the screen was drawn.
+        throw new ORPCError("NOT_FOUND", {
+          message: kind.missing,
+          data: { refusal: "not_on_the_farm" },
+        });
       }
       // Whether this is theirs to put right at all, first: somebody who may not correct it is told so, not sent to raise
       // a Settlement Adjustment they cannot, nor handed the names of the Ventures it touches.

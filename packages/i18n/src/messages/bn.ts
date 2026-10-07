@@ -891,6 +891,11 @@ export const bn: Record<MessageKey, string> = {
   "auth.accountSlowed":
     "এই অ্যাকাউন্টে অনেকবার ভুল পাসওয়ার্ড দেওয়া হয়েছে। এক মিনিট অপেক্ষা করে আবার চেষ্টা করুন।",
   "auth.refused": "সাইন ইন করা যায়নি",
+  "auth.wrongEmailOrPassword": "এই ইমেইল আর পাসওয়ার্ড মেলে না: দুটোই দেখুন",
+  "auth.wrongPassword": "এটা আপনার এখনকার পাসওয়ার্ড নয়",
+  "auth.passwordTooLong": "পাসওয়ার্ডটি খুব লম্বা",
+  "auth.alreadyHasAccount": "এই ইমেইলে আগে থেকেই একটি অ্যাকাউন্ট আছে",
+  "auth.signInAgainFirst": "আগে আবার সাইন ইন করুন: শেষবার করার পর অনেকক্ষণ হয়ে গেছে",
   "auth.passwordTooShort": "পাসওয়ার্ড কমপক্ষে {min} অক্ষরের হতে হবে",
   "auth.passwordTooCommon":
     "এই পাসওয়ার্ড খুব বেশি ব্যবহৃত, যে কেউ অনুমান করতে পারে। অন্য একটি বেছে নিন।",
@@ -1663,6 +1668,8 @@ export const bn: Record<MessageKey, string> = {
     "এর জন্য কোর্স লেখা হয়েছে: আগে কোর্স বন্ধ করে ডোজগুলো ঠিক করুন",
   "refusal.herDeathNamesIt": "তার মৃত্যুর কারণ এটি বলা আছে: আগে মৃত্যুর রেকর্ড ঠিক করুন",
   "refusal.reportDelivered": "এর রিপোর্ট অফিসে পৌঁছে গেছে: যে চিঠি গেছে, তা গেছে",
+  "refusal.notOnTheFarm":
+    "খামারে এই রেকর্ডটি নেই: হয় এখনো কোনো ফোন থেকে আসেনি, নয়তো তুলে নেওয়া হয়েছে। একটু পরে পাতাটি আবার খুলুন",
   "refusal.recordedByALeaver":
     "এমন কারও নামে লেখা যিনি আর এই খামারে কাজ করেন না: তাঁকে ফেরত দিন, বা নিজে আবার লিখুন",
   "refusal.alreadySold": "তাকে আগেই বিক্রি করা হয়েছে",
@@ -4505,7 +4512,7 @@ export const bn: Record<MessageKey, string> = {
   "outbox.pending": "{count}টি পাঠানো বাকি",
   "outbox.pendingSince": "{count}টি পাঠানো বাকি, {at} থেকে",
   "outbox.waitsForYou": "{count}টি এখনো পাঠানো বাকি। এই ডিভাইসে আবার ঢুকলে পাঠানো হবে",
-  "outbox.synced": "শেষ পাঠানো হয়েছে {ago}",
+  "outbox.synced": "শেষ পাঠানো {ago}",
   "outbox.never": "এখনো পাঠানো হয়নি",
   "outbox.signedOut": "বাকিগুলো পাঠাতে আবার সাইন ইন করুন",
   "outbox.rejected": "{count}টি খামার ফেরত পাঠিয়েছে",

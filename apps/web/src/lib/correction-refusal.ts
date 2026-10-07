@@ -383,6 +383,7 @@ const WORDED_REFUSALS = {
   prescribed_for_it: "refusal.prescribedForIt",
   her_death_names_it: "refusal.herDeathNamesIt",
   report_delivered: "refusal.reportDelivered",
+  not_on_the_farm: "refusal.notOnTheFarm",
   recorded_by_a_leaver: "refusal.recordedByALeaver",
   already_sold: "refusal.alreadySold",
   exit_needs_a_record: "refusal.exitNeedsARecord",

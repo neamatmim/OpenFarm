@@ -1,3 +1,4 @@
+import { farmDayOf } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
@@ -185,9 +186,12 @@ export const SyncBanner = () => {
       : t("outbox.pending", { count: held.pending });
   })();
   const syncedAt = readableDate(held.lastSyncAt);
+  // Today's sending by its time alone: the whole date was cut on a phone's bar before it reached the time.
+  const sentToday =
+    syncedAt !== null && farmDayOf(syncedAt) === farmDayOf(new Date());
   const sent = syncedAt
     ? t("outbox.synced", {
-        ago: formatDate(syncedAt, language, "dateTime"),
+        ago: formatDate(syncedAt, language, sentToday ? "time" : "dateTime"),
       })
     : t("outbox.never");
   const herdKeptAt = readableDate(herdAt.data);
