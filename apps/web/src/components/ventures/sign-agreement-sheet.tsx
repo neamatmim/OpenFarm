@@ -225,8 +225,10 @@ const useWhoMaySign = (venture: { id: string; units: number } | null) => {
   return {
     signable,
     inAppOn,
-    /** The split the Farm's own Units were taken on, where it holds any: every Investor signs on the same. */
-    farmsSplit: signed.find((one) => one.isFarm)?.investorsPercent,
+    /** The split the Venture's Agreements are on: the Farm's own Units' where it holds some, else the first Investor's —
+     *  the one every later Investor is signed on. */
+    venturesSplit: (signed.find((one) => one.isFarm) ?? signed.at(0))
+      ?.investorsPercent,
     left:
       (venture?.units ?? 0) - signed.reduce((sum, one) => sum + one.units, 0),
     nobodyLeft: investors.isSuccess && signable.length === 0,
@@ -677,10 +679,10 @@ export const SignAgreementSheet = ({
     setNomineeDrafts([]);
   });
   const today = farmDayOf(new Date());
-  const { signable, left, nobodyLeft, inAppOn, farmsSplit } =
+  const { signable, left, nobodyLeft, inAppOn, venturesSplit } =
     useWhoMaySign(venture);
-  // Where the Farm holds Units of its own, their split — the one every Investor is signed on; else the farm's setting.
-  const startsAt = farmsSplit ?? farmsSetting;
+  // Once anybody has signed, the Venture's split — the one every Investor is signed on; else the farm's setting.
+  const startsAt = venturesSplit ?? farmsSetting;
   // Offered in the app only while the farm's switch is on: turned off meanwhile, the sheet is a stamped paper again.
   const inApp = terms.inApp && inAppOn;
   const asOffered = { ...terms, inApp };

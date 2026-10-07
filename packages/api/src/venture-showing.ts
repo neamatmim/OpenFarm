@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import type { Tx } from "./audit";
 import { audited } from "./audit";
-import { farmUnitsOfEach } from "./farm-capital-store";
+import { splitsOf, farmUnitsOfEach } from "./farm-capital-store";
 import { offerProjectionOf, offeredProjection } from "./projection-store";
 import { closeRequests } from "./requests-to-join";
 import type { VentureRow } from "./venture-act";
@@ -213,22 +213,24 @@ export const openVenturesFor = async (
     farm.id,
     shown.map((one) => one.id)
   );
+  // The split each is on once anybody has signed for it, the farm's starting figure until then: an Investor told 50%
+  // was signed onto a Venture already settling at 60%.
+  const splits = await splitsOf(
+    db,
+    farm.id,
+    shown.map((one) => one.id)
+  );
   return Promise.all(
     shown
       .filter((one) => !theirs.has(one.id))
       .map(async (one) => {
+        const split = splits.get(one.id) ?? farm.ventureInvestorsPercent;
         const projected = withProjections
-          ? await offerProjectionOf(
-              db,
-              farm.id,
-              one,
-              farm.ventureInvestorsPercent,
-              now
-            )
+          ? await offerProjectionOf(db, farm.id, one, split, now)
           : null;
         return offeredAs(
           one,
-          farm.ventureInvestorsPercent,
+          split,
           now,
           projected ? offeredProjection(projected) : null,
           offersSeenAt === null ||

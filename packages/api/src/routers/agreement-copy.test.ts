@@ -116,6 +116,25 @@ describe("a copy of a signed Agreement", () => {
     ]);
   });
 
+  it("is headed with the farm's Registration as it was on the stamped day, not as it is now", async () => {
+    const owner = await as("owner");
+    await owner.farm.setIdentity({ registrationNumber: `DLS/NEW/${suffix}` });
+    try {
+      // A client made after the change, which reads the farm as it is now.
+      const later = await as("owner");
+      const { document } = await later.investorStatements.agreementCopy({
+        agreementId,
+      });
+      const said = JSON.stringify(document);
+      expect(said).toContain(`DLS/SAV/2066/${suffix}`);
+      expect(said).not.toContain(`DLS/NEW/${suffix}`);
+    } finally {
+      await owner.farm.setIdentity({
+        registrationNumber: `DLS/SAV/2066/${suffix}`,
+      });
+    }
+  });
+
   it("stays in the wording it was signed in after the farm publishes new wording", async () => {
     const owner = await as("owner");
     const NEW_CLAUSE = `নতুন শব্দে মুনাফা ভাগ (${suffix})`;

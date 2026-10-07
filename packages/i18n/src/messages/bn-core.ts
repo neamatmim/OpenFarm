@@ -769,6 +769,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.handedLaterThanNow": "এখনকার পরে টাকা হাতবদল হতে পারে না",
   "refusal.splitNotTheFarms":
     "এই ভেঞ্চারে খামারের নিজের ইউনিট {investorsPercent}% ভাগে নেওয়া; প্রত্যেক বিনিয়োগকারী একই ভাগে সই করবেন",
+  "refusal.splitNotTheVentures":
+    "এই ভেঞ্চারের বিনিয়োগকারীরা {investorsPercent}% ভাগে আছেন: প্রত্যেকে একই ভাগে সই করেন, নয়তো একটি সংশোধনী সবাইকে বদলায়",
   "refusal.theFarmsOwnUnits":
     "খামারের নিজের ইউনিট তার নিজের মূলধন: মানুষের মতো তাতে সই, কাগজ বা চিঠি হয় না",
   "refusal.madeGoodNeedsReference":

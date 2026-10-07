@@ -11,7 +11,7 @@ import type { Tx } from "./audit";
 import { nominationsInForceFor, paperNominees } from "./nomination-store";
 import { paperInvestor, paperValues } from "./paper-values";
 import type { VentureRow } from "./venture-store";
-import { paidForBy } from "./venture-store";
+import { paidForBy, windUpDaysOf } from "./venture-store";
 
 /** The terms an Investment Agreement is laid out from: what the Owner means to sign, or to offer, on. */
 export interface AgreementTerms {
@@ -51,6 +51,7 @@ export const agreementLaidOut = ({
     | "cattlePartMoney"
     | "monthlySums"
     | "firstSumDueOn"
+    | "windUpDays"
   >;
   him: {
     name: string;
@@ -91,7 +92,9 @@ export const agreementLaidOut = ({
         investorsPercent: terms.investorsPercent,
         windowStart: run.targetWindowStart,
         windowEnd: run.targetWindowEnd,
-        windUpDays: farm.windUpDays,
+        // The Venture's own once its first Investor has signed, frozen then; the farm's until it is: a second Investor's
+        // paper said 45 days while the Venture, and the first man's paper, ran on 30.
+        windUpDays: windUpDaysOf(run, farm),
         arbitrator: terms.arbitrator,
         monthly,
         farmCapital,
