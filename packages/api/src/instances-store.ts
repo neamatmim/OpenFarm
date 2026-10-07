@@ -1,6 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { sql } from "@OpenFarm/db/operators";
+import { eq, sql } from "@OpenFarm/db/operators";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type {
@@ -13,36 +13,37 @@ import type {
   SopContent,
 } from "@OpenFarm/domain";
 import {
-  goodUntilOf,
+  AWAITING_SIGN_OFF,
+  CALVED,
   EXIT_STATES,
+  HEAT,
+  MAX_GRACE_MINUTES,
+  OPEN_INSTANCE_STATES,
+  SAME_HEAT_WITHIN_HOURS,
+  SERVICE,
   addDays,
+  aiWindow,
+  appliesToAnimal,
   atFarmTime,
+  attemptsThatBegin,
+  calvingWorkDue,
+  carryingMoments,
+  checkSummaryOf,
+  describeChanges,
+  eventOfObservation,
   farmDayOf,
   farmDaysBetween,
   farmTimeOf,
-  CALVED,
-  HEAT,
-  SAME_HEAT_WITHIN_HOURS,
-  eventOfObservation,
-  SERVICE,
-  aiWindow,
-  attemptsThatBegin,
-  calvingWorkDue,
+  goodUntilOf,
   heatsThatBegin,
-  raisesItsOwnWork,
-  carryingMoments,
-  describeChanges,
-  lastCarryingMoment,
-  MAX_GRACE_MINUTES,
-  AWAITING_SIGN_OFF,
-  OPEN_INSTANCE_STATES,
-  appliesToAnimal,
-  checkSummaryOf,
-  scheduleFallsOn,
   isEscalated,
+  isOpen,
   isOverdue,
+  lastCarryingMoment,
   minutesOverdue,
+  raisesItsOwnWork,
   renewalOpensAt,
+  scheduleFallsOn,
 } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
@@ -1079,11 +1080,12 @@ export const findPendingNotices = async (
   );
   const escalatedAtOf = (instance: LateInstance) =>
     escalatedAt(instance, farm.escalationMinutes);
+  // Every piece of work still late past the Owner's line that the Owner has not been told of, wherever its moment falls:
+  // measured against the window, a line lowered while work was late put its moment behind the last sweep, and the
+  // Owner was never told of the work they lowered it to hear of sooner. The told-filter keeps it to once.
   const ownersUntold = inWindow.filter(
     (instance) =>
       isEscalated(instance, farm.escalationMinutes, now) &&
-      (escalatedAtOf(instance) >= from.getTime() ||
-        instance.createdAt.getTime() >= from.getTime()) &&
       !toldEscalated.has(instance.id)
   );
   const late = takeUntold(
@@ -1465,4 +1467,44 @@ export const daysWork = (
     },
     columns: { id: true, penId: true, state: true },
   });
+};
+
+/** The cause on a Pregnancy Check a service raised: the attempt — its service and the instant she was served. */
+const ATTEMPT_CAUSE = /^service:(?<id>[^:]+):(?<servedAt>.+):\+(?<days>\d+)$/u;
+
+/**
+ * Moves every Pregnancy Check still open to the farm's new days after a service, as calving work moves when its
+ * Parameters change: set from 45 days to 35, the Vet still came on the old day for every cow served before the change,
+ * and the herd ran on two timings for six weeks. Done or closed checks stay as they were. Returned, so the trail says
+ * which work went where.
+ */
+export const retimePregnancyChecks = async (
+  tx: Tx,
+  farmId: string,
+  pregnancyCheckAfterDays: number
+): Promise<{ instanceId: string; from: Date; to: Date }[]> => {
+  const checks = await tx.query.sopInstance.findMany({
+    where: { farmId, cause: { like: "service:%" } },
+    columns: { id: true, cause: true, dueAt: true, state: true },
+    orderBy: { dueAt: "asc", id: "asc" },
+  });
+  const moved: { instanceId: string; from: Date; to: Date }[] = [];
+  for (const check of checks) {
+    const servedAt = ATTEMPT_CAUSE.exec(check.cause ?? "")?.groups?.servedAt;
+    if (!(servedAt && isOpen(check.state))) {
+      continue;
+    }
+    const to = dueAfter(new Date(servedAt), pregnancyCheckAfterDays);
+    if (to.getTime() === check.dueAt.getTime()) {
+      continue;
+    }
+    moved.push({ instanceId: check.id, from: check.dueAt, to });
+    // Sequential: one row each, a few dozen at most.
+    // oxlint-disable-next-line no-await-in-loop
+    await tx
+      .update(sopInstance)
+      .set({ dueAt: to })
+      .where(eq(sopInstance.id, check.id));
+  }
+  return moved;
 };

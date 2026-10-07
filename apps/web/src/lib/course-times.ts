@@ -6,8 +6,9 @@ const WHOLE = /^\d+$/u;
 const LAST_HOUR = 23;
 const LAST_MINUTE = 59;
 
-/** One time as typed, as the farm writes it — "8:00" or "০৮:০০" is "08:00" — or nothing where it is not a time. */
-const timeOf = (typed: string): string | null => {
+/** One time as typed, as the farm writes it — "8:00" or "০৮:০০" is "08:00" — or nothing where it is not a time. Read
+ *  so wherever the farm asks a time of day: a course's, a procedure's, the digest's. */
+export const timeOf = (typed: string): string | null => {
   const said = TIME.exec(latinDigitsOf(typed.trim()))?.groups;
   if (!said?.hour || !said.minute) {
     return null;

@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useIsOwner } from "@/components/money";
 import { Section } from "@/components/page";
 import { ConfirmDialog, FormField, NativeSelect } from "@/components/page-kit";
+import { RenameDialog } from "@/components/rename-dialog";
 import { BankCheckSheet } from "@/components/ventures/bank-check-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
@@ -217,6 +218,15 @@ export const FarmAccounts = ({ id }: { id: string }) => {
     })
   );
   const accounts = listed.data ?? [];
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(
+    null
+  );
+  const rename = useMutation(
+    orpc.farmAccounts.rename.mutationOptions({
+      onSuccess: () => setRenaming(null),
+      onError: refused,
+    })
+  );
   const [checking, setChecking] = useState<{ id: string; name: string } | null>(
     null
   );
@@ -258,6 +268,13 @@ export const FarmAccounts = ({ id }: { id: string }) => {
               {isOwner && !one.retired ? (
                 <div className="flex gap-2">
                   <Button
+                    onClick={() => setRenaming({ id: one.id, name: one.name })}
+                    size="sm"
+                    variant="outline"
+                  >
+                    {t("list.rename")}
+                  </Button>
+                  <Button
                     onClick={() => setChecking({ id: one.id, name: one.name })}
                     size="sm"
                     variant="outline"
@@ -289,6 +306,24 @@ export const FarmAccounts = ({ id }: { id: string }) => {
         </ul>
       )}
       {isOwner ? <AddAccount /> : null}
+      <RenameDialog
+        bn={renaming?.name ?? ""}
+        description={t("list.renameHint")}
+        handleSave={(name) => {
+          if (renaming) {
+            rename.mutate({ id: renaming.id, name: name.bn });
+          }
+        }}
+        key={renaming?.id}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRenaming(null);
+          }
+        }}
+        open={renaming !== null}
+        pending={rename.isPending}
+        title={t("list.renameTitle", { name: renaming?.name ?? "" })}
+      />
       <ConfirmDialog
         confirmLabel={t("farmAccounts.retire")}
         description={t("farmAccounts.retireWhy")}

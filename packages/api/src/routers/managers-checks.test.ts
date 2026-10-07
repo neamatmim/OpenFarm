@@ -19,6 +19,7 @@ describe("the checks on the Manager", () => {
     for (const asked of [
       { approvalThresholdMoney: 100_000_000 },
       { managerCorrectionDays: 365 },
+      { escalationMinutes: 600 },
     ]) {
       // oxlint-disable-next-line no-await-in-loop -- one ask after another
       await expect(
@@ -52,5 +53,40 @@ describe("the checks on the Manager", () => {
         }),
       },
     ]);
+  });
+
+  it("tells the Owner when the Manager changes the farm's identity or its certificate", async () => {
+    const toldBefore = await toldOfSettings();
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    await manager.client.farm.setIdentity({ registrationNumber: "DLS/NEW/1" });
+    await manager.client.farm.setCertificate({
+      contentType: "image/jpeg",
+      data: "/9j/4AAQSkZJRg==",
+    });
+    const toldAfter = await toldOfSettings();
+    expect(toldAfter.length).toBe(toldBefore.length + 2);
+  });
+});
+
+describe("the farm's registration", () => {
+  it("is refused when it runs out before it was issued, judged against the date already kept", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    await expect(
+      owner.client.farm.setIdentity({
+        registrationIssuedOn: "2066-01-01",
+        registrationExpiresOn: "2060-01-01",
+      })
+    ).rejects.toMatchObject({
+      data: { refusal: "registration_expires_before_issued" },
+    });
+    await owner.client.farm.setIdentity({
+      registrationIssuedOn: "2066-01-01",
+      registrationExpiresOn: "2068-01-01",
+    });
+    await expect(
+      owner.client.farm.setIdentity({ registrationExpiresOn: "2065-12-31" })
+    ).rejects.toMatchObject({
+      data: { refusal: "registration_expires_before_issued" },
+    });
   });
 });

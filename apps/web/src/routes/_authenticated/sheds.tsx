@@ -95,7 +95,10 @@ const QuarantineAstray = () => {
 const HerdPage = () => {
   const { t } = useLanguage();
   const refused = useRefused();
-  const sheds = useQuery(orpc.sheds.list.queryOptions());
+  // Retired Pens too: this is where one is brought back. Every picker reads the list without them.
+  const sheds = useQuery(
+    orpc.sheds.list.queryOptions({ input: { withRetired: true } })
+  );
 
   const [naming, setNaming] = useState<Naming | null>(null);
   const [sizing, setSizing] = useState<{
@@ -125,6 +128,18 @@ const HerdPage = () => {
   );
   const markQuarantine = useMutation(
     orpc.sheds.pens.markQuarantine.mutationOptions({ onError })
+  );
+  const retirePen = useMutation(
+    orpc.sheds.pens.retire.mutationOptions({
+      onSuccess: () => toast.success(t("herd.penRetiredDone")),
+      onError,
+    })
+  );
+  const restorePen = useMutation(
+    orpc.sheds.pens.restore.mutationOptions({
+      onSuccess: () => toast.success(t("herd.penRestoredDone")),
+      onError,
+    })
   );
   const pending =
     createShed.isPending ||
@@ -156,6 +171,8 @@ const HerdPage = () => {
     handleMarkQuarantine: (pen, quarantine) =>
       markQuarantine.mutate({ penId: pen.id, quarantine }),
     handleSetCapacity: setSizing,
+    handleRetirePen: (pen) => retirePen.mutate({ penId: pen.id }),
+    handleRestorePen: (pen) => restorePen.mutate({ penId: pen.id }),
   };
 
   return (

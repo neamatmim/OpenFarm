@@ -1,3 +1,5 @@
+import { eq } from "@OpenFarm/db/operators";
+import { farm as farmTable } from "@OpenFarm/db/schema/farm";
 import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -163,6 +165,12 @@ describe("the day turning", () => {
 
 describe("the sweep, when one thing it tells of cannot be read", () => {
   it("still tells of late work, and says the sweep went wrong", async () => {
+    // A farm's first sweep, which looks over its own day: not catching up on the week the tests before this one left
+    // behind, where today's late work is counted into one notice rather than told.
+    await scratchDb()
+      .update(farmTable)
+      .set({ alertsSweptFrom: null })
+      .where(eq(farmTable.id, theFarm().id));
     // Half past eleven in Dhaka: the eight o'clock work is late, and the turn raises it and finds it so.
     const context = await buildContext({
       session: null,

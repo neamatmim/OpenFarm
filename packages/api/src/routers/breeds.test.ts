@@ -158,4 +158,18 @@ describe("the opening register names a breed", () => {
     expect(jersey?.breed?.nameBn).toBe("জার্সি ক্রস");
     expect(chittagong?.breed?.nameEn).toBe("Red Chittagong");
   });
+
+  it("by its name typed with two spaces where one belongs", async () => {
+    const csv = [
+      "sex,side,state,pen,source,breed",
+      "female,dairy,calf,জাতের পেন,born,Red  Chittagong",
+    ].join("\n");
+
+    const result = await owner.animals.importRegister({ csv });
+
+    expect(result.failed).toEqual([]);
+    const [calf] = result.imported;
+    const her = await owner.animals.get({ tagNumber: calf?.tagNumber ?? "" });
+    expect(her.breed?.nameEn).toBe("Red Chittagong");
+  });
 });

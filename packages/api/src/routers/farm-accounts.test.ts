@@ -1,4 +1,4 @@
-import { FakeClock, thePerson } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -474,5 +474,25 @@ describe("one number, however it is written", () => {
     await expect(
       manager.client.farmAccounts.bringBack({ id })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("keeps the day it was first retired when retired again, and finds no account the farm does not have", async () => {
+    const owner = await as("owner", "2066-01-10T04:00:00.000Z");
+    const { id } = await owner.client.farmAccounts.create({
+      kind: "mobile_money",
+      name: `দুবার বাদ ${suffix}`,
+      number: "01799000555",
+    });
+    await owner.client.farmAccounts.retire({ id });
+    const later = await as("owner", "2066-03-10T04:00:00.000Z");
+    await later.client.farmAccounts.retire({ id });
+    const kept = await scratchDb().query.farmAccount.findFirst({
+      where: { id },
+      columns: { retiredAt: true },
+    });
+    expect(kept?.retiredAt).toEqual(new Date("2066-01-10T04:00:00.000Z"));
+    await expect(
+      later.client.farmAccounts.retire({ id: "not-the-farms" })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 });

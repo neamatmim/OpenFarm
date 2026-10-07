@@ -4,6 +4,7 @@ import {
   fewestDaysBeforeMilkIsWeighed,
 } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
+import { timeInDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -17,7 +18,12 @@ import { useState } from "react";
 import { FarmShareNote } from "@/components/feed/farm-gains";
 import { useIsOwner } from "@/components/money";
 import { Section } from "@/components/page";
-import { useT } from "@/i18n/language-provider";
+import { useLanguage, useT } from "@/i18n/language-provider";
+import {
+  digestTimesOf,
+  parameterFigure,
+  parameterProblem,
+} from "@/lib/parameter-typed";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -119,13 +125,6 @@ const GROUPS: {
       { key: "quietFrom", label: "params.quietFrom", time: true },
       { key: "quietUntil", label: "params.quietUntil", time: true },
       {
-        key: "escalationMinutes",
-        label: "params.escalation",
-        unit: "params.minutes",
-        min: 0,
-        max: 1440,
-      },
-      {
         key: "expiryWarnDays",
         label: "params.expiryWarn",
         unit: "params.days",
@@ -176,6 +175,13 @@ const GROUPS: {
     // The checks on the Manager himself are the Owner's to set (the Owner's decision of 2026-10-04).
     owner: true,
     fields: [
+      {
+        key: "escalationMinutes",
+        label: "params.escalation",
+        unit: "params.minutes",
+        min: 0,
+        max: 1440,
+      },
       {
         key: "managerCorrectionDays",
         label: "params.managerCorrection",
@@ -737,12 +743,9 @@ type Values = Record<Key, string>;
 /** What has been typed into a group so far: only the fields somebody touched. */
 type Draft = Partial<Values>;
 
-const inputTypeOf = (field: FieldSpec) => {
-  if (field.time) {
-    return "time";
-  }
-  return field.unit ? "number" : "text";
-};
+/** A time box the browser draws for the quiet hours; every other box is text the farm reads, Bangla digits and all —
+ *  a number box read "৩০" and "1.5" as nothing and answered in the browser's own language. */
+const inputTypeOf = (field: FieldSpec) => (field.time ? "time" : "text");
 
 const asText = (value: unknown): string => {
   if (Array.isArray(value)) {
@@ -760,17 +763,41 @@ const changesOf = (draft: Draft, saved: Values): Record<string, unknown> => {
       continue;
     }
     if (key === "digestTimes") {
-      changes[key] = typed
-        .split(",")
-        .map((time) => time.trim())
-        .filter(Boolean);
+      changes[key] = digestTimesOf(typed);
     } else if (key === "quietFrom" || key === "quietUntil") {
       changes[key] = typed.trim();
     } else {
-      changes[key] = Number(typed);
+      changes[key] = parameterFigure(typed);
     }
   }
   return changes;
+};
+
+/** The range a setting takes, said under its box in the reader's digits — and, typed outside it or not a whole
+ *  number, that in its place. */
+const FieldRange = ({
+  field,
+  id,
+  problem,
+}: {
+  field: FieldSpec;
+  id: string;
+  problem: "notAWholeFigure" | "outOfRange" | null;
+}) => {
+  const t = useT();
+  const range = t("params.range", { min: field.min ?? 0, max: field.max ?? 0 });
+  if (problem === null) {
+    return (
+      <p className="text-muted-foreground text-xs" id={id}>
+        {range}
+      </p>
+    );
+  }
+  return (
+    <p className="text-destructive text-xs" id={id}>
+      {problem === "notAWholeFigure" ? t("params.notAWholeFigure") : range}
+    </p>
+  );
 };
 
 /**
@@ -851,7 +878,7 @@ const ParameterGroup = ({
   group: (typeof GROUPS)[number];
   saved: Values;
 }) => {
-  const t = useT();
+  const { t, language } = useLanguage();
   const refused = useRefused();
   const [draft, setDraft] = useState<Draft | null>(null);
   const save = useMutation(
@@ -865,7 +892,13 @@ const ParameterGroup = ({
   );
   const values = draft ?? {};
   const changes = changesOf(values, saved);
-  const changed = Object.keys(changes).length > 0;
+  // What is wrong with a figure typed, said under its box: saved only once every one the farm would refuse is right.
+  const problemOf = (field: FieldSpec) =>
+    field.unit && values[field.key] !== undefined
+      ? parameterProblem(values[field.key] ?? "", field)
+      : null;
+  const allRight = group.fields.every((field) => problemOf(field) === null);
+  const changed = Object.keys(changes).length > 0 && allRight;
 
   return (
     <SettingsSection
@@ -907,18 +940,28 @@ const ParameterGroup = ({
                 ) : null}
               </Label>
               <Input
+                aria-describedby={field.unit ? `${id}-range` : undefined}
+                aria-invalid={problemOf(field) ? true : undefined}
                 id={id}
                 inputMode={field.unit ? "numeric" : undefined}
-                max={field.max}
-                min={field.min}
                 onChange={(event) =>
                   setDraft({ ...values, [field.key]: event.target.value })
                 }
-                placeholder={field.key === "digestTimes" ? "18:00" : undefined}
-                required
+                placeholder={
+                  field.key === "digestTimes"
+                    ? timeInDigits("18:00", language)
+                    : undefined
+                }
                 type={inputTypeOf(field)}
                 value={values[field.key] ?? saved[field.key]}
               />
+              {field.unit ? (
+                <FieldRange
+                  field={field}
+                  id={`${id}-range`}
+                  problem={problemOf(field)}
+                />
+              ) : null}
               {field.farmsOwn ? <FarmShareNote kind={field.farmsOwn} /> : null}
             </div>
           );

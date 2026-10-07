@@ -15,6 +15,7 @@ import {
   findBandProblems,
   findExpectedGainProblems,
   findRationProblems,
+  stockLedger,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -45,6 +46,7 @@ import {
 } from "../roles";
 import { requirePenInScope } from "../scope";
 import { feedsNotHad, startWithStandard } from "../standard-store";
+import { movementsByItem } from "../stock-store";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -294,6 +296,18 @@ export const feedRouter = {
                   refusal: "feed_on_a_ration",
                   ration: feeding.join(", "),
                 },
+              });
+            }
+            // Nor while the store holds any (the Owner's decision of 2026-10-07): retired, it is asked for at no count,
+            // so feed gone short would be retired before the count the Owner checks the Manager by. A count that
+            // finds none brings it to nothing, and it may go then.
+            const movements = await movementsByItem(tx, context.farm.id);
+            const { onHand } = stockLedger(movements.get(input.id) ?? []);
+            if (onHand > 0) {
+              throw new ORPCError("BAD_REQUEST", {
+                message:
+                  "The store still holds some of it; count it to nothing first",
+                data: { refusal: "feed_in_the_store", left: onHand },
               });
             }
           },
@@ -637,6 +651,7 @@ export const feedRouter = {
             const known = await tx.query.ration.findFirst({
               where: { id: input.rationId, farmId: context.farm.id },
               columns: { id: true, retiredAt: true },
+              with: { currentVersion: true },
             });
             if (!known) {
               throw new ORPCError("NOT_FOUND", { message: "No such ration" });
@@ -648,6 +663,17 @@ export const feedRouter = {
                 data: { refusal: "ration_retired" },
               });
             }
+            // Nor a Ration that feeds a feed retired since it was written: the Pen would be fed what the farm no longer
+            // buys, counts or warns of, as saving the Ration would refuse.
+            const lines = linesOf(known.currentVersion?.items);
+            const feeds = await tx.query.feedItem.findMany({
+              where: {
+                farmId: context.farm.id,
+                id: { in: lines.map((line) => line.feedItemId) },
+              },
+              columns: { id: true, nameBn: true, unit: true, retiredAt: true },
+            });
+            refuseFeedsNotFed(feeds, lines);
             // The Pen's Ration history: the spell it was on ends now, and one on this Ration begins — unless it is on it
             // already, when nothing changes.
             const was = await tx.query.penRation.findFirst({

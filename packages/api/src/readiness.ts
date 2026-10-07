@@ -1,7 +1,12 @@
 import type { Database } from "@OpenFarm/db";
 import { createDb } from "@OpenFarm/db";
 import { LATEST_MIGRATION } from "@OpenFarm/db/latest-migration";
-import { sql } from "@OpenFarm/db/operators";
+import { eq, sql } from "@OpenFarm/db/operators";
+import { serverLocale } from "@OpenFarm/db/schema/scheduler";
+import { env } from "@OpenFarm/env/server";
+
+import type { LocaleAsSetUp } from "./farm-locale";
+import { localeAsSetUp, localeChanges } from "./farm-locale";
 
 /**
  * Whether the database has applied the newest migration this code expects. Reading a table only proves some
@@ -78,17 +83,69 @@ const isRefusedRights = (error: unknown): boolean => {
   return false;
 };
 
+export const THE_LOCALE_CHANGED =
+  "This server is set up to say the farm is somewhere other than its records were kept: every sum, day and ended year would read anew. Put it back, or start once with OPENFARM_LOCALE_CHANGED=yes if the change is meant:";
+
+/** The one row the server's locale is kept in. */
+const THIS_SERVER = "this-server";
+
+/**
+ * Why a server set up to say the farm is somewhere else than the records were kept may not start, or nothing: changed
+ * on a rebuild, every sum would read in another currency, every day on another clock, and every ended year cut anew —
+ * history rewritten without a word. The first start keeps where it is; a change the Owner means is said plainly with
+ * `OPENFARM_LOCALE_CHANGED=yes`, and kept from then on.
+ */
+const whyTheLocaleWillNotDo = async (
+  db: ReturnType<typeof createDb>,
+  { now, changeMeant }: { now: LocaleAsSetUp; changeMeant: boolean }
+): Promise<string | null> => {
+  const kept = await db.query.serverLocale.findFirst({
+    where: { id: THIS_SERVER },
+  });
+  const row = { ...now, recordedAt: new Date() };
+  if (!kept) {
+    await db
+      .insert(serverLocale)
+      .values({ id: THIS_SERVER, ...row })
+      .onConflictDoNothing();
+    return null;
+  }
+  const changes = localeChanges(kept, now);
+  if (changes.length === 0) {
+    return null;
+  }
+  if (!changeMeant) {
+    return `${THE_LOCALE_CHANGED} ${changes.join("; ")}`;
+  }
+  await db
+    .update(serverLocale)
+    .set(row)
+    .where(eq(serverLocale.id, THIS_SERVER));
+  return null;
+};
+
 /**
  * Why a built server may not start on this database, or nothing: behind the code, or reached with a login that may not
  * read it — which used to pass as "not behind", so the server came up and failed every turn and every request.
  */
 export const whyTheDatabaseWillNotDo = async (
-  url: string
+  url: string,
+  /** Where the farm is as this server is set up to say, and whether the Owner has said plainly a change is meant. */
+  locale?: { now: LocaleAsSetUp; changeMeant: boolean }
 ): Promise<string | null> => {
   const db = createDb(url, { allowExitOnIdle: true });
   try {
     try {
-      return (await schemaIsCurrent(db)) ? null : DATABASE_IS_BEHIND;
+      if (!(await schemaIsCurrent(db))) {
+        return DATABASE_IS_BEHIND;
+      }
+      return await whyTheLocaleWillNotDo(
+        db,
+        locale ?? {
+          now: localeAsSetUp(),
+          changeMeant: env.OPENFARM_LOCALE_CHANGED === "yes",
+        }
+      );
     } catch (error) {
       if (isMissingTable(error)) {
         return DATABASE_IS_BEHIND;

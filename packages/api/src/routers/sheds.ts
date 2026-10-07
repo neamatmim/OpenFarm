@@ -56,17 +56,79 @@ const assertPenNameFree = async (
   }
 };
 
+/** A Pen as its retiring is written on the trail: its name, and whether it is retired. */
+const readPenStanding = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  penId: string
+) =>
+  (await tx.query.pen.findFirst({
+    where: { id: penId, farmId },
+    columns: { name: true, retiredAt: true },
+  })) ?? null;
+
+/** Refuses to retire a Pen something still needs: an animal standing in it, a Ration it is fed on, or new arrivals that
+ *  come into it as the quarantine Pen. Each is put right first, and said in its own words. */
+const refuseWhileInUse = async (
+  tx: Tx,
+  farmId: string,
+  penId: string,
+  found: { quarantine: boolean }
+) => {
+  if (found.quarantine) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A quarantine pen is unmarked before it is retired",
+      data: { refusal: "pen_is_quarantine" },
+    });
+  }
+  const standing = await tx.query.animal.findFirst({
+    where: { farmId, penId, state: { notIn: [...EXIT_STATES] } },
+    columns: { id: true },
+  });
+  if (standing) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Animals stand in this pen: move them first",
+      data: { refusal: "pen_holds_animals" },
+    });
+  }
+  const fed = await tx.query.penRation.findFirst({
+    where: { penId },
+    columns: { penId: true },
+  });
+  if (fed) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This pen is on a ration: take it off first",
+      data: { refusal: "pen_on_a_ration" },
+    });
+  }
+};
+
 /** Sheds contain Pens; every Animal is in exactly one Pen. */
 export const shedsRouter = {
   /** Each Shed with its Pens, and how many animals stand in each Pen today against the head it holds. */
   list: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
-    .handler(async ({ context }) => {
+    .input(
+      z
+        .object({
+          /** The Sheds and Pens page, which brings a retired Pen back; every picker leaves them out. */
+          withRetired: z.boolean().optional(),
+        })
+        .optional()
+    )
+    .handler(async ({ context, input }) => {
       const [sheds, heads] = await Promise.all([
         context.db.query.shed.findMany({
           where: { farmId: context.farm.id },
           orderBy: { name: "asc" },
-          with: { pens: { orderBy: { name: "asc" } } },
+          with: {
+            pens: {
+              ...(input?.withRetired
+                ? {}
+                : { where: { retiredAt: { isNull: true } } }),
+              orderBy: { name: "asc" },
+            },
+          },
         }),
         context.db
           .select({ penId: animal.penId, head: sql<number>`count(*)::int` })
@@ -373,6 +435,74 @@ export const shedsRouter = {
           }
         );
         return { penId: input.penId, quarantine: input.quarantine };
+      }),
+
+    /**
+     * A Pen torn down or no longer used, out of every picker: nothing is moved, raised or fed into it again, and what was
+     * done in it keeps its name. Only while it stands empty, on no Ration, and is not a quarantine Pen — each is put
+     * right first. The Owner's or the Manager's, as Pens are made; a second tap changes nothing.
+     */
+    retire: protectedProcedure
+      .use(requireRole("owner", "manager"))
+      .input(z.object({ penId: z.string() }))
+      .handler(async ({ context, input }) => {
+        const now = context.clock.now();
+        await audited(context).write(
+          {
+            entity: "pen",
+            entityId: input.penId,
+            action: "update",
+            before: (tx) => readPenStanding(tx, context.farm.id, input.penId),
+            after: (tx) => readPenStanding(tx, context.farm.id, input.penId),
+          },
+          async (tx) => {
+            const found = await tx.query.pen.findFirst({
+              where: { id: input.penId, farmId: context.farm.id },
+              columns: { retiredAt: true, quarantine: true },
+            });
+            if (!found) {
+              throw new ORPCError("NOT_FOUND", { message: "No such pen" });
+            }
+            if (found.retiredAt) {
+              return;
+            }
+            await refuseWhileInUse(tx, context.farm.id, input.penId, found);
+            await tx
+              .update(pen)
+              .set({ retiredAt: now })
+              .where(eq(pen.id, input.penId));
+          }
+        );
+        return { penId: input.penId };
+      }),
+
+    /** A Pen retired by mistake, or put back up: on every picker again. */
+    restore: protectedProcedure
+      .use(requireRole("owner", "manager"))
+      .input(z.object({ penId: z.string() }))
+      .handler(async ({ context, input }) => {
+        await audited(context).write(
+          {
+            entity: "pen",
+            entityId: input.penId,
+            action: "update",
+            before: (tx) => readPenStanding(tx, context.farm.id, input.penId),
+            after: (tx) => readPenStanding(tx, context.farm.id, input.penId),
+          },
+          async (tx) => {
+            const [row] = await tx
+              .update(pen)
+              .set({ retiredAt: null })
+              .where(
+                and(eq(pen.id, input.penId), eq(pen.farmId, context.farm.id))
+              )
+              .returning({ id: pen.id });
+            if (!row) {
+              throw new ORPCError("NOT_FOUND", { message: "No such pen" });
+            }
+          }
+        );
+        return { penId: input.penId };
       }),
   },
 };

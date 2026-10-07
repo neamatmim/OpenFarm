@@ -273,6 +273,14 @@ export const requirePen = async (tx: Tx, farmId: string, penId: string) => {
       data: { refusal: "no_such_pen" },
     });
   }
+  // Everything that asks for a Pen puts something into it — an animal, the day's work, a Ration — and a retired Pen
+  // takes nothing.
+  if (row.retiredAt) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That pen is retired: bring it back first",
+      data: { refusal: "pen_retired" },
+    });
+  }
   return row;
 };
 

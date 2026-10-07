@@ -10,6 +10,7 @@ import {
   STANDARD_FEED_ITEMS,
   STANDARD_NOTIFIABLE_DISEASES,
   STANDARD_RATIONS,
+  namesTheDisease,
   rationLineOf,
 } from "@OpenFarm/domain";
 
@@ -236,10 +237,32 @@ const addDiseases = async (
   trail: Trail,
   starter: Starter
 ): Promise<string[]> => {
+  // A standard disease the farm already lists under any of its names is not added again: "ক্ষুরা রোগ" beside the farm's
+  // "খুরা রোগ" was one disease twice on the Vet's list. Either way round — the farm's name may be one of the standard's
+  // other names, or the standard's one of the farm's.
+  const listed = await tx.query.notifiableDisease.findMany({
+    where: { farmId: starter.farmId },
+    columns: { nameBn: true, nameEn: true, otherNames: true },
+  });
+  const missing = STANDARD_NOTIFIABLE_DISEASES.filter((standard) => {
+    const asListed = {
+      nameBn: standard.bn,
+      nameEn: standard.en,
+      otherNames: standard.otherNames,
+    };
+    return !listed.some(
+      (one) =>
+        namesTheDisease(one, { bn: standard.bn, en: standard.en }) ||
+        namesTheDisease(asListed, { bn: one.nameBn, en: one.nameEn })
+    );
+  });
+  if (missing.length === 0) {
+    return [];
+  }
   const added = await tx
     .insert(notifiableDisease)
     .values(
-      STANDARD_NOTIFIABLE_DISEASES.map((name) => ({
+      missing.map((name) => ({
         id: uuidv7(starter.now),
         farmId: starter.farmId,
         nameBn: name.bn,

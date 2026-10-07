@@ -2,6 +2,7 @@ import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { setFeedAside } from "../test/feed-set-aside";
 import { appRouter } from "./index";
 
 // Money from the farm's own records: a Dispatch, an Intake, a Sale, a feed Purchase, a medicine
@@ -235,8 +236,8 @@ describe("money from the farm's records", () => {
       expect.objectContaining({ amountMoney: 25_000, approval: "not_needed" }),
     ]);
 
-    // Retired, so a Stock Count later in this file does not find a lorry from 2037 still in the store.
-    await manager.client.feed.items.retire({ id: feed.id });
+    // Set aside, so a Stock Count later in this file does not find a lorry from 2037 still in the store.
+    await setFeedAside(feed.id);
   });
 
   it("holds the money over the threshold and never the Sale, until the Owner approves it", async () => {

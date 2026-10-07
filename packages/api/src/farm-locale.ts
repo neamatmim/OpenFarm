@@ -49,3 +49,33 @@ export const settleFarmLocale = (): void => {
   });
   firstStarts = yearStarts;
 };
+
+/** Where the farm is as this server was set up to say: what the database is asked to agree with at start. */
+export interface LocaleAsSetUp {
+  currency: string;
+  timeZone: string;
+  yearStarts: number;
+}
+
+export const localeAsSetUp = (): LocaleAsSetUp => ({
+  currency: env.OPENFARM_CURRENCY ?? DEFAULT_FARM_LOCALE.currency,
+  timeZone: env.OPENFARM_TIME_ZONE ?? DEFAULT_FARM_LOCALE.timeZone,
+  yearStarts: Number(env.OPENFARM_YEAR_STARTS ?? FIRST_YEAR_STARTS),
+});
+
+/** Which of the three a server set up as `now` says differently from the one the records were kept under. */
+export const localeChanges = (
+  kept: LocaleAsSetUp,
+  now: LocaleAsSetUp
+): string[] =>
+  [
+    kept.currency === now.currency
+      ? null
+      : `OPENFARM_CURRENCY ${kept.currency} → ${now.currency}`,
+    kept.timeZone === now.timeZone
+      ? null
+      : `OPENFARM_TIME_ZONE ${kept.timeZone} → ${now.timeZone}`,
+    kept.yearStarts === now.yearStarts
+      ? null
+      : `OPENFARM_YEAR_STARTS ${kept.yearStarts} → ${now.yearStarts}`,
+  ].filter((change): change is string => change !== null);

@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { movementsByItem } from "../stock-store";
 import { createTestClient } from "../test/client";
+import { setFeedAside } from "../test/feed-set-aside";
 import { appRouter } from "./index";
 
 // Feed comes in — bought, or cut from the farm's own fields — and goes out through the Feedings the
@@ -327,7 +328,8 @@ describe("feed stock", () => {
     expect(
       afterOwnersHay.find((line) => line.feedItemId === hay.id)
     ).toMatchObject({ onHand: 10 });
-    await owner.client.feed.items.retire({ id: hay.id });
+    // Set aside, so a Stock Count later in this file does not find the Owner's hay still in the store.
+    await setFeedAside(hay.id);
     for (const as of ["staff", "vet"] as const) {
       // oxlint-disable-next-line no-await-in-loop
       const other = await createTestClient(appRouter, { as, clock: at });

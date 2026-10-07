@@ -3,7 +3,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { Plus, ShieldAlert, ShieldOff, Tags } from "lucide-react";
+import { PencilLine, Plus, ShieldAlert, ShieldOff, Tags } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -28,6 +28,7 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { FormDialog, FormField, RowMenu } from "@/components/page-kit";
+import { RenameDialog } from "@/components/rename-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
@@ -42,6 +43,7 @@ interface DiseaseRow extends Disease {
   handleTakeOff: (disease: Disease) => void;
   handlePutBack: (disease: Disease) => void;
   handleOtherNames: (disease: Disease) => void;
+  handleRename: (disease: Disease) => void;
 }
 
 /** Other names as somebody types them: separated by commas, Bangla or English. */
@@ -123,13 +125,18 @@ const AddedByCell = ({ row }: { row: { original: DiseaseRow } }) => {
 /** The menu at the end of a disease's row: taking it off the list, or putting it back — each asks why. */
 const DiseaseMenu = ({ row }: { row: DiseaseRow }) => {
   const { t, language } = useLanguage();
-  const { handleTakeOff, handlePutBack, handleOtherNames } = row;
+  const { handleTakeOff, handlePutBack, handleOtherNames, handleRename } = row;
   if (!row.keeps) {
     return null;
   }
   return (
     <RowMenu
       actions={[
+        {
+          label: t("list.rename"),
+          icon: PencilLine,
+          handleSelect: () => handleRename(row),
+        },
         {
           label: t("notifiable.otherNames"),
           icon: Tags,
@@ -415,6 +422,43 @@ const OtherNamesDialog = ({
   );
 };
 
+/** A disease's name put right where it stands, with its English. */
+const RenameDiseaseDialog = ({
+  disease,
+  onOpenChange,
+}: {
+  disease: Disease | null;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const { t, language } = useLanguage();
+  const refused = useRefused();
+  const rename = useMutation(
+    orpc.notifiableDiseases.rename.mutationOptions({
+      onSuccess: () => onOpenChange(false),
+      onError: refused,
+    })
+  );
+  return (
+    <RenameDialog
+      bn={disease?.nameBn ?? ""}
+      description={t("list.renameHint")}
+      en={disease?.nameEn}
+      handleSave={(name) => {
+        if (disease) {
+          rename.mutate({ id: disease.id, name });
+        }
+      }}
+      onOpenChange={onOpenChange}
+      open={disease !== null}
+      pending={rename.isPending}
+      title={t("list.renameTitle", {
+        name: disease ? nameOf(disease, language) : "",
+      })}
+      withEnglish
+    />
+  );
+};
+
 /** The list as a table where there is room, and as cards on a phone. */
 const DiseaseList = ({ rows }: { rows: DiseaseRow[] }) => {
   const table = useListTable({
@@ -444,6 +488,7 @@ const NotifiablePage = () => {
   const keeps = me.data !== undefined && me.data.scopes.vet?.kind !== "cases";
   const [adding, setAdding] = useState(false);
   const [naming, setNaming] = useState<Disease | null>(null);
+  const [renaming, setRenaming] = useState<Disease | null>(null);
   /** Which disease is being taken off the list or put back on it: its dialog asks why. */
   const [changing, setChanging] = useState<{
     disease: Disease;
@@ -475,6 +520,7 @@ const NotifiablePage = () => {
                 setChanging({ disease: one, back: false }),
               handlePutBack: (one) => setChanging({ disease: one, back: true }),
               handleOtherNames: setNaming,
+              handleRename: setRenaming,
             }))}
           />
         ) : (
@@ -485,6 +531,15 @@ const NotifiablePage = () => {
       {keeps ? (
         <>
           <AddDiseaseDialog onOpenChange={setAdding} open={adding} />
+          <RenameDiseaseDialog
+            disease={renaming}
+            key={renaming?.id ?? "none"}
+            onOpenChange={(open) => {
+              if (!open) {
+                setRenaming(null);
+              }
+            }}
+          />
           <OtherNamesDialog
             disease={naming}
             key={naming?.id ?? "none"}
