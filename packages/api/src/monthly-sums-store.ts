@@ -2,10 +2,9 @@ import type { Database } from "@OpenFarm/db";
 import type { SumsStanding } from "@OpenFarm/domain";
 import { TAKES_MONTHLY_SUMS, sumsStandingOf } from "@OpenFarm/domain";
 
-import { holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
 import type { Raised } from "./notice";
-import { rememberingPeople, tell } from "./notice";
+import { rememberingPeople, tell, whoHears } from "./notice";
 import type { VentureRow } from "./venture-store";
 import { paidForBy } from "./venture-store";
 
@@ -157,7 +156,8 @@ export const missedToTell = async (
       },
     };
   });
-  const owners = await holdersOf(db as Tx, farmId, ["owner"]);
+  // As `tell` will tell it: an Owner who has left is not counted as never told.
+  const owners = await whoHears(db, farmId, "monthly_sum_missed", { id: "" });
   const told = await db.query.alert.findMany({
     where: {
       farmId,

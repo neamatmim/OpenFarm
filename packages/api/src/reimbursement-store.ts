@@ -9,11 +9,10 @@ import {
   WHAT_THE_FARM_IS_OWED,
 } from "@OpenFarm/domain";
 
-import { holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
 import type { FarmCosts } from "./cost-store";
 import { consumedBy, farmCosts, owedByMonth } from "./cost-store";
-import { tell } from "./notice";
+import { tell, whoHears } from "./notice";
 import { ownedThenByOf } from "./venture-store";
 
 type Reader = Pick<Database | Tx, "query">;
@@ -201,7 +200,8 @@ export const reimbursementsToTell = async (
     return [];
   }
   const ids = running.map((one) => one.id);
-  const owners = await holdersOf(db as Tx, farmId, ["owner"]);
+  // As `tell` will tell it: an Owner who has left is not counted as never told.
+  const owners = await whoHears(db, farmId, "reimbursement_due", { id: "" });
   if (owners.length === 0) {
     return [];
   }

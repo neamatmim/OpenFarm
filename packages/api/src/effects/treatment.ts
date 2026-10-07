@@ -370,7 +370,8 @@ const giveTheDose = async (
     tx,
     input.instance.farmId,
     dose?.animalId ?? shape.animalId ?? "",
-    input.skipped ? undefined : input.now
+    // A dose put right to a skip cuts her hold short, which is told as one given starts it.
+    input.now
   );
   if (dose && !input.skipped) {
     await tellIfItsLotHadExpired(tx, input.instance.farmId, dose.id, input.now);

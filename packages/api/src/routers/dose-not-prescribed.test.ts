@@ -1,3 +1,5 @@
+import { eq } from "@OpenFarm/db/operators";
+import { animal } from "@OpenFarm/db/schema/herd";
 import {
   FakeClock,
   scratchDb,
@@ -8,6 +10,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { rowsOfRegister } from "../registers/rows";
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // A dose not prescribed: the pharmacy's advice, given before the Vet saw her, written afterwards by the Manager so her
@@ -265,5 +268,93 @@ describe("a dose not prescribed", () => {
         advice: "জ্বর",
       })
     ).rejects.toMatchObject({ data: { refusal: "given_in_the_future" } });
+  });
+});
+
+/** Every notice of one kind about one animal, to anybody. */
+const toldAbout = async (
+  kind: "withdrawal_changed" | "withdrawal_ending",
+  tagNumber: string
+) => {
+  const all = await scratchDb().query.alert.findMany({
+    where: { kind, farmId: theFarm().id },
+    columns: { params: true },
+  });
+  return all.filter(
+    (one) => (one.params as { tag?: string } | null)?.tag === tagNumber
+  );
+};
+
+describe("the milk-hold notices", () => {
+  const dosed = async (tag: string, productId = known) => {
+    const manager = await as("manager");
+    await manager.client.treatments.giveNotPrescribed({
+      animalTag: tag,
+      productId,
+      givenAt: new Date(NOW),
+      advice: `জ্বর ${suffix}`,
+    });
+  };
+
+  const sweptAt = async (at: string) => {
+    const manager = await as("manager", at);
+    await manager.client.alerts.sweep();
+  };
+
+  it("are never about a fattening bull: his hold is his meat's, and nobody is told or texted of his milk", async () => {
+    const tag = await aCow(`ষাঁড় ${suffix}`);
+    await scratchDb()
+      .update(animal)
+      .set({ sex: "male", side: "fattening", state: "fattening" })
+      .where(eq(animal.tagNumber, tag));
+    await dosed(tag);
+    await sweptAt(after(3.5));
+
+    expect(await toldAbout("withdrawal_changed", tag)).toEqual([]);
+    expect(await toldAbout("withdrawal_ending", tag)).toEqual([]);
+    // His meat is still held: the gate that matters for him stands.
+    const held = await heldUntil(tag);
+    expect(held.meat).not.toBeNull();
+  });
+
+  it("are not about a cow who died during her hold", async () => {
+    const tag = await aCow(`মারা গেছে ${suffix}`);
+    await dosed(tag);
+    const owner = await as("owner", after(1));
+    await owner.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
+      tagNumber: tag,
+      kind: "died",
+      cause: "test",
+      disposal: "buried",
+    });
+    await sweptAt(after(3.5));
+
+    expect(await toldAbout("withdrawal_ending", tag)).toEqual([]);
+  });
+
+  it("tell the Manager when the Vet's days raised hold a cow again whose milk was clear", async () => {
+    const vet = await as("vet");
+    const product = await vet.client.drugs.create({
+      name: { bn: `লেবেল ভুল পড়া ${suffix}` },
+      milkWithdrawalDays: 4,
+      meatWithdrawalDays: 21,
+    });
+    const tag = await aCow(`আবার আটকানো ${suffix}`);
+    await dosed(tag, product.id);
+    const before = await toldAbout("withdrawal_changed", tag);
+
+    // Five days on her milk is clear; the label was read wrong, and it is ten.
+    const later = await as("vet", after(5));
+    await later.client.drugs.setWithdrawal({
+      id: product.id,
+      milkWithdrawalDays: 10,
+      meatWithdrawalDays: 21,
+    });
+
+    const heldNow = await heldUntil(tag);
+    expect(heldNow.milk).toBe(after(10));
+    const now = await toldAbout("withdrawal_changed", tag);
+    expect(now.length - before.length).toBe(1);
   });
 });

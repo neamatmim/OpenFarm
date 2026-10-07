@@ -1,3 +1,4 @@
+import type { Database } from "@OpenFarm/db";
 import { and, eq, inArray, isNotNull } from "@OpenFarm/db/operators";
 import type { AlertKind } from "@OpenFarm/db/schema/alert";
 import { alert } from "@OpenFarm/db/schema/alert";
@@ -119,6 +120,8 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   day_not_turning: { audience: [theOwner], entity: "scheduler_state" },
   backup_overdue: { audience: [theOwner], entity: "backup_run" },
   monthly_copy_failed: { audience: [theOwner], entity: "backup_run" },
+  // The late work itself is on the Overdue list: this is the one thing said of it after a silence.
+  work_missed: { audience: [theManagers, theOwner], entity: "sop_instance" },
   // Who signs in to the farm, and whether somebody is guessing at it, is the Owner's.
   password_guessed: { audience: [theOwner], entity: "password_guess" },
   // The store is the Manager's to keep, and what is going off in it with it — the same as what is running low.
@@ -421,6 +424,43 @@ const fallsToTheOwner = (audience: Audience) =>
   !audience.some((one) => one === "whoseActItWas" || one === "whoDoesThisWork");
 
 /**
+ * Who hears a notice of this kind about this, as `tell` will tell it: its people still at the farm, the writer left out
+ * where the kind says so, and the Owner when nobody of its people is left. Asked by a sweep before it opens a
+ * transaction, so "has everybody been told?" is asked of the people who would be — a sweep that asked only "who holds
+ * the Role?" never reached the Owner on a farm with no Manager, and counted a Manager who had left as never told.
+ */
+export const whoHears = async <Kind extends AlertKind>(
+  tx: Tx | Pick<Database, "query">,
+  farmId: string,
+  noticeKind: Kind,
+  about: AboutFor<Kind>,
+  remembering: Remembered = new Map()
+): Promise<string[]> => {
+  const kind = NOTICES[noticeKind];
+  const said: About = about;
+  // Only people still at the farm: one the Owner has disabled holds their Roles on paper, to be given back, but is
+  // nobody to tell — and counted, they kept the Owner from hearing what was theirs.
+  const everyone = await stillHere(
+    tx as Tx,
+    await peopleFor(tx as Tx, farmId, kind.audience, said, remembering)
+  );
+  // Nobody of its people on the farm — the Vet gone, no Manager yet — and it still reaches somebody: the Owner, who is
+  // always there (the Owner, 2026-10-06). Never for news only one person's own act or work is about. Once raised it is
+  // told, so the sweep that asks what is untold stops raising it again on every turn.
+  if (
+    // Its people gone, not only the writer left out of them: news of one's own act is still nobody's.
+    everyone.length === 0 &&
+    !kind.noOwnerFallback &&
+    fallsToTheOwner(kind.audience)
+  ) {
+    return await peopleFor(tx as Tx, farmId, [theOwner], said, remembering);
+  }
+  return kind.leavesOutTheWriter && said.writtenBy
+    ? everyone.filter((one) => one !== said.writtenBy)
+    : everyone;
+};
+
+/**
  * Tells the farm's people one thing, once.
  *
  * Who hears it is the kind's to say, not the caller's. A kind that is not finished until somebody decides writes the
@@ -455,26 +495,13 @@ export const tell = async <Kind extends AlertKind>(
     );
   }
   const params = notice.facts as Record<string, unknown>;
-  // Only people still at the farm: one the Owner has disabled holds their Roles on paper, to be given back, but is
-  // nobody to tell — and counted, they kept the Owner from hearing what was theirs.
-  const everyone = await stillHere(
+  const people = await whoHears(
     tx,
-    await peopleFor(tx, farmId, kind.audience, about, remembering)
+    farmId,
+    notice.kind,
+    notice.about,
+    remembering
   );
-  const named =
-    kind.leavesOutTheWriter && about.writtenBy
-      ? everyone.filter((one) => one !== about.writtenBy)
-      : everyone;
-  // Nobody of its people on the farm — the Vet gone, no Manager yet — and it still reaches somebody: the Owner, who is
-  // always there (the Owner, 2026-10-06). Never for news only one person's own act or work is about. Once raised it is
-  // told, so the sweep that asks what is untold stops raising it again on every turn.
-  const people =
-    // Its people gone, not only the writer left out of them: news of one's own act is still nobody's.
-    everyone.length === 0 &&
-    !kind.noOwnerFallback &&
-    fallsToTheOwner(kind.audience)
-      ? await peopleFor(tx, farmId, [theOwner], about, remembering)
-      : named;
   const written = {
     kind: notice.kind,
     entity,

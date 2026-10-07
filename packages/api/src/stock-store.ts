@@ -36,12 +36,11 @@ import { cameInAt, replayLots, runsLow } from "@OpenFarm/domain/lots";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
 import type { Booking } from "./money-store";
 import { bookMoney, moneySnapshotOf } from "./money-store";
 import type { Raised } from "./notice";
-import { rememberingPeople, tell } from "./notice";
+import { rememberingPeople, tell, whoHears } from "./notice";
 import { insideATransaction, keptUntilAWrite } from "./writes-seen";
 
 /** One Feed Item as the store holds it. */
@@ -442,7 +441,8 @@ export const lowStockToTell = async (
   farmId: string,
   low: RunningLow[]
 ): Promise<{ managers: string[]; untold: RunningLow[] }> => {
-  const managers = await holdersOf(db as Tx, farmId, ["manager"]);
+  // As `tell` will tell it: the Owner on a farm with no Manager, and a Manager who has left not counted as never told.
+  const managers = await whoHears(db, farmId, "low_stock", { id: "" });
   if (low.length === 0 || managers.length === 0) {
     return { managers, untold: [] };
   }

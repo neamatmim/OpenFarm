@@ -42,8 +42,10 @@ export const DELIVERY = {
   sop_retired: { when: "digest" },
   sop_restored: { when: "digest" },
   // A Withdrawal ending is one of the two the farm cannot afford to miss: a tank the milk
-  // could have gone into, or a cow that could have been sold, and a day of either is money.
-  withdrawal_ending: { when: "immediate", sms: true, wakesTheFarm: true },
+  // could have gone into, or a cow that could have been sold, and a day of either is money. Pushed to the Manager and
+  // her milkers, but it waits for the morning: milk that may go to the tank tomorrow wakes nobody (the Owner,
+  // 2026-10-07).
+  withdrawal_ending: { when: "immediate", sms: true },
   // The other one the farm cannot afford to miss: the Act says the report goes without delay,
   // and a notice that waits for the evening post has already made the farm late.
   notifiable_diagnosis: { when: "immediate", sms: true, wakesTheFarm: true },
@@ -81,6 +83,7 @@ export const DELIVERY = {
   // A monthly copy is the one kept for years, and the nightlies that would cover its month age out after ninety days:
   // its failing is heard at once, though the nightlies go on working.
   monthly_copy_failed: { when: "immediate" },
+  work_missed: { when: "immediate" },
   // The store going off, and running low, are the evening's reading, as feed running low is: worth knowing today,
   // not worth a buzz.
   lot_expiring: { when: "digest" },
@@ -188,14 +191,23 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   sop_retired: { app: "alerts.sopRetired", digest: "digest.sopRetired" },
   sop_restored: { app: "alerts.sopRestored", digest: "digest.sopRestored" },
   // Its digest words are never carried — it goes the moment it is raised — but the table is over every kind, so a
-  // new one cannot be forgotten here.
+  // new one cannot be forgotten here. Both safety notices push as well as text (the Owner, 2026-10-07): the milkers of
+  // her Pen are told on their phones, not only in the app, and a notifiable disease wakes the farm at any hour.
   withdrawal_ending: {
     app: "alerts.withdrawalEnding",
+    push: {
+      title: "push.withdrawalEndingTitle",
+      body: "alerts.withdrawalEnding",
+    },
     digest: "digest.withdrawalEnding",
     sms: "sms.withdrawalEnding",
   },
   notifiable_diagnosis: {
     app: "alerts.notifiableDiagnosis",
+    push: {
+      title: "push.notifiableDiagnosisTitle",
+      body: "alerts.notifiableDiagnosis",
+    },
     digest: "digest.notifiable",
     sms: "sms.notifiableDiagnosis",
   },
@@ -249,6 +261,11 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
       body: "push.monthlyCopyFailedBody",
     },
     digest: "digest.monthlyCopyFailed",
+  },
+  work_missed: {
+    app: "alerts.workMissed",
+    push: { title: "push.workMissedTitle", body: "push.workMissedBody" },
+    digest: "digest.workMissed",
   },
   password_guessed: {
     app: "alerts.passwordGuessed",

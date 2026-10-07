@@ -22,10 +22,9 @@ import {
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
 import type { Raised } from "./notice";
-import { rememberingPeople, tell } from "./notice";
+import { rememberingPeople, tell, whoHears } from "./notice";
 
 /** The farm day a buyer promised to pay what he still owed by. */
 export { farmDay as promisedByInput } from "./farm-clock";
@@ -629,7 +628,8 @@ export const overdueToTell = async (
   if (all.length === 0) {
     return [];
   }
-  const people = await holdersOf(db as Tx, farm.id, ["owner", "manager"]);
+  // As `tell` will tell it: the Owner when no Manager is left, and nobody who has left counted as never told.
+  const people = await whoHears(db, farm.id, "receivable_overdue", { id: "" });
   const told = await db.query.alert.findMany({
     where: {
       farmId: farm.id,

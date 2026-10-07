@@ -97,12 +97,12 @@ describe("the Friday count", () => {
       return rows.length;
     };
     // A day's grace from nine on Friday, so late on Saturday morning.
-    const saturday = await as("manager", "2056-03-04T04:00:00.000Z");
+    const saturday = await as("manager", "2056-03-04T03:20:00.000Z");
     await saturday.client.alerts.sweep();
     expect(await told("instance_overdue", "manager")).toBe(1);
     expect(await told("instance_escalated", "owner")).toBe(0);
     // The farm's escalation window on, the Owner hears.
-    const later = await as("manager", "2056-03-04T06:30:00.000Z");
+    const later = await as("manager", "2056-03-04T05:10:00.000Z");
     await later.client.alerts.sweep();
     expect(await told("instance_escalated", "owner")).toBe(1);
   });

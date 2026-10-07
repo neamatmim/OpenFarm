@@ -681,20 +681,16 @@ describe("review findings", () => {
   it("still says something about work that went late while the farm was quiet", async () => {
     // Later than the sweep above: the watermark only ever moves forward, as a farm's own
     // clock does, so a test that rewound it would be testing something no farm can do.
-    const { instance, clock } = await workFor("2026-11-22", "23:05:00.000Z");
+    const { clock } = await workFor("2026-11-22", "23:05:00.000Z");
 
-    // Nobody opens the app for a fortnight. The work is still open, and still unsaid.
+    // Nobody opens the app for a fortnight. The work is still open, and still unsaid — and is said once, with the rest
+    // of the fortnight's, rather than one push for each piece (the work itself is on the Overdue list).
     clock.set(after("2026-11-22", 14 * 24 * 60));
     const manager = await as("manager", clock);
     await sweepUntilQuiet(manager);
 
-    expect(
-      alertFor(
-        await manager.alerts.mine({ entityId: instance.id }),
-        instance.id,
-        "instance_overdue"
-      )
-    ).toBeDefined();
+    const inbox = await manager.alerts.mine({});
+    expect(inbox.some((row) => row.kind === "work_missed")).toBe(true);
   });
 
   it("says something about work raised after the sweep had already passed its due time", async () => {

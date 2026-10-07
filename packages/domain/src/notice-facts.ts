@@ -247,6 +247,8 @@ export interface NoticeFacts {
   backup_overdue: { since: string };
   /** The monthly copy that failed: when it was tried. */
   monthly_copy_failed: { since: string };
+  /** Work that went late while the farm's day was not turning, counted rather than told one by one. */
+  work_missed: { count: number; since: string };
   /** One sign-in address guessed at: whose account it is, where the farm knows one, how many wrong passwords in the
    *  hour, and when the first of them came. */
   password_guessed: {

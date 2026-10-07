@@ -226,8 +226,8 @@ describe("a day the server was down for", () => {
 
 describe("a notice whose cause is gone", () => {
   it("clears itself: late work since done is no longer late in anybody's list", async () => {
-    // Half past eleven on the 22nd: the eight o'clock work is late, and the turn says so.
-    await turnTheDay("2049-06-22T05:30:00.000Z");
+    // A quarter past nine on the 22nd: the eight o'clock work went late at nine, and the turn says so.
+    await turnTheDay("2049-06-22T03:15:00.000Z");
     const late = await scratchDb().query.sopInstance.findFirst({
       where: {
         farmId: theFarm().id,

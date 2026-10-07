@@ -14,9 +14,16 @@ import {
 import { dlsReport, treatment } from "@OpenFarm/db/schema/health";
 import { animal } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
-import type { DoseHold, DoseRoute, MilkHold } from "@OpenFarm/domain";
+import type {
+  AnimalState,
+  DoseHold,
+  DoseRoute,
+  MilkHold,
+} from "@OpenFarm/domain";
 import {
+  EXIT_STATES,
   holdInForce,
+  isExitState,
   illAgainOf,
   namesTheDisease,
   withdrawalEndsAt,
@@ -347,6 +354,41 @@ export const raiseWithdrawalChanged = async (
     now
   );
 
+/** Whether an animal has milk a Withdrawal holds back: a cow on the dairy side, still on the farm. */
+export const hasMilkToHold = (her: {
+  sex: string;
+  side: string;
+  state: AnimalState;
+}): boolean =>
+  her.sex === "female" && her.side === "dairy" && !isExitState(her.state);
+
+/**
+ * Whether a milk hold changing now is the Manager's to know (the notice table). A hold that starts — none in force
+ * before, one now: a dose given, or the Vet's days raised on a dose she had — takes her milk out of tomorrow's tank, and
+ * one cut short or ended puts it back. A hold only lengthened tells nothing more. And only a cow with milk to hold: a
+ * fattening bull, a heifer bought for beef or a cow who has left the farm has none, and a text about one teaches people
+ * to ignore them.
+ */
+const holdChangeIsNews = (
+  her: {
+    sex: string;
+    side: string;
+    state: AnimalState;
+    milkWithdrawalUntil: Date | null;
+  },
+  until: Date | null,
+  now: Date
+): boolean => {
+  if (!hasMilkToHold(her)) {
+    return false;
+  }
+  const was = her.milkWithdrawalUntil;
+  if (was === null || was <= now) {
+    return until !== null && until > now;
+  }
+  return until === null || until < was;
+};
+
 /**
  * Works out both of a cow's Withdrawals from the Treatments she has actually been given, and
  * writes them where the gates read them.
@@ -365,7 +407,8 @@ export const recomputeWithdrawal = async (
   tx: Tx,
   farmId: string,
   animalId: string,
-  /** When a dose is being given now: a milk hold it starts is told to the Manager, once (`raiseWithdrawalChanged`). */
+  /** When the hold is being changed now — a dose given, a dose put right, the Vet's days raised: a milk hold that starts,
+   *  starts again or is cut short is told to the Manager, once (`raiseWithdrawalChanged`). */
   givenNow?: Date
 ): Promise<{ milkUntil: Date | null; meatUntil: Date | null }> => {
   const given = await herDoses(tx, farmId, animalId);
@@ -373,6 +416,9 @@ export const recomputeWithdrawal = async (
     where: { id: animalId, farmId },
     columns: {
       tagNumber: true,
+      sex: true,
+      side: true,
+      state: true,
       milkWithdrawalUntil: true,
       withdrawalShortenedAt: true,
       milkWithdrawalShortenedTo: true,
@@ -413,14 +459,7 @@ export const recomputeWithdrawal = async (
           }),
     })
     .where(eq(animal.id, animalId));
-  // A dose that starts a milk hold — none in force before it, one now — takes her milk out of tomorrow's tank, which is
-  // the Manager's to know (the notice table). A dose that only lengthens a hold already running tells nothing more.
-  const heldBefore =
-    her?.milkWithdrawalUntil !== null &&
-    her?.milkWithdrawalUntil !== undefined &&
-    givenNow !== undefined &&
-    her.milkWithdrawalUntil > givenNow;
-  if (givenNow && !heldBefore && milk.until && milk.until > givenNow) {
+  if (givenNow && her && holdChangeIsNews(her, milk.until, givenNow)) {
     await raiseWithdrawalChanged(
       tx,
       farmId,
@@ -440,7 +479,9 @@ export const reachBackWithdrawalDays = async (
   tx: Tx,
   farmId: string,
   productId: string,
-  days: { milkWithdrawalDays: number; meatWithdrawalDays: number }
+  days: { milkWithdrawalDays: number; meatWithdrawalDays: number },
+  /** When the Vet raised them: a cow whose hold had ended and is held again is told to the Manager. */
+  now: Date
 ): Promise<void> => {
   const raised = await tx
     .update(treatment)
@@ -465,7 +506,7 @@ export const reachBackWithdrawalDays = async (
   for (const animalId of new Set(raised.map((one) => one.animalId))) {
     // One at a time, inside the one transaction.
     // oxlint-disable-next-line no-await-in-loop
-    await recomputeWithdrawal(tx, farmId, animalId);
+    await recomputeWithdrawal(tx, farmId, animalId, now);
   }
 };
 
@@ -495,6 +536,11 @@ export const withdrawalsEndingSoon = async (
         gt: now,
         lte: new Date(now.getTime() + DAY_MS),
       },
+      // Only a cow with milk to hold (`hasMilkToHold`): a bull's hold is his meat's, and one who died or was sold
+      // during her hold has no milk to send anywhere.
+      sex: "female",
+      side: "dairy",
+      state: { notIn: [...EXIT_STATES] },
     },
     columns: {
       id: true,

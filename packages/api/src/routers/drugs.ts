@@ -470,7 +470,13 @@ export const drugsRouter = {
           )
           .returning({ id: drugProduct.id });
         // Raised days hold every animal already given it; lowered ones free nobody (health-store).
-        await reachBackWithdrawalDays(tx, context.farm.id, input.id, input);
+        await reachBackWithdrawalDays(
+          tx,
+          context.farm.id,
+          input.id,
+          input,
+          context.clock.now()
+        );
         return changed;
       });
       return { id: input.id };

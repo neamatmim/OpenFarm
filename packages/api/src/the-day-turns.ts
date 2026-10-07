@@ -1,5 +1,6 @@
 import {
   GUESSES_BEFORE_SLOWING,
+  GUESSES_KEPT_MS,
   GUESS_WINDOW_MS,
 } from "@OpenFarm/auth/guesses";
 import { eq } from "@OpenFarm/db/operators";
@@ -630,12 +631,33 @@ const tellAboutOverdueReceivable = async (context: Turning, now: Date) => {
 };
 
 /**
- * Tells the Owner of each sign-in address somebody has guessed at — five wrong passwords within the hour, from however
- * many places — once for each run of guessing, named by its first wrong password. The account is already slowed by the sign-in itself; this is the Owner hearing of it.
+ * Where a run of guessing began: walking back from the newest wrong password, as long as each is within the hour of
+ * the next. Guessing that goes on keeps its first guess, so the run is told once; an hour's quiet ends it.
+ */
+export const runStartOf = (at: readonly Date[]): Date | undefined => {
+  let start = at.at(-1);
+  for (let index = at.length - 2; index >= 0; index -= 1) {
+    const earlier = at[index];
+    if (
+      !(earlier && start) ||
+      start.getTime() - earlier.getTime() > GUESS_WINDOW_MS
+    ) {
+      break;
+    }
+    start = earlier;
+  }
+  return start;
+};
+
+/**
+ * Tells the Owner of each sign-in address somebody has guessed at — five wrong passwords within the hour — once for
+ * each run of guessing, named by where the run began: a notice named by the hour's first guess moved every few minutes
+ * while somebody kept at it, and a night of it came out as dozens at five in the morning. The account is already slowed
+ * by the sign-in itself; this is the Owner hearing of it.
  */
 const tellAboutPasswordGuesses = async (context: Turning, now: Date) => {
   const rows = await context.db.query.passwordGuess.findMany({
-    where: { guessedAt: { gt: new Date(now.getTime() - GUESS_WINDOW_MS) } },
+    where: { guessedAt: { gt: new Date(now.getTime() - GUESSES_KEPT_MS) } },
     columns: { login: true, guessedAt: true },
     orderBy: { guessedAt: "asc", id: "asc" },
   });
@@ -643,14 +665,21 @@ const tellAboutPasswordGuesses = async (context: Turning, now: Date) => {
   for (const row of rows) {
     byLogin.set(row.login, [...(byLogin.get(row.login) ?? []), row.guessedAt]);
   }
-  const guessed = [...byLogin]
-    .filter(([, at]) => at.length >= GUESSES_BEFORE_SLOWING)
-    .map(([login, at]) => ({
-      login,
-      guesses: at.length,
-      since: at[0] ?? now,
-      id: `guess:${login}:${(at[0] ?? now).toISOString()}`,
-    }));
+  const hourAgo = now.getTime() - GUESS_WINDOW_MS;
+  const guessed = [...byLogin].flatMap(([login, at]) => {
+    const inTheHour = at.filter((one) => one.getTime() > hourAgo);
+    const since = runStartOf(at);
+    return inTheHour.length >= GUESSES_BEFORE_SLOWING && since
+      ? [
+          {
+            login,
+            guesses: inTheHour.length,
+            since,
+            id: `guess:${login}:${since.toISOString()}`,
+          },
+        ]
+      : [];
+  });
   if (guessed.length === 0) {
     return;
   }
@@ -826,7 +855,12 @@ const tellAboutReimbursements = async (context: Turning, now: Date) => {
 const first = (pending: {
   overdue: { id: string }[];
   escalated: { id: string }[];
-}): string => pending.overdue[0]?.id ?? pending.escalated[0]?.id ?? "";
+  missed: { firstId: string } | null;
+}): string =>
+  pending.overdue[0]?.id ??
+  pending.escalated[0]?.id ??
+  pending.missed?.firstId ??
+  "";
 
 export const theSweep = async (context: Turning) => {
   const now = context.clock.now();
@@ -872,7 +906,10 @@ export const theSweep = async (context: Turning) => {
   // calls this on opening the app, and in steady state there is nothing new to say.
   // The watermark stays where it is — a window with nothing in it costs nothing to
   // look at again.
-  if (pending.overdue.length + pending.escalated.length === 0) {
+  if (
+    pending.overdue.length + pending.escalated.length === 0 &&
+    !pending.missed
+  ) {
     return { overdue: 0, escalated: 0, couldNotTell };
   }
   // Audited against each Instance the notice is about, not against the sweep: an
@@ -887,6 +924,7 @@ export const theSweep = async (context: Turning) => {
         Promise.resolve({
           overdue: pending.overdue.map((row) => row.id),
           escalated: pending.escalated.map((row) => row.id),
+          ...(pending.missed ? { missed: pending.missed.count } : {}),
         }),
     },
     async (tx) => {

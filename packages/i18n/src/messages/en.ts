@@ -3938,6 +3938,13 @@ export const en = {
   "alerts.dayNotTurning":
     "The farm's schedule has not run cleanly since {since}: work may not be raised and notices may not go. See Backups.",
   "digest.backupOverdue": "The farm is not being copied",
+  "digest.workMissed":
+    "{count, plural, one {# piece} other {# pieces}} of work went late while the farm was not turning",
+  "alerts.workMissed":
+    "{count, plural, one {# piece} other {# pieces}} of work went late between {since} and now, while the farm's day was not turning. They are on the overdue list.",
+  "push.workMissedTitle": "Work went late while the farm was down",
+  "push.workMissedBody": "{count, plural, one {# piece} other {# pieces}} of work — see the overdue list",
+  "alerts.openTheOverdue": "Open the overdue list",
   "digest.monthlyCopyFailed": "The monthly copy failed",
   "digest.passwordGuessed": "Somebody guessed at {who}'s password",
   "alerts.backupOverdue":
@@ -4276,6 +4283,8 @@ export const en = {
   "alerts.openTheWork": "Open the work",
   "alerts.openTheCard": "Open its card",
   "alerts.openHer": "See {tag}",
+  "push.withdrawalEndingTitle": "A milk withdrawal is ending",
+  "push.notifiableDiagnosisTitle": "A disease to report to DLS",
   "push.withdrawalChangedTitle": "A withdrawal has changed",
   "push.withdrawalChangedBody": "{tag} — see the farm app",
   "nav.farm": "Farm overview",
