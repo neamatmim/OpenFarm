@@ -25,9 +25,10 @@ On 2026-10-03 the Owner asked for every route to be checked against the conventi
 - **`me` is the caller's own record, and `mine` is the caller's own items**: `people.me`, `alerts.mine`, `money.mine`. Inside `portal`, everything is the Investor's own, so it is `portal.requests`.
 - **Every other act is a verb and a noun in the farm's own words** (`closeAsMissed`, `inviteToPortal`), not a create or update in disguise. `subscribe` and `unsubscribe` are the browser's own words for push.
 - **The Investor address's security allowlist names three routers**: `portal`, `people.me` and `language` (`two-addresses.ts`, `query-cache.ts` and the nginx block in `docs/runbooks/deploy.md`). None of them is renamed without changing all three.
-- **Renaming a router or procedure renames the phone's kept cache too** (`CACHE_KEY`, `apps/web/src/lib/query-cache.ts`), because a query is kept under its path. A moved page bumps the service worker's shell (`SHELL`, `apps/web/public/sw.js`).
+- **Renaming a router or procedure renames the phone's kept cache too** (`CACHE_KEY`, `apps/web/src/lib/query-cache.ts`), because a query is kept under its path. A moved page bumps the service worker's shell (`SHELL`, `apps/web/public/sw.js`). Since 2026-10-07 the worker also keeps every page the network gives it, so a phone with no signal opens on the build it last ran; the bump still clears pages kept under an address that no longer exists.
 
 **Settled the same day**, once the words were chosen:
+
 - Feed coming into the store is the glossary's **Feed In**, as its table `feed_in` already was. It has the path `/feed/feed-in` and the procedure `stock.feedIn`.
 - The reads that were named after their screens are named for what they return: `returns.list`, `fattening.list` and `inspectorView.get`.
 

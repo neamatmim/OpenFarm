@@ -574,7 +574,9 @@ interface FormPanelProps {
   description?: ReactNode;
   /** The words on the button that saves: what the form does, never just "OK". */
   submitLabel: ReactNode;
-  onSubmit: () => void;
+  /** May hand back a promise — a save to the phone's own queue with no signal — and the act stays pressed until it
+   *  settles, so a second tap cannot record the same thing twice. */
+  onSubmit: () => unknown;
   /** Whether everything the form needs has been given. */
   ready: boolean;
   /**
@@ -683,6 +685,9 @@ const useFormKeeping = ({
   } | null>(null);
   const [changed, setChanged] = useState(false);
   const [discarding, setDiscarding] = useState(false);
+  // An act whose save is still going: a second tap before the first has settled is the same thing recorded twice.
+  const [saving, setSaving] = useState(false);
+  const savingNow = useRef(false);
   // Closed, it forgets: opened again, it says nothing until pressed too soon again.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
@@ -708,7 +713,19 @@ const useFormKeeping = ({
     event.preventDefault();
     setRefusal(null);
     if (ready) {
-      onSubmit();
+      if (savingNow.current || pending) {
+        return;
+      }
+      const saved = onSubmit();
+      if (saved instanceof Promise) {
+        savingNow.current = true;
+        setSaving(true);
+        // oxlint-disable-next-line prefer-await-to-then
+        void saved.finally(() => {
+          savingNow.current = false;
+          setSaving(false);
+        });
+      }
       return;
     }
     setAsked(true);
@@ -775,6 +792,7 @@ const useFormKeeping = ({
     stillMissing,
     refused,
     askToDiscard,
+    busy: pending || saving,
   };
 };
 
@@ -813,6 +831,7 @@ export const FormSheet = ({
     stillMissing,
     refused,
     askToDiscard,
+    busy,
   } = useFormKeeping({
     open,
     onOpenChange,
@@ -863,8 +882,8 @@ export const FormSheet = ({
             <Button onClick={handleCancel} type="button" variant="outline">
               {t("common.cancel")}
             </Button>
-            <Button disabled={pending} type="submit">
-              {pending ? <Spinner /> : null}
+            <Button disabled={busy} type="submit">
+              {busy ? <Spinner /> : null}
               {submitLabel}
             </Button>
           </SheetFooter>
@@ -900,6 +919,7 @@ export const FormDialog = ({
     stillMissing,
     refused,
     askToDiscard,
+    busy,
   } = useFormKeeping({
     open,
     onOpenChange,
@@ -937,8 +957,8 @@ export const FormDialog = ({
             <Button onClick={handleCancel} type="button" variant="outline">
               {t("common.cancel")}
             </Button>
-            <Button disabled={pending} type="submit">
-              {pending ? <Spinner /> : null}
+            <Button disabled={busy} type="submit">
+              {busy ? <Spinner /> : null}
               {submitLabel}
             </Button>
           </DialogFooter>

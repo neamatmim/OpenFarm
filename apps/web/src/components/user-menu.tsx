@@ -16,6 +16,7 @@ import { useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 import { useInTheBrowser } from "@/lib/in-the-browser";
 import { initialsOf } from "@/lib/initials";
+import { phoneOutbox } from "@/lib/outbox-client";
 import {
   lockAndPutAway,
   lockOnTheFarm,
@@ -23,6 +24,7 @@ import {
   useIsShedPhone,
 } from "@/lib/shed-phone";
 import { signOutOfThisPhone } from "@/lib/sign-out";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 export const Initials = ({
@@ -152,7 +154,13 @@ const UserMenu = () => {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={async () => {
+            // Work still waiting goes when this person signs in on this device again, and never under the next
+            // person's session: said now, so nobody signs out of the office computer thinking it went.
+            const held = await phoneOutbox()?.state();
             await signOutOfThisPhone(queryClient);
+            if (held && held.pending > 0) {
+              toast.warning(t("outbox.waitsForYou", { count: held.pending }));
+            }
             await navigate({ to: "/" });
           }}
           variant="destructive"

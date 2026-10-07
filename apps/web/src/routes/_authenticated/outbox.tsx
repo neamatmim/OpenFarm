@@ -1,4 +1,6 @@
-import { formatDate } from "@OpenFarm/i18n";
+import { OBSERVATION_WORDS } from "@OpenFarm/domain";
+import type { Language, MessageKey } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,19 +20,53 @@ import { entryRefusalMessage } from "@/lib/correction-refusal";
 import type { Held, OutboxEntry } from "@/lib/outbox";
 import { phoneOutbox } from "@/lib/outbox-client";
 
-/** What the person actually typed, so they can see it and put it in again. */
-const entered = (entry: OutboxEntry): string => {
-  const body = entry.body as { evidence?: unknown[]; skipReason?: string };
+/** What each kind of entry is called, so one with nothing typed in it still says what it was. */
+const KIND_WORD: Record<OutboxEntry["kind"], MessageKey> = {
+  step_completion: "review.held.step_completion",
+  completion_photo: "review.held.completion_photo",
+  instance_claim: "review.held.instance_claim",
+  instance_complete: "review.held.instance_complete",
+  animal_move: "review.held.animal_move",
+  observation: "review.held.observation",
+};
+
+/** What the person actually typed, so they can see it and put it in again: figures in the reader's own digits, a yes
+ *  tick in words, what was seen of an animal, and the reason a Step was skipped. */
+const entered = (
+  entry: OutboxEntry,
+  t: (key: MessageKey) => string,
+  language: Language
+): string => {
+  const body = entry.body as {
+    evidence?: unknown[];
+    skipReason?: string;
+    saw?: string;
+    note?: string;
+  };
   if (body.skipReason) {
     return String(body.skipReason);
   }
-  return (body.evidence ?? []).map(String).join(", ");
+  const said = (body.evidence ?? []).map((value) => {
+    if (typeof value === "number") {
+      return formatNumber(value, language);
+    }
+    if (typeof value === "boolean") {
+      return t(value ? "outbox.ticked" : "outbox.notTicked");
+    }
+    return String(value);
+  });
+  // What was seen, in the reader's words for it rather than the farm's code word.
+  const seen = OBSERVATION_WORDS.find((word) => word.value === body.saw);
+  const seenSaid = language === "en" ? seen?.en : seen?.bn;
+  const saw = seenSaid ?? body.saw;
+  return [...said, saw, body.note].filter(Boolean).join(", ");
 };
 
-/** The animal an entry was about, when it named one. */
+/** The animal an entry was about, when it named one: a Step and a photo by `animalTag`, a Move and a sighting by
+ *  `tagNumber`. */
 const animalOf = (entry: OutboxEntry): string | undefined => {
-  const body = entry.body as { animalTag?: string };
-  return body.animalTag || undefined;
+  const body = entry.body as { animalTag?: string; tagNumber?: string };
+  return body.animalTag || body.tagNumber || undefined;
 };
 
 /** One entry the phone is still holding: why, what was entered and when, and the one thing to do with it. */
@@ -77,7 +113,7 @@ const HeldCard = ({
           {t("outbox.entered")}
         </p>
         <p className="font-medium break-words">
-          {entered(entry) || entry.kind}
+          {entered(entry, t, language) || t(KIND_WORD[entry.kind])}
         </p>
       </div>
       <Button

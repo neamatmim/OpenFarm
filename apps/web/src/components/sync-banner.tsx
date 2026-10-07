@@ -7,7 +7,7 @@ import { CloudCheck, CloudOff, CloudUpload, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 
 import { useLanguage } from "@/i18n/language-provider";
-import { getDeviceToken } from "@/lib/device";
+import { getDeviceToken, getSwitchToken } from "@/lib/device";
 import {
   cachedHerd,
   herdCacheQuery,
@@ -25,6 +25,9 @@ import { client } from "@/utils/orpc";
  *  send: the Outbox reads its own queue and stops. */
 const FLUSH_EVERY_MS = 15_000;
 
+/** Waiting longer than this, the pill says since when. */
+const LONG_WAIT_MS = 30 * 60_000;
+
 /** A time this phone kept, as a date — or nothing, for one it cannot read. The pill is a line in the top bar; a stored
  *  time gone wrong says "not yet" rather than taking every page down with it. */
 const readableDate = (kept: unknown): Date | null => {
@@ -36,32 +39,12 @@ const readableDate = (kept: unknown): Date | null => {
 };
 
 /**
- * What this phone is still holding, on every screen a Staff member works from — a calm pill in the top bar: all
- * sent, a count waiting, or what needs the person (signed out, work sent back). Its title carries when the phone
- * last sent and, separately, when it last refreshed the herd: sending and fresh data are different questions.
- *
- * It also does the sending: while the app is open it flushes the Outbox and refreshes the herd this person works.
+ * Sends what this phone is holding while the app is open, and refreshes the herd this person works. Wherever the app
+ * is — any signed-in screen, and a Shed Phone's PIN screen, locked on the shelf with work still on it: a phone that
+ * found its signal again sends then, not when the next person PINs in.
  */
-export const SyncBanner = () => {
-  const { t, language } = useLanguage();
+export const useOutboxSender = () => {
   const queryClient = useQueryClient();
-
-  const state = useQuery({
-    queryKey: ["outbox"],
-    queryFn: async () => {
-      const outbox = phoneOutbox();
-      const carried: OutboxState = (await outbox?.state()) ?? {
-        pending: 0,
-        rejected: 0,
-        reviewed: 0,
-        lastSyncAt: null,
-        paused: "none",
-      };
-      return carried;
-    },
-    refetchInterval: FLUSH_EVERY_MS,
-  });
-
   // Try what is waiting whenever the app is open. The Outbox decides whether it can: no
   // signal, another tab sending, or waiting for somebody to sign in are all answers.
   useEffect(() => {
@@ -77,6 +60,10 @@ export const SyncBanner = () => {
         // the person a lie, and a dose taken moves the medicine on the shelf too.
         if (sent > 0 || verdicts.length > 0) {
           refreshTheScreen(queryClient);
+        }
+        // Nobody is switched in on a locked Shed Phone: there is no herd of theirs to read.
+        if (getDeviceToken() && !getSwitchToken()) {
+          return;
         }
         // The animals of the Pens this person works, kept for the shed where there are no
         // bars: which cow, and whether her milk may go to the tank. Read sparingly — this
@@ -123,6 +110,40 @@ export const SyncBanner = () => {
     const timer = setInterval(tick, FLUSH_EVERY_MS);
     return () => clearInterval(timer);
   }, [queryClient]);
+};
+
+/**
+ * What this phone is still holding, on every screen a Staff member works from — a calm pill in the top bar: all
+ * sent, a count waiting, or what needs the person (signed out, work sent back). Its title carries when the phone
+ * last sent and, separately, when it last refreshed the herd: sending and fresh data are different questions.
+ * The sending itself is `useOutboxSender`'s.
+ */
+export const SyncBanner = () => {
+  const { t, language } = useLanguage();
+  const queryClient = useQueryClient();
+
+  const state = useQuery({
+    queryKey: ["outbox"],
+    queryFn: async () => {
+      const outbox = phoneOutbox();
+      const carried: OutboxState = (await outbox?.state()) ?? {
+        pending: 0,
+        rejected: 0,
+        reviewed: 0,
+        lastSyncAt: null,
+        oldestWaitingAt: null,
+        paused: "none",
+      };
+      // Asked here, when the phone is read, rather than while the pill is drawn.
+      const since = readableDate(carried.oldestWaitingAt);
+      return {
+        ...carried,
+        waitedLong:
+          since !== null && Date.now() - since.getTime() > LONG_WAIT_MS,
+      };
+    },
+    refetchInterval: FLUSH_EVERY_MS,
+  });
 
   const herdAt = useQuery({
     ...herdCacheQuery,
@@ -150,9 +171,18 @@ export const SyncBanner = () => {
     if (sentBack > 0) {
       return t("outbox.rejected", { count: sentBack });
     }
-    return held.pending > 0
-      ? t("outbox.pending", { count: held.pending })
-      : t("outbox.allSent");
+    if (held.pending === 0) {
+      return t("outbox.allSent");
+    }
+    // Work the farm has been without for a while says since when: a phone keeps trying for as long as it takes, and
+    // the person deciding whether to walk to where there is signal needs to know how long that has been.
+    const since = readableDate(held.oldestWaitingAt);
+    return since && held.waitedLong
+      ? t("outbox.pendingSince", {
+          count: held.pending,
+          at: formatDate(since, language, "dateTime"),
+        })
+      : t("outbox.pending", { count: held.pending });
   })();
   const syncedAt = readableDate(held.lastSyncAt);
   const sent = syncedAt

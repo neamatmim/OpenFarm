@@ -251,7 +251,14 @@ const reviewCard = (row: ReviewRow) => <ReviewCard row={row} />;
 
 /** What the system could not put right on its own. Closing one is a judgement, so it asks
  *  for the judgement rather than offering a tick. */
-export const NeedsReview = ({ queue }: { queue: Asked<OpenReview> }) => {
+export const NeedsReview = ({
+  queue,
+  waiting,
+}: {
+  queue: Asked<OpenReview>;
+  /** How many are waiting in all, where more are waiting than the list carries. */
+  waiting?: number;
+}) => {
   const { t } = useLanguage();
   const refused = useRefused();
   const [resolving, setResolving] = useState<OpenReview | null>(null);
@@ -282,6 +289,11 @@ export const NeedsReview = ({ queue }: { queue: Asked<OpenReview> }) => {
       onError: refused,
     })
   );
+  // More waiting than the list carries: it says which part this is.
+  const moreThanShown =
+    waiting !== undefined &&
+    queue.data !== undefined &&
+    waiting > queue.data.length;
   const actions: ReviewActions = {
     busy: inFlight.has,
     handleResolve: setResolving,
@@ -296,6 +308,14 @@ export const NeedsReview = ({ queue }: { queue: Asked<OpenReview> }) => {
   return (
     <div className="surface p-4 md:p-5">
       <Loaded query={queue}>
+        {moreThanShown ? (
+          <p className="text-muted-foreground mb-3 text-sm">
+            {t("review.oldestOf", {
+              shown: queue.data?.length ?? 0,
+              waiting: waiting ?? 0,
+            })}
+          </p>
+        ) : null}
         {queue.data?.length ? (
           <DataTable
             card={reviewCard}

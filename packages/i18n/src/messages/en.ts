@@ -1760,6 +1760,8 @@ export const en = {
   "refusal.reviewClosed": "Somebody has already looked at this",
   "refusal.notHeldWork":
     "Only work a phone sent and the farm held can be taken in",
+  "refusal.stillApplying":
+    "The farm is still writing this down. It will be tried again",
   "refusal.pinNotProved":
     "The farm could not tell who was signed in on this phone when this was done. It is kept for the manager",
   "refusal.keepAnotherOwner": "The farm must keep at least one other owner.",
@@ -4611,6 +4613,8 @@ export const en = {
     "It is written as it was entered, under the person who did it and at the time they did it. Say why you are sure it was done.",
   "review.takeInLabel": "How do you know it was done?",
   "review.takenIn": "Taken into the records",
+  "review.oldestOf":
+    "The oldest {shown} of {waiting} waiting. Close these, and the next come up.",
   "outbox.allSent": "All sent",
   "outbox.herdFresh": "Herd refreshed {ago}",
   "nav.group.today": "Today",
@@ -4630,6 +4634,9 @@ export const en = {
   "shell.farm": "Farm",
   "shell.skip": "Skip to content",
   "outbox.pending": "{count} waiting to send",
+  "outbox.pendingSince": "{count} waiting since {at}",
+  "outbox.waitsForYou":
+    "{count} still waiting to send. They go when you sign in on this device again",
   "outbox.synced": "Last sent {ago}",
   "outbox.never": "Not sent yet",
   "outbox.signedOut": "Sign in again to send what is waiting",
@@ -4646,6 +4653,8 @@ export const en = {
     "The farm took these, and someone will look at them. Tap Done with this once you know about it.",
   "outbox.discard": "Done with this",
   "outbox.entered": "What was entered",
+  "outbox.ticked": "Ticked",
+  "outbox.notTicked": "Not ticked",
   "outbox.late":
     "The farm had moved on before this arrived, so the manager will look at it",
   "outbox.wrong": "The farm could not take this as it was written",

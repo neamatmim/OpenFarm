@@ -91,6 +91,10 @@ const ROLE_FREE = new Map<string, string>([
   ["devices.current", "says which phone this is and who is switched in on it"],
   ["devices.switchUser", "is a PIN Switch, which the PIN is the gate of"],
   [
+    "sync.fromTheShelf",
+    "is a locked Shed Phone sending what it holds, each entry proving its own person by its token",
+  ],
+  [
     "devices.keepAwake",
     "keeps a Shed Phone unlocked, and only a Shed Phone may ask",
   ],

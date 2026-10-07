@@ -9,7 +9,7 @@
  * and every write goes through the Outbox; a service worker quietly replaying a POST would
  * be a second write path, which ADR 0002 rules out.
  */
-const SHELL = "openfarm-shell-v10";
+const SHELL = "openfarm-shell-v11";
 const ASSETS = "openfarm-assets-v3";
 const KEEP = new Set([SHELL, ASSETS]);
 const SHELL_FILES = ["/", "/work", "/manifest.webmanifest", "/icon.svg"];
@@ -90,14 +90,36 @@ const after = (ms, value) =>
     setTimeout(resolve, ms, value);
   });
 
+/** Keeps the page the network gave, so the next time there is no signal the app opens on the build it last ran rather
+ *  than on the one this worker was installed with — whose scripts a later deploy may have stopped reading the kept
+ *  answers of. Only a page itself: never a redirect, an error, or an answer from somewhere else. */
+const keepThePage = async (cache, request, answer) => {
+  if (answer.ok && answer.type === "basic" && !answer.redirected) {
+    await cache.put(request, answer.clone());
+  }
+};
+
 /**
  * A page: the network's, as long as it answers within a few seconds; the kept page if it does not, or fails. With no
  * page kept, the network is waited for however long it takes, since there is nothing else to show. (A navigation
- * cannot be sent again with a signal to stop it: fetch refuses options for one.)
+ * cannot be sent again with a signal to stop it: fetch refuses options for one.) Whatever the network answers, in time
+ * or late, is kept for next time.
  */
-const shellFor = async (request) => {
+const shellFor = async (request, event) => {
   const network = fetch(request);
+  // Copied the moment it arrives, before the browser starts reading the one it is handed.
+  // oxlint-disable-next-line prefer-await-to-then -- the copy must be taken before anything else reads the answer
+  const copy = network.then((answer) => answer.clone());
   const cache = await caches.open(SHELL);
+  event.waitUntil(
+    (async () => {
+      try {
+        await keepThePage(cache, request, await copy);
+      } catch {
+        // No signal: the kept page stays as it was.
+      }
+    })()
+  );
   const kept = (await cache.match(request)) ?? (await cache.match("/work"));
   if (!kept) {
     try {
@@ -132,7 +154,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (request.mode === "navigate") {
-    event.respondWith(shellFor(request));
+    event.respondWith(shellFor(request, event));
     return;
   }
   if (isBuildAsset(url)) {
