@@ -988,3 +988,16 @@ export { farmsOwnPayout } from "./farm-capital";
 export { OWNERS_TRAIL, WHOSE_TRAIL } from "./whose-trail";
 export type { AuditEntity } from "./whose-trail";
 export { nameAsCompared, sameName } from "./names";
+export {
+  ALL_FARM_PARAMETERS,
+  FARM_PARAMETERS,
+  TIME_PARAMETERS,
+  parametersOwnersAlone,
+  parametersOwnersAloneRead,
+} from "./farm-parameters";
+export type {
+  FarmParameter,
+  OwnersAlone,
+  OwnersAloneToRead,
+  ParameterBounds,
+} from "./farm-parameters";

@@ -1,12 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import {
-  FarmParameters,
-  PARAMETER_SECTIONS,
-} from "@/components/farm-parameters";
+import { FarmParameters } from "@/components/farm-parameters";
 import { useIsOwner } from "@/components/money";
 import { Page, PageHeader } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { PARAMETER_SECTIONS } from "@/lib/parameter-groups";
 
 /** The groups of rules, listed beside them where there is room, each a jump to its place. */
 const OnThisPage = () => {
