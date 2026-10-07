@@ -23,7 +23,7 @@ const TURNING_GRACE_MS = 30 * 60 * 1000;
 
 /** One thing to tell, filed under an id that names this stretch of it, so it is told once however often it is found. */
 export interface Quiet {
-  kind: "backup_overdue" | "day_not_turning";
+  kind: "backup_overdue" | "day_not_turning" | "monthly_copy_failed";
   id: string;
   since: Date;
 }
@@ -57,6 +57,37 @@ export const backupGap = async (
     kind: "backup_overdue",
     id: lastGood ? `backup:${lastGood.id}` : "backup:never",
     since: counted.startedAt,
+  };
+};
+
+/** Long enough for a monthly copy still running not to be taken for one that failed, and for systemd's own retries. */
+const MONTHLY_GRACE_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * Whether the latest monthly copy failed, with no good monthly since: the nightlies' successes would otherwise hide it
+ * until they aged out and left that month with no copy at all. Told once for each failed monthly; nothing for a farm
+ * that has never tried one.
+ */
+export const monthlyCopyFailed = async (
+  db: Pick<Database, "query"> | Tx,
+  now: Date
+): Promise<Quiet | null> => {
+  const latest = await db.query.backupRun.findFirst({
+    where: { kind: "monthly" },
+    orderBy: { startedAt: "desc", id: "desc" },
+    columns: { id: true, ok: true, startedAt: true, finishedAt: true },
+  });
+  if (
+    !latest ||
+    latest.ok === "yes" ||
+    now.getTime() - latest.startedAt.getTime() < MONTHLY_GRACE_MS
+  ) {
+    return null;
+  }
+  return {
+    kind: "monthly_copy_failed",
+    id: `monthly:${latest.id}`,
+    since: latest.startedAt,
   };
 };
 

@@ -88,6 +88,7 @@ const EXAMPLE: NoticeFacts = {
   entry_rejected: { count: 2, reason: "পশুটি আর খামারে নেই", why: "wrong" },
   day_not_turning: { since: "2038-03-01T00:00:00.000Z" },
   backup_overdue: { since: "2038-03-01T00:00:00.000Z" },
+  monthly_copy_failed: { since: "2038-03-01T00:00:00.000Z" },
   password_guessed: {
     login: "01711000222@investor.openfarm",
     name: "আবুল হাশেম মিয়া",

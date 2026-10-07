@@ -15,6 +15,7 @@ import type { Quiet } from "./the-machinery-notices";
 import {
   backupGap,
   dayNotTurning,
+  monthlyCopyFailed,
   tellTheOwnerAboutTheMachinery,
 } from "./the-machinery-notices";
 
@@ -43,10 +44,16 @@ const inside = async (run: (tx: Tx) => Promise<void>): Promise<void> => {
   }
 };
 
-const aCopy = (tx: Tx, id: string, hoursAgo: number, ok: "yes" | "no") =>
+const aCopy = (
+  tx: Tx,
+  id: string,
+  hoursAgo: number,
+  ok: "yes" | "no",
+  kind: "nightly" | "monthly" = "nightly"
+) =>
   tx.insert(backupRun).values({
     id,
-    kind: "nightly",
+    kind,
     startedAt: new Date(now.getTime() - hoursAgo * HOUR),
     finishedAt: new Date(now.getTime() - hoursAgo * HOUR + MINUTE),
     destination: "offsite:openfarm",
@@ -111,6 +118,35 @@ describe("copies of the farm that have stopped", () => {
         kind: "backup_overdue",
         since: new Date(now.getTime() - 50 * HOUR),
       });
+    });
+  });
+});
+
+describe("a monthly copy that failed", () => {
+  it("tells the Owner, though the nightlies around it all worked", async () => {
+    await inside(async (tx) => {
+      await aCopy(tx, "monthly-failed", 30, "no", "monthly");
+      await aCopy(tx, "nightly-fine", 6, "yes");
+      expect(await backupGap(tx, now)).toBeNull();
+      const failed = await monthlyCopyFailed(tx, now);
+      expect(failed).toMatchObject({ kind: "monthly_copy_failed" });
+      const told = await tellTheOwnerAboutTheMachinery(
+        tx,
+        farmId,
+        failed ? [failed] : [],
+        now
+      );
+      expect(told.map((one) => one.userId)).toEqual([thePerson("owner").id]);
+    });
+  });
+
+  it("is nothing to say once a monthly has worked since, or while one may still be running", async () => {
+    await inside(async (tx) => {
+      await aCopy(tx, "monthly-old-failure", 800, "no", "monthly");
+      await aCopy(tx, "monthly-good", 70, "yes", "monthly");
+      expect(await monthlyCopyFailed(tx, now)).toBeNull();
+      await aCopy(tx, "monthly-just-started", 1, "no", "monthly");
+      expect(await monthlyCopyFailed(tx, now)).toBeNull();
     });
   });
 });

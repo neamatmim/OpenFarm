@@ -1,10 +1,13 @@
-# For a host without systemd. Same two jobs, same times, Dhaka.
+# For a host without systemd. Same two jobs, same times — written in UTC, because Debian's and
+# Ubuntu's own cron ignore CRON_TZ and would run a "Dhaka" time at the server's: 01:15 Dhaka is
+# 19:15 UTC the day before, and 02:15 Dhaka on the 1st is 20:15 UTC on the last day of the month
+# before, which cron cannot say — so the monthly runs at 20:15 UTC on the 1st, 02:15 Dhaka on the 2nd.
 #
-#   crontab -u openfarm deploy/crontab.example
+#   crontab -u openfarm-backup deploy/crontab.example
 #
 # cron has almost no environment, so the job sources its own before it runs. A missing
 # variable stops the script before it starts rather than halfway through.
-# On a farm outside Bangladesh, the zone here is its OPENFARM_TIME_ZONE (ADR 0013).
-CRON_TZ=Asia/Dhaka
-15 1 * * *  set -a; . /etc/openfarm/backup.env; set +a; cd /srv/openfarm && scripts/backup.sh nightly
-15 2 1 * *  set -a; . /etc/openfarm/backup.env; set +a; cd /srv/openfarm && scripts/backup.sh monthly
+# On a farm outside Bangladesh, work the times out from its OPENFARM_TIME_ZONE (ADR 0013). The server
+# itself runs at UTC (the app's unit sets TZ=UTC; check `date` says UTC).
+15 19 * * *  set -a; . /etc/openfarm/backup.env; set +a; cd /srv/openfarm && scripts/backup.sh nightly
+15 20 1 * *  set -a; . /etc/openfarm/backup.env; set +a; cd /srv/openfarm && scripts/backup.sh monthly

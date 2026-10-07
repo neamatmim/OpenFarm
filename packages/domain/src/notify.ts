@@ -78,6 +78,9 @@ export const DELIVERY = {
   // Somebody guessing one account's password from many addresses: the Owner hears at once, as of the farm's own
   // machinery, and not by text — the account is already slowed, and the night's guessing waits for the morning.
   password_guessed: { when: "immediate" },
+  // A monthly copy is the one kept for years, and the nightlies that would cover its month age out after ninety days:
+  // its failing is heard at once, though the nightlies go on working.
+  monthly_copy_failed: { when: "immediate" },
   // The store going off, and running low, are the evening's reading, as feed running low is: worth knowing today,
   // not worth a buzz.
   lot_expiring: { when: "digest" },
@@ -238,6 +241,14 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
     app: "alerts.backupOverdue",
     push: { title: "push.backupOverdueTitle", body: "push.backupOverdueBody" },
     digest: "digest.backupOverdue",
+  },
+  monthly_copy_failed: {
+    app: "alerts.monthlyCopyFailed",
+    push: {
+      title: "push.monthlyCopyFailedTitle",
+      body: "push.monthlyCopyFailedBody",
+    },
+    digest: "digest.monthlyCopyFailed",
   },
   password_guessed: {
     app: "alerts.passwordGuessed",

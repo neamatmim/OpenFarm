@@ -48,6 +48,7 @@ export const ALERT_KINDS = [
   "pay_in_note_sent",
   "credit_after_write_off",
   "password_guessed",
+  "monthly_copy_failed",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
 
