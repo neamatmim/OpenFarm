@@ -7,15 +7,20 @@ import {
 import { describe, expect, it } from "vitest";
 
 import {
+  answersFixed,
   emptySop,
   emptyStep,
   freshStepId,
   reworded,
   sameList,
   toChoices,
+  withAnswerAdded,
+  withAnswerAt,
   withEffect,
   withFirstEvidence,
+  withLabel,
   withScheduleTimes,
+  withoutAnswer,
 } from "./sop-draft";
 
 // What may be chosen, as the Owner edits it: a record points at a choice's value, so a value must stay with the choice
@@ -208,5 +213,33 @@ describe("a Step added after one is taken out", () => {
         .map((one) => one.kind)
         .toSorted()
     ).toEqual(["step_added", "step_removed"]);
+  });
+});
+
+describe("the answers a Step asks besides its first", () => {
+  it("are added unrequired, labelled or not, and taken out again — never the first", () => {
+    const step = withAnswerAdded(
+      { ...emptyStep("s"), text: { bn: "গুনুন" } },
+      "photo"
+    );
+    expect(step.evidence.at(1)).toEqual({ type: "photo", required: false });
+    const labelled = withAnswerAt(
+      step,
+      1,
+      withLabel(step.evidence[1] ?? { type: "photo", required: false }, "ছবি")
+    );
+    expect(labelled.evidence.at(1)?.label).toEqual({ bn: "ছবি" });
+    expect(
+      withLabel(labelled.evidence[1] ?? { type: "photo", required: false }, "")
+    ).toEqual({ type: "photo", required: false });
+    expect(withoutAnswer(labelled, 1).evidence).toHaveLength(1);
+    expect(withoutAnswer(labelled, 0)).toBe(labelled);
+  });
+
+  it("are fixed for a Step whose effect asks its own, and free for the rest", () => {
+    expect(answersFixed({ effect: { kind: "service" } })).toBe(true);
+    expect(answersFixed({ effect: { kind: "dls_report" } })).toBe(true);
+    expect(answersFixed({ effect: { kind: "weigh_in" } })).toBe(false);
+    expect(answersFixed({})).toBe(false);
   });
 });

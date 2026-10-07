@@ -14,6 +14,7 @@ import { EmptyState, Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { FigureBox } from "@/components/playbook/figure-box";
 import { ListInput } from "@/components/playbook/list-input";
+import { StepAnswers } from "@/components/playbook/step-answers";
 import { StepMeanings } from "@/components/playbook/step-meanings";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import {
@@ -331,6 +332,7 @@ const StepEditor = ({
         </label>
 
         <EvidenceFields onChange={onChange} step={step} />
+        <StepAnswers onChange={onChange} step={step} />
 
         {/* A dose or a service may be skipped too, walked or not: its reasons are shown wherever it may be. */}
         {maySkip(step) ? (

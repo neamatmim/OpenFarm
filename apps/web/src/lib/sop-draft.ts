@@ -556,3 +556,46 @@ export const needsChoices = (step: Step): boolean =>
   (step.effect === undefined && step.evidence[0]?.type === "choice");
 
 export const needsUnit = (type: EvidenceType): boolean => type === "number";
+
+/** The effects whose Step asks a fixed set of answers in a fixed order: shown in the editor, never changed there. */
+const FIXED_ANSWERS: ReadonlySet<StepEffect["kind"]> = new Set<
+  StepEffect["kind"]
+>([...SHAPED, ...ONCE_WITH_A_NOTE]);
+
+/** Whether a Step's answers are its effect's own, fixed in kind and order. */
+export const answersFixed = (step: Pick<Step, "effect">): boolean =>
+  step.effect !== undefined && FIXED_ANSWERS.has(step.effect.kind);
+
+/** The answers a Step may be given besides its first: a note, or a photograph — asked when somebody wants them, not
+ *  insisted on, so a photo is not demanded of every animal on the round. */
+export const ADDABLE_ANSWERS = ["note", "photo"] as const;
+
+export const withAnswerAdded = (
+  step: Step,
+  type: (typeof ADDABLE_ANSWERS)[number]
+): Step => ({
+  ...step,
+  evidence: [...step.evidence, { type, required: false }],
+});
+
+/** The Step with one of its answers after the first put right. */
+export const withAnswerAt = (
+  step: Step,
+  at: number,
+  answer: Evidence
+): Step => ({
+  ...step,
+  evidence: step.evidence.map((one, index) => (index === at ? answer : one)),
+});
+
+/** The Step without one of its answers after the first; the first is what the Step records, and stays. */
+export const withoutAnswer = (step: Step, at: number): Step =>
+  at === 0
+    ? step
+    : { ...step, evidence: step.evidence.filter((_, index) => index !== at) };
+
+/** An answer's label rewritten: none at all when emptied, rather than a label of no words the phone would show. */
+export const withLabel = (answer: Evidence, bn: string): Evidence => {
+  const { label, ...rest } = answer;
+  return bn.trim() === "" ? rest : { ...rest, label: reworded(label, bn) };
+};
