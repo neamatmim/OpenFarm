@@ -71,7 +71,12 @@ is the part that is easy to believe was done and was not:
       the first account and creates the Farm becomes its Owner, so only this address may; left
       unset, the app lets nobody in at all. Once the Farm exists, an account opens only for
       somebody the farm invited.
-- [ ] **The Owner signs up with that address and sets the farm up** as soon as the app is up.
+- [ ] **The Owner signs up with that address and sets the farm up** as soon as the app is up. A
+      production server with no farm prints a one-time **setup code** in its log as it first starts,
+      and the sign-up asks for it, so somebody who only knows the Owner's address cannot take the
+      account first: `journalctl -u openfarm | grep 'setup code'`. The same code stands across
+      restarts until the farm is set up, and is forgotten then. Lost, delete it as the owner
+      (`DELETE FROM setup_code;`) and restart for another.
 
 ```sh
 # The push keys, generated once and kept for ever.

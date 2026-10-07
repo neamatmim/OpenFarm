@@ -13,7 +13,25 @@ describe("the first account", () => {
       whoMayOpenTheFarm(" Owner@Farm.Example.com ", {
         ownerEmail: OWNER,
         production: true,
+        setupCodeRight: true,
       })
+    ).toBe("open");
+  });
+
+  it("on a production server, does not open for the right address without the setup code from the server's log", () => {
+    expect(
+      whoMayOpenTheFarm(OWNER, { ownerEmail: OWNER, production: true })
+    ).toBe("setup_code_wrong");
+    expect(
+      whoMayOpenTheFarm(OWNER, {
+        ownerEmail: OWNER,
+        production: true,
+        setupCodeRight: false,
+      })
+    ).toBe("setup_code_wrong");
+    // In development there is no race to lose, and no log anybody reads.
+    expect(
+      whoMayOpenTheFarm(OWNER, { ownerEmail: OWNER, production: false })
     ).toBe("open");
   });
 

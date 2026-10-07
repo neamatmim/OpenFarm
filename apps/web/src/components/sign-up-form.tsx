@@ -1,4 +1,5 @@
 import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
+import { SETUP_CODE_HEADER } from "@OpenFarm/auth/setup-code-header";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -35,6 +36,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
       email: "",
       password: "",
       name: "",
+      setupCode: "",
     },
     onSubmit: async ({ value }) => {
       await authClient.signUp.email(
@@ -44,6 +46,10 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
           name: value.name,
         },
         {
+          // The first Owner's setup code, from the server's log: sent beside the account, never kept on it.
+          headers: value.setupCode
+            ? { [SETUP_CODE_HEADER]: value.setupCode }
+            : undefined,
           onSuccess: () => {
             navigate({
               to: "/",
@@ -71,6 +77,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
             min: formatNumber(PASSWORD_MIN_LENGTH, language),
           })
         ),
+        setupCode: z.string(),
       }),
     },
   });
@@ -204,6 +211,35 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
             )}
           </form.Field>
         </div>
+
+        {/* The first run only: on a production server the Owner's account needs the code its log printed. */}
+        {firstFarm ? (
+          <form.Field name="setupCode">
+            {(field) => (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={field.name}>{t("auth.setupCode")}</Label>
+                <Input
+                  aria-describedby={`${field.name}-hint`}
+                  autoCapitalize="characters"
+                  autoComplete="one-time-code"
+                  className="font-mono tracking-wider"
+                  id={field.name}
+                  name={field.name}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  spellCheck={false}
+                  value={field.state.value}
+                />
+                <p
+                  className="text-muted-foreground text-xs"
+                  id={`${field.name}-hint`}
+                >
+                  {t("auth.setupCodeHint")}
+                </p>
+              </div>
+            )}
+          </form.Field>
+        ) : null}
 
         <form.Subscribe
           selector={(state) => ({

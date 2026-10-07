@@ -18,6 +18,7 @@ export default defineConfig({
     here("server/plugins/exit-when-it-cannot-serve.ts"),
     here("server/plugins/stop-when-told.ts"),
     here("server/plugins/refuse-an-old-database.ts"),
+    here("server/plugins/print-the-setup-code.ts"),
     here("server/plugins/evlog-drain.ts"),
   ],
   experimental: {
