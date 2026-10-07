@@ -760,6 +760,23 @@ export const recentHappenings = async (
   return happenings;
 };
 
+/** A called-off slot taken back up: due again, under the Version raising it now and as that Version says it. */
+const TAKEN_BACK_UP = {
+  state: "due" as const,
+  versionId: sql`excluded.version_id`,
+  graceMinutes: sql`excluded.grace_minutes`,
+  assignedRole: sql`excluded.assigned_role`,
+  checkerRole: sql`excluded.checker_role`,
+  calledOffBy: null,
+  assignedTo: null,
+  assignedBy: null,
+  claimedBy: null,
+  claimedAt: null,
+};
+
+/** Called off by a new Version or a retiring, not by somebody deciding the work was not owed. */
+const CALLED_OFF_BY_A_CHANGE = sql`${sopInstance.state} = 'called_off' and ${sopInstance.calledOffBy} in ('version_published', 'sop_retired')`;
+
 /** Raises the Instances the farm's day needs. Idempotent: the unique index on
  *  (definition, pen, due time) means running it twice changes nothing. */
 export const raiseDueInstances = async (
@@ -833,23 +850,6 @@ export const raiseDueInstances = async (
   ];
   return created;
 };
-
-/** A called-off slot taken back up: due again, under the Version raising it now and as that Version says it. */
-const TAKEN_BACK_UP = {
-  state: "due" as const,
-  versionId: sql`excluded.version_id`,
-  graceMinutes: sql`excluded.grace_minutes`,
-  assignedRole: sql`excluded.assigned_role`,
-  checkerRole: sql`excluded.checker_role`,
-  calledOffBy: null,
-  assignedTo: null,
-  assignedBy: null,
-  claimedBy: null,
-  claimedAt: null,
-};
-
-/** Called off by a new Version or a retiring, not by somebody deciding the work was not owed. */
-const CALLED_OFF_BY_A_CHANGE = sql`${sopInstance.state} = 'called_off' and ${sopInstance.calledOffBy} in ('version_published', 'sop_retired')`;
 
 /** The animals in a piece of work's Pen, or none for work in no Pen. */
 const penOfWork = (penId: string | null) => (penId === null ? null : { penId });

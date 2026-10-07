@@ -1034,6 +1034,27 @@ const farmWorkProblems = (content: SopContent): string[] => {
   ];
 };
 
+/**
+ * A Step is found by its id, and a choice by its value: two Steps with one id, and answering the first finished the work
+ * without the second ever being asked; two choices with one value cannot be told apart.
+ */
+const sameIdProblems = (content: SopContent): string[] =>
+  content.steps.flatMap((step, stepIndex) => [
+    ...(content.steps.findIndex((one) => one.id === step.id) === stepIndex
+      ? []
+      : [
+          `steps[${stepIndex}].id: "${step.id}" is already the id of an earlier step`,
+        ]),
+    ...step.evidence.flatMap((evidence, evidenceIndex) => {
+      const values = (evidence.choices ?? []).map((choice) => choice.value);
+      return new Set(values).size === values.length
+        ? []
+        : [
+            `steps[${stepIndex}].evidence[${evidenceIndex}].choices: two choices share one value`,
+          ];
+    }),
+  ]);
+
 /** Structural problems that are not about language: an SOP with no steps, a malformed time,
  *  a number with no range, a choice with nothing to choose. */
 export const findStructuralProblems = (content: SopContent): string[] => {
@@ -1042,26 +1063,10 @@ export const findStructuralProblems = (content: SopContent): string[] => {
     ...oneOfEachProblems(content),
     ...lotNumberPlaceProblems(content),
     ...reportRoleProblems(content),
+    ...sameIdProblems(content),
   ];
   if (content.steps.length === 0) {
     problems.push("steps: an SOP needs at least one step");
-  }
-  // A Step is found by its id: two with one id, and answering the first finishes the work without the second ever
-  // being asked.
-  for (const [stepIndex, step] of content.steps.entries()) {
-    if (content.steps.findIndex((one) => one.id === step.id) !== stepIndex) {
-      problems.push(
-        `steps[${stepIndex}].id: "${step.id}" is already the id of an earlier step`
-      );
-    }
-    for (const [evidenceIndex, evidence] of step.evidence.entries()) {
-      const values = (evidence.choices ?? []).map((choice) => choice.value);
-      if (new Set(values).size !== values.length) {
-        problems.push(
-          `steps[${stepIndex}].evidence[${evidenceIndex}].choices: two choices share one value`
-        );
-      }
-    }
   }
   // No Trigger is no longer work that never arrives: the Manager can raise a piece of work for
   // a Pen when the farm decides to do it, which is exactly how a campaign happens. A quarterly
