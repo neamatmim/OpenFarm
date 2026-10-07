@@ -1,3 +1,4 @@
+import { OWNERS_TRAIL } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useQuery } from "@tanstack/react-query";
@@ -58,6 +59,9 @@ const DayFilter = ({
   </label>
 );
 
+/** The kinds of record whose trail is the Owner's alone. */
+const OWNERS_OWN: ReadonlySet<string> = new Set(OWNERS_TRAIL);
+
 /**
  * The audit log: every change the farm has made, who made it in which Role, and why — narrowed by the kind of record,
  * by the person, or by the days between. The Owner and the Manager read everybody's; anybody else reads their own.
@@ -67,11 +71,12 @@ const AuditPage = () => {
   const me = useQuery(orpc.people.me.queryOptions());
   const seesAll =
     me.data?.roles.some((r) => r === "owner" || r === "manager") ?? false;
-  // An Investor's trail is the Owner's alone, as the investors page is: the server answers anybody else with
-  // nothing, so nobody else is offered it to choose.
-  const seesInvestors = me.data?.roles.includes("owner") ?? false;
+  // The Owner's own records — an Investor's, a Venture's money, the prices she sets — are the Owner's alone to read: the
+  // server answers anybody else with nothing, so nobody else is offered them to choose, and "no events" never reads as
+  // "nothing happened". The same list the server keeps.
+  const isOwner = me.data?.roles.includes("owner") ?? false;
   const offered = ENTITIES.filter(
-    (entity) => seesInvestors || entity !== "investor"
+    (entity) => isOwner || !OWNERS_OWN.has(entity)
   );
   // The people to narrow to, for whoever may read everybody's actions.
   const people = useQuery({

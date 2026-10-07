@@ -22,13 +22,12 @@ import {
   roundMoney,
   startOfFarmDay,
 } from "@OpenFarm/domain";
-import type { CapitalPaid } from "@OpenFarm/domain";
+import type { AuditEntity, CapitalPaid } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { SnapshotValue, Tx } from "./audit";
 import type { BankStanding } from "./bank-standing";
 import { NEVER_CHECKED, standingOf } from "./bank-standing";
-import type { AuditEntity } from "./whose-trail";
 
 /** Struck in the domain, because the screen that shows the Owner the price strikes it too. */
 export { priceAtWeight } from "@OpenFarm/domain";

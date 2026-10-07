@@ -314,4 +314,33 @@ describe("a reading set against what came before it", () => {
     });
     expect(await doubted(big.completionId)).toBe(false);
   });
+
+  it("asks again about a later reading that the one found right now throws in doubt", async () => {
+    const tag = await arrives(200);
+    await weighs("2027-04-10", tag, 210);
+    const big = await weighs("2027-04-24", tag, 260);
+    // Believed against 210, fifteen days on the 215 is ordinary; believed against 260, it is a fall nobody makes.
+    const after = await weighs("2027-05-08", tag, 215);
+    const { manager } = await round("2027-05-09");
+    const queue = await manager.client.reviewQueue.list();
+    const asked = queue.find(
+      (row) =>
+        row.reason === "implausible_weight" && row.entityId === big.completionId
+    );
+    await manager.client.reviewQueue.resolve({
+      id: asked?.id ?? "",
+      resolution: "আবার মেপে ২৬০ পাওয়া গেছে",
+      readingStands: true,
+    });
+    expect(await doubted(big.completionId)).toBe(false);
+    expect(await doubted(after.completionId)).toBe(true);
+    const again = await manager.client.reviewQueue.list();
+    expect(
+      again.some(
+        (row) =>
+          row.reason === "implausible_weight" &&
+          row.entityId === after.completionId
+      )
+    ).toBe(true);
+  });
 });

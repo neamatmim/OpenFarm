@@ -553,16 +553,14 @@ export type HealthRegisterName =
   | "disease_history"
   | "mortality_register";
 
-/** Saving a register as a CSV, named for the register and the period it covers. */
+/** Saving a register as a CSV, under the name the farm stamped it with: its Registration number, when, what and the
+ *  period it covers. */
 const useCsv = () => {
   const refused = useRefused();
   return useMutation(
     orpc.inspectorView.print.mutationOptions({
-      onSuccess: ({ csv, period }, { register }) =>
-        saveCsv(
-          `${register.replaceAll("_", "-")}-${period?.from}-${period?.to}.csv`,
-          csv ?? ""
-        ),
+      onSuccess: ({ csv, fileName }, { register }) =>
+        saveCsv(fileName ?? `${register.replaceAll("_", "-")}.csv`, csv ?? ""),
       onError: refused,
     })
   );

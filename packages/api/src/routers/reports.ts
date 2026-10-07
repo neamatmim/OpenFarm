@@ -15,6 +15,7 @@ import type { Context } from "../context";
 import { toCsv } from "../csv";
 import { dispatchesBetween, litresDispatched } from "../dispatch-store";
 import type { DispatchRow } from "../dispatch-store";
+import { stampedFileName } from "../export-name";
 import { assertRegistered, recordExport } from "../export-store";
 import { protectedProcedure } from "../index";
 import type { ExportedMoney } from "../money-export-store";
@@ -174,7 +175,15 @@ export const reportsRouter = {
       const result =
         input.format === "paper"
           ? { text: await dispatchPaper(context, input, dispatches) }
-          : { csv: dispatchCsv(dispatches) };
+          : {
+              csv: dispatchCsv(dispatches),
+              fileName: stampedFileName(
+                context.farm,
+                "milk-dispatch",
+                input,
+                context.clock.now()
+              ),
+            };
       await recordExport(context, "milk_dispatch_record", input, {
         format: input.format,
         dispatches: dispatches.length,
@@ -254,7 +263,15 @@ export const reportsRouter = {
         format: "csv",
         sessions: sessions.length,
       });
-      return { csv };
+      return {
+        csv,
+        fileName: stampedFileName(
+          context.farm,
+          "milk-production",
+          input,
+          context.clock.now()
+        ),
+      };
     }),
 
   /**
@@ -282,7 +299,15 @@ export const reportsRouter = {
               summary,
               text: await accountantPaper(context, input, summary),
             }
-          : { csv: accountantCsv(money) };
+          : {
+              csv: accountantCsv(money),
+              fileName: stampedFileName(
+                context.farm,
+                "money",
+                input,
+                context.clock.now()
+              ),
+            };
       await recordExport(context, "accountant_export", input, {
         format: input.format,
         moneyEvents: money.length,

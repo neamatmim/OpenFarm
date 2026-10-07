@@ -3,10 +3,10 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import type { AuditAction } from "@OpenFarm/db/schema/audit";
 import { auditEvent } from "@OpenFarm/db/schema/audit";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
+import type { AuditEntity } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Context } from "./context";
-import type { AuditEntity } from "./whose-trail";
 import { aWriteWasSeen, seenWhenDone } from "./writes-seen";
 
 /** A transaction handle for the domain write. */

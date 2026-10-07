@@ -94,6 +94,10 @@ export const parseCsvRecords = (text: string): CsvRecord[] => {
  *  somebody should not be able to run on the accountant's computer. */
 const LOOKS_LIKE_A_FORMULA = /^[=+\-@\t\r]/u;
 
+/** Digits a spreadsheet would take for a number and spoil: a bank reference past fifteen digits loses the rest, and a
+ *  phone number or a reference beginning 0 loses its 0. */
+const DIGITS_A_SPREADSHEET_SPOILS = /^(?:0\d+|\d{12,})$/u;
+
 /** One field as RFC 4180 writes it: quoted when it holds a comma, a quote or a line break, and made
  *  inert when a spreadsheet would take it for a formula. */
 const csvField = (value: string | number | null): string => {
@@ -102,6 +106,10 @@ const csvField = (value: string | number | null): string => {
   }
   if (typeof value === "number") {
     return String(value);
+  }
+  // Kept as the text it is, the one way every spreadsheet reads: its own digits, nothing a person typed run.
+  if (DIGITS_A_SPREADSHEET_SPOILS.test(value)) {
+    return `"=""${value}"""`;
   }
   const inert = LOOKS_LIKE_A_FORMULA.test(value) ? `'${value}` : value;
   return /[",\r\n]/u.test(inert) ? `"${inert.replaceAll('"', '""')}"` : inert;

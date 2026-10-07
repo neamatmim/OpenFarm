@@ -2,6 +2,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import type { AuditAction } from "@OpenFarm/db/schema/audit";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { isExitState } from "@OpenFarm/domain";
+import type { AuditEntity } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { SnapshotValue, Tx } from "../audit";
@@ -16,7 +17,6 @@ import {
   VISITING_VET,
 } from "../roles";
 import { workingAs } from "../scope";
-import type { AuditEntity } from "../whose-trail";
 
 /**
  * How the farm sorted an Entry it did not simply take (ADR 0004): late, when the world moved under it; not theirs, when

@@ -69,6 +69,26 @@ const MINUTE_MS = 60_000;
 export type Turning = Context & { farm: NonNullable<Context["farm"]> };
 
 /**
+ * The turning as the farm's own act, whoever's opening of the app set it off: the work it raises, the late work it
+ * calls out, the post it carries are the farm's, and the trail files them as the server's own timer does — under no
+ * person, on no phone — not as a milker's for having opened the app at six.
+ */
+export const asTheFarm = (context: Turning): Turning => ({
+  ...context,
+  session: null,
+  device: null,
+  actor: null,
+  person: null,
+  roles: [],
+  rolesOffThePhone: [],
+  penIds: [],
+  visiting: false,
+  caseAnimalIds: [],
+  roleUsed: null,
+  scope: { kind: "nothing" },
+});
+
+/**
  * Work for a Heat whose AI window had already closed by the time the farm heard about it.
  *
  * On a farm whose sheds have no signal this is an ordinary morning, not an edge: a sighting at

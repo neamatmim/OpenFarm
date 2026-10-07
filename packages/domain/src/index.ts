@@ -479,6 +479,7 @@ export {
   scheduleFallsOn,
   describeChanges,
   isClinicalStep,
+  isHealthStep,
   isClosingStep,
   mayRaiseByHand,
   isOneTap,
@@ -982,3 +983,5 @@ export {
   worksOnlyOnShedPhones,
 } from "./shed-phone-only";
 export { farmsOwnPayout } from "./farm-capital";
+export { OWNERS_TRAIL, WHOSE_TRAIL } from "./whose-trail";
+export type { AuditEntity } from "./whose-trail";

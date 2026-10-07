@@ -1,4 +1,9 @@
-import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -97,6 +102,36 @@ describe("a Sale put right", () => {
     expect(after?.stateChangedAt).toEqual(wentOn);
   });
 
+  it("keeps in the trail whose hand the cash was in before a Correction moved it", async () => {
+    const bull = await aBull("2070-04-15T04:00:00.000Z");
+    // The Manager sold her for cash, into the Manager's own hand.
+    const sold = await sell("2070-04-20T04:00:00.000Z", bull.tagNumber);
+    const owner = await as("owner", "2070-04-20T06:00:00.000Z");
+    await owner.client.sales.correct({
+      id: sold.id,
+      reason: "টাকা মালিকের হাতে দেওয়া হয়েছিল",
+      changes: {
+        heldBy: {
+          from: thePerson("manager").id,
+          to: thePerson("owner").id,
+        },
+      },
+    });
+    const trail = await owner.client.audit.list({
+      entity: "sale",
+      limit: 50,
+    });
+    const corrected = trail.find(
+      (one) => one.entityId === sold.id && one.reason !== null
+    );
+    expect(corrected?.before).toMatchObject({
+      money: { heldBy: thePerson("manager").id },
+    });
+    expect(corrected?.after).toMatchObject({
+      money: { heldBy: thePerson("owner").id },
+    });
+  });
+
   it("is voided by the Owner, and she is back as she was", async () => {
     const bull = await aBull("2070-05-01T04:00:00.000Z");
     const before = await her(bull.tagNumber);
@@ -149,5 +184,24 @@ describe("a death written against the wrong animal", () => {
       state: before?.state,
       stateChangedAt: before?.stateChangedAt,
     });
+    // Her own trail says who brought her back, and the death's names her.
+    const trail = await owner.client.audit.list({ limit: 200 });
+    const hers = trail.filter((one) => one.tagNumber === bull.tagNumber);
+    expect(hers.map((one) => one.entity)).toEqual(
+      expect.arrayContaining(["animal", "mortality"])
+    );
+    expect(
+      hers.find(
+        (one) =>
+          one.entity === "animal" &&
+          (one.after as { backFrom?: string } | null)?.backFrom === "death"
+      )
+    ).toMatchObject({ roleUsed: "owner" });
+    // And the photograph of the bull that really died is kept, under the one it was written against.
+    const kept = await scratchDb().query.voidedPhoto.findMany({
+      where: { animalId: before?.id ?? "" },
+      columns: { from: true, contentType: true },
+    });
+    expect(kept).toEqual([{ from: "death", contentType: "image/jpeg" }]);
   });
 });

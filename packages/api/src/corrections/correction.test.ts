@@ -3,6 +3,7 @@ import { user } from "@OpenFarm/db/schema/auth";
 import { roleAssignment } from "@OpenFarm/db/schema/farm";
 import { sale } from "@OpenFarm/db/schema/fattening";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
+import type { AuditEntity } from "@OpenFarm/domain";
 import type { Principal } from "@OpenFarm/test-harness";
 import { FakeClock, theFarm, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -12,7 +13,6 @@ import { appRouter } from "../routers/index";
 import { requireAnimalInScope } from "../scope";
 import { createTestClient } from "../test/client";
 import { A_DEATH_PHOTO } from "../test/death-photo";
-import type { AuditEntity } from "../whose-trail";
 import type { Change, CorrectionKind } from "./correction";
 import { correct } from "./correction";
 

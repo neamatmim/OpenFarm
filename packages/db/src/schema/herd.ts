@@ -430,3 +430,34 @@ export const mortalityPhoto = pgTable(
   },
   (table) => [index("mortality_photo_mortality_idx").on(table.mortalityId)]
 );
+
+/** What a voided record was photographed as. */
+export const VOIDED_PHOTO_FROM = ["death", "sale_receipt"] as const;
+
+/**
+ * A photograph a voided record held, kept when the Owner voids it: a Correction never takes a photograph away, and a
+ * death's shows the tag of the animal that really died — the one the farm must now write down, perhaps buried by then.
+ * Named by the animal it was taken of and the record it came from, which is gone.
+ */
+export const voidedPhoto = pgTable(
+  "voided_photo",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id),
+    from: text("from", { enum: VOIDED_PHOTO_FROM }).notNull(),
+    /** The death's or the Sale's id, which the trail still names. */
+    sourceId: text("source_id").notNull(),
+    contentType: text("content_type").notNull(),
+    /** As it was kept, base64. */
+    data: text("data").notNull(),
+    takenAt: timestamp("taken_at", { withTimezone: true }).notNull(),
+    voidedBy: text("voided_by").references(() => user.id),
+    voidedAt: timestamp("voided_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [index("voided_photo_animal_idx").on(table.animalId)]
+);

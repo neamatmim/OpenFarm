@@ -32,7 +32,8 @@ export const AccountantExport = ({
   );
   const sheet = useMutation(
     orpc.reports.accountantExport.mutationOptions({
-      onSuccess: ({ csv }) => saveCsv(`money-${from}-${to}.csv`, csv ?? ""),
+      onSuccess: ({ csv, fileName }) =>
+        saveCsv(fileName ?? `money-${from}-${to}.csv`, csv ?? ""),
       onError,
     })
   );

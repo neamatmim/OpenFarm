@@ -1143,8 +1143,21 @@ export const comesBackFromAVoidedExit = async (
     leftAt,
     now,
     trail,
-  }: { state: AnimalState; since: Date; leftAt: Date; now: Date; trail: Trail }
+    voided,
+  }: {
+    state: AnimalState;
+    since: Date;
+    leftAt: Date;
+    now: Date;
+    trail: Trail;
+    /** What was voided: her death, or her Sale. */
+    voided: "death" | "sale";
+  }
 ): Promise<void> => {
+  const gone = await tx.query.animal.findFirst({
+    where: { id: her.id, farmId },
+    columns: { state: true, tagNumber: true },
+  });
   const [back] = await tx
     .update(animal)
     .set({ state, stateChangedAt: since, updatedAt: now })
@@ -1161,6 +1174,19 @@ export const comesBackFromAVoidedExit = async (
       message: "Only an animal who has left the farm can come back",
     });
   }
+  // On her own trail, under whoever voided it: who wrote her gone is on the record that was voided, and who brought
+  // her back is here, where her page reads.
+  await trail(
+    tx,
+    { entity: "animal", entityId: her.id, action: "update" },
+    {
+      before: {
+        tagNumber: gone?.tagNumber ?? null,
+        state: gone?.state ?? null,
+      },
+      after: { tagNumber: gone?.tagNumber ?? null, state, backFrom: voided },
+    }
+  );
   await callOffWork(
     tx,
     farmId,

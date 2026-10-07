@@ -15,6 +15,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Context } from "../context";
+import { stampedFileName } from "../export-name";
 import { assertRegistered, recordExport } from "../export-store";
 import { protectedProcedure } from "../index";
 import { periodInput } from "../period";
@@ -367,7 +368,16 @@ export const inspectorViewRouter = {
       });
       // A CSV carries its period, so the file it is saved as can say what it covers.
       return input.format === "csv"
-        ? { csv: handed.csv, period: handed.period }
+        ? {
+            csv: handed.csv,
+            period: handed.period,
+            fileName: stampedFileName(
+              context.farm,
+              input.register.replaceAll("_", "-"),
+              handed.period,
+              context.clock.now()
+            ),
+          }
         : { text: handed.text };
     }),
 };

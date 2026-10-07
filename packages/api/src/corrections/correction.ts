@@ -2,7 +2,11 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { sql } from "@OpenFarm/db/operators";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import type { ReviewReason } from "@OpenFarm/db/schema/review";
-import type { CorrectionRefusal, CorrectionWindows } from "@OpenFarm/domain";
+import type {
+  AuditEntity,
+  CorrectionRefusal,
+  CorrectionWindows,
+} from "@OpenFarm/domain";
 import { describeWindow, mayCorrect } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
@@ -19,7 +23,6 @@ import { pickRoleUsed } from "../roles";
 import type { Scope } from "../scope";
 import { workingAs } from "../scope";
 import { ownedThenByOf } from "../venture-store";
-import type { AuditEntity } from "../whose-trail";
 import { seenWhenDone } from "../writes-seen";
 
 /**
@@ -406,6 +409,11 @@ export const correct = async <
       if (!row) {
         throw new ORPCError("NOT_FOUND", { message: kind.missing });
       }
+      // Whether this is theirs to put right at all, first: somebody who may not correct it is told so, not sent to raise
+      // a Settlement Adjustment they cannot, nor handed the names of the Ventures it touches.
+      const working = workingToCorrect(context, kind, row, now);
+      const role = working.roleUsed;
+      corrector = working;
       const theirs = (await kind.venturesOf?.(tx, row, input.changes)) ?? [];
       if (theirs.length !== 0) {
         const settled = await tx.query.venture.findMany({
@@ -430,9 +438,6 @@ export const correct = async <
           });
         }
       }
-      const working = workingToCorrect(context, kind, row, now);
-      const role = working.roleUsed;
-      corrector = working;
 
       const shown = await kind.shown(tx, row, { now });
       if (changed.some(({ field, from }) => !same(from, shown[field]))) {

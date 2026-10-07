@@ -706,6 +706,11 @@ export const moneySnapshotOf = async (
       approval: true,
       approvedBy: true,
       approvedAt: true,
+      // Whose hand took the cash, and which of the Farm's numbers took the rest, with its TrxID: what a Correction to
+      // either puts right, so the trail keeps it either side.
+      heldBy: true,
+      farmAccountId: true,
+      reference: true,
     },
   })) ?? null;
 

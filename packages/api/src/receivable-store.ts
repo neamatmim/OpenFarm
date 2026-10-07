@@ -429,7 +429,14 @@ export const readReceivablePayment = async (tx: Tx, id: string) => {
   }
   const money = await tx.query.moneyEvent.findFirst({
     where: { farmId: row.farmId, source: "receivable_payment", sourceId: id },
-    columns: { amountMoney: true, paymentMethod: true, approval: true },
+    columns: {
+      amountMoney: true,
+      paymentMethod: true,
+      approval: true,
+      heldBy: true,
+      farmAccountId: true,
+      reference: true,
+    },
   });
   return { ...row, money: money ?? null };
 };

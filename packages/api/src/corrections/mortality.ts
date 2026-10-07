@@ -14,6 +14,7 @@ import {
   readMortality,
 } from "../mortality-store";
 import { assertNotSettledUp } from "../venture-act";
+import { keepWhatWasPhotographed } from "../voided-photos";
 import type { CorrectionKind, Corrector } from "./correction";
 import { changeOf, correctionInput, herVenturesAround } from "./correction";
 
@@ -54,6 +55,20 @@ const voidTheDeath = async (
   if (hers?.ownerVentureId) {
     await assertNotSettledUp(tx, row.farmId, hers.ownerVentureId);
   }
+  // Her photographs go with the death no further than the void: kept under her, as a Correction takes none away.
+  const photos = await tx.query.mortalityPhoto.findMany({
+    where: { mortalityId: row.id },
+    columns: { contentType: true, data: true, takenAt: true },
+  });
+  await keepWhatWasPhotographed(tx, {
+    farmId: row.farmId,
+    animalId: row.animalId,
+    from: "death",
+    sourceId: row.id,
+    photos,
+    by: context.actor.id,
+    at: now,
+  });
   await tx.delete(mortalityPhoto).where(eq(mortalityPhoto.mortalityId, row.id));
   await tx.delete(mortality).where(eq(mortality.id, row.id));
   await comesBackFromAVoidedExit(
@@ -66,6 +81,7 @@ const voidTheDeath = async (
       leftAt: row.happenedAt,
       now,
       trail: audited(context).recordEvent,
+      voided: "death",
     }
   );
 };

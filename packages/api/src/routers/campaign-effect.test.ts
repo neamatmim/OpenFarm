@@ -12,6 +12,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 /**
@@ -294,5 +295,67 @@ describe("a campaign over a Pen", () => {
       evidence: [true],
     });
     await staff.client.work.complete({ id: work.id });
+  });
+});
+
+describe("a dose the Vet recorded", () => {
+  it("is the Vet's to put right later, as their own health entry", async () => {
+    const clock = new FakeClock("2026-11-20T03:30:00.000Z");
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+    // A vaccination round the Vet walks themselves.
+    const vetsRound = await owner.client.sops.create({
+      content: {
+        ...campaignSop(world.wormer.id),
+        name: { bn: `ভেটের টিকা ${Date.now()}`, en: "The Vet's round" },
+        assignedRole: "vet",
+        checkerRole: null,
+      },
+    });
+    try {
+      const { pen, cows } = await aPenOfCows(clock, 1);
+      const [cow] = cows;
+      const manager = await createTestClient(appRouter, {
+        as: "manager",
+        clock,
+      });
+      await manager.client.work.raiseNow({
+        definitionId: vetsRound.definitionId,
+        penId: pen.id,
+      });
+      const vet = await createTestClient(appRouter, { as: "vet", clock });
+      const today = await vet.client.work.today({ penId: pen.id });
+      const raised = today.find(
+        (row) => row.definitionId === vetsRound.definitionId
+      );
+      if (!raised) {
+        throw new Error("expected the Vet's round on the day's work");
+      }
+      await vet.client.work.claim({ id: raised.id });
+      await vet.client.work.completeStep({
+        instanceId: raised.id,
+        stepId: "dose",
+        animalTag: cow?.tagNumber,
+        evidence: [],
+        skipReason: "গর্ভবতী",
+      });
+      const loaded = await vet.client.work.get({ id: raised.id });
+      const completionId = loaded.completions[0]?.id ?? "";
+
+      // Ten minutes on, the Vet sees she was not pregnant after all and gave it.
+      clock.advance(10 * 60_000);
+      const later = await createTestClient(appRouter, { as: "vet", clock });
+      await expect(
+        correctStepAsShown(later.client, {
+          completionId,
+          evidence: [true],
+          reason: "গর্ভবতী নয়, দেওয়া হয়েছে",
+        })
+      ).resolves.toBeDefined();
+    } finally {
+      await scratchDb()
+        .update(sopDefinition)
+        .set({ retiredAt: new Date() })
+        .where(eq(sopDefinition.id, vetsRound.definitionId));
+    }
   });
 });

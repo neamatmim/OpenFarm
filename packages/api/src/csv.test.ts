@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseCsv, parseCsvRecords } from "./csv";
+import { parseCsv, parseCsvRecords, toCsv } from "./csv";
 
 describe("the CSV reader", () => {
   it("reads quoted fields, doubled quotes and CRLF", () => {
@@ -32,5 +32,18 @@ describe("the CSV reader", () => {
 
     expect(records[0]?.values.note).toBe("two\nlines");
     expect(records[1]?.line).toBe(4);
+  });
+});
+
+describe("the CSV writer", () => {
+  it("keeps a long reference and a number beginning 0 as the text they are", () => {
+    const written = toCsv(
+      ["reference", "phone", "amount", "tag"],
+      [["202610071234567890123", "01711000222", "4500", "F-0012"]]
+    );
+    const [, row] = written.replace("﻿", "").split("\r\n");
+    expect(row).toBe(
+      '"=""202610071234567890123""","=""01711000222""",4500,F-0012'
+    );
   });
 });
