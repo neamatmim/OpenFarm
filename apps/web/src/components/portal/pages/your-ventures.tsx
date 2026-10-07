@@ -19,6 +19,7 @@ import {
   Section,
 } from "@/components/page";
 import { PageTabs } from "@/components/page-kit";
+import type { YourVenturesTab } from "@/components/portal/pages/page-search";
 import { ListSkeleton } from "@/components/portal/portal-skeletons";
 import {
   usePortalPlaces,
@@ -31,8 +32,7 @@ import { TAB_SWITCH } from "@/lib/path-tabs";
 
 type HisAgreement = TheirAgreements["agreements"][number];
 
-const TABS = ["running", "finished"] as const;
-type Tab = (typeof TABS)[number];
+type Tab = YourVenturesTab;
 
 /** Whether a Venture has run its course: settled, or called off with every taka sent back. */
 const hasFinished = (one: HisAgreement) => hasEnded(one.venture.state);
@@ -337,14 +337,3 @@ export const PortalYourVentures = ({ tab }: { tab?: Tab }) => {
     </Page>
   );
 };
-
-/** What the address may say about this page: which of its two tabs is open. */
-export interface YourVenturesSearch {
-  tab?: Tab;
-}
-
-/** The address's word on which tab is open, in the portal and in the Preview alike. */
-export const yourVenturesSearch = (
-  search: Record<string, unknown>
-): YourVenturesSearch =>
-  TABS.includes(search.tab as Tab) ? { tab: search.tab as Tab } : {};

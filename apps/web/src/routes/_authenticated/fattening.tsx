@@ -12,16 +12,18 @@ import {
 } from "lucide-react";
 
 import { MarketPrice } from "@/components/fattening/animal-prices";
-import type {
-  KeepingFilter,
-  StandingFilter,
-} from "@/components/fattening/fattening-board";
 import {
   FATTENING_BOARD_ID,
   FatteningBoard,
+} from "@/components/fattening/fattening-board";
+import type {
+  KeepingFilter,
+  StandingFilter,
+} from "@/components/fattening/fattening-filters";
+import {
   KEEPING_FILTERS,
   STANDING_FILTERS,
-} from "@/components/fattening/fattening-board";
+} from "@/components/fattening/fattening-filters";
 import type { BoardRow } from "@/components/fattening/fattening-types";
 import { ORDER, standingOf } from "@/components/fattening/fattening-types";
 import { NextEid } from "@/components/fattening/next-eid";
