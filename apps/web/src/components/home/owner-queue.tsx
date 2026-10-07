@@ -38,6 +38,11 @@ import {
   QueueRow,
   ROW_LINK,
 } from "@/components/home/queue";
+import type {
+  DecisionKind,
+  FarmTodayKind,
+} from "@/components/home/queue-kinds";
+import { FARM_TODAY_KINDS } from "@/components/home/queue-kinds";
 import { ReceivableOverdueGroup } from "@/components/home/receivable-overdue";
 import { VentureTroubles } from "@/components/home/venture-trouble";
 import { categoryName, useApproveMoney } from "@/components/money";
@@ -409,19 +414,6 @@ const ApprovalGroup = ({ needsYou, headless }: GroupProps) => {
   );
 };
 
-/** The kinds of thing only the Owner can settle, in the order they are read. */
-export const DECISION_KINDS = [
-  "missing",
-  "storeCount",
-  "ventures",
-  "registration",
-  "approvals",
-  "proposals",
-  "money",
-  "review",
-] as const;
-export type DecisionKind = (typeof DECISION_KINDS)[number];
-
 /** A kind of decision as a tab: what it is called and how many wait. */
 interface Kind {
   value: DecisionKind;
@@ -626,14 +618,6 @@ const DayProgress = ({ tiles }: { tiles: Tiles }) => {
     </div>
   );
 };
-
-/** What the farm's day has for the Owner to know about, loudest first: the order its tabs read in. */
-export const FARM_TODAY_KINDS = [
-  "overdue",
-  "lowStock",
-  "endingWithdrawal",
-] as const;
-export type FarmTodayKind = (typeof FARM_TODAY_KINDS)[number];
 
 /** One kind of the farm's day, under its own heading or under a tab that already gives it one. */
 const FarmTodayList = ({

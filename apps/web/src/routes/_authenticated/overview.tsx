@@ -25,17 +25,16 @@ import {
   moneyAwaitingCount,
   moneyAwaitingTotal,
 } from "@/components/home/owner-counts";
+import { FarmToday, NeedsYouTabs } from "@/components/home/owner-queue";
+import { MORE_LINK } from "@/components/home/queue";
 import {
   DECISION_KINDS,
   FARM_TODAY_KINDS,
-  FarmToday,
-  NeedsYouTabs,
-} from "@/components/home/owner-queue";
+} from "@/components/home/queue-kinds";
 import type {
   DecisionKind,
   FarmTodayKind,
-} from "@/components/home/owner-queue";
-import { MORE_LINK } from "@/components/home/queue";
+} from "@/components/home/queue-kinds";
 import { SetupLeft } from "@/components/home/setup-left";
 import {
   EmptyState,

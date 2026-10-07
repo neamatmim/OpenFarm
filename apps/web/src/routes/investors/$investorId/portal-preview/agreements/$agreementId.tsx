@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import {
-  PortalVenture,
-  ventureSearch,
-} from "@/components/portal/pages/venture";
+import { ventureSearch } from "@/components/portal/pages/page-search";
+import { PortalVenture } from "@/components/portal/pages/venture";
 
 /** One of the Investor's Ventures as they would read it. */
 const TheirVentureSeen = () => {

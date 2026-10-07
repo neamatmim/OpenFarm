@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import {
-  PortalAccount,
-  accountSearch,
-} from "@/components/portal/pages/account";
+import { PortalAccount } from "@/components/portal/pages/account";
+import { accountSearch } from "@/components/portal/pages/page-search";
 
 /** An Investor's own account, in their own portal. */
 const TheirAccount = () => {

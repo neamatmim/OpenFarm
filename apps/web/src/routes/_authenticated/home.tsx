@@ -14,13 +14,10 @@ import { useEffect } from "react";
 import { AdultDeathsSection } from "@/components/home/adult-deaths";
 import { CalfLossesSection } from "@/components/home/calf-losses";
 import { HerdHealthSection } from "@/components/home/herd-health";
-import type { QueueKind } from "@/components/home/manager-queue";
-import {
-  ManagerQueue,
-  QUEUE_KINDS,
-  queueWaiting,
-} from "@/components/home/manager-queue";
+import { ManagerQueue, queueWaiting } from "@/components/home/manager-queue";
 import { PenProgress } from "@/components/home/pen-progress";
+import type { QueueKind } from "@/components/home/queue-kinds";
+import { QUEUE_KINDS } from "@/components/home/queue-kinds";
 import { VenturesAtWork } from "@/components/home/ventures-at-work";
 import {
   EmptyState,

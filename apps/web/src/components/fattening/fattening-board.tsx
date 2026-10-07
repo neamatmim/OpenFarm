@@ -1,5 +1,4 @@
 import type { Keeping } from "@OpenFarm/domain";
-import { KEEPING } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -26,7 +25,9 @@ import { EmptyState, ProgressBar } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 
-import type { BoardRow, Standing } from "./fattening-types";
+import type { KeepingFilter, StandingFilter } from "./fattening-filters";
+import { KEEPING_FILTERS, STANDING_FILTERS } from "./fattening-filters";
+import type { BoardRow } from "./fattening-types";
 import { ORDER, standingOf } from "./fattening-types";
 import { StandingBadges, StateBadge, TagLink } from "./fattening-words";
 import { OnRationVerdict } from "./on-ration";
@@ -294,15 +295,6 @@ const BoardCard = ({ row }: { row: BoardRow }) => {
 
 const boardCard = (row: BoardRow) => <BoardCard row={row} />;
 
-export type StandingFilter = "all" | Standing;
-
-export const STANDING_FILTERS: readonly StandingFilter[] = [
-  "all",
-  "behind",
-  "unknown",
-  "onTrack",
-];
-
 const FILTER_WORD = {
   all: "gain.all",
   behind: "gain.behind",
@@ -378,11 +370,6 @@ const PenSelect = ({
     </NativeSelect>
   );
 };
-
-/** Whether keeping them pays, as the Owner filters the board by it. */
-export type KeepingFilter = "all" | Keeping;
-
-export const KEEPING_FILTERS: readonly KeepingFilter[] = ["all", ...KEEPING];
 
 const KEEPING_WORD = {
   all: "keep.all",

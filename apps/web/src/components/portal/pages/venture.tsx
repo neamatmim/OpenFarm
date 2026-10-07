@@ -29,6 +29,7 @@ import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { FiguresAsAt } from "@/components/portal/figures-as-at";
 import { HowToPay } from "@/components/portal/how-to-pay";
+import type { VentureTab } from "@/components/portal/pages/page-search";
 import { PayInNotes, waitingMoneyOf } from "@/components/portal/pay-in-notes";
 import { PortalPapers } from "@/components/portal/portal-papers";
 import { VentureSkeleton } from "@/components/portal/portal-skeletons";
@@ -60,8 +61,7 @@ const herdHint = (
   return lost > 0 ? `${said} · ${t("portal.animalsLost", { lost })}` : said;
 };
 
-const TABS = ["animals", "spending", "papers"] as const;
-type Tab = (typeof TABS)[number];
+type Tab = VentureTab;
 
 /** Kilogrammes as the reader writes them, or null where nobody has weighed. */
 const saidKg = (kg: number | null, said: ReturnType<typeof useLanguage>) =>
@@ -780,16 +780,3 @@ export const PortalVenture = ({
     </Page>
   );
 };
-
-/** What the address may say about this page: which of its views is open. */
-export interface VentureSearch {
-  tab?: Tab;
-}
-
-/** The address's word on which view is open, in the portal and in the Preview alike. */
-export const ventureSearch = (
-  search: Record<string, unknown>
-): VentureSearch =>
-  TABS.includes(search.tab as Tab) && search.tab !== "animals"
-    ? { tab: search.tab as Tab }
-    : {};

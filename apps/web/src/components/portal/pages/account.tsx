@@ -26,6 +26,7 @@ import {
 } from "@/components/page";
 import { FormField, SideTabs } from "@/components/page-kit";
 import { deviceOf } from "@/components/people/person-sign-ins";
+import type { AccountTab } from "@/components/portal/pages/page-search";
 import { YourDataLink } from "@/components/portal/portal-door";
 import { ListSkeleton } from "@/components/portal/portal-skeletons";
 import {
@@ -335,8 +336,7 @@ const SignedIn = () => {
   );
 };
 
-const TABS = ["details", "security"] as const;
-type Tab = (typeof TABS)[number];
+type Tab = AccountTab;
 
 /** An Investor's own account, laid out as account pages are — a menu down the side — in two views: what the farm holds
  *  about them and whom to ask, and keeping it theirs: their password and where they are signed in. */
@@ -393,16 +393,3 @@ export const PortalAccount = ({ tab = "details" }: { tab?: Tab }) => {
     </Page>
   );
 };
-
-/** What the address may say about this page: which of its views is open. */
-export interface AccountSearch {
-  tab?: Tab;
-}
-
-/** The address's word on which view is open, in the portal and in the Preview alike. */
-export const accountSearch = (
-  search: Record<string, unknown>
-): AccountSearch =>
-  TABS.includes(search.tab as Tab) && search.tab !== "details"
-    ? { tab: search.tab as Tab }
-    : {};

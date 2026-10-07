@@ -30,6 +30,8 @@ import {
   QueueGroup,
   QueueRow,
 } from "@/components/home/queue";
+import type { QueueKind } from "@/components/home/queue-kinds";
+import { QUEUE_KINDS } from "@/components/home/queue-kinds";
 import { ReceivableOverdueGroup } from "@/components/home/receivable-overdue";
 import { StatusBadge, TagChip } from "@/components/page";
 import { PageTabs } from "@/components/page-kit";
@@ -105,25 +107,6 @@ const ReviewRow = ({
     />
   );
 };
-
-/** The kinds of thing waiting for the Manager, loudest first: the order the tabs read in, and the first one that has
- *  anything is the one the page opens on. */
-export const QUEUE_KINDS = [
-  "missing",
-  "overdue",
-  "signOff",
-  "review",
-  "withdrawal",
-  "meatWithdrawal",
-  "lowStock",
-  "monthlyCosts",
-  "receivableOverdue",
-  "repeatBreeders",
-  "illAgain",
-  "heatWatch",
-  "givingLess",
-] as const;
-export type QueueKind = (typeof QUEUE_KINDS)[number];
 
 /** How many of each kind wait — none for a kind an answer the phone kept from before does not carry. */
 const countsOf = (queue: ManagerQueueData): Record<QueueKind, number> => ({
