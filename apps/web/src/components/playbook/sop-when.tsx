@@ -4,16 +4,15 @@ import {
   FARM_EVENTS,
   HEAT,
   LIVE_STATES,
-  MAX_TRIGGER_OFFSET_DAYS,
   SERVICE,
 } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
-import { Input } from "@OpenFarm/ui/components/input";
 import { Clock, Plus, Trash2, Zap } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
+import { FigureBox } from "@/components/playbook/figure-box";
 import { ListInput } from "@/components/playbook/list-input";
 import { useT } from "@/i18n/language-provider";
 import type { HappeningTrigger } from "@/lib/sop-draft";
@@ -152,19 +151,11 @@ const TriggerDetail = ({
           >
             {t("sop.trigger.after")}
           </label>
-          <Input
+          <FigureBox
             className="w-24"
             id={`after-${index}`}
-            max={MAX_TRIGGER_OFFSET_DAYS}
-            min={0}
-            onChange={(e) =>
-              onChange({
-                ...happening,
-                offsetDays: Number(e.target.value) || 0,
-              })
-            }
-            type="number"
-            value={happening.offsetDays ?? 0}
+            onFigure={(offsetDays) => onChange({ ...happening, offsetDays })}
+            value={happening.offsetDays}
           />
         </div>
       ) : null}

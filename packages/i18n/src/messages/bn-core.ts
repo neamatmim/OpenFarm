@@ -1351,6 +1351,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sop.unit": "একক",
   "sop.min": "সর্বনিম্ন",
   "sop.max": "সর্বোচ্চ",
+  "sop.noLimit": "সীমা না থাকলে খালি রাখুন",
   "sop.skipReasons": "বাদ দেওয়ার কারণ",
   "sop.skipHelp": "কমা দিয়ে, বাংলায়",
   "sop.proposalBy": "প্রস্তাব করেছেন {name}",

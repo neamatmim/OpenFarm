@@ -14,8 +14,10 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
+import { FigureBox } from "@/components/playbook/figure-box";
 import { useLanguage } from "@/i18n/language-provider";
 import { blockerSaid } from "@/lib/sop-blockers";
+import { reworded } from "@/lib/sop-draft";
 
 import { StepsSection } from "./sop-steps";
 import { WhenSection } from "./sop-when";
@@ -73,7 +75,7 @@ const DetailsSection = ({
             onChange={(e) =>
               onChange({
                 ...content,
-                purpose: { ...content.purpose, bn: e.target.value },
+                purpose: reworded(content.purpose, e.target.value),
               })
             }
             value={content.purpose.bn}
@@ -139,13 +141,12 @@ const WhoSection = ({
           </NativeSelect>
         </FormField>
         <FormField id="grace" label={t("sop.grace")}>
-          <Input
+          <FigureBox
             id="grace"
-            min={0}
-            onChange={(e) =>
-              onChange({ ...content, graceMinutes: Number(e.target.value) })
+            onFigure={(grace) =>
+              // Nothing typed is no grace yet, which publishing names, rather than none at all.
+              onChange({ ...content, graceMinutes: grace ?? Number.NaN })
             }
-            type="number"
             value={content.graceMinutes}
           />
         </FormField>

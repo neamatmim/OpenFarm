@@ -1467,6 +1467,7 @@ export const enCore = {
   "sop.unit": "Unit",
   "sop.min": "Least",
   "sop.max": "Most",
+  "sop.noLimit": "Empty for no limit",
   "sop.skipReasons": "Skip reasons",
   "sop.skipHelp": "Comma separated, Bangla",
   "sop.proposalBy": "Proposed by {name}",

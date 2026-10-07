@@ -4,7 +4,7 @@ import type {
   Step,
   StepEffect,
 } from "@OpenFarm/domain";
-import { EVIDENCE_TYPES, STEP_EFFECT_KINDS } from "@OpenFarm/domain";
+import { EVIDENCE_TYPES, STEP_EFFECT_KINDS, maySkip } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -12,14 +12,17 @@ import { ArrowDown, ArrowUp, ListOrdered, Plus, Trash2 } from "lucide-react";
 
 import { EmptyState, Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
+import { FigureBox } from "@/components/playbook/figure-box";
 import { ListInput } from "@/components/playbook/list-input";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import {
   emptyStep,
+  freshStepId,
   fromBilingualList,
   fromChoices,
   needsChoices,
   needsUnit,
+  reworded,
   toBilingualList,
   toChoices,
   withFirstEvidence,
@@ -107,41 +110,37 @@ const EvidenceFields = ({
                 onChange(
                   withFirstEvidence(step, {
                     ...evidence,
-                    unit: { bn: e.target.value },
+                    unit: reworded(evidence.unit, e.target.value),
                   })
                 )
               }
               value={evidence.unit?.bn ?? ""}
             />
           </FormField>
-          <FormField id={`${step.id}-min`} label={t("sop.min")}>
-            <Input
+          <FormField
+            hint={t("sop.noLimit")}
+            id={`${step.id}-min`}
+            label={t("sop.min")}
+          >
+            <FigureBox
               id={`${step.id}-min`}
-              onChange={(e) =>
-                onChange(
-                  withFirstEvidence(step, {
-                    ...evidence,
-                    min: Number(e.target.value),
-                  })
-                )
+              onFigure={(min) =>
+                onChange(withFirstEvidence(step, { ...evidence, min }))
               }
-              type="number"
-              value={evidence.min ?? 0}
+              value={evidence.min}
             />
           </FormField>
-          <FormField id={`${step.id}-max`} label={t("sop.max")}>
-            <Input
+          <FormField
+            hint={t("sop.noLimit")}
+            id={`${step.id}-max`}
+            label={t("sop.max")}
+          >
+            <FigureBox
               id={`${step.id}-max`}
-              onChange={(e) =>
-                onChange(
-                  withFirstEvidence(step, {
-                    ...evidence,
-                    max: Number(e.target.value),
-                  })
-                )
+              onFigure={(max) =>
+                onChange(withFirstEvidence(step, { ...evidence, max }))
               }
-              type="number"
-              value={evidence.max ?? 0}
+              value={evidence.max}
             />
           </FormField>
         </>
@@ -295,7 +294,7 @@ const StepEditor = ({
           <Input
             id={`${step.id}-text`}
             onChange={(e) =>
-              onChange({ ...step, text: { ...step.text, bn: e.target.value } })
+              onChange({ ...step, text: reworded(step.text, e.target.value) })
             }
             value={step.text.bn}
           />
@@ -322,7 +321,8 @@ const StepEditor = ({
 
         <EvidenceFields onChange={onChange} step={step} />
 
-        {step.repeatPerAnimal ? (
+        {/* A dose or a service may be skipped too, walked or not: its reasons are shown wherever it may be. */}
+        {maySkip(step) ? (
           <FormField
             hint={t("sop.skipHelp")}
             id={`${step.id}-skip`}
@@ -344,16 +344,6 @@ const StepEditor = ({
       </div>
     </li>
   );
-};
-
-/** A name for a new Step no Step in the procedure already has, so two Steps are never taken for one. */
-const freshStepId = (steps: Step[]): string => {
-  const taken = new Set(steps.map((step) => step.id));
-  let number = steps.length + 1;
-  while (taken.has(`step-${number}`)) {
-    number += 1;
-  }
-  return `step-${number}`;
 };
 
 /** The Steps in the order they are done: each moved up or down, taken out, or a new one added at the end. */

@@ -305,3 +305,17 @@ describe("a Version's Steps", () => {
     ).toBe(true);
   });
 });
+
+describe("a procedure's grace", () => {
+  it("is refused as the farm refuses it: not whole minutes, or more than a day", () => {
+    const { feeding } = standardPlaybook();
+    const graceOf = (graceMinutes: number) =>
+      findStructuralProblems({ ...feeding, graceMinutes }).filter((problem) =>
+        problem.startsWith("graceMinutes")
+      );
+    expect(graceOf(2000)).toHaveLength(1);
+    expect(graceOf(30.5)).toHaveLength(1);
+    expect(graceOf(Number.NaN)).toHaveLength(1);
+    expect(graceOf(1440)).toEqual([]);
+  });
+});
