@@ -7,6 +7,11 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { correct } from "../corrections/correction";
+import {
+  vetFeeCorrection,
+  vetFeeCorrectionInput,
+} from "../corrections/vet-fee";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { requireAnimal, tagsOfHerRecords } from "../herd-store";
@@ -367,6 +372,17 @@ export const moneyRouter = {
         }
       );
       return { id };
+    }),
+
+  /** A Vet Fee put right, or voided: by the Vet who charged it within the Vet's window, by the Owner at any time
+   *  (`vetFeeCorrection`). */
+  correctVetFee: protectedProcedure
+    .use(requireRole(...vetFeeCorrection.roles))
+    .use(requirePersonalSession())
+    .input(vetFeeCorrectionInput)
+    .handler(async ({ context, input }) => {
+      await correct(context, vetFeeCorrection, input);
+      return { id: input.id };
     }),
 
   /** The Vet's own fees, newest first — the only money the Vet sees. */

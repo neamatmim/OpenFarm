@@ -46,6 +46,8 @@ const OPEN_TO_A_VISIT = new Set<string>([
   "milk.forAnimal",
   "notifiableDiseases.list",
   "observations.record",
+  // What they saw off the round, withdrawn as their own entry.
+  "observations.withdraw",
   "papers.passport",
   "papers.withdrawalSummary",
   "prescriptions.prescribe",

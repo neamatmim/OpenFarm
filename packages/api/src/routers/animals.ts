@@ -28,7 +28,9 @@ import {
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { clearNoticesAbout } from "../alerts-store";
 import { herRecord } from "../animal-record";
+import type { Trail, Tx } from "../audit";
 import { audited } from "../audit";
 import { breedNamed } from "../breed-store";
 import {
@@ -38,6 +40,10 @@ import {
 import { calfLossesOf } from "../calf-losses-store";
 import { followExpectedCalving } from "../calving-work";
 import type { Context } from "../context";
+import {
+  animalFactsCorrection,
+  animalFactsCorrectionInput,
+} from "../corrections/animal-facts";
 import { correct, reasonInput } from "../corrections/correction";
 import {
   expectedCalvingCorrection,
@@ -77,7 +83,12 @@ import {
 } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { isOnTheFarm } from "../instances-store";
-import { costToDateOf, makeGood, takenOnByTheFarm } from "../made-good-store";
+import {
+  costToDateOf,
+  makeGood,
+  takeBackMadeGood,
+  takenOnByTheFarm,
+} from "../made-good-store";
 import {
   markFound,
   markWrittenOff,
@@ -102,7 +113,7 @@ import {
   callOffPutOffReleases,
 } from "../put-off-store";
 import { owingOnHerSale } from "../receivable-store";
-import { forbidden, requireRole } from "../roles";
+import { forbidden, requirePersonalSession, requireRole } from "../roles";
 import {
   animalsInScopeWhere,
   readsTheClinicalRecord,
@@ -463,6 +474,48 @@ const assertStateFitsSide = (side: string, state: AnimalState) => {
     throw new ORPCError("BAD_REQUEST", {
       message: `An animal in state ${state} cannot be registered on the ${side} side`,
     });
+  }
+};
+
+/**
+ * She comes back into the herd as she was the morning she was written off, and her calving work with her calving: what a
+ * Found does for one Lost, and what taking the write-off back does.
+ */
+const backAsSheWas = async (
+  tx: Tx,
+  her: Parameters<typeof followExpectedCalving>[1],
+  open: NonNullable<Awaited<ReturnType<typeof missingOf>>>,
+  {
+    now,
+    leadDays,
+    trail,
+  }: {
+    now: Date;
+    leadDays: Parameters<typeof followExpectedCalving>[2];
+    trail: Trail;
+  }
+) => {
+  if (!(open.stateBefore && open.stateChangedBefore)) {
+    return;
+  }
+  const expectedCalving = {
+    at: open.expectedCalvingBefore,
+    serviceId: open.expectedCalvingServiceBefore,
+  };
+  await comesBack(tx, her.farmId, her, {
+    state: open.stateBefore,
+    since: open.stateChangedBefore,
+    now,
+    expectedCalving,
+  });
+  // Her calving work, called off when she was written off, comes back with her calving.
+  if (expectedCalving.at) {
+    await followExpectedCalving(
+      tx,
+      { ...her, expectedCalvingAt: expectedCalving.at },
+      leadDays,
+      { expectedAgain: true, trail }
+    );
   }
 };
 
@@ -1041,6 +1094,9 @@ export const animalsRouter = {
           givenAt: dose.givenAt,
           number: dose.number,
           fromPrescription: dose.prescriptionId !== null,
+          /** Given on somebody's advice with no course and no Campaign: voided from her page, not on a Step. */
+          notPrescribed:
+            dose.prescriptionId === null && dose.instanceId === null,
           productNameBn: product.nameBn,
           productNameEn: product.nameEn,
           givenByName: giver?.name ?? null,
@@ -1434,6 +1490,19 @@ export const animalsRouter = {
       return { tagNumber, state: input.state };
     }),
 
+  /** What an animal is, put right: her sex, breed, birth date, dam (`animalFactsCorrection`). */
+  correctFacts: protectedProcedure
+    .use(requireRole(...animalFactsCorrection.roles))
+    .input(animalFactsCorrectionInput)
+    .handler(async ({ context, input: { tagNumber, ...input } }) => {
+      const her = await requireAnimal(
+        context.db,
+        context.farm.id,
+        tagNumber.toUpperCase()
+      );
+      await correct(context, animalFactsCorrection, { ...input, id: her.id });
+      return { tagNumber: her.tagNumber };
+    }),
   /** A registration taken back: an animal registered twice, or a calf never born (`registrationCorrection`). */
   correctRegistration: protectedProcedure
     .use(requireRole(...registrationCorrection.roles))
@@ -1522,6 +1591,70 @@ export const animalsRouter = {
     }),
 
   /**
+   * A Lost write-off taken back — the Owner's, with a reason: written against the wrong tag, she was never lost. She
+   * comes back into the herd as she was, as a Found brings her; but a Venture's animal stays the Venture's, and the
+   * money the Farm made her good with comes back to the Farm (the Owner's default, 2026-10-07), until the Venture is
+   * settled.
+   */
+  voidWriteOff: protectedProcedure
+    .use(requireRole("owner"))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        tagNumber: tagInput,
+        reason: z.string().trim().min(1).max(400),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const tagNumber = input.tagNumber.toUpperCase();
+      const target = await requireAnimal(
+        context.db,
+        context.farm.id,
+        tagNumber
+      );
+      await audited(context).write(
+        {
+          entity: "missing",
+          entityId: target.id,
+          action: "correct",
+          reason: input.reason,
+          before: (tx) => readMissing(tx, target.id),
+          after: (tx) => readMissing(tx, target.id),
+        },
+        async (tx) => {
+          const open = await missingOf(tx, target.id);
+          if (target.state !== "lost" || !open?.writtenOffAt) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "That animal is not written off as Lost",
+              data: { refusal: "not_written_off" },
+            });
+          }
+          if (target.ownerVentureId) {
+            await takeBackMadeGood(tx, context.farm.id, {
+              animalId: target.id,
+              ventureId: target.ownerVentureId,
+            });
+          }
+          await markFound(tx, {
+            farmId: context.farm.id,
+            animalId: target.id,
+            by: context.actor.id,
+            now,
+            writtenOff: true,
+          });
+          await backAsSheWas(tx, target, open, {
+            now,
+            leadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
+            trail: audited(context).recordEvent,
+          });
+          await clearNoticesAbout(tx, context.farm.id, [target.id], now);
+        }
+      );
+      return { tagNumber };
+    }),
+
+  /**
    * Found: an animal the round could not find is where she should be after all. The Manager's while she is only
    * missing; once the Owner has written her off as Lost, the Owner's alone — and she comes back into the herd as she
    * was when she was written off.
@@ -1568,26 +1701,12 @@ export const animalsRouter = {
             now,
             writtenOff: writtenOff !== null,
           });
-          if (writtenOff && open?.stateBefore && open.stateChangedBefore) {
-            const expectedCalving = {
-              at: open.expectedCalvingBefore,
-              serviceId: open.expectedCalvingServiceBefore,
-            };
-            await comesBack(tx, context.farm.id, target, {
-              state: open.stateBefore,
-              since: open.stateChangedBefore,
+          if (writtenOff && open) {
+            await backAsSheWas(tx, target, open, {
               now,
-              expectedCalving,
+              leadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
+              trail: audited(context).recordEvent,
             });
-            // Her calving work, called off when she was written off, comes back with her calving.
-            if (expectedCalving.at) {
-              await followExpectedCalving(
-                tx,
-                { ...target, expectedCalvingAt: expectedCalving.at },
-                pregnancyTimesOf(context.farm).calvingLeadDays,
-                { expectedAgain: true, trail: audited(context).recordEvent }
-              );
-            }
           }
           // A Venture's animal the Farm made good is the Farm's once found: it paid the Venture for her.
           if (writtenOff && target.ownerVentureId) {

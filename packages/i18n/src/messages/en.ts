@@ -1339,6 +1339,9 @@ export const en = {
   "ventures.investorsPercent": "The investors' percentage",
   "ventures.splitHint": "The farm takes {farm}%",
   "ventures.arbitrator": "Arbitrator",
+  "ventures.correctAgreement": "Put right against the paper",
+  "ventures.correctAgreementHint":
+    "What was typed against the stamped paper: the units, the stamp, the arbitrator. Only until capital is taken on it; the split and the window are an amendment's.",
   "ventures.arbitratorHint":
     "The person both sides name now, to be asked if they ever disagree",
   "ventures.stampValue": "Stamp value",
@@ -1770,6 +1773,21 @@ export const en = {
   "refusal.beforeSheWasHere":
     "She wasn't here yet then, or was moved after that time. Check the day and time",
   "refusal.bornInTheFuture": "A birth date can't be in the future",
+  "refusal.correctTheStep":
+    "That was given or seen on a piece of work: put it right on its step",
+  "refusal.alreadyWithdrawn": "That has already been withdrawn",
+  "refusal.notWrittenOff": "She is not written off as lost",
+  "refusal.capitalTakenOnIt":
+    "Capital has been taken on this agreement: what it says is what the money rests on",
+  "refusal.sexRestsOnBreeding":
+    "Her breeding, a calving or a calf of hers rests on what she is: her sex stays",
+  "refusal.notHerDam": "Her dam is a cow of this farm's: give her tag",
+  "refusal.prescribedForIt":
+    "A course was prescribed for it: stop the course and put its doses right first",
+  "refusal.herDeathNamesIt":
+    "Her death is put down to it: put her death right first",
+  "refusal.reportDelivered":
+    "Its report has reached the office: a letter that went, went",
   "refusal.alreadyInThatPen": "She is already in that pen",
   "refusal.calfMovedBeforeThat":
     "The calf was moved before that time, so the calving can't be after it",
@@ -1920,7 +1938,7 @@ export const en = {
   "refusal.anAnimalIsMissing":
     "An animal of this venture is missing: find her, or write her off and the farm makes her good",
   "refusal.madeGoodWithTheFarmsMoney":
-    "That made a lost animal good from the farm's own money; it is not put right on the venture's side alone",
+    "That made a lost animal good from the farm's own money. Written off against the wrong tag, take the write-off back on her page; found, she becomes the farm's",
   "refusal.theFarmsOwnCapital":
     "That moved the farm's own capital, which its own books hold too; it is not put right on the venture's side alone",
   "refusal.notFattening":
@@ -1983,7 +2001,7 @@ export const en = {
   "refusal.ventureIsCancelled":
     "That venture was called off and its money sent back; what came in cannot change now",
   "refusal.oneSideOfASale":
-    "That is one side of an internal sale — the sale itself is what to put right",
+    "That is one side of an internal sale: put the sale right from its row, and both sides follow",
   "refusal.reimbursementIsComputed":
     "A month's reimbursement is what its costs came to; its day and its reference are still yours to correct",
   "refusal.sellerCannotTrade":
@@ -2896,6 +2914,10 @@ export const en = {
     "Heats, services, pregnancy checks and calvings show here as they are recorded.",
   "animals.healthNone": "Nothing seen or given yet",
   "observations.all": "Everything",
+  "observations.withdraw": "Withdraw",
+  "observations.withdrawHint":
+    "Seen against the wrong animal, or seen wrong: the work it raised is called off. Write it again against the animal really seen.",
+  "observations.withdrawIt": "Withdraw it: she was not seen so",
   "observations.none": "Nothing has been noticed in the last few days",
   "observations.days": "Last {days, plural, one {# day} other {# days}}",
   "observations.col.saw": "Seen",
@@ -3811,6 +3833,9 @@ export const en = {
   "vetFee.hint": "The only money you enter here, and the only money you see.",
   "vetFee.none": "No fee recorded yet",
   "vetFee.noAnimals": "No animal on the farm yet to say the vet saw",
+  "vetFee.correct": "Put it right",
+  "vetFee.correctHint":
+    "The fee, the day of the visit or the note. Its money follows; the animals it was charged to stay as named.",
   "refusal.ownerOnly": "Only the owner can do this",
   "refusal.shedPhoneOnly":
     "They work only on the shed phones and have no login, so there is no password to set.",
@@ -3885,7 +3910,7 @@ export const en = {
   "refusal.categoryKeptByRecords":
     "That category's money comes from its own record",
   "refusal.correctTheRecord":
-    "That money comes from a record; put the record right",
+    "That money comes from a record — a sale, an intake, a milk lorry, a vet's fee: put it right where it was written, and its money follows",
   "refusal.enteredInTheFuture":
     "Money cannot have moved on a day that has not come yet",
   "byHand.side": "Side",
@@ -4397,6 +4422,9 @@ export const en = {
   "vet.recorded": "Diagnosis recorded",
   "vet.answering": "answering {saw}",
   "vet.correct": "Correct",
+  "vet.voidWhy": "Written against the wrong animal",
+  "vet.voidDiagnosis":
+    "Take it away: she has no such disease, and a report not yet taken goes with it",
   "vet.subtitle":
     "What the rounds have seen and nobody has answered, what you concluded, and the courses you ordered.",
   "vet.tab.repeat": "Will not settle",
@@ -4634,6 +4662,10 @@ export const en = {
   "correct.purchase": "Correct this purchase",
   "correct.soldAt": "When she left",
   "correct.registration": "Void this registration",
+  "correct.whatSheIs": "Put what she is right",
+  "correct.whatSheIsHint":
+    "Her sex, breed, birth date or dam, as she really is. Her sex stays as it is once her breeding or a calf of hers rests on it.",
+  "correct.damTag": "Her dam's tag (empty if not known)",
   "correct.void": "Written against the wrong animal",
   "correct.voidSale": "Void this sale: she comes back as she was",
   "correct.voidPaymentWhy":
@@ -6234,6 +6266,10 @@ export const en = {
   "dose.askTheVet":
     "The vet has written no days for this medicine, and no default. Ask the vet first.",
   "dose.recorded": "Dose written; the vet will be told",
+  "dose.void": "Take it back",
+  "dose.voidHint":
+    "Written against the wrong animal, or twice: her holds are worked out again without it. Write it again against the animal really given it.",
+  "dose.voidIt": "Void it: she was not given this",
   "drugs.defaultDays": "Default withdrawal days",
   "drugs.defaultDaysHint":
     "For a dose given without a prescription, of a medicine with no days written yet. A dose already given keeps the days it took.",
@@ -6285,6 +6321,10 @@ export const en = {
   "animals.writtenOff": "Written off as lost on {day}",
   "animals.writtenOffStolen": "Stolen · GD {gd}",
   "animals.foundAfterAll": "Found after all",
+  "animals.voidWriteOff": "Wrong tag",
+  "animals.voidWriteOffHint":
+    "Written off against the wrong tag: she was never lost. She comes back as she was; a venture's animal stays the venture's, and the money she was made good with comes back to the farm.",
+  "animals.voidWriteOffIt": "Take the write-off back: she was never lost",
   "owner.lostYear":
     "Lost in 12 months: {count, plural, one {# animal} other {# animals}} · {amount} of what they cost",
 } as const;

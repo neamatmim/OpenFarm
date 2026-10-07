@@ -23,6 +23,11 @@ import {
   withdrawAmendment,
 } from "../../amendment-offer-store";
 import { audited } from "../../audit";
+import {
+  agreementCorrection,
+  agreementCorrectionInput,
+} from "../../corrections/agreement";
+import { correct } from "../../corrections/correction";
 import { farmTakesUnits, isTheFarmsOwn } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
 import { protectedProcedure } from "../../index";
@@ -191,6 +196,16 @@ export const agreementsProcedures = {
         })
       )
       .handler(({ context, input }) => farmTakesUnits(context, input)),
+
+    /** What was typed against the stamped paper put right, before any capital is taken on it (`agreementCorrection`). */
+    correct: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(agreementCorrectionInput)
+      .handler(async ({ context, input }) => {
+        await correct(context, agreementCorrection, input);
+        return { id: input.id };
+      }),
 
     /**
      * One Investor signs for one Venture: the Units they take, the split those Units earn, the Arbitrator

@@ -444,7 +444,9 @@ export const replaceStep = async (
   const content = contentOf(work.version);
   const step = stepOf(content, completion.stepId);
   const skipping = Boolean(answer.skipReason);
-  assertEvidenceComplete(step, answer.evidence, answer.skipReason, hasPhotoAt);
+  assertEvidenceComplete(step, answer.evidence, answer.skipReason, hasPhotoAt, {
+    correcting: true,
+  });
   await tx
     .update(stepCompletion)
     .set({

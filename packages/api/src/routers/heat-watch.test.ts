@@ -57,6 +57,27 @@ describe("the heat watch", () => {
     expect(after.map((one) => one.tag)).not.toContain(tag);
   });
 
+  it("puts her back when the heat was written against the wrong cow and is withdrawn", async () => {
+    const tag = await aCowWhoCalved(`নজর পেন গ ${suffix}`, "2063-04-01");
+    const manager = await as("manager", "2063-06-10T04:00:00.000Z");
+    const seen = await manager.client.observations.record({
+      tagNumber: tag,
+      saw: "heat",
+    });
+    const seenNow = await watchedOn("2063-06-10T05:00:00.000Z");
+    expect(seenNow.map((one) => one.tag)).not.toContain(tag);
+
+    const later = await as("manager", "2063-06-10T05:30:00.000Z");
+    await later.client.observations.withdraw({
+      id: seen.id,
+      reason: "অন্য গাভী ছিল",
+      changes: { withdrawn: { from: false, to: true } },
+    });
+
+    const back = await watchedOn("2063-06-10T06:00:00.000Z");
+    expect(back.map((one) => one.tag)).toContain(tag);
+  });
+
   it("is the Vet's to read as well, and not Barn Staff's", async () => {
     await expect(
       watchedOn("2063-06-10T04:00:00.000Z", "vet")

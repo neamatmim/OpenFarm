@@ -1,13 +1,20 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
+import { eq } from "@OpenFarm/db/operators";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import { farmDayOf } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Context } from "./context";
 import { boughtInOf, costToItsOwner, farmCosts } from "./cost-store";
 import { recordInternalSale } from "./internal-sale-store";
-import { accountSaid, bookMoney, bookingOf } from "./money-store";
+import {
+  accountSaid,
+  bookMoney,
+  bookingOf,
+  forgetTheMoneyOf,
+} from "./money-store";
 import {
   ownedThenByOf,
   readMovement,
@@ -123,6 +130,43 @@ export const makeGood = async (
     { entity: "venture_movement", entityId: id, action: "create" },
     { after: await readMovement(tx, farmId, id) }
   );
+};
+
+/**
+ * A made-good transfer taken back with the write-off it was made for — the tag was the wrong one, and nothing was lost:
+ * the Venture's movement and the Farm's Money Event beside it, so the money is the Farm's again and she stays the
+ * Venture's. Refused once the Venture is settled or called off, whose figures it is part of.
+ */
+export const takeBackMadeGood = async (
+  tx: Tx,
+  farmId: string,
+  her: { animalId: string; ventureId: string }
+): Promise<void> => {
+  const venture = await tx.query.venture.findFirst({
+    where: { id: her.ventureId, farmId },
+    columns: { state: true },
+  });
+  if (venture?.state === "settled" || venture?.state === "cancelled") {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That Venture is settled; raise a Settlement Adjustment instead",
+      data: { refusal: "venture_is_settled" },
+    });
+  }
+  const made = await tx.query.ventureMovement.findFirst({
+    where: {
+      farmId,
+      ventureId: her.ventureId,
+      animalId: her.animalId,
+      kind: "made_good",
+    },
+    orderBy: { createdAt: "desc", id: "desc" },
+    columns: { id: true },
+  });
+  if (!made) {
+    return;
+  }
+  await forgetTheMoneyOf(tx, "venture_made_good", made.id);
+  await tx.delete(ventureMovement).where(eq(ventureMovement.id, made.id));
 };
 
 /**

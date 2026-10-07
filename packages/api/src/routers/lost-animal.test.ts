@@ -341,6 +341,52 @@ describe("an animal that leaves without dying", () => {
     expect(booked).toEqual([]);
   });
 
+  it("written off against the wrong tag, is taken back: he stays the Venture's, and the Farm has its money again", async () => {
+    const bull = await aBull("2066-03-10T04:00:00.000Z", ventureId);
+    await notFoundOn("2066-03-18", bull.tagNumber);
+    const owner = await as("owner", "2066-03-25T07:00:00.000Z");
+    await owner.client.animals.writeOff({
+      tagNumber: bull.tagNumber,
+      cause: "জানা নেই",
+      madeGood: { reference: `MG-WRONG-${suffix}` },
+    });
+    const later = await as("owner", "2066-03-26T07:00:00.000Z");
+
+    await later.client.animals.voidWriteOff({
+      tagNumber: bull.tagNumber,
+      reason: "অন্য ট্যাগ লেখা হয়েছিল",
+    });
+
+    const back = await scratchDb().query.animal.findFirst({
+      where: { farmId: theFarm().id, tagNumber: bull.tagNumber },
+      columns: { id: true, state: true, ownerVentureId: true },
+    });
+    expect(back).toMatchObject({
+      state: "quarantine",
+      ownerVentureId: ventureId,
+    });
+    const moved = await scratchDb().query.ventureMovement.findMany({
+      where: {
+        farmId: theFarm().id,
+        kind: "made_good",
+        animalId: back?.id ?? "",
+      },
+      columns: { id: true },
+    });
+    expect(moved).toEqual([]);
+    const booked = await scratchDb().query.moneyEvent.findMany({
+      where: { farmId: theFarm().id, reference: `MG-WRONG-${suffix}` },
+      columns: { id: true },
+    });
+    expect(booked).toEqual([]);
+    await expect(
+      later.client.animals.voidWriteOff({
+        tagNumber: bull.tagNumber,
+        reason: "আবার",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "not_written_off" } });
+  });
+
   it("comes back as he was when the Owner finds him after all — the Manager cannot", async () => {
     const bull = await aBull("2066-03-07T04:00:00.000Z");
     const before = await him(bull.tagNumber);

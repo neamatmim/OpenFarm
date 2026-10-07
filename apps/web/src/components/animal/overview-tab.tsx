@@ -15,12 +15,14 @@ import { Beef, MapPinOff, Milk, Shovel, TimerOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { CorrectWhatSheIs } from "@/components/animal/correct-what-she-is";
 import {
   DeathPhotoField,
   DeathPhotos,
   VoidedPhotos,
 } from "@/components/animal/death-photo";
 import { HerLactation } from "@/components/animal/her-lactation";
+import { VoidWriteOff } from "@/components/animal/take-it-back";
 import {
   CorrectionAnswer,
   CorrectionChoice,
@@ -560,15 +562,18 @@ const WrittenOff = ({
     <Notice
       action={
         mayFind ? (
-          <Button
-            disabled={found.isPending}
-            onClick={() => found.mutate({ tagNumber: detail.tagNumber })}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            {t("animals.foundAfterAll")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              disabled={found.isPending}
+              onClick={() => found.mutate({ tagNumber: detail.tagNumber })}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {t("animals.foundAfterAll")}
+            </Button>
+            <VoidWriteOff tagNumber={detail.tagNumber} />
+          </div>
         ) : null
       }
       icon={MapPinOff}
@@ -685,9 +690,12 @@ export const OverviewTab = ({
           {powers.runsTheFarm ? (
             <VoidedPhotos tagNumber={detail.tagNumber} />
           ) : null}
-          {powers.runsTheFarm && powers.stillHere && !detail.intake ? (
-            <div>
-              <VoidRegistration tagNumber={detail.tagNumber} />
+          {powers.runsTheFarm && powers.stillHere ? (
+            <div className="flex flex-wrap gap-2">
+              <CorrectWhatSheIs her={detail} />
+              {detail.intake ? null : (
+                <VoidRegistration tagNumber={detail.tagNumber} />
+              )}
             </div>
           ) : null}
         </div>

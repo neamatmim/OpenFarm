@@ -1,3 +1,8 @@
+import { correct } from "../corrections/correction";
+import {
+  sightingCorrection,
+  sightingCorrectionInput,
+} from "../corrections/sighting";
 import { recordNow } from "../entries/entry";
 import { observationEntry, observationInput } from "../entries/observation";
 import { MAX_SEEN_ROWS, seenLately, seenLatelyInput } from "../health-store";
@@ -40,6 +45,15 @@ export const observationsRouter = {
         seenByName: observer?.name ?? null,
         instanceId: completion?.instanceId ?? null,
       }));
+    }),
+
+  /** A sighting off the round withdrawn: the wrong cow, seen wrong (`sightingCorrection`). */
+  withdraw: protectedProcedure
+    .use(requireRole(...sightingCorrection.roles, { visitingVet: true }))
+    .input(sightingCorrectionInput)
+    .handler(async ({ context, input }) => {
+      await correct(context, sightingCorrection, input);
+      return { id: input.id };
     }),
 
   /**
