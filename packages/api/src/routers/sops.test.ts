@@ -392,6 +392,11 @@ describe("a proposal or an edit the procedure has moved on from", () => {
       approved: false,
       note: "এখনকার সময়ই ঠিক আছে",
     });
+    // Only the proposer: not the Owner who answered it, though the kind's Roles take her in.
+    const ownersOwn = await owner.client.alerts.mine({ entityId: proposal.id });
+    expect(ownersOwn.filter((one) => one.kind === "proposal_answered")).toEqual(
+      []
+    );
   });
 });
 

@@ -4,7 +4,7 @@ import { DISPOSALS, MORTALITY_KINDS } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { clearNoticesAbout, tellItWasTakenBack } from "../alerts-store";
+import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { comesBackFromAVoidedExit } from "../herd-store";
@@ -14,6 +14,7 @@ import {
   keepDeathPhoto,
   readMortality,
 } from "../mortality-store";
+import { tellItWasTakenBack } from "../notice";
 import type { Raised } from "../notice";
 import { pushRaised } from "../push-send";
 import { assertNotSettledUp } from "../venture-act";

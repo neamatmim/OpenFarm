@@ -10,7 +10,7 @@ import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { clearNoticesAbout, tellItWasTakenBack } from "../alerts-store";
+import { clearNoticesAbout } from "../alerts-store";
 import type { Trail, Tx } from "../audit";
 import { audited } from "../audit";
 import {
@@ -21,6 +21,7 @@ import {
   reconsiderTheReport,
 } from "../health-store";
 import type { RaisedAlert } from "../instances-store";
+import { tellItWasTakenBack } from "../notice";
 import { pushRaised } from "../push-send";
 import { requireClinicalInScope } from "../scope";
 import { textTheSafetyAlerts } from "../sms-send";

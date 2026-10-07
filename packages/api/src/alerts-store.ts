@@ -7,7 +7,6 @@ import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ASSIGNMENT } from "@OpenFarm/db/schema/herd";
 
 import type { Tx } from "./audit";
-import type { Raised } from "./notice";
 
 /** One Alert waiting to be raised: what it is about, and what its message needs. */
 export interface AlertToRaise {
@@ -204,50 +203,6 @@ export interface Cleared {
   params: unknown;
   carriedAt: Date | null;
 }
-
-/** What each notice that wakes a pocket was about, as its taking back says it. */
-const TAKEN_BACK_AS: Partial<Record<AlertKind, "death" | "diagnosis">> = {
-  mortality_recorded: "death",
-  mortality_undiagnosed: "death",
-  notifiable_diagnosis: "diagnosis",
-};
-
-/**
- * Tells the people a death or a notifiable disease had already reached in their pocket that it was written by mistake
- * and is taken back — a notice in the app clears quietly, but a buzz that said "anthrax" stays in a head until something
- * says otherwise. Only those it reached: a notice still waiting for the morning is simply gone. Pushed by the caller
- * after the write, as every push is.
- */
-export const tellItWasTakenBack = async (
-  tx: Tx,
-  farmId: string,
-  cleared: readonly Cleared[],
-  now: Date
-): Promise<Raised[]> => {
-  const told: Raised[] = [];
-  for (const one of cleared) {
-    const was = TAKEN_BACK_AS[one.kind];
-    if (!was || one.carriedAt === null) {
-      continue;
-    }
-    const facts = (one.params ?? {}) as { tag?: string; disease?: string };
-    const params = {
-      was,
-      tag: facts.tag ?? "",
-      ...(facts.disease ? { disease: facts.disease } : {}),
-    };
-    const notice = {
-      kind: "taken_back" as const,
-      entity: "animal",
-      entityId: one.entityId,
-      params,
-    };
-    // oxlint-disable-next-line no-await-in-loop -- one person at a time, each told once by the unique index
-    const raised = await raiseAlerts(tx, farmId, [one.userId], notice, now);
-    told.push(...raised.map((row) => ({ ...notice, ...row })));
-  }
-  return told;
-};
 
 /** The same, for a record whose notices are keyed by its id and a day — an overdue debt, `sale@2026-10-01` — so a Sale or
  *  a Dispatch voided takes every one of its overdue notices with it. */
