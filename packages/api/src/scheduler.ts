@@ -17,7 +17,7 @@ import {
   tellTheOwnerAboutTheMachinery,
   untold,
 } from "./the-machinery-notices";
-import { asLogged } from "./thrown";
+import { asLogged, causesOf } from "./thrown";
 
 export interface ScheduleStatus {
   lastRanAt: Date | null;
@@ -86,8 +86,7 @@ const markFinished = async (
     });
 };
 
-const errorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
+const errorMessage = causesOf;
 
 /**
  * Tells the Owner the farm's own machinery has gone quiet, once for each stretch of it, and pushes it at once.
@@ -230,6 +229,18 @@ const turnFarmDayWithLock = async ({
   }
 };
 
+/** The turn running now in this process, if any — on the process, as the build bundles this module more than once. */
+const TURNING = Symbol.for("openfarm.turn-in-flight");
+const onTheProcess = globalThis as { [TURNING]?: Set<Promise<unknown>> };
+onTheProcess[TURNING] ??= new Set();
+const inFlight = onTheProcess[TURNING];
+
+/** Waits for a turn already running in this process to finish, so a server told to stop lets it end rather than
+ *  cutting it off halfway; nothing to wait for, nothing waited. */
+export const turnStillRunning = async (): Promise<void> => {
+  await Promise.allSettled(inFlight);
+};
+
 /**
  * One turn of the farm's day, on the server (the glossary's Day Turning). The same idempotent round the app runs when
  * somebody opens it — but nothing now waits for somebody to open it, so an overdue milking at night still reaches the
@@ -249,9 +260,13 @@ export const runTheSchedule = async ({
   /** Which farm's day to turn, for a caller that knows. Nothing on a farm's own install, which has one. */
   farmId?: string | null;
 }): Promise<{ ok: boolean; error?: string }> => {
+  const turn = turnFarmDayWithLock({ db, clock, push, sms, farmId });
+  inFlight.add(turn);
   try {
-    return await turnFarmDayWithLock({ db, clock, push, sms, farmId });
+    return await turn;
   } catch (error) {
     return { ok: false, error: errorMessage(error) };
+  } finally {
+    inFlight.delete(turn);
   }
 };

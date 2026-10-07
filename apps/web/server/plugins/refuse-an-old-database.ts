@@ -1,4 +1,4 @@
-import { DATABASE_IS_BEHIND, databaseIsBehind } from "@OpenFarm/api/readiness";
+import { whyTheDatabaseWillNotDo } from "@OpenFarm/api/readiness";
 import { env } from "@OpenFarm/env/server";
 import { definePlugin } from "nitro";
 
@@ -6,7 +6,7 @@ import { definePlugin } from "nitro";
 const REFUSED = 1;
 
 /**
- * A built server whose database is behind the code stops as it starts, instead of coming up and failing one request
+ * A built server whose database is behind the code, or whose login may not read it, stops as it starts, instead of coming up and failing one request
  * at a time. Readiness already said so, but only to whoever asked it; systemd sees a server that stopped.
  *
  * Not in development: there this runs in a worker Nitro restarts whenever it exits, so stopping it only turned the
@@ -16,8 +16,9 @@ export default definePlugin(async () => {
   if (import.meta.dev) {
     return;
   }
-  if (await databaseIsBehind(env.DATABASE_URL)) {
-    console.error(DATABASE_IS_BEHIND);
+  const why = await whyTheDatabaseWillNotDo(env.DATABASE_URL);
+  if (why) {
+    console.error(why);
     process.exit(REFUSED);
   }
 });

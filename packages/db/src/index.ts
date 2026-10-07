@@ -27,10 +27,24 @@ const POOL_MAX = 10;
  *   scheduler's day lock is the one that waits on purpose; it says so for its own transaction.
  */
 const SESSION_SETTINGS = [
-  "SET TIME ZONE 'UTC'",
-  "SET statement_timeout = '30s'",
-  "SET idle_in_transaction_session_timeout = '60s'",
-].join("; ");
+  "-c TimeZone=UTC",
+  "-c statement_timeout=30s",
+  "-c idle_in_transaction_session_timeout=60s",
+].join(" ");
+
+/**
+ * The address with the farm's own session settings sent last in its `options`, so they win over any the address asked
+ * for: Postgres takes the last of two settings of one name, and pg sends the address's options over the pool's own.
+ */
+const withSessionSettings = (url: string): string => {
+  const address = new URL(url);
+  const asked = address.searchParams.get("options");
+  address.searchParams.set(
+    "options",
+    asked ? `${asked} ${SESSION_SETTINGS}` : SESSION_SETTINGS
+  );
+  return address.toString();
+};
 
 export interface DatabaseOptions {
   /** Let the process exit while the pool is idle instead of holding it open (test workers). */
@@ -48,7 +62,9 @@ export const createDb = (
 ): Database => {
   const db = drizzle({
     connection: {
-      connectionString: url,
+      // Sent with the connection itself, so every session is set before anybody's first query: run as a query on
+      // connecting, they raced the first one asked of the client — which pg warns of now and will refuse in pg 9.
+      connectionString: withSessionSettings(url),
       allowExitOnIdle,
       // Readiness and ordinary requests should fail clearly when PostgreSQL is
       // unreachable, not hold a socket open until the operating system gives up.
@@ -56,10 +72,6 @@ export const createDb = (
       max: POOL_MAX,
     },
     relations,
-  });
-  // A client runs what it is asked in order, so these are set before the first query anyone sends on it.
-  db.$client.on("connect", (client) => {
-    void client.query(SESSION_SETTINGS);
   });
   // A connection the database drops while it sits idle in the pool — a restart, a failover — is let go by the pool, and
   // the next request opens a new one. Said here rather than thrown at the process, which nothing would catch.
@@ -69,7 +81,15 @@ export const createDb = (
   return db;
 };
 
-const shared = new Map<string, Database>();
+/**
+ * Kept on the process rather than in this module: the production build bundles this module twice (the server's own
+ * tasks, and the pages' requests and sign-in), and a map in each copy gave one process two pools — twice the
+ * connections the database was told to expect.
+ */
+const SHARED = Symbol.for("openfarm.database-pools");
+const onTheProcess = globalThis as { [SHARED]?: Map<string, Database> };
+onTheProcess[SHARED] ??= new Map();
+const shared = onTheProcess[SHARED];
 
 /**
  * The one pool this process keeps for a database: the farm's requests, its scheduler and its sign-in all draw on it,

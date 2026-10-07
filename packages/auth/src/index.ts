@@ -17,6 +17,7 @@ import { whoMayOpenTheFarm } from "./first-account";
 import { countTheGuess, loginOf, refuseWhileSlowed } from "./guesses";
 import type { Host, Hosts } from "./hosts";
 import { HOSTS, originOf, portalOrigin, signInPageOf } from "./hosts";
+import { authLogger } from "./logged";
 import { PASSWORD_MIN_LENGTH, PASSWORD_TOO_COMMON } from "./password";
 import { WRONG_ADDRESS } from "./wrong-address";
 
@@ -381,6 +382,9 @@ export const createAuth = (
       // that keeps a portal page off the farm's sign-in untested.
       disableOriginCheck: false,
     },
+    // Written with what failed queries were sent left out: Better Auth logs a failed insert whole, a password's hash and
+    // the person's address with it, into a journal nobody wipes.
+    logger: authLogger,
     hooks: {
       before: theDoor(db),
       after: turnAwayWhoseDoorIsShut(db, where),

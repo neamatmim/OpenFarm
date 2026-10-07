@@ -6,7 +6,14 @@ import { sql } from "@OpenFarm/db/operators";
 import { scratchDb } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
-import { databaseIsBehind, isBehind, schemaIsCurrent } from "./readiness";
+import {
+  THE_APP_HAS_NO_RIGHTS,
+  databaseIsBehind,
+  isBehind,
+  schemaIsCurrent,
+  whyTheDatabaseWillNotDo,
+} from "./readiness";
+import { causesOf } from "./thrown";
 
 // A server is ready when its database has every table the code was built for. The check has to know which migration
 // is newest, and a constant that falls behind the folder would pass every database that is itself behind.
@@ -94,5 +101,42 @@ describe("whether a server refuses its database", () => {
 
   it("asks the database at an address, on its own connection", async () => {
     expect(await databaseIsBehind(process.env.DATABASE_URL ?? "")).toBe(false);
+  });
+});
+
+describe("why a built server will not start on its database", () => {
+  it("says the app's login may not read the farm, rather than starting and failing every turn", async () => {
+    const role = `no_rights_${Date.now()}`;
+    await scratchDb().execute(
+      sql.raw(`create role ${role} login password 'not-a-real-secret'`)
+    );
+    const address = new URL(process.env.DATABASE_URL ?? "");
+    address.username = role;
+    address.password = "not-a-real-secret";
+    expect(await whyTheDatabaseWillNotDo(address.toString())).toBe(
+      THE_APP_HAS_NO_RIGHTS
+    );
+  });
+
+  it("starts on a database it may read that has every migration", async () => {
+    expect(
+      await whyTheDatabaseWillNotDo(process.env.DATABASE_URL ?? "")
+    ).toBeNull();
+  });
+});
+
+describe("a turn that failed, as the Owner reads it", () => {
+  it("keeps what lay under the failure, less the values the query was sent", () => {
+    const underneath = Object.assign(
+      new Error("permission denied for table scheduler_state"),
+      { code: "42501" }
+    );
+    const failed = new Error(
+      "Failed query: select * from scheduler_state where id = $1\nparams: farm-day",
+      { cause: underneath }
+    );
+    const said = causesOf(failed);
+    expect(said).toContain("permission denied for table scheduler_state");
+    expect(said).not.toContain("farm-day");
   });
 });

@@ -25,3 +25,13 @@ export const asLogged = (error: unknown): Record<string, unknown> =>
         stack: withoutValues(error.stack),
       }
     : { thrown: typeof error };
+
+/** What went wrong and what lay under it, cause by cause, less what any failed query was sent: the turn's failure kept
+ *  for the Owner as "permission denied for table …", not only the statement that met it. */
+export const causesOf = (error: unknown): string => {
+  const said: string[] = [];
+  for (let at = error; at instanceof Error; at = at.cause) {
+    said.push(withoutValues(at.message) ?? "");
+  }
+  return said.length > 0 ? said.join(" — because: ") : String(error);
+};
