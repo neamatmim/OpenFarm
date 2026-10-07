@@ -4,6 +4,7 @@ import { receivablePutRight, farmDayOf, paidAtTheGate } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { clearDebtNoticesOf, clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
 import {
   assertNotLater,
@@ -80,7 +81,8 @@ export const dispatchCorrectionInput = correctionInput({
  *  are put right first. */
 const voidTheDispatch = async (
   tx: Tx,
-  row: { id: string; farmId: string; buyerId: string }
+  row: { id: string; farmId: string; buyerId: string },
+  now: Date
 ) => {
   await assertNothingStandsAgainst(tx, row.farmId, {
     id: row.id,
@@ -94,6 +96,8 @@ const voidTheDispatch = async (
   });
   await forgetTheMoneyOf(tx, "dispatch", row.id);
   await tx.delete(dispatch).where(eq(dispatch.id, row.id));
+  await clearNoticesAbout(tx, row.farmId, [row.id], now);
+  await clearDebtNoticesOf(tx, row.farmId, row.id, now);
 };
 
 type DispatchChanges = z.infer<typeof dispatchCorrectionInput>["changes"];
@@ -217,6 +221,6 @@ export const dispatchCorrection: CorrectionKind<
   trail: (tx, row) => readDispatch(tx, row.id),
   apply: (tx, row, to, { context, now }) =>
     to.voided
-      ? voidTheDispatch(tx, row)
+      ? voidTheDispatch(tx, row, now)
       : putTheDispatchRight(tx, row, to, { context, now }),
 };

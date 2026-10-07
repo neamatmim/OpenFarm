@@ -424,6 +424,18 @@ const fallsToTheOwner = (audience: Audience) =>
   !audience.some((one) => one === "whoseActItWas" || one === "whoDoesThisWork");
 
 /**
+ * Whether somebody holding these Roles is still among a kind's people. A kind told to people for what they do — the
+ * work they are on, the cow of their Pen, their own act — is theirs whatever Role they hold; one told by Role alone is
+ * not, once the Role is gone.
+ */
+export const heardBy = (kind: AlertKind, roles: readonly RoleName[]): boolean =>
+  NOTICES[kind].audience.some(
+    (part) =>
+      typeof part === "string" ||
+      part.roles.some((role) => roles.includes(role))
+  );
+
+/**
  * Who hears a notice of this kind about this, as `tell` will tell it: its people still at the farm, the writer left out
  * where the kind says so, and the Owner when nobody of its people is left. Asked by a sweep before it opens a
  * transaction, so "has everybody been told?" is asked of the people who would be — a sweep that asked only "who holds

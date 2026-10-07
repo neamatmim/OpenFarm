@@ -3,6 +3,7 @@ import { feedIn } from "@OpenFarm/db/schema/feed";
 import { farmDayOf, roundMoney, startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
 
+import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
@@ -113,6 +114,7 @@ export const feedArrivalCorrection: CorrectionKind<
     if (to.voided) {
       await forgetTheMoneyOf(tx, "feed_in", row.id);
       await tx.delete(feedIn).where(eq(feedIn.id, row.id));
+      await clearNoticesAbout(tx, row.farmId, [row.id], now);
       return;
     }
     assertShapeOf({

@@ -3973,6 +3973,8 @@ export const en = {
   "push.workMissedTitle": "Work went late while the farm was down",
   "push.workMissedBody":
     "{count, plural, one {# piece} other {# pieces}} of work — see the overdue list",
+  "alerts.openTheWorkList": "Open the work list",
+  "alerts.openTheReviews": "Open what needs a look",
   "alerts.openTheOverdue": "Open the overdue list",
   "digest.monthlyCopyFailed": "The monthly copy failed",
   "digest.passwordGuessed": "Somebody guessed at {who}'s password",
@@ -3981,7 +3983,7 @@ export const en = {
   "alerts.monthlyCopyFailed":
     "The monthly copy of the farm, the one kept for years, failed on {since}. See Backups.",
   "alerts.passwordGuessed":
-    "{guesses} wrong passwords for {who} since {since}, from more than one place. The account now takes one try a minute.",
+    "{guesses} wrong passwords for {who} since {since}. The account now takes one try a minute.",
   "refusal.workInNoPen":
     "This step records a pen's work, and this work is in no pen",
   "renewal.issuedOn": "The renewed certificate was issued on",
@@ -4690,7 +4692,8 @@ export const en = {
     "An entry was corrected after it was signed off",
   "review.irreversible_effect":
     "A correction changed something that cannot be undone",
-  "alerts.needsReview": "{sop} in {pen} needs a look",
+  "alerts.needsReview": "{what}: needs a look",
+  "alerts.needsReviewWork": "{sop} in {pen}",
   "review.late_entry":
     "An entry arrived after the world it described had changed",
   "review.sync_gap": "A phone's entries are missing between two that arrived",
@@ -5945,8 +5948,9 @@ export const en = {
     "The medicine count on {day} came up {currencySign}{amount} short: doses gone that no treatment says were given",
   "digest.medicineShort":
     "{count, plural, one {# medicine count} other {# medicine counts}} came up short",
+  "alerts.ofThemVentures": " ({count} of them a venture's)",
   "alerts.stillHereAfterEid":
-    "Qurbani from {day} is over, and {animals, plural, one {# animal} other {# animals}} aimed at it {animals, plural, one {is} other {are}} still on the farm ({inVentures} of them a venture's)",
+    "Qurbani from {day} is over, and {animals, plural, one {# animal} other {# animals}} aimed at it {animals, plural, one {is} other {are}} still on the farm{ofVentures}",
   "digest.stillHereAfterEid":
     "{count, plural, one {# Eid has} other {# Eids have}} animals still here after Qurbani",
   "alerts.soldUnderCost":

@@ -25,6 +25,7 @@ interface HeldLot {
   lotId: string;
   itemId: string;
   name: string;
+  nameEn: string | null;
   unit: string | null;
   lotNumber: string | null;
   expiresOn: string | null;
@@ -73,7 +74,13 @@ export const whatTheStoreHasToSay = async (
   const [products, medicine, feed, latestBuys] = await Promise.all([
     db.query.drugProduct.findMany({
       where: { farmId: farm.id },
-      columns: { id: true, nameBn: true, lowStockAt: true, retiredAt: true },
+      columns: {
+        id: true,
+        nameBn: true,
+        nameEn: true,
+        lowStockAt: true,
+        retiredAt: true,
+      },
     }),
     medicineStockOf(db, farm.id, window),
     stockOnHand(db, farm.id, window),
@@ -90,6 +97,7 @@ export const whatTheStoreHasToSay = async (
         lotId: lot.purchaseId,
         itemId: product.id,
         name: product.nameBn,
+        nameEn: product.nameEn,
         unit: null,
         lotNumber: lot.lotNumber,
         expiresOn: lot.expiresOn,
@@ -103,6 +111,7 @@ export const whatTheStoreHasToSay = async (
         lotId: lot.arrivalId,
         itemId: line.feedItemId,
         name: line.nameBn,
+        nameEn: line.nameEn,
         unit: line.unit,
         lotNumber: lot.lotNumber,
         expiresOn: lot.expiresOn,
@@ -119,6 +128,7 @@ export const whatTheStoreHasToSay = async (
       what: lot.what,
       itemId: lot.itemId,
       name: lot.name,
+      nameEn: lot.nameEn,
       unit: lot.unit,
       lotNumber: lot.lotNumber,
       expiresOn: lot.expiresOn,
@@ -153,6 +163,7 @@ export const whatTheStoreHasToSay = async (
             facts: {
               productId: product.id,
               name: product.nameBn,
+              nameEn: product.nameEn,
               onHand,
               threshold: product.lowStockAt,
             },

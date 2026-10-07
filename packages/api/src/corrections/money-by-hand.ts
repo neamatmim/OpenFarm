@@ -5,6 +5,7 @@ import { farmDayOf, herdShares, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
 import { herdCostOf } from "../cost-store";
 import { counterpartyNamed } from "../counterparty-store";
@@ -204,6 +205,8 @@ export const moneyByHandCorrection: CorrectionKind<
         .delete(moneyReceipt)
         .where(eq(moneyReceipt.moneyEventId, row.id));
       await tx.delete(moneyEvent).where(eq(moneyEvent.id, row.id));
+      // Awaiting the Owner's approval, entered twice: said of money that is no longer on the books.
+      await clearNoticesAbout(tx, row.farmId, [row.id], now);
       return;
     }
     const wageMonth = to.wageMonth === undefined ? row.wageMonth : to.wageMonth;

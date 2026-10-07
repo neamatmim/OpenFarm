@@ -32,8 +32,11 @@ const ENTRY_REFUSED_WHY = {
 } as const satisfies Record<"wrong" | "not_yours", Record<Language, string>>;
 
 /** A name the farm keeps in both languages, in the reader's — the Bangla where no English was written. */
-const named = (bn: unknown, en: unknown, language: Language) =>
-  String((language === "bn" ? bn : en) ?? bn ?? "");
+const named = (bn: unknown, en: unknown, language: Language) => {
+  const said = language === "bn" ? bn : en;
+  // An English name left empty is no name: the Bangla is said rather than nothing.
+  return String((said === "" ? null : said) ?? bn ?? "");
+};
 
 /** The kilos a Sale's low price was worked on and whose they were, after the price; nothing for an older notice. */
 const floorBasis = (
@@ -63,13 +66,23 @@ const WAY_WORDS = {
   mobile_money: { bn: "বিকাশে", en: "by mobile money" },
 } as const;
 
+/** A farm day as a fact holds it, "YYYY-MM-DD": a day, not a moment. */
+const A_FARM_DAY = /^\d{4}-\d{2}-\d{2}$/u;
+
 /** A day or an instant the Notice carries, said in the reader's own calendar; nothing when it carries none. */
 const saidDate = (
   value: unknown,
   language: Language,
   style: "date" | "dateTime" = "date"
-) =>
-  typeof value === "string" ? formatDate(new Date(value), language, style) : "";
+) => {
+  if (typeof value !== "string") {
+    return "";
+  }
+  // Read as the day it is, never as midnight UTC on the farm's clock — the day before, on a farm west of UTC.
+  return A_FARM_DAY.test(value)
+    ? formatDate(new Date(`${value}T00:00:00.000Z`), language, "date", "UTC")
+    : formatDate(new Date(value), language, style);
+};
 
 /** A piece of work: which procedure and where — the whole farm, for work that stands in no Pen. */
 const theWork = (facts: Partial<WorkFacts>, language: Language) => ({
@@ -91,7 +104,7 @@ const countedIn = (facts: LotFacts, language: Language): string => {
 /** The medicine or feed a notice about the store names, its Lot, and how much of it is left — a box of medicine
  *  counted in doses, a bag of feed in its own unit. */
 const theLot = (facts: LotFacts, language: Language) => ({
-  item: facts.name,
+  item: named(facts.name, facts.nameEn, language),
   lot: facts.lotNumber ?? "—",
   left: `${formatNumber(Number(facts.left), language)} ${countedIn(facts, language)}`.trim(),
   date: saidDate(facts.expiresOn, language),
@@ -117,9 +130,25 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     ...theWork(facts, language),
     reason: facts.reason,
   }),
-  // Whatever was being put right carried its own facts; a piece of work names itself as any other does.
-  needs_review: (facts, language) =>
-    theWork(facts as Partial<WorkFacts>, language),
+  // A piece of work names itself as any other does; a weighing the farm doubts, an entry that came late, a phone's clock
+  // name why and whose — the animal's tag, or the phone — rather than " in the whole farm".
+  needs_review: (facts, language) => {
+    const work = facts as Partial<WorkFacts>;
+    if (typeof work.sopBn === "string") {
+      return {
+        what: translate(
+          language,
+          "alerts.needsReviewWork",
+          theWork(work, language)
+        ),
+      };
+    }
+    const why = translate(language, `review.${facts.reason}`);
+    const whose = [facts.tag, facts.phone].find(
+      (one): one is string => typeof one === "string" && one !== ""
+    );
+    return { what: whose ? `${whose} — ${why}` : why };
+  },
   sop_published: (facts, language) => ({
     sop: named(facts.sopBn, facts.sopEn, language),
     number: Number(facts.number),
@@ -148,7 +177,13 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
   still_here_after_eid: (facts, language) => ({
     day: saidDate(facts.day, language),
     animals: Number(facts.animals),
-    inVentures: Number(facts.inVentures),
+    // Said only where there are some: "(0 of them a venture's)" said nothing.
+    ofVentures:
+      Number(facts.inVentures) > 0
+        ? translate(language, "alerts.ofThemVentures", {
+            count: Number(facts.inVentures),
+          })
+        : "",
   }),
   sold_under_cost: (facts, language) => ({
     tag: facts.tag,
@@ -220,15 +255,15 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     count: Number(facts.count),
   }),
   feed_price_jump: (facts, language) => ({
-    feed: facts.feed,
+    feed: named(facts.feed, facts.feedEn, language),
     unit: feedUnitEach(facts.unit, language),
     price: Number(facts.unitPriceMoney),
     previous: Number(facts.previousUnitPriceMoney),
     percent: Number(facts.percent),
   }),
-  dose_not_prescribed: (facts) => ({
+  dose_not_prescribed: (facts, language) => ({
     tag: facts.tag,
-    product: facts.product,
+    product: named(facts.product, facts.productEn, language),
     advice: facts.advice,
   }),
   head_count_differs: (facts) => ({
@@ -262,7 +297,7 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     since: saidDate(facts.overdueFrom, language),
   }),
   low_stock: (facts, language) => ({
-    feed: facts.nameBn,
+    feed: named(facts.nameBn, facts.nameEn, language),
     onHand: Number(facts.onHand),
     unit: feedUnitWord(facts.unit, language),
   }),
@@ -320,13 +355,13 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
   }),
   lot_expiring: theLot,
   lot_expired: theLot,
-  medicine_low_stock: (facts) => ({
-    item: facts.name,
+  medicine_low_stock: (facts, language) => ({
+    item: named(facts.name, facts.nameEn, language),
     onHand: Number(facts.onHand),
   }),
   expired_dose_given: (facts, language) => ({
     tag: facts.tag,
-    item: facts.name,
+    item: named(facts.name, facts.nameEn, language),
     lot: facts.lotNumber ?? "—",
     date: saidDate(facts.expiresOn, language),
   }),

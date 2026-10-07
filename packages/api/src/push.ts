@@ -44,14 +44,18 @@ export const silentTransport: PushTransport = {
 const PLACE_OF: Partial<Record<string, string>> = {
   day_not_turning: "/farm/backups",
   backup_overdue: "/farm/backups",
+  monthly_copy_failed: "/farm/backups",
   entry_rejected: "/outbox",
+  // Filed under work, but about many pieces of it: the list they are on, never one card.
+  work_missed: "/review-queue/overdue",
+  pen_sores_seen: "/observations",
 };
 
 /**
  * Where a push opens, as the in-app list leads: a kind's own place; a Venture's Investors for an Investor's note; the
  * work it is about; the animal it names by her tag; else the day's list.
  */
-const urlOf = (alert: {
+export const urlOf = (alert: {
   kind?: string;
   entity: string;
   entityId: string;

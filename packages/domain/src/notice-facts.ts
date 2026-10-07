@@ -143,6 +143,8 @@ export interface NoticeFacts {
   feed_price_jump: {
     /** The Feed Item's Bangla name, as the store names it. */
     feed: string;
+    /** Its English name, where the farm keeps one: an English reader is told in English. */
+    feedEn?: string | null;
     /** The Feed Item's unit, said in the reader's language where it is read. */
     unit: string;
     /** What a unit of this purchase cost, to the paisa. */
@@ -156,6 +158,8 @@ export interface NoticeFacts {
     tag: string;
     /** The product, as the Drug List names it in Bangla. */
     product: string;
+    /** Its English name, where the Drug List keeps one. */
+    productEn?: string | null;
     /** Who advised it and why, in the words of whoever recorded it. */
     advice: string;
   };
@@ -205,6 +209,7 @@ export interface NoticeFacts {
   low_stock: {
     feedItemId: string;
     nameBn: string;
+    nameEn?: string | null;
     unit: string;
     onHand: number;
     threshold: number;
@@ -264,6 +269,7 @@ export interface NoticeFacts {
   medicine_low_stock: {
     productId: string;
     name: string;
+    nameEn?: string | null;
     onHand: number;
     threshold: number;
   };
@@ -271,6 +277,7 @@ export interface NoticeFacts {
   expired_dose_given: {
     tag: string;
     name: string;
+    nameEn?: string | null;
     lotNumber: string | null;
     expiresOn: string;
   };
@@ -302,6 +309,8 @@ export interface LotFacts {
   what: "medicine" | "feed";
   itemId: string;
   name: string;
+  /** Its English name, where the farm keeps one. */
+  nameEn?: string | null;
   /** The Feed Item's unit; null for medicine, which is counted in doses. */
   unit: string | null;
   lotNumber: string | null;

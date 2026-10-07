@@ -12,6 +12,7 @@
 
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, gt, inArray, isNull, sql } from "@OpenFarm/db/operators";
+import { alert } from "@OpenFarm/db/schema/alert";
 import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
 import { deviceSwitch, staffPin } from "@OpenFarm/db/schema/device";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
@@ -39,6 +40,7 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { endedNow, hashToken } from "./device";
+import { heardBy } from "./notice";
 
 /** As much of the farm's records as a reader needs — inside a transaction, or out of one, because what
  *  somebody holds is as often a question the screen asks as one a rule does. */
@@ -201,6 +203,81 @@ const anotherOwner = async (tx: Tx, farmId: string, besides: string) => {
 };
 
 /**
+ * A Role taken away takes what came with it, as ending somebody's Membership does (`endMembership`) for all of them:
+ * the work under that Role pinned to them or in their hands goes back to everyone, their Pens go with Barn Staff, and
+ * the notices only that Role was ever told are cleared — a Manager made Barn Staff went on reading buyers' debts in
+ * his list, and a milker made Manager-only still heard her old Pen's milk holds.
+ */
+const letGoOfWhatTheRoleHeld = async (
+  tx: Tx,
+  {
+    farmId,
+    userId,
+    lost,
+    wanted,
+    now,
+  }: {
+    farmId: string;
+    userId: string;
+    lost: readonly RoleName[];
+    wanted: readonly RoleName[];
+    now: Date;
+  }
+): Promise<void> => {
+  const stillOwed = [...OPEN_INSTANCE_STATES];
+  await tx
+    .update(sopInstance)
+    .set({ assignedTo: null })
+    .where(
+      and(
+        eq(sopInstance.farmId, farmId),
+        eq(sopInstance.assignedTo, userId),
+        inArray(sopInstance.assignedRole, [...lost]),
+        inArray(sopInstance.state, stillOwed)
+      )
+    );
+  await tx
+    .update(sopInstance)
+    .set({ claimedBy: null, claimedAt: null })
+    .where(
+      and(
+        eq(sopInstance.farmId, farmId),
+        eq(sopInstance.claimedBy, userId),
+        inArray(sopInstance.assignedRole, [...lost]),
+        inArray(sopInstance.state, stillOwed)
+      )
+    );
+  if (lost.includes("staff")) {
+    await tx
+      .update(penAssignment)
+      .set({ endedAt: now })
+      .where(
+        and(
+          eq(penAssignment.farmId, farmId),
+          eq(penAssignment.userId, userId),
+          isNull(penAssignment.endedAt)
+        )
+      );
+  }
+  const showing = await tx.query.alert.findMany({
+    where: { farmId, userId, dismissedAt: { isNull: true } },
+    columns: { id: true, kind: true },
+  });
+  const notTheirs = showing.filter((one) => !heardBy(one.kind, wanted));
+  if (notTheirs.length > 0) {
+    await tx
+      .update(alert)
+      .set({ dismissedAt: now })
+      .where(
+        inArray(
+          alert.id,
+          notTheirs.map((one) => one.id)
+        )
+      );
+  }
+};
+
+/**
  * Makes the Roles somebody holds exactly the ones wanted.
  *
  * A farm with nobody who can see and approve everything is a farm that cannot be run, so the last Owner keeps
@@ -226,14 +303,12 @@ export const setRoles = async (
       data: { refusal: "keep_another_owner" },
     });
   }
-  await revokeRoles(
-    tx,
-    farmId,
-    userId,
-    held.filter((role) => !wanted.includes(role)),
-    now
-  );
+  const lost = held.filter((role) => !wanted.includes(role));
+  await revokeRoles(tx, farmId, userId, lost, now);
   await grantRoles(tx, farmId, userId, wanted, by, now, { reactivate: true });
+  if (lost.length > 0) {
+    await letGoOfWhatTheRoleHeld(tx, { farmId, userId, lost, wanted, now });
+  }
 };
 
 /** Whether somebody still works here, written down. */

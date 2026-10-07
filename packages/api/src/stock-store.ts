@@ -375,6 +375,7 @@ export const runningLow = async (
     columns: {
       id: true,
       nameBn: true,
+      nameEn: true,
       unit: true,
       lowStockAt: true,
       retiredAt: true,
@@ -398,6 +399,7 @@ export const runningLow = async (
       {
         feedItemId: item.id,
         nameBn: item.nameBn,
+        nameEn: item.nameEn,
         unit: item.unit,
         onHand,
         because: low.because,
@@ -423,7 +425,7 @@ type RunningLow = Awaited<ReturnType<typeof runningLow>>[number];
  * each time it runs low — brought back up by a lorry or by a count that found more, and then fed down
  * again, is a new thing to be told about; still low since the last notice is not.
  */
-const lowStockNoticeId = (low: RunningLow): string =>
+export const lowStockNoticeId = (low: RunningLow): string =>
   low.because === "days"
     ? `${low.feedItemId}:days:${low.fellBelowAt?.toISOString() ?? "start"}`
     : `${low.feedItemId}:${low.fellBelowAt?.toISOString() ?? "start"}`;
@@ -485,6 +487,7 @@ export const raiseLowStockAlerts = async (
         facts: {
           feedItemId: line.feedItemId,
           nameBn: line.nameBn,
+          nameEn: line.nameEn,
           unit: line.unit,
           onHand: line.onHand,
           threshold: line.threshold,
@@ -963,7 +966,7 @@ export const tellIfTheFeedCameDearer = async (
   const arrival = await tx.query.feedIn.findFirst({
     where: { id: arrivalId, farmId: farm.id },
     columns: { feedItemId: true },
-    with: { feedItem: { columns: { nameBn: true, unit: true } } },
+    with: { feedItem: { columns: { nameBn: true, nameEn: true, unit: true } } },
   });
   if (!arrival) {
     return;
@@ -987,6 +990,7 @@ export const tellIfTheFeedCameDearer = async (
       about: { id: arrivalId },
       facts: {
         feed: arrival.feedItem.nameBn,
+        feedEn: arrival.feedItem.nameEn,
         unit: arrival.feedItem.unit,
         unitPriceMoney: roundMoney(price.unitPriceMoney),
         previousUnitPriceMoney: roundMoney(price.previousUnitPriceMoney),

@@ -128,6 +128,15 @@ const flagHeatsThatArrivedTooLate = async (
       heatThatRaised(work.cause) !== null &&
       slot.dueAt.getTime() + slot.graceMinutes * MINUTE_MS <= now.getTime();
     if (windowShut) {
+      // Named by her tag, so the notice says whose heat came late.
+      const her = slot.animalId
+        ? // oxlint-disable-next-line no-await-in-loop -- one cow at a time, as the notices are
+          await tx.query.animal.findFirst({
+            where: { id: slot.animalId },
+            columns: { tagNumber: true },
+          })
+        : undefined;
+      const herTag = her?.tagNumber ?? null;
       // Sequential: one Needs Review each, in the order the work was raised.
       // oxlint-disable-next-line no-await-in-loop
       await tell(
@@ -144,6 +153,7 @@ const flagHeatsThatArrivedTooLate = async (
             reason: "late_entry",
             why: "heat_after_window",
             closedAt: slot.dueAt,
+            tag: herTag,
           },
         },
         now

@@ -136,6 +136,17 @@ const heldWhole = (entry: Entry): Record<string, unknown> => ({
   recordedAt: entry.recordedAt.toISOString(),
 });
 
+/** The animal an entry is about, by her tag, where it names one. */
+const tagOfEntry = (entry: Entry): string | null => {
+  if (entry.kind === "step_completion") {
+    return entry.animalTag ?? null;
+  }
+  if (entry.kind === "animal_move" || entry.kind === "observation") {
+    return entry.tagNumber;
+  }
+  return null;
+};
+
 /** Records that the entry was read, holding what the phone sent whenever the farm could not
  *  take it into its records as it stands — so nothing written down is lost. */
 const keep = async (
@@ -204,6 +215,9 @@ const keep = async (
         kind: entry.kind,
         seq: entry.seq,
         why: reason,
+        // Whose it was and which phone held it, so the notice names what to look at.
+        tag: tagOfEntry(entry),
+        phone: context.device?.name ?? null,
       },
     },
     receivedAt
@@ -243,7 +257,7 @@ const flagSource = async (
     {
       kind: "needs_review",
       about: { id: entityId, entity: "sync_entry", auditEventId: eventId },
-      facts: { ...params, reason },
+      facts: { ...params, reason, phone: context.device?.name ?? null },
     },
     receivedAt
   );

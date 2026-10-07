@@ -3,6 +3,7 @@ import { DIAGNOSIS_OUTCOMES, diagnosis } from "@OpenFarm/db/schema/health";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import {
@@ -116,6 +117,12 @@ export const diagnosisCorrection: CorrectionKind<
       now,
       trail: audited(context).recordEvent,
     });
+    if (!owed.notifiable) {
+      // Taken off the notifiable list: the report work is closed above, and the notice that ordered it goes with it.
+      await clearNoticesAbout(tx, row.farmId, [row.id], now, [
+        "notifiable_diagnosis",
+      ]);
+    }
     const alerts = owed.notifiable
       ? await raiseNotifiableAlerts(
           tx,
