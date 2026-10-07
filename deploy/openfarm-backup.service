@@ -5,10 +5,12 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-User=openfarm
+# Its own user, not the app's: backup.env holds the database owner's address, which may lift the guards on what is kept
+# as written, and the app's user must never be able to read it.
+User=openfarm-backup
 WorkingDirectory=/srv/openfarm
 # Everything the copy needs, and nothing the app does not: DATABASE_URL, the age public key,
-# and the rclone remote. Root-owned, readable only by the service user.
+# and the rclone remote. Root-owned, readable only by openfarm-backup.
 EnvironmentFile=/etc/openfarm/backup.env
 ExecStart=/srv/openfarm/scripts/backup.sh nightly
 # A failed copy is a thing to see, not a thing to retry into the morning milking.

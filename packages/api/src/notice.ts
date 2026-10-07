@@ -118,6 +118,7 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   // server, the database or the backups to put either right (deploy runbook).
   day_not_turning: { audience: [theOwner], entity: "scheduler_state" },
   backup_overdue: { audience: [theOwner], entity: "backup_run" },
+  monthly_copy_failed: { audience: [theOwner], entity: "backup_run" },
   // Who signs in to the farm, and whether somebody is guessing at it, is the Owner's.
   password_guessed: { audience: [theOwner], entity: "password_guess" },
   // The store is the Manager's to keep, and what is going off in it with it — the same as what is running low.

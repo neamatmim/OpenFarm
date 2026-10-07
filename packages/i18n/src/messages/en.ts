@@ -3921,9 +3921,12 @@ export const en = {
   "alerts.dayNotTurning":
     "The farm's schedule has not run cleanly since {since}: work may not be raised and notices may not go. See Backups.",
   "digest.backupOverdue": "The farm is not being copied",
+  "digest.monthlyCopyFailed": "The monthly copy failed",
   "digest.passwordGuessed": "Somebody guessed at {who}'s password",
   "alerts.backupOverdue":
     "No copy of the farm has succeeded since {since}. See Backups.",
+  "alerts.monthlyCopyFailed":
+    "The monthly copy of the farm, the one kept for years, failed on {since}. See Backups.",
   "alerts.passwordGuessed":
     "{guesses} wrong passwords for {who} since {since}, from more than one place. The account now takes one try a minute.",
   "refusal.workInNoPen":
@@ -4708,6 +4711,9 @@ export const en = {
   "push.backupOverdueTitle": "The farm is not being copied",
   "push.backupOverdueBody":
     "No copy has succeeded in over a day and a half. Open Backups to see why.",
+  "push.monthlyCopyFailedTitle": "The monthly copy failed",
+  "push.monthlyCopyFailedBody":
+    "The copy kept for years did not succeed. Open Backups to see why.",
   "push.passwordGuessedTitle": "Somebody is guessing a password",
   "push.passwordGuessedBody":
     "Many wrong passwords for {who}. The account is slowed to one try a minute.",
@@ -4735,6 +4741,14 @@ export const en = {
     "No copy for {nights, plural, one {# night} other {# nights}}",
   "backups.ok": "Worked",
   "backups.failed": "Failed",
+  "backups.running": "Being taken",
+  "backups.kind.nightly": "Nightly",
+  "backups.kind.monthly": "Monthly",
+  "backups.kind.manual": "By hand",
+  "backups.why.dump": "The database could not be copied or encrypted",
+  "backups.why.upload": "The copy could not be sent off the machine",
+  "backups.why.tooSmall": "The copy came out too small to be the farm",
+  "backups.why.notPruned": "Taken, but old copies were not deleted",
   "backups.none": "Nothing recorded yet",
   "backups.col.kind": "Kind",
   "backups.col.result": "Result",

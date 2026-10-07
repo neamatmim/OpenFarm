@@ -13,6 +13,7 @@ import { theDayTurns } from "./the-day-turns";
 import type { Quiet } from "./the-machinery-notices";
 import {
   backupGap,
+  monthlyCopyFailed,
   dayNotTurning,
   tellTheOwnerAboutTheMachinery,
   untold,
@@ -159,6 +160,7 @@ const turnFarmDay = async ({
       await tellTheOwnerIfItHasGoneQuiet({ ...context, farm }, [
         dayNotTurning({ failed: turnError !== null, lastOkAt, now: startedAt }),
         await backupGap(db, startedAt),
+        await monthlyCopyFailed(db, startedAt),
       ]);
       if (turnError) {
         throw new Error(turnError);

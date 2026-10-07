@@ -3667,9 +3667,12 @@ export const bn: Record<MessageKey, string> = {
   "alerts.dayNotTurning":
     "{since} থেকে খামারের সময়সূচি ঠিকমতো চলেনি: কাজ তৈরি না-ও হতে পারে, খবর না-ও যেতে পারে। খামারের কপি পাতায় দেখুন।",
   "digest.backupOverdue": "খামারের কপি নেওয়া হচ্ছে না",
+  "digest.monthlyCopyFailed": "মাসিক কপি সফল হয়নি",
   "digest.passwordGuessed": "কেউ {who}-এর পাসওয়ার্ড আন্দাজ করেছে",
   "alerts.backupOverdue":
     "{since} থেকে খামারের কোনো কপি সফল হয়নি। খামারের কপি পাতায় দেখুন।",
+  "alerts.monthlyCopyFailed":
+    "খামারের মাসিক কপি, যেটি বহু বছর রাখা হয়, {since}-এ সফল হয়নি। খামারের কপি পাতায় দেখুন।",
   "alerts.passwordGuessed":
     "{since} থেকে {who}-এর অ্যাকাউন্টে {guesses} বার ভুল পাসওয়ার্ড দেওয়া হয়েছে। অ্যাকাউন্টটি এখন মিনিটে একবার চেষ্টা নেয়।",
   "refusal.workInNoPen": "এই ধাপ একটি পেনের কাজ লেখে, আর এই কাজ কোনো পেনে নয়",
@@ -4402,6 +4405,9 @@ export const bn: Record<MessageKey, string> = {
   "push.backupOverdueTitle": "খামারের কপি নেওয়া হচ্ছে না",
   "push.backupOverdueBody":
     "দেড় দিনের বেশি কোনো কপি সফল হয়নি। কারণ দেখতে খামারের কপি পাতা খুলুন।",
+  "push.monthlyCopyFailedTitle": "মাসিক কপি সফল হয়নি",
+  "push.monthlyCopyFailedBody":
+    "বহু বছর রাখার কপিটি সফল হয়নি। কারণ দেখতে খামারের কপি পাতা খুলুন।",
   "push.passwordGuessedTitle": "কেউ পাসওয়ার্ড আন্দাজ করছে",
   "push.passwordGuessedBody":
     "{who}-এর অ্যাকাউন্টে অনেকবার ভুল পাসওয়ার্ড। অ্যাকাউন্টটি মিনিটে একবার চেষ্টায় নামানো হয়েছে।",
@@ -4427,6 +4433,14 @@ export const bn: Record<MessageKey, string> = {
   "backups.stale": "{nights} রাত ধরে কোনো কপি হয়নি",
   "backups.ok": "সফল",
   "backups.failed": "ব্যর্থ",
+  "backups.running": "নেওয়া হচ্ছে",
+  "backups.kind.nightly": "রাতের",
+  "backups.kind.monthly": "মাসিক",
+  "backups.kind.manual": "হাতে নেওয়া",
+  "backups.why.dump": "ডেটাবেস কপি বা এনক্রিপ্ট করা যায়নি",
+  "backups.why.upload": "কপিটি যন্ত্রের বাইরে পাঠানো যায়নি",
+  "backups.why.tooSmall": "কপিটি খামারের হওয়ার মতো বড় হয়নি",
+  "backups.why.notPruned": "নেওয়া হয়েছে, কিন্তু পুরনো কপি মোছা হয়নি",
   "backups.none": "এখনো কিছু রেকর্ড হয়নি",
   "backups.col.kind": "ধরন",
   "backups.col.result": "ফলাফল",

@@ -1,3 +1,4 @@
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -36,6 +37,9 @@ const NIGHTS_BEFORE_WORRYING = 2;
 /** Three turns of the server's five-minute clock missed. */
 const SCHEDULE_STALE_MS = 15 * 60_000;
 
+/** Longer than any copy takes, retries aside: a copy started this recently with nothing written back is still running. */
+const A_COPY_TAKES_AT_MOST_MS = 6 * 60 * 60_000;
+
 /** Whether a moment is further back than a span, as of when the screen is drawn. */
 const olderThan = (at: Date | string, spanMs: number): boolean =>
   Date.now() - new Date(at).getTime() > spanMs;
@@ -44,22 +48,94 @@ type Backups = Awaited<ReturnType<typeof orpc.backups.list.call>>;
 type BackupRun = Backups["runs"][number];
 type Schedule = Awaited<ReturnType<typeof orpc.farm.schedule.call>>;
 
-/** Whether a copy worked, as a word with its colour, and what went wrong when it did not. */
+/** Where a copy stands: it worked, it failed, or it is still being taken — the job writes its row as failed before it
+ *  begins, so a copy in progress, or a restored farm's own copy, read as failed for ever. */
+const stateOf = (run: BackupRun): "ok" | "failed" | "running" => {
+  if (run.ok === "yes") {
+    return "ok";
+  }
+  return run.finishedAt === null &&
+    !olderThan(run.startedAt, A_COPY_TAKES_AT_MOST_MS)
+    ? "running"
+    : "failed";
+};
+
+const STATE_WORD = {
+  ok: "backups.ok",
+  failed: "backups.failed",
+  running: "backups.running",
+} as const satisfies Record<ReturnType<typeof stateOf>, MessageKey>;
+
+const STATE_TONE = {
+  ok: "success",
+  failed: "danger",
+  running: "info",
+} as const satisfies Record<ReturnType<typeof stateOf>, Tone>;
+
+/** The job's own reasons, as it writes them, in the reader's words; what the tool itself said follows as it said it. */
+const DETAIL_WORDS: [string, MessageKey][] = [
+  ["pg_dump or encryption failed", "backups.why.dump"],
+  ["upload failed", "backups.why.upload"],
+  ["the copy came out at", "backups.why.tooSmall"],
+  ["old copies were not pruned", "backups.why.notPruned"],
+  ["old nightlies were not pruned", "backups.why.notPruned"],
+];
+
+const useDetail = (detail: string | null): string | null => {
+  const t = useT();
+  if (!detail) {
+    return null;
+  }
+  const known = DETAIL_WORDS.find(([start]) => detail.startsWith(start));
+  if (!known) {
+    return detail;
+  }
+  const rest = detail.slice(known[0].length).replace(/^[:\s]+/u, "");
+  return rest ? `${t(known[1])} (${rest})` : t(known[1]);
+};
+
+/** How big a copy came out, in the reader's own digits. */
+const useSize = (bytes: string | null): string | null => {
+  const { language } = useLanguage();
+  const size = Number(bytes);
+  if (!bytes || !Number.isFinite(size) || size <= 0) {
+    return null;
+  }
+  return size >= MEGABYTE
+    ? `${formatNumber(size / MEGABYTE, language, { maximumFractionDigits: 1 })} MB`
+    : `${formatNumber(Math.ceil(size / KILOBYTE), language)} KB`;
+};
+
+const KILOBYTE = 1024;
+const MEGABYTE = KILOBYTE * KILOBYTE;
+
+/** Whether a copy worked, as a word with its colour, how big it came out, and what went wrong when it did not. */
 const RunResult = ({ run }: { run: BackupRun }) => {
   const t = useT();
-  const worked = run.ok === "yes";
+  const state = stateOf(run);
+  const detail = useDetail(run.detail);
+  const size = useSize(run.sizeBytes);
   return (
     <span className="flex min-w-0 flex-col items-start gap-1">
-      <StatusBadge tone={worked ? "success" : "danger"}>
-        {worked ? t("backups.ok") : t("backups.failed")}
-      </StatusBadge>
-      {run.detail ? (
+      <StatusBadge tone={STATE_TONE[state]}>{t(STATE_WORD[state])}</StatusBadge>
+      {size ? (
+        <span className="text-muted-foreground text-xs tabular-nums">
+          {size}
+        </span>
+      ) : null}
+      {detail ? (
         <span className="text-muted-foreground text-xs break-words">
-          {run.detail}
+          {detail}
         </span>
       ) : null}
     </span>
   );
+};
+
+/** A kind of copy in the reader's words. */
+const KindCell = ({ row }: { row: { original: BackupRun } }) => {
+  const t = useT();
+  return <span>{t(`backups.kind.${row.original.kind}`)}</span>;
 };
 
 const StartedCell = ({ row }: { row: { original: BackupRun } }) => (
@@ -79,7 +155,10 @@ const runColumns = column.columns([
     header: listHeader("audit.when"),
     cell: StartedCell,
   }),
-  column.accessor("kind", { header: listHeader("backups.col.kind") }),
+  column.accessor("kind", {
+    header: listHeader("backups.col.kind"),
+    cell: KindCell,
+  }),
   column.accessor("ok", {
     header: listHeader("backups.col.result"),
     cell: ResultCell,
@@ -88,14 +167,16 @@ const runColumns = column.columns([
 
 /** One copy on a phone: whether it worked and when, and which kind. */
 const RunCard = ({ run }: { run: BackupRun }) => {
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="font-medium tabular-nums">
           {formatDate(new Date(run.startedAt), language, "dateTime")}
         </span>
-        <span className="text-muted-foreground text-xs">{run.kind}</span>
+        <span className="text-muted-foreground text-xs">
+          {t(`backups.kind.${run.kind}`)}
+        </span>
       </div>
       <div className="shrink-0">
         <RunResult run={run} />
@@ -142,7 +223,8 @@ const useBackupFigures = (
 ): Figure[] => {
   const { t, language } = useLanguage();
   const lastGood = state?.lastGoodAt ? new Date(state.lastGoodAt) : null;
-  const failed = state?.runs.filter((run) => run.ok !== "yes").length ?? 0;
+  const failed =
+    state?.runs.filter((run) => stateOf(run) === "failed").length ?? 0;
   const worrying = schedule ? scheduleWorrying(schedule) : false;
   const tries = state?.runs.length ?? 0;
   return [

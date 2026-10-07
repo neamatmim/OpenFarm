@@ -2,11 +2,18 @@
 Description=OpenFarm monthly copy
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=1d
+StartLimitBurst=4
 
 [Service]
 Type=oneshot
-User=openfarm
+# Its own user, not the app's: backup.env holds the database owner's address, which may lift the guards on what is kept
+# as written, and the app's user must never be able to read it.
+User=openfarm-backup
 WorkingDirectory=/srv/openfarm
 EnvironmentFile=/etc/openfarm/backup.env
 ExecStart=/srv/openfarm/scripts/backup.sh monthly
-Restart=no
+# The copy kept for years is tried again, two hours apart, up to four times: one failed night is no reason to have no
+# copy of that month at all. The Owner is told of a failure either way.
+Restart=on-failure
+RestartSec=2h

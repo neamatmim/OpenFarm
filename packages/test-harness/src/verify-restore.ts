@@ -23,15 +23,9 @@ const url = process.env.DATABASE_URL;
 if (!url) {
   throw new Error("DATABASE_URL is required");
 }
-const name = (url.split("/").pop() ?? "").split("?")[0] ?? "";
 // A disaster's restore goes into a new database named as the Owner likes, and restore.sh has made sure it held nothing
 // before: it says so here.
 const intoNew = process.env.RESTORE_INTO_NEW_DATABASE === "yes";
-if (!(name.includes("scratch") || intoNew)) {
-  throw new Error(
-    `refusing: '${name}' is not a scratch database, and this drops nothing but reads everything`
-  );
-}
 
 /** What a farm cannot be without: what a copy that did not say what it held is held to. */
 const MUST_HOLD: { table: string; why: string }[] = [
@@ -79,6 +73,19 @@ const MUST_HANG_TOGETHER: { what: string; query: string }[] = [
 const NO_SUCH_TABLE = "42P01";
 
 const db = createDb(url);
+
+// The database's name as the database itself says it: an address's `?dbname=` overrides the name in its path, and a
+// check of the path alone waved the live farm through as a scratch one.
+const named = await db.execute<{ name: string }>(
+  sql.raw("select current_database() as name")
+);
+const name =
+  (named as unknown as { rows?: { name: string }[] }).rows?.[0]?.name ?? "";
+if (!(name.includes("scratch") || intoNew)) {
+  throw new Error(
+    `refusing: '${name}' is not a scratch database, and this drops nothing but reads everything`
+  );
+}
 
 const totalFrom = async (query: string): Promise<number> => {
   const rows = await db.execute<{ total: string }>(sql.raw(query));
@@ -131,6 +138,13 @@ if (held) {
   for (const [table, had] of Object.entries(held)) {
     if (!TABLE_NAME.test(table)) {
       missing.push(`${table}: not a table name the backup job writes`);
+      continue;
+    }
+    if (had === null) {
+      // Not there when the copy was taken: renamed since the job's list was written.
+      process.stdout.write(
+        `    ${table}: not counted — there was no such table\n`
+      );
       continue;
     }
     // Deliberately sequential: a dozen counts, and a clear message beats a fast one.
