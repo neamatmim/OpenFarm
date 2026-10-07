@@ -273,6 +273,10 @@ describe("a death told to the Vet", () => {
       columns: { userId: true },
     });
     expect(takenBack.map((one) => one.userId)).toContain(thePerson("vet").id);
+    // Only the pockets the death reached: never the Manager, whom it was not told to, though the kind's Roles take him in.
+    expect(takenBack.map((one) => one.userId)).not.toContain(
+      thePerson("manager").id
+    );
 
     const still = await scratchDb().query.alert.findMany({
       where: {

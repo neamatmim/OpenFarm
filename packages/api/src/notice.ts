@@ -12,6 +12,7 @@ import {
   peopleOnTheWork,
   raiseAlerts,
 } from "./alerts-store";
+import type { Cleared } from "./alerts-store";
 import type { Tx } from "./audit";
 import { writeTheJudgementOwed } from "./review-store";
 
@@ -207,15 +208,16 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [theOwner],
     entity: "sale",
   },
-  // Raised by `tellTheProposer` to whoever proposed the change, and nobody else: about the proposal, so told once.
+  // Told to whoever proposed the change, and nobody else (`tellTheProposer`, by `about.people`): about the proposal,
+  // so told once. Its audience is who may still see it once told.
   proposal_answered: {
     audience: [{ roles: ["owner", "manager"] }],
     entity: "sop_proposal",
     noOwnerFallback: true,
   },
-  // Raised by `tellItWasTakenBack` to exactly the people the death or the disease reached in their pocket, never to an
-  // audience worked out afresh: about the record taken back, so told once. These are the Roles a death or a disease is
-  // told to, so a person who loses all of them stops seeing it.
+  // Told to exactly the people the death or the disease reached in their pocket (`tellItWasTakenBack`, by
+  // `about.people`), never to an audience worked out afresh: about the record taken back, so told once. These are the
+  // Roles a death or a disease is told to, so a person who loses all of them stops seeing it.
   taken_back: {
     audience: [{ roles: ["owner", "manager", "vet"] }],
     entity: "animal",
@@ -307,6 +309,9 @@ export interface About {
   auditEventId?: string;
   /** Who wrote the thing it is about, for a kind that leaves them out. */
   writtenBy?: string;
+  /** Exactly these people, in place of the kind's audience worked out afresh: for news owed to whoever a thing already
+   *  reached — the proposer of a change, the pockets a death reached. Still only those at the farm. */
+  people?: readonly string[];
 }
 
 /**
@@ -468,7 +473,9 @@ export const whoHears = async <Kind extends AlertKind>(
   // nobody to tell — and counted, they kept the Owner from hearing what was theirs.
   const everyone = await stillHere(
     tx as Tx,
-    await peopleFor(tx as Tx, farmId, kind.audience, said, remembering)
+    said.people
+      ? [...said.people]
+      : await peopleFor(tx as Tx, farmId, kind.audience, said, remembering)
   );
   // Nobody of its people on the farm — the Vet gone, no Manager yet — and it still reaches somebody: the Owner, who is
   // always there (the Owner, 2026-10-06). Never for news only one person's own act or work is about. Once raised it is
@@ -541,4 +548,50 @@ export const tell = async <Kind extends AlertKind>(
     : [];
   const rows = await raiseAlerts(tx, farmId, people, written, now);
   return [...reopened, ...rows].map((row) => ({ ...row, ...written }));
+};
+
+/** What each notice that wakes a pocket was about, as its taking back says it. */
+const TAKEN_BACK_AS: Partial<Record<AlertKind, "death" | "diagnosis">> = {
+  mortality_recorded: "death",
+  mortality_undiagnosed: "death",
+  notifiable_diagnosis: "diagnosis",
+};
+
+/**
+ * Tells the people a death or a notifiable disease had already reached in their pocket that it was written by mistake
+ * and is taken back — a notice in the app clears quietly, but a buzz that said "anthrax" stays in a head until something
+ * says otherwise. Only those it reached: a notice still waiting for the morning is simply gone. Pushed by the caller
+ * after the write, as every push is.
+ */
+export const tellItWasTakenBack = async (
+  tx: Tx,
+  farmId: string,
+  cleared: readonly Cleared[],
+  now: Date
+): Promise<Raised[]> => {
+  const told: Raised[] = [];
+  for (const one of cleared) {
+    const was = TAKEN_BACK_AS[one.kind];
+    if (!was || one.carriedAt === null) {
+      continue;
+    }
+    const facts = (one.params ?? {}) as { tag?: string; disease?: string };
+    // oxlint-disable-next-line no-await-in-loop -- one person at a time, each told once by the unique index
+    const raised = await tell(
+      tx,
+      farmId,
+      {
+        kind: "taken_back",
+        about: { id: one.entityId, people: [one.userId] },
+        facts: {
+          was,
+          tag: facts.tag ?? "",
+          ...(facts.disease ? { disease: facts.disease } : {}),
+        },
+      },
+      now
+    );
+    told.push(...raised);
+  }
+  return told;
 };

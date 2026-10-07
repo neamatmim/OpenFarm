@@ -28,7 +28,6 @@ import { ORPCError } from "@orpc/server";
 import type { SQL } from "drizzle-orm";
 import { z } from "zod";
 
-import { raiseAlerts } from "../alerts-store";
 import type { Trail, Tx } from "../audit";
 import { audited } from "../audit";
 import { protectedProcedure } from "../index";
@@ -259,15 +258,13 @@ const tellTheProposer = async (
   if (!answered.proposedBy || answered.proposedBy === context.actor.id) {
     return;
   }
-  await raiseAlerts(
+  await tell(
     tx,
     context.farm.id,
-    [answered.proposedBy],
     {
       kind: "proposal_answered",
-      entity: "sop_proposal",
-      entityId: answered.id,
-      params: {
+      about: { id: answered.id, people: [answered.proposedBy] },
+      facts: {
         sopBn: answered.content.name.bn,
         sopEn: answered.content.name.en ?? answered.content.name.bn,
         approved: answered.approved,
