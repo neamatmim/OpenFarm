@@ -1,13 +1,15 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq, sql } from "@OpenFarm/db/operators";
 import { farm, roleAssignment } from "@OpenFarm/db/schema/farm";
+import type { FarmParameter, ParameterBounds } from "@OpenFarm/domain";
 import {
-  FEWEST_CALF_MILK_DAYS,
-  FEWEST_KEEP_READ_DAYS,
+  ALL_FARM_PARAMETERS,
+  FARM_PARAMETERS,
   MAX_GRACE_MINUTES,
   STANDARD_KINDS,
   identityView,
   fewestDaysBeforeMilkIsWeighed,
+  parametersOwnersAlone,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -24,12 +26,7 @@ import { protectedProcedure, publicProcedure } from "../index";
 import { retimePregnancyChecks } from "../instances-store";
 import { tell } from "../notice";
 import type { OwnersFigure } from "../owners-figures";
-import {
-  A_VENTURES_OWN,
-  WHEN_A_SHORT_STORE_IS_TOLD,
-  theOwnersFigures,
-  withoutTheOwnersFigures,
-} from "../owners-figures";
+import { theOwnersFigures, withoutTheOwnersFigures } from "../owners-figures";
 import { photoInput } from "../photo-input";
 import { certificatesOf, keepCertificate } from "../registration-store";
 import type { RoleName } from "../roles";
@@ -45,187 +42,29 @@ import { onlyOnAVisit } from "../scope";
 import { startWithStandard } from "../standard-store";
 import { lockTheFarm } from "../venture-store";
 
-/** The Farm Parameters, as a set that grows a row at a time as the increments needing them
- *  land. Each is a number the Manager may tune, never a rule hidden in the code. */
+/** A whole number within a Farm Parameter's bounds, as the farm declares them (domain `FARM_PARAMETERS`). */
+const withinBounds = ({ min, max }: ParameterBounds) =>
+  z.number().int().min(min).max(max).optional();
+
+/** The Farm Parameters a request may name: every number within its declared bounds, and the times of day the Digest
+ *  and the quiet hours are kept by. */
 const parameters = z
   .object({
-    /** How far the tank reading may sit from what the cows account for before the Manager
-     *  is asked to look. */
-    milkTolerancePercent: z.number().int().min(0).max(100).optional(),
-    feedTolerancePercent: z.number().int().min(0).max(100).optional(),
+    ...(Object.fromEntries(
+      Object.entries(FARM_PARAMETERS).map(([key, bounds]) => [
+        key,
+        withinBounds(bounds),
+      ])
+    ) as Record<FarmParameter, ReturnType<typeof withinBounds>>),
     digestTimes: z.array(z.string().trim()).min(1).max(6).optional(),
     quietFrom: z.string().trim().optional(),
     quietUntil: z.string().trim().optional(),
-    /** How long a Shed Phone sits untouched before it locks and asks for a PIN again: long enough for a cow milked
-     *  by hand, short enough that a phone left in the shed is nobody's for long. */
-    pinAutoLockMinutes: z.number().int().min(1).max(60).optional(),
-    /** How long an Overdue Instance may stay open before the Owner is told as well. */
-    escalationMinutes: z
-      .number()
-      .int()
-      .min(0)
-      .max(24 * 60)
-      .optional(),
-    /** How long after making an entry Staff may still put it right. */
-    staffCorrectionHours: z
-      .number()
-      .int()
-      .min(0)
-      .max(24 * 7)
-      .optional(),
-    /** How long after an entry was made the Manager may still put it right. */
-    managerCorrectionDays: z.number().int().min(0).max(365).optional(),
-    /** How early the farm is told its DLS registration is running out. */
-    registrationRenewalLeadDays: z.number().int().min(0).max(365).optional(),
-    /** How early the Manager is told a Lot of medicine or feed is running out of date. */
-    expiryWarnDays: z.number().int().min(1).max(365).optional(),
-    /** What a bought-in fattening animal is fed towards unless the Manager says otherwise
-     *  for that animal. */
-    fatteningTargetWeightKg: z.number().int().min(1).max(2000).optional(),
-    /** How many days before Eid day 1 an animal aimed at it is suggested for sale: none at all is the day itself, and
-     *  more than two months is no longer the haat before Eid. */
-    readyLeadDays: z.number().int().min(0).max(60).optional(),
-    /** How many days back a fattening animal's gain is read against her Ration's Expected Gain: at least two
-     *  fortnightly Weigh-ins, and no more than three months, past which it is last season's Ration being judged. */
-    gainReadDays: z.number().int().min(14).max(90).optional(),
-    /** The shares of a Ration's Expected Gain a deshi animal and a cow or heifer are judged against: never above what
-     *  the Ration is written for, and not so far under it that a bull gaining nothing still looks fine. */
-    deshiGainPercent: z.number().int().min(30).max(100).optional(),
-    femaleGainPercent: z.number().int().min(30).max(100).optional(),
-    /** Under what share of her penmates' middle gain a fattening animal is pointed out: under half would miss nearly
-     *  every slow one, and at the whole half of every Pen would be. */
-    penGainPercent: z.number().int().min(50).max(95).optional(),
-    /** The AI window after a Heat, in hours. */
-    aiWindowStartHours: z.number().int().min(0).max(72).optional(),
-    aiWindowEndHours: z.number().int().min(1).max(96).optional(),
-    /** The days from an attempt's first service to its Pregnancy Check — not before a vet can
-     *  tell, and not so late that a cow who did not take has missed two heats. */
-    pregnancyCheckAfterDays: z.number().int().min(28).max(90).optional(),
-    /** How long a cow carries, which Expected Calving is worked out from. Within what cattle do. */
-    gestationDays: z.number().int().min(260).max(300).optional(),
-    /** How long before her Expected Calving a cow is dried off, and walked to the calving pen. */
-    dryOffLeadDays: z.number().int().min(30).max(90).optional(),
-    calvingPrepLeadDays: z.number().int().min(1).max(30).optional(),
-    /** How many attempts that did not take raise a Repeat Breeder. */
-    repeatBreederThreshold: z.number().int().min(2).max(10).optional(),
-    /** How many days back an animal's keep is read, for keep-or-sell and the culling list: at least a fortnight, and no
-     *  more than three months, past which it is last season's Ration that is being read. */
-    keepReadDays: z
-      .number()
-      .int()
-      .min(FEWEST_KEEP_READ_DAYS)
-      .max(90)
-      .optional(),
-    /** How many days ahead keeping a fattening animal is worked for keep-or-sell: at least a week, and no more than
-     *  three months, past which her rate and her keep today say little about the days they are worked over. */
-    keepAheadDays: z.number().int().min(7).max(90).optional(),
-    /** How many days an animal must have been here before her keep is judged: at least one, and no more than four
-     *  weeks — which the handler also holds under the days this farm reads a keep over. */
-    keepNeedsDays: z.number().int().min(1).max(28).optional(),
-    /** How many days apart her last two Weigh-ins must be before their gain is trusted for keep-or-sell: at least one,
-     *  and no more than four weeks, past which a fortnightly weighing would never be read. */
-    keepRateGapDays: z.number().int().min(1).max(28).optional(),
-    /** How many days after calving a cow still not in calf is named for culling: not before a cow that is going to
-     *  settle has had her chances, and not past a year, when the question has long been answered. */
-    cullOpenDays: z.number().int().min(60).max(365).optional(),
-    /** How many days into her Lactation before a cow's milk is weighed against her keep: never before her calf's days
-     *  and the days her keep is read over after them — which the handler holds against the farm's own — and not past
-     *  half a year, when the question has long been answered. */
-    cullMilkAfterDays: z
-      .number()
-      .int()
-      .min(
-        fewestDaysBeforeMilkIsWeighed(
-          FEWEST_KEEP_READ_DAYS,
-          FEWEST_CALF_MILK_DAYS
-        )
-      )
-      .max(180)
-      .optional(),
-    /** How many days after calving a cow's milk is her calf's: at least her first day, and no more than a month, past
-     *  which a calf is drinking from a bucket, not from her mother. */
-    cullCalfMilkDays: z
-      .number()
-      .int()
-      .min(FEWEST_CALF_MILK_DAYS)
-      .max(30)
-      .optional(),
-    /** How many days back the Dispatches are read for what a litre fetches: at least a week of a milk buyer, and no
-     *  more than a year, past which the price is last year's. */
-    cullMilkPriceDays: z.number().int().min(7).max(365).optional(),
-    /** The fewest days money must have been tied up, on average, before a return is put a year: at least one, and no
-     *  more than a year, past which nothing a Season does would ever be scaled. */
-    returnYearFloorDays: z.number().int().min(1).max(365).optional(),
-    /** The taka above which a Money Event waits for the Owner. */
-    approvalThresholdMoney: z.number().int().min(0).max(100_000_000).optional(),
-    /** The day of the month from which a Monthly Cost with nothing entered that month is named: no later than the 28th,
-     *  which every month has. */
-    monthlyCostsFromDay: z.number().int().min(1).max(28).optional(),
-    /** How many days a Receivable with no promised day may run before it is overdue: a week at the least, four months at
-     *  the most. */
-    receivableDays: z.number().int().min(7).max(120).optional(),
-    /** The taka a Stock Count may come up short by before the Owner and the Manager are told of it. */
-    storeShortfallTellMoney: z.number().int().min(0).max(1_000_000).optional(),
-    /** How many animals in one Pen with sores on the mouth or feet, within how many hours, before the farm is told. */
-    soresTellAnimals: z.number().int().min(2).max(20).optional(),
-    soresTellHours: z.number().int().min(12).max(168).optional(),
-    /** How many Diagnoses within how many days put an animal on the Manager's list as ill again and again. */
-    illAgainDiagnoses: z.number().int().min(2).max(20).optional(),
-    illAgainDays: z.number().int().min(30).max(730).optional(),
-    /** The day after calving from which an open cow with no heat seen is on the heat watch. */
-    heatWatchAfterCalvingDays: z.number().int().min(30).max(150).optional(),
-    /** The age a heifer should have been served by, crossbred and deshi. */
-    firstServiceMonths: z.number().int().min(10).max(36).optional(),
-    deshiFirstServiceMonths: z.number().int().min(12).max(48).optional(),
-    /** How far under her own week a cow's milk must fall, over how many days, before she is named as giving less. */
-    milkDropPercent: z.number().int().min(5).max(80).optional(),
-    milkDropDays: z.number().int().min(1).max(5).optional(),
-    /** How much of a week's milk may go unaccounted for before the Owner and the Manager are told. */
-    milkUnaccountedPercent: z.number().int().min(1).max(50).optional(),
-    /** How many days an animal may be Missing before the Owner is asked whether to write her off as Lost. */
-    missingWriteOffDays: z.number().int().min(1).max(90).optional(),
-    /** How far a Feed Purchase's price per unit may rise on the last one before the Owner is told. */
-    feedPriceJumpPercent: z.number().int().min(1).max(100).optional(),
-    /** How far under her arrival weight a bought animal's first Weigh-in may come before the Owner is told. */
-    arrivalShortPercent: z.number().int().min(1).max(50).optional(),
-    /** What the farm allows Shrink to take off a bull before the Owner is told, and what a Sale's floor allows for. */
-    shrinkTellPercent: z.number().int().min(1).max(30).optional(),
-    /** How many days of a feed left, at the rate it is fed, before it is Running Low. */
-    feedDaysLow: z.number().int().min(1).max(60).optional(),
-    /** How many days after a Release or an arrival dose is put off it is raised again. */
-    putOffDays: z.number().int().min(1).max(60).optional(),
-    /** How far a Cash Count may come up short before the Owner is told. */
-    cashShortTellMoney: z.number().int().min(0).max(1_000_000).optional(),
-    medicineShortTellMoney: z.number().int().min(0).max(1_000_000).optional(),
-    /** What part of a Venture's target capital is the least worth starting on. */
-    ventureFloorPercent: z.number().int().min(0).max(100).optional(),
-    /** What part of a Venture's capital keeps the animals rather than buying them. */
-    ventureRunningPercent: z.number().int().min(0).max(90).optional(),
-    /** Where a new Investment Agreement's split starts. A default, never a rule. */
-    ventureInvestorsPercent: z.number().int().min(0).max(100).optional(),
-    /** The days a Venture keeps selling after its window before the Farm buys the rest. */
-    windUpDays: z.number().int().min(0).max(180).optional(),
-    /** How old her last Weigh-in may be for an Internal Sale or the buy-back to price her on. */
-    priceWeighInDays: z.number().int().min(1).max(60).optional(),
-    adjustmentThresholdMoney: z.number().int().min(0).max(1_000_000).optional(),
-    /** How many Investors the Farm may have at a time, and where it starts warning. */
-    investorCap: z.number().int().min(1).max(50).optional(),
-    investorWarnAt: z.number().int().min(1).max(50).optional(),
-    runningBudgetWarnMoney: z.number().int().min(0).max(100_000_000).optional(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
     { message: "Nothing to change" }
   );
 
-/**
- * What the farm is, rather than how it is tuned: where it is, how to reach it, and the
- * registration an inspector asks for first.
- *
- * Its own act and not one of the Parameters, because those are numbers the Manager may turn up
- * and down, and this is the farm's identity — it appears on documents that leave the farm, and
- * changing it changes what those documents say.
- */
 const identity = z
   .object({
     address: z.string().trim().max(300).nullish(),
@@ -243,51 +82,16 @@ const identity = z
     { message: "Nothing to change" }
   );
 
-/** What the Owner's keep-or-sell figures and list of cows to think about culling read: the Owner's to set, as the two
- *  are theirs to read. */
-const WHAT_KEEP_AND_CULL_READ = [
-  "keepReadDays",
-  "keepAheadDays",
-  "keepNeedsDays",
-  "keepRateGapDays",
-  "cullOpenDays",
-  "cullMilkAfterDays",
-  "cullCalfMilkDays",
-  "cullMilkPriceDays",
-] as const;
-
-/** What the Owner's Returns page reads: the Owner's to set, as the page is theirs alone to read. */
-const WHAT_RETURNS_READ = ["returnYearFloorDays"] as const;
-
-/** When a month's Monthly Costs and wages are looked for: the Owner's to set, as the mark that makes a Monthly Cost is. */
-const WHEN_MONTHLY_COSTS_ARE_LOOKED_FOR = ["monthlyCostsFromDay"] as const;
-
-/** The checks on the Manager himself: what he may book before it waits for the Owner, and how long he may put his own
- *  work right. The Owner's to set, as the lines his counts are told past are (the Owner's decision of 2026-10-04). */
-const THE_CHECKS_ON_THE_MANAGER = [
-  "approvalThresholdMoney",
-  "managerCorrectionDays",
-  // When the Owner hears of late work: lowered or raised by the Manager, the Owner would hear of his late work when he
-  // chose (the Owner's decision of 2026-10-07).
-  "escalationMinutes",
-] as const;
-
-/** How long a buyer may owe with no promised day: the Owner's to set, as whom the farm lends to is. */
-const HOW_LONG_RECEIVABLE_MAY_RUN = ["receivableDays"] as const;
-
-/** When the Owner is asked to write a missing animal off: the Owner's, as the write-off is. */
-const WHEN_A_MISSING_ANIMAL_IS_ASKED_ABOUT = ["missingWriteOffDays"] as const;
+/** Every Farm Parameter as a column the trail reads before a change, so a flag raised under an old figure stays
+ *  explicable. */
+const PARAMETER_COLUMNS = Object.fromEntries(
+  ALL_FARM_PARAMETERS.map((key) => [key, true])
+) as Record<(typeof ALL_FARM_PARAMETERS)[number], true>;
 
 type ParametersInput = z.infer<typeof parameters>;
 
-/** Whether a request names any of these Parameters. */
-const namesAny = (
-  input: ParametersInput,
-  keys: readonly (keyof ParametersInput)[]
-): boolean => keys.some((key) => input[key] !== undefined);
-
-/** Refuses a Manager who names what is the Owner's alone to set: a Venture's own figures, what the Owner's
- *  keep-or-sell figures and culling list read, what the Returns page reads, or when a month's costs are looked for. */
+/** Refuses a Manager who names a Parameter the Owner alone sets: a Venture's own figures, what the keep-or-sell figures
+ *  and culling list read, the checks on the Manager himself, and the lines past which his counts are told. */
 const refuseWhatIsTheOwners = (
   input: ParametersInput,
   roles: readonly RoleName[]
@@ -295,54 +99,12 @@ const refuseWhatIsTheOwners = (
   if (roles.some((role) => role === "owner")) {
     return;
   }
-  if (namesAny(input, A_VENTURES_OWN)) {
+  const named = parametersOwnersAlone("either").filter(
+    (key) => input[key] !== undefined
+  );
+  if (named.length > 0) {
     throw forbidden({
-      message: "A Venture's own figures are the Owner's to set",
-      reason: "owner_only",
-    });
-  }
-  if (namesAny(input, WHAT_KEEP_AND_CULL_READ)) {
-    throw forbidden({
-      message:
-        "What the keep-or-sell figures and the culling list read is the Owner's to set",
-      reason: "owner_only",
-    });
-  }
-  if (namesAny(input, WHAT_RETURNS_READ)) {
-    throw forbidden({
-      message: "What the Returns page reads is the Owner's to set",
-      reason: "owner_only",
-    });
-  }
-  if (namesAny(input, WHEN_MONTHLY_COSTS_ARE_LOOKED_FOR)) {
-    throw forbidden({
-      message: "When a month's costs are looked for is the Owner's to set",
-      reason: "owner_only",
-    });
-  }
-  if (namesAny(input, HOW_LONG_RECEIVABLE_MAY_RUN)) {
-    throw forbidden({
-      message: "How long a buyer may owe is the Owner's to set",
-      reason: "owner_only",
-    });
-  }
-  if (namesAny(input, WHEN_A_MISSING_ANIMAL_IS_ASKED_ABOUT)) {
-    throw forbidden({
-      message: "When a missing animal is written off is the Owner's to set",
-      reason: "owner_only",
-    });
-  }
-  if (namesAny(input, THE_CHECKS_ON_THE_MANAGER)) {
-    throw forbidden({
-      message:
-        "What the Manager may book without the Owner, how long he may put his own work right, and when the Owner hears of late work are the Owner's to set",
-      reason: "owner_only",
-    });
-  }
-  if (namesAny(input, WHEN_A_SHORT_STORE_IS_TOLD)) {
-    throw forbidden({
-      message:
-        "When a short store, unaccounted milk, dearer feed or short cash is told is the Owner's to set",
+      message: `${named.join(", ")} ${named.length === 1 ? "is" : "are"} the Owner's to set`,
       reason: "owner_only",
     });
   }
@@ -880,72 +642,7 @@ export const farmRouter = {
           before: async (tx) =>
             (await tx.query.farm.findFirst({
               where: { id: context.farm.id },
-              columns: {
-                milkTolerancePercent: true,
-                feedTolerancePercent: true,
-                digestTimes: true,
-                quietFrom: true,
-                quietUntil: true,
-                escalationMinutes: true,
-                pinAutoLockMinutes: true,
-                staffCorrectionHours: true,
-                managerCorrectionDays: true,
-                registrationRenewalLeadDays: true,
-                expiryWarnDays: true,
-                fatteningTargetWeightKg: true,
-                readyLeadDays: true,
-                gainReadDays: true,
-                deshiGainPercent: true,
-                femaleGainPercent: true,
-                penGainPercent: true,
-                aiWindowStartHours: true,
-                aiWindowEndHours: true,
-                pregnancyCheckAfterDays: true,
-                gestationDays: true,
-                dryOffLeadDays: true,
-                calvingPrepLeadDays: true,
-                repeatBreederThreshold: true,
-                keepReadDays: true,
-                keepAheadDays: true,
-                keepNeedsDays: true,
-                keepRateGapDays: true,
-                cullOpenDays: true,
-                cullMilkAfterDays: true,
-                cullCalfMilkDays: true,
-                cullMilkPriceDays: true,
-                returnYearFloorDays: true,
-                approvalThresholdMoney: true,
-                monthlyCostsFromDay: true,
-                receivableDays: true,
-                storeShortfallTellMoney: true,
-                soresTellAnimals: true,
-                soresTellHours: true,
-                illAgainDiagnoses: true,
-                illAgainDays: true,
-                heatWatchAfterCalvingDays: true,
-                firstServiceMonths: true,
-                deshiFirstServiceMonths: true,
-                milkDropPercent: true,
-                milkDropDays: true,
-                milkUnaccountedPercent: true,
-                missingWriteOffDays: true,
-                feedPriceJumpPercent: true,
-                arrivalShortPercent: true,
-                shrinkTellPercent: true,
-                feedDaysLow: true,
-                putOffDays: true,
-                cashShortTellMoney: true,
-                medicineShortTellMoney: true,
-                ventureFloorPercent: true,
-                ventureRunningPercent: true,
-                ventureInvestorsPercent: true,
-                windUpDays: true,
-                priceWeighInDays: true,
-                adjustmentThresholdMoney: true,
-                investorCap: true,
-                investorWarnAt: true,
-                runningBudgetWarnMoney: true,
-              },
+              columns: PARAMETER_COLUMNS,
             })) ?? null,
           after: () =>
             Promise.resolve({

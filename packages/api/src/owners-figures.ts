@@ -1,38 +1,10 @@
+import type { OwnersAloneToRead } from "@OpenFarm/domain";
+import { parametersOwnersAloneRead } from "@OpenFarm/domain";
+
 // The Farm's settings that are the Owner's alone to read, not only to set: what a Venture is planned by, what the Owner
 // judges a kilo fetches, and the lines past which the Manager's counts are told to the Owner. A Manager who knew how
 // short the cash may be before the Owner hears could stay under it. Read by every door the farm's settings leave by —
 // `farm.current` and the audit trail — so none of them is opened without the others.
-
-/** The Parameters a Venture is planned and watched by, which are the Owner's to set as the Venture is
- *  hers. The rest are the running of the farm, which the Manager keeps. */
-export const A_VENTURES_OWN = [
-  "ventureFloorPercent",
-  "ventureRunningPercent",
-  "ventureInvestorsPercent",
-  "windUpDays",
-  "priceWeighInDays",
-  "adjustmentThresholdMoney",
-  "investorCap",
-  "investorWarnAt",
-  "runningBudgetWarnMoney",
-] as const;
-
-/** When a count's shortfall is told: the Owner's to set, as the count is the one check on the Manager's feed. */
-export const WHEN_A_SHORT_STORE_IS_TOLD = [
-  "storeShortfallTellMoney",
-  // Milk nobody can account for is checked on the Manager, as the store is.
-  "milkUnaccountedPercent",
-  // And what the Manager paid for the feed.
-  "feedPriceJumpPercent",
-  // And the weight the Manager bought a bull at.
-  "arrivalShortPercent",
-  // And the weight he sold one at.
-  "shrinkTellPercent",
-  // And the cash in the Manager's hand.
-  "cashShortTellMoney",
-  // And the medicine the Manager buys and counts.
-  "medicineShortTellMoney",
-] as const;
 
 /** What the Owner judges a kilo of live weight fetches: what `fattening.prices` keeps the Owner's. */
 const THE_MARKET_PRICE = [
@@ -41,14 +13,16 @@ const THE_MARKET_PRICE = [
   "marketPriceSetAt",
 ] as const;
 
-/** Every one of the Farm's settings that is the Owner's alone to read. */
-export const THE_OWNERS_FIGURES = [
-  ...A_VENTURES_OWN,
-  ...WHEN_A_SHORT_STORE_IS_TOLD,
-  ...THE_MARKET_PRICE,
-] as const;
+export type OwnersFigure =
+  | OwnersAloneToRead
+  | (typeof THE_MARKET_PRICE)[number];
 
-export type OwnersFigure = (typeof THE_OWNERS_FIGURES)[number];
+/** Every one of the Farm's settings that is the Owner's alone to read: the Parameters declared so (a Venture's own
+ *  figures, and the lines past which the Manager's counts are told), and the market price. */
+export const THE_OWNERS_FIGURES: readonly OwnersFigure[] = [
+  ...parametersOwnersAloneRead(),
+  ...THE_MARKET_PRICE,
+];
 
 const isTheOwners = (key: string): boolean =>
   (THE_OWNERS_FIGURES as readonly string[]).includes(key);

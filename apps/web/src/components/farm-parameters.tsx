@@ -1,9 +1,3 @@
-import {
-  FEWEST_CALF_MILK_DAYS,
-  FEWEST_KEEP_READ_DAYS,
-  fewestDaysBeforeMilkIsWeighed,
-} from "@OpenFarm/domain";
-import type { MessageKey } from "@OpenFarm/i18n";
 import { timeInDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -19,6 +13,8 @@ import { FarmShareNote } from "@/components/feed/farm-gains";
 import { useIsOwner } from "@/components/money";
 import { Section } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import type { FieldSpec, ParameterKey } from "@/lib/parameter-groups";
+import { PARAMETER_GROUPS, boundsOf } from "@/lib/parameter-groups";
 import {
   digestTimesOf,
   parameterFigure,
@@ -28,718 +24,7 @@ import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
-type NumberKey =
-  | "milkTolerancePercent"
-  | "feedTolerancePercent"
-  | "escalationMinutes"
-  | "pinAutoLockMinutes"
-  | "staffCorrectionHours"
-  | "managerCorrectionDays"
-  | "registrationRenewalLeadDays"
-  | "expiryWarnDays"
-  | "fatteningTargetWeightKg"
-  | "readyLeadDays"
-  | "gainReadDays"
-  | "deshiGainPercent"
-  | "femaleGainPercent"
-  | "penGainPercent"
-  | "aiWindowStartHours"
-  | "aiWindowEndHours"
-  | "pregnancyCheckAfterDays"
-  | "gestationDays"
-  | "dryOffLeadDays"
-  | "calvingPrepLeadDays"
-  | "repeatBreederThreshold"
-  | "keepReadDays"
-  | "keepAheadDays"
-  | "keepNeedsDays"
-  | "keepRateGapDays"
-  | "cullOpenDays"
-  | "cullMilkAfterDays"
-  | "cullCalfMilkDays"
-  | "cullMilkPriceDays"
-  | "returnYearFloorDays"
-  | "approvalThresholdMoney"
-  | "monthlyCostsFromDay"
-  | "receivableDays"
-  | "storeShortfallTellMoney"
-  | "soresTellAnimals"
-  | "soresTellHours"
-  | "illAgainDiagnoses"
-  | "illAgainDays"
-  | "heatWatchAfterCalvingDays"
-  | "firstServiceMonths"
-  | "deshiFirstServiceMonths"
-  | "milkDropPercent"
-  | "milkDropDays"
-  | "milkUnaccountedPercent"
-  | "missingWriteOffDays"
-  | "feedPriceJumpPercent"
-  | "arrivalShortPercent"
-  | "shrinkTellPercent"
-  | "feedDaysLow"
-  | "putOffDays"
-  | "cashShortTellMoney"
-  | "medicineShortTellMoney"
-  | "ventureFloorPercent"
-  | "ventureRunningPercent"
-  | "ventureInvestorsPercent"
-  | "windUpDays"
-  | "priceWeighInDays"
-  | "adjustmentThresholdMoney"
-  | "investorCap"
-  | "investorWarnAt"
-  | "runningBudgetWarnMoney";
-type TextKey = "digestTimes" | "quietFrom" | "quietUntil";
-type Key = NumberKey | TextKey;
-
-interface FieldSpec {
-  key: Key;
-  label: MessageKey;
-  unit?: MessageKey;
-  min?: number;
-  max?: number;
-  time?: boolean;
-  /** What the farm's own animals say of this share, beneath it. */
-  farmsOwn?: "deshi" | "female";
-}
-
-/** The Parameters in the groups a Manager thinks of them in, each with what it is for and the bounds the farm will
- *  accept. */
-const GROUPS: {
-  id: string;
-  title: MessageKey;
-  hint: MessageKey;
-  /** A group only the Owner is offered: a Venture's figures are hers, as the Venture is. */
-  owner?: boolean;
-  /** A group whose figures the Standards and sources page explains, linked beneath what it is for. */
-  sourced?: boolean;
-  fields: FieldSpec[];
-}[] = [
-  {
-    id: "params-alerts",
-    title: "params.alerts",
-    hint: "params.alertsHint",
-    fields: [
-      { key: "digestTimes", label: "params.digestTimes" },
-      { key: "quietFrom", label: "params.quietFrom", time: true },
-      { key: "quietUntil", label: "params.quietUntil", time: true },
-      {
-        key: "expiryWarnDays",
-        label: "params.expiryWarn",
-        unit: "params.days",
-        min: 1,
-        max: 365,
-      },
-    ],
-  },
-  {
-    id: "params-records",
-    title: "params.records",
-    hint: "params.recordsHint",
-    fields: [
-      {
-        key: "milkTolerancePercent",
-        label: "params.milkTolerance",
-        unit: "params.percent",
-        min: 0,
-        max: 100,
-      },
-      {
-        key: "feedTolerancePercent",
-        label: "params.feedTolerance",
-        unit: "params.percent",
-        min: 0,
-        max: 100,
-      },
-      {
-        key: "pinAutoLockMinutes",
-        label: "params.pinAutoLock",
-        unit: "params.minutes",
-        min: 1,
-        max: 60,
-      },
-      {
-        key: "staffCorrectionHours",
-        label: "params.staffCorrection",
-        unit: "params.hours",
-        min: 0,
-        max: 168,
-      },
-    ],
-  },
-  {
-    id: "params-checks",
-    title: "params.checks",
-    hint: "params.checksHint",
-    // The checks on the Manager himself are the Owner's to set (the Owner's decision of 2026-10-04).
-    owner: true,
-    fields: [
-      {
-        key: "escalationMinutes",
-        label: "params.escalation",
-        unit: "params.minutes",
-        min: 0,
-        max: 1440,
-      },
-      {
-        key: "managerCorrectionDays",
-        label: "params.managerCorrection",
-        unit: "params.days",
-        min: 0,
-        max: 365,
-      },
-      {
-        key: "approvalThresholdMoney",
-        label: "params.approvalThreshold",
-        unit: "params.money",
-        min: 0,
-        max: 100_000_000,
-      },
-    ],
-  },
-  {
-    id: "params-keep-and-cull",
-    title: "params.keepAndCull",
-    hint: "params.keepAndCullHint",
-    owner: true,
-    fields: [
-      {
-        key: "keepReadDays",
-        label: "params.keepReadDays",
-        unit: "params.days",
-        min: FEWEST_KEEP_READ_DAYS,
-        max: 90,
-      },
-      {
-        key: "keepAheadDays",
-        label: "params.keepAheadDays",
-        unit: "params.days",
-        min: 7,
-        max: 90,
-      },
-      {
-        key: "keepNeedsDays",
-        label: "params.keepNeedsDays",
-        unit: "params.days",
-        min: 1,
-        max: 28,
-      },
-      {
-        key: "keepRateGapDays",
-        label: "params.keepRateGapDays",
-        unit: "params.days",
-        min: 1,
-        max: 28,
-      },
-      {
-        key: "cullOpenDays",
-        label: "params.cullOpenDays",
-        unit: "params.days",
-        min: 60,
-        max: 365,
-      },
-      {
-        key: "cullMilkAfterDays",
-        label: "params.cullMilkAfterDays",
-        unit: "params.days",
-        // The server holds it a week past the days this farm reads a keep over; this is only the soonest any farm may
-        // have.
-        min: fewestDaysBeforeMilkIsWeighed(
-          FEWEST_KEEP_READ_DAYS,
-          FEWEST_CALF_MILK_DAYS
-        ),
-        max: 180,
-      },
-      {
-        key: "cullCalfMilkDays",
-        label: "params.cullCalfMilkDays",
-        unit: "params.days",
-        min: FEWEST_CALF_MILK_DAYS,
-        max: 30,
-      },
-      {
-        key: "cullMilkPriceDays",
-        label: "params.cullMilkPriceDays",
-        unit: "params.days",
-        min: 7,
-        max: 365,
-      },
-    ],
-  },
-  {
-    id: "params-monthly-costs",
-    title: "params.monthlyCosts",
-    hint: "params.monthlyCostsHint",
-    owner: true,
-    fields: [
-      {
-        key: "monthlyCostsFromDay",
-        label: "params.monthlyCostsFromDay",
-        // The 28th is the last day every month has.
-        min: 1,
-        max: 28,
-      },
-    ],
-  },
-  {
-    id: "params-receivable",
-    title: "params.receivable",
-    hint: "params.receivableHint",
-    owner: true,
-    fields: [
-      {
-        key: "receivableDays",
-        label: "params.receivableDays",
-        unit: "params.days",
-        min: 7,
-        max: 120,
-      },
-    ],
-  },
-  {
-    id: "params-sores",
-    title: "params.sores",
-    hint: "params.soresHint",
-    fields: [
-      {
-        key: "soresTellAnimals",
-        label: "params.soresTellAnimals",
-        unit: "params.animals",
-        min: 2,
-        max: 20,
-      },
-      {
-        key: "soresTellHours",
-        label: "params.soresTellHours",
-        unit: "params.hours",
-        min: 12,
-        max: 168,
-      },
-    ],
-  },
-  {
-    id: "params-heat-watch",
-    title: "params.heatWatch",
-    hint: "params.heatWatchHint",
-    fields: [
-      {
-        key: "heatWatchAfterCalvingDays",
-        label: "params.heatWatchAfterCalvingDays",
-        unit: "params.days",
-        min: 30,
-        max: 150,
-      },
-      {
-        key: "firstServiceMonths",
-        label: "params.firstServiceMonths",
-        unit: "params.months",
-        min: 10,
-        max: 36,
-      },
-      {
-        key: "deshiFirstServiceMonths",
-        label: "params.deshiFirstServiceMonths",
-        unit: "params.months",
-        min: 12,
-        max: 48,
-      },
-    ],
-  },
-  {
-    id: "params-milk-drop",
-    title: "params.milkDrop",
-    hint: "params.milkDropHint",
-    fields: [
-      {
-        key: "milkDropPercent",
-        label: "params.milkDropPercent",
-        unit: "params.percent",
-        min: 5,
-        max: 80,
-      },
-      {
-        key: "milkDropDays",
-        label: "params.milkDropDays",
-        unit: "params.days",
-        min: 1,
-        max: 5,
-      },
-    ],
-  },
-  {
-    id: "params-milk-unaccounted",
-    title: "params.milkUnaccounted",
-    hint: "params.milkUnaccountedHint",
-    owner: true,
-    fields: [
-      {
-        key: "milkUnaccountedPercent",
-        label: "params.milkUnaccountedPercent",
-        unit: "params.percent",
-        min: 1,
-        max: 50,
-      },
-    ],
-  },
-  {
-    id: "params-cash-short",
-    title: "params.cashShort",
-    hint: "params.cashShortHint",
-    owner: true,
-    fields: [
-      {
-        key: "cashShortTellMoney",
-        label: "params.cashShortTellMoney",
-        unit: "params.money",
-        min: 0,
-        max: 1_000_000,
-      },
-    ],
-  },
-  {
-    id: "params-medicine-short",
-    title: "params.medicineShort",
-    hint: "params.medicineShortHint",
-    owner: true,
-    fields: [
-      {
-        key: "medicineShortTellMoney",
-        label: "params.medicineShortTellMoney",
-        unit: "params.money",
-        min: 0,
-        max: 1_000_000,
-      },
-    ],
-  },
-  {
-    id: "params-feed-days",
-    title: "params.feedDays",
-    hint: "params.feedDaysHint",
-    fields: [
-      {
-        key: "feedDaysLow",
-        label: "params.feedDaysLow",
-        unit: "params.days",
-        min: 1,
-        max: 60,
-      },
-    ],
-  },
-  {
-    id: "params-put-off",
-    title: "params.putOff",
-    hint: "params.putOffHint",
-    fields: [
-      {
-        key: "putOffDays",
-        label: "params.putOffDays",
-        unit: "params.days",
-        min: 1,
-        max: 60,
-      },
-    ],
-  },
-  {
-    id: "params-feed-price",
-    title: "params.feedPrice",
-    hint: "params.feedPriceHint",
-    owner: true,
-    fields: [
-      {
-        key: "feedPriceJumpPercent",
-        label: "params.feedPriceJumpPercent",
-        unit: "params.percent",
-        min: 1,
-        max: 100,
-      },
-    ],
-  },
-  {
-    id: "params-arrival-short",
-    title: "params.arrivalShort",
-    hint: "params.arrivalShortHint",
-    owner: true,
-    fields: [
-      {
-        key: "arrivalShortPercent",
-        label: "params.arrivalShortPercent",
-        unit: "params.percent",
-        min: 1,
-        max: 50,
-      },
-    ],
-  },
-  {
-    id: "params-shrink",
-    title: "params.shrink",
-    hint: "params.shrinkHint",
-    owner: true,
-    fields: [
-      {
-        key: "shrinkTellPercent",
-        label: "params.shrinkTellPercent",
-        unit: "params.percent",
-        min: 1,
-        max: 30,
-      },
-    ],
-  },
-  {
-    id: "params-missing",
-    title: "params.missing",
-    hint: "params.missingHint",
-    owner: true,
-    fields: [
-      {
-        key: "missingWriteOffDays",
-        label: "params.missingWriteOffDays",
-        unit: "params.days",
-        min: 1,
-        max: 90,
-      },
-    ],
-  },
-  {
-    id: "params-ill-again",
-    title: "params.illAgain",
-    hint: "params.illAgainHint",
-    fields: [
-      {
-        key: "illAgainDiagnoses",
-        label: "params.illAgainDiagnoses",
-        unit: "params.diagnoses",
-        min: 2,
-        max: 20,
-      },
-      {
-        key: "illAgainDays",
-        label: "params.illAgainDays",
-        unit: "params.days",
-        min: 30,
-        max: 730,
-      },
-    ],
-  },
-  {
-    id: "params-store-shortfall",
-    title: "params.storeShortfall",
-    hint: "params.storeShortfallHint",
-    owner: true,
-    fields: [
-      {
-        key: "storeShortfallTellMoney",
-        label: "params.storeShortfallTellMoney",
-        unit: "params.money",
-        min: 0,
-        max: 1_000_000,
-      },
-    ],
-  },
-  {
-    id: "params-returns",
-    title: "params.returns",
-    hint: "params.returnsHint",
-    owner: true,
-    fields: [
-      {
-        key: "returnYearFloorDays",
-        label: "params.returnYearFloorDays",
-        unit: "params.days",
-        min: 1,
-        max: 365,
-      },
-    ],
-  },
-  {
-    id: "params-ventures",
-    title: "params.ventures",
-    hint: "params.venturesHint",
-    owner: true,
-    fields: [
-      {
-        key: "ventureFloorPercent",
-        label: "params.ventureFloor",
-        unit: "params.percent",
-        min: 0,
-        max: 100,
-      },
-      {
-        key: "ventureRunningPercent",
-        label: "params.ventureRunning",
-        unit: "params.percent",
-        min: 0,
-        max: 90,
-      },
-      {
-        key: "ventureInvestorsPercent",
-        label: "params.ventureInvestors",
-        unit: "params.percent",
-        min: 0,
-        max: 100,
-      },
-      {
-        key: "windUpDays",
-        label: "params.windUp",
-        unit: "params.days",
-        min: 0,
-        max: 180,
-      },
-      {
-        key: "priceWeighInDays",
-        label: "params.priceWeighIn",
-        unit: "params.days",
-        min: 1,
-        max: 60,
-      },
-      {
-        key: "adjustmentThresholdMoney",
-        label: "params.adjustmentThreshold",
-        unit: "params.money",
-        min: 0,
-        max: 1_000_000,
-      },
-      {
-        key: "investorCap",
-        label: "params.investorCap",
-        unit: "params.people",
-        min: 1,
-        max: 50,
-      },
-      {
-        key: "investorWarnAt",
-        label: "params.investorWarnAt",
-        unit: "params.people",
-        min: 1,
-        max: 50,
-      },
-      {
-        key: "runningBudgetWarnMoney",
-        label: "params.runningBudgetWarn",
-        unit: "params.money",
-        min: 0,
-        max: 100_000_000,
-      },
-    ],
-  },
-  {
-    id: "params-breeding",
-    title: "params.breeding",
-    hint: "params.breedingHint",
-    fields: [
-      {
-        key: "aiWindowStartHours",
-        label: "params.aiWindowStart",
-        unit: "params.hours",
-        min: 0,
-        max: 72,
-      },
-      {
-        key: "aiWindowEndHours",
-        label: "params.aiWindowEnd",
-        unit: "params.hours",
-        min: 1,
-        max: 96,
-      },
-      {
-        key: "pregnancyCheckAfterDays",
-        label: "params.pregnancyCheck",
-        unit: "params.days",
-        min: 28,
-        max: 90,
-      },
-      {
-        key: "gestationDays",
-        label: "params.gestation",
-        unit: "params.days",
-        min: 260,
-        max: 300,
-      },
-      {
-        key: "dryOffLeadDays",
-        label: "params.dryOffLead",
-        unit: "params.days",
-        min: 30,
-        max: 90,
-      },
-      {
-        key: "calvingPrepLeadDays",
-        label: "params.calvingPrepLead",
-        unit: "params.days",
-        min: 1,
-        max: 30,
-      },
-      {
-        key: "repeatBreederThreshold",
-        label: "params.repeatBreeder",
-        unit: "params.attempts",
-        min: 2,
-        max: 10,
-      },
-    ],
-  },
-  {
-    id: "params-fattening",
-    title: "params.fatteningAndPapers",
-    hint: "params.fatteningAndPapersHint",
-    sourced: true,
-    fields: [
-      {
-        key: "fatteningTargetWeightKg",
-        label: "params.fatteningTarget",
-        unit: "params.kg",
-        min: 1,
-        max: 2000,
-      },
-      {
-        key: "readyLeadDays",
-        label: "params.readyLeadDays",
-        unit: "params.days",
-        min: 0,
-        max: 60,
-      },
-      {
-        key: "gainReadDays",
-        label: "params.gainReadDays",
-        unit: "params.days",
-        min: 14,
-        max: 90,
-      },
-      {
-        key: "deshiGainPercent",
-        label: "params.deshiGainPercent",
-        unit: "params.percent",
-        min: 30,
-        max: 100,
-        farmsOwn: "deshi",
-      },
-      {
-        key: "femaleGainPercent",
-        label: "params.femaleGainPercent",
-        unit: "params.percent",
-        min: 30,
-        max: 100,
-        farmsOwn: "female",
-      },
-      {
-        key: "penGainPercent",
-        label: "params.penGainPercent",
-        unit: "params.percent",
-        min: 50,
-        max: 95,
-      },
-      {
-        key: "registrationRenewalLeadDays",
-        label: "params.renewalLead",
-        unit: "params.days",
-        min: 0,
-        max: 365,
-      },
-    ],
-  },
-];
-
-type Values = Record<Key, string>;
+type Values = Record<ParameterKey, string>;
 /** What has been typed into a group so far: only the fields somebody touched. */
 type Draft = Partial<Values>;
 
@@ -757,7 +42,7 @@ const asText = (value: unknown): string => {
 /** Only what was changed goes to the farm, so saving one number never rewrites the rest. */
 const changesOf = (draft: Draft, saved: Values): Record<string, unknown> => {
   const changes: Record<string, unknown> = {};
-  for (const key of Object.keys(draft) as Key[]) {
+  for (const key of Object.keys(draft) as ParameterKey[]) {
     const typed = draft[key] ?? "";
     if (typed.trim() === saved[key].trim()) {
       continue;
@@ -785,7 +70,11 @@ const FieldRange = ({
   problem: "notAWholeFigure" | "outOfRange" | null;
 }) => {
   const t = useT();
-  const range = t("params.range", { min: field.min ?? 0, max: field.max ?? 0 });
+  const bounds = boundsOf(field.key);
+  const range = t("params.range", {
+    min: bounds?.min ?? 0,
+    max: bounds?.max ?? 0,
+  });
   if (problem === null) {
     return (
       <p className="text-muted-foreground text-xs" id={id}>
@@ -862,20 +151,12 @@ export const SettingsSection = ({
   );
 };
 
-/** The parts of the Parameters, for a page that lists what is on it — and which are the Owner's, so the list does not
- *  offer the Manager a jump to a part that is not drawn for them. */
-export const PARAMETER_SECTIONS = GROUPS.map(({ id, title, owner }) => ({
-  id,
-  title,
-  owner: owner ?? false,
-}));
-
 /** One group of Parameters, saved on its own: only what was changed in it goes to the farm. */
 const ParameterGroup = ({
   group,
   saved,
 }: {
-  group: (typeof GROUPS)[number];
+  group: (typeof PARAMETER_GROUPS)[number];
   saved: Values;
 }) => {
   const { t, language } = useLanguage();
@@ -895,7 +176,7 @@ const ParameterGroup = ({
   // What is wrong with a figure typed, said under its box: saved only once every one the farm would refuse is right.
   const problemOf = (field: FieldSpec) =>
     field.unit && values[field.key] !== undefined
-      ? parameterProblem(values[field.key] ?? "", field)
+      ? parameterProblem(values[field.key] ?? "", boundsOf(field.key) ?? {})
       : null;
   const allRight = group.fields.every((field) => problemOf(field) === null);
   const changed = Object.keys(changes).length > 0 && allRight;
@@ -984,9 +265,9 @@ export const FarmParameters = () => {
   if (!farm.data) {
     return null;
   }
-  const record = farm.data as unknown as Record<Key, unknown>;
+  const record = farm.data as unknown as Record<ParameterKey, unknown>;
   const saved = Object.fromEntries(
-    GROUPS.flatMap((group) => group.fields).map((field) => [
+    PARAMETER_GROUPS.flatMap((group) => group.fields).map((field) => [
       field.key,
       asText(record[field.key]),
     ])
@@ -1004,9 +285,11 @@ export const FarmParameters = () => {
         </h2>
         <p className="text-muted-foreground text-sm">{t("params.why")}</p>
       </div>
-      {GROUPS.filter((group) => !group.owner || isOwner).map((group) => (
-        <ParameterGroup group={group} key={group.id} saved={saved} />
-      ))}
+      {PARAMETER_GROUPS.filter((group) => !group.owner || isOwner).map(
+        (group) => (
+          <ParameterGroup group={group} key={group.id} saved={saved} />
+        )
+      )}
     </div>
   );
 };
