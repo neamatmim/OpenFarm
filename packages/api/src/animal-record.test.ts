@@ -36,9 +36,10 @@ let world: {
 beforeAll(async () => {
   const owner = await as("owner", AT);
   const shed = await owner.sheds.create({ name: `রেকর্ড ${suffix}` });
-  const pen = async (name: string) => {
+  // A quarantine pen holds no dairy animal: the cows' pens are plain ones.
+  const pen = async (name: string, quarantine = true) => {
     const made = await owner.sheds.pens.create({
-      quarantine: true,
+      quarantine,
       shedId: shed.id,
       name: `${name} ${suffix}`,
     });
@@ -47,8 +48,8 @@ beforeAll(async () => {
   world = {
     quarantine: await pen("কোয়ারেন্টিন"),
     fattening: await pen("মোটাতাজা"),
-    dairy: await pen("দুধ ক"),
-    otherDairy: await pen("দুধ খ"),
+    dairy: await pen("দুধ ক", false),
+    otherDairy: await pen("দুধ খ", false),
   };
 });
 

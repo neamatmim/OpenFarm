@@ -304,21 +304,29 @@ export const assertAQuarantinePen = async (
 /**
  * An animal in Quarantine is walked only into a quarantine pen, whichever way the Move comes: by hand, by a phone's late
  * Batch, or by a Step. The Release walks him out once he is Fattening, so it is never refused; nor is a bull standing
- * outside one from before pens were marked, walked in.
+ * outside one from before pens were marked, walked in. And no dairy animal is walked into one: a herd cow would stand
+ * among bulls just bought from the haat (the Owner, 2026-10-07). A Fattening bull may go back in — the isolation pen,
+ * where a sick one is kept apart, is a quarantine pen too.
  */
 export const assertQuarantineStaysIn = async (
   tx: Pick<Tx, "query">,
   farmId: string,
-  beast: { state: AnimalState },
+  beast: { state: AnimalState; side: Side },
   toPenId: string
 ): Promise<void> => {
-  if (beast.state !== "quarantine") {
-    return;
-  }
   const into = await tx.query.pen.findFirst({
     where: { id: toPenId, farmId },
     columns: { quarantine: true },
   });
+  if (beast.state !== "quarantine") {
+    if (into?.quarantine && beast.side === "dairy") {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "A quarantine pen is no place for the dairy herd",
+        data: { refusal: "quarantine_pen_not_for_herd" },
+      });
+    }
+    return;
+  }
   if (!into?.quarantine) {
     throw new ORPCError("BAD_REQUEST", {
       message:
@@ -569,7 +577,13 @@ export const walkTo = async (
 ): Promise<void> => {
   const { beast } = entry;
   refuseOnceSheHasLeft(beast);
-  await assertQuarantineStaysIn(tx, entry.farmId, beast, entry.toPenId);
+  // Judged by the Side she lands on: a cow crossing to Fattening is no longer the dairy herd.
+  await assertQuarantineStaysIn(
+    tx,
+    entry.farmId,
+    { ...beast, side: entry.toSide ?? beast.side },
+    entry.toPenId
+  );
   // Somebody walked her somewhere after this Move was made — a phone held it out of signal, or the Step was recorded
   // late. Walking her now would put her back where she has since left, so it is late, and a person decides.
   if (

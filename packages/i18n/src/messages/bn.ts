@@ -1688,6 +1688,8 @@ export const bn: Record<MessageKey, string> = {
     "বিকাশ বা ব্যাংকের লেনদেনের ট্রানজ্যাকশন আইডি বা রেফারেন্স লিখুন",
   "refusal.referenceUsedAlready": "এই ট্রানজ্যাকশন আইডি এই হিসাবে আগেই লেখা হয়েছে",
   "refusal.farmAccountListedAlready": "এই নম্বরটি আগেই তালিকায় আছে",
+  "refusal.farmAccountRetiredAlready":
+    "এই নম্বরটি তালিকায় আছে, বন্ধ করা অবস্থায়। নতুন না লিখে আবার চালু করুন",
   "refusal.beforeTheFirstReading":
     "এই মাসটি এই হিসাবের প্রথম স্টেটমেন্ট মেলানোর আগের",
   "refusal.alreadyDeposited": "এই বিক্রির {currencySum} আগেই জমা হয়েছে",
@@ -1721,6 +1723,16 @@ export const bn: Record<MessageKey, string> = {
     "এই পেনে কোয়ারেন্টিনের পশু আছে — আগে তাকে ছাড়ুন বা সরান",
   "refusal.staysInQuarantine":
     "কোয়ারেন্টিনের পশু ছাড়া না হওয়া পর্যন্ত কোয়ারেন্টিন পেনেই থাকে",
+  "refusal.penHoldsHerd": "দুধের পালের {tagNumber} এই পেনে আছে — আগে তাকে সরান",
+  "refusal.shedNameTaken": "খামারে এই নামে আগেই একটি শেড আছে",
+  "refusal.notATimeOfDay": '"{time}" দিনের কোনো সময় নয়',
+  "refusal.investorWarningAfterCap": "বিনিয়োগকারীর সতর্কতা সীমার আগে আসবে, পরে নয়",
+  "refusal.aiWindowBackwards": "কৃত্রিম প্রজননের সময় শুরু হওয়ার পরেই শেষ হতে হবে",
+  "refusal.aiWindowTooLong": "কৃত্রিম প্রজননের সময় এক দিনের বেশি হতে পারে না",
+  "refusal.quietHoursSame":
+    "যে নীরব সময় যখন শুরু তখনই শেষ, তা নীরব সময় নয়। দুটি আলাদা সময় দিন",
+  "refusal.penNameTaken": "এই শেডে এই নামে আগেই একটি পেন আছে",
+  "refusal.quarantinePenNotForHerd": "কোয়ারেন্টিন পেনে দুধের পালের পশু রাখা যায় না",
   "refusal.arrivalDoseOwed":
     "{doses} এখনো দেওয়া বাকি — দেওয়া হলে, বা ভেট দরকার নেই লিখলে, তবেই কোয়ারেন্টিন থেকে ছাড়া যাবে",
   "refusal.doseNotOwed": "এই ডোজ তার বাকি নেই",
@@ -2558,6 +2570,7 @@ export const bn: Record<MessageKey, string> = {
     "{value} অন্য বিভাগের নম্বর — দুগ্ধের নম্বর D- দিয়ে, মোটাতাজাকরণের F- দিয়ে শুরু",
   "herd.row.notATagNumber": "«{value}» ট্যাগ নম্বর নয় — D-0001 এর মতো লিখুন",
   "herd.row.registerNotTaken": "খামার এই সারিটি নিতে পারেনি",
+  "herd.row.penInTwoSheds": "দুটি শেডে এই নামে পেন আছে: শেড/পেন লিখুন",
   "herd.warnedRows": "{count}টি পশু যোগ হয়েছে, কিন্তু খামারের দরকারি কিছু নেই",
   "herd.row.registerNoCalvingDate":
     "{tag} যোগ হয়েছে, কিন্তু calved_at নেই — কত দিন দুধ দিচ্ছে বলা যাবে না",
@@ -3391,6 +3404,11 @@ export const bn: Record<MessageKey, string> = {
   "farmAccounts.retire": "বন্ধ করুন",
   "farmAccounts.retired": "বন্ধ",
   "farmAccounts.retiredDone": "হিসাবটি বন্ধ করা হয়েছে",
+  "farmAccounts.retireTitle": "{name} বন্ধ করবেন?",
+  "farmAccounts.retireWhy":
+    "এতে নতুন কোনো টাকা লেখা যাবে না। আগে লেখা টাকায় এর নাম থাকবে, আর পরে আবার চালু করা যাবে।",
+  "farmAccounts.bringBack": "আবার চালু করুন",
+  "farmAccounts.broughtBack": "হিসাবটি আবার চালু হয়েছে",
   "farmAccounts.readHint": "মাসের শেষ দিনে স্টেটমেন্টে যে ব্যালান্স ছিল",
   "farmAccounts.outOnHome": "স্টেটমেন্টের সাথে মেলেনি",
   "farmAccounts.check": "স্টেটমেন্ট মেলান",

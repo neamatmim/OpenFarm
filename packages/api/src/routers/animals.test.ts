@@ -18,14 +18,15 @@ const setup = async () => {
     const created = await owner.client.sheds.create({ name: "শেড A" });
     shedId = created.id;
   }
-  const named = async (name: string) => {
+  // A quarantine pen holds no dairy animal: the dairy and the Staff member's pens are plain ones.
+  const named = async (name: string, quarantine: boolean) => {
     const all = await owner.client.sheds.list();
     const found = all.flatMap((s) => s.pens).find((p) => p.name === name);
     if (found) {
       return found.id;
     }
     const created = await owner.client.sheds.pens.create({
-      quarantine: true,
+      quarantine,
       shedId,
       name,
     });
@@ -33,9 +34,9 @@ const setup = async () => {
   };
   return {
     owner,
-    dairyPen: await named("পেন ১"),
-    fatteningPen: await named("পেন ২"),
-    staffPen: await named("পেন ৩"),
+    dairyPen: await named("পেন ১", false),
+    fatteningPen: await named("পেন ২", true),
+    staffPen: await named("পেন ৩", false),
   };
 };
 
@@ -395,6 +396,33 @@ describe("the opening register", () => {
     });
     expect(detail.aliases).toEqual(["লালি", "7"]);
     expect(detail.breed?.nameEn).toBe("Sahiwal");
+  });
+
+  it("asks for shed/pen where two Sheds each have a Pen by the name the row gives, rather than guessing", async () => {
+    const owner = pens.owner.client;
+    const stamp = Date.now();
+    const north = await owner.sheds.create({ name: `উত্তর ${stamp}` });
+    const south = await owner.sheds.create({ name: `দক্ষিণ ${stamp}` });
+    const both = `পেন এক ${stamp}`;
+    await owner.sheds.pens.create({ shedId: north.id, name: both });
+    const southPen = await owner.sheds.pens.create({
+      shedId: south.id,
+      name: both,
+    });
+    const csv = [
+      "sex,side,state,pen,source",
+      `female,dairy,heifer,${both},born`,
+      `female,dairy,heifer,দক্ষিণ ${stamp}/${both},born`,
+    ].join("\n");
+
+    const result = await owner.animals.importRegister({ csv });
+
+    expect(result.failed).toMatchObject([
+      { line: 2, refusal: "pen_in_two_sheds", column: "pen" },
+    ]);
+    const [placed] = result.imported;
+    const her = await owner.animals.get({ tagNumber: placed?.tagNumber ?? "" });
+    expect(her.penId).toBe(southPen.id);
   });
 
   it("keeps the number already written on her ear tag, and the next animal is numbered after it", async () => {

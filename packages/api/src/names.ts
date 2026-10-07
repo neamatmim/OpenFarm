@@ -5,8 +5,17 @@ interface Named {
   nameEn: string | null;
 }
 
-/** A name as two spellings of it are compared: trimmed, whatever the capitals. */
-const said = (name: string) => name.trim().toLowerCase();
+/** Any run of spaces, as one. */
+const SPACES = /\s+/gu;
+
+/** A name as two spellings of it are compared: in one Unicode form — ড় or য় typed as one letter or as the letter and its
+ *  nukta, as two Bangla keyboards do, is one name — with its spaces as one, trimmed, whatever the capitals. */
+const said = (name: string) =>
+  name.normalize("NFC").replace(SPACES, " ").trim().toLowerCase();
+
+/** Whether two names are one name, as the farm compares them. */
+export const sameName = (one: string, other: string): boolean =>
+  said(one) === said(other);
 
 /** An entry's names, as they are compared. */
 export const namesOf = (one: Pick<Named, "nameBn" | "nameEn">): string[] =>

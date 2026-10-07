@@ -11,6 +11,7 @@ import {
   roundMoney,
   startOfFarmDay,
 } from "@OpenFarm/domain";
+import { latinDigitsOf } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -60,6 +61,14 @@ const ours = async (
   }
   return row;
 };
+
+/** What may stand between a number's digits as people write it down: spaces, dashes, dots. */
+const SEPARATORS = /[\s\-.]/gu;
+
+/** A number as the farm keeps and compares it: in English digits, with nothing between them — ০১৭৮৮-০০০৩৩৩ and
+ *  01788000333 are one bKash number, and a statement reads the second. */
+const oneNumber = (number: string): string =>
+  latinDigitsOf(number).replace(SEPARATORS, "").toUpperCase();
 
 /** A month before an account's first reading: there is nothing it could be read against. */
 const beforeTheFirstReading = () =>
@@ -129,18 +138,23 @@ export const farmAccountsRouter = {
           after: (tx) => readFarmAccount(tx, id),
         },
         async (tx) => {
-          const same = await tx.query.farmAccount.findFirst({
-            where: {
-              farmId: context.farm.id,
-              kind: input.kind,
-              number: input.number,
-            },
-            columns: { id: true },
+          // Compared as the farm keeps numbers, against every one already listed of its kind however it was typed then.
+          const number = oneNumber(input.number);
+          const listed = await tx.query.farmAccount.findMany({
+            where: { farmId: context.farm.id, kind: input.kind },
+            columns: { id: true, number: true, retiredAt: true },
           });
+          const same = listed.find((one) => oneNumber(one.number) === number);
           if (same) {
+            // A retired one is brought back rather than listed twice.
             throw new ORPCError("BAD_REQUEST", {
               message: "That number is listed already",
-              data: { refusal: "farm_account_listed_already" },
+              data: {
+                refusal: same.retiredAt
+                  ? "farm_account_retired_already"
+                  : "farm_account_listed_already",
+                id: same.id,
+              },
             });
           }
           await tx.insert(farmAccount).values({
@@ -148,7 +162,7 @@ export const farmAccountsRouter = {
             farmId: context.farm.id,
             kind: input.kind,
             name: input.name,
-            number: input.number,
+            number,
             bank: input.kind === "bank" ? (input.bank ?? null) : null,
             branch: input.kind === "bank" ? (input.branch ?? null) : null,
             createdBy: context.actor.id,
@@ -184,6 +198,41 @@ export const farmAccountsRouter = {
                 eq(farmAccount.farmId, context.farm.id)
               )
             );
+        }
+      );
+      return { id: input.id };
+    }),
+
+  /** A Farm Account retired by mistake, back on every money form: its number is the farm's still. */
+  bringBack: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      await audited(context).write(
+        {
+          entity: "farm_account",
+          entityId: input.id,
+          action: "update",
+          before: (tx) => readFarmAccount(tx, input.id),
+          after: (tx) => readFarmAccount(tx, input.id),
+        },
+        async (tx) => {
+          const [row] = await tx
+            .update(farmAccount)
+            .set({ retiredAt: null })
+            .where(
+              and(
+                eq(farmAccount.id, input.id),
+                eq(farmAccount.farmId, context.farm.id)
+              )
+            )
+            .returning({ id: farmAccount.id });
+          if (!row) {
+            throw new ORPCError("NOT_FOUND", {
+              message: "No such Farm Account",
+            });
+          }
         }
       );
       return { id: input.id };

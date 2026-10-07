@@ -90,16 +90,17 @@ const setup = async () => {
     await manager.client.farm.setIdentity({ registrationNumber: REGISTRATION });
   }
   const shed = await owner.client.sheds.create({ name: `r6-${suffix}` });
-  const pen = (name: string) =>
+  // A quarantine pen holds no dairy animal: the cows' pens are plain ones.
+  const pen = (name: string, quarantine = false) =>
     owner.client.sheds.pens.create({
-      quarantine: true,
+      quarantine,
       shedId: shed.id,
       name: `${name} ${suffix}`,
     });
   const pens = {
     calving: await pen("বাচ্চার ঘর"),
     dairy: await pen("গাভীর ঘর"),
-    fattening: await pen("মোটাতাজা"),
+    fattening: await pen("মোটাতাজা", true),
   };
   await createTestClient(appRouter, { as: "staff" });
   await scratchDb()

@@ -7,7 +7,7 @@ import { useState } from "react";
 
 import { useIsOwner } from "@/components/money";
 import { Section } from "@/components/page";
-import { FormField, NativeSelect } from "@/components/page-kit";
+import { ConfirmDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { BankCheckSheet } from "@/components/ventures/bank-check-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
@@ -188,10 +188,27 @@ export const FarmAccounts = ({ id }: { id: string }) => {
   const refused = useRefused();
   const queryClient = useQueryClient();
   const listed = useQuery(orpc.farmAccounts.list.queryOptions());
+  // Asked first: a retired account is offered for no new money, and the main bKash number retired by a stray tap stops
+  // every money form until it is brought back.
+  const [retiring, setRetiring] = useState<{ id: string; name: string } | null>(
+    null
+  );
   const retire = useMutation(
     orpc.farmAccounts.retire.mutationOptions({
       onSuccess: async () => {
         toast.success(t("farmAccounts.retiredDone"));
+        setRetiring(null);
+        await queryClient.invalidateQueries({
+          queryKey: orpc.farmAccounts.key(),
+        });
+      },
+      onError: refused,
+    })
+  );
+  const bringBack = useMutation(
+    orpc.farmAccounts.bringBack.mutationOptions({
+      onSuccess: async () => {
+        toast.success(t("farmAccounts.broughtBack"));
         await queryClient.invalidateQueries({
           queryKey: orpc.farmAccounts.key(),
         });
@@ -249,7 +266,7 @@ export const FarmAccounts = ({ id }: { id: string }) => {
                   </Button>
                   <Button
                     disabled={retire.isPending}
-                    onClick={() => retire.mutate({ id: one.id })}
+                    onClick={() => setRetiring({ id: one.id, name: one.name })}
                     size="sm"
                     variant="outline"
                   >
@@ -257,11 +274,38 @@ export const FarmAccounts = ({ id }: { id: string }) => {
                   </Button>
                 </div>
               ) : null}
+              {isOwner && one.retired ? (
+                <Button
+                  disabled={bringBack.isPending}
+                  onClick={() => bringBack.mutate({ id: one.id })}
+                  size="sm"
+                  variant="outline"
+                >
+                  {t("farmAccounts.bringBack")}
+                </Button>
+              ) : null}
             </li>
           ))}
         </ul>
       )}
       {isOwner ? <AddAccount /> : null}
+      <ConfirmDialog
+        confirmLabel={t("farmAccounts.retire")}
+        description={t("farmAccounts.retireWhy")}
+        onConfirm={() => {
+          if (retiring) {
+            retire.mutate({ id: retiring.id });
+          }
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRetiring(null);
+          }
+        }}
+        open={retiring !== null}
+        pending={retire.isPending}
+        title={t("farmAccounts.retireTitle", { name: retiring?.name ?? "" })}
+      />
       <BankCheckSheet
         farmAccount={checking}
         onOpenChange={(open) => {

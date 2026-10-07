@@ -239,6 +239,36 @@ describe("the buy-back at wind-up", () => {
     ]);
   });
 
+  it("keeps the Wind-up its Investors signed for when the Owner changes the farm's days, and a Venture nobody signed for takes the new", async () => {
+    const owner = await as("owner", "2047-05-09T04:00:00.000Z");
+    const unsigned = await owner.client.ventures.open({
+      name: `কেউ সই করেনি ${suffix}`,
+      ...plan,
+      decideBy: "2047-05-30",
+    });
+    await owner.client.farm.setParameters({ windUpDays: 5 });
+    try {
+      // Read afresh: the farm as the Owner has just set it.
+      const after = await as("owner", "2047-05-09T04:00:00.000Z");
+      const left = await after.client.ventures.whatIsLeft({ ventureId });
+      expect(left.windUpEndsOn).toBe("2047-05-19");
+      const signedFor = await theVenture(after);
+      expect(signedFor?.windUpEndsOn).toBe("2047-05-19");
+      // The buy-back still waits for the days the paper named, not the five the farm says now.
+      await expect(
+        after.client.ventures.buyWhatIsLeft({
+          ventureId,
+          boughtOn: "2047-05-09",
+          ...buying,
+        })
+      ).rejects.toMatchObject({ data: { refusal: "wind_up_not_over" } });
+      const nobodySigned = await theVenture(after, unsigned.id);
+      expect(nobodySigned?.windUpEndsOn).toBe("2047-04-24");
+    } finally {
+      await owner.client.farm.setParameters({ windUpDays: 30 });
+    }
+  });
+
   it("is refused while there are still days to sell in", async () => {
     const owner = await as("owner", "2047-05-10T04:00:00.000Z");
     // The tenth of May: the Wind-up Period runs to the nineteenth. It is the clock's act, not a way

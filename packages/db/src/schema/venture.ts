@@ -63,6 +63,10 @@ export const venture = pgTable(
     /** The period the Venture means to sell in; its Animals inherit it. */
     targetWindowStart: text("target_window_start").notNull(),
     targetWindowEnd: text("target_window_end").notNull(),
+    /** The days it keeps selling after its Target Window closes, as the farm's Parameter stood when its first Investor
+     *  signed: their Agreement names that many, and a later change to the Parameter moves no Venture already signed for.
+     *  Null until then, when the farm's figure stands. */
+    windUpDays: integer("wind_up_days"),
     /** What one Unit costs, and how many there are. An Investor holds whole Units. */
     unitPriceMoney: numericMoney("unit_price_money").notNull(),
     units: integer("units").notNull(),

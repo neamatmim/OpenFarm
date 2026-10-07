@@ -257,6 +257,9 @@ export const moneyEvent = pgTable(
      *  as its income or its cost. Everything recorded before Ventures existed is the Farm's. */
     purseVentureId: text("purse_venture_id").references(() => venture.id),
     approval: text("approval", { enum: MONEY_APPROVALS }).notNull(),
+    /** Waiting under the Approval Threshold on its own, because the week's other pieces to the same person took it
+     *  past the line in force when it was written. Kept, because a line moved since cannot say why it waits. */
+    awaitingInPieces: boolean("awaiting_in_pieces").notNull().default(false),
     approvedBy: text("approved_by").references(() => user.id),
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     recordedBy: text("recorded_by").references(() => user.id),

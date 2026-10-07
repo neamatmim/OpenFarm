@@ -119,17 +119,29 @@ describe("the farm's financial years", () => {
       reason: "Recorded before the law was passed",
     });
 
-    await owner.financialYears.recordChange({
-      changingFrom: "2027-07",
-      newFrom: "2028-04",
-      reason: LAW,
-    });
+    // Sent twice at once — a second tap on a slow signal: one change is recorded, and the other told it no longer fits.
+    const sent = await Promise.allSettled(
+      [1, 2].map(() =>
+        owner.financialYears.recordChange({
+          changingFrom: "2027-07",
+          newFrom: "2028-04",
+          reason: LAW,
+        })
+      )
+    );
+    expect(sent.map((one) => one.status).toSorted()).toEqual([
+      "fulfilled",
+      "rejected",
+    ]);
     const again = await owner.financialYears.list();
     expect(starts(again.ahead).slice(0, 3)).toEqual([
       "2026-07 12",
       "2027-07 9",
       "2028-04 12",
     ]);
+    expect(again.changes.filter((one) => one.withdrawn === null)).toHaveLength(
+      1
+    );
   });
 
   it("read the Transition Year in the monthly report, nine months so far", async () => {

@@ -7,6 +7,7 @@ import type { Tx } from "./audit";
 import { tell } from "./notice";
 import {
   signedForEach,
+  windUpDaysOf,
   windUpEndsOn,
   withWindowsInForce,
 } from "./venture-store";
@@ -146,6 +147,7 @@ export const papersToTell = async (
         state: true,
         targetWindowStart: true,
         targetWindowEnd: true,
+        windUpDays: true,
       },
     }),
     today
@@ -169,7 +171,8 @@ export const papersToTell = async (
       // the point of telling is that there is still time to sell.
       if (
         today > one.targetWindowEnd &&
-        today <= windUpEndsOn(one.targetWindowEnd, windUpDays)
+        today <=
+          windUpEndsOn(one.targetWindowEnd, windUpDaysOf(one, { windUpDays }))
       ) {
         occasions.push({ kind: "wind_up" });
       }

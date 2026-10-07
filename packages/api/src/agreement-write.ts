@@ -1,7 +1,10 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
+import { and, eq, isNull, sql } from "@OpenFarm/db/operators";
+import { farm as farmTable } from "@OpenFarm/db/schema/farm";
 import {
   agreementAmendment,
   investmentAgreement,
+  venture as ventureTable,
 } from "@OpenFarm/db/schema/venture";
 import type { StampKind } from "@OpenFarm/db/schema/venture";
 import type { Nominee } from "@OpenFarm/domain";
@@ -154,6 +157,16 @@ export const writeAgreement = async (
     signedBy: by.id,
     createdAt: by.now,
   });
+  // The first Investor signs for the Wind-up the Agreement names: from now the farm's Parameter moves no Wind-up of
+  // this Venture's.
+  await tx
+    .update(ventureTable)
+    .set({
+      windUpDays: sql`(select ${farmTable.windUpDays} from ${farmTable} where ${farmTable.id} = ${farm.id})`,
+    })
+    .where(
+      and(eq(ventureTable.id, venture.id), isNull(ventureTable.windUpDays))
+    );
   await nominationBySigning(tx, trail, {
     farmId: farm.id,
     investorId: agreement.investorId,

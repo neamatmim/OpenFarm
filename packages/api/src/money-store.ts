@@ -982,6 +982,9 @@ export const bookMoney = async (
   });
   const fields = {
     ...moneyFieldsOf({ amountMoney, money, approval, byHand }),
+    awaitingInPieces:
+      approval === "awaiting" &&
+      terms.amountMoney <= farm.approvalThresholdMoney,
     heldBy: handOf(booking, money, existing),
     ...(await farmAccountOf(
       tx,

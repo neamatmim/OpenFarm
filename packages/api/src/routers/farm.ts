@@ -17,6 +17,7 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { pregnancyTimesOf, retimeEveryCalving } from "../breeding-store";
 import type { CalvingWorkFollowed } from "../calving-work";
+import type { Context } from "../context";
 import { dataKeepersInput, readKeepers } from "../data-keepers";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
@@ -41,6 +42,7 @@ import {
 import { scheduleStatus } from "../scheduler";
 import { onlyOnAVisit } from "../scope";
 import { startWithStandard } from "../standard-store";
+import { lockTheFarm } from "../venture-store";
 
 /** The Farm Parameters, as a set that grows a row at a time as the increments needing them
  *  land. Each is a number the Manager may tune, never a rule hidden in the code. */
@@ -455,6 +457,58 @@ const readIdentity = async (tx: Tx, farmId: string) => {
 /** "HH:MM" on the farm's own clock, which is what every time of day here is. */
 const TIME_OF_DAY = /^(?:[01]\d|2[0-3]):[0-5]\d$/u;
 
+/**
+ * Refuses Parameters that do not hold together, judged against the farm as it stands inside the write, behind the farm
+ * lock: two people saving at once — the Manager the AI window's start, the Owner its end — are judged one after the
+ * other, so neither leaves a window that shuts before it opens. Each refusal in a word the screen says in Bangla.
+ */
+const refuseWhatDoesNotHoldTogether = (
+  input: ParametersInput,
+  standing: NonNullable<Context["farm"]>
+) => {
+  const cap = input.investorCap ?? standing.investorCap;
+  const warnAt = input.investorWarnAt ?? standing.investorWarnAt;
+  if (warnAt > cap) {
+    // A warning that only arrives after the refusal has already happened is no warning at all.
+    throw new ORPCError("BAD_REQUEST", {
+      message: "The Investor warning comes before the cap, not after it",
+      data: { refusal: "investor_warning_after_cap" },
+    });
+  }
+  refuseMilkWeighedTooSoon(input, standing);
+  refuseKeepNeededLongerThanRead(input, standing);
+  const opens = input.aiWindowStartHours ?? standing.aiWindowStartHours;
+  const closes = input.aiWindowEndHours ?? standing.aiWindowEndHours;
+  if (closes <= opens) {
+    // A window that shuts before it opens would make every AI job late the moment it was
+    // raised, and the farm would learn to ignore the alert that matters most in breeding.
+    throw new ORPCError("BAD_REQUEST", {
+      message: "The AI window has to close after it opens",
+      data: { refusal: "ai_window_backwards" },
+    });
+  }
+  if ((closes - opens) * 60 > MAX_GRACE_MINUTES) {
+    // The window's length becomes the work's grace, and the late-work sweep only looks as far
+    // back as the longest grace any work may have. A longer window would let a missed service
+    // go late without anybody being told.
+    throw new ORPCError("BAD_REQUEST", {
+      message: "The AI window cannot be longer than a day",
+      data: { refusal: "ai_window_too_long" },
+    });
+  }
+  const quietFrom = input.quietFrom ?? standing.quietFrom;
+  const quietUntil = input.quietUntil ?? standing.quietUntil;
+  if (quietFrom === quietUntil) {
+    // Silently meaning "never quiet" is how a farm ends up being woken at two in the
+    // morning by a setting it thought it had made.
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "Quiet hours that begin when they end are not quiet hours; set them apart or say so plainly",
+      data: { refusal: "quiet_hours_same" },
+    });
+  }
+};
+
 /** First-run setup: the signed-in person names the Farm and becomes its Owner.
  *  Refused once a Farm exists — after that, people arrive by invitation. */
 export const farmRouter = {
@@ -766,45 +820,9 @@ export const farmRouter = {
         if (time !== undefined && !TIME_OF_DAY.test(time)) {
           throw new ORPCError("BAD_REQUEST", {
             message: `"${time}" is not a time of day`,
+            data: { refusal: "not_a_time_of_day", time },
           });
         }
-      }
-      const cap = input.investorCap ?? context.farm.investorCap;
-      const warnAt = input.investorWarnAt ?? context.farm.investorWarnAt;
-      if (warnAt > cap) {
-        // A warning that only arrives after the refusal has already happened is no warning at all.
-        throw new ORPCError("BAD_REQUEST", {
-          message: "The Investor warning comes before the cap, not after it",
-        });
-      }
-      refuseMilkWeighedTooSoon(input, context.farm);
-      refuseKeepNeededLongerThanRead(input, context.farm);
-      const opens = input.aiWindowStartHours ?? context.farm.aiWindowStartHours;
-      const closes = input.aiWindowEndHours ?? context.farm.aiWindowEndHours;
-      if (closes <= opens) {
-        // A window that shuts before it opens would make every AI job late the moment it was
-        // raised, and the farm would learn to ignore the alert that matters most in breeding.
-        throw new ORPCError("BAD_REQUEST", {
-          message: "The AI window has to close after it opens",
-        });
-      }
-      if ((closes - opens) * 60 > MAX_GRACE_MINUTES) {
-        // The window's length becomes the work's grace, and the late-work sweep only looks as far
-        // back as the longest grace any work may have. A longer window would let a missed service
-        // go late without anybody being told.
-        throw new ORPCError("BAD_REQUEST", {
-          message: "The AI window cannot be longer than a day",
-        });
-      }
-      const quietFrom = input.quietFrom ?? context.farm.quietFrom;
-      const quietUntil = input.quietUntil ?? context.farm.quietUntil;
-      if (quietFrom === quietUntil) {
-        // Silently meaning "never quiet" is how a farm ends up being woken at two in the
-        // morning by a setting it thought it had made.
-        throw new ORPCError("BAD_REQUEST", {
-          message:
-            "Quiet hours that begin when they end are not quiet hours; set them apart or say so plainly",
-        });
       }
       // Only the Parameters this request named; the rest stay as the Manager last set them.
       const changes = touched(input);
@@ -887,6 +905,12 @@ export const farmRouter = {
           after: () => Promise.resolve({ ...changes, ...retimed }),
         },
         async (tx) => {
+          await lockTheFarm(tx, context.farm.id);
+          const standing =
+            (await tx.query.farm.findFirst({
+              where: { id: context.farm.id },
+            })) ?? context.farm;
+          refuseWhatDoesNotHoldTogether(input, standing);
           await tx
             .update(farm)
             .set(changes)
@@ -909,6 +933,11 @@ export const farmRouter = {
           }
         }
       );
-      return { ...context.farm, ...changes };
+      // As `farm.current` would read it to them: a Manager who saves the milk tolerance is not handed back how short the
+      // cash may be before the Owner hears.
+      const saved = { ...context.farm, ...changes };
+      return context.roles.includes("owner")
+        ? saved
+        : withoutTheOwnersFigures(saved);
     }),
 };

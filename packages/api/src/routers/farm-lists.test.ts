@@ -158,6 +158,30 @@ describe("a name on a list", () => {
     ).rejects.toMatchObject({ data: { refusal: "disease_exists" } });
   });
 
+  it("is taken however the keyboard spelled its letters, and however many spaces were typed", async () => {
+    // ড় as one letter, then as ড and its nukta: what two Bangla keyboards each type for the same word.
+    await manager.notifiableDiseases.create({
+      name: { bn: `\u09DC\u09BE\u09A8 ${suffix}` },
+    });
+    await expect(
+      manager.notifiableDiseases.create({
+        name: { bn: `\u09A1\u09BC\u09BE\u09A8 ${suffix}` },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "disease_exists" } });
+    await owner.money.categories.create({
+      nameBn: `ঘাস কাটা ${suffix}`,
+      nameEn: `Green grass ${suffix}`,
+      direction: "out",
+    });
+    await expect(
+      owner.money.categories.create({
+        nameBn: `অন্য ঘাস ${suffix}`,
+        nameEn: `Green   grass ${suffix}`,
+        direction: "out",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "category_exists" } });
+  });
+
   it("names a retired entry as retired, so it is brought back rather than written twice", async () => {
     const { id } = await manager.notifiableDiseases.create({
       name: { bn: `তড়কা ${suffix}` },

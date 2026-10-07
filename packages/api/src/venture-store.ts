@@ -79,6 +79,8 @@ export interface VentureRow {
   cattlePartMoney: number | null;
   monthlySums: number | null;
   firstSumDueOn: string | null;
+  /** Frozen when its first Investor signed; `windUpDaysOf` reads it. */
+  windUpDays: number | null;
   cancelledReason: string | null;
   shownInPortalAt: Date | null;
   portalWords: string | null;
@@ -187,6 +189,13 @@ export const NOTHING_HELD: Held = {
  *  selling, before the Farm buys whatever is left. */
 export const windUpEndsOn = (targetWindowEnd: string, windUpDays: number) =>
   addDays(targetWindowEnd, windUpDays);
+
+/** The Wind-up days a Venture runs to: its own, frozen when its first Investor signed for them, or the farm's
+ *  Parameter for one nobody has signed for yet. */
+export const windUpDaysOf = (
+  ofTheVenture: { windUpDays: number | null },
+  ofTheFarm: { windUpDays: number }
+): number => ofTheVenture.windUpDays ?? ofTheFarm.windUpDays;
 
 /**
  * A Venture's two budgets: what the plan says each is, and what is left of each.
@@ -373,7 +382,10 @@ export const ventureView = (
     /** The last day of the Wind-up Period: the days after the Target Window in which it keeps selling
      *  before the Farm buys whatever is left. Said while there is still time to do something about a
      *  slow bull, rather than at the moment everybody's money is late. */
-    windUpEndsOn: windUpEndsOn(row.targetWindowEnd, alsoKnown.windUpDays),
+    windUpEndsOn: windUpEndsOn(
+      row.targetWindowEnd,
+      windUpDaysOf(row, alsoKnown)
+    ),
     /** How many of its Animals are still standing. Past the wind-up day with any of them standing is
      *  the Venture that cannot settle on time. */
     animalsStanding: alsoKnown.stillHers,

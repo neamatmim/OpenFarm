@@ -24,6 +24,7 @@ const ROW_REFUSED: Partial<Record<string, MessageKey>> = {
   tag_of_the_other_side: "herd.row.tagOfTheOtherSide",
   not_a_tag_number: "herd.row.notATagNumber",
   register_not_taken: "herd.row.registerNotTaken",
+  pen_in_two_sheds: "herd.row.penInTwoSheds",
 };
 
 /** A row refused. `refusal` is missing from an answer kept from before the register named its refusals. */

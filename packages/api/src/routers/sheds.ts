@@ -9,11 +9,52 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
+import { sameName } from "../names";
 import { requireRole } from "../roles";
+import { lockTheFarm } from "../venture-store";
 
 const name = z.string().trim().min(1).max(80);
 /** No pen on a farm of a few hundred head holds more; a figure past it is a slip of the thumb. */
 const MOST_HEAD_A_PEN_HOLDS = 500;
+
+/** Refuses a Shed name the farm already has, whatever the capitals or the keyboard: two Sheds called "Shed A" are one
+ *  name for two places, and a register could not say which. */
+const assertShedNameFree = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  wanted: string,
+  exceptId?: string
+): Promise<void> => {
+  const sheds = await tx.query.shed.findMany({
+    where: { farmId },
+    columns: { id: true, name: true },
+  });
+  if (sheds.some((one) => one.id !== exceptId && sameName(one.name, wanted))) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "The farm has a shed by that name already",
+      data: { refusal: "shed_name_taken" },
+    });
+  }
+};
+
+/** Refuses a Pen name its Shed already has, as a Shed's name is refused. Two Sheds may each have a "Pen 1". */
+const assertPenNameFree = async (
+  tx: Pick<Tx, "query">,
+  shedId: string,
+  wanted: string,
+  exceptId?: string
+): Promise<void> => {
+  const pens = await tx.query.pen.findMany({
+    where: { shedId },
+    columns: { id: true, name: true },
+  });
+  if (pens.some((one) => one.id !== exceptId && sameName(one.name, wanted))) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This shed has a pen by that name already",
+      data: { refusal: "pen_name_taken" },
+    });
+  }
+};
 
 /** Sheds contain Pens; every Animal is in exactly one Pen. */
 export const shedsRouter = {
@@ -80,10 +121,13 @@ export const shedsRouter = {
           action: "create",
           after: { name: input.name },
         },
-        (tx) =>
-          tx
+        async (tx) => {
+          await lockTheFarm(tx, context.farm.id);
+          await assertShedNameFree(tx, context.farm.id, input.name);
+          await tx
             .insert(shed)
-            .values({ id, farmId: context.farm.id, name: input.name })
+            .values({ id, farmId: context.farm.id, name: input.name });
+        }
       );
       return { id, name: input.name };
     }),
@@ -107,6 +151,8 @@ export const shedsRouter = {
           after: { name: input.name },
         },
         async (tx) => {
+          await lockTheFarm(tx, context.farm.id);
+          await assertShedNameFree(tx, context.farm.id, input.name, input.id);
           const [row] = await tx
             .update(shed)
             .set({ name: input.name })
@@ -153,6 +199,8 @@ export const shedsRouter = {
             if (!parent) {
               throw new ORPCError("NOT_FOUND", { message: "No such shed" });
             }
+            await lockTheFarm(tx, context.farm.id);
+            await assertPenNameFree(tx, input.shedId, input.name);
             await tx.insert(pen).values({
               id,
               farmId: context.farm.id,
@@ -184,6 +232,14 @@ export const shedsRouter = {
             after: { name: input.name },
           },
           async (tx) => {
+            const which = await tx.query.pen.findFirst({
+              where: { id: input.id, farmId: context.farm.id },
+              columns: { shedId: true },
+            });
+            if (which) {
+              await lockTheFarm(tx, context.farm.id);
+              await assertPenNameFree(tx, which.shedId, input.name, input.id);
+            }
             const [row] = await tx
               .update(pen)
               .set({ name: input.name })
@@ -267,6 +323,28 @@ export const shedsRouter = {
           },
           async (tx) => {
             await requirePen(tx, context.farm.id, input.penId);
+            if (input.quarantine) {
+              // Dairy animals already in it would stand among the bulls the next Intake puts there (the Owner,
+              // 2026-10-07).
+              const herd = await tx.query.animal.findFirst({
+                where: {
+                  farmId: context.farm.id,
+                  penId: input.penId,
+                  side: "dairy",
+                  state: { notIn: [...EXIT_STATES] },
+                },
+                columns: { tagNumber: true },
+              });
+              if (herd) {
+                throw new ORPCError("BAD_REQUEST", {
+                  message: `${herd.tagNumber} of the dairy herd is in this pen`,
+                  data: {
+                    refusal: "pen_holds_herd",
+                    tagNumber: herd.tagNumber,
+                  },
+                });
+              }
+            }
             if (!input.quarantine) {
               const held = await tx.query.animal.findFirst({
                 where: {
