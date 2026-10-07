@@ -654,10 +654,11 @@ export const approveSettlement = async (
       data: { refusal: "already_approved" },
     });
   }
-  if (worked.blocks.length !== 0) {
+  const [block] = worked.blocks;
+  if (block) {
     throw new ORPCError("BAD_REQUEST", {
       message: "This Settlement is not settled enough to approve",
-      data: { refusal: worked.blocks[0]?.word ?? "nothing_to_settle" },
+      data: { refusal: block.word },
     });
   }
   const id = uuidv7(by.now);

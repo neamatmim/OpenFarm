@@ -679,6 +679,8 @@ export const enCore = {
   "refusal.notAVisitingVet":
     "That person is not a visiting vet on this farm now",
   "refusal.visitEndsBeforeToday": "A visit has to last until today at least",
+  "refusal.visitingVet":
+    "A visiting vet sees only the animals on their own cases",
   "refusal.alreadyTrained":
     "That person is already marked as trained on this version",
   "refusal.notOverdueYet":
@@ -860,8 +862,6 @@ export const enCore = {
     "An animal of this venture is missing: find her, or write her off and the farm makes her good",
   "refusal.madeGoodWithTheFarmsMoney":
     "That made a lost animal good from the farm's own money. Written off against the wrong tag, take the write-off back on her page; found, she becomes the farm's",
-  "refusal.theFarmsOwnCapital":
-    "That moved the farm's own capital, which its own books hold too; it is not put right on the venture's side alone",
   "refusal.notFattening":
     "Only an animal being fattened can be made ready for sale",
   "refusal.soldBeforeSheCame":
