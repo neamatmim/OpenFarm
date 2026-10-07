@@ -1,6 +1,7 @@
 import type { Language, MessageKey, MessageParams } from "@OpenFarm/i18n";
 import {
   isLanguage,
+  loadDeskWords,
   loadMessages,
   resolveLanguage,
   translate,
@@ -110,7 +111,9 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let current = true;
     const fetchItsWords = async () => {
+      // Both halves of the language: switching is a reader's own act, on whatever page they are on.
       await loadMessages(wanted);
+      await loadDeskWords();
       if (current) {
         setShownLanguage(wanted);
       }

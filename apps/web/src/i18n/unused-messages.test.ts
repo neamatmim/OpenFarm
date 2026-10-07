@@ -46,6 +46,9 @@ const keysOf = (file: string): string[] =>
     (found) => found.groups?.key ?? ""
   );
 
+/** Every English key, from both halves: the shed's words and the desk's. */
+const allKeys = () => [...keysOf("en-core.ts"), ...keysOf("en-desk.ts")];
+
 describe("the farm's messages", () => {
   it("are each said somewhere", () => {
     const written = new Set<string>();
@@ -58,7 +61,7 @@ describe("the farm's messages", () => {
         prefixes.add(found.groups?.prefix ?? "");
       }
     }
-    const unsaid = keysOf("en.ts").filter(
+    const unsaid = allKeys().filter(
       (key) =>
         !written.has(key) &&
         ![...prefixes].some((prefix) => key.startsWith(prefix))
@@ -69,7 +72,7 @@ describe("the farm's messages", () => {
 
   it("finds the messages and the sources at all", () => {
     // If a move emptied either side, the check above would pass by looking at nothing.
-    expect(keysOf("en.ts").length).toBeGreaterThan(1000);
+    expect(allKeys().length).toBeGreaterThan(1000);
     expect(sources().length).toBeGreaterThan(300);
   });
 });

@@ -31,6 +31,8 @@ export {
   resolveLanguage,
 } from "./languages";
 export type { MessageKey, MessageParams } from "./translate";
-export { loadMessages } from "#catalog";
+export { loadDeskWords, loadMessages } from "#catalog";
+export type { CatalogPart } from "#catalog";
+export { DESK_AREAS } from "./catalog-areas";
 export { findTranslationGaps } from "./gaps";
 export { FARM_WORDS, translate } from "./translate";
