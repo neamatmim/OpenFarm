@@ -31,6 +31,7 @@ import type {
   Standing,
 } from "@/components/work/work-types";
 import { useLanguage } from "@/i18n/language-provider";
+import { saidIn } from "@/lib/names-in";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 
@@ -438,7 +439,7 @@ export const StepRow = ({
   oneTap?: boolean;
   onOpen: () => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <button
       className={cn(
@@ -462,7 +463,9 @@ export const StepRow = ({
           <SprayCan aria-hidden className="size-5" />
         )}
       </span>
-      <span className="flex-1 text-base font-medium">{step.text.bn}</span>
+      <span className="flex-1 text-base font-medium">
+        {saidIn(step.text, language)}
+      </span>
       {done ? (
         <StatusBadge tone="success">{t("work.stepDone")}</StatusBadge>
       ) : null}
@@ -564,7 +567,7 @@ export const ClosingAction = ({
   onOpen: (step: Step) => void;
   onFinish: () => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   if (!ready) {
     return (
       <p className="text-muted-foreground bg-muted/60 flex min-h-14 items-center justify-center gap-2 rounded-xl px-4 py-3 text-center text-sm font-medium">
@@ -593,7 +596,7 @@ export const ClosingAction = ({
       variant="outline"
       onClick={() => onOpen(closingStep)}
     >
-      {closingStep.text.bn}
+      {saidIn(closingStep.text, language)}
       <ChevronRight data-icon="inline-end" />
     </Button>
   );
