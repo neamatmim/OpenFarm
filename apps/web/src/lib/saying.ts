@@ -43,6 +43,11 @@ const heldEntryRefusal = (
  */
 export type OwnWords = Readonly<Record<string, MessageKey>>;
 
+/** Refusals any screen may meet, by their word: an act the password was asked for, and not given. */
+const FARM_WORDS: OwnWords = {
+  password_needed: "passwordAgain.notGiven",
+};
+
 /**
  * Says why the farm refused: the screen's own words for it, then the farm's — a Correction Window, an Entry the world
  * moved past, a refusal with a word of its own — and only then whatever the server said in English.
@@ -52,7 +57,7 @@ export const sayWhy = (
   t: (key: MessageKey, params?: MessageParams) => string,
   ownWords: OwnWords = {}
 ): string => {
-  const own = ownWords[wordOf(error) ?? ""];
+  const own = ownWords[wordOf(error) ?? ""] ?? FARM_WORDS[wordOf(error) ?? ""];
   if (own) {
     return t(own, figuresOf(dataOf(error)));
   }

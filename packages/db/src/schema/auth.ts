@@ -83,6 +83,18 @@ export const session = pgTable(
   (table) => [index("session_userId_idx").on(table.userId)]
 );
 
+/**
+ * When a signed-in person last gave their password again, for the acts that ask for it within the quarter hour: the
+ * money paid out and approved, the portal opened, an Investor's data copied. Signing in counts by the session's own
+ * start; this is for a session older than that. Gone with the session.
+ */
+export const passwordGiven = pgTable("password_given", {
+  sessionId: text("session_id")
+    .primaryKey()
+    .references(() => session.id, { onDelete: "cascade" }),
+  givenAt: timestamp("given_at", { withTimezone: true }).notNull(),
+});
+
 export const account = pgTable(
   "account",
   {

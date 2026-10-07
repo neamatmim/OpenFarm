@@ -51,8 +51,14 @@ import {
   writeInvite,
   writePasswordCode,
 } from "../membership";
+import { givePassword } from "../password-again";
 import { investorOf } from "../portal-store";
-import { requirePersonalSession, requireRole } from "../roles";
+import {
+  OWNER_ONLY,
+  requireOnly,
+  requirePersonalSession,
+  requireRole,
+} from "../roles";
 import { scopesOf } from "../scope";
 
 const roleSchema = z.enum(ROLES);
@@ -150,6 +156,16 @@ export const peopleRouter = {
       return { userId: whose };
     }),
 
+  /** The signed-in person's password, given again for an act that asks for it (`requirePasswordGiven`). */
+  givePassword: protectedProcedure
+    // Every act that asks for it again is the Owner's alone.
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ password: z.string().min(1).max(256) }))
+    .handler(async ({ context, input }) => {
+      await givePassword(context, input.password);
+      return { given: true };
+    }),
   /** Who am I on this Farm. */
   me: protectedProcedure.handler(async ({ context }) => ({
     id: context.actor.id,

@@ -3196,6 +3196,15 @@ export const en = {
   "common.selectPage": "Select every row on this page",
   "common.showDetails": "Show details",
   "common.hideDetails": "Hide details",
+  "passwordAgain.title": "Your password, please",
+  "passwordAgain.why":
+    "Paying money out, approving money, opening the portal and copying an investor's data ask for it again after a quarter of an hour.",
+  "passwordAgain.label": "Password",
+  "passwordAgain.give": "Go on",
+  "passwordAgain.wrong": "That is not your password.",
+  "passwordAgain.slowed":
+    "Too many wrong passwords. Wait a minute and try again.",
+  "passwordAgain.notGiven": "Not done: it needs your password.",
   "common.cancel": "Cancel",
   "common.close": "Close",
   "nav.signOff": "Review",

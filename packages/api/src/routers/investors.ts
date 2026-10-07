@@ -30,6 +30,7 @@ import {
   nomineesInput,
   recordNomination,
 } from "../nominations";
+import { assertPasswordGiven, requirePasswordGiven } from "../password-again";
 import { closePayInNotes } from "../pay-in-notes";
 import { photoInput } from "../photo-input";
 import type { ConsentWithdrawnSaid } from "../portal-consent";
@@ -550,6 +551,10 @@ export const investorsRouter = {
     .use(requirePersonalSession())
     .input(z.object({ open: z.boolean() }))
     .handler(async ({ context, input }) => {
+      // Opening asks for the password again; shutting never waits for it.
+      if (input.open) {
+        await assertPasswordGiven(context);
+      }
       await audited(context).write(
         {
           entity: "farm",
@@ -686,6 +691,7 @@ export const investorsRouter = {
   dataCopy: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
+    .use(requirePasswordGiven())
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => ({
       document: await dataCopyOf(context, input.id),
