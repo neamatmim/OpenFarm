@@ -1,3 +1,4 @@
+import { loadDeskWords } from "@OpenFarm/i18n";
 import { TooltipProvider } from "@OpenFarm/ui/components/tooltip";
 import { BENGALI_LETTERS_FONT } from "@OpenFarm/ui/lib/fonts";
 import type { QueryClient } from "@tanstack/react-query";
@@ -26,6 +27,7 @@ import {
   pageHost,
   pageLanguage,
 } from "@/lib/page-context";
+import { isShedFirst } from "@/lib/shed-first";
 import type { orpc } from "@/utils/orpc";
 
 import { LanguageProvider, useT } from "../i18n/language-provider";
@@ -110,6 +112,13 @@ const RootDocument = () => {
 };
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
+  // Every page but a Shed Phone's first screens is drawn with the desk's words too: fetched here if the browser does not
+  // hold them yet. One that cannot be fetched — no signal, never cached — leaves the page to show what it has.
+  beforeLoad: async ({ location }) => {
+    if (!isShedFirst(location.pathname)) {
+      await loadDeskWords();
+    }
+  },
   server: {
     middleware: [createMiddleware().server(evlogErrorHandler)],
   },
