@@ -401,6 +401,7 @@ const WORDED_REFUSALS = {
   not_notifiable: "refusal.notNotifiable",
   owner_writes_their_own: "refusal.ownerWritesTheirOwn",
   prescription_raises_it: "refusal.prescriptionRaisesIt",
+  its_record_raises_it: "refusal.itsRecordRaisesIt",
   ready_needs_confirming: "refusal.readyNeedsConfirming",
   served_in_the_future: "refusal.servedInTheFuture",
   too_many_for_one_paper: "refusal.tooManyForOnePaper",

@@ -593,6 +593,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.notNotifiable": "সেই রোগনির্ণয় খামারের তালিকা অনুযায়ী জানাতে হয় এমন নয়",
   "refusal.ownerWritesTheirOwn": "মালিক নিজের নম্বর নিজেই লেখেন",
   "refusal.prescriptionRaisesIt": "এই কাজ প্রেসক্রিপশন থেকে আসে, একবারে এক ডোজ",
+  "refusal.itsRecordRaisesIt":
+    "এই কাজ তার নিজের রেকর্ড থেকে আসে — রোগনির্ণয়, বা খামারের নিবন্ধন: হাতে তোলা যায় না",
   "refusal.readyNeedsConfirming":
     "বিক্রির জন্য তৈরি তার আটকে রাখার রেকর্ড দেখে নিশ্চিত হয়, বিক্রির তালিকা থেকে",
   "refusal.servedInTheFuture": "পাল দেওয়া এখনকার পরে হতে পারে না",
