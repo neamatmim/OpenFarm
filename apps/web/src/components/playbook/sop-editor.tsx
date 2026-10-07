@@ -16,10 +16,10 @@ import {
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { FigureBox } from "@/components/playbook/figure-box";
 import { useLanguage } from "@/i18n/language-provider";
-import { blockerSaid } from "@/lib/sop-blockers";
+import { blockerSaid, blockerStep } from "@/lib/sop-blockers";
 import { reworded } from "@/lib/sop-draft";
 
-import { StepsSection } from "./sop-steps";
+import { StepsSection, stepAnchor } from "./sop-steps";
 import { WhenSection } from "./sop-when";
 
 /** The procedure's names and why it is done: Bangla, and English where somebody wants it. */
@@ -155,6 +155,28 @@ const WhoSection = ({
   );
 };
 
+/** One thing stopping the procedure being published, said in the reader's words — and, where it is in a Step, a link
+ *  that takes the Owner to that Step rather than leaving them to find it among ten. */
+const BlockerLine = ({ blocker }: { blocker: string }) => {
+  const { t } = useLanguage();
+  const said = blockerSaid(blocker, t);
+  const step = blockerStep(blocker);
+  return (
+    <li>
+      {step === null ? (
+        said
+      ) : (
+        <a
+          className="underline-offset-2 hover:underline"
+          href={`#${stepAnchor(step)}`}
+        >
+          {said}
+        </a>
+      )}
+    </li>
+  );
+};
+
 /** The foot of the editor, held in sight on a wide screen: whether it can go yet, and the act itself. */
 const EditorFoot = ({
   blockers,
@@ -265,7 +287,7 @@ export const SopEditor = ({
           <Notice title={t("sop.cannotPublish")} tone="warning">
             <ul className="list-disc pl-5">
               {blockers.map((blocker) => (
-                <li key={blocker}>{blockerSaid(blocker, t)}</li>
+                <BlockerLine blocker={blocker} key={blocker} />
               ))}
             </ul>
           </Notice>

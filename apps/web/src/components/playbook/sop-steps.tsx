@@ -31,6 +31,10 @@ import {
   withProduct,
 } from "@/lib/sop-draft";
 
+/** Where a Step stands on the editor's page, for a line that says what is wrong with it to take the Owner there. */
+export const stepAnchor = (position: number): string =>
+  `sop-step-${position + 1}`;
+
 /** A Pen a moving Step may walk an animal to, and a product a campaign may give. */
 interface Pen {
   id: string;
@@ -245,7 +249,10 @@ const StepEditor = ({
 }) => {
   const { t, language } = useLanguage();
   return (
-    <li className="surface flex flex-col gap-4 p-4">
+    <li
+      className="surface flex scroll-mt-20 flex-col gap-4 p-4"
+      id={stepAnchor(position)}
+    >
       <div className="flex items-center gap-3">
         <span
           aria-hidden

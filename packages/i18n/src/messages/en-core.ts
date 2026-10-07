@@ -1518,10 +1518,81 @@ export const enCore = {
   "sop.refused.changedSinceYouBegan":
     "Version {version} was published while you were writing. Close this and start again from it, so nothing it changed is undone.",
   "sop.noProposals": "No changes waiting",
-  "sop.blocker.bangla": "{where}: write it in Bangla",
   "sop.blocker.noSteps": "Add at least one step",
-  "sop.blocker.other":
-    "{where}: something here cannot be published as it stands",
+  "sop.blocker.said": "{where}: {what}",
+  "sop.problem.other": "this cannot be published as it is",
+  "sop.problem.bangla": "write it in Bangla",
+  "sop.problem.noEvidence": "say what is recorded",
+  "sop.problem.rangeBackwards": "the least is more than the most",
+  "sop.problem.noChoices": "write at least one thing to choose",
+  "sop.problem.sameValue": "two choices are the same; make each one different",
+  "sop.problem.sameId":
+    "two steps share the name “{value}”; remove one and add it again",
+  "sop.problem.needsFigure": "this step records a figure, so ask for a number",
+  "sop.problem.noPen": "choose the pens an animal may be moved to",
+  "sop.problem.nothingToSee": "write what may be seen",
+  "sop.problem.weanPen": "choose the fattening pen a weaned bull calf goes to",
+  "sop.problem.doseProduct":
+    "choose the medicine every animal in the pen is given",
+  "sop.problem.prescriptionNames":
+    "a prescription names its own medicine; choose none here",
+  "sop.problem.prescriptionNeedsDose":
+    "a prescription raises this work, so add a step that gives the dose",
+  "sop.problem.prescriptionOnly":
+    "this step gives a prescribed dose, so only a prescription may raise this work",
+  "sop.problem.reportNeedsStep":
+    "a notifiable disease raises this work, so add a step that records the report delivered",
+  "sop.problem.notifiableOnly":
+    "this step records a report, so only a notifiable disease may raise this work",
+  "sop.problem.oneDose":
+    "a procedure gives one dose; split the others into their own procedures",
+  "sop.problem.oneDisease":
+    "a procedure reports one disease; split the others into their own procedures",
+  "sop.problem.lotNoCampaign":
+    "a lot number belongs to a campaign, and no step here gives a medicine to the pen",
+  "sop.problem.lotFirst": "ask for the lot number before the doses it numbers",
+  "sop.problem.lotOnce": "ask for the campaign's lot number in one step only",
+  "sop.problem.wholeFarmOnce":
+    "work for the whole farm is done once, not animal by animal",
+  "sop.problem.wholeFarmNoPen":
+    "work for the whole farm has no pen, so it cannot write a pen's or an animal's record",
+  "sop.problem.wholeFarmClock":
+    "work for the whole farm comes up by the clock, not by what happens in a pen",
+  "sop.problem.once": "this is done once, not animal by animal",
+  "sop.problem.perAnimal": "this is done animal by animal",
+  "sop.problem.shape":
+    "its answers are not the ones this kind of step asks; choose what it records again",
+  "sop.problem.notATime": "“{value}” is not a time of day; write it like 05:00",
+  "sop.problem.notADay": "“{value}” is not a day of the week",
+  "sop.problem.notAState": "“{value}” is not a state an animal is in",
+  "sop.problem.notALead":
+    "“{value}” is not a lead the farm keeps before calving",
+  "sop.problem.notAnEvent": "the farm does not record “{value}”",
+  "sop.problem.tooFarAhead":
+    "no later than {value, plural, one {# day} other {# days}} after",
+  "sop.problem.needsTime":
+    "write at least one time, or remove the days to raise it by hand",
+  "sop.problem.whichDay": "choose the day of the week it falls on",
+  "sop.problem.monthlyNotFortnightly":
+    "choose monthly or every other week, not both",
+  "sop.problem.wholeDays": "write whole days, from none upwards",
+  "sop.problem.heatTimed":
+    "a heat's work falls in the farm's AI window; leave the days empty",
+  "sop.problem.serviceTimed":
+    "a service's work falls on the farm's days to a pregnancy check; leave the days empty",
+  "sop.problem.pregnancyByService":
+    "a pregnancy check is raised by a service and nothing else",
+  "sop.problem.grace": "write whole minutes, at most a day (1440)",
+  "sop.problem.whoseService": "a service is recorded by the manager",
+  "sop.problem.whoseStore": "the store is counted by the manager",
+  "sop.problem.whoseMedicine": "the medicine is counted by the manager",
+  "sop.problem.whoseCash": "the cash is counted by a manager or the owner",
+  "sop.problem.whoseRenewal": "the registration is renewed by the owner",
+  "sop.problem.whoseCalving":
+    "a calving is recorded by barn staff or the manager",
+  "sop.problem.whosePregnancy": "a pregnancy check is the vet's",
+  "sop.problem.whoseReport":
+    "the report to DLS is taken by the manager or the owner",
   "sop.blocker.whole": "The procedure",
   "sop.cannotPublish": "This cannot be published yet",
   "sop.tab.procedures": "Procedures",

@@ -1397,9 +1397,70 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sop.refused.changedSinceYouBegan":
     "আপনি লেখার সময় সংস্করণ {version} প্রকাশ হয়েছে। এটি বন্ধ করে সেখান থেকে আবার শুরু করুন, যাতে তার কোনো বদল মুছে না যায়।",
   "sop.noProposals": "কোনো পরিবর্তন অপেক্ষায় নেই",
-  "sop.blocker.bangla": "{where}: বাংলায় লিখুন",
   "sop.blocker.noSteps": "অন্তত একটি ধাপ যোগ করুন",
-  "sop.blocker.other": "{where}: এখানে কিছু এভাবে প্রকাশ করা যাবে না",
+  "sop.blocker.said": "{where}: {what}",
+  "sop.problem.other": "এভাবে প্রকাশ করা যাবে না",
+  "sop.problem.bangla": "বাংলায় লিখুন",
+  "sop.problem.noEvidence": "কী লেখা হবে তা বলুন",
+  "sop.problem.rangeBackwards": "সর্বনিম্ন সর্বোচ্চের চেয়ে বেশি",
+  "sop.problem.noChoices": "বেছে নেওয়ার মতো অন্তত একটি কথা লিখুন",
+  "sop.problem.sameValue": "দুটি বিকল্প একই; প্রতিটি আলাদা করুন",
+  "sop.problem.sameId": "দুটি ধাপের নাম একই “{value}”; একটি মুছে আবার যোগ করুন",
+  "sop.problem.needsFigure": "এই ধাপ একটি সংখ্যা লেখে, তাই সংখ্যা চান",
+  "sop.problem.noPen": "পশুকে কোন কোন পেনে নেওয়া যাবে তা বেছে নিন",
+  "sop.problem.nothingToSee": "কী কী দেখা যেতে পারে তা লিখুন",
+  "sop.problem.weanPen": "দুধ ছাড়ানো এঁড়ে বাছুর কোন মোটাতাজাকরণ পেনে যাবে তা বেছে নিন",
+  "sop.problem.doseProduct": "পেনের প্রতিটি পশুকে কোন ওষুধ দেওয়া হবে তা বেছে নিন",
+  "sop.problem.prescriptionNames":
+    "প্রেসক্রিপশন নিজেই ওষুধ বলে দেয়; এখানে কোনোটি বাছবেন না",
+  "sop.problem.prescriptionNeedsDose":
+    "প্রেসক্রিপশন এই কাজ তোলে, তাই ডোজ দেওয়ার একটি ধাপ যোগ করুন",
+  "sop.problem.prescriptionOnly":
+    "এই ধাপ প্রেসক্রিপশনের ডোজ দেয়, তাই শুধু প্রেসক্রিপশনই এই কাজ তুলতে পারে",
+  "sop.problem.reportNeedsStep":
+    "জানাতে-হয় এমন রোগ এই কাজ তোলে, তাই রিপোর্ট জমা দেওয়ার একটি ধাপ যোগ করুন",
+  "sop.problem.notifiableOnly":
+    "এই ধাপ রিপোর্ট লেখে, তাই শুধু জানাতে-হয় এমন রোগই এই কাজ তুলতে পারে",
+  "sop.problem.oneDose":
+    "একটি কার্যপ্রণালী একটি ডোজ দেয়; বাকিগুলো আলাদা কার্যপ্রণালীতে নিন",
+  "sop.problem.oneDisease":
+    "একটি কার্যপ্রণালী একটি রোগের রিপোর্ট দেয়; বাকিগুলো আলাদা কার্যপ্রণালীতে নিন",
+  "sop.problem.lotNoCampaign":
+    "লট নম্বর একটি ক্যাম্পেইনের, আর এখানে কোনো ধাপ পেনকে ওষুধ দেয় না",
+  "sop.problem.lotFirst": "যে ডোজগুলোর লট নম্বর, তার আগে লট নম্বর চান",
+  "sop.problem.lotOnce": "ক্যাম্পেইনের লট নম্বর শুধু একটি ধাপে চান",
+  "sop.problem.wholeFarmOnce": "পুরো খামারের কাজ একবার হয়, প্রতিটি পশুর জন্য নয়",
+  "sop.problem.wholeFarmNoPen":
+    "পুরো খামারের কাজের কোনো পেন নেই, তাই এটি পেন বা পশুর রেকর্ড লিখতে পারে না",
+  "sop.problem.wholeFarmClock": "পুরো খামারের কাজ ঘড়ি ধরে আসে, পেনে কিছু ঘটলে নয়",
+  "sop.problem.once": "এটি একবার হয়, প্রতিটি পশুর জন্য নয়",
+  "sop.problem.perAnimal": "এটি প্রতিটি পশুর জন্য আলাদা করে হয়",
+  "sop.problem.shape":
+    "এই ধরনের ধাপ যা জিজ্ঞেস করে, এর উত্তরগুলো তা নয়; এই ধাপ কী লেখে তা আবার বেছে নিন",
+  "sop.problem.notATime": "“{value}” দিনের কোনো সময় নয়; ০৫:০০ এভাবে লিখুন",
+  "sop.problem.notADay": "“{value}” সপ্তাহের কোনো দিন নয়",
+  "sop.problem.notAState": "“{value}” পশুর কোনো অবস্থা নয়",
+  "sop.problem.notALead": "বাচ্চা দেওয়ার আগে খামার “{value}” আগাম রাখে না",
+  "sop.problem.notAnEvent": "খামার “{value}” লেখে না",
+  "sop.problem.tooFarAhead": "বড়জোর {value} দিন পরে",
+  "sop.problem.needsTime":
+    "অন্তত একটি সময় লিখুন, নয়তো হাতে তোলার জন্য দিনগুলো সরিয়ে দিন",
+  "sop.problem.whichDay": "সপ্তাহের কোন দিন পড়ে তা বেছে নিন",
+  "sop.problem.monthlyNotFortnightly": "মাসিক অথবা এক সপ্তাহ পরপর, দুটো একসাথে নয়",
+  "sop.problem.wholeDays": "পুরো দিন লিখুন, শূন্য থেকে ওপরে",
+  "sop.problem.heatTimed": "গরমের কাজ খামারের এআই সময়ে পড়ে; দিন খালি রাখুন",
+  "sop.problem.serviceTimed":
+    "পাল দেওয়ার কাজ খামারের গর্ভ পরীক্ষার দিনে পড়ে; দিন খালি রাখুন",
+  "sop.problem.pregnancyByService": "গর্ভ পরীক্ষা শুধু পাল দেওয়া থেকেই ওঠে",
+  "sop.problem.grace": "পুরো মিনিট লিখুন, বড়জোর এক দিন (১৪৪০)",
+  "sop.problem.whoseService": "পাল দেওয়া ম্যানেজার লেখেন",
+  "sop.problem.whoseStore": "গুদাম ম্যানেজার গোনেন",
+  "sop.problem.whoseMedicine": "ওষুধ ম্যানেজার গোনেন",
+  "sop.problem.whoseCash": "নগদ টাকা ম্যানেজার বা মালিক গোনেন",
+  "sop.problem.whoseRenewal": "নিবন্ধন মালিক নবায়ন করেন",
+  "sop.problem.whoseCalving": "বাচ্চা দেওয়া খামারকর্মী বা ম্যানেজার লেখেন",
+  "sop.problem.whosePregnancy": "গর্ভ পরীক্ষা ভেটের কাজ",
+  "sop.problem.whoseReport": "ডিএলএস-এর রিপোর্ট ম্যানেজার বা মালিক নেন",
   "sop.blocker.whole": "কার্যপ্রণালী",
   "sop.cannotPublish": "এটি এখনো প্রকাশ করা যাবে না",
   "sop.tab.procedures": "কার্যপ্রণালী",
