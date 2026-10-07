@@ -1663,6 +1663,48 @@ export const bn: Record<MessageKey, string> = {
     "এর জন্য কোর্স লেখা হয়েছে: আগে কোর্স বন্ধ করে ডোজগুলো ঠিক করুন",
   "refusal.herDeathNamesIt": "তার মৃত্যুর কারণ এটি বলা আছে: আগে মৃত্যুর রেকর্ড ঠিক করুন",
   "refusal.reportDelivered": "এর রিপোর্ট অফিসে পৌঁছে গেছে: যে চিঠি গেছে, তা গেছে",
+  "refusal.recordedByALeaver":
+    "এমন কারও নামে লেখা যিনি আর এই খামারে কাজ করেন না: তাঁকে ফেরত দিন, বা নিজে আবার লিখুন",
+  "refusal.alreadySold": "তাকে আগেই বিক্রি করা হয়েছে",
+  "refusal.exitNeedsARecord":
+    "পশু পাল ছাড়ে কীভাবে গেল তার রেকর্ডে — বিক্রি, মৃত্যু — অবস্থা বদলে নয়",
+  "refusal.meatWithdrawal": "তার মাংস আটকে রাখার সময় এখনো শেষ হয়নি",
+  "refusal.noSuchAnimal": "সেই পশু এখন আর দেখানোর মতো নেই",
+  "refusal.noSuchProduct": "সেই ওষুধ খামারের ওষুধের তালিকায় নেই",
+  "refusal.noSuchVenture": "সেই ভেঞ্চার আপনার নয়",
+  "refusal.notNotifiable": "সেই রোগনির্ণয় খামারের তালিকা অনুযায়ী জানাতে হয় এমন নয়",
+  "refusal.ownerWritesTheirOwn": "মালিক নিজের নম্বর নিজেই লেখেন",
+  "refusal.prescriptionRaisesIt": "এই কাজ প্রেসক্রিপশন থেকে আসে, একবারে এক ডোজ",
+  "refusal.readyNeedsConfirming":
+    "বিক্রির জন্য তৈরি তার আটকে রাখার রেকর্ড দেখে নিশ্চিত হয়, বিক্রির তালিকা থেকে",
+  "refusal.servedInTheFuture": "পাল দেওয়া এখনকার পরে হতে পারে না",
+  "refusal.tooManyForOnePaper":
+    "এক কাগজে {limit}টির বেশি পশু ধরে না: কয়েক ভাগে বানান",
+  "refusal.browserListensForAnother":
+    "এই ফোনের ব্রাউজার আগে থেকেই অন্য কাউকে খবর দিচ্ছে: আগে তিনি তাঁরটা বন্ধ করুন",
+  "refusal.caseAlreadyOpen": "এই ভেটের তার জন্য আগে থেকেই একটি কেস খোলা আছে",
+  "refusal.notAVisitingVet": "তিনি এখন এই খামারের বাইরের ভেট নন",
+  "refusal.visitEndsBeforeToday": "ভিজিট অন্তত আজ পর্যন্ত চলতে হবে",
+  "refusal.alreadyTrained": "তাঁকে এই সংস্করণে আগেই প্রশিক্ষিত লেখা হয়েছে",
+  "refusal.notOverdueYet": "এই কাজের সময় এখনো পেরোয়নি: এখনো করার সুযোগ আছে",
+  "refusal.movedOnSince":
+    "এটা যখন ঠিক হয়েছিল, সে এখন আর সেই অবস্থায় নেই: তার পাতা আবার খুলে দেখুন",
+  "refusal.sayHowMuchCame": "কতটা এসেছে বলুন — নিজের এককে, বা বস্তা বা মণে",
+  "refusal.diedInTheFuture": "মৃত্যুর দিন এমন দিন হতে পারে না যা এখনো আসেনি",
+  "refusal.arrivedInTheFuture": "পশু এমন দিনে আসতে পারে না যা এখনো আসেনি",
+  "refusal.notASightingWord":
+    "এটা খামারে লেখা হয় এমন দেখার মধ্যে নেই: তালিকা থেকে বেছে নিন",
+  "refusal.sayWhatWasSeen": "কী দেখা গেছে লিখুন",
+  "refusal.notThisAnimals": "এটা অন্য পশুর: তার নিজের পাতা থেকে খুলুন",
+  "refusal.cannotDoThatWork": "এই কাজ যে ভূমিকার, তাঁর সেই ভূমিকা নেই",
+  "refusal.notCheckedByAnyone": "এই কাজ কেউ যাচাই করে না",
+  "refusal.notYoursToSignOff": "এই কাজ অন্য ভূমিকার কেউ যাচাই করেন",
+  "refusal.ownWorkNotSignedOff": "যিনি কাজ করেছেন, তিনি ছাড়া অন্য কেউ যাচাই করেন",
+  "refusal.yourOwnNumber":
+    "আপনার নম্বর শুধু আপনি, বা যিনি খামার চালান, তিনিই লিখতে পারেন",
+  "refusal.tooManyRows": "একবারে অনেক বেশি সারি: শিটটি ছোট ছোট ভাগে দিন",
+  "refusal.stateNotOfSide": "এই অবস্থা এই দিকের নয়: অন্য দিক, বা অন্য অবস্থা বেছে নিন",
+  "refusal.noSuchChangeOfState": "পশু তার এখনকার অবস্থা থেকে ওই অবস্থায় যেতে পারে না",
   "refusal.alreadyInThatPen": "সে আগে থেকেই ওই পেনে আছে",
   "refusal.calfMovedBeforeThat":
     "বাছুরটিকে ওই সময়ের আগে সরানো হয়েছে, তাই বাচ্চা দেওয়া তার পরে হতে পারে না",
@@ -3054,9 +3096,14 @@ export const bn: Record<MessageKey, string> = {
   "passwordAgain.notGiven": "হয়নি: এতে আপনার পাসওয়ার্ড লাগে।",
   "common.noSignalNotSaved":
     "নেটওয়ার্ক নেই: এটি সেভ হয়নি। লেখা যা ছিল তা আছে — নেটওয়ার্ক পেলে আবার সেভ করুন।",
+  "common.figureRefused":
+    "যা লেখা হয়েছে খামার তা নিতে পারছে না: প্রতিটি ঘর দেখে আবার চেষ্টা করুন",
+  "common.cannotKeepWork":
+    "এই ফোন কাজ রাখতে পারছে না, তাই কিছুই লেখা হয়নি: অ্যাপটি নিজের ব্রাউজারে খুলুন, প্রাইভেট উইন্ডোতে নয়",
   "work.correctionKept": "এই ফোনে ঠিক করা হয়েছে। নেটওয়ার্ক পেলে খামারে যাবে।",
   "common.cancel": "বাতিল",
   "common.close": "বন্ধ করুন",
+  "common.messages": "বার্তা",
   "nav.signOff": "যাচাই",
   "nav.backups": "খামারের কপি",
   "nav.settings": "আপনার সেটিংস",
@@ -4456,7 +4503,7 @@ export const bn: Record<MessageKey, string> = {
   "shell.farm": "খামার",
   "shell.skip": "মূল অংশে যান",
   "outbox.pending": "{count}টি পাঠানো বাকি",
-  "outbox.pendingSince": "{at} থেকে {count}টি পাঠানো বাকি",
+  "outbox.pendingSince": "{count}টি পাঠানো বাকি, {at} থেকে",
   "outbox.waitsForYou": "{count}টি এখনো পাঠানো বাকি। এই ডিভাইসে আবার ঢুকলে পাঠানো হবে",
   "outbox.synced": "শেষ পাঠানো হয়েছে {ago}",
   "outbox.never": "এখনো পাঠানো হয়নি",

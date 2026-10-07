@@ -77,6 +77,7 @@ const readAsTheyWorked =
     if (!(theirs.actor && theirs.farm && roleUsed)) {
       throw new ORPCError("FORBIDDEN", {
         message: "Recorded under somebody who no longer works on this farm",
+        data: { refusal: "recorded_by_a_leaver" },
       });
     }
     return { ...theirs, ...workingAs(theirs, roleUsed) } as Recorder;

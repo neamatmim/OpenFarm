@@ -331,7 +331,8 @@ export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
             className="grid grid-cols-[minmax(0,12rem)_1fr_auto] items-center gap-4"
             key={bar.key}
           >
-            <span className="truncate text-sm font-medium">{bar.name}</span>
+            {/* Wrapped, never cut: "কোরবানি ২০২৬ ভেঞ্চার" lost its last word on a phone. */}
+            <span className="text-sm font-medium break-words">{bar.name}</span>
             <span className="bg-muted relative h-2.5 rounded-full">
               <span
                 className={cn(

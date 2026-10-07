@@ -56,11 +56,15 @@ export const observationEntry: EntryKind<
     if (!seen) {
       throw new ORPCError("BAD_REQUEST", {
         message: `"${input.saw}" is not something the farm records seeing`,
+        data: { refusal: "not_a_sighting_word" },
       });
     }
     const note = input.note?.trim() || null;
     if (seen.value === OBSERVATION_WORD_NEEDING_A_NOTE && !note) {
-      throw new ORPCError("BAD_REQUEST", { message: "Say what was seen" });
+      throw new ORPCError("BAD_REQUEST", {
+        message: "Say what was seen",
+        data: { refusal: "say_what_was_seen" },
+      });
     }
     const beast = await requireAnimalStillHere(
       tx,

@@ -399,10 +399,12 @@ const TemplatesPage = () => {
         skeleton={<Skeleton className="h-64 rounded-xl" />}
       >
         <DataKeepers />
+        {/* The cards in one column that may shrink on a phone: an implicit one grew to its widest line and ran off a
+            360px screen. */}
         {templates.data?.length === 0 ? (
           <EmptyState icon={ScrollText} title={t("templates.none")} />
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {(templates.data ?? []).map((template) => (
               <TemplateCard
                 key={template.kind}

@@ -27,6 +27,7 @@ const loadCarrying = async (tx: Tx, farmId: string, id: string) => {
   if (isExitState(her.state)) {
     throw new ORPCError("BAD_REQUEST", {
       message: `Animal ${her.tagNumber} has left the farm (${her.state}) and cannot be changed`,
+      data: { refusal: "she_is_gone" },
     });
   }
   if (!her.expectedCalvingAt) {

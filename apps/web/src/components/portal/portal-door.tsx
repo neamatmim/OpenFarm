@@ -18,7 +18,8 @@ export const YourDataLink = () => {
   const { yourData } = usePortalPlaces();
   return (
     <Link
-      className="text-primary underline underline-offset-4"
+      // A link in small print, tall enough for a thumb on a phone.
+      className="text-primary inline-flex min-h-11 items-center underline underline-offset-4 md:min-h-0"
       params={yourData.link.params}
       to={yourData.link.to}
     >

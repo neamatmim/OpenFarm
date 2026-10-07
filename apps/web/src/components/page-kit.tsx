@@ -37,7 +37,13 @@ import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { ChevronDown, EllipsisVertical } from "lucide-react";
 import type { ComponentProps, FormEvent, ReactNode } from "react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import type { Tone } from "@/components/page";
 import { Notice, StatTile } from "@/components/page";
@@ -126,7 +132,8 @@ export const SummaryFigures = ({
 }: {
   figures: Figure[];
   /** Keep each figure's line under it on a phone too, for a reader who has no work below and needs the figure's
-   *  meaning more than the room: the Investor, for whom "not paid yet" is the point of the figure. */
+   *  meaning more than the room: the Investor, for whom "not paid yet" is the point of the figure. Labels wrap either
+   *  way. */
   hintsOnPhone?: boolean;
 }) => (
   <>
@@ -150,13 +157,10 @@ export const SummaryFigures = ({
               type="button"
             />
           ) : null}
+          {/* Wrapped, never cut: a Bangla label of three words may not fit half a 360px phone, and "দুধ আটকে…" said
+              nothing of which hold it counted. */}
           <dt
-            className={cn(
-              "text-muted-foreground text-xs",
-              // A label cut short says no more than a missing line under it, and a Bangla label of three words may
-              // not fit half a 375px phone.
-              !hintsOnPhone && "truncate"
-            )}
+            className="text-muted-foreground text-xs break-words"
             data-slot="figure-label"
           >
             {figure.label}
@@ -301,6 +305,20 @@ export const PageTabs = <T extends string>({
         )
     );
   }, [value]);
+  // Whether more tabs lie past the row's right edge on a phone: the edge fades while they do, the only cue that the
+  // row scrolls sideways at all — "টাকা ও কাগজপত্র" sat out of sight on the animal page.
+  const [moreToTheRight, setMoreToTheRight] = useState(false);
+  const askWhatIsHidden = useCallback(() => {
+    const row = strip.current;
+    setMoreToTheRight(
+      row !== null && row.scrollLeft + row.clientWidth < row.scrollWidth - 1
+    );
+  }, []);
+  useEffect(() => {
+    askWhatIsHidden();
+    window.addEventListener("resize", askWhatIsHidden);
+    return () => window.removeEventListener("resize", askWhatIsHidden);
+  }, [askWhatIsHidden]);
   // A page opened on a tab far along the row — from its address — brings that tab into sight on a phone, sideways
   // only, so the page itself does not jump.
   useEffect(() => {
@@ -327,15 +345,25 @@ export const PageTabs = <T extends string>({
       value={value}
     >
       <div
-        className="-mx-4 overflow-x-auto border-b px-4 md:mx-0 md:px-0"
+        className={cn(
+          "-mx-4 overflow-x-auto border-b px-4 md:mx-0 md:px-0",
+          moreToTheRight &&
+            "[mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)]"
+        )}
+        onScroll={askWhatIsHidden}
         ref={strip}
       >
-        <TabsList className="h-11 gap-4 md:h-9" variant="line">
+        {/* As specific as the kit's own height, or its 32px wins and the tabs are 25px under a thumb: on a phone each tab is
+            44px itself, the row as tall as they are. */}
+        <TabsList
+          className="gap-4 group-data-horizontal/tabs:h-auto md:group-data-horizontal/tabs:h-9"
+          variant="line"
+        >
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <TabsTrigger
-                className="flex-none px-1"
+                className="h-11 flex-none px-1 md:h-[calc(100%-1px)]"
                 data-tab={tab.value}
                 key={tab.value}
                 value={tab.value}
@@ -930,9 +958,14 @@ export const FormDialog = ({
   });
   return (
     <Dialog onOpenChange={handleOpenChange} open={open}>
-      <DialogContent className={className} closeLabel={t("common.close")}>
+      {/* Taller than a phone's screen, the fields scroll between the title and the buttons, which stay in sight: the
+          sighting dialog's title and Cancel were off a 360×640 screen, and Save went under the keyboard. */}
+      <DialogContent
+        className={cn("flex flex-col overflow-hidden", className)}
+        closeLabel={t("common.close")}
+      >
         <form
-          className="flex flex-col gap-4"
+          className="flex min-h-0 flex-col gap-4"
           noValidate
           onChangeCapture={handleChange}
           onSubmit={handleSubmit}
@@ -944,7 +977,10 @@ export const FormDialog = ({
               <DialogDescription>{description}</DialogDescription>
             ) : null}
           </DialogHeader>
-          <div className="flex flex-col gap-4" ref={top}>
+          <div
+            className="-mx-4 flex min-h-0 flex-col gap-4 overflow-y-auto px-4 py-0.5"
+            ref={top}
+          >
             {refused}
             {children}
           </div>

@@ -100,6 +100,7 @@ export const vetCasesRouter = {
       if (!vets.some((vet) => vet.id === input.vetId)) {
         throw new ORPCError("BAD_REQUEST", {
           message: "That person is not a visiting vet on this farm now",
+          data: { refusal: "not_a_visiting_vet" },
         });
       }
       await audited(context).write(
@@ -126,6 +127,7 @@ export const vetCasesRouter = {
           if (!row) {
             throw new ORPCError("CONFLICT", {
               message: "That vet already has a case open on her",
+              data: { refusal: "case_already_open" },
             });
           }
         }
@@ -209,6 +211,7 @@ export const vetCasesRouter = {
       if (until <= now) {
         throw new ORPCError("BAD_REQUEST", {
           message: "A visit has to last until today at least",
+          data: { refusal: "visit_ends_before_today" },
         });
       }
       await audited(context).write(

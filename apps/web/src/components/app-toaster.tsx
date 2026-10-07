@@ -1,6 +1,8 @@
 import { Toaster } from "@OpenFarm/ui/components/sonner";
 import { useIsMobile } from "@OpenFarm/ui/hooks/use-mobile";
 
+import { useLanguage } from "@/i18n/language-provider";
+
 /** Clear of the phone's bar pinned at the top: 56px and a little air. */
 const UNDER_THE_TOP_BAR = 64;
 /** The gap a toast keeps from the window's edge on a desk. */
@@ -14,8 +16,11 @@ const FROM_THE_EDGE = 16;
  */
 export const AppToaster = () => {
   const phone = useIsMobile();
+  const { t } = useLanguage();
   return (
     <Toaster
+      // Announced on every page: Sonner's own "Notifications alt+T" was English to a Bangla screen reader.
+      containerAriaLabel={t("common.messages")}
       offset={
         phone
           ? { top: UNDER_THE_TOP_BAR }

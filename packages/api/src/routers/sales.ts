@@ -170,6 +170,7 @@ export const salesRouter = {
       if (soldAt.getTime() > now.getTime()) {
         throw new ORPCError("BAD_REQUEST", {
           message: "An animal cannot have been sold tomorrow",
+          data: { refusal: "sold_in_the_future" },
         });
       }
       // Asked before anything is written: what he owes is a fact about the handshake, not about the farm.

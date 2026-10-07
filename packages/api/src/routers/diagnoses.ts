@@ -74,6 +74,7 @@ const assertAnswerable = async (
   if (!seen || seen.animalId !== animalId) {
     throw new ORPCError("BAD_REQUEST", {
       message: "That observation is not this animal's",
+      data: { refusal: "not_this_animals" },
     });
   }
   if (seen.withdrawnAt) {

@@ -1,4 +1,5 @@
-import { OBSERVATION_WORDS } from "@OpenFarm/domain";
+import type { SopContent } from "@OpenFarm/domain";
+import { OBSERVATION_WORDS, choiceSaid } from "@OpenFarm/domain";
 import type { Language, MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -19,6 +20,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { entryRefusalMessage } from "@/lib/correction-refusal";
 import type { Held, OutboxEntry } from "@/lib/outbox";
 import { phoneOutbox } from "@/lib/outbox-client";
+import { orpc } from "@/utils/orpc";
 
 /** What each kind of entry is called, so one with nothing typed in it still says what it was. */
 const KIND_WORD: Record<OutboxEntry["kind"], MessageKey> = {
@@ -36,23 +38,30 @@ const KIND_WORD: Record<OutboxEntry["kind"], MessageKey> = {
 const entered = (
   entry: OutboxEntry,
   t: (key: MessageKey) => string,
-  language: Language
+  language: Language,
+  /** The Version the Step was answered on, as this phone last had its work: what its choices are called. */
+  content?: SopContent
 ): string => {
   const body = entry.body as {
     evidence?: unknown[];
     skipReason?: string;
     saw?: string;
     note?: string;
+    stepId?: string;
   };
   if (body.skipReason) {
     return String(body.skipReason);
   }
-  const said = (body.evidence ?? []).map((value) => {
+  const said = (body.evidence ?? []).map((value, slot) => {
     if (typeof value === "number") {
       return formatNumber(value, language);
     }
     if (typeof value === "boolean") {
       return t(value ? "outbox.ticked" : "outbox.notTicked");
+    }
+    const choice = choiceSaid(content, body.stepId, slot, value);
+    if (choice) {
+      return language === "en" ? (choice.en ?? choice.bn) : choice.bn;
     }
     return String(value);
   });
@@ -72,7 +81,7 @@ const animalOf = (entry: OutboxEntry): string | undefined => {
 
 /** One entry the phone is still holding: why, what was entered and when, and the one thing to do with it. */
 const HeldCard = ({
-  held: { entry, reason, refusal },
+  held: { entry, refusal },
   tone,
   onDiscard,
 }: {
@@ -81,8 +90,16 @@ const HeldCard = ({
   onDiscard: (id: string) => void;
 }) => {
   const { t, language } = useLanguage();
+  const queryClient = useQueryClient();
   const tag = animalOf(entry);
   const recordedAt = new Date(entry.recordedAt);
+  // The work as this phone last had it, which says what the Step's choices are called.
+  const { instanceId } = entry.body as { instanceId?: string };
+  const work = instanceId
+    ? queryClient.getQueryData(
+        orpc.work.get.queryKey({ input: { id: instanceId } })
+      )
+    : undefined;
   const Icon = tone === "danger" ? Undo2 : Eye;
   return (
     <li className="surface flex flex-col gap-3 p-4">
@@ -99,7 +116,8 @@ const HeldCard = ({
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <p className="font-semibold">
-            {entryRefusalMessage(refusal, t) ?? reason}
+            {/* A batch refused whole has only the server's English, kept for whoever reads a log. */}
+            {entryRefusalMessage(refusal, t) ?? t("outbox.wrong")}
           </p>
           <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             {tag ? <TagChip>{tag}</TagChip> : null}
@@ -114,7 +132,8 @@ const HeldCard = ({
           {t("outbox.entered")}
         </p>
         <p className="font-medium break-words">
-          {entered(entry, t, language) || t(KIND_WORD[entry.kind])}
+          {entered(entry, t, language, work?.content) ||
+            t(KIND_WORD[entry.kind])}
         </p>
       </div>
       <Button

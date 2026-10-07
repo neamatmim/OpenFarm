@@ -223,6 +223,7 @@ export const intakesRouter = {
       if (arrivedAt.getTime() > now.getTime()) {
         throw new ORPCError("BAD_REQUEST", {
           message: "An animal cannot have arrived tomorrow",
+          data: { refusal: "arrived_in_the_future" },
         });
       }
       // A Venture's animal inherits its window, as an Amendment leaves it today: what she is bought for is the

@@ -175,6 +175,7 @@ export const sellingTripsRouter = {
       if (wentOn.getTime() > now.getTime()) {
         throw new ORPCError("BAD_REQUEST", {
           message: "A lorry cannot have gone tomorrow",
+          data: { refusal: "went_in_the_future" },
         });
       }
       // The same beast ticked twice is one beast on the lorry.

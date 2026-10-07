@@ -12,6 +12,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Lock, LogOut, Settings } from "lucide-react";
 
+import { PhonePreferences } from "@/components/shell/phone-preferences";
 import { useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 import { useInTheBrowser } from "@/lib/in-the-browser";
@@ -96,6 +97,7 @@ const UserMenu = () => {
             <Lock aria-hidden />
             {t("device.switchPerson")}
           </DropdownMenuItem>
+          <PhonePreferences />
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -151,6 +153,7 @@ const UserMenu = () => {
             {t("nav.settings")}
           </DropdownMenuItem>
         </DropdownMenuGroup>
+        <PhonePreferences />
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={async () => {

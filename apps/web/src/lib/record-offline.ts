@@ -49,7 +49,10 @@ export type MedicineCountEntry = NonNullable<
 const held = () => {
   const outbox = phoneOutbox();
   if (!outbox) {
-    throw new Error("This device cannot keep work; nothing was recorded");
+    throw Object.assign(
+      new Error("This device cannot keep work; nothing was recorded"),
+      { data: { refusal: "cannot_keep_work" } }
+    );
   }
   return outbox;
 };
