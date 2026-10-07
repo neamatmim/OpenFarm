@@ -25,7 +25,9 @@ const letTheReadingStand = async (
   tx: Tx,
   farmId: string,
   completionId: string,
-  now: Date
+  now: Date,
+  /** The Manager's judgement, which a reading after it doubted because of it hangs its own question on. */
+  eventId: string
 ): Promise<void> => {
   const [reading] = await tx
     .update(weighIn)
@@ -40,6 +42,7 @@ const letTheReadingStand = async (
       animalId: reading.animalId,
       after: reading.weighedAt,
       now,
+      eventId,
     });
   }
 };
@@ -157,7 +160,7 @@ export const reviewQueueRouter = {
             resolvedBy: context.actor.id,
           },
         },
-        async (tx) => {
+        async (tx, eventId) => {
           const [row] = await tx
             .update(needsReview)
             .set({
@@ -191,7 +194,13 @@ export const reviewQueueRouter = {
             row.entity === "weigh_in" &&
             row.reason === "implausible_weight"
           ) {
-            await letTheReadingStand(tx, context.farm.id, row.entityId, now);
+            await letTheReadingStand(
+              tx,
+              context.farm.id,
+              row.entityId,
+              now,
+              eventId
+            );
           }
         }
       );

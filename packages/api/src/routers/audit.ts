@@ -1,4 +1,4 @@
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { OWNERS_TRAIL, startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import { farmDay } from "../farm-clock";
@@ -8,7 +8,6 @@ import {
   withoutTheOwnersFigures,
 } from "../owners-figures";
 import { requireRole } from "../roles";
-import { OWNERS_TRAIL } from "../whose-trail";
 
 const LIMIT_MAX = 200;
 const LIMIT_DEFAULT = 50;
@@ -28,6 +27,13 @@ const saysMoreThanTheOwnersOf = (row: { before: unknown; after: unknown }) =>
       typeof snapshot === "object" &&
       saysMoreThanTheOwners(snapshot as Record<string, unknown>)
   );
+
+/** The tag of the animal a death's or a Sale's snapshot names, where it names one. */
+const animalNamedIn = (snapshot: unknown): string | null => {
+  const tag = (snapshot as { animal?: { tagNumber?: unknown } } | null)?.animal
+    ?.tagNumber;
+  return typeof tag === "string" ? tag : null;
+};
 
 /** The audit log. Owner and Manager see everyone's actions, less the Owner's own records for the Manager; every
  *  other Role sees only their own actions. Day filters are farm-local, half-open: [fromDay 00:00, toDay + 1 day
@@ -142,9 +148,11 @@ export const auditRouter = {
             );
       return shown.map((row) => ({
         ...row,
-        /** Her tag, where the event is about an Animal. */
+        /** Her tag, where the event is about an Animal — or about her death or her Sale, whose snapshot names her. */
         tagNumber:
-          row.entity === "animal" ? (tagOf.get(row.entityId) ?? null) : null,
+          row.entity === "animal"
+            ? (tagOf.get(row.entityId) ?? null)
+            : animalNamedIn(row.after ?? row.before),
         /** The work, where the event is about a piece of it that exists. */
         instanceId:
           row.entity === "sop_instance" && isWork.has(row.entityId)

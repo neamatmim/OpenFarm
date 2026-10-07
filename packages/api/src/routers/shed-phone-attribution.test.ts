@@ -648,6 +648,29 @@ describe("a Shed Phone locked on the shelf", () => {
   });
 });
 
+describe("the day turning when somebody opens the app", () => {
+  it("is filed as the farm's own act, not as whoever opened it", async () => {
+    const day = "2031-09-01";
+    const clock = new FakeClock(`${day}T05:30:00.000Z`);
+    // The milker opens the app at half past five, and the day's milking is raised.
+    const { client: milker } = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+    });
+    await milker.work.ensureDue();
+    const [raised] = await scratchDb()
+      .select({ actorId: auditEvent.actorId, roleUsed: auditEvent.roleUsed })
+      .from(auditEvent)
+      .where(
+        and(
+          eq(auditEvent.farmId, theFarm().id),
+          eq(auditEvent.entityId, `schedule:${day}`)
+        )
+      );
+    expect(raised).toEqual({ actorId: null, roleUsed: null });
+  });
+});
+
 describe("how many are waiting", () => {
   it("counts every Needs Review waiting, though the list carries only the oldest hundred", async () => {
     const { client: manager } = await createTestClient(appRouter, {

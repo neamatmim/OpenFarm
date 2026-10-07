@@ -26,7 +26,11 @@ export const readSale = async (tx: Tx, id: string) => {
       note: true,
       soldAt: true,
     },
-    with: { buyer: { columns: { name: true } } },
+    with: {
+      buyer: { columns: { name: true } },
+      // Which animal went: a Sale's trail that names nobody cannot answer who sold her.
+      animal: { columns: { id: true, tagNumber: true } },
+    },
   });
   if (!row) {
     return null;

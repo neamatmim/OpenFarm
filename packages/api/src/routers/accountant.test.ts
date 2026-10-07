@@ -139,10 +139,15 @@ afterAll(async () => {
 describe("the accountant's export", () => {
   it("lists every Money Event of the period, with money not yet approved marked", async () => {
     const owner = await as("owner", "2040-04-01T04:00:00.000Z");
-    const { csv } = await owner.client.reports.accountantExport({
+    const { csv, fileName } = await owner.client.reports.accountantExport({
       ...MARCH,
       format: "csv",
     });
+    // Stamped in its name — the farm's Registration number, the farm's day and time it was made, what and when — and
+    // its rows left clean for the accountant's spreadsheet.
+    expect(fileName).toBe(
+      "openfarm-DLS-SAV-2026-042-2040-04-01-1000-money-2040-03-01-2040-03-31.csv"
+    );
     const [header, ...rows] = (csv ?? "").slice(1).trim().split("\r\n");
     expect(header).toBe(
       "date,direction,amount_money,category,category_en,counterparty,payment_method,side,record,record_id,reference,transaction_id,farm_account,approval,note"

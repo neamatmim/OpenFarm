@@ -1,6 +1,11 @@
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { stepCompletion } from "@OpenFarm/db/schema/instance";
-import { MILK_DESTINATIONS, covers, isClinicalStep } from "@OpenFarm/domain";
+import {
+  MILK_DESTINATIONS,
+  covers,
+  isClinicalStep,
+  isHealthStep,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -199,9 +204,9 @@ export const stepCorrection: CorrectionKind<
     // device could widen.
     enteredAt: row.receivedAt,
     enteredBy: row.recordedBy,
-    // A Pregnancy Check is a clinical finding, and the Vet's window over the clinical record is the one that lets a Vet
-    // put their own finding right.
-    isHealthEntry: isClinicalStep(stepOfCompletion(row)),
+    // A Pregnancy Check is a clinical finding, and a dose is the health record too: the Vet's standing over their own
+    // health entries is what lets a Vet put either right.
+    isHealthEntry: isHealthStep(stepOfCompletion(row)),
   }),
   requireInScope: (scope, row) => requireWorkInScope(scope, row.instance),
   shown: async (tx, row) => ({

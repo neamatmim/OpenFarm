@@ -63,7 +63,8 @@ const RecordLink = ({
 }) => {
   const name = <RecordName entity={event.entity} />;
   const { entity, entityId, tagNumber, instanceId } = event;
-  if (entity === "animal" && tagNumber) {
+  // Her own events, and her death's and her Sale's, which name her.
+  if (tagNumber) {
     return (
       <Link
         className={LINK_CLASS}

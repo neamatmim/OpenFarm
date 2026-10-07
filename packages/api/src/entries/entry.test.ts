@@ -1,11 +1,11 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
+import type { AuditEntity } from "@OpenFarm/domain";
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
 import type { Recorder } from "../completion-store";
 import { appRouter } from "../routers/index";
 import { createTestClient } from "../test/client";
-import type { AuditEntity } from "../whose-trail";
 import type { EntryKind } from "./entry";
 import { recordHeld } from "./entry";
 

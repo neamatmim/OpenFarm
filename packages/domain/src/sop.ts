@@ -1067,6 +1067,14 @@ export const findStructuralProblems = (content: SopContent): string[] => {
 export const isClinicalStep = (step: Step): boolean =>
   step.effect?.kind === "pregnancy_check";
 
+/**
+ * Whether a Step writes the animal's health record — a clinical finding, or a dose given — and so falls under a Vet's
+ * standing over their own health entries: a Vet who recorded a dose skipped can put it right, as the glossary gives
+ * them, whoever else the farm's work is.
+ */
+export const isHealthStep = (step: Step): boolean =>
+  isClinicalStep(step) || step.effect?.kind === "treatment";
+
 /** Everything that stops a Version being published, in one list. */
 export const findPublishBlockers = (content: SopContent): string[] => [
   ...findStructuralProblems(content),

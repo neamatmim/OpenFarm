@@ -233,5 +233,23 @@ export const readWageDraw = async (
   id: string
 ): Promise<SnapshotValue> => {
   const row = await db.query.wageDraw.findFirst({ where: { id } });
-  return row ? { ...row, takenMoney: await takenOffDraw(db, id) } : null;
+  if (!row) {
+    return null;
+  }
+  // The money it booked, with whose hand paid it and from which of the Farm's numbers: what a Correction puts right.
+  const money = await db.query.moneyEvent.findFirst({
+    where: { source: "wage_draw", sourceId: id },
+    columns: {
+      amountMoney: true,
+      paymentMethod: true,
+      heldBy: true,
+      farmAccountId: true,
+      reference: true,
+    },
+  });
+  return {
+    ...row,
+    takenMoney: await takenOffDraw(db, id),
+    money: money ?? null,
+  };
 };

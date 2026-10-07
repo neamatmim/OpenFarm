@@ -53,7 +53,7 @@ import { raiseThePutOff } from "../put-off-store";
 import { requireRole } from "../roles";
 import { isWorkInScope, requireWorkInScope, workInScopeWhere } from "../scope";
 import { contentOf } from "../sop-content";
-import { theDaysWork } from "../the-day-turns";
+import { asTheFarm, theDaysWork } from "../the-day-turns";
 import { ABOUT_HER, aboutHer } from "../work-about";
 import { putOffOf, unwellThatRaised } from "../work-cause";
 import {
@@ -179,7 +179,7 @@ export const workRouter = {
    */
   ensureDue: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
-    .handler(({ context }) => theDaysWork(context)),
+    .handler(({ context }) => theDaysWork(asTheFarm(context))),
 
   /**
    * Raises one piece of work now, for one Pen, because somebody has decided to do it today: a

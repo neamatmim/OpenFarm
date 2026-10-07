@@ -45,6 +45,7 @@ import {
 } from "../sale-store";
 import { assertNotSettledUp } from "../venture-act";
 import { backFromSellingOnAVoid, lockTheFarm } from "../venture-store";
+import { keepWhatWasPhotographed } from "../voided-photos";
 import type { CorrectionKind, Corrector, NewValues } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
 
@@ -153,6 +154,23 @@ const voidTheSale = async (
   });
   const ids = events.map((one) => one.id);
   if (ids.length > 0) {
+    // Its receipt photographed kept under her, as a Correction takes no photograph away.
+    const receipts = await tx.query.moneyReceipt.findMany({
+      where: { moneyEventId: { in: ids } },
+      columns: { contentType: true, data: true, updatedAt: true },
+    });
+    await keepWhatWasPhotographed(tx, {
+      farmId: row.farmId,
+      animalId: row.animalId,
+      from: "sale_receipt",
+      sourceId: row.id,
+      photos: receipts.map(({ updatedAt, ...photo }) => ({
+        ...photo,
+        takenAt: updatedAt,
+      })),
+      by: context.actor.id,
+      at: now,
+    });
     await tx
       .delete(moneyReceipt)
       .where(inArray(moneyReceipt.moneyEventId, ids));
@@ -179,6 +197,7 @@ const voidTheSale = async (
       leftAt: row.soldAt,
       now,
       trail: audited(context).recordEvent,
+      voided: "sale",
     }
   );
 };

@@ -1,4 +1,5 @@
 import { and, eq, isNull, not } from "@OpenFarm/db/operators";
+import type { AuditEntity } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 
@@ -6,7 +7,6 @@ import type { SnapshotValue, Tx } from "./audit";
 import { audited } from "./audit";
 import type { Context } from "./context";
 import { nameTaken } from "./names";
-import type { AuditEntity } from "./whose-trail";
 
 /**
  * A list the farm keeps — its breeds, its feeds, its medicines, its Categories, its Investors, its notifiable

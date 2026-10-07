@@ -32,14 +32,15 @@ export const MilkRecordsTab = () => {
   );
   const dispatchCsv = useMutation(
     orpc.reports.milkDispatchRecord.mutationOptions({
-      onSuccess: ({ csv }) =>
-        saveCsv(`milk-dispatch-${from}-${to}.csv`, csv ?? ""),
+      onSuccess: ({ csv, fileName }) =>
+        saveCsv(fileName ?? `milk-dispatch-${from}-${to}.csv`, csv ?? ""),
       onError,
     })
   );
   const production = useMutation(
     orpc.reports.milkProduction.mutationOptions({
-      onSuccess: ({ csv }) => saveCsv(`milk-production-${from}-${to}.csv`, csv),
+      onSuccess: ({ csv, fileName }) =>
+        saveCsv(fileName ?? `milk-production-${from}-${to}.csv`, csv),
       onError,
     })
   );

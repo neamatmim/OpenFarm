@@ -298,9 +298,10 @@ describe("a settled Venture's records", () => {
   });
 
   it("refuses how one of its Animals left put right", async () => {
-    const manager = await as("manager", "2048-03-03T06:00:00.000Z");
+    // The Owner, whose window never closes: the Manager's thirty days from her death ran out in February.
+    const owner = await as("owner", "2048-03-03T06:00:00.000Z");
     await expect(
-      manager.client.animals.correctMortality({
+      owner.client.animals.correctMortality({
         tagNumber: deadTag,
         reason: `কারণ ভুল লেখা ছিল ${suffix}`,
         changes: {
@@ -314,6 +315,23 @@ describe("a settled Venture's records", () => {
       code: "BAD_REQUEST",
       data: { refusal: "venture_is_settled" },
     });
+  });
+
+  it("tells somebody past their window that it is not theirs, not to raise an Adjustment they cannot", async () => {
+    // A year on, the Manager's thirty days are long gone: the Correction is not his, settled Venture or not.
+    const manager = await as("manager", "2049-06-01T06:00:00.000Z");
+    await expect(
+      manager.client.animals.correctMortality({
+        tagNumber: deadTag,
+        reason: `কারণ ভুল লেখা ছিল ${suffix}`,
+        changes: {
+          cause: {
+            from: `জ্বরে মারা গেছে ${suffix}`,
+            to: `অন্য কারণে ${suffix}`,
+          },
+        },
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("refuses an outing that carried one of its Animals put right", async () => {

@@ -21,6 +21,8 @@ export const readMortality = async (tx: Tx, id: string) =>
       disposal: true,
       disposalNote: true,
     },
+    // Which animal it was: a death's trail that names nobody cannot answer who wrote her dead.
+    with: { animal: { columns: { id: true, tagNumber: true } } },
   })) ?? null;
 
 /**
