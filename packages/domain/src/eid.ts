@@ -176,8 +176,7 @@ export interface Season {
 export const seasonOf = (window: TargetWindow): Season => {
   const eid = expectedEidNear(window.start);
   const lastDayOfItsQurbani =
-    eid !== null &&
-    isSameEid(addDays(window.end, -(QURBANI_DAYS - 1)), eid);
+    eid !== null && isSameEid(addDays(window.end, -(QURBANI_DAYS - 1)), eid);
   if (eid !== null && lastDayOfItsQurbani) {
     return { key: `eid:${eid}`, eid, window: qurbaniFrom(eid) };
   }

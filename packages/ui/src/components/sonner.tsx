@@ -35,16 +35,19 @@ const Toaster = ({ ...props }: ToasterProps) => {
           // own rich colours fall to about 3:1 in light (WCAG 1.4.3).
           "--success-bg": "var(--success-surface)",
           "--success-text": "var(--success)",
-          "--success-border": "color-mix(in oklch, var(--success) 30%, transparent)",
+          "--success-border":
+            "color-mix(in oklch, var(--success) 30%, transparent)",
           "--info-bg": "var(--info-surface)",
           "--info-text": "var(--info)",
           "--info-border": "color-mix(in oklch, var(--info) 30%, transparent)",
           "--warning-bg": "var(--warning-surface)",
           "--warning-text": "var(--warning)",
-          "--warning-border": "color-mix(in oklch, var(--warning) 30%, transparent)",
+          "--warning-border":
+            "color-mix(in oklch, var(--warning) 30%, transparent)",
           "--error-bg": "var(--danger-surface)",
           "--error-text": "var(--danger)",
-          "--error-border": "color-mix(in oklch, var(--danger) 30%, transparent)",
+          "--error-border":
+            "color-mix(in oklch, var(--danger) 30%, transparent)",
         } as React.CSSProperties
       }
       toastOptions={{
