@@ -17,7 +17,9 @@ const LanguageToggle = () => {
       title={t("language.switch")}
       onClick={() => setLanguage(next)}
     >
-      <span lang={next}>{t(next === "bn" ? "language.bn" : "language.en")}</span>
+      <span lang={next}>
+        {t(next === "bn" ? "language.bn" : "language.en")}
+      </span>
     </Button>
   );
 };

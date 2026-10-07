@@ -34,7 +34,13 @@ export default defineConfig({
     semi: true,
     sortPackageJson: true,
   },
+  // Run by .vite-hooks/pre-commit. Checks only, so a commit never rewrites a file behind the committer's back; the
+  // repo's formatter is oxfmt with oxfmt.config.ts (`vp fmt` wraps at a different width). Fix with
+  // `pnpm check:changed --fix`.
   staged: {
-    "*.{js,ts,jsx,tsx,vue,svelte,json,jsonc,css,md}": "vp check --fix",
+    "*.{ts,tsx,js,jsx,mjs,cjs}": [
+      "oxfmt --check",
+      "oxlint --no-error-on-unmatched-pattern",
+    ],
   },
 });

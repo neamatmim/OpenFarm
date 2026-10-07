@@ -9,9 +9,10 @@
   "scripts": {
     "dev": "vp run -r dev",
     "build": "vp run -r build",
-    "release:check": "pnpm check-types && pnpm test && pnpm build",
+    "release:check": "oxlint && pnpm check-types && pnpm test && pnpm build",
     "check-types": "vp run -r check-types",
     "check": "ultracite check",
+    "check:changed": "scripts/check-changed.sh",
     "lint": "vp lint",
     "format": "vp fmt",
     "staged": "vp staged",
