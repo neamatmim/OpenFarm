@@ -29,7 +29,21 @@ const FATTENING: SopContent["appliesTo"] = {
   states: ["quarantine", "fattening"],
 };
 
-const weighInSop = (appliesTo = FATTENING): SopContent => ({
+/** A procedure under a name of its own: the farm keeps one procedure in force for each name, and this file writes
+ *  the same one more than once. */
+let written = 0;
+const unique = (content: SopContent): SopContent => {
+  written += 1;
+  return {
+    ...content,
+    name: {
+      bn: `${content.name.bn} ${written}`,
+      ...(content.name.en ? { en: `${content.name.en} ${written}` } : {}),
+    },
+  };
+};
+
+const weighInSopAsWritten = (appliesTo = FATTENING): SopContent => ({
   name: { bn: `ওজন ${suffix} ${appliesTo.side}` },
   purpose: { bn: "প্রতিটি পশুর ওজন নেওয়া" },
   triggers: [{ kind: "schedule", times: ["07:00"] }],
@@ -56,6 +70,9 @@ const weighInSop = (appliesTo = FATTENING): SopContent => ({
     },
   ],
 });
+
+const weighInSop = (appliesTo = FATTENING): SopContent =>
+  unique(weighInSopAsWritten(appliesTo));
 
 let penId = "";
 let weighed = "";

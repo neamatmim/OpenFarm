@@ -5,9 +5,23 @@ import { describe, expect, it } from "vitest";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
+/** A procedure under a name of its own: the farm keeps one procedure in force for each name, and this file writes
+ *  the same one more than once. */
+let written = 0;
+const unique = (content: SopContent): SopContent => {
+  written += 1;
+  return {
+    ...content,
+    name: {
+      bn: `${content.name.bn} ${written}`,
+      ...(content.name.en ? { en: `${content.name.en} ${written}` } : {}),
+    },
+  };
+};
+
 /** The milking SOP as the Owner would author it: two sessions a day, a per-cow block with
  *  litres, and a bulk total at the end. */
-const milkingSop = (): SopContent => ({
+const milkingSopAsWritten = (): SopContent => ({
   name: { bn: "দোহন", en: "Milking" },
   purpose: {
     bn: "প্রতিটি গাভীর দুধ পরিষ্কারভাবে সংগ্রহ ও নথিভুক্ত করা",
@@ -64,6 +78,8 @@ const milkingSop = (): SopContent => ({
   ],
 });
 
+const milkingSop = (): SopContent => unique(milkingSopAsWritten());
+
 /** Replaces one step, so the tests never reach into the array with a non-null assertion. */
 const withStep = (
   content: SopContent,
@@ -99,7 +115,7 @@ describe("authoring an SOP", () => {
     expect(created.number).toBe(1);
     expect(definition.currentVersion?.number).toBe(1);
     const content = definition.currentVersion?.content as SopContent;
-    expect(content.name.bn).toBe("দোহন");
+    expect(content.name.bn).toMatch(/^দোহন/u);
     expect(content.steps[1]?.repeatPerAnimal).toBe(true);
   });
 

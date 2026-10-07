@@ -504,6 +504,12 @@ const freshValue = (bn: string, taken: ReadonlySet<string>): string => {
 export const fromBilingualList = (values: Bilingual[]): string =>
   values.map((value) => value.bn).join(", ");
 
+/** The values of a round's choices the farm acts on, never handed to other words by their place in the list. */
+const MEANINGFUL_VALUES: ReadonlySet<string> = new Set([
+  HEAT,
+  ...URGENT_ROUND_WORDS,
+]);
+
 /**
  * What may be chosen, as the Owner types it: a comma-separated list in Bangla. A new choice
  * takes its own label as its value, so the record keeps the word somebody actually chose.
@@ -512,14 +518,9 @@ export const fromBilingualList = (values: Bilingual[]): string =>
  * there by its words keeps its own, wherever it has moved to and whatever was taken out around it
  * — matched by place, taking out "lame" handed the next choice its value, and a heat was then a
  * lame sighting. Reworded where it stood, in a list as long as it was, it keeps its value too:
- * rewriting records because somebody reworded the list would orphan every Observation already made.
+ * rewriting records because somebody reworded the list would orphan every Observation already made —
+ * unless the farm acts on it: a heat goes with the words "গরম হয়েছে", never to whatever is typed in its place.
  */
-/** The values of a round's choices the farm acts on, never handed to other words by their place in the list. */
-const MEANINGFUL_VALUES: ReadonlySet<string> = new Set([
-  HEAT,
-  ...URGENT_ROUND_WORDS,
-]);
-
 export const toChoices = (value: string, existing: Choice[] = []): Choice[] => {
   const labels = splitList(value);
   const byLabel = new Map(existing.map((choice) => [choice.label.bn, choice]));

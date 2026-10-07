@@ -1,3 +1,4 @@
+import type { SopContent } from "@OpenFarm/domain";
 import { standardPlaybook } from "@OpenFarm/domain";
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -22,6 +23,20 @@ const workOf = (definitionId: string) =>
     columns: { id: true, state: true },
     orderBy: { dueAt: "asc" },
   });
+
+/** A procedure under a name of its own: the farm keeps one procedure in force for each name, and this file writes
+ *  the same one more than once. */
+let written = 0;
+const unique = (content: SopContent): SopContent => {
+  written += 1;
+  return {
+    ...content,
+    name: {
+      bn: `${content.name.bn} ${written}`,
+      ...(content.name.en ? { en: `${content.name.en} ${written}` } : {}),
+    },
+  };
+};
 
 /** A heifer in a Pen, so the farm's whole-farm work has somewhere to be owed. */
 beforeAll(async () => {
@@ -87,7 +102,7 @@ describe("retiring a procedure", () => {
   it("is the Owner's", async () => {
     const owner = await asOwner(onDay(4));
     const { definitionId } = await owner.client.sops.create({
-      content: standardPlaybook().feeding,
+      content: unique(standardPlaybook().feeding),
     });
     const manager = await createTestClient(appRouter, {
       as: "manager",
@@ -105,7 +120,7 @@ describe("retiring a procedure", () => {
       as: "manager",
       clock: onDay(5),
     });
-    const { feeding } = standardPlaybook();
+    const feeding = unique(standardPlaybook().feeding);
     const { definitionId } = await owner.client.sops.create({
       content: feeding,
     });

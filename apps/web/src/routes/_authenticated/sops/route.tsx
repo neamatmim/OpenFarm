@@ -36,6 +36,7 @@ const REFUSALS: Record<string, MessageKey> = {
   treatment_sop_exists: "sop.refused.treatmentExists",
   report_sop_exists: "sop.refused.reportExists",
   proposal_out_of_date: "sop.refused.proposalOutOfDate",
+  sop_name_taken: "sop.refused.nameTaken",
   changed_since_you_began: "sop.refused.changedSinceYouBegan",
 };
 type Tab = (typeof TABS)[number];

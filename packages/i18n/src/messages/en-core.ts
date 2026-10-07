@@ -1521,6 +1521,8 @@ export const enCore = {
   "sop.whatItChanges": "What it changes in version {number}",
   "sop.refused.proposalOutOfDate":
     "The procedure has had a new version since this change was drafted. Turn it down and ask for it again on version {version}.",
+  "sop.refused.nameTaken":
+    "Another procedure in force has this name, in Bangla or in English. Give this one a name of its own.",
   "sop.refused.changedSinceYouBegan":
     "Version {version} was published while you were writing. Close this and start again from it, so nothing it changed is undone.",
   "sop.noProposals": "No changes waiting",
@@ -1684,6 +1686,8 @@ export const enCore = {
   "training.hint":
     "Mark somebody once they have been taught from this card's version.",
   "training.who": "Who was taught",
+  "training.current": "Knows the version in force",
+  "training.behind": "Needs teaching version {number}",
   "changed.title": "This procedure has changed",
   "changed.versions": "Version {from} to {to}",
   "changed.onOlder": "This work is running on version {number}",

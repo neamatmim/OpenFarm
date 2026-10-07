@@ -1400,6 +1400,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sop.whatItChanges": "সংস্করণ {number}-এ যা বদলাবে",
   "sop.refused.proposalOutOfDate":
     "এই বদল লেখার পর পদ্ধতির নতুন সংস্করণ এসেছে। বাতিল করে সংস্করণ {version}-এর ওপর আবার প্রস্তাব করতে বলুন।",
+  "sop.refused.nameTaken":
+    "চালু আরেকটি কার্যপ্রণালীর এই নাম আছে, বাংলায় বা ইংরেজিতে। এটিকে আলাদা একটি নাম দিন।",
   "sop.refused.changedSinceYouBegan":
     "আপনি লেখার সময় সংস্করণ {version} প্রকাশ হয়েছে। এটি বন্ধ করে সেখান থেকে আবার শুরু করুন, যাতে তার কোনো বদল মুছে না যায়।",
   "sop.noProposals": "কোনো পরিবর্তন অপেক্ষায় নেই",
@@ -1545,6 +1547,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "training.on": "সংস্করণ {number} · {date}",
   "training.hint": "এই কার্ডের সংস্করণ থেকে কাউকে শেখানো হলে তাকে চিহ্নিত করুন।",
   "training.who": "কাকে শেখানো হয়েছে",
+  "training.current": "চালু সংস্করণ জানেন",
+  "training.behind": "সংস্করণ {number} শেখাতে হবে",
   "changed.title": "এই কার্যপ্রণালী বদলেছে",
   "changed.versions": "সংস্করণ {from} থেকে {to}",
   "changed.onOlder": "এই কাজটি সংস্করণ {number} অনুযায়ী চলছে",

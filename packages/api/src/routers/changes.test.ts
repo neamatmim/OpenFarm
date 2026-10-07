@@ -5,7 +5,21 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-const waterSop = (): SopContent => ({
+/** A procedure under a name of its own: the farm keeps one procedure in force for each name, and this file writes
+ *  the same one more than once. */
+let written = 0;
+const unique = (content: SopContent): SopContent => {
+  written += 1;
+  return {
+    ...content,
+    name: {
+      bn: `${content.name.bn} ${written}`,
+      ...(content.name.en ? { en: `${content.name.en} ${written}` } : {}),
+    },
+  };
+};
+
+const waterSopAsWritten = (): SopContent => ({
   name: { bn: "পানি দিন", en: "Water" },
   purpose: { bn: "প্রতিটি পেনে পানি আছে কিনা দেখুন" },
   triggers: [{ kind: "schedule", times: ["08:00"] }],
@@ -22,6 +36,8 @@ const waterSop = (): SopContent => ({
     },
   ],
 });
+
+const waterSop = (): SopContent => unique(waterSopAsWritten());
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });

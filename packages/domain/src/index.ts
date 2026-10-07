@@ -987,3 +987,4 @@ export {
 export { farmsOwnPayout } from "./farm-capital";
 export { OWNERS_TRAIL, WHOSE_TRAIL } from "./whose-trail";
 export type { AuditEntity } from "./whose-trail";
+export { nameAsCompared, sameName } from "./names";

@@ -319,29 +319,54 @@ const TrainedOn = ({
       </form>
       {trained.data?.length ? (
         <RecordList className="border-t">
-          {trained.data.map((row) => (
-            <RecordRow
-              key={row.id}
-              leading={
-                <span className="bg-secondary text-secondary-foreground grid size-8 place-items-center rounded-full">
-                  <GraduationCap aria-hidden className="size-4" />
-                </span>
-              }
-              meta={t("training.on", {
-                number: row.versionNumber,
-                date: formatDate(new Date(row.trainedAt), language, "date"),
-              })}
-              title={
-                <Link
-                  className="hover:underline"
-                  params={{ userId: row.userId }}
-                  to="/farm/people/$userId"
-                >
-                  {row.personName}
-                </Link>
-              }
-            />
-          ))}
+          {/* What each person was last taught, and whether that is the Version in force: who still needs teaching
+              after a change is read off the list, not worked out by hand. */}
+          {trained.data
+            .filter((row) => row.latest)
+            .map((row) => (
+              <RecordRow
+                key={row.id}
+                leading={
+                  <span className="bg-secondary text-secondary-foreground grid size-8 place-items-center rounded-full">
+                    <GraduationCap aria-hidden className="size-4" />
+                  </span>
+                }
+                // What they were taught and when, and whether that is the Version in force — under the name, which the
+                // narrow column would otherwise cut short.
+                meta={
+                  <span className="flex flex-col items-start gap-1">
+                    {t("training.on", {
+                      number: row.versionNumber,
+                      date: formatDate(
+                        new Date(row.trainedAt),
+                        language,
+                        "date"
+                      ),
+                    })}
+                    {row.onVersionInForce ? (
+                      <StatusBadge tone="success">
+                        {t("training.current")}
+                      </StatusBadge>
+                    ) : (
+                      <StatusBadge tone="warning">
+                        {t("training.behind", {
+                          number: row.versionInForce ?? 0,
+                        })}
+                      </StatusBadge>
+                    )}
+                  </span>
+                }
+                title={
+                  <Link
+                    className="hover:underline"
+                    params={{ userId: row.userId }}
+                    to="/farm/people/$userId"
+                  >
+                    {row.personName}
+                  </Link>
+                }
+              />
+            ))}
         </RecordList>
       ) : (
         <EmptyState bare icon={GraduationCap} title={t("training.none")} />

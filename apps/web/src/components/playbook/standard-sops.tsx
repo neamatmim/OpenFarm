@@ -9,6 +9,7 @@ import {
   STANDARD_DRUG_FOR,
   STANDARD_SOP_NEEDS,
   isPenNeed,
+  nameAsCompared,
   standardPlaybook,
 } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -110,16 +111,25 @@ export const StandardSops = ({
   const { t, language } = useLanguage();
   const [chosen, setChosen] = useState<StandardSopChoices>({});
   const choices = { ...suggested(products), ...chosen };
+  // The names of the procedures in force, in either language and as the farm compares them — the farm refuses a
+  // second procedure of a name already in force, so one is not offered. A retired one raises nothing, and is offered.
   const have = new Set(
     sops.flatMap((sop) => {
       const content = contentOf(sop);
-      return content ? [content.name.bn] : [];
+      return content && !sop.retiredAt
+        ? [content.name.bn, content.name.en ?? ""]
+            .filter(Boolean)
+            .map(nameAsCompared)
+        : [];
     })
   );
   const written = standardPlaybook(choices);
-  const missing = (Object.keys(written) as PlaybookKey[]).filter(
-    (key) => !have.has(written[key].name.bn)
-  );
+  const missing = (Object.keys(written) as PlaybookKey[]).filter((key) => {
+    const { bn, en } = written[key].name;
+    return ![bn, en ?? ""]
+      .filter(Boolean)
+      .some((name) => have.has(nameAsCompared(name)));
+  });
   if (missing.length === 0) {
     return null;
   }
