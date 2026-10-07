@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { PasswordInput } from "@/components/auth/password-input";
+import { sayAuthRefusal } from "@/components/auth/refused-notice";
 import { BackToSignIn, CODE_FIELD } from "@/components/door-screen";
 import { Notice } from "@/components/page";
 import { FormField } from "@/components/page-kit";
@@ -89,7 +90,10 @@ const PortalJoin = () => {
             onSuccess: () => {
               void navigate({ to: "/portal" });
             },
-            onError: (error) => setRefused(error.error.message),
+            onError: (error) =>
+              setRefused(
+                sayAuthRefusal(error.error, t, t("portal.signInRefused"))
+              ),
           }
         );
       },

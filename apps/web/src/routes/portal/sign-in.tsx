@@ -55,7 +55,7 @@ const PortalLogin = () => {
           void navigate({ to: "/portal" });
         },
         onError: (error) => {
-          setRefused(refusalOf(error.error, t("portal.signInRefused")));
+          setRefused(refusalOf(error.error, t, t("portal.signInRefused")));
         },
       }
     );

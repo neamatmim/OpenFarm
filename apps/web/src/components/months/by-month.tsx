@@ -243,7 +243,8 @@ export const NetChart = ({ months }: { months: Month[] }) => {
           {months.map((one, index) => (
             <li
               className={cn(
-                "text-muted-foreground truncate text-center text-xs",
+                // On a phone a month's name may spill into the unnamed month beside it rather than be cut to "জানু…".
+                "text-muted-foreground text-center text-xs whitespace-nowrap sm:truncate",
                 one.soFar && "text-primary font-semibold",
                 // On a phone every other month is named, this one always among them.
                 (months.length - 1 - index) % 2 === 1 && "max-sm:invisible"

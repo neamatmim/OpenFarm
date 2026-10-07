@@ -109,3 +109,26 @@ describe("what an animal is", () => {
     ).rejects.toMatchObject({ data: { refusal: "sex_rests_on_breeding" } });
   });
 });
+
+describe("a Correction of something the farm does not have", () => {
+  it("says so by a word, not 'No such step' in English", async () => {
+    const manager = await as("manager");
+    await expect(
+      manager.client.work.correctStep({
+        id: `not-sent-yet-${suffix}`,
+        reason: "ভুল লিটার",
+        changes: {
+          answer: {
+            from: {
+              skipReason: null,
+              evidence: [1],
+              destination: null,
+              outOfRange: null,
+            },
+            to: { evidence: [2] },
+          },
+        },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "not_on_the_farm" } });
+  });
+});

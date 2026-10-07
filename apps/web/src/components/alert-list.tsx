@@ -61,7 +61,8 @@ const NoticeWords = ({
     ? t(key, noticeFilling(notice.kind, notice.params, language))
     : notice.kind;
   if (truncate) {
-    return <span className="block truncate">{said}</span>;
+    // Two lines before it is cut: one cut a Bangla notice before it said what was late.
+    return <span className="line-clamp-2">{said}</span>;
   }
   return (
     <>

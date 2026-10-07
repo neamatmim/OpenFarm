@@ -45,7 +45,7 @@ const SignInForm = ({ onForgotPassword }: { onForgotPassword: () => void }) => {
             toast.success(t("auth.signInSuccess"));
           },
           onError: (error) => {
-            const refusal = refusalOf(error.error, t("auth.refused"));
+            const refusal = refusalOf(error.error, t, t("auth.refused"));
             setRefused(refusal);
             toast.error(refusal.message);
           },
