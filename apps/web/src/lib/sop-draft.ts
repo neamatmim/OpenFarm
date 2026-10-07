@@ -11,6 +11,8 @@ import type {
 import {
   STAYS_A_HEIFER,
   CALVING_STEP,
+  HEAT,
+  URGENT_ROUND_WORDS,
   DLS_REPORT_STEP,
   LOT_NUMBER_STEP,
   PREGNANCY_CHECK_STEP,
@@ -512,6 +514,12 @@ export const fromBilingualList = (values: Bilingual[]): string =>
  * lame sighting. Reworded where it stood, in a list as long as it was, it keeps its value too:
  * rewriting records because somebody reworded the list would orphan every Observation already made.
  */
+/** The values of a round's choices the farm acts on, never handed to other words by their place in the list. */
+const MEANINGFUL_VALUES: ReadonlySet<string> = new Set([
+  HEAT,
+  ...URGENT_ROUND_WORDS,
+]);
+
 export const toChoices = (value: string, existing: Choice[] = []): Choice[] => {
   const labels = splitList(value);
   const byLabel = new Map(existing.map((choice) => [choice.label.bn, choice]));
@@ -524,7 +532,14 @@ export const toChoices = (value: string, existing: Choice[] = []): Choice[] => {
       return same;
     }
     const before = existing[index];
-    if (inPlace && before && !stillThere.has(before.label.bn)) {
+    // Never a meaning by its place: a word put where "গরম হয়েছে" stood is not a heat until the Owner says it is the
+    // same thing (`lib/sop-meanings.ts`).
+    if (
+      inPlace &&
+      before &&
+      !stillThere.has(before.label.bn) &&
+      !MEANINGFUL_VALUES.has(before.value)
+    ) {
       return { ...before, label: { bn } };
     }
     const fresh = freshValue(bn, taken);

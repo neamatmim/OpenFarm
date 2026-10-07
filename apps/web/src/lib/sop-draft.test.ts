@@ -47,9 +47,9 @@ describe("the choices of a Step, edited", () => {
   });
 
   it("keeps a choice's value when only its words change, and gives a new choice its own", () => {
-    expect(toChoices("গরমে এসেছে, খোঁড়াচ্ছে, খাবারে অরুচি", round)[0]).toEqual({
-      value: "heat",
-      label: { bn: "গরমে এসেছে" },
+    expect(toChoices("গরম হয়েছে, খোঁড়ায়, খাবারে অরুচি", round)[1]).toEqual({
+      value: "lame",
+      label: { bn: "খোঁড়ায়" },
     });
     expect(toChoices("গরম হয়েছে, খোঁড়াচ্ছে, খাবারে অরুচি, কাশি", round)[3]).toEqual({
       value: "কাশি",

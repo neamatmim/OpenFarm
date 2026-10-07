@@ -203,6 +203,7 @@ const EditorFoot = ({
  */
 export const SopEditor = ({
   content,
+  startedFrom,
   isNew,
   blockers,
   canPublish,
@@ -214,6 +215,8 @@ export const SopEditor = ({
   onCancel,
 }: {
   content: SopContent;
+  /** The procedure as it was when the editing began: the Version in force, the standard adopted, or a blank one. */
+  startedFrom: SopContent;
   isNew: boolean;
   blockers: string[];
   canPublish: boolean;
@@ -253,6 +256,7 @@ export const SopEditor = ({
         <StepsSection
           content={content}
           onChange={onChange}
+          startedFrom={startedFrom}
           pens={pens}
           products={products}
         />

@@ -14,6 +14,7 @@ import { EmptyState, Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { FigureBox } from "@/components/playbook/figure-box";
 import { ListInput } from "@/components/playbook/list-input";
+import { StepMeanings } from "@/components/playbook/step-meanings";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import {
   emptyStep,
@@ -221,6 +222,7 @@ const EffectFields = ({
 /** One Step in its place in the order: what to do, what it records, and the way to move it up, down or out. */
 const StepEditor = ({
   step,
+  before,
   position,
   count,
   pens,
@@ -230,6 +232,8 @@ const StepEditor = ({
   onRemove,
 }: {
   step: Step;
+  /** The Step as it was when the editing began, whose meanings are to be kept; none for a Step new in this draft. */
+  before: Step | undefined;
   position: number;
   count: number;
   /** The Pens a moving Step may walk an animal to — the farm's own, never typed. */
@@ -341,6 +345,7 @@ const StepEditor = ({
             />
           </FormField>
         ) : null}
+        <StepMeanings before={before} onChange={onChange} step={step} />
       </div>
     </li>
   );
@@ -349,11 +354,14 @@ const StepEditor = ({
 /** The Steps in the order they are done: each moved up or down, taken out, or a new one added at the end. */
 export const StepsSection = ({
   content,
+  startedFrom,
   pens,
   products,
   onChange,
 }: {
   content: SopContent;
+  /** The procedure as it was when the editing began. */
+  startedFrom: SopContent;
   pens: Pen[];
   products: Product[];
   onChange: (content: SopContent) => void;
@@ -392,6 +400,7 @@ export const StepsSection = ({
         <ol className="flex flex-col gap-3">
           {steps.map((step, index) => (
             <StepEditor
+              before={startedFrom.steps.find((one) => one.id === step.id)}
               count={steps.length}
               key={step.id}
               onChange={(next) => setStep(index, next)}

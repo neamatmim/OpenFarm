@@ -94,6 +94,8 @@ const SopsPage = () => {
     definitionId: string | null;
     /** The Version in force when the change began: refused once a newer one is published meanwhile. */
     basedOnVersionId: string | null;
+    /** What it said when the change began, whose meanings the editor keeps. */
+    startedFrom: SopContent;
   } | null>(null);
   // A Manager's change waits on why they propose it; the Owner turning one down, on why not.
   const [proposing, setProposing] = useState(false);
@@ -207,6 +209,7 @@ const SopsPage = () => {
     return (
       <>
         <SopEditor
+          startedFrom={draft.startedFrom}
           blockers={findPublishBlockers(draft.content)}
           canPublish={isOwner}
           content={draft.content}
@@ -252,6 +255,7 @@ const SopsPage = () => {
                   content: emptySop(),
                   definitionId: null,
                   basedOnVersionId: null,
+                  startedFrom: emptySop(),
                 })
               }
               type="button"
@@ -280,7 +284,12 @@ const SopsPage = () => {
                   <ProceduresTab
                     isOwner={isOwner}
                     onEdit={(definitionId, content, basedOnVersionId) =>
-                      setDraft({ content, definitionId, basedOnVersionId })
+                      setDraft({
+                        content,
+                        definitionId,
+                        basedOnVersionId,
+                        startedFrom: content,
+                      })
                     }
                     onRestore={(definitionId) =>
                       restore.mutate({ definitionId })
@@ -298,6 +307,7 @@ const SopsPage = () => {
                           content,
                           definitionId: null,
                           basedOnVersionId: null,
+                          startedFrom: content,
                         })
                       }
                       pens={pens}

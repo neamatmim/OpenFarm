@@ -1468,6 +1468,18 @@ export const enCore = {
   "sop.min": "Least",
   "sop.max": "Most",
   "sop.noLimit": "Empty for no limit",
+  "sop.meanings": "What the farm does with these",
+  "sop.meaning.heat": "a heat: sends the breeding work",
+  "sop.meaning.urgent": "urgent: the manager within the hour",
+  "sop.meaning.notFound": "opens a missing animal",
+  "sop.meaning.unwell": "the manager sees to her",
+  "sop.meaning.nothingToNote": "passed in one tap",
+  "sop.meaningLost":
+    "“{was}” did this: {means}. Nothing on this step does now.",
+  "sop.meaningLostWrite":
+    "Write the new words for it, then give it to them here.",
+  "sop.meaningGiveTo": "Give it to…",
+  "sop.meaningGive": "Same thing, new words",
   "sop.skipReasons": "Skip reasons",
   "sop.skipHelp": "Comma separated, Bangla",
   "sop.proposalBy": "Proposed by {name}",
