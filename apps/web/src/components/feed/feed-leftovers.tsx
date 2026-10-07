@@ -23,7 +23,11 @@ import {
 import { FilterBar } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
+import type { Named } from "@/lib/names-in";
+import { namesIn } from "@/lib/names-in";
 import { orpc } from "@/utils/orpc";
+
+import { OtherName, TwoNames } from "./feed-name";
 
 type LeftoverRow = Awaited<ReturnType<typeof orpc.feed.leftovers.call>>[number];
 
@@ -55,10 +59,22 @@ const Amount = ({ value, unit }: { value: number; unit: string }) => {
   );
 };
 
+/** The Feed Item a row is about, in the shape `namesIn` reads. */
+const itemNamed = (row: LeftoverRow): Named => ({
+  nameBn: row.itemName,
+  nameEn: row.itemNameEn,
+});
+
+/** The Ration it was last fed on, where there was one, in the shape `namesIn` reads. */
+const rationNamed = (row: LeftoverRow): Named | null =>
+  row.rationName === null
+    ? null
+    : { nameBn: row.rationName, nameEn: row.rationNameEn };
+
 /** What to do about it, where there is something to do: give less where it is wasted, look where nothing is ever left. */
 const whyOf = (
   row: LeftoverRow,
-  t: ReturnType<typeof useLanguage>["t"]
+  { t, language }: Pick<ReturnType<typeof useLanguage>, "t" | "language">
 ): string | null => {
   if (row.standing === "all_eaten") {
     return t("leftovers.why.all_eaten");
@@ -66,15 +82,16 @@ const whyOf = (
   if (row.standing !== "wasting") {
     return null;
   }
-  return row.rationName
-    ? t("leftovers.why.wasting", { ration: row.rationName })
+  const ration = rationNamed(row);
+  return ration
+    ? t("leftovers.why.wasting", { ration: namesIn(ration, language).shown })
     : t("leftovers.why.wastingNoRation");
 };
 
 /** Where it stands, and what to do about it. */
 const Standing = ({ row }: { row: LeftoverRow }) => {
-  const { t } = useLanguage();
-  const why = whyOf(row, t);
+  const { t, language } = useLanguage();
+  const why = whyOf(row, { t, language });
   return (
     <div className="flex flex-col items-start gap-1">
       <StatusBadge tone={STANDING_TONE[row.standing]}>
@@ -124,15 +141,23 @@ const Worth = ({ row }: { row: LeftoverRow }) => {
   );
 };
 
-const PenCell = ({ row }: { row: { original: LeftoverRow } }) => (
-  <div className="flex flex-col gap-0.5">
-    <span className="font-medium">{row.original.penName}</span>
-    {row.original.rationName ? (
-      <span className="text-muted-foreground text-xs">
-        {row.original.rationName}
-      </span>
-    ) : null}
-  </div>
+const PenCell = ({ row }: { row: { original: LeftoverRow } }) => {
+  const { language } = useLanguage();
+  const ration = rationNamed(row.original);
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="font-medium">{row.original.penName}</span>
+      {ration ? (
+        <span className="text-muted-foreground text-xs">
+          {namesIn(ration, language).shown}
+        </span>
+      ) : null}
+    </div>
+  );
+};
+
+const FeedCell = ({ row }: { row: { original: LeftoverRow } }) => (
+  <TwoNames named={itemNamed(row.original)} />
 );
 
 const GivenCell = ({ row }: { row: { original: LeftoverRow } }) => (
@@ -157,7 +182,10 @@ const leftoverColumns = column.columns([
     header: listHeader("leftovers.col.pen"),
     cell: PenCell,
   }),
-  column.accessor("itemName", { header: listHeader("leftovers.col.feed") }),
+  column.accessor("itemName", {
+    header: listHeader("leftovers.col.feed"),
+    cell: FeedCell,
+  }),
   column.accessor("givenKg", {
     header: listHeader("leftovers.col.given"),
     cell: GivenCell,
@@ -182,19 +210,25 @@ const leftoverColumns = column.columns([
 ]);
 
 /** One Pen's Leftovers of one feed on a phone: which, where it stands, and what was left and what it cost. */
-const LeftoverCard = ({ row }: { row: LeftoverRow }) => (
-  <div className="flex flex-col gap-2">
-    <div className="flex items-start justify-between gap-3">
-      <span className="flex min-w-0 flex-col">
-        <span className="font-medium">{row.itemName}</span>
-        <span className="text-muted-foreground text-xs">{row.penName}</span>
-      </span>
-      <Worth row={row} />
+const LeftoverCard = ({ row }: { row: LeftoverRow }) => {
+  const { language } = useLanguage();
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-start justify-between gap-3">
+        <span className="flex min-w-0 flex-col">
+          <span className="font-medium">
+            {namesIn(itemNamed(row), language).shown}
+          </span>
+          <OtherName named={itemNamed(row)} />
+          <span className="text-muted-foreground text-xs">{row.penName}</span>
+        </span>
+        <Worth row={row} />
+      </div>
+      <LeftBehind row={row} />
+      <Standing row={row} />
     </div>
-    <LeftBehind row={row} />
-    <Standing row={row} />
-  </div>
-);
+  );
+};
 
 const leftoverCard = (row: LeftoverRow) => <LeftoverCard row={row} />;
 

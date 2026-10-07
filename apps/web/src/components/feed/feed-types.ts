@@ -1,6 +1,7 @@
 import type { ExpectedGain, RationLine, WeightBand } from "@OpenFarm/domain";
 import { isByWeight } from "@OpenFarm/domain";
 
+import type { Named } from "@/lib/names-in";
 import type { orpc } from "@/utils/orpc";
 
 /** A Feed Item as the page holds it. */
@@ -17,15 +18,11 @@ export interface FeedItemRow {
   fodderPriceMoney?: number | null;
 }
 
-/** A Feed Item's name in the reader's language, and its name in the other language where the farm gave one. */
-export const feedItemNames = (
-  item: Pick<FeedItemRow, "nameBn" | "nameEn">,
-  language: string
-): { shown: string; other: string | null } => {
-  const shown = language === "en" && item.nameEn ? item.nameEn : item.nameBn;
-  const other = language === "en" ? item.nameBn : item.nameEn;
-  return { shown, other: other && other !== shown ? other : null };
-};
+/** A Ration's name in the shape `namesIn` reads. */
+export const rationNamed = (ration: Pick<RationRow, "name">): Named => ({
+  nameBn: ration.name.bn,
+  nameEn: ration.name.en,
+});
 
 /** A Ration: its name, its version, what each Feed Item is in a day — by the head or by weight — and the Pens on it. */
 export interface RationRow {

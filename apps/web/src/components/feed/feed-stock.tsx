@@ -22,10 +22,12 @@ import { FormDialog, FormField, RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { figureTakes } from "@/lib/feed-figures";
 import { useMoney } from "@/lib/money";
+import { namesIn } from "@/lib/names-in";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
+import { OtherName, TwoNames } from "./feed-name";
 import type { StockLine, StockStanding } from "./feed-types";
 import { standingOf, valueOf } from "./feed-types";
 
@@ -62,7 +64,7 @@ const Standing = ({ line }: { line: StockLine }) => {
 };
 
 const NameCell = ({ row }: { row: { original: StockRow } }) => (
-  <span className="font-medium">{row.original.nameBn}</span>
+  <TwoNames className="font-medium" named={row.original} />
 );
 
 const StandingCell = ({ row }: { row: { original: StockRow } }) => (
@@ -159,7 +161,7 @@ const StockRowMenu = ({
   line: StockLine;
   actions: StockActions;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { handleReceive, handleSetLevel, handleSetFodderPrice } = actions;
   if (!actions.mayRecord || line.retiredAt) {
     return null;
@@ -187,7 +189,7 @@ const StockRowMenu = ({
             ]
           : []),
       ]}
-      label={t("stock.rowActions", { name: line.nameBn })}
+      label={t("stock.rowActions", { name: namesIn(line, language).shown })}
     />
   );
 };
@@ -312,9 +314,10 @@ const StockCard = ({ row }: { row: StockRow }) => {
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium">{row.nameBn}</span>
+          <span className="font-medium">{namesIn(row, language).shown}</span>
           <Standing line={row} />
         </div>
+        <OtherName named={row} />
         <span className="text-lg font-semibold tabular-nums">
           {formatNumber(row.onHand, language)}{" "}
           {feedUnitWord(row.unit, language)}
@@ -434,7 +437,7 @@ const FigureDialog = ({
       pending={save.isPending}
       ready={line !== null && figureTakes(kind, value)}
       submitLabel={t("common.save")}
-      title={line ? `${t(words.title)} — ${line.nameBn}` : ""}
+      title={line ? `${t(words.title)} — ${namesIn(line, language).shown}` : ""}
     >
       {line ? (
         <FormField

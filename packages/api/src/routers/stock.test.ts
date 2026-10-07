@@ -55,7 +55,7 @@ const setup = async () => {
     aliases: [],
   });
   const concentrate = await manager.client.feed.items.create({
-    name: { bn: `দানাদার ${suffix}` },
+    name: { bn: `দানাদার ${suffix}`, en: `Concentrate ${suffix}` },
   });
   const grass = await manager.client.feed.items.create({
     name: { bn: `নেপিয়ার ঘাস ${suffix}` },
@@ -300,6 +300,8 @@ describe("feed stock", () => {
     });
     expect(arrivals[0]).toMatchObject({
       id: typo.id,
+      nameBn: `দানাদার ${suffix}`,
+      nameEn: `Concentrate ${suffix}`,
       quantity: 500,
       maunds: 13.4,
       priceMoney: 25_000,

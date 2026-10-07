@@ -24,6 +24,7 @@ import {
 } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { keptAmount } from "@/lib/feed-figures";
+import { namesIn } from "@/lib/names-in";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -448,7 +449,7 @@ export const ReceiveFeedSheet = ({
               >
                 {live.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.nameBn}
+                    {namesIn(item, language).shown}
                   </option>
                 ))}
               </NativeSelect>

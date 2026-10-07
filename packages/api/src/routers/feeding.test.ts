@@ -42,7 +42,7 @@ const setup = async () => {
     name: "খাওয়ানোর পেন",
   });
   const concentrate = await manager.client.feed.items.create({
-    name: { bn: `দানাদার ${Date.now()}` },
+    name: { bn: `দানাদার ${Date.now()}`, en: `Concentrate ${Date.now()}` },
   });
   const ration = await manager.client.feed.rations.save({
     name: { bn: `খাওয়ানোর রেশন ${Date.now()}` },
@@ -122,6 +122,8 @@ describe("feeding a Pen", () => {
       {
         feedItemId: world.concentrate.id,
         nameBn: expect.stringContaining("দানাদার"),
+        // The shed phone reads it in English to a reader in English.
+        nameEn: expect.stringContaining("Concentrate"),
         unit: "kg",
         kgPerAnimalPerDay: 3,
         quantity: 6,

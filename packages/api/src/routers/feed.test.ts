@@ -98,6 +98,7 @@ describe("what a Pen is fed", () => {
       {
         feedItemId: concentrate.id,
         nameBn: "দানাদার",
+        nameEn: "Concentrate",
         kgPerAnimalPerDay: 2.5,
         quantity: 3.8,
         unit: "kg",
@@ -105,6 +106,7 @@ describe("what a Pen is fed", () => {
       {
         feedItemId: straw.id,
         nameBn: "খড়",
+        nameEn: null,
         kgPerAnimalPerDay: 4,
         quantity: 6,
         unit: "kg",

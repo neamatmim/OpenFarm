@@ -332,6 +332,7 @@ const rationOfPenAt = async (
  *  with, and the routers' own types are written in terms of it, though nobody names it. */
 export type FeedingTargetLine = RationLine & {
   nameBn: string;
+  nameEn: string | null;
   unit: string;
   /** What this session calls for, for the animals actually standing in the Pen and what they weigh; nothing for a
    *  line by weight in a Pen nobody has weighed. */
@@ -340,6 +341,7 @@ export type FeedingTargetLine = RationLine & {
 
 interface FeedNamed {
   nameBn: string;
+  nameEn: string | null;
   unit: string;
 }
 
@@ -353,6 +355,7 @@ const feedingTargetFor = (
   lines.map((line) => ({
     ...line,
     nameBn: feeds.get(line.feedItemId)?.nameBn ?? "",
+    nameEn: feeds.get(line.feedItemId)?.nameEn ?? null,
     unit: feeds.get(line.feedItemId)?.unit ?? "kg",
     // In the feed's own unit: napier cut in bundles is given whole.
     quantity: sessionKgOf(
@@ -411,10 +414,13 @@ const feedsById = async (
 ): Promise<Map<string, FeedNamed>> => {
   const rows = await db.query.feedItem.findMany({
     where: { farmId },
-    columns: { id: true, nameBn: true, unit: true },
+    columns: { id: true, nameBn: true, nameEn: true, unit: true },
   });
   return new Map(
-    rows.map((row) => [row.id, { nameBn: row.nameBn, unit: row.unit }])
+    rows.map((row) => [
+      row.id,
+      { nameBn: row.nameBn, nameEn: row.nameEn, unit: row.unit },
+    ])
   );
 };
 

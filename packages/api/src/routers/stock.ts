@@ -127,7 +127,7 @@ export const stockRouter = {
           ...(input.feedItemId ? { feedItemId: input.feedItemId } : {}),
         },
         with: {
-          feedItem: { columns: { nameBn: true, unit: true } },
+          feedItem: { columns: { nameBn: true, nameEn: true, unit: true } },
           seller: { columns: { name: true } },
         },
         orderBy: { receivedOn: "desc", id: "desc" },
@@ -154,6 +154,7 @@ export const stockRouter = {
           id: row.id,
           feedItemId: row.feedItemId,
           nameBn: feedItem.nameBn,
+          nameEn: feedItem.nameEn,
           unit: feedItem.unit,
           kind: row.kind,
           quantity,

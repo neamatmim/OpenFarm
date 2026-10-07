@@ -37,14 +37,16 @@ import {
   RowMenu,
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { namesIn } from "@/lib/names-in";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import { bandSaid, expectedGainSaid } from "./band-words";
 import { FarmGainsLine, FarmGainsOffer, useFarmGains } from "./farm-gains";
+import { OtherName } from "./feed-name";
 import type { FeedItemRow, RationRow } from "./feed-types";
-import { amountOf } from "./feed-types";
+import { amountOf, rationNamed } from "./feed-types";
 
 /** A Ration's band, open at both ends where it has none — or where the list was cached before Rations had bands. */
 const bandOfRow = (ration: RationRow | null): WeightBand =>
@@ -390,7 +392,7 @@ const RationDialog = ({
                   key={item.id}
                 >
                   <Label className="font-normal" htmlFor={idFor(item.id)}>
-                    {item.nameBn}
+                    {namesIn(item, language).shown}
                     {item.retiredAt ? ` · ${t("feed.retired")}` : ""}
                   </Label>
                   {/* A retired feed still in the Ration stops it being saved: said here, beside the line to empty. */}
@@ -426,7 +428,9 @@ const RationDialog = ({
                       {feedUnitWord(item.unit, language)}
                     </span>
                     <NativeSelect
-                      aria-label={t("feed.basisOf", { item: item.nameBn })}
+                      aria-label={t("feed.basisOf", {
+                        item: namesIn(item, language).shown,
+                      })}
                       className="w-auto"
                       onChange={(event) =>
                         setBasis((current) => ({
@@ -575,7 +579,9 @@ const FeedingTarget = ({ penId }: { penId: string }) => {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm">
-        <span className="font-medium">{ration.name.bn}</span>
+        <span className="font-medium">
+          {namesIn(rationNamed(ration), language).shown}
+        </span>
         <span className="text-muted-foreground">
           {" · "}
           {t("feed.version", { number: ration.number })}
@@ -585,7 +591,9 @@ const FeedingTarget = ({ penId }: { penId: string }) => {
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((line) => (
           <li className="surface flex flex-col gap-1 p-3" key={line.feedItemId}>
-            <span className="text-muted-foreground text-sm">{line.nameBn}</span>
+            <span className="text-muted-foreground text-sm">
+              {namesIn(line, language).shown}
+            </span>
             <span className="text-xl font-semibold tabular-nums">
               {line.quantity === null
                 ? "—"
@@ -719,7 +727,10 @@ const RationCard = ({
     >
       <header className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col">
-          <h3 className="font-semibold">{ration.name.bn}</h3>
+          <h3 className="font-semibold">
+            {namesIn(rationNamed(ration), language).shown}
+          </h3>
+          <OtherName named={rationNamed(ration)} />
           <span className="text-muted-foreground text-xs">
             {ration.number ? t("feed.version", { number: ration.number }) : ""}
             {" · "}
@@ -734,7 +745,9 @@ const RationCard = ({
         {mayEdit ? (
           <RowMenu
             actions={acts}
-            label={t("feed.rationActions", { name: ration.name.bn })}
+            label={t("feed.rationActions", {
+              name: namesIn(rationNamed(ration), language).shown,
+            })}
           />
         ) : null}
       </header>
@@ -744,7 +757,7 @@ const RationCard = ({
           return (
             <li className="flex justify-between gap-2" key={line.feedItemId}>
               <span className="text-muted-foreground">
-                {item?.nameBn ?? "—"}
+                {item ? namesIn(item, language).shown : "—"}
               </span>
               <span className="tabular-nums">
                 {isByWeight(line)
