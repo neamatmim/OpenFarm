@@ -398,6 +398,43 @@ export class Outbox {
     return this.under(NEEDS_REVIEW);
   }
 
+  /**
+   * Puts right an entry still waiting on this phone, before the farm has it: its body replaced, its number and time
+   * kept. False when it is no longer only on the phone — sent, being sent, or frozen into a Batch on its way, whose key
+   * carries exactly what was frozen — and must be put right as a Correction sent behind it. Asked again after writing,
+   * since another tab may freeze a Batch over it meanwhile.
+   */
+  async replaceWaiting<K extends EntryKindName>(
+    id: string,
+    kind: K,
+    put: (was: EntryBody<K>) => EntryBody<K>
+  ): Promise<boolean> {
+    const onItsWay = async () => {
+      if (this.flushing) {
+        return true;
+      }
+      const frozen = await this.read<PendingBatch>(PENDING_BATCH);
+      return Boolean(frozen?.entries?.some((entry) => entry.id === id));
+    };
+    if (await onItsWay()) {
+      return false;
+    }
+    const keys = await this.options.storage.keys();
+    const key = keys.find(
+      (one) => one.startsWith(ENTRY) && one.endsWith(`:${id}`)
+    );
+    const entry = key ? await this.read<OutboxEntry>(key) : null;
+    if (!(key && entry && entry.kind === kind)) {
+      return false;
+    }
+    await this.write(key, {
+      ...entry,
+      // The kind was checked just above; TypeScript cannot carry it from the stored entry to its body.
+      body: put(entry.body as unknown as EntryBody<K>),
+    });
+    return !(await onItsWay());
+  }
+
   /** The person has dealt with a refused or reviewed entry: it leaves the phone. */
   async discard(id: string): Promise<void> {
     await this.options.storage.delete(`${REJECTED}${id}`);

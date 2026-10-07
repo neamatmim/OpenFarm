@@ -736,3 +736,43 @@ describe("when the session has gone", () => {
     expect(farm.sends[1]?.key).toBe(farm.sends[0]?.key);
   });
 });
+
+describe("putting right an entry still on the phone", () => {
+  it("replaces what it says, keeping its number and time, and the farm only ever hears the corrected figure", async () => {
+    const outbox = outboxOn();
+    await outbox.add("step_completion", milk(11), "a");
+    const [before] = await outbox.pending();
+
+    expect(
+      await outbox.replaceWaiting("a", "step_completion", () => milk(1.1))
+    ).toBe(true);
+    const [after] = await outbox.pending();
+    expect(after).toMatchObject({
+      id: "a",
+      seq: before?.seq,
+      recordedAt: before?.recordedAt,
+      body: { evidence: [1.1] },
+    });
+    await outbox.flush();
+    expect(farm.sends.flatMap((sent) => sent.entries)).toMatchObject([
+      { id: "a", evidence: [1.1] },
+    ]);
+  });
+
+  it("is refused once the entry is on its way — frozen into a Batch the farm has not answered — or gone", async () => {
+    const outbox = outboxOn();
+    await outbox.add("step_completion", milk(11), "a");
+    farm.refuses(new Error("no route to host"));
+    await outbox.flush();
+
+    // The key carries exactly what was frozen: the figure is put right as a Correction sent behind it.
+    expect(
+      await outbox.replaceWaiting("a", "step_completion", () => milk(1.1))
+    ).toBe(false);
+    const [stillWaiting] = await outbox.pending();
+    expect(stillWaiting?.body).toMatchObject({ evidence: [11] });
+    expect(
+      await outbox.replaceWaiting("never", "step_completion", () => milk(1.1))
+    ).toBe(false);
+  });
+});

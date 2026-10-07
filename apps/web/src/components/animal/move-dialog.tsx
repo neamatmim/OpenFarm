@@ -9,10 +9,10 @@ import {
 } from "@/components/animal/pen-room";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { queueMove } from "@/lib/record-offline";
+import { keptOnThePhone, queueMove, sendOrKeep } from "@/lib/record-offline";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
-import { orpc } from "@/utils/orpc";
+import { client } from "@/utils/orpc";
 
 /**
  * An Animal to another Pen — with signal the farm answers now; without it the Move waits on the phone rather than
@@ -43,32 +43,31 @@ export const MoveDialog = ({
     setReason("");
     onOpenChange(false);
   };
-  const move = useMutation(
-    orpc.animals.move.mutationOptions({
-      onSuccess: () => {
-        toast.success(t("animals.moved"));
-        finished();
-      },
-      onError,
-    })
-  );
-  const handleSubmit = async () => {
-    const wanted = {
+  // Sent now when the farm answers, kept on the phone when it does not — bars and no data included.
+  const move = useMutation({
+    ...keptOnThePhone,
+    mutationFn: (wanted: {
+      tagNumber: string;
+      toPenId: string;
+      reason?: string;
+    }) =>
+      sendOrKeep({
+        online: navigator.onLine,
+        send: () => client.animals.move(wanted),
+        keep: () => queueMove(wanted),
+      }),
+    onSuccess: (how) => {
+      toast.success(t(how === "sent" ? "animals.moved" : "animals.moveQueued"));
+      finished();
+    },
+    onError,
+  });
+  const handleSubmit = () => {
+    move.mutate({
       tagNumber: animal.tagNumber,
       toPenId,
       reason: reason || undefined,
-    };
-    if (navigator.onLine) {
-      move.mutate(wanted);
-      return;
-    }
-    try {
-      await queueMove(wanted);
-      toast.success(t("animals.moveQueued"));
-      finished();
-    } catch (error) {
-      onError(error as Error);
-    }
+    });
   };
   return (
     <FormDialog

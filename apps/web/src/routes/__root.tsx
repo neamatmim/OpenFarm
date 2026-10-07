@@ -39,6 +39,8 @@ const SHOW_DEVTOOLS = import.meta.env.VITE_DEVTOOLS === "true";
 export interface RouterAppContext {
   orpc: typeof orpc;
   queryClient: QueryClient;
+  /** What this phone last read, back from the device: settled before any signed-in screen asks who is signed in. */
+  restored: Promise<void>;
 }
 
 /** On the portal's own address, whatever service worker an older visit left there is taken away. */

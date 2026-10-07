@@ -15,13 +15,15 @@ export const getRouter = () => {
   const queryClient = createQueryClient();
   // What the app has read is kept on the device, so a phone that opens with no signal opens
   // on what it last knew rather than on a spinner.
-  keepQueriesOnDevice(queryClient, pageHost());
+  // Waited for before a signed-in screen asks who is signed in: opened cold with no signal, what it last knew is the
+  // only answer there is, and asking before it is back sent a milker to the sign-in mid-shift.
+  const restored = keepQueriesOnDevice(queryClient, pageHost());
 
   const router = createTanStackRouter({
     routeTree,
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
-    context: { orpc, queryClient },
+    context: { orpc, queryClient, restored },
     defaultPendingComponent: () => <Loader />,
     defaultNotFoundComponent: NotFound,
     defaultErrorComponent: PageFailed,

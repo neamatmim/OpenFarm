@@ -856,3 +856,101 @@ describe("lactations", () => {
     expect(record).toEqual({ litres: "11.00", lactationNumber: 1 });
   });
 });
+
+/** The Correction as the phone holds it: 11 L typed for 1.1, put right from what was shown. */
+const theFix = (completionId: string, recordedAt: Date) => ({
+  id: `f-${completionId}`,
+  seq: 2,
+  kind: "step_correction" as const,
+  completionId,
+  reason: "১১ নয়, ১.১ লিটার",
+  recordedAt,
+  changes: {
+    answer: {
+      from: {
+        skipReason: null,
+        evidence: [11],
+        destination: "bulk" as const,
+        outOfRange: null,
+      },
+      to: { evidence: [1.1], destination: "bulk" as const },
+    },
+  },
+});
+
+const litresOf = async (completionId: string) => {
+  const record = await scratchDb().query.milkRecord.findFirst({
+    where: { completionId },
+    columns: { litres: true },
+  });
+  return record?.litres;
+};
+
+describe("a Correction a Shed Phone made with no signal", () => {
+  /** Milked on a Shed Phone with signal, as a Batch, so the farm has the Completion the phone will put right. */
+  const milkedOnThePhone = async (day: string, phoneId: string) => {
+    const { instance, clock } = await session(day);
+    const phone = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+      phone: { id: phoneId, name: "দোহনের শেড ফোন" },
+    });
+    const completionId = `fix-${phoneId.slice(-4)}-${instance.id}`;
+    await phone.client.sync.batch({
+      key: completionId,
+      entries: [
+        {
+          id: completionId,
+          seq: 1,
+          kind: "step_completion" as const,
+          instanceId: instance.id,
+          stepId: "milk",
+          animalTag: tagOf(0),
+          evidence: [11],
+          destination: "bulk",
+          recordedAt: clock.now(),
+        },
+      ],
+    });
+    return { instance, clock, phone, completionId };
+  };
+
+  it("is taken behind the Step it puts right, judged at when it was made, however late it arrives", async () => {
+    const { clock, phone, completionId } = await milkedOnThePhone(
+      "2026-11-02",
+      "test-phone-hfix"
+    );
+    // Put right ten minutes after milking, in a shed with no signal; the phone finds signal three hours later — past
+    // the milker's two hours, which the Correction was not.
+    const madeAt = new Date(clock.now().getTime() + 10 * 60_000);
+    clock.advance(3 * 60 * 60_000);
+    const sent = await phone.client.sync.batch({
+      key: `f-${completionId}`,
+      entries: [theFix(completionId, madeAt)],
+    });
+
+    expect(sent.results).toMatchObject([{ outcome: "applied" }]);
+    expect(Number(await litresOf(completionId))).toBe(1.1);
+    const trail = await scratchDb().query.auditEvent.findFirst({
+      where: { entity: "step_completion", entityId: completionId },
+      orderBy: { recordedAt: "desc", id: "desc" },
+    });
+    expect(trail?.reason).toBe("১১ নয়, ১.১ লিটার");
+  });
+
+  it("made after the milker's window has closed, is sent back, and the figure stands", async () => {
+    const { clock, phone, completionId } = await milkedOnThePhone(
+      "2026-11-03",
+      "test-phone-hlat"
+    );
+    clock.advance(3 * 60 * 60_000);
+    const sent = await phone.client.sync.batch({
+      key: `f-${completionId}`,
+      entries: [theFix(completionId, clock.now())],
+    });
+
+    expect(sent.results[0]?.outcome).toBe("rejected");
+    expect(Number(await litresOf(completionId))).toBe(11);
+  });
+});

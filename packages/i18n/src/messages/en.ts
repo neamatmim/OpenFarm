@@ -3209,6 +3209,10 @@ export const en = {
   "passwordAgain.slowed":
     "Too many wrong passwords. Wait a minute and try again.",
   "passwordAgain.notGiven": "Not done: it needs your password.",
+  "common.noSignalNotSaved":
+    "No signal: this was not saved. It is still here — save again when the phone has signal.",
+  "work.correctionKept":
+    "Put right on this phone. It goes to the farm when the phone has signal.",
   "common.cancel": "Cancel",
   "common.close": "Close",
   "nav.signOff": "Review",
@@ -4658,6 +4662,7 @@ export const en = {
   "review.held.instance_complete": "Finishing the work",
   "review.held.animal_move": "A move",
   "review.held.observation": "A sighting",
+  "review.held.step_correction": "A step put right",
   "review.heldBy": "by {name}",
   "review.takeIn": "Take it in",
   "review.takeInHint":

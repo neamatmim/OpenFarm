@@ -15,8 +15,7 @@ import {
 import type { RowSelection } from "@/components/data-table";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { pinAnswerOf } from "@/lib/pin-answer";
-import { queueMove } from "@/lib/record-offline";
+import { queueMove, sendOrKeep } from "@/lib/record-offline";
 import { refreshTheScreen } from "@/lib/refresh";
 import { sayWhy } from "@/lib/saying";
 import { toast } from "@/lib/toast";
@@ -69,22 +68,22 @@ export const GroupMove = ({
         reason: reason || undefined,
       };
       try {
-        // One after another: each is its own Move, and the farm answers one before the next is asked.
+        // One after another: each is its own Move, and the farm answers one before the next is asked. Not answered —
+        // a weak signal the phone thought was signal — is kept on the phone, as one made out of signal is; only the
+        // farm's own no is a refusal.
         // oxlint-disable-next-line no-await-in-loop
-        await (navigator.onLine
-          ? client.animals.move(wanted)
-          : queueMove(wanted));
-        moved += 1;
-      } catch (error) {
-        // Not answered — a weak signal the phone thought was signal — is kept on the phone, as one made out of signal is;
-        // only the farm's own no is a refusal.
-        if (pinAnswerOf(error) === "no_signal") {
-          // oxlint-disable-next-line no-await-in-loop
-          await queueMove(wanted);
-          queued += 1;
+        const how = await sendOrKeep({
+          online: navigator.onLine,
+          send: () => client.animals.move(wanted),
+          keep: () => queueMove(wanted),
+        });
+        if (how === "sent") {
+          moved += 1;
         } else {
-          refused.push(`${one.tagNumber}: ${sayWhy(error, t)}`);
+          queued += 1;
         }
+      } catch (error) {
+        refused.push(`${one.tagNumber}: ${sayWhy(error, t)}`);
       }
     }
     setPending(false);
@@ -93,7 +92,7 @@ export const GroupMove = ({
     setReason("");
     if (moved > 0) {
       toast.success(
-        t(navigator.onLine ? "animals.groupMoved" : "animals.groupQueued", {
+        t("animals.groupMoved", {
           count: formatNumber(moved, language),
         })
       );

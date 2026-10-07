@@ -83,6 +83,9 @@ export const createQueryClient = () =>
         networkMode: "offlineFirst",
         retry: 1,
       },
+      // A save is never parked to go later, unseen: one that writes only to the phone runs (lib/record-offline); one
+      // that needs the farm fails at once with no signal, says so, and the form stays open with what was typed.
+      mutations: { networkMode: "always" },
     },
   });
 

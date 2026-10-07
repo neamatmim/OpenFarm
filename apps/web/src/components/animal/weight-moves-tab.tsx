@@ -16,9 +16,9 @@ import type { WindowPick } from "@/components/fattening/window-choice";
 import { EmptyState, RecordList, RecordRow, Section } from "@/components/page";
 import { NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { queueMove } from "@/lib/record-offline";
+import { keptOnThePhone, queueMove, sendOrKeep } from "@/lib/record-offline";
 import { toast } from "@/lib/toast";
-import { orpc } from "@/utils/orpc";
+import { client } from "@/utils/orpc";
 
 import type { AnimalDetail, AnimalPowers, PenChoice } from "./animal-types";
 import { PenOverCapacity, usePenChoiceLabel } from "./pen-room";
@@ -39,7 +39,15 @@ const ChangeSide = ({
   // The Season she joins on the Fattening side: the next Eid, worked out by the farm even for a phone out of signal,
   // unless another window is said.
   const [windowPick, setWindowPick] = useState<WindowPick>(NEXT_EID);
-  const move = useMutation(orpc.animals.move.mutationOptions({}));
+  const move = useMutation({
+    ...keptOnThePhone,
+    mutationFn: (across: Parameters<typeof client.animals.move>[0]) =>
+      sendOrKeep({
+        online: navigator.onLine,
+        send: () => client.animals.move(across),
+        keep: () => queueMove(across),
+      }),
+  });
   return (
     <CorrectionDialog
       description={t("correct.sideHint")}
@@ -55,11 +63,10 @@ const ChangeSide = ({
           reason,
           targetWindow: windowOf(windowPick),
         };
-        // With signal the farm answers now; without it the Move waits on the phone rather than being lost.
-        if (navigator.onLine) {
-          await move.mutateAsync(across);
-        } else {
-          await queueMove(across);
+        // With signal the farm answers now; without it — bars and no data included — the Move waits on the phone
+        // rather than being lost.
+        const how = await move.mutateAsync(across);
+        if (how === "kept") {
           // Said as well as saved: it goes to the farm when the phone finds signal, not now.
           toast.info(t("animals.moveQueued"));
         }

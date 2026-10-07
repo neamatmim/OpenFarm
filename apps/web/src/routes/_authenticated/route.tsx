@@ -3,6 +3,7 @@ import {
   createFileRoute,
   redirect,
   useLocation,
+  useRouter,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 
@@ -17,6 +18,7 @@ import {
   setSignedInPerson,
 } from "@/lib/device";
 import { installShell, keepStorage } from "@/lib/install";
+import { keepThisBuild } from "@/lib/keep-the-build";
 import { phoneOutbox } from "@/lib/outbox-client";
 import { whoTheyAre } from "@/lib/who-they-are";
 
@@ -30,15 +32,18 @@ const WHO_THEY_ARE_FRESH_MS = 60_000;
  * never more than a glance away.
  */
 const AuthLayout = () => {
+  const router = useRouter();
   useEffect(() => {
     // Asked once the person is signed in, which is when a barn phone starts holding work
     // that only exists here.
     const prepare = async () => {
       await installShell();
       await keepStorage();
+      // The shed's screens kept on the phone for this build, and older builds' files let go.
+      await keepThisBuild(router.ssr?.manifest, router);
     };
     prepare();
-  }, []);
+  }, [router]);
 
   // Somebody with an invite still to take up, or a farm still to set up, has nothing on the farm's menus yet: those two
   // pages are doors of their own, drawn as the sign-in is.
@@ -61,6 +66,8 @@ export const Route = createFileRoute("/_authenticated")({
   // React throws it away and cancels the requests it had begun. The public pages are still rendered on the server.
   ssr: false,
   beforeLoad: async ({ context, location }) => {
+    // Opened cold with no signal, what the phone last read is the only answer to who this is: it is waited for.
+    await context.restored;
     const known = context.queryClient.getQueryData(
       context.orpc.people.me.queryKey()
     );

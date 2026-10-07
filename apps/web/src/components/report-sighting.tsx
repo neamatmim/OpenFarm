@@ -11,10 +11,14 @@ import { useId, useState } from "react";
 
 import { FormDialog, FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { queueObservation } from "@/lib/record-offline";
+import {
+  keptOnThePhone,
+  queueObservation,
+  sendOrKeep,
+} from "@/lib/record-offline";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
-import { orpc } from "@/utils/orpc";
+import { client } from "@/utils/orpc";
 
 /**
  * Saying what was seen of her with no round asking — a limp at the gate, bulling in the yard. It reaches the Vet's
@@ -40,27 +44,24 @@ export const ReportSighting = ({
     setSaw("");
     setNote("");
   };
-  const record = useMutation(
-    orpc.observations.record.mutationOptions({
-      onSuccess: () => done(t("sighting.recorded")),
-      onError: refused,
-    })
-  );
+  // Sent now when the farm answers, kept on the phone when it does not — bars and no data included.
+  const record = useMutation({
+    ...keptOnThePhone,
+    mutationFn: (input: { tagNumber: string; saw: string; note?: string }) =>
+      sendOrKeep({
+        online: navigator.onLine,
+        send: () => client.observations.record(input),
+        keep: () => queueObservation(input),
+      }),
+    onSuccess: (how) =>
+      done(t(how === "sent" ? "sighting.recorded" : "sighting.queued")),
+    onError: refused,
+  });
   const needsNote = saw === OBSERVATION_WORD_NEEDING_A_NOTE;
   const ready = saw !== "" && (!needsNote || note.trim() !== "");
 
-  const handleSubmit = async () => {
-    const input = { tagNumber, saw, note: note.trim() || undefined };
-    if (navigator.onLine) {
-      record.mutate(input);
-      return;
-    }
-    try {
-      await queueObservation(input);
-      await done(t("sighting.queued"));
-    } catch (error) {
-      refused(error);
-    }
+  const handleSubmit = () => {
+    record.mutate({ tagNumber, saw, note: note.trim() || undefined });
   };
 
   return (
