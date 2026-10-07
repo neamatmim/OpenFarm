@@ -52,4 +52,29 @@ describe("a standard procedure adopted before the farm kept which it is", () => 
       owner.sops.create({ content: feeding, standardKey: "feeding" })
     ).rejects.toMatchObject({ data: { refusal: "sop_standard_adopted" } });
   });
+
+  it("is not taken for a procedure the farm wrote itself under a standard's name", async () => {
+    const { client: owner } = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock(AT),
+    });
+    const { headCount } = standardPlaybook();
+    // Written in the editor, whose Steps take names of their own, and called what the standard is called.
+    const own = await owner.sops.create({
+      content: {
+        ...headCount,
+        steps: headCount.steps.map((step, index) => ({
+          ...step,
+          id: `step-own-${index}`,
+        })),
+      },
+    });
+
+    await turnTheDay();
+
+    const listed = await owner.sops.list();
+    expect(
+      listed.find((one) => one.id === own.definitionId)?.standardKey
+    ).toBeNull();
+  });
 });

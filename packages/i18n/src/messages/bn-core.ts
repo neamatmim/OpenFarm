@@ -1543,6 +1543,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sop.previewHint":
     "শেডে যা দেখা যাবে, ফোনের নিজের পর্দা থেকে। এখানে যা উত্তর দেবেন তা লেখা হবে না।",
   "sop.previewNothingRecorded": "এটি শুধু দেখার জন্য: কিছু লেখা হয়নি",
+  "sop.previewFromTheFarm":
+    "ফোনে এই ধাপে খামারের তথ্যও থাকে — পেনের রেশন, গুদাম, নিবন্ধন। সেই লাইনগুলো এখানে দেখানো যায় না।",
   "sop.moveStepDown": "ধাপ {number} নিচে নিন",
   "sop.removeStep": "ধাপ সরান",
   "sop.removeStepTitle": "ধাপ {number}, “{words}”, সরাবেন?",

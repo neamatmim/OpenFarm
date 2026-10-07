@@ -120,8 +120,11 @@ const EvidenceFields = ({
           id={`${step.id}-choices-en`}
           label={`${t("sop.choices")} — ${t("sop.english")}`}
         >
+          {/* Begun afresh whenever the Bangla list changes: its English goes by place, and a place that moved under
+              what was typed would hand an item's English to its neighbour. */}
           <ListInput
             id={`${step.id}-choices-en`}
+            key={fromChoices(evidence.choices)}
             onTyped={(typed) =>
               onChange(
                 withFirstEvidence(step, {
@@ -438,6 +441,7 @@ const StepEditor = ({
           >
             <ListInput
               id={`${step.id}-skip-en`}
+              key={fromBilingualList(step.skipReasons)}
               onTyped={(typed) =>
                 onChange({
                   ...step,

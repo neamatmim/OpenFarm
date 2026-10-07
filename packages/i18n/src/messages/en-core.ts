@@ -1684,6 +1684,8 @@ export const enCore = {
   "sop.previewHint":
     "What the shed will see, from the phone's own screen. Nothing you answer here is recorded.",
   "sop.previewNothingRecorded": "A preview: nothing was recorded",
+  "sop.previewFromTheFarm":
+    "On the phone this step also lists what the farm holds — the pen's ration, the store, the registration. The preview cannot show those lines.",
   "sop.moveStepDown": "Move step {number} down",
   "sop.removeStep": "Remove step",
   "sop.removeStepTitle": "Remove step {number}, “{words}”?",

@@ -145,7 +145,11 @@ export const bringBackToList = (
   context: Farmed,
   list: FarmList,
   id: string,
-  options: { reason?: string } = {}
+  options: {
+    reason?: string;
+    /** The list's own rule for coming back: throws the refusal while it may not. */
+    refuseWhile?: (tx: Tx) => Promise<void>;
+  } = {}
 ) => move(context, list, id, "back", options);
 
 /**

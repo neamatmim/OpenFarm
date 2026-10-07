@@ -605,10 +605,7 @@ export const withLabel = (answer: Evidence, bn: string): Evidence => {
 export const withEnglish = <Words extends Bilingual>(
   words: Words,
   en: string
-): Words => {
-  const { en: _was, ...rest } = words;
-  return (en.trim() === "" ? rest : { ...rest, en }) as Words;
-};
+): Words => ({ ...words, en: en.trim() === "" ? undefined : en });
 
 /** A list's English as the Owner types it beside the Bangla: comma separated, in the same order, each to its own item —
  *  its value and its meaning untouched. An item with nothing typed for it has no English. */

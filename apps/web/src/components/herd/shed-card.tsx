@@ -70,6 +70,8 @@ interface PenRow {
   animals: number;
   capacity: number | null;
   retired: boolean;
+  /** In a retired Shed, which is brought back before any Pen in it is. */
+  shedRetired: boolean;
   actions: ShedActions;
 }
 
@@ -151,6 +153,9 @@ const QuarantineMark = ({ row }: { row: PenRow }) => {
 /** What a Pen's row can ask for beyond marking it: the head it holds, a new name, and retiring it — or, retired, back. */
 const PenMenu = ({ row }: { row: PenRow }) => {
   const { t } = useLanguage();
+  if (row.shedRetired) {
+    return null;
+  }
   const acts = row.retired
     ? [
         {
@@ -248,6 +253,7 @@ export const ShedCard = ({
     animals: pen.head ?? 0,
     capacity: pen.capacity ?? null,
     retired: Boolean(pen.retiredAt),
+    shedRetired: Boolean(shed.retiredAt),
     actions,
   }));
   const table = useListTable({
