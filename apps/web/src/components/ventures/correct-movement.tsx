@@ -83,3 +83,60 @@ export const CorrectMovement = ({
     </CorrectionDialog>
   );
 };
+
+/**
+ * An Internal Sale put right — the rate the Owner typed, the day she changed hands, the reference — through the sale
+ * itself, so both purses and the Farm's books move together. The Owner's, until a Settlement on either side is approved.
+ */
+export const CorrectInternalSale = ({
+  sale,
+  reference,
+}: {
+  sale: { id: string; rateMoneyPerKg: number; soldOn: string };
+  reference: string;
+}) => {
+  const { t } = useLanguage();
+  const correcting = useCorrecting({
+    rateMoneyPerKg: amount(sale.rateMoneyPerKg),
+    soldOn: day(sale.soldOn),
+    reference: words(reference),
+  });
+  const correct = useMutation(
+    orpc.ventures.correctInternalSale.mutationOptions({})
+  );
+  return (
+    <CorrectionDialog
+      description={t("ventures.correctInternalSaleHint")}
+      onOpen={correcting.handleOpen}
+      onSave={async (reason) => {
+        await correct.mutateAsync({
+          id: sale.id,
+          changes: correcting.changes(),
+          reason,
+        });
+      }}
+      ready={correcting.changed}
+      title={t("ventures.correctInternalSale")}
+      trigger={t("ventures.correctMovement")}
+    >
+      <CorrectionAnswer
+        inputMode="decimal"
+        label={t("ventures.ratePerKg")}
+        onChange={(value) => correcting.set("rateMoneyPerKg", value)}
+        type="number"
+        value={correcting.typed.rateMoneyPerKg ?? ""}
+      />
+      <CorrectionAnswer
+        label={t("ventures.soldOnDay")}
+        onChange={(value) => correcting.set("soldOn", value)}
+        type="date"
+        value={correcting.typed.soldOn ?? ""}
+      />
+      <CorrectionAnswer
+        label={t("ventures.reference")}
+        onChange={(value) => correcting.set("reference", value)}
+        value={correcting.typed.reference ?? ""}
+      />
+    </CorrectionDialog>
+  );
+};

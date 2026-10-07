@@ -9,6 +9,7 @@ import {
   roundKg,
   weighedShort,
 } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
 import { tell } from "../notice";
@@ -270,6 +271,31 @@ export const judgeAgainAfter = async (
 };
 
 /**
+ * A weighing an Internal Sale was priced from, or the price the Farm took her on at, is what that price says she
+ * weighed: put right alone, the sale went on priced at the old figure and nobody was told. The price is put right
+ * instead — the Internal Sale's own Correction, the Owner's.
+ */
+const refuseWhatAPriceRestsOn = async (tx: Tx, weighInId: string) => {
+  const sold = await tx.query.internalSale.findFirst({
+    where: { weighInId },
+    columns: { id: true },
+  });
+  const joined = sold
+    ? undefined
+    : await tx.query.fatteningJoining.findFirst({
+        where: { weighInId },
+        columns: { id: true },
+      });
+  if (sold || joined) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "A price was struck from this weighing; put the sale right instead",
+      data: { refusal: "priced_from_this_weighing" },
+    });
+  }
+};
+
+/**
  * Records what one animal weighed on the scale this round.
  *
  * The reading is kept and never overwritten by the next one: the whole of fattening is the
@@ -289,6 +315,9 @@ const weighHer = async (tx: Tx, input: WeighInFacts): Promise<EffectResult> => {
     where: { completionId: input.completionId },
     columns: { id: true },
   });
+  if (standing) {
+    await refuseWhatAPriceRestsOn(tx, standing.id);
+  }
   if (input.skipped) {
     // An animal that would not go up the crush has no weight to her name this round.
     if (standing) {

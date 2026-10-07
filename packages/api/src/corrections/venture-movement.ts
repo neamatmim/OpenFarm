@@ -1,6 +1,7 @@
-import { eq } from "@OpenFarm/db/operators";
+import { and, eq } from "@OpenFarm/db/operators";
+import { moneyEvent } from "@OpenFarm/db/schema/money";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
-import { capitalItMayHold } from "@OpenFarm/domain";
+import { capitalItMayHold, startOfFarmDay } from "@OpenFarm/domain";
 import { currencyWords } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -215,6 +216,28 @@ const assertMayBeVoided = async (tx: Tx, row: MovementRow) => {
 };
 
 /**
+ * The Settlement's own money — an Investor's payout, the Advance coming back, the Farm's share or its share of a loss —
+ * is what the approved Settlement worked out, frozen; the Farm's Money Event for its share says the same figure. Its
+ * amount typed over left the Venture settled at less or more than nothing and the Farm's books disagreeing with it:
+ * only the day it moved and the reference on it are put right.
+ */
+const SETTLEMENT_MONEY: ReadonlySet<string> = new Set([
+  "payout",
+  "advance_repaid",
+  "farm_share",
+  "farm_loss_in",
+]);
+
+const assertNotASettlementFigure = (row: MovementRow) => {
+  if (SETTLEMENT_MONEY.has(row.kind)) {
+    throw refuse(
+      "That is the Settlement's own figure: its day and reference are put right, never its amount",
+      "settlement_figure"
+    );
+  }
+};
+
+/**
  * A Reimbursement's figure is what that month's costs came to, and the month may not be reimbursed again, so
  * a figure typed over it is one nothing can be recomputed from. What she typed herself — the day it moved
  * and the reference on it — is still hers to put right.
@@ -318,6 +341,7 @@ export const ventureMovementCorrection: CorrectionKind<
       return;
     }
     if (to.amountMoney !== undefined) {
+      assertNotASettlementFigure(row);
       assertTheFigureIsHersToChange(row);
       const { filled } = await assertWithinItsUnits(tx, row, to.amountMoney);
       // Nothing left owing on its paper now, as when the money was first taken: a note still waiting is for money the
@@ -343,6 +367,25 @@ export const ventureMovementCorrection: CorrectionKind<
         .update(ventureMovement)
         .set(putRight)
         .where(eq(ventureMovement.id, row.id));
+    }
+    // The Farm's own side of it — its share, its loss — is a Money Event named by this movement: its day and reference
+    // move with it, so the Farm's books and the Venture's say the same transfer.
+    const followed = {
+      ...(to.movedOn === undefined
+        ? {}
+        : { occurredAt: startOfFarmDay(to.movedOn) }),
+      ...(to.reference === undefined ? {} : { reference: to.reference }),
+    };
+    if (somethingChanged(followed)) {
+      await tx
+        .update(moneyEvent)
+        .set(followed)
+        .where(
+          and(
+            eq(moneyEvent.farmId, row.farmId),
+            eq(moneyEvent.sourceId, row.id)
+          )
+        );
     }
   },
 };

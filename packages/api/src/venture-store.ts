@@ -1115,6 +1115,37 @@ export const bankStandingOf = async (
 };
 
 /**
+ * What a Venture's Sales say they fetched beyond what its account took for them: nothing while the account is open —
+ * the movement is written from the Sale and moves with it — and, once the Venture is settled and its account closed, a
+ * Sale put right since (`bookSaleProceeds` leaves the closed account alone). The Settlement reads it as late news, so
+ * the Adjustment carries the difference from or to the Farm's own books.
+ */
+export const saleNewsSinceClosing = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  ventureId: string
+): Promise<number> => {
+  const taken = await tx.query.ventureMovement.findMany({
+    where: { farmId, ventureId, kind: "sale_in", saleId: { isNotNull: true } },
+    columns: { saleId: true, amountMoney: true },
+  });
+  const ids = taken.flatMap((one) => (one.saleId ? [one.saleId] : []));
+  if (ids.length === 0) {
+    return 0;
+  }
+  const sales = await tx.query.sale.findMany({
+    where: { farmId, id: { in: ids } },
+    columns: { id: true, priceMoney: true },
+  });
+  const price = new Map(sales.map((one) => [one.id, one.priceMoney]));
+  return taken.reduce(
+    (sum, one) =>
+      sum + (price.get(one.saleId ?? "") ?? one.amountMoney) - one.amountMoney,
+    0
+  );
+};
+
+/**
  * What a buyer paid for a Venture's Animal, landing in that Venture's account.
  *
  * Written from the Sale rather than beside it, so that putting the Sale's price right moves this with
@@ -1141,8 +1172,24 @@ export const bookSaleProceeds = async (
 ) => {
   const already = await tx.query.ventureMovement.findFirst({
     where: { farmId: sale.farmId, saleId: sale.id },
-    columns: { id: true, handoverId: true },
+    columns: { id: true, handoverId: true, ventureId: true },
   });
+  // A settled Venture's account is closed: a Sale put right after it moves the costing, and the difference is a
+  // Settlement Adjustment, paid from or to the Farm's own books (the Owner, 2026-10-07). Rewritten here, the closed
+  // account read less or more than nothing and its last Bank Check went out for good.
+  const hers = [already?.ventureId, sale.ventureId].filter(
+    (one): one is string => typeof one === "string"
+  );
+  const settled =
+    hers.length === 0
+      ? []
+      : await tx.query.venture.findMany({
+          where: { farmId: sale.farmId, id: { in: hers }, state: "settled" },
+          columns: { id: true },
+        });
+  if (settled.length > 0) {
+    return;
+  }
   const itsOwn = sale.priceMoney > 0 ? sale.ventureId : null;
   if (already && itsOwn === null) {
     // Not a movement put right but a movement that should never have been written: a Correction saying

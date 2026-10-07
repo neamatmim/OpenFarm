@@ -667,6 +667,27 @@ export const booksProcedures = {
           context.farm.id,
           rows.flatMap((one) => (one.agreementId ? [one.agreementId] : []))
         );
+        // An Internal Sale's side is put right through the sale itself: what it says now, for the screen to start from.
+        const internalIds = rows.flatMap((one) =>
+          one.internalSaleId ? [one.internalSaleId] : []
+        );
+        const internalSales =
+          internalIds.length === 0
+            ? []
+            : await context.db.query.internalSale.findMany({
+                where: { farmId: context.farm.id, id: { in: internalIds } },
+                columns: { id: true, rateMoneyPerKg: true, soldOn: true },
+              });
+        const internalOf = new Map(
+          internalSales.map((one) => [
+            one.id,
+            {
+              id: one.id,
+              rateMoneyPerKg: Number(one.rateMoneyPerKg),
+              soldOn: one.soldOn,
+            },
+          ])
+        );
         return rows.map((one) => ({
           id: one.id,
           kind: one.kind,
@@ -676,6 +697,10 @@ export const booksProcedures = {
             null,
           /** The Intake of a bull bought by bank with no outing, which it is written from. */
           intakeId: one.intakeId,
+          /** The Internal Sale it is one side of, as it stands: put right through the sale. */
+          internalSale: one.internalSaleId
+            ? (internalOf.get(one.internalSaleId) ?? null)
+            : null,
           /** Which way it moved the account, so a list of them can be added up to the balance the farm keeps. */
           direction: directionOf(one.kind),
           agreementId: one.agreementId,

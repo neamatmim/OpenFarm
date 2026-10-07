@@ -13,6 +13,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { theirHerdStory } from "../investor-statement-store";
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { A_DEATH_PHOTO } from "../test/death-photo";
 import { theirProgress } from "../venture-herd-store";
 import { appRouter } from "./index";
@@ -1200,5 +1201,70 @@ describe("a bull the Farm's float bought, sold to a Venture before the float is 
       tripId: trip.id,
       cashBackMoney: 28_000,
     });
+  });
+});
+
+describe("an Internal Sale put right", () => {
+  it("moves the price, both purses and the Farm's books together, and the weighing it was priced from stands", async () => {
+    // A Venture of its own, still buying: the file's first has moved on by now.
+    const mine = await funded(
+      await as("owner", "2047-02-20T04:00:00.000Z"),
+      41
+    );
+    const hers = await bull("2047-02-20T05:00:00.000Z");
+    await weigh("2047-02-21", [[hers.tagNumber, 200]]);
+    const owner = await as("owner", "2047-02-21T09:00:00.000Z");
+    const before = await owner.client.ventures.list();
+    const heldBefore = before.find((one) => one.id === mine)?.balanceMoney ?? 0;
+    // ৳35 a kilo typed for ৳350.
+    const sold = await owner.client.ventures.sellInternally({
+      tagNumber: hers.tagNumber,
+      toVentureId: mine,
+      rateMoneyPerKg: 35,
+      note: `দর ভুল লেখা ${suffix}`,
+      soldOn: "2047-02-21",
+      paymentMethod: "bank",
+      reference: `INT-FIX-${suffix}`,
+      priceMoney: 7000,
+    });
+
+    await owner.client.ventures.correctInternalSale({
+      id: sold.id,
+      reason: `দর ৩৫০, ৩৫ নয় ${suffix}`,
+      changes: { rateMoneyPerKg: { from: 35, to: 350 } },
+    });
+
+    const after = await owner.client.ventures.list();
+    expect(after.find((one) => one.id === mine)?.balanceMoney).toBe(
+      heldBefore - 70_000
+    );
+    const money = await scratchDb().query.moneyEvent.findFirst({
+      where: { sourceId: sold.id },
+      columns: { amountMoney: true },
+    });
+    expect(money?.amountMoney).toBe(70_000);
+    const row = await scratchDb().query.internalSale.findFirst({
+      where: { id: sold.id },
+      columns: { priceMoney: true, rateMoneyPerKg: true },
+    });
+    expect(row).toEqual({ priceMoney: 70_000, rateMoneyPerKg: "350.00" });
+
+    // The reading she was priced at is what the sale says she weighed: it is put right through the sale, not under it.
+    const animalRow = await scratchDb().query.animal.findFirst({
+      where: { farmId: theFarm().id, tagNumber: hers.tagNumber },
+      columns: { id: true },
+    });
+    const reading = await scratchDb().query.weighIn.findFirst({
+      where: { animalId: animalRow?.id ?? "" },
+      columns: { completionId: true },
+    });
+    const staff = await as("staff", "2047-02-21T08:00:00.000Z");
+    await expect(
+      correctStepAsShown(staff.client, {
+        completionId: reading?.completionId ?? "",
+        evidence: [300],
+        reason: `ভুল ওজন ${suffix}`,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "priced_from_this_weighing" } });
   });
 });
