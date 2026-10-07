@@ -64,6 +64,7 @@ import {
   signedForEach,
   stillHersByEach,
   ventureView,
+  windUpDaysOf,
   windUpEndsOn,
   withWindowsInForce,
 } from "../../venture-store";
@@ -402,7 +403,7 @@ export const lifecycleProcedures = {
           },
           windUpEndsOn: windUpEndsOn(
             row.targetWindowEnd,
-            context.farm.windUpDays
+            windUpDaysOf(row, context.farm)
           ),
           animalsStanding: stillHers.get(row.id) ?? 0,
         };

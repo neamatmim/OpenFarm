@@ -33,7 +33,7 @@ import {
   giveStandardTemplates,
   wordingSignedIn,
 } from "../template-store";
-import { paidForBy, withWindowsInForce } from "../venture-store";
+import { windUpDaysOf, paidForBy, withWindowsInForce } from "../venture-store";
 
 /**
  * What a copy of an Agreement writes into the stamp's blanks — serial, value, day — and the line marking it a copy and
@@ -109,6 +109,7 @@ export const investorStatementsRouter = {
             cattlePartMoney: true,
             monthlySums: true,
             firstSumDueOn: true,
+            windUpDays: true,
           },
         }),
         context.db.query.investor.findFirst({
@@ -225,6 +226,7 @@ export const investorStatementsRouter = {
             cattlePartMoney: true,
             monthlySums: true,
             firstSumDueOn: true,
+            windUpDays: true,
           },
         }),
         context.db.query.investor.findFirst({
@@ -286,7 +288,7 @@ export const investorStatementsRouter = {
             investorsPercent: agreement.investorsPercent,
             windowStart: agreement.targetWindowStart,
             windowEnd: agreement.targetWindowEnd,
-            windUpDays: context.farm.windUpDays,
+            windUpDays: windUpDaysOf(run, context.farm),
             arbitrator: agreement.arbitrator,
             monthly,
             farmCapital,

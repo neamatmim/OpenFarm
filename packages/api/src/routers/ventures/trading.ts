@@ -35,6 +35,7 @@ import {
   stillHersOf,
   whatSheLastWeighed,
   windowInForceOn,
+  windUpDaysOf,
   windUpEndsOn,
   withWindowsInForce,
 } from "../../venture-store";
@@ -376,7 +377,7 @@ export const tradingProcedures = {
       return {
         windUpEndsOn: windUpEndsOn(
           window.targetWindowEnd,
-          context.farm.windUpDays
+          windUpDaysOf(row, context.farm)
         ),
         animals: hers.map((her, at) => ({
           tagNumber: her.tagNumber,
@@ -453,6 +454,7 @@ export const tradingProcedures = {
               state: true,
               targetWindowStart: true,
               targetWindowEnd: true,
+              windUpDays: true,
             },
           });
           // A run still going, whichever stage it is at. One that never sold a single bull is exactly
@@ -473,7 +475,7 @@ export const tradingProcedures = {
           );
           const endsOn = windUpEndsOn(
             window.targetWindowEnd,
-            context.farm.windUpDays
+            windUpDaysOf(held, context.farm)
           );
           if (farmDayOf(now) <= endsOn) {
             throw new ORPCError("BAD_REQUEST", {

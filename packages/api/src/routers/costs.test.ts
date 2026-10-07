@@ -120,7 +120,8 @@ const setup = async () => {
     name: `খরচ মোটাতাজা ${suffix}`,
   });
   const dairy = await owner.client.sheds.pens.create({
-    quarantine: true,
+    // A quarantine pen holds no dairy animal.
+    quarantine: false,
     shedId: shed.id,
     name: `খরচ দুধ ${suffix}`,
   });
@@ -130,7 +131,8 @@ const setup = async () => {
     name: `খরচ খালি ${suffix}`,
   });
   const away = await owner.client.sheds.pens.create({
-    quarantine: true,
+    // A heifer is walked here: a quarantine pen holds no dairy animal.
+    quarantine: false,
     shedId: shed.id,
     name: `খরচ অন্যত্র ${suffix}`,
   });

@@ -77,6 +77,8 @@ export interface TheVenture {
   cattlePartMoney: number | null;
   monthlySums: number | null;
   firstSumDueOn: string | null;
+  /** Its own Wind-up days, frozen when its first Investor signed. */
+  windUpDays: number | null;
 }
 
 /** Everything a paper may print about one man on one Venture, and nothing about anybody else. */
@@ -137,6 +139,7 @@ export const hisStanding = async (
         cattlePartMoney: true,
         monthlySums: true,
         firstSumDueOn: true,
+        windUpDays: true,
       },
     }),
     tx.query.investor.findFirst({

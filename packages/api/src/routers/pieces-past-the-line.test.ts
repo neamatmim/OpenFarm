@@ -1,4 +1,9 @@
-import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -131,6 +136,31 @@ describe("a bill in pieces", () => {
       inPieces: true,
       recordedByName: thePerson("manager").name,
     });
+  });
+});
+
+describe("money waiting when the line moves", () => {
+  it("still says it waits over the line, not in pieces, once the Owner raises the line above it", async () => {
+    const name = `জেনারেটর মিস্ত্রি ${suffix}`;
+    const owner = await as("owner", "2077-06-02");
+    const ours = await scratchDb().query.farm.findFirst({
+      where: { id: theFarm().id },
+      columns: { approvalThresholdMoney: true },
+    });
+    const line = ours?.approvalThresholdMoney ?? 0;
+    // Half as much again as the line, in one go.
+    const waiting = await enter("manager", name, line * 1.5, "2077-06-02");
+    expect(waiting.approval).toBe("awaiting");
+    await owner.client.farm.setParameters({ approvalThresholdMoney: line * 2 });
+    try {
+      const after = await as("owner", "2077-06-02");
+      const home = await after.client.overview.get();
+      expect(
+        home.needsYou.moneyAwaiting.find((one) => one.id === waiting.id)
+      ).toMatchObject({ inPieces: false });
+    } finally {
+      await owner.client.farm.setParameters({ approvalThresholdMoney: line });
+    }
   });
 });
 

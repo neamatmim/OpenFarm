@@ -10,7 +10,7 @@ import { firstYearStarts } from "./farm-locale";
  * every screen at once and nothing worked out from a year is ever stored.
  */
 export const yearRulesOf = async (
-  db: Database,
+  db: Pick<Database, "query">,
   farmId: string
 ): Promise<YearRules> => {
   const changes = await db.query.financialYearChange.findMany({

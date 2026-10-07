@@ -265,6 +265,30 @@ describe("a bull in Quarantine", () => {
     await expect(moved(tag, pens.second)).resolves.toBeDefined();
   });
 
+  it("is never joined by the dairy herd: no cow is walked in, and no pen she stands in is marked one", async () => {
+    const owner = await as("owner");
+    const heifer = await owner.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "heifer",
+      penId: pens.fattening,
+      source: "born",
+      aliases: [],
+    });
+    await expect(moved(heifer.tagNumber, pens.second)).rejects.toMatchObject({
+      data: { refusal: "quarantine_pen_not_for_herd" },
+    });
+    const manager = await as("manager");
+    await expect(
+      manager.client.sheds.pens.markQuarantine({
+        penId: pens.fattening,
+        quarantine: true,
+      })
+    ).rejects.toMatchObject({
+      data: { refusal: "pen_holds_herd", tagNumber: heifer.tagNumber },
+    });
+  });
+
   it("left outside one is named for the Manager to walk", async () => {
     const tag = await intoQuarantine();
     await scratchDb()

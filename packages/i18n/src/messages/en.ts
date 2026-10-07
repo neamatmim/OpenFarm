@@ -1819,6 +1819,8 @@ export const en = {
   "refusal.referenceUsedAlready":
     "That transaction ID is on this farm account already",
   "refusal.farmAccountListedAlready": "That number is listed already",
+  "refusal.farmAccountRetiredAlready":
+    "That number is listed already, retired. Bring it back instead",
   "refusal.beforeTheFirstReading":
     "That month is before this account's first reading",
   "refusal.alreadyDeposited": "That sale's money has been deposited already",
@@ -1854,6 +1856,19 @@ export const en = {
     "An animal in quarantine is in this pen — release or walk her first",
   "refusal.staysInQuarantine":
     "An animal in quarantine stays in a quarantine pen until she is released",
+  "refusal.penHoldsHerd":
+    "{tagNumber} of the dairy herd is in this pen — walk her out first",
+  "refusal.shedNameTaken": "The farm has a shed by that name already",
+  "refusal.notATimeOfDay": '"{time}" is not a time of day',
+  "refusal.investorWarningAfterCap":
+    "The investor warning comes before the cap, not after it",
+  "refusal.aiWindowBackwards": "The AI window has to close after it opens",
+  "refusal.aiWindowTooLong": "The AI window cannot be longer than a day",
+  "refusal.quietHoursSame":
+    "Quiet hours that begin when they end are not quiet hours. Set them apart",
+  "refusal.penNameTaken": "This shed has a pen by that name already",
+  "refusal.quarantinePenNotForHerd":
+    "A quarantine pen is no place for the dairy herd",
   "refusal.arrivalDoseOwed":
     "Still owed: {doses} — he leaves quarantine once it is given, or the vet writes why it is not needed",
   "refusal.doseNotOwed": "He does not owe that dose",
@@ -2736,6 +2751,8 @@ export const en = {
   "herd.row.notATagNumber":
     "“{value}” is not a tag number — write it like D-0001",
   "herd.row.registerNotTaken": "the farm could not take this row",
+  "herd.row.penInTwoSheds":
+    "two sheds have a pen by this name: write it as shed/pen",
   "herd.warnedRows":
     "{count, plural, one {# animal added without} other {# animals added without}} something the farm needs",
   "herd.row.registerNoCalvingDate":
@@ -3622,6 +3639,11 @@ export const en = {
   "farmAccounts.retire": "Retire",
   "farmAccounts.retired": "retired",
   "farmAccounts.retiredDone": "Account retired",
+  "farmAccounts.retireTitle": "Retire {name}?",
+  "farmAccounts.retireWhy":
+    "No new money can be written to it. Money already written keeps its name, and you can bring it back.",
+  "farmAccounts.bringBack": "Bring back",
+  "farmAccounts.broughtBack": "Account brought back",
   "farmAccounts.readHint":
     "The balance the statement shows at the month's last day",
   "farmAccounts.outOnHome": "Statements that did not agree",

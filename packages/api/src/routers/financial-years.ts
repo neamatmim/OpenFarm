@@ -25,6 +25,7 @@ import {
   requirePersonalSession,
   requireRole,
 } from "../roles";
+import { lockTheFarm } from "../venture-store";
 import { yearChangesOf, yearRulesOf } from "../year-store";
 
 /** How many years after this one the farm lists: far enough to see a Transition Year the law has set. */
@@ -104,15 +105,10 @@ export const financialYearsRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const rules = await yearRulesOf(context.db, context.farm.id);
       const change: YearChange = {
         changingFrom: input.changingFrom,
         newFrom: input.newFrom,
       };
-      const refusal = refusalOfChange(rules, change, farmDayOf(now));
-      if (refusal) {
-        throw refuse(refusal);
-      }
       const id = uuidv7(now);
       await audited(context).write(
         {
@@ -121,15 +117,24 @@ export const financialYearsRouter = {
           action: "create",
           after: { ...change, reason: input.reason },
         },
-        (tx) =>
-          tx.insert(financialYearChange).values({
+        async (tx) => {
+          // Judged against the changes as they stand behind the farm's lock: the same change sent twice at once —
+          // a second tap, a slow signal — is recorded once, and the second is told it no longer fits.
+          await lockTheFarm(tx, context.farm.id);
+          const rules = await yearRulesOf(tx, context.farm.id);
+          const refusal = refusalOfChange(rules, change, farmDayOf(now));
+          if (refusal) {
+            throw refuse(refusal);
+          }
+          await tx.insert(financialYearChange).values({
             id,
             farmId: context.farm.id,
             ...change,
             reason: input.reason,
             recordedBy: context.actor.id,
             recordedAt: now,
-          })
+          });
+        }
       );
       return { id };
     }),

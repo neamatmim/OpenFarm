@@ -622,6 +622,31 @@ const refusedOnTheFarm = (
   return null;
 };
 
+/** A Pen named on its own that more than one Shed has: which one is meant only "Shed/Pen" can say. */
+const PEN_IN_TWO_SHEDS = "pen_in_two_sheds";
+
+/** The farm's Pens by the names a register may give them: "Shed/Pen" always, and the Pen's own name where only one
+ *  Shed has a Pen called that — two Sheds each with a "Pen 1" is ordinary, and a bare "Pen 1" is then refused rather
+ *  than put in whichever was read last. */
+const pensByName = (
+  pens: readonly { id: string; name: string; shed: { name: string } }[]
+): Map<string, string> => {
+  const byName = new Map<string, string>();
+  for (const one of pens) {
+    const bare = one.name.toLowerCase();
+    byName.set(
+      bare,
+      byName.has(bare) && byName.get(bare) !== one.id
+        ? PEN_IN_TWO_SHEDS
+        : one.id
+    );
+  }
+  for (const one of pens) {
+    byName.set(`${one.shed.name}/${one.name}`.toLowerCase(), one.id);
+  }
+  return byName;
+};
+
 /**
  * One row of the opening register as the Animal it describes, or why it cannot be one: a value the row cannot hold, a
  * Pen or a breed the farm does not have, or a State on the other Side's.
@@ -631,11 +656,20 @@ const readRegisterRow = (
   penByName: ReadonlyMap<string, string>,
   breeds: Parameters<typeof breedNamed>[0]
 ): { data: NewAnimal } | RowRefused => {
+  const penNamed = (values.pen ?? "").toLowerCase();
+  if (penByName.get(penNamed) === PEN_IN_TWO_SHEDS) {
+    return {
+      reason: "Two Sheds have a Pen by this name: write it as Shed/Pen",
+      refusal: "pen_in_two_sheds",
+      column: "pen",
+      value: values.pen ?? "",
+    };
+  }
   const parsed = importRowInput.safeParse({
     sex: values.sex,
     side: values.side,
     state: values.state,
-    penId: penByName.get((values.pen ?? "").toLowerCase()) ?? "",
+    penId: penByName.get(penNamed) ?? "",
     source: values.source,
     breedId: values.breed
       ? (breedNamed(breeds, values.breed) ?? "")
@@ -1869,12 +1903,7 @@ export const animalsRouter = {
         where: { farmId: context.farm.id },
         columns: { id: true, nameBn: true, nameEn: true, retiredAt: true },
       });
-      const penByName = new Map(
-        pens.flatMap((p) => [
-          [p.name.toLowerCase(), p.id] as const,
-          [`${p.shed.name}/${p.name}`.toLowerCase(), p.id] as const,
-        ])
-      );
+      const penByName = pensByName(pens);
 
       const imported: { line: number; tagNumber: string }[] = [];
       const failed: ({ line: number } & RowRefused)[] = [];

@@ -255,8 +255,7 @@ export const overviewRouter = {
             /** The terms she reads, which her approval names: corrected under her since, it is refused. */
             termsRead: termsOf(row),
             /** Under the line alone, and waiting because the week's other pieces to the same person take it past. */
-            inPieces:
-              Number(row.amountMoney) <= context.farm.approvalThresholdMoney,
+            inPieces: row.awaitingInPieces,
           })),
           /** All the money waiting for her word, counted and totalled, where the list above shows the oldest few. */
           moneyAwaitingAll,

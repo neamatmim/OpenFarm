@@ -425,3 +425,54 @@ describe("the Farm Accounts", () => {
     ).resolves.toBeDefined();
   });
 });
+
+describe("one number, however it is written", () => {
+  it("is listed once, in English digits, whether typed in Bangla digits or with a dash", async () => {
+    const owner = await as("owner");
+    const { id } = await owner.client.farmAccounts.create({
+      kind: "mobile_money",
+      name: `নগদ ${suffix}`,
+      number: "০১৭৮৮-০০০৩৩৩",
+    });
+    for (const again of ["01788000333", "01788 000 333"]) {
+      // oxlint-disable-next-line no-await-in-loop -- one spelling after another
+      await expect(
+        owner.client.farmAccounts.create({
+          kind: "mobile_money",
+          name: `আবার ${suffix}`,
+          number: again,
+        })
+      ).rejects.toMatchObject({
+        data: { refusal: "farm_account_listed_already", id },
+      });
+    }
+    const listed = await owner.client.farmAccounts.list();
+    expect(listed.find((one) => one.id === id)?.number).toBe("01788000333");
+  });
+
+  it("is brought back when retired by mistake, and listing it again says so", async () => {
+    const owner = await as("owner");
+    const { id } = await owner.client.farmAccounts.create({
+      kind: "mobile_money",
+      name: `ভুলে বাদ ${suffix}`,
+      number: "01799000444",
+    });
+    await owner.client.farmAccounts.retire({ id });
+    await expect(
+      owner.client.farmAccounts.create({
+        kind: "mobile_money",
+        name: `আবার ${suffix}`,
+        number: "01799000444",
+      })
+    ).rejects.toMatchObject({
+      data: { refusal: "farm_account_retired_already", id },
+    });
+    await owner.client.farmAccounts.bringBack({ id });
+    const listed = await owner.client.farmAccounts.list();
+    expect(listed.find((one) => one.id === id)?.retired).toBe(false);
+    const manager = await as("manager");
+    await expect(
+      manager.client.farmAccounts.bringBack({ id })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});

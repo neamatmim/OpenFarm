@@ -36,7 +36,7 @@ import { languageOf } from "./reader-language";
 import { agreementReturnOnCapital } from "./returns-store";
 import { wordingSignedIn } from "./template-store";
 import { theirProgress } from "./venture-herd-store";
-import { paidForBy } from "./venture-store";
+import { windUpDaysOf, paidForBy } from "./venture-store";
 
 /** What making one of an Investor's papers needs: the farm it comes from, whoever is asking for it — the Owner
  *  printing it, or the Investor reading it in the portal (ADR 0007) — and the clock. Every paper made is an Export
@@ -170,7 +170,7 @@ export const joiningLetterFor = async (
         investorsPercent: standing.agreement.investorsPercent,
         windowStart: standing.agreement.targetWindowStart,
         windowEnd: standing.agreement.targetWindowEnd,
-        windUpDays: context.farm.windUpDays,
+        windUpDays: windUpDaysOf(standing.venture, context.farm),
         arbitrator: standing.agreement.arbitrator,
         monthly,
         farmCapital,

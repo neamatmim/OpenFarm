@@ -53,6 +53,19 @@ describe("what is the Owner's alone to read", () => {
     }
   });
 
+  it("hands the Manager back the farm without them when the Manager saves a setting of their own", async () => {
+    const owner = await as("owner");
+    await owner.client.farm.setParameters({ cashShortTellMoney: 3000 });
+    const manager = await as("manager");
+    const saved = await manager.client.farm.setParameters({
+      milkTolerancePercent: 4,
+    });
+    expect(saved).toMatchObject({ milkTolerancePercent: 4 });
+    for (const field of [...OWNERS_FIGURES, "ventureFloorPercent"]) {
+      expect(saved, `the Manager is handed ${field}`).not.toHaveProperty(field);
+    }
+  });
+
   it("keeps the Owner's figures out of the trail the Manager reads, whatever its entity", async () => {
     const owner = await as("owner");
     await owner.client.fattening.setMarketPrice({
