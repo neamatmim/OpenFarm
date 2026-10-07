@@ -9,6 +9,8 @@
  * before and after would be the same pages by another door.
  */
 export const WHOSE_TRAIL = {
+  // Who is guessing at a sign-in is the Owner's, as the people who sign in are.
+  password_guess: "owner",
   abortion: "farm",
   alert: "farm",
   animal: "farm",

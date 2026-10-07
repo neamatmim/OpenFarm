@@ -63,14 +63,23 @@ const recordersFor = (
             userId: entry.actorId ?? "",
             device: { farmId: context.farm.id },
           },
-          columns: { id: true, createdAt: true, expiresAt: true },
+          columns: {
+            id: true,
+            createdAt: true,
+            expiresAt: true,
+            endedAt: true,
+          },
         })
       : undefined;
     const at = entry.recordedAt.getTime();
+    // A stint ended on purpose — locked, or the PIN set anew — covers what was done up to its end, however the taps ran;
+    // one still open, or run out, what its taps kept open.
+    const until = stint?.endedAt ?? stint?.expiresAt;
     const during =
       stint !== undefined &&
+      until !== undefined &&
       at >= stint.createdAt.getTime() - PROOF_BEFORE_MS &&
-      at <= stint.expiresAt.getTime() + PROOF_AFTER_MS;
+      at <= until.getTime() + PROOF_AFTER_MS;
     if (!(stint && during)) {
       // Somebody who works on this phone, with nothing to show the farm they were switched in when it was done: the PIN
       // they entered with no signal was lost with the tab, or the phone put away. Kept whole for the Manager to judge

@@ -1,0 +1,1 @@
+ALTER TABLE "device_switch" ADD COLUMN "ended_at" timestamp with time zone;

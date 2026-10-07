@@ -245,6 +245,14 @@ export interface NoticeFacts {
   day_not_turning: { since: string };
   /** When a copy last succeeded — or, for a farm whose copies have never once worked, when the first was tried. */
   backup_overdue: { since: string };
+  /** One sign-in address guessed at: whose account it is, where the farm knows one, how many wrong passwords in the
+   *  hour, and when the first of them came. */
+  password_guessed: {
+    login: string;
+    name: string | null;
+    guesses: number;
+    since: string;
+  };
   /** A Lot with something left in it, near its last day — or past it. What it is, which Lot, the day, and how much
    *  is left: a box of medicine counted in doses, a bag of feed in its Feed Item's unit. */
   lot_expiring: LotFacts;

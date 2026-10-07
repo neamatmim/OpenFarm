@@ -29,13 +29,20 @@ import {
   reserveBatch,
   seqTaken,
 } from "./sync-store";
+import { asLogged } from "./thrown";
 import { seenWhenDone } from "./writes-seen";
 
-/** What to tell the phone about an entry the farm could not take. */
-const message = (error: unknown): string =>
-  error instanceof ORPCError
-    ? error.message
-    : ((error as Error)?.message ?? "could not be recorded");
+/** What to tell the phone about an entry the farm could not take: the farm's own words for a refusal, and never what a
+ *  failure underneath said — a database's error carries its statement and the values it was given, which belong in the
+ *  server's log and not on a Shed Phone or the Manager's screen. */
+const message = (error: unknown): string => {
+  if (error instanceof ORPCError) {
+    return error.message;
+  }
+  // oxlint-disable-next-line no-console -- the server's log is where the cause is read
+  console.error("an entry the farm could not take", asLogged(error));
+  return "could not be recorded";
+};
 
 /** Each kind a phone can send, and the Entry that records it (ADR 0004). */
 const ENTRIES = {

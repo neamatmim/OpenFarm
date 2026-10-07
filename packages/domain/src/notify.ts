@@ -75,6 +75,9 @@ export const DELIVERY = {
   // text and not at night: it is not a cow or a deadline, and the records are still there in the morning.
   day_not_turning: { when: "immediate" },
   backup_overdue: { when: "immediate" },
+  // Somebody guessing one account's password from many addresses: the Owner hears at once, as of the farm's own
+  // machinery, and not by text — the account is already slowed, and the night's guessing waits for the morning.
+  password_guessed: { when: "immediate" },
   // The store going off, and running low, are the evening's reading, as feed running low is: worth knowing today,
   // not worth a buzz.
   lot_expiring: { when: "digest" },
@@ -235,6 +238,14 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
     app: "alerts.backupOverdue",
     push: { title: "push.backupOverdueTitle", body: "push.backupOverdueBody" },
     digest: "digest.backupOverdue",
+  },
+  password_guessed: {
+    app: "alerts.passwordGuessed",
+    push: {
+      title: "push.passwordGuessedTitle",
+      body: "push.passwordGuessedBody",
+    },
+    digest: "digest.passwordGuessed",
   },
   lot_expiring: { app: "alerts.lotExpiring", digest: "digest.lotExpiring" },
   lot_expired: { app: "alerts.lotExpired", digest: "digest.lotExpired" },

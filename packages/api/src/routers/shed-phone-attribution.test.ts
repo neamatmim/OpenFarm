@@ -671,6 +671,86 @@ describe("the day turning when somebody opens the app", () => {
   });
 });
 
+describe("a stint ended on purpose", () => {
+  it("is not opened again by work sent later under its token: done before the Lock it counts, after it it does not", async () => {
+    const { instance, clock, other } = await morning("2031-09-10");
+    const pinned = clock.now();
+    const token = await provedPin(thePerson("staff").id, pinned);
+    // She locks the phone a minute after her PIN.
+    clock.advance(60_000);
+    const { client: hers } = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+      phone: PHONE,
+    });
+    await hers.devices.lock();
+    const lockedAt = clock.now();
+    clock.advance(2 * 60_000);
+    const { client: shelf } = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+      phone: PHONE,
+      locked: true,
+    });
+    const before = milked(instance.id, thePerson("staff").id, pinned, token);
+    const after = {
+      ...milked(
+        instance.id,
+        thePerson("staff").id,
+        new Date(lockedAt.getTime() + 15 * 60_000),
+        token
+      ),
+      animalTag: `${world.cow.tagNumber}`,
+    };
+    const sent = await shelf.sync.fromTheShelf({
+      key: `attr-${suffix}-${counted()}`,
+      entries: [before],
+    });
+    expect(sent.results[0]?.outcome).toBe("applied");
+    // On the shelf, nothing it holds proves anybody now: it waits for a PIN.
+    await expect(
+      shelf.sync.fromTheShelf({
+        key: `attr-${suffix}-${counted()}`,
+        entries: [after],
+      })
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    // The next hand PINs in and it goes: kept for the Manager, never taken as hers.
+    const late = await other.sync.batch({
+      key: `attr-${suffix}-${counted()}`,
+      entries: [after],
+    });
+    expect(late.results[0]?.refusal?.word).toBe("pin_not_proved");
+    // And the stint stays ended where the Lock ended it.
+    const [stint] = await scratchDb()
+      .select({
+        expiresAt: deviceSwitch.expiresAt,
+        endedAt: deviceSwitch.endedAt,
+      })
+      .from(deviceSwitch)
+      .where(eq(deviceSwitch.id, token));
+    expect(stint?.endedAt).toEqual(lockedAt);
+    expect(stint?.expiresAt.getTime()).toBeLessThanOrEqual(lockedAt.getTime());
+  });
+
+  it("is ended by a new PIN even once it has run out, so nothing queued under the old one opens it", async () => {
+    const { clock } = await morning("2031-09-11");
+    const token = await provedPin(thePerson("staff").id, clock.now());
+    clock.advance(30 * 60_000);
+    const { client: owner } = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+    });
+    await owner.people.setPin({ userId: thePerson("staff").id, pin: "4826" });
+    const [stint] = await scratchDb()
+      .select({ endedAt: deviceSwitch.endedAt })
+      .from(deviceSwitch)
+      .where(eq(deviceSwitch.id, token));
+    expect(stint?.endedAt).toEqual(clock.now());
+  });
+});
+
 describe("how many are waiting", () => {
   it("counts every Needs Review waiting, though the list carries only the oldest hundred", async () => {
     const { client: manager } = await createTestClient(appRouter, {

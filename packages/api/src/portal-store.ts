@@ -15,7 +15,6 @@ import { z } from "zod";
 import {
   CODE_ATTEMPTS,
   countFailure,
-  forgetFailures,
   takeBackOne,
   lockedOut,
 } from "./attempts";
@@ -377,11 +376,11 @@ export const takeUpInvitation = async (
   if (!loginEmail) {
     throw notAnInvitation();
   }
-  // Counted twice: against whoever is calling, so a script naming a new phone every time is stopped, and against the
-  // phone, so guesses at one Investor's code spread over many callers are stopped too.
+  // Counted against whoever is calling, so a script naming a new phone every time is stopped. Not against the phone: a
+  // stranger who knew an Investor's number could then keep them out of their own invitation, and a code of forty bits
+  // that lasts a week is not guessed by spreading tries over many callers (the server survey, 2026-10-07).
   const byCaller = `portal-join:${context.callerAddress ?? "unknown"}`;
-  const atPhone = `portal-code:${loginEmail}`;
-  const counted = [byCaller, atPhone];
+  const counted = [byCaller];
   if (counted.some((key) => lockedOut(key, now, CODE_ATTEMPTS))) {
     throw new ORPCError("TOO_MANY_REQUESTS", {
       message: "Too many wrong codes — wait fifteen minutes",
@@ -478,9 +477,7 @@ export const takeUpInvitation = async (
         .where(and(eq(user.id, userId), eq(user.email, signsInAs)));
     }
   );
-  // The phone's count is theirs and is forgotten. The caller's keeps its wrong guesses, since one caller may be a
-  // script's, but not this one, which was right.
-  forgetFailures(atPhone);
+  // The caller keeps its wrong guesses, since one caller may be a script's, but not this one, which was right.
   takeBackOne(byCaller, now);
   return { loginEmail };
 };

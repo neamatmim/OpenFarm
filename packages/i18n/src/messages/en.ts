@@ -936,6 +936,8 @@ export const en = {
   "auth.showPassword": "Show password",
   "auth.hidePassword": "Hide password",
   "auth.signUpRefused": "The account could not be opened",
+  "auth.accountSlowed":
+    "Too many wrong passwords for this account. Wait a minute and try again.",
   "auth.refused": "Could not sign you in",
   "auth.passwordTooShort":
     "Password must be at least {min, plural, one {# character} other {# characters}}",
@@ -2588,6 +2590,7 @@ export const en = {
   "audit.entity.treatment": "Treatment",
   "audit.entity.request_to_join": "Request to join",
   "audit.entity.pay_in_note": "Pay-in note",
+  "audit.entity.password_guess": "Wrong passwords",
   "audit.entity.receivable": "Receivable",
   "audit.entity.missing": "Missing animal",
   "audit.entity.farm_day": "Farm day",
@@ -3918,8 +3921,11 @@ export const en = {
   "alerts.dayNotTurning":
     "The farm's schedule has not run cleanly since {since}: work may not be raised and notices may not go. See Backups.",
   "digest.backupOverdue": "The farm is not being copied",
+  "digest.passwordGuessed": "Somebody guessed at {who}'s password",
   "alerts.backupOverdue":
     "No copy of the farm has succeeded since {since}. See Backups.",
+  "alerts.passwordGuessed":
+    "{guesses} wrong passwords for {who} since {since}, from more than one place. The account now takes one try a minute.",
   "refusal.workInNoPen":
     "This step records a pen's work, and this work is in no pen",
   "renewal.issuedOn": "The renewed certificate was issued on",
@@ -4702,6 +4708,9 @@ export const en = {
   "push.backupOverdueTitle": "The farm is not being copied",
   "push.backupOverdueBody":
     "No copy has succeeded in over a day and a half. Open Backups to see why.",
+  "push.passwordGuessedTitle": "Somebody is guessing a password",
+  "push.passwordGuessedBody":
+    "Many wrong passwords for {who}. The account is slowed to one try a minute.",
   "push.escalatedTitle": "Still not done",
   "push.sentBackTitle": "Sent back to you",
   "push.enable": "Tell me on this device",

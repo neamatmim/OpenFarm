@@ -14,6 +14,7 @@ import { tanstackStartCookies } from "better-auth/tanstack-start";
 
 import { isCommonPassword } from "./common-passwords";
 import { whoMayOpenTheFarm } from "./first-account";
+import { countTheGuess, loginOf, refuseWhileSlowed } from "./guesses";
 import type { Host, Hosts } from "./hosts";
 import { HOSTS, originOf, portalOrigin, signInPageOf } from "./hosts";
 import { PASSWORD_MIN_LENGTH, PASSWORD_TOO_COMMON } from "./password";
@@ -144,6 +145,9 @@ const whyShut = async (
   return host === "portal" ? { why: "auth.wrongAddress", home: "farm" } : null;
 };
 
+/** What Better Auth answers a wrong password with. */
+const WRONG_PASSWORD = 401;
+
 /**
  * The door: somebody whose Membership has ended does not sign in, and nor does an Investor while the portal is shut
  * or their access is taken away (ADR 0007).
@@ -163,6 +167,13 @@ const turnAwayWhoseDoorIsShut = (db: Database, where: AnsweringOn) =>
       return;
     }
     const made = ctx.context.newSession;
+    // Every wrong password counted against the account it names, from whatever address; the right one clears them.
+    const { returned } = ctx.context;
+    const wrongPassword =
+      returned instanceof APIError && returned.statusCode === WRONG_PASSWORD;
+    if (made || wrongPassword) {
+      await countTheGuess(db, loginOf(ctx.body), Boolean(made), new Date());
+    }
     if (!made) {
       return;
     }
@@ -236,6 +247,9 @@ const theDoor = (db: Database) => {
   return createAuthMiddleware(async (ctx) => {
     await signingUp(ctx);
     await choosing(ctx);
+    if (ctx.path === "/sign-in/email") {
+      await refuseWhileSlowed(db, loginOf(ctx.body), ctx.headers, new Date());
+    }
   });
 };
 
@@ -295,7 +309,9 @@ export const createAuth = (
   return betterAuth({
     // An account's name is the farm's to write — the Owner's for staff, the Investor's record for an Investor — and the
     // trail names everybody by it. Nothing here renames itself; the farm's own API sets the language.
-    disabledPaths: ["/update-user"],
+    // And a password is checked only where a person signs in or changes it, each under its own limit: Better Auth's
+    // verify-password answered over HTTP at a hundred a minute, a way to guess the password of a phone left signed in.
+    disabledPaths: ["/update-user", "/verify-password"],
     database: drizzleAdapter(db, {
       provider: "pg",
 

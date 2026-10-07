@@ -18,6 +18,26 @@ export const rateLimit = pgTable("rate_limit", {
   lastRequest: bigint("last_request", { mode: "number" }).notNull(),
 });
 
+/**
+ * A wrong password given for one account, whatever address it came from: the sign-in limit counts by address, and a
+ * guesser with many addresses is counted here instead. Five within the hour and the account takes one try a minute
+ * until the hour has passed (the Owner, 2026-10-07), and the Owner is told. Cleared when the right one is given; only
+ * the hour's are ever read.
+ */
+export const passwordGuess = pgTable(
+  "password_guess",
+  {
+    id: text("id").primaryKey(),
+    /** The address signed in with, as Better Auth reads it, lowercased: an account's or none at all, so a wrong one
+     *  for nobody is counted the same as one for somebody and says nothing about who exists. */
+    login: text("login").notNull(),
+    guessedAt: timestamp("guessed_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    index("password_guess_login_idx").on(table.login, table.guessedAt),
+  ]
+);
+
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
