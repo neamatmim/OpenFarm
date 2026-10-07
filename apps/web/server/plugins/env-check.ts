@@ -1,4 +1,5 @@
 import { settleFarmLocale } from "@OpenFarm/api/farm-locale";
+import { pushKeysProblem } from "@OpenFarm/api/push-web";
 import { env } from "@OpenFarm/env/server";
 import { definePlugin } from "nitro";
 
@@ -13,4 +14,9 @@ export default definePlugin(() => {
     throw new Error("DATABASE_URL is not set");
   }
   settleFarmLocale();
+  // A farm whose phones agree to be told, and are never told, is worse than one that says it cannot push.
+  const push = pushKeysProblem();
+  if (push) {
+    throw new Error(push);
+  }
 });

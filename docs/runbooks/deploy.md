@@ -41,7 +41,7 @@ is the part that is easy to believe was done and was not:
       is not a database that _has_ it.
 - [ ] The database is in the Singapore region, and so is the app host.
 - [ ] **The app signs in as its own login, `openfarm_app`**, not the database's owner — see
-      [The app's own login](#the-apps-own-login). `/etc/openfarm/app.env` names it;
+      [The app's own login](#the-apps-own-login), done after the first migration. `/etc/openfarm/app.env` names it;
       `/etc/openfarm/backup.env` and `PRODUCTION_DATABASE_URL` keep the owner's, which migrations and
       copies need.
 - [ ] **The database itself runs at UTC**: `ALTER DATABASE <name> SET timezone = 'UTC';` in the
@@ -95,9 +95,12 @@ Run once, in the provider's console as the owner, with a new password from the p
 CREATE ROLE openfarm_app LOGIN PASSWORD '…';
 ```
 
-Then give it what it may do, from the repository, still as the owner. The grants are kept in one
-file, `scripts/app-login-grants.sql`, which a restore into a new database runs too, so the two can
-never say different things:
+Then give it what it may do, from the repository, still as the owner — **after the first migration
+has run**: the grants name the farm's tables, and on an empty database they stop at the first one
+missing, leaving the login with no rights at all. On a first deploy, that means running
+`PRODUCTION_DATABASE_URL='postgresql://…' pnpm --filter @OpenFarm/db db:migrate:deploy` once before
+this. The grants are kept in one file, `scripts/app-login-grants.sql`, which a restore into a new
+database runs too, so the two can never say different things:
 
 ```sh
 psql "<the owner's database url>" -v ON_ERROR_STOP=1 -v app_role=openfarm_app \
@@ -105,7 +108,7 @@ psql "<the owner's database url>" -v ON_ERROR_STOP=1 -v app_role=openfarm_app \
 ```
 
 Then put `postgresql://openfarm_app:…@…` in `/etc/openfarm/app.env` as `DATABASE_URL`, restart,
-and check `/api/ready`. If a migration ever adds a table the app is refused, its grant was made by a
+and check `/api/ready`. A login with no rights is refused as the server starts, and says so. If a migration ever adds a table the app is refused, its grant was made by a
 login other than the owner's: run `scripts/app-login-grants.sql` again.
 
 ## Every deploy
@@ -115,67 +118,38 @@ built and the commit it was built from. The service runs whatever `/srv/openfarm
 points at. A new release is copied in beside the running one, and the switch is one rename, so
 the app is never served half-copied and the last release is still there to go back to.
 
-```sh
-pnpm install --frozen-lockfile
-pnpm release:check        # types, tests against PostgreSQL, then the production build
-
-# What the farm runs now, and whether anything since then renames or drops what it reads.
-live="$(ssh openfarm@HOST 'basename "$(readlink /srv/openfarm/current)"')"
-git diff --name-only "${live##*-}" HEAD -- packages/db/src/migrations \
-  | grep 'migration.sql$' \
-  | xargs grep -liE '\b(drop|rename)\b|alter column .* type|set not null|add constraint .* (check|unique)'
-```
-
-On the very first deploy there is no `current` yet: skip the check and take the first path.
-
-**If that prints nothing**, every migration since is additive: the running app keeps working on
-the new schema for the minute between the two, and there is no need to stop it.
+Every deploy is one script, `deploy/deploy.sh`, run from the machine that builds it. It stops at
+the first step that fails, and everything before the switch leaves the running release as it was: a
+migration the database refuses leaves the farm on the release it was on, answering, rather than
+switched to one that will not start.
 
 ```sh
-release="$(date -u +%Y%m%dT%H%MZ)-$(git rev-parse --short=8 HEAD)"
-
-# Copied in beside the running release, which it does not touch.
-rsync -a apps/web/.output/ "openfarm@HOST:/srv/openfarm/releases/$release/"
-
-# Migrations before the new app starts, never after: it expects the schema it was built for. The farm's
-# database is named here, from the password manager; the script refuses this machine's own.
-PRODUCTION_DATABASE_URL='postgresql://…' pnpm --filter @OpenFarm/db db:migrate:deploy
-
-# The switch: one rename, then a restart.
-ssh openfarm@HOST "ln -sfn releases/$release /srv/openfarm/current.next \
-  && mv -T /srv/openfarm/current.next /srv/openfarm/current \
-  && sudo systemctl restart openfarm"
-
-# Readiness asks the database whether it has applied the newest migration this build expects, so it
-# fails on a database that is unreachable and on one a migration was forgotten for.
-curl --fail --silent --show-error --max-time 10 https://farm.example.com/api/ready
-
-# Keep the last five releases.
-ssh openfarm@HOST 'cd /srv/openfarm/releases && ls -1 | head -n -5 | xargs -r rm -rf --'
+OPENFARM_HOST=openfarm@farm.example.com OPENFARM_URL=https://farm.example.com \
+  PRODUCTION_DATABASE_URL='postgresql://…' deploy/deploy.sh
 ```
 
-**If it prints a migration**, it may rename or drop something the running app still reads, or
-change a column's type or what a column will take, and then the app fails the moment it is
-applied. The check errs towards stopping: it also names a
-migration that only drops a `NOT NULL` or an index, which the old app would have lived with — but
-an index can be the unique one its inserts count on, and a minute stopped costs less than
-finding out which. Tell the Manager first: for a minute or two nobody
-can save, and the phones keep what they record in their outbox and send it when the farm is
-back. Then the same steps, with the app stopped across the migration:
+It builds and checks (`pnpm release:check`), copies the release in beside the running one,
+migrates before the new app starts, switches with one rename, restarts, asks `/api/ready` until it
+answers, and keeps the last five releases. The farm's database is named from the password manager;
+the migration script refuses this machine's own.
 
-```sh
-rsync -a apps/web/.output/ "openfarm@HOST:/srv/openfarm/releases/$release/"
-ssh openfarm@HOST 'sudo systemctl stop openfarm'
-PRODUCTION_DATABASE_URL='postgresql://…' pnpm --filter @OpenFarm/db db:migrate:deploy
-ssh openfarm@HOST "ln -sfn releases/$release /srv/openfarm/current.next \
-  && mv -T /srv/openfarm/current.next /srv/openfarm/current \
-  && sudo systemctl start openfarm"
-curl --fail --silent --show-error --max-time 10 https://farm.example.com/api/ready
-```
+Before it copies anything it looks at the migrations since the running release. **If none of them
+may break the running app**, it goes straight on: the old app keeps working on the new schema for the
+minute between the two. **If one may** — it renames or drops something, changes what a column takes,
+or adds a trigger, a unique index or a foreign key that can refuse the old app's writes — it names
+them and stops. The check errs towards stopping: a minute stopped costs less than finding out which.
+Tell the Manager first: for a minute or two nobody can save, and the phones keep what they record in
+their outbox and send it when the farm is back. Then run it again with `STOPPED=yes`, which stops the
+app across the migration and starts the new one after it — or, if the migration fails, the old one
+again. On the very first deploy there is no running release, and it takes the first path.
 
-Started against a database a migration was forgotten for, the new app refuses: it prints which
-migration is missing and exits 1, so `systemctl status openfarm` shows it failed rather than running.
-Migrate and restart. A database it cannot reach does not stop it; readiness reports that one.
+Started against a database a migration was forgotten for, or with a login that may not read it, the
+new app refuses: it says which and exits 1. systemd tries again five times in five minutes and then
+gives up, so `systemctl status openfarm` shows it failed; until then it reads "activating
+(auto-restart)". Migrate, or run the grants, then `sudo systemctl reset-failed openfarm && sudo
+systemctl start openfarm`. A database it cannot reach does not stop it; readiness reports that one.
+A stop or a restart lets a turn of the farm's day already running finish, and takes two or three
+seconds.
 
 ### Going back to the last release
 

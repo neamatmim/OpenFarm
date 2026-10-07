@@ -2,9 +2,14 @@
  * Wrong guesses, counted in memory: a PIN, an enrolment code, an invitation code. Four digits are ten thousand
  * guesses, and a script makes them in a minute; five wrong in a quarter of an hour is a person having a bad morning,
  * and more is not. Kept per server process — a restart forgets, which is the right side to err on for a farm with
- * one server — and never written to the database, because a count of mistakes is not a farm record.
+ * one server — and never written to the database, because a count of mistakes is not a farm record. Kept on the
+ * process rather than in this module, as the database's pools are: the production build bundles this module twice, and
+ * guesses counted in one copy were not seen by the other.
  */
-const failures = new Map<string, number[]>();
+const FAILURES = Symbol.for("openfarm.wrong-guesses");
+const onTheProcess = globalThis as { [FAILURES]?: Map<string, number[]> };
+onTheProcess[FAILURES] ??= new Map();
+const failures = onTheProcess[FAILURES];
 
 export interface AttemptRule {
   limit: number;

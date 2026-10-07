@@ -2,6 +2,10 @@
 Description=OpenFarm web application
 After=network-online.target
 Wants=network-online.target
+# A server that will not start — a database behind it, a login with no rights, a setting it refuses — is given up on
+# after five tries in five minutes, and shows as failed, rather than restarting every five seconds for ever.
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
