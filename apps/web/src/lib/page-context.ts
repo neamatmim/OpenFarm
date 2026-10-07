@@ -17,8 +17,8 @@ import { getRequest } from "@tanstack/react-start/server";
 
 /**
  * What the server entry tells the app about the answer it is writing, in the request's own context — never read from
- * anything the caller sent: which of the farm's two addresses the page is on, and on the Investor address the nonce
- * its policy lets inline scripts run by (ADR 0009).
+ * anything the caller sent: which of the farm's two addresses the page is on, and the nonce its policy lets inline
+ * scripts run by (ADR 0009).
  */
 export interface PageContext {
   host?: Host;

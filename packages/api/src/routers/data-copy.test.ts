@@ -1,4 +1,10 @@
-import { FakeClock, thePerson } from "@OpenFarm/test-harness";
+import { payInNote } from "@OpenFarm/db/schema/venture-account";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { TRAILED } from "../data-copy";
@@ -127,6 +133,21 @@ const withAHistory = async () => {
     reference: `TRF-${suffix}`,
   });
   await owner.investors.consentSheet({ id: them.id });
+  // What they told the farm they paid, from the portal: as theirs as anything they signed.
+  await scratchDb()
+    .insert(payInNote)
+    .values({
+      id: `note-${suffix}`,
+      farmId: theFarm().id,
+      ventureId: venture.id,
+      agreementId: agreement.id,
+      investorId: them.id,
+      amountMoney: 50_000,
+      sentOn: "2061-01-20",
+      way: "mobile_money",
+      reference: `TrxID ${suffix}`,
+      createdAt: new Date("2061-01-20T06:00:00.000Z"),
+    });
   return { id: them.id, ventureName: `তথ্যের ভেঞ্চার ${suffix}` };
 };
 
@@ -218,6 +239,15 @@ describe("«খামারে আপনার তথ্য»", () => {
     expect(changes).not.toMatch(ISO_MOMENT);
     // The Agreement's photo kept, said so.
     expect(part("আপনার চুক্তি")).toContain("ছবি");
+  });
+
+  it("holds the Pay-in Notes they sent from the portal, with the reference they gave", async () => {
+    const owner = await as("owner");
+    const { document } = await owner.investors.dataCopy({ id: history.id });
+    const notes = JSON.stringify(
+      document.sections.find((one) => one.heading.bn === "আপনার জমার খবর")
+    );
+    expect(notes).toContain(`TrxID ${suffix}`);
   });
 
   it("is an Export on the Investor, by the Owner", async () => {

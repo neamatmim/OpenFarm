@@ -35,15 +35,18 @@ The repository pins Node.js 24 and pnpm 12.3.4. Vercel reads both from the root
 Add these under **Project → Settings → Environment Variables** before the first
 build. Mark secrets as Sensitive.
 
-| Name                 | Required | Value                                                   |
-| -------------------- | -------- | ------------------------------------------------------- |
-| `DATABASE_URL`       | Yes      | Pooled TLS PostgreSQL URL in Singapore                  |
-| `BETTER_AUTH_SECRET` | Yes      | Unique random value, at least 32 characters             |
-| `BETTER_AUTH_URL`    | Yes      | Canonical production origin, such as `https://farm.tld` |
-| `CRON_SECRET`        | Yes      | A second unique random value, at least 32 characters    |
-| `NODE_ENV`           | Yes      | `production`                                            |
-| `VAPID_*`            | No       | Web Push credentials from `.env.example`                |
-| `SMS_GATEWAY_*`      | No       | SMS provider credentials from `.env.example`            |
+| Name                   | Required | Value                                                     |
+| ---------------------- | -------- | --------------------------------------------------------- |
+| `DATABASE_URL`         | Yes      | Pooled TLS PostgreSQL URL in Singapore                    |
+| `BETTER_AUTH_SECRET`   | Yes      | Unique random value, at least 32 characters               |
+| `BETTER_AUTH_URL`      | Yes      | Canonical production origin, such as `https://farm.tld`   |
+| `CRON_SECRET`          | Yes      | A second unique random value, at least 32 characters      |
+| `OPENFARM_OWNER_EMAIL` | Yes      | The Owner's own address; unset, production lets nobody in |
+| `PORTAL_URL`           | No       | The Investor address, once it has a domain of its own     |
+| `OPENFARM_WATCH_URL`   | No       | The outside watch's check-in address                      |
+| `NODE_ENV`             | Yes      | `production`                                              |
+| `VAPID_*`              | No       | Web Push credentials from `.env.example`                  |
+| `SMS_GATEWAY_*`        | No       | SMS provider credentials from `.env.example`              |
 
 Generate the two secrets separately:
 
