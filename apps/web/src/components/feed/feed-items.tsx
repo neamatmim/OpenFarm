@@ -38,6 +38,7 @@ import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
+import { feedItemNames } from "./feed-types";
 import type { FeedItemRow } from "./feed-types";
 
 interface ItemRow extends FeedItemRow {
@@ -49,9 +50,26 @@ interface ItemRow extends FeedItemRow {
   bringingBack: boolean;
 }
 
-const NameCell = ({ row }: { row: { original: ItemRow } }) => (
-  <span className={nameTone(row.original)}>{row.original.nameBn}</span>
-);
+/** The other language's name, under the one the reader reads, where the farm gave both. */
+const OtherName = ({ item }: { item: FeedItemRow }) => {
+  const { language } = useLanguage();
+  const { other } = feedItemNames(item, language);
+  return other ? (
+    <span className="text-muted-foreground text-xs">{other}</span>
+  ) : null;
+};
+
+const NameCell = ({ row }: { row: { original: ItemRow } }) => {
+  const { language } = useLanguage();
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className={nameTone(row.original)}>
+        {feedItemNames(row.original, language).shown}
+      </span>
+      <OtherName item={row.original} />
+    </div>
+  );
+};
 
 /** In use or retired, as a word with its colour. */
 const ItemStanding = ({ retired }: { retired: boolean }) => {
@@ -85,9 +103,10 @@ const UnitCell = ({ row }: { row: { original: ItemRow } }) => (
 /** The menu at the end of a Feed Item's row: its names, what its bags weigh for feed weighed in kilos, and retiring
  *  it — rather than removing it, because a Ration that fed it still names it. A retired one may be brought back. */
 const ItemMenu = ({ row }: { row: ItemRow }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { handleRetire, handleBringBack, handleRename, handleSetBagSize } = row;
-  const label = t("feed.itemActions", { name: row.nameBn });
+  const { shown } = feedItemNames(row, language);
+  const label = t("feed.itemActions", { name: shown });
   if (row.retiredAt) {
     return (
       <RowMenu
@@ -123,7 +142,7 @@ const ItemMenu = ({ row }: { row: ItemRow }) => {
         {
           label: t("feed.retire"),
           icon: Archive,
-          handleSelect: () => handleRetire(row.id, row.nameBn),
+          handleSelect: () => handleRetire(row.id, shown),
           destructive: true,
           disabled: row.retiring,
         },
@@ -159,17 +178,21 @@ const itemColumns = column.columns([
   }),
 ]);
 
-const ItemCard = ({ row }: { row: ItemRow }) => (
-  <div className="flex items-center justify-between gap-3">
-    <div className="flex min-w-0 flex-col gap-1">
-      <span className={nameTone(row)}>
-        {row.nameBn} · <UnitOf item={row} />
-      </span>
-      <ItemStanding retired={row.retiredAt !== null} />
+const ItemCard = ({ row }: { row: ItemRow }) => {
+  const { language } = useLanguage();
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-1">
+        <span className={nameTone(row)}>
+          {feedItemNames(row, language).shown} · <UnitOf item={row} />
+        </span>
+        <OtherName item={row} />
+        <ItemStanding retired={row.retiredAt !== null} />
+      </div>
+      <ItemMenu row={row} />
     </div>
-    <ItemMenu row={row} />
-  </div>
-);
+  );
+};
 
 const itemCard = (row: ItemRow) => <ItemCard row={row} />;
 
