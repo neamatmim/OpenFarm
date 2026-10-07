@@ -646,6 +646,8 @@ export const enCore = {
   "refusal.ownerWritesTheirOwn": "The owner writes down their own number",
   "refusal.prescriptionRaisesIt":
     "A prescription raises this work, one dose at a time",
+  "refusal.itsRecordRaisesIt":
+    "Its own record raises this work — a diagnosis, or the farm's registration: it is not raised by hand",
   "refusal.readyNeedsConfirming":
     "Ready for sale is confirmed against her withdrawal record, from the ready-for-sale list",
   "refusal.servedInTheFuture": "A service cannot be later than now",

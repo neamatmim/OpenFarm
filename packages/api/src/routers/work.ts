@@ -215,9 +215,18 @@ export const workRouter = {
       // A dose of a Prescription is raised by the Prescription, and raising one by hand would
       // be a dose belonging to no course.
       if (!mayRaiseByHand(content)) {
+        const prescribed = content.triggers.some(
+          (trigger) => trigger.kind === "prescription"
+        );
         throw new ORPCError("BAD_REQUEST", {
-          message: "A prescription raises this work, one dose at a time",
-          data: { refusal: "prescription_raises_it" },
+          message: prescribed
+            ? "A prescription raises this work, one dose at a time"
+            : "Its own record raises this work: a diagnosis, or the registration",
+          data: {
+            refusal: prescribed
+              ? "prescription_raises_it"
+              : "its_record_raises_it",
+          },
         });
       }
       let raised = 0;
@@ -239,7 +248,8 @@ export const workRouter = {
               {
                 definitionId: definition.id,
                 versionId: definition.currentVersion?.id ?? "",
-                penId: input.penId,
+                // Work about the whole farm is in no Pen, raised by hand as by the clock.
+                penId: content.wholeFarm === true ? null : input.penId,
                 dueAt: now,
                 // Named for who asked and when, so asking twice by accident raises one piece
                 // of work rather than two.

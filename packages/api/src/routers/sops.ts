@@ -1,5 +1,14 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, gte, isNull, like, or, sql } from "@OpenFarm/db/operators";
+import {
+  and,
+  eq,
+  gte,
+  isNull,
+  like,
+  not,
+  or,
+  sql,
+} from "@OpenFarm/db/operators";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import {
@@ -96,13 +105,13 @@ const RAISED_BY_AN_ACT = [
     kind: "prescription" as const,
     refusal: "treatment_sop_exists",
     message:
-      "The farm already has a procedure a prescription raises; retire that one first",
+      "The farm already has a procedure a prescription raises; retire that one first — the doses it owes still finish on it",
   },
   {
     kind: "notifiable_disease" as const,
     refusal: "report_sop_exists",
     message:
-      "The farm already has a procedure a notifiable diagnosis raises; retire that one first",
+      "The farm already has a procedure a notifiable diagnosis raises; retire that one first — the reports it owes still finish on it",
   },
 ];
 
@@ -868,10 +877,23 @@ export const sopsRouter = {
                 isNull(sopDefinition.retiredAt)
               )
             );
+          // Not what an act raised and still owes: a dose of a course the Vet prescribed, a report the livestock office
+          // is owed. Those finish on the Version they were raised under — only the Vet stops a course (the Owner,
+          // 2026-10-07). Retiring the treatment procedure called off every dose still to come on the farm, and nothing
+          // raised them again.
           const called = await callOffWork(
             tx,
             farmId,
-            eq(sopInstance.definitionId, existing.id),
+            and(
+              eq(sopInstance.definitionId, existing.id),
+              or(
+                isNull(sopInstance.cause),
+                and(
+                  not(like(sopInstance.cause, "prescription:%")),
+                  not(like(sopInstance.cause, "notifiable:%"))
+                )
+              )
+            ) as SQL,
             {
               trail: audited(context).recordEvent,
               by: "sop_retired",

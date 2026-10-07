@@ -286,3 +286,47 @@ describe("the treatment register", () => {
     expect(hers.join("\n")).toContain("stopped");
   });
 });
+
+describe("a course whose treatment procedure is retired", () => {
+  it("is still owed: the doses still to come stand on the Version they were raised under", async () => {
+    const clock = new FakeClock("2026-11-25T03:00:00.000Z");
+    const { owner, course } = await onACourse(clock, 3);
+    const standing = await scratchDb().query.sopDefinition.findMany({
+      where: { farmId: theFarm().id, retiredAt: { isNull: true } },
+      with: { currentVersion: { columns: { content: true } } },
+    });
+    const ofCourses = standing.find((one) =>
+      (
+        one.currentVersion?.content as { triggers?: { kind: string }[] }
+      )?.triggers?.some((trigger) => trigger.kind === "prescription")
+    );
+    expect(ofCourses).toBeDefined();
+    await owner.client.sops.retire({
+      definitionId: ofCourses?.id ?? "",
+      note: "নতুন চিকিৎসা পদ্ধতি আসছে",
+    });
+    try {
+      const doses = await scratchDb().query.treatment.findMany({
+        where: { prescriptionId: course.id },
+        columns: { instanceId: true },
+      });
+      const work = await scratchDb().query.sopInstance.findMany({
+        where: {
+          id: {
+            in: doses.flatMap((one) =>
+              one.instanceId ? [one.instanceId] : []
+            ),
+          },
+        },
+        columns: { state: true },
+      });
+      expect(work.length).toBeGreaterThan(0);
+      expect(work.some((one) => one.state === "called_off")).toBe(false);
+    } finally {
+      await owner.client.sops.restore({
+        definitionId: ofCourses?.id ?? "",
+        note: "ফিরিয়ে আনা",
+      });
+    }
+  });
+});

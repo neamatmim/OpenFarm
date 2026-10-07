@@ -805,15 +805,23 @@ export const raisesItsOwnWork = (
   { kind: "prescription" | "notifiable_disease" }
 > => trigger.kind === "prescription" || trigger.kind === "notifiable_disease";
 
+/** The triggers whose work stands on a record of its own, and is raised by it alone. */
+const RAISED_BY_ITS_RECORD: ReadonlySet<string> = new Set([
+  "prescription",
+  "notifiable_disease",
+  "registration_renewal",
+]);
+
 /**
- * May somebody raise this procedure's work by hand, now? Not one a Prescription raises: its work is one dose of one
- * course, and a dose raised by hand would belong to no course. The farm refuses by it, and the Playbook and Today
- * offer "raise it now" by it, so neither offers what the other refuses.
+ * May somebody raise this procedure's work by hand, now? Not one a record raises: a dose belongs to one course, a report
+ * to one Diagnosis, a renewal to the farm's Registration — raised by hand, each stood on nothing, and its only Step was
+ * refused. The farm refuses by it, and the Playbook and Today offer "raise it now" by it, so neither offers what the
+ * other refuses.
  */
 export const mayRaiseByHand = (
   content: Pick<SopContent, "triggers">
 ): boolean =>
-  !content.triggers.some((trigger) => trigger.kind === "prescription");
+  !content.triggers.some((trigger) => RAISED_BY_ITS_RECORD.has(trigger.kind));
 
 /**
  * The Triggers and the Step Effects that only make sense together, and what to say when one is

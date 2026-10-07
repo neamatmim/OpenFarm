@@ -1,5 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -51,7 +51,6 @@ beforeAll(async () => {
 afterAll(async () => {
   const { eq } = await import("@OpenFarm/db/operators");
   const { sopDefinition } = await import("@OpenFarm/db/schema/sop");
-  const { scratchDb } = await import("@OpenFarm/test-harness");
   await scratchDb()
     .update(sopDefinition)
     .set({ retiredAt: new Date() })
@@ -166,6 +165,44 @@ describe("the letter that goes without delay", () => {
     await expect(
       manager.client.notifiableDiseases.letter({ diagnosisId: made.id })
     ).rejects.toThrow();
+  });
+
+  it("is not raised by hand, and stays owed when its procedure is retired", async () => {
+    const clock = new FakeClock("2027-01-06T08:00:00.000Z");
+    const cow = await aCow(clock);
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    const vet = await createTestClient(appRouter, { as: "vet", clock });
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+    await expect(
+      manager.client.work.raiseNow({
+        definitionId: world.sop.definitionId,
+        penId: world.pen.id,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "its_record_raises_it" } });
+    await manager.client.notifiableDiseases.create({
+      name: { bn: "বাদলা", en: "Black quarter" },
+      note: "ইউএলও নিশ্চিত করেছেন",
+    });
+    const made = await vet.client.diagnoses.record({
+      animalTag: cow.tagNumber,
+      disease: { bn: "বাদলা", en: "Black quarter" },
+    });
+    await owner.client.sops.retire({
+      definitionId: world.sop.definitionId,
+      note: "নতুন চিঠির পদ্ধতি",
+    });
+    try {
+      const work = await scratchDb().query.sopInstance.findFirst({
+        where: { id: made.reportInstanceId ?? "" },
+        columns: { state: true },
+      });
+      expect(work?.state).toBe("due");
+    } finally {
+      await owner.client.sops.restore({
+        definitionId: world.sop.definitionId,
+        note: "ফিরিয়ে আনা",
+      });
+    }
   });
 
   it("writes the letter from what the farm already knows", async () => {
@@ -401,7 +438,6 @@ describe("the letter that goes without delay", () => {
     // The file's own procedure, retired for the length of this test.
     const { eq } = await import("@OpenFarm/db/operators");
     const { sopDefinition } = await import("@OpenFarm/db/schema/sop");
-    const { scratchDb } = await import("@OpenFarm/test-harness");
     await scratchDb()
       .update(sopDefinition)
       .set({ retiredAt: clock.now() })
