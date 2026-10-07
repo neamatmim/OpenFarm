@@ -88,6 +88,13 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") the latest missed sum fell due. */
     dueOn: string;
   };
+  /** What became of a change somebody proposed to a procedure, and the Owner's reason: told to whoever proposed it. */
+  proposal_answered: {
+    sopBn: string;
+    sopEn: string;
+    approved: boolean;
+    note: string;
+  };
   /** A death or a disease somebody was told of, written by mistake and taken back: told to those it reached. */
   taken_back: {
     was: "death" | "diagnosis";

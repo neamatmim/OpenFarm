@@ -27,6 +27,7 @@ import { ORPCError } from "@orpc/server";
 import type { SQL } from "drizzle-orm";
 import { z } from "zod";
 
+import { raiseAlerts } from "../alerts-store";
 import type { Trail, Tx } from "../audit";
 import { audited } from "../audit";
 import { protectedProcedure } from "../index";
@@ -237,6 +238,74 @@ const tellItsDoers = async (
   );
 };
 
+/**
+ * Tells whoever proposed a change what became of it, with the Owner's reason: the Manager's suggestion vanished from the
+ * list either way, and the reason a rejection had to give reached only the trail. Nobody is told of their own decision.
+ */
+const tellTheProposer = async (
+  tx: Tx,
+  context: { farm: { id: string }; actor: { id: string } },
+  answered: {
+    id: string;
+    proposedBy: string | null;
+    content: SopContent;
+    approved: boolean;
+    note: string | null;
+    now: Date;
+  }
+) => {
+  if (!answered.proposedBy || answered.proposedBy === context.actor.id) {
+    return;
+  }
+  await raiseAlerts(
+    tx,
+    context.farm.id,
+    [answered.proposedBy],
+    {
+      kind: "proposal_answered",
+      entity: "sop_proposal",
+      entityId: answered.id,
+      params: {
+        sopBn: answered.content.name.bn,
+        sopEn: answered.content.name.en ?? answered.content.name.bn,
+        approved: answered.approved,
+        note: answered.note ?? "",
+      },
+    },
+    answered.now
+  );
+};
+
+/**
+ * Refuses a publish begun from a Version the procedure has moved on from: an edit started from a copy cached days ago,
+ * or a Manager's proposal drafted against Version 1 approved after the Owner published Version 2, published whole and
+ * quietly undid what came between. Drafted again from the Version in force, nothing is lost unseen.
+ */
+const assertNotMovedOn = async (
+  tx: Tx,
+  farmId: string,
+  definitionId: string,
+  basedOn: {
+    versionId: string | null;
+    refusal: "changed_since_you_began" | "proposal_out_of_date";
+  }
+) => {
+  const definition = await tx.query.sopDefinition.findFirst({
+    where: { id: definitionId, farmId },
+    with: { currentVersion: { columns: { id: true, number: true } } },
+  });
+  const inForce = definition?.currentVersion ?? null;
+  if (inForce && inForce.id !== basedOn.versionId) {
+    throw new ORPCError("CONFLICT", {
+      message:
+        basedOn.refusal === "proposal_out_of_date"
+          ? "The procedure has had a newer Version since this proposal was drafted"
+          : "The procedure has had a newer Version since you began this change",
+      data: { refusal: basedOn.refusal, version: inForce.number },
+    });
+  }
+};
+
 /** Publishing is the only way an SOP's content changes: a new immutable Version, and the
  *  Definition pointed at it. Nothing ever rewrites a published Version (ADR 0001). */
 const publishVersion = async (
@@ -250,6 +319,7 @@ const publishVersion = async (
     roleUsed,
     now,
     trail,
+    basedOn,
   }: {
     farmId: string;
     definitionId: string;
@@ -260,6 +330,11 @@ const publishVersion = async (
     now: Date;
     /** Where calling off the old Version's work still to come is written. */
     trail: Trail;
+    /** The Version the edit or the proposal was begun from, where it says: refused once a newer one is in force. */
+    basedOn?: {
+      versionId: string | null;
+      refusal: "changed_since_you_began" | "proposal_out_of_date";
+    };
   }
 ): Promise<{ id: string; number: number }> => {
   // One publish at a time for one procedure: two at once — the Owner's phone and her desk, Approve beside Publish —
@@ -268,6 +343,9 @@ const publishVersion = async (
     sql`select 1 from ${sopDefinition} where ${sopDefinition.id} = ${definitionId} for update`
   );
   await requireInForce(tx, farmId, definitionId);
+  if (basedOn) {
+    await assertNotMovedOn(tx, farmId, definitionId, basedOn);
+  }
   const blockers = findPublishBlockers(content);
   if (blockers.length > 0) {
     throw new ORPCError("BAD_REQUEST", {
@@ -444,7 +522,13 @@ export const sopsRouter = {
     .use(requireRole("owner"))
     .use(requirePersonalSession())
     .input(
-      z.object({ definitionId: z.string(), content: sopContentSchema, note })
+      z.object({
+        definitionId: z.string(),
+        content: sopContentSchema,
+        note,
+        /** The Version the Owner's edit began from: refused once a newer one is in force. */
+        basedOnVersionId: z.string().nullable().optional(),
+      })
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
@@ -480,6 +564,14 @@ export const sopsRouter = {
             actorId: context.actor.id,
             roleUsed: context.roleUsed,
             now,
+            ...(input.basedOnVersionId === undefined
+              ? {}
+              : {
+                  basedOn: {
+                    versionId: input.basedOnVersionId,
+                    refusal: "changed_since_you_began" as const,
+                  },
+                }),
           });
         }
       );
@@ -668,6 +760,7 @@ export const sopsRouter = {
               },
             },
             proposer: { columns: { name: true } },
+            basedOn: { columns: { number: true } },
           },
           orderBy: { createdAt: "asc" },
         })
@@ -678,7 +771,13 @@ export const sopsRouter = {
       .use(requireRole("owner", "manager"))
       .use(requirePersonalSession())
       .input(
-        z.object({ definitionId: z.string(), content: sopContentSchema, note })
+        z.object({
+          definitionId: z.string(),
+          content: sopContentSchema,
+          note,
+          /** The Version the Manager's draft began from: refused once a newer one is in force. */
+          basedOnVersionId: z.string().nullable().optional(),
+        })
       )
       .handler(async ({ context, input }) => {
         const now = context.clock.now();
@@ -693,6 +792,12 @@ export const sopsRouter = {
           },
           async (tx) => {
             await requireInForce(tx, context.farm.id, input.definitionId);
+            if (input.basedOnVersionId !== undefined) {
+              await assertNotMovedOn(tx, context.farm.id, input.definitionId, {
+                versionId: input.basedOnVersionId,
+                refusal: "changed_since_you_began",
+              });
+            }
             const definition = await tx.query.sopDefinition.findFirst({
               where: { id: input.definitionId, farmId: context.farm.id },
               columns: { id: true, currentVersionId: true },
@@ -769,6 +874,8 @@ export const sopsRouter = {
               .returning({
                 definitionId: sopProposal.definitionId,
                 content: sopProposal.content,
+                basedOnVersionId: sopProposal.basedOnVersionId,
+                proposedBy: sopProposal.proposedBy,
               });
             if (!proposal) {
               throw new ORPCError("NOT_FOUND");
@@ -781,6 +888,18 @@ export const sopsRouter = {
               note: input.note,
               actorId: context.actor.id,
               roleUsed: context.roleUsed,
+              now,
+              basedOn: {
+                versionId: proposal.basedOnVersionId,
+                refusal: "proposal_out_of_date",
+              },
+            });
+            await tellTheProposer(tx, context, {
+              id: input.id,
+              proposedBy: proposal.proposedBy,
+              content: proposal.content as SopContent,
+              approved: true,
+              note: input.note ?? null,
               now,
             });
           }
@@ -825,10 +944,22 @@ export const sopsRouter = {
                   eq(sopProposal.status, "pending")
                 )
               )
-              .returning({ id: sopProposal.id });
+              .returning({
+                id: sopProposal.id,
+                proposedBy: sopProposal.proposedBy,
+                content: sopProposal.content,
+              });
             if (!row) {
               throw new ORPCError("NOT_FOUND");
             }
+            await tellTheProposer(tx, context, {
+              id: input.id,
+              proposedBy: row.proposedBy,
+              content: row.content as SopContent,
+              approved: false,
+              note: input.note,
+              now,
+            });
           }
         );
         return { id: input.id, status: "rejected" } as const;

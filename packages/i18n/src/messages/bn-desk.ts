@@ -1647,6 +1647,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "digest.workMissed": "খামার বন্ধ থাকার সময় {count}টি কাজ দেরি হয়েছে",
   "push.takenBackTitle": "ফিরিয়ে নেওয়া হয়েছে",
   "digest.takenBack": "{count}টি ভুল ফিরিয়ে নেওয়া হয়েছে",
+  "digest.proposalAnswered": "{count}টি প্রস্তাবের উত্তর এসেছে",
   "push.workMissedTitle": "খামার বন্ধ থাকার সময় কাজ দেরি হয়েছে",
   "push.workMissedBody": "{count}টি কাজ — দেরির তালিকা দেখুন",
   "digest.monthlyCopyFailed": "মাসিক কপি সফল হয়নি",

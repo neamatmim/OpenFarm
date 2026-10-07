@@ -132,6 +132,8 @@ export const DELIVERY = {
   // Told the moment a death or a disease that went to a pocket is taken back, but never across the quiet hours: a
   // mistake undone can wait for the morning, as the buzz it undoes could not.
   taken_back: { when: "immediate" },
+  // Worth reading, never worth a buzz: what became of a suggestion is the evening's post.
+  proposal_answered: { when: "digest" },
   // A death nobody had diagnosed is the Vet's to look at, the same day: at once, held through the quiet hours.
   mortality_undiagnosed: { when: "immediate" },
   // A Monthly Sum missed is the evening's for the Owner, who rings the man: the farm reminds him, the app never does.
@@ -353,6 +355,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
       body: "alerts.mortalityUndiagnosed",
     },
     digest: "digest.mortalityUndiagnosed",
+  },
+  proposal_answered: {
+    app: "alerts.proposalAnswered",
+    digest: "digest.proposalAnswered",
   },
   taken_back: {
     app: "alerts.takenBack",

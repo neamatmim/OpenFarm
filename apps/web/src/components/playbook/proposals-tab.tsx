@@ -1,4 +1,5 @@
-import type { SopContent } from "@OpenFarm/domain";
+import type { SopChange, SopContent } from "@OpenFarm/domain";
+import { describeChanges } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
@@ -21,8 +22,9 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { SaidDate } from "@/components/list-cells";
-import { EmptyState, StatusBadge } from "@/components/page";
+import { EmptyState, Notice, StatusBadge } from "@/components/page";
 import { RowMenu } from "@/components/page-kit";
+import { ChangeLines } from "@/components/work/work-notices";
 import { useLanguage } from "@/i18n/language-provider";
 
 import type { Proposal } from "./playbook-types";
@@ -46,6 +48,13 @@ interface ProposalRow {
   proposedAt: Date;
   /** The Version in force now, the one the change would replace. */
   inForce: number | null;
+  /** The Version it was drafted against. */
+  draftedOn: number | null;
+  /** A newer Version is in force than the one it was drafted against: approving it would undo what came between, so
+   *  the farm refuses it, and the Manager drafts it again. */
+  outOfDate: boolean;
+  /** What it changes in the Version in force, a line each. */
+  changes: SopChange[];
   /** The procedure it would change, whose card shows what it says now; none for a procedure not yet written. */
   definitionId: string | null;
   content: SopContent;
@@ -54,6 +63,9 @@ interface ProposalRow {
 
 const toRow = (proposal: Proposal, actions: ProposalActions): ProposalRow => {
   const content = proposal.content as SopContent;
+  const inForce = proposal.definition?.currentVersion?.content as
+    | SopContent
+    | undefined;
   return {
     id: proposal.id,
     name: content.name.bn,
@@ -61,34 +73,56 @@ const toRow = (proposal: Proposal, actions: ProposalActions): ProposalRow => {
     note: proposal.note,
     proposedAt: new Date(proposal.createdAt),
     inForce: proposal.definition?.currentVersion?.number ?? null,
+    draftedOn: proposal.basedOn?.number ?? null,
+    outOfDate:
+      proposal.basedOnVersionId !==
+      (proposal.definition?.currentVersionId ?? null),
+    changes: inForce ? describeChanges(inForce, content) : [],
     definitionId: proposal.definition?.id ?? null,
     content,
     actions,
   };
 };
 
-/** Approving is the one act on the row, and the Owner's alone; a Manager sees the change is with the Owner. */
+/** Where a change waiting stands: drafted against an older Version, the Owner's to approve, or with the Owner. */
+const Standing = ({ row }: { row: ProposalRow }) => {
+  const { t } = useLanguage();
+  const { isOwner, deciding, handleApprove } = row.actions;
+  if (row.outOfDate) {
+    return (
+      <StatusBadge tone="warning">
+        {t("sop.outOfDate", { number: row.draftedOn ?? 0 })}
+      </StatusBadge>
+    );
+  }
+  if (!isOwner) {
+    return (
+      <StatusBadge icon={Hourglass} tone="info">
+        {t("sop.withTheOwner")}
+      </StatusBadge>
+    );
+  }
+  return (
+    <Button
+      disabled={deciding}
+      onClick={() => handleApprove(row.id)}
+      size="sm"
+      type="button"
+    >
+      <Check aria-hidden data-icon="inline-start" />
+      {t("sop.approve")}
+    </Button>
+  );
+};
+
+/** Approving is the one act on the row, and the Owner's alone; a Manager sees the change is with the Owner. One drafted
+ *  against an older Version says so instead, and waits to be turned down or drafted again. */
 const Decide = ({ row }: { row: ProposalRow }) => {
   const { t } = useLanguage();
-  const { isOwner, deciding, handleApprove, handleReject, handleRead } =
-    row.actions;
+  const { isOwner, deciding, handleReject, handleRead } = row.actions;
   return (
     <div className="flex items-center justify-end gap-1">
-      {isOwner ? (
-        <Button
-          disabled={deciding}
-          onClick={() => handleApprove(row.id)}
-          size="sm"
-          type="button"
-        >
-          <Check aria-hidden data-icon="inline-start" />
-          {t("sop.approve")}
-        </Button>
-      ) : (
-        <StatusBadge icon={Hourglass} tone="info">
-          {t("sop.withTheOwner")}
-        </StatusBadge>
-      )}
+      <Standing row={row} />
       <RowMenu
         actions={[
           {
@@ -227,6 +261,25 @@ const ProposalSheet = ({
         </SheetHeader>
         {content ? (
           <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4 text-sm">
+            {row?.outOfDate ? (
+              <Notice
+                title={t("sop.outOfDateTitle", {
+                  drafted: row.draftedOn ?? 0,
+                  number: row.inForce ?? 0,
+                })}
+                tone="warning"
+              >
+                {t("sop.outOfDateWhy")}
+              </Notice>
+            ) : null}
+            {row && row.changes.length > 0 ? (
+              <section className="flex flex-col gap-1">
+                <h3 className="font-semibold">
+                  {t("sop.whatItChanges", { number: row.inForce ?? 0 })}
+                </h3>
+                <ChangeLines changes={row.changes} />
+              </section>
+            ) : null}
             <dl className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-0.5 sm:col-span-2">
                 <dt className="text-muted-foreground text-xs">

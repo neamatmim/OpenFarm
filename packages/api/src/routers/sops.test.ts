@@ -293,6 +293,92 @@ describe("a Manager's proposal", () => {
   });
 });
 
+describe("a proposal or an edit the procedure has moved on from", () => {
+  it("is refused at approval once the Owner has published since it was drafted, and stays waiting", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    const created = await owner.client.sops.create({ content: milkingSop() });
+    const proposal = await manager.client.sops.proposals.create({
+      definitionId: created.definitionId,
+      content: withStep(milkingSop(), 1, { evidence: [litres(0, 60)] }),
+      note: "বেশি দুধের গাভী",
+    });
+    await owner.client.sops.publish({
+      definitionId: created.definitionId,
+      content: { ...milkingSop(), graceMinutes: 90 },
+      note: "সময় একটু বেশি",
+    });
+
+    await expect(
+      owner.client.sops.proposals.approve({ id: proposal.id })
+    ).rejects.toMatchObject({
+      data: { refusal: "proposal_out_of_date", version: 2 },
+    });
+    const pending = await owner.client.sops.proposals.list();
+    expect(pending.some((one) => one.id === proposal.id)).toBe(true);
+  });
+
+  it("refuses an edit begun from a Version the procedure has moved on from", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const created = await owner.client.sops.create({ content: milkingSop() });
+    const first = await owner.client.sops.get({ id: created.definitionId });
+    await owner.client.sops.publish({
+      definitionId: created.definitionId,
+      content: { ...milkingSop(), graceMinutes: 90 },
+      basedOnVersionId: first.currentVersion?.id ?? null,
+    });
+    await expect(
+      owner.client.sops.publish({
+        definitionId: created.definitionId,
+        content: { ...milkingSop(), graceMinutes: 120 },
+        basedOnVersionId: first.currentVersion?.id ?? null,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "changed_since_you_began" } });
+  });
+
+  it("refuses a Manager's proposal drafted from a Version the procedure has moved on from", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    const created = await owner.client.sops.create({ content: milkingSop() });
+    const first = await owner.client.sops.get({ id: created.definitionId });
+    await owner.client.sops.publish({
+      definitionId: created.definitionId,
+      content: { ...milkingSop(), graceMinutes: 90 },
+    });
+    await expect(
+      manager.client.sops.proposals.create({
+        definitionId: created.definitionId,
+        content: milkingSop(),
+        note: "পুরনো কপি থেকে",
+        basedOnVersionId: first.currentVersion?.id ?? null,
+      })
+    ).rejects.toMatchObject({
+      data: { refusal: "changed_since_you_began", version: 2 },
+    });
+  });
+
+  it("tells the Manager what became of their proposal, with the Owner's reason", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    const created = await owner.client.sops.create({ content: milkingSop() });
+    const proposal = await manager.client.sops.proposals.create({
+      definitionId: created.definitionId,
+      content: milkingSop(),
+    });
+    await owner.client.sops.proposals.reject({
+      id: proposal.id,
+      note: "এখনকার সময়ই ঠিক আছে",
+    });
+    const told = await manager.client.alerts.mine({ entityId: proposal.id });
+    expect(
+      told.find((one) => one.kind === "proposal_answered")?.params
+    ).toMatchObject({
+      approved: false,
+      note: "এখনকার সময়ই ঠিক আছে",
+    });
+  });
+});
+
 describe("the audit trail", () => {
   it("records the SOP and each Version under the Definition's id", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
