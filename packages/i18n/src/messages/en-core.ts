@@ -607,6 +607,10 @@ export const enCore = {
     "This is a quarantine pen. Unmark it before retiring it",
   "refusal.penRetired":
     "That pen is retired. Bring it back on the sheds page first",
+  "refusal.shedHasPens":
+    "Pens in this shed are still in use. Retire each of them first",
+  "refusal.shedRetired":
+    "That shed is retired. Bring it back on the sheds page first",
   "refusal.categoryIsStandard":
     "A standard category keeps its name: the farm's own records book under it",
   "refusal.registrationBackwards":
@@ -1146,6 +1150,10 @@ export const enCore = {
   "herd.restorePen": "Bring back",
   "herd.penRetiredDone": "Pen retired: it is out of every list",
   "herd.penRestoredDone": "Pen brought back",
+  "herd.retireShed": "Retire shed",
+  "herd.restoreShed": "Bring back",
+  "herd.shedRetiredDone": "Shed retired: it is out of every list",
+  "herd.shedRestoredDone": "Shed brought back",
   "herd.noSheds": "No sheds yet",
   "herd.noShedsHint": "Add the farm's first shed, then the pens inside it.",
   "herd.subtitle":
@@ -1434,6 +1442,9 @@ export const enCore = {
   "sop.name": "Name",
   "sop.purpose": "Purpose",
   "sop.bangla": "Bangla",
+  "sop.englishHint":
+    "Optional. Cleared when the Bangla is changed, so it never says what the Bangla used to.",
+  "sop.englishListHint": "In English, in the same order, comma separated",
   "sop.english": "English (optional)",
   "sop.days": "Days of the week",
   "sop.everyDay": "No day ticked: every day",
@@ -1668,6 +1679,13 @@ export const enCore = {
   "sop.stepNumber": "Step {number}",
   "sop.removeStepNumber": "Remove step {number}",
   "sop.moveStepUp": "Move step {number} up",
+  "sop.previewStep": "See how the phone shows step {number}",
+  "sop.previewTitle": "Step {number} on the phone",
+  "sop.previewHint":
+    "What the shed will see, from the phone's own screen. Nothing you answer here is recorded.",
+  "sop.previewNothingRecorded": "A preview: nothing was recorded",
+  "sop.previewFromTheFarm":
+    "On the phone this step also lists what the farm holds — the pen's ration, the store, the registration. The preview cannot show those lines.",
   "sop.moveStepDown": "Move step {number} down",
   "sop.removeStep": "Remove step",
   "sop.removeStepTitle": "Remove step {number}, “{words}”?",

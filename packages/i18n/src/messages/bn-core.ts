@@ -557,6 +557,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.penOnARation": "এই পেন একটি রেশনে আছে। বাদ দেওয়ার আগে রেশন থেকে সরান",
   "refusal.penIsQuarantine": "এটি কোয়ারেন্টাইন পেন। বাদ দেওয়ার আগে চিহ্ন তুলে নিন",
   "refusal.penRetired": "সেই পেন বাদ দেওয়া হয়েছে। আগে শেডের পাতায় ফিরিয়ে আনুন",
+  "refusal.shedHasPens": "এই শেডের পেন এখনো চালু। আগে প্রতিটি পেন বাদ দিন",
+  "refusal.shedRetired": "সেই শেড বাদ দেওয়া হয়েছে। আগে শেডের পাতায় ফিরিয়ে আনুন",
   "refusal.categoryIsStandard":
     "আদর্শ খাতের নাম বদলায় না: খামারের নিজের রেকর্ড এর নামে লেখা হয়",
   "refusal.registrationBackwards":
@@ -1042,6 +1044,10 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "herd.restorePen": "ফিরিয়ে আনুন",
   "herd.penRetiredDone": "পেন বাদ দেওয়া হয়েছে: আর কোনো তালিকায় নেই",
   "herd.penRestoredDone": "পেন ফিরিয়ে আনা হয়েছে",
+  "herd.retireShed": "শেড বাদ দিন",
+  "herd.restoreShed": "ফিরিয়ে আনুন",
+  "herd.shedRetiredDone": "শেড বাদ দেওয়া হয়েছে: আর কোনো তালিকায় নেই",
+  "herd.shedRestoredDone": "শেড ফিরিয়ে আনা হয়েছে",
   "herd.noSheds": "এখনো কোনো শেড নেই",
   "herd.noShedsHint": "খামারের প্রথম শেড যোগ করুন, তারপর তার ভেতরের পেনগুলো।",
   "herd.subtitle": "খামারের শেড ও তার ভেতরের পেন। নাম বদলালে কোনো পশু জায়গা বদলায় না।",
@@ -1314,6 +1320,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sop.name": "নাম",
   "sop.purpose": "উদ্দেশ্য",
   "sop.bangla": "বাংলা",
+  "sop.englishHint": "ইচ্ছা হলে। বাংলা বদলালে মুছে যায়, যাতে আগের বাংলার কথা না বলে।",
+  "sop.englishListHint": "ইংরেজিতে, একই ক্রমে, কমা দিয়ে",
   "sop.english": "ইংরেজি (ঐচ্ছিক)",
   "sop.days": "সপ্তাহের দিন",
   "sop.everyDay": "কোনো দিন বাছাই নেই: প্রতিদিন",
@@ -1530,6 +1538,13 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sop.stepNumber": "ধাপ {number}",
   "sop.removeStepNumber": "ধাপ {number} সরান",
   "sop.moveStepUp": "ধাপ {number} ওপরে নিন",
+  "sop.previewStep": "ধাপ {number} ফোনে কেমন দেখাবে দেখুন",
+  "sop.previewTitle": "ফোনে ধাপ {number}",
+  "sop.previewHint":
+    "শেডে যা দেখা যাবে, ফোনের নিজের পর্দা থেকে। এখানে যা উত্তর দেবেন তা লেখা হবে না।",
+  "sop.previewNothingRecorded": "এটি শুধু দেখার জন্য: কিছু লেখা হয়নি",
+  "sop.previewFromTheFarm":
+    "ফোনে এই ধাপে খামারের তথ্যও থাকে — পেনের রেশন, গুদাম, নিবন্ধন। সেই লাইনগুলো এখানে দেখানো যায় না।",
   "sop.moveStepDown": "ধাপ {number} নিচে নিন",
   "sop.removeStep": "ধাপ সরান",
   "sop.removeStepTitle": "ধাপ {number}, “{words}”, সরাবেন?",

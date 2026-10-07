@@ -7,6 +7,8 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import type { FarmList } from "../farm-list";
+import { bringBackToList, retireFromList } from "../farm-list";
 import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { sameName } from "../names";
@@ -56,6 +58,17 @@ const assertPenNameFree = async (
   }
 };
 
+/** A Shed as its retiring is written on the trail: its name, and whether it is retired. */
+const readShedStanding = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  shedId: string
+) =>
+  (await tx.query.shed.findFirst({
+    where: { id: shedId, farmId },
+    columns: { name: true, retiredAt: true },
+  })) ?? null;
+
 /** A Pen as its retiring is written on the trail: its name, and whether it is retired. */
 const readPenStanding = async (
   tx: Pick<Tx, "query">,
@@ -66,6 +79,23 @@ const readPenStanding = async (
     where: { id: penId, farmId },
     columns: { name: true, retiredAt: true },
   })) ?? null;
+
+/** The Sheds as a list of the farm's: retired and brought back by the list's own rule — a second tap is not a second
+ *  event, and a Shed not the farm's is not found. */
+const SHEDS = {
+  entity: "shed",
+  table: shed,
+  read: readShedStanding,
+  notFound: "No such shed",
+} satisfies FarmList;
+
+/** The Pens, by the same rule. */
+const PENS = {
+  entity: "pen",
+  table: pen,
+  read: readPenStanding,
+  notFound: "No such pen",
+} satisfies FarmList;
 
 /** Refuses to retire a Pen something still needs: an animal standing in it, a Ration it is fed on, or new arrivals that
  *  come into it as the quarantine Pen. Each is put right first, and said in its own words. */
@@ -119,7 +149,10 @@ export const shedsRouter = {
     .handler(async ({ context, input }) => {
       const [sheds, heads] = await Promise.all([
         context.db.query.shed.findMany({
-          where: { farmId: context.farm.id },
+          where: {
+            farmId: context.farm.id,
+            ...(input?.withRetired ? {} : { retiredAt: { isNull: true } }),
+          },
           orderBy: { name: "asc" },
           with: {
             pens: {
@@ -228,6 +261,43 @@ export const shedsRouter = {
       return { id: input.id, name: input.name };
     }),
 
+  /**
+   * A Shed torn down, out of the lists: no Pen is made in it again, and what was done in it keeps its name. Only once
+   * every Pen in it is retired — each is emptied and taken off its Ration first. The Owner's or the Manager's, as Sheds
+   * are made; a second tap changes nothing.
+   */
+  retire: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ shedId: z.string() }))
+    .handler(async ({ context, input }) => {
+      await retireFromList(context, SHEDS, input.shedId, {
+        // Behind the farm lock a Pen is made or brought back behind: none can come into it while it goes.
+        refuseWhile: async (tx) => {
+          await lockTheFarm(tx, context.farm.id);
+          const inUse = await tx.query.pen.findFirst({
+            where: { shedId: input.shedId, retiredAt: { isNull: true } },
+            columns: { id: true },
+          });
+          if (inUse) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Pens in this shed are still in use: retire them first",
+              data: { refusal: "shed_has_pens" },
+            });
+          }
+        },
+      });
+      return { shedId: input.shedId };
+    }),
+
+  /** A Shed retired by mistake, or put back up: on the lists again, to have Pens made or brought back in it. */
+  restore: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ shedId: z.string() }))
+    .handler(async ({ context, input }) => {
+      await bringBackToList(context, SHEDS, input.shedId);
+      return { shedId: input.shedId };
+    }),
+
   /** The Pens inside a Shed, where every Animal is. */
   pens: {
     create: protectedProcedure
@@ -262,6 +332,17 @@ export const shedsRouter = {
               throw new ORPCError("NOT_FOUND", { message: "No such shed" });
             }
             await lockTheFarm(tx, context.farm.id);
+            // Read again behind the lock its retiring takes: a Shed retired a moment ago takes no Pen.
+            const stillStanding = await tx.query.shed.findFirst({
+              where: { id: input.shedId },
+              columns: { retiredAt: true },
+            });
+            if (stillStanding?.retiredAt) {
+              throw new ORPCError("BAD_REQUEST", {
+                message: "That shed is retired: bring it back first",
+                data: { refusal: "shed_retired" },
+              });
+            }
             await assertPenNameFree(tx, input.shedId, input.name);
             await tx.insert(pen).values({
               id,
@@ -446,62 +527,41 @@ export const shedsRouter = {
       .use(requireRole("owner", "manager"))
       .input(z.object({ penId: z.string() }))
       .handler(async ({ context, input }) => {
-        const now = context.clock.now();
-        await audited(context).write(
-          {
-            entity: "pen",
-            entityId: input.penId,
-            action: "update",
-            before: (tx) => readPenStanding(tx, context.farm.id, input.penId),
-            after: (tx) => readPenStanding(tx, context.farm.id, input.penId),
-          },
-          async (tx) => {
+        await retireFromList(context, PENS, input.penId, {
+          refuseWhile: async (tx) => {
             const found = await tx.query.pen.findFirst({
               where: { id: input.penId, farmId: context.farm.id },
-              columns: { retiredAt: true, quarantine: true },
+              columns: { quarantine: true },
             });
-            if (!found) {
-              throw new ORPCError("NOT_FOUND", { message: "No such pen" });
-            }
-            if (found.retiredAt) {
-              return;
-            }
-            await refuseWhileInUse(tx, context.farm.id, input.penId, found);
-            await tx
-              .update(pen)
-              .set({ retiredAt: now })
-              .where(eq(pen.id, input.penId));
-          }
-        );
+            await refuseWhileInUse(tx, context.farm.id, input.penId, {
+              quarantine: found?.quarantine ?? false,
+            });
+          },
+        });
         return { penId: input.penId };
       }),
 
-    /** A Pen retired by mistake, or put back up: on every picker again. */
+    /** A Pen retired by mistake, or put back up: on every picker again — once its Shed is. */
     restore: protectedProcedure
       .use(requireRole("owner", "manager"))
       .input(z.object({ penId: z.string() }))
       .handler(async ({ context, input }) => {
-        await audited(context).write(
-          {
-            entity: "pen",
-            entityId: input.penId,
-            action: "update",
-            before: (tx) => readPenStanding(tx, context.farm.id, input.penId),
-            after: (tx) => readPenStanding(tx, context.farm.id, input.penId),
-          },
-          async (tx) => {
-            const [row] = await tx
-              .update(pen)
-              .set({ retiredAt: null })
-              .where(
-                and(eq(pen.id, input.penId), eq(pen.farmId, context.farm.id))
-              )
-              .returning({ id: pen.id });
-            if (!row) {
-              throw new ORPCError("NOT_FOUND", { message: "No such pen" });
+        await bringBackToList(context, PENS, input.penId, {
+          // Not into a Shed torn down, read behind the lock its retiring takes.
+          refuseWhile: async (tx) => {
+            await lockTheFarm(tx, context.farm.id);
+            const standing = await tx.query.pen.findFirst({
+              where: { id: input.penId, farmId: context.farm.id },
+              with: { shed: { columns: { retiredAt: true } } },
+            });
+            if (standing?.shed.retiredAt) {
+              throw new ORPCError("BAD_REQUEST", {
+                message: "Its shed is retired: bring the shed back first",
+                data: { refusal: "shed_retired" },
+              });
             }
-          }
-        );
+          },
+        });
         return { penId: input.penId };
       }),
   },

@@ -157,7 +157,8 @@ describe("the day turning", () => {
       } as unknown as Turning["db"],
     });
 
-    expect(turned.wentWrong).toEqual(["the day's work"]);
+    // Both pieces that read the Playbook say so: marking procedures with their standard, and raising the work.
+    expect(turned.wentWrong).toEqual(["standards kept", "the day's work"]);
     // Nothing was thrown at the caller, and the pieces behind it turned.
     expect(turned.workRaised).toBe(0);
   });

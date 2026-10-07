@@ -44,6 +44,9 @@ export const shed = pgTable(
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    /** Torn down: out of the lists, and no Pen is made in it. Retired only once every Pen in it is; brought back as it
+     *  was. */
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

@@ -600,3 +600,40 @@ export const withLabel = (answer: Evidence, bn: string): Evidence => {
   const { label, ...rest } = answer;
   return bn.trim() === "" ? rest : { ...rest, label: reworded(label, bn) };
 };
+
+/** Words given their English, or none when the box is emptied: the English reader falls back to the Bangla. */
+export const withEnglish = <Words extends Bilingual>(
+  words: Words,
+  en: string
+): Words => ({ ...words, en: en.trim() === "" ? undefined : en });
+
+/** A list's English as the Owner types it beside the Bangla: comma separated, in the same order, each to its own item —
+ *  its value and its meaning untouched. An item with nothing typed for it has no English. */
+export const withEnglishList = <Item extends Bilingual>(
+  items: readonly Item[],
+  typed: string
+): Item[] => {
+  const parts = typed.split(",").map((part) => part.trim());
+  return items.map((item, index) => withEnglish(item, parts[index] ?? ""));
+};
+
+/** A list's English as the box beside the Bangla shows it. */
+export const fromEnglishList = (items: readonly Bilingual[]): string =>
+  items.some((item) => item.en)
+    ? items.map((item) => item.en ?? "").join(", ")
+    : "";
+
+/** A choice list's English, typed beside it: each label given its own. */
+export const withEnglishChoices = (
+  choices: readonly Choice[],
+  typed: string
+): Choice[] => {
+  const labels = withEnglishList(
+    choices.map((choice) => choice.label),
+    typed
+  );
+  return choices.map((choice, index) => ({
+    ...choice,
+    label: labels[index] ?? choice.label,
+  }));
+};

@@ -102,3 +102,33 @@ describe("retiring a Pen", () => {
     });
   });
 });
+
+describe("retiring a Shed", () => {
+  it("waits until every Pen in it is retired, then leaves the lists and takes no new Pen until brought back", async () => {
+    const manager = await managerClient();
+    const shed = await manager.sheds.create({ name: `ভাঙা শেড ২ ${suffix}` });
+    const pen = await manager.sheds.pens.create({
+      shedId: shed.id,
+      name: `শেষ পেন ${suffix}`,
+    });
+    await expect(
+      manager.sheds.retire({ shedId: shed.id })
+    ).rejects.toMatchObject({ data: { refusal: "shed_has_pens" } });
+
+    await manager.sheds.pens.retire({ penId: pen.id });
+    await manager.sheds.retire({ shedId: shed.id });
+    const listed = await manager.sheds.list();
+    expect(listed.some((one) => one.id === shed.id)).toBe(false);
+    const everything = await manager.sheds.list({ withRetired: true });
+    expect(everything.some((one) => one.id === shed.id)).toBe(true);
+    await expect(
+      manager.sheds.pens.create({ shedId: shed.id, name: `নতুন ${suffix}` })
+    ).rejects.toMatchObject({ data: { refusal: "shed_retired" } });
+    await expect(
+      manager.sheds.pens.restore({ penId: pen.id })
+    ).rejects.toMatchObject({ data: { refusal: "shed_retired" } });
+
+    await manager.sheds.restore({ shedId: shed.id });
+    await manager.sheds.pens.create({ shedId: shed.id, name: `নতুন ${suffix}` });
+  });
+});
