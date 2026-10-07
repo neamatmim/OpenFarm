@@ -17,11 +17,13 @@ import { FigureBox } from "@/components/playbook/figure-box";
 import { ListInput } from "@/components/playbook/list-input";
 import { StepAnswers } from "@/components/playbook/step-answers";
 import { StepMeanings } from "@/components/playbook/step-meanings";
+import { StepPreview } from "@/components/playbook/step-preview";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import {
   emptyStep,
   freshStepId,
   fromBilingualList,
+  fromEnglishList,
   fromChoices,
   needsChoices,
   needsUnit,
@@ -30,6 +32,9 @@ import {
   toChoices,
   withFirstEvidence,
   withEffect,
+  withEnglish,
+  withEnglishChoices,
+  withEnglishList,
   withProduct,
 } from "@/lib/sop-draft";
 
@@ -108,6 +113,30 @@ const EvidenceFields = ({
           />
         </FormField>
       ) : null}
+      {needsChoices(step) && (evidence.choices?.length ?? 0) > 0 ? (
+        <FormField
+          className="sm:col-span-1 lg:col-span-3 lg:col-start-2"
+          hint={t("sop.englishListHint")}
+          id={`${step.id}-choices-en`}
+          label={`${t("sop.choices")} — ${t("sop.english")}`}
+        >
+          <ListInput
+            id={`${step.id}-choices-en`}
+            onTyped={(typed) =>
+              onChange(
+                withFirstEvidence(step, {
+                  ...evidence,
+                  choices: withEnglishChoices(evidence.choices ?? [], typed),
+                })
+              )
+            }
+            placeholder={t("sop.englishListHint")}
+            shown={fromEnglishList(
+              (evidence.choices ?? []).map((one) => one.label)
+            )}
+          />
+        </FormField>
+      ) : null}
       {needsUnit(evidence.type) ? (
         <>
           <FormField id={`${step.id}-unit`} label={t("sop.unit")}>
@@ -122,6 +151,27 @@ const EvidenceFields = ({
                 )
               }
               value={evidence.unit?.bn ?? ""}
+            />
+          </FormField>
+          <FormField
+            id={`${step.id}-unit-en`}
+            label={`${t("sop.unit")} — ${t("sop.english")}`}
+          >
+            <Input
+              disabled={!evidence.unit?.bn}
+              id={`${step.id}-unit-en`}
+              onChange={(e) =>
+                onChange(
+                  withFirstEvidence(step, {
+                    ...evidence,
+                    unit: withEnglish(
+                      evidence.unit ?? { bn: "" },
+                      e.target.value
+                    ),
+                  })
+                )
+              }
+              value={evidence.unit?.en ?? ""}
             />
           </FormField>
           <FormField
@@ -268,6 +318,7 @@ const StepEditor = ({
           {step.text.bn ? ` — ${step.text.bn}` : ""}
         </h3>
         <div className="flex shrink-0 gap-0.5">
+          <StepPreview position={position} step={step} />
           <Button
             aria-label={t("sop.moveStepUp", { number: position + 1 })}
             disabled={position === 0}
@@ -312,6 +363,21 @@ const StepEditor = ({
               onChange({ ...step, text: reworded(step.text, e.target.value) })
             }
             value={step.text.bn}
+          />
+        </FormField>
+        <FormField
+          id={`${step.id}-text-en`}
+          label={`${t("sop.stepText")} — ${t("sop.english")}`}
+        >
+          <Input
+            id={`${step.id}-text-en`}
+            onChange={(e) =>
+              onChange({
+                ...step,
+                text: withEnglish(step.text, e.target.value),
+              })
+            }
+            value={step.text.en ?? ""}
           />
         </FormField>
         <EffectFields
@@ -361,6 +427,25 @@ const StepEditor = ({
               }
               placeholder={t("sop.skipHelp")}
               shown={fromBilingualList(step.skipReasons)}
+            />
+          </FormField>
+        ) : null}
+        {maySkip(step) && step.skipReasons.length > 0 ? (
+          <FormField
+            hint={t("sop.englishListHint")}
+            id={`${step.id}-skip-en`}
+            label={`${t("sop.skipReasons")} — ${t("sop.english")}`}
+          >
+            <ListInput
+              id={`${step.id}-skip-en`}
+              onTyped={(typed) =>
+                onChange({
+                  ...step,
+                  skipReasons: withEnglishList(step.skipReasons, typed),
+                })
+              }
+              placeholder={t("sop.englishListHint")}
+              shown={fromEnglishList(step.skipReasons)}
             />
           </FormField>
         ) : null}

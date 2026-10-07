@@ -17,7 +17,7 @@ import { FormField, NativeSelect } from "@/components/page-kit";
 import { FigureBox } from "@/components/playbook/figure-box";
 import { useLanguage } from "@/i18n/language-provider";
 import { blockerSaid, blockerStep } from "@/lib/sop-blockers";
-import { reworded } from "@/lib/sop-draft";
+import { reworded, withEnglish } from "@/lib/sop-draft";
 
 import { StepsSection, stepAnchor } from "./sop-steps";
 import { WhenSection } from "./sop-when";
@@ -79,6 +79,23 @@ const DetailsSection = ({
               })
             }
             value={content.purpose.bn}
+          />
+        </FormField>
+        <FormField
+          className="sm:col-span-2"
+          hint={t("sop.englishHint")}
+          id="purpose-en"
+          label={`${t("sop.purpose")} — ${t("sop.english")}`}
+        >
+          <Input
+            id="purpose-en"
+            onChange={(e) =>
+              onChange({
+                ...content,
+                purpose: withEnglish(content.purpose, e.target.value),
+              })
+            }
+            value={content.purpose.en ?? ""}
           />
         </FormField>
       </div>

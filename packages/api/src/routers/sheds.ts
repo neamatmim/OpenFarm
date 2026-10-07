@@ -56,6 +56,17 @@ const assertPenNameFree = async (
   }
 };
 
+/** A Shed as its retiring is written on the trail: its name, and whether it is retired. */
+const readShedStanding = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  shedId: string
+) =>
+  (await tx.query.shed.findFirst({
+    where: { id: shedId, farmId },
+    columns: { name: true, retiredAt: true },
+  })) ?? null;
+
 /** A Pen as its retiring is written on the trail: its name, and whether it is retired. */
 const readPenStanding = async (
   tx: Pick<Tx, "query">,
@@ -119,7 +130,10 @@ export const shedsRouter = {
     .handler(async ({ context, input }) => {
       const [sheds, heads] = await Promise.all([
         context.db.query.shed.findMany({
-          where: { farmId: context.farm.id },
+          where: {
+            farmId: context.farm.id,
+            ...(input?.withRetired ? {} : { retiredAt: { isNull: true } }),
+          },
           orderBy: { name: "asc" },
           with: {
             pens: {
@@ -228,6 +242,80 @@ export const shedsRouter = {
       return { id: input.id, name: input.name };
     }),
 
+  /**
+   * A Shed torn down, out of the lists: no Pen is made in it again, and what was done in it keeps its name. Only once
+   * every Pen in it is retired — each is emptied and taken off its Ration first. The Owner's or the Manager's, as Sheds
+   * are made; a second tap changes nothing.
+   */
+  retire: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ shedId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      await audited(context).write(
+        {
+          entity: "shed",
+          entityId: input.shedId,
+          action: "update",
+          before: (tx) => readShedStanding(tx, context.farm.id, input.shedId),
+          after: (tx) => readShedStanding(tx, context.farm.id, input.shedId),
+        },
+        async (tx) => {
+          const found = await tx.query.shed.findFirst({
+            where: { id: input.shedId, farmId: context.farm.id },
+            columns: { retiredAt: true },
+            with: { pens: { columns: { retiredAt: true } } },
+          });
+          if (!found) {
+            throw new ORPCError("NOT_FOUND", { message: "No such shed" });
+          }
+          if (found.retiredAt) {
+            return;
+          }
+          if (found.pens.some((one) => one.retiredAt === null)) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Pens in this shed are still in use: retire them first",
+              data: { refusal: "shed_has_pens" },
+            });
+          }
+          await tx
+            .update(shed)
+            .set({ retiredAt: now })
+            .where(eq(shed.id, input.shedId));
+        }
+      );
+      return { shedId: input.shedId };
+    }),
+
+  /** A Shed retired by mistake, or put back up: on the lists again, to have Pens made or brought back in it. */
+  restore: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ shedId: z.string() }))
+    .handler(async ({ context, input }) => {
+      await audited(context).write(
+        {
+          entity: "shed",
+          entityId: input.shedId,
+          action: "update",
+          before: (tx) => readShedStanding(tx, context.farm.id, input.shedId),
+          after: (tx) => readShedStanding(tx, context.farm.id, input.shedId),
+        },
+        async (tx) => {
+          const [row] = await tx
+            .update(shed)
+            .set({ retiredAt: null })
+            .where(
+              and(eq(shed.id, input.shedId), eq(shed.farmId, context.farm.id))
+            )
+            .returning({ id: shed.id });
+          if (!row) {
+            throw new ORPCError("NOT_FOUND", { message: "No such shed" });
+          }
+        }
+      );
+      return { shedId: input.shedId };
+    }),
+
   /** The Pens inside a Shed, where every Animal is. */
   pens: {
     create: protectedProcedure
@@ -256,10 +344,16 @@ export const shedsRouter = {
           async (tx) => {
             const parent = await tx.query.shed.findFirst({
               where: { id: input.shedId, farmId: context.farm.id },
-              columns: { id: true },
+              columns: { id: true, retiredAt: true },
             });
             if (!parent) {
               throw new ORPCError("NOT_FOUND", { message: "No such shed" });
+            }
+            if (parent.retiredAt) {
+              throw new ORPCError("BAD_REQUEST", {
+                message: "That shed is retired: bring it back first",
+                data: { refusal: "shed_retired" },
+              });
             }
             await lockTheFarm(tx, context.farm.id);
             await assertPenNameFree(tx, input.shedId, input.name);
@@ -490,6 +584,17 @@ export const shedsRouter = {
             after: (tx) => readPenStanding(tx, context.farm.id, input.penId),
           },
           async (tx) => {
+            // Not into a Shed torn down: it is brought back first.
+            const standing = await tx.query.pen.findFirst({
+              where: { id: input.penId, farmId: context.farm.id },
+              with: { shed: { columns: { retiredAt: true } } },
+            });
+            if (standing?.shed.retiredAt) {
+              throw new ORPCError("BAD_REQUEST", {
+                message: "Its shed is retired: bring the shed back first",
+                data: { refusal: "shed_retired" },
+              });
+            }
             const [row] = await tx
               .update(pen)
               .set({ retiredAt: null })

@@ -58,6 +58,7 @@ import { settleWhatIsSettled } from "./settled-notices";
 import { textAgainWhatDidNotGo, textTheSafetyAlerts } from "./sms-send";
 import { contentOf } from "./sop-content";
 import { soresToTell, tellOfSores } from "./sores-store";
+import { keepStandardKeys } from "./standards-kept";
 import { lowStockToTell, raiseLowStockAlerts, runningLow } from "./stock-store";
 import { asLogged } from "./thrown";
 import { endExpiredVisits } from "./visits-store";
@@ -1020,6 +1021,7 @@ export const theDigest = async (context: Turning) => {
 /** The pieces a day's turning is made of, in the order they run. */
 export type Piece =
   | "visits ending"
+  | "standards kept"
   | "the day's work"
   | "the sweep"
   | "the digest";
@@ -1062,6 +1064,9 @@ export const theDayTurns = async (
   const visitsEnded = await turn("visits ending", () =>
     endExpiredVisits(context)
   );
+  // Before the day's work, and on its own: a procedure not yet marked with its standard is marked, and nothing it
+  // fails at stops the work being raised.
+  await turn("standards kept", () => keepStandardKeys(context));
   const work = await turn("the day's work", () => theDaysWork(context));
   const swept = await turn("the sweep", () => theSweep(context));
   // The sweep told what it could; one telling it could not is still the sweep gone wrong, and the Owner hears so.

@@ -27,6 +27,8 @@ import { useLanguage } from "@/i18n/language-provider";
 export interface ShedRow {
   id: string;
   name: string;
+  /** Missing from an answer kept from before Sheds could be retired: read as standing. */
+  retiredAt?: Date | string | null;
   /** `quarantine` is missing from an answer kept from before pens were marked: read as unmarked; `head` and
    *  `capacity` from one kept from before Pens were counted. */
   pens: {
@@ -56,6 +58,9 @@ export interface ShedActions {
   /** Out of every picker once it stands empty, or back on them. */
   handleRetirePen: (pen: { id: string }) => void;
   handleRestorePen: (pen: { id: string }) => void;
+  /** Off the lists once every Pen in it is retired, or back on them. */
+  handleRetireShed: (shed: ShedRow) => void;
+  handleRestoreShed: (shed: ShedRow) => void;
 }
 
 interface PenRow {
@@ -262,7 +267,12 @@ export const ShedCard = ({
             <Warehouse aria-hidden className="size-5" />
           </span>
           <div className="flex min-w-0 flex-col gap-1">
-            <h2 className="truncate text-base font-semibold">{shed.name}</h2>
+            <h2 className="flex min-w-0 items-center gap-2 text-base font-semibold">
+              <span className="truncate">{shed.name}</span>
+              {shed.retiredAt ? (
+                <StatusBadge tone="neutral">{t("herd.penRetired")}</StatusBadge>
+              ) : null}
+            </h2>
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <StatusBadge tone="neutral">
                 {t("herd.animalCount", {
@@ -281,13 +291,28 @@ export const ShedCard = ({
           </div>
         </div>
         <RowMenu
-          actions={[
-            {
-              label: t("herd.rename"),
-              icon: PencilLine,
-              handleSelect: () => actions.handleRenameShed(shed),
-            },
-          ]}
+          actions={
+            shed.retiredAt
+              ? [
+                  {
+                    label: t("herd.restoreShed"),
+                    icon: ArchiveRestore,
+                    handleSelect: () => actions.handleRestoreShed(shed),
+                  },
+                ]
+              : [
+                  {
+                    label: t("herd.rename"),
+                    icon: PencilLine,
+                    handleSelect: () => actions.handleRenameShed(shed),
+                  },
+                  {
+                    label: t("herd.retireShed"),
+                    icon: Archive,
+                    handleSelect: () => actions.handleRetireShed(shed),
+                  },
+                ]
+          }
           label={t("stock.rowActions", { name: shed.name })}
         />
       </div>
@@ -298,16 +323,19 @@ export const ShedCard = ({
         <EmptyState bare icon={Fence} title={t("herd.noPens")} />
       )}
 
-      <div>
-        <Button
-          onClick={() => actions.handleAddPen(shed)}
-          type="button"
-          variant="outline"
-        >
-          <Plus aria-hidden data-icon="inline-start" />
-          {t("herd.addPen")}
-        </Button>
-      </div>
+      {/* A retired Shed takes no new Pen; it is brought back first. */}
+      {shed.retiredAt ? null : (
+        <div>
+          <Button
+            onClick={() => actions.handleAddPen(shed)}
+            type="button"
+            variant="outline"
+          >
+            <Plus aria-hidden data-icon="inline-start" />
+            {t("herd.addPen")}
+          </Button>
+        </div>
+      )}
     </section>
   );
 };

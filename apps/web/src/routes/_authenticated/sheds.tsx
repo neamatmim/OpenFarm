@@ -135,6 +135,18 @@ const HerdPage = () => {
       onError,
     })
   );
+  const retireShed = useMutation(
+    orpc.sheds.retire.mutationOptions({
+      onSuccess: () => toast.success(t("herd.shedRetiredDone")),
+      onError,
+    })
+  );
+  const restoreShed = useMutation(
+    orpc.sheds.restore.mutationOptions({
+      onSuccess: () => toast.success(t("herd.shedRestoredDone")),
+      onError,
+    })
+  );
   const restorePen = useMutation(
     orpc.sheds.pens.restore.mutationOptions({
       onSuccess: () => toast.success(t("herd.penRestoredDone")),
@@ -173,6 +185,8 @@ const HerdPage = () => {
     handleSetCapacity: setSizing,
     handleRetirePen: (pen) => retirePen.mutate({ penId: pen.id }),
     handleRestorePen: (pen) => restorePen.mutate({ penId: pen.id }),
+    handleRetireShed: (shed) => retireShed.mutate({ shedId: shed.id }),
+    handleRestoreShed: (shed) => restoreShed.mutate({ shedId: shed.id }),
   };
 
   return (

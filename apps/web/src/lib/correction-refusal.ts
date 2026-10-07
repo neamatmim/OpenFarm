@@ -201,6 +201,8 @@ const WORDED_REFUSALS = {
   pen_on_a_ration: "refusal.penOnARation",
   pen_is_quarantine: "refusal.penIsQuarantine",
   pen_retired: "refusal.penRetired",
+  shed_has_pens: "refusal.shedHasPens",
+  shed_retired: "refusal.shedRetired",
   category_is_standard: "refusal.categoryIsStandard",
   registration_expires_before_issued: "refusal.registrationBackwards",
   arrived_before_the_trip: "refusal.arrivedBeforeTheTrip",
