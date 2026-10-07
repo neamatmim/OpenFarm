@@ -14,10 +14,12 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
+import { FigureBox } from "@/components/playbook/figure-box";
 import { useLanguage } from "@/i18n/language-provider";
-import { blockerSaid } from "@/lib/sop-blockers";
+import { blockerSaid, blockerStep } from "@/lib/sop-blockers";
+import { reworded } from "@/lib/sop-draft";
 
-import { StepsSection } from "./sop-steps";
+import { StepsSection, stepAnchor } from "./sop-steps";
 import { WhenSection } from "./sop-when";
 
 /** The procedure's names and why it is done: Bangla, and English where somebody wants it. */
@@ -73,7 +75,7 @@ const DetailsSection = ({
             onChange={(e) =>
               onChange({
                 ...content,
-                purpose: { ...content.purpose, bn: e.target.value },
+                purpose: reworded(content.purpose, e.target.value),
               })
             }
             value={content.purpose.bn}
@@ -139,18 +141,39 @@ const WhoSection = ({
           </NativeSelect>
         </FormField>
         <FormField id="grace" label={t("sop.grace")}>
-          <Input
+          <FigureBox
             id="grace"
-            min={0}
-            onChange={(e) =>
-              onChange({ ...content, graceMinutes: Number(e.target.value) })
+            onFigure={(grace) =>
+              // Nothing typed is no grace yet, which publishing names, rather than none at all.
+              onChange({ ...content, graceMinutes: grace ?? Number.NaN })
             }
-            type="number"
             value={content.graceMinutes}
           />
         </FormField>
       </div>
     </Section>
+  );
+};
+
+/** One thing stopping the procedure being published, said in the reader's words — and, where it is in a Step, a link
+ *  that takes the Owner to that Step rather than leaving them to find it among ten. */
+const BlockerLine = ({ blocker }: { blocker: string }) => {
+  const { t } = useLanguage();
+  const said = blockerSaid(blocker, t);
+  const step = blockerStep(blocker);
+  return (
+    <li>
+      {step === null ? (
+        said
+      ) : (
+        <a
+          className="underline-offset-2 hover:underline"
+          href={`#${stepAnchor(step)}`}
+        >
+          {said}
+        </a>
+      )}
+    </li>
   );
 };
 
@@ -202,6 +225,7 @@ const EditorFoot = ({
  */
 export const SopEditor = ({
   content,
+  startedFrom,
   isNew,
   blockers,
   canPublish,
@@ -213,6 +237,8 @@ export const SopEditor = ({
   onCancel,
 }: {
   content: SopContent;
+  /** The procedure as it was when the editing began: the Version in force, the standard adopted, or a blank one. */
+  startedFrom: SopContent;
   isNew: boolean;
   blockers: string[];
   canPublish: boolean;
@@ -252,6 +278,7 @@ export const SopEditor = ({
         <StepsSection
           content={content}
           onChange={onChange}
+          startedFrom={startedFrom}
           pens={pens}
           products={products}
         />
@@ -260,7 +287,7 @@ export const SopEditor = ({
           <Notice title={t("sop.cannotPublish")} tone="warning">
             <ul className="list-disc pl-5">
               {blockers.map((blocker) => (
-                <li key={blocker}>{blockerSaid(blocker, t)}</li>
+                <BlockerLine blocker={blocker} key={blocker} />
               ))}
             </ul>
           </Notice>

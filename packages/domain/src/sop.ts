@@ -13,6 +13,7 @@ import {
   SERVICE_STEP,
   problemsAgainst,
 } from "./step-shape";
+import { MAX_GRACE_MINUTES } from "./work";
 
 /** SOP content is authored in Bangla; English is optional and used for reports and a
  *  visiting Vet (i18n decision, ticket 02). */
@@ -1075,6 +1076,15 @@ export const findStructuralProblems = (content: SopContent): string[] => {
   ];
   if (content.steps.length === 0) {
     problems.push("steps: an SOP needs at least one step");
+  }
+  // As the farm takes it: whole minutes, and never more than a day — the editor said Ready to 2000, and the farm
+  // refused it with "look at each box".
+  if (
+    !Number.isInteger(content.graceMinutes) ||
+    content.graceMinutes < 0 ||
+    content.graceMinutes > MAX_GRACE_MINUTES
+  ) {
+    problems.push("graceMinutes: grace is whole minutes, at most a day");
   }
   // No Trigger is no longer work that never arrives: the Manager can raise a piece of work for
   // a Pen when the farm decides to do it, which is exactly how a campaign happens. A quarterly

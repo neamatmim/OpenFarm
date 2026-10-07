@@ -11,6 +11,8 @@ import type {
 import {
   STAYS_A_HEIFER,
   CALVING_STEP,
+  HEAT,
+  URGENT_ROUND_WORDS,
   DLS_REPORT_STEP,
   LOT_NUMBER_STEP,
   PREGNANCY_CHECK_STEP,
@@ -97,10 +99,13 @@ const withSchedule = (
   if (!next.firstOfTheMonth) {
     delete next.firstOfTheMonth;
   }
-  return {
-    ...content,
-    triggers: [next, ...content.triggers.filter((t) => t.kind !== "schedule")],
-  };
+  const others = content.triggers.filter((t) => t.kind !== "schedule");
+  // No time and no day: no clock raises it, so it is raised by hand or by what happens — not an empty schedule the
+  // farm refuses, which nothing in the editor could take away.
+  if (next.times.length === 0 && !next.weekdays) {
+    return { ...content, triggers: others };
+  }
+  return { ...content, triggers: [next, ...others] };
 };
 
 export const withScheduleTimes = (
@@ -218,6 +223,30 @@ const ONCE_WITH_A_NOTE: ReadonlySet<StepEffect["kind"]> = new Set<
  *  vaccine dose, never required. */
 const OWN_LOT_NUMBER: Evidence = { type: "note", required: false };
 
+/** The effects done once that ask only that they were done: the Pen fed by its Ration, the stores counted Item by
+ *  Item, the Registration renewed with its own dates — none asks a figure of the Step, and none is walked animal by
+ *  animal. */
+const DONE_ONCE_WITH_A_TICK: ReadonlySet<StepEffect["kind"]> = new Set<
+  StepEffect["kind"]
+>(["feeding", "stock_count", "medicine_count", "registration_renewal"]);
+
+/** The effects done once for the Pen or the farm rather than animal by animal. */
+const DONE_ONCE: ReadonlySet<StepEffect["kind"]> = new Set<StepEffect["kind"]>([
+  ...DONE_ONCE_WITH_A_TICK,
+  "bulk_total",
+  "head_count",
+  "cash_count",
+  "treatment",
+  ...ONCE_WITH_A_NOTE,
+]);
+
+/** The effects whose Step is a whole shape of its own — every answer it asks, in order. */
+const SHAPED: ReadonlySet<StepEffect["kind"]> = new Set<StepEffect["kind"]>([
+  "service",
+  "calving",
+  "pregnancy_check",
+]);
+
 /** What Evidence an effect needs before it can write anything. */
 const wantedEvidence = (kind: StepEffect["kind"]): EvidenceType => {
   if (kind === "move" || kind === "observation" || kind === "wean") {
@@ -226,7 +255,10 @@ const wantedEvidence = (kind: StepEffect["kind"]): EvidenceType => {
   if (ONCE_WITH_A_NOTE.has(kind)) {
     return "note";
   }
-  return kind === "treatment" || kind === "dry_off" || kind === "release"
+  return kind === "treatment" ||
+    kind === "dry_off" ||
+    kind === "release" ||
+    DONE_ONCE_WITH_A_TICK.has(kind)
     ? "tick"
     : "number";
 };
@@ -264,7 +296,11 @@ const fittedEvidence = (
     // What may be seen is the Owner's to write down.
     return { type: "choice", required: true, choices: [] };
   }
-  if (kind === "dry_off" || kind === "release") {
+  if (
+    kind === "dry_off" ||
+    kind === "release" ||
+    DONE_ONCE_WITH_A_TICK.has(kind)
+  ) {
     // Drying a cow off, or letting a bull out of Quarantine, is a thing somebody did or did not do; which animal is
     // the whole record.
     return { type: "tick", required: true };
@@ -279,6 +315,56 @@ const fittedEvidence = (
     return asked;
   }
   return { type: "number", required: true, unit: current?.unit };
+};
+
+/** A Step given an effect it did not have, from one plain answer. */
+const withNewEffect = (
+  step: Step,
+  kind: StepEffect["kind"],
+  pens: { id: string; name: string }[]
+): Step => {
+  // A Service asks four things in a fixed order — how, the sire, who served her, and when — so its
+  // Step is given all four at once rather than one box the Owner then has to fill out by hand.
+  if (kind === "service") {
+    return {
+      ...step,
+      repeatPerAnimal: false,
+      effect: { kind },
+      evidence: [...SERVICE_STEP_EVIDENCE],
+    };
+  }
+  if (kind === "calving") {
+    // Walked cow by cow on a round of the calving pen: she has calved, or she is skipped.
+    return {
+      ...step,
+      repeatPerAnimal: true,
+      effect: { kind },
+      evidence: [...CALVING_STEP_EVIDENCE],
+    };
+  }
+  if (kind === "pregnancy_check") {
+    return {
+      ...step,
+      repeatPerAnimal: false,
+      effect: { kind },
+      evidence: [PREGNANCY_CHECK_RESULT],
+    };
+  }
+  const wants: EvidenceType = wantedEvidence(kind);
+  const [first] = step.evidence;
+  // A Pen is fed, its tank read, its store and head counted once; everything else is done animal by animal. A dose
+  // Step starts as a prescribed dose — the shape that is complete without anything else being
+  // chosen — and naming a product turns it into a campaign over the Pen.
+  const perAnimal = !DONE_ONCE.has(kind);
+  if (first?.type === wants) {
+    return { ...step, repeatPerAnimal: perAnimal, effect: { kind } };
+  }
+  return {
+    ...step,
+    repeatPerAnimal: perAnimal,
+    effect: { kind },
+    evidence: [fittedEvidence(kind, first, pens)],
+  };
 };
 
 /**
@@ -297,65 +383,23 @@ export const withEffect = (
   kind: StepEffect["kind"] | "",
   pens: { id: string; name: string }[]
 ): Step => {
+  // The same effect chosen again changes nothing: an adopted standard Step stays as it was written.
+  if ((step.effect?.kind ?? "") === kind) {
+    return step;
+  }
+  // What it asked for its old effect goes with it — a milk record that was a service still asked every milker for a
+  // straw number, unseen, after the service was gone. One answer is kept where it is a plain one; a shape's own
+  // answers are not.
+  const was = step.effect?.kind;
+  const [kept] = step.evidence;
+  const plain: Evidence =
+    kept && !(was && SHAPED.has(was)) ? kept : { type: "tick", required: true };
+  const bare: Step = { ...step, evidence: [plain] };
   if (kind === "") {
-    const { effect: _dropped, ...rest } = step;
-    return rest;
+    const { effect: _dropped, ...rest } = bare;
+    return { ...rest, repeatPerAnimal: false };
   }
-  // A Service asks four things in a fixed order — how, the sire, who served her, and when — so its
-  // Step is given all four at once rather than one box the Owner then has to fill out by hand, and
-  // anything already authored after them is kept.
-  if (kind === "service") {
-    return {
-      ...step,
-      repeatPerAnimal: false,
-      effect: { kind },
-      evidence: [
-        ...SERVICE_STEP_EVIDENCE,
-        ...step.evidence.slice(SERVICE_STEP_EVIDENCE.length),
-      ],
-    };
-  }
-  if (kind === "calving") {
-    // Walked cow by cow on a round of the calving pen: she has calved, or she is skipped.
-    return {
-      ...step,
-      repeatPerAnimal: true,
-      effect: { kind },
-      evidence: [
-        ...CALVING_STEP_EVIDENCE,
-        ...step.evidence.slice(CALVING_STEP_EVIDENCE.length),
-      ],
-    };
-  }
-  if (kind === "pregnancy_check") {
-    return {
-      ...step,
-      repeatPerAnimal: false,
-      effect: { kind },
-      evidence: [PREGNANCY_CHECK_RESULT, ...step.evidence.slice(1)],
-    };
-  }
-  const wants: EvidenceType = wantedEvidence(kind);
-  const [first, ...rest] = step.evidence;
-  // A Pen is fed, its tank read and its head counted once; everything else is done animal by animal. A dose
-  // Step starts as a prescribed dose — the shape that is complete without anything else being
-  // chosen — and naming a product turns it into a campaign over the Pen.
-  const perAnimal =
-    kind !== "bulk_total" &&
-    kind !== "head_count" &&
-    kind !== "cash_count" &&
-    kind !== "treatment" &&
-    !ONCE_WITH_A_NOTE.has(kind);
-  if (first?.type === wants) {
-    return { ...step, repeatPerAnimal: perAnimal, effect: { kind } };
-  }
-  const fitted: Evidence = fittedEvidence(kind, first, pens);
-  return {
-    ...step,
-    repeatPerAnimal: perAnimal,
-    effect: { kind },
-    evidence: [fitted, ...rest],
-  };
+  return withNewEffect(bare, kind, pens);
 };
 
 /**
@@ -418,8 +462,53 @@ export const toBilingualList = <Reason extends Bilingual>(
     (bn) => existing.find((before) => before.bn === bn) ?? { bn }
   );
 
+/**
+ * Words in Bangla rewritten: the English said what the old words said, so it goes with them rather than staying beside
+ * new Bangla it no longer translates — read in English, a Step said what it used to. Unchanged words keep theirs.
+ */
+export const reworded = (
+  before: Bilingual | undefined,
+  bn: string
+): Bilingual => (before && before.bn === bn ? before : { bn });
+
+/** A name for a new Step that no Step has had in this draft, so a Step taken out and one added are never read as one
+ *  reworded — the changes a Version lists match Steps by their names. */
+export const freshStepId = (steps: readonly Step[]): string => {
+  const taken = new Set(steps.map((step) => step.id));
+  for (;;) {
+    const id = `step-${Math.random().toString(36).slice(2, 10)}`;
+    if (!taken.has(id)) {
+      return id;
+    }
+  }
+};
+
+/** Most a choice's value may be, as the farm keeps it. */
+const CHOICE_VALUE_LENGTH = 40;
+
+/** A new choice's value: its own words, cut to what the farm keeps, and never one another choice holds. */
+const freshValue = (bn: string, taken: ReadonlySet<string>): string => {
+  const cut = bn.slice(0, CHOICE_VALUE_LENGTH).trim();
+  if (!taken.has(cut)) {
+    return cut;
+  }
+  for (let next = 2; ; next += 1) {
+    const suffix = `-${next}`;
+    const value = `${cut.slice(0, CHOICE_VALUE_LENGTH - suffix.length).trim()}${suffix}`;
+    if (!taken.has(value)) {
+      return value;
+    }
+  }
+};
+
 export const fromBilingualList = (values: Bilingual[]): string =>
   values.map((value) => value.bn).join(", ");
+
+/** The values of a round's choices the farm acts on, never handed to other words by their place in the list. */
+const MEANINGFUL_VALUES: ReadonlySet<string> = new Set([
+  HEAT,
+  ...URGENT_ROUND_WORDS,
+]);
 
 /**
  * What may be chosen, as the Owner types it: a comma-separated list in Bangla. A new choice
@@ -429,23 +518,34 @@ export const fromBilingualList = (values: Bilingual[]): string =>
  * there by its words keeps its own, wherever it has moved to and whatever was taken out around it
  * — matched by place, taking out "lame" handed the next choice its value, and a heat was then a
  * lame sighting. Reworded where it stood, in a list as long as it was, it keeps its value too:
- * rewriting records because somebody reworded the list would orphan every Observation already made.
+ * rewriting records because somebody reworded the list would orphan every Observation already made —
+ * unless the farm acts on it: a heat goes with the words "গরম হয়েছে", never to whatever is typed in its place.
  */
 export const toChoices = (value: string, existing: Choice[] = []): Choice[] => {
   const labels = splitList(value);
   const byLabel = new Map(existing.map((choice) => [choice.label.bn, choice]));
   const stillThere = new Set(labels.filter((bn) => byLabel.has(bn)));
-  const reworded = labels.length === existing.length;
+  const inPlace = labels.length === existing.length;
+  const taken = new Set(existing.map((choice) => choice.value));
   return labels.map((bn, index) => {
     const same = byLabel.get(bn);
     if (same) {
       return same;
     }
     const before = existing[index];
-    if (reworded && before && !stillThere.has(before.label.bn)) {
-      return { ...before, label: { ...before.label, bn } };
+    // Never a meaning by its place: a word put where "গরম হয়েছে" stood is not a heat until the Owner says it is the
+    // same thing (`lib/sop-meanings.ts`).
+    if (
+      inPlace &&
+      before &&
+      !stillThere.has(before.label.bn) &&
+      !MEANINGFUL_VALUES.has(before.value)
+    ) {
+      return { ...before, label: { bn } };
     }
-    return { value: bn, label: { bn } };
+    const fresh = freshValue(bn, taken);
+    taken.add(fresh);
+    return { value: fresh, label: { bn } };
   });
 };
 
@@ -457,3 +557,46 @@ export const needsChoices = (step: Step): boolean =>
   (step.effect === undefined && step.evidence[0]?.type === "choice");
 
 export const needsUnit = (type: EvidenceType): boolean => type === "number";
+
+/** The effects whose Step asks a fixed set of answers in a fixed order: shown in the editor, never changed there. */
+const FIXED_ANSWERS: ReadonlySet<StepEffect["kind"]> = new Set<
+  StepEffect["kind"]
+>([...SHAPED, ...ONCE_WITH_A_NOTE]);
+
+/** Whether a Step's answers are its effect's own, fixed in kind and order. */
+export const answersFixed = (step: Pick<Step, "effect">): boolean =>
+  step.effect !== undefined && FIXED_ANSWERS.has(step.effect.kind);
+
+/** The answers a Step may be given besides its first: a note, or a photograph — asked when somebody wants them, not
+ *  insisted on, so a photo is not demanded of every animal on the round. */
+export const ADDABLE_ANSWERS = ["note", "photo"] as const;
+
+export const withAnswerAdded = (
+  step: Step,
+  type: (typeof ADDABLE_ANSWERS)[number]
+): Step => ({
+  ...step,
+  evidence: [...step.evidence, { type, required: false }],
+});
+
+/** The Step with one of its answers after the first put right. */
+export const withAnswerAt = (
+  step: Step,
+  at: number,
+  answer: Evidence
+): Step => ({
+  ...step,
+  evidence: step.evidence.map((one, index) => (index === at ? answer : one)),
+});
+
+/** The Step without one of its answers after the first; the first is what the Step records, and stays. */
+export const withoutAnswer = (step: Step, at: number): Step =>
+  at === 0
+    ? step
+    : { ...step, evidence: step.evidence.filter((_, index) => index !== at) };
+
+/** An answer's label rewritten: none at all when emptied, rather than a label of no words the phone would show. */
+export const withLabel = (answer: Evidence, bn: string): Evidence => {
+  const { label, ...rest } = answer;
+  return bn.trim() === "" ? rest : { ...rest, label: reworded(label, bn) };
+};

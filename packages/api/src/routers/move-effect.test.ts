@@ -7,9 +7,25 @@ import { correctStepAsShown } from "../test/correct-step";
 import { staffKeep } from "../test/staff-pens";
 import { appRouter } from "./index";
 
+/** A procedure under a name of its own: the farm keeps one procedure in force for each name, and this file writes
+ *  the same one more than once. */
+let written = 0;
+const unique = (content: SopContent): SopContent => {
+  written += 1;
+  return {
+    ...content,
+    name: {
+      bn: `${content.name.bn} ${written}`,
+      ...(content.name.en ? { en: `${content.name.en} ${written}` } : {}),
+    },
+  };
+};
+
 /** The drying-off SOP: the cow stops milking and walks to the dry pen, and the walk is a
  *  Step of the procedure rather than something somebody remembers to record afterwards. */
-const movingSop = (pens: { id: string; name: string }[]): SopContent => ({
+const movingSopAsWritten = (
+  pens: { id: string; name: string }[]
+): SopContent => ({
   name: { bn: "শুকনো পেনে নিন", en: "Move to the dry pen" },
   purpose: { bn: "দুধ বন্ধ হলে গাভীকে সরান" },
   triggers: [{ kind: "schedule", times: ["06:00"] }],
@@ -36,6 +52,9 @@ const movingSop = (pens: { id: string; name: string }[]): SopContent => ({
     },
   ],
 });
+
+const movingSop = (pens: { id: string; name: string }[]): SopContent =>
+  unique(movingSopAsWritten(pens));
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });

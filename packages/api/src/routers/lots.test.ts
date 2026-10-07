@@ -36,8 +36,22 @@ const sweepAt = async (instant: string) => {
   await manager.client.alerts.sweep();
 };
 
+/** A procedure under a name of its own: the farm keeps one procedure in force for each name, and this file writes
+ *  the same one more than once. */
+let written = 0;
+const unique = (content: SopContent): SopContent => {
+  written += 1;
+  return {
+    ...content,
+    name: {
+      bn: `${content.name.bn} ${written}`,
+      ...(content.name.en ? { en: `${content.name.en} ${written}` } : {}),
+    },
+  };
+};
+
 /** A wormer given to every animal of a Pen, one dose each: the simplest way a dose leaves the store. */
-const campaignSop = (productId: string, tag: string): SopContent => ({
+const campaignSopAsWritten = (productId: string, tag: string): SopContent => ({
   name: { bn: `কৃমিনাশক ${suffix} ${tag}`, en: "Worming" },
   purpose: { bn: "পেনের পশুদের ওষুধ" },
   triggers: [],
@@ -57,8 +71,11 @@ const campaignSop = (productId: string, tag: string): SopContent => ({
   ],
 });
 
+const campaignSop = (productId: string, tag: string): SopContent =>
+  unique(campaignSopAsWritten(productId, tag));
+
 /** The morning's feeding, raised by hand for the test. */
-const feedingSop = (tag: string): SopContent => ({
+const feedingSopAsWritten = (tag: string): SopContent => ({
   name: { bn: `খাওয়ানো ${suffix} ${tag}`, en: "Feeding" },
   purpose: { bn: "পেনে খাবার দেওয়া" },
   triggers: [],
@@ -76,6 +93,9 @@ const feedingSop = (tag: string): SopContent => ({
     },
   ],
 });
+
+const feedingSop = (tag: string): SopContent =>
+  unique(feedingSopAsWritten(tag));
 
 /** A product with two Lots in the store, a bull in a Pen, and the work that doses him. */
 const aStore = async (tag: string) => {

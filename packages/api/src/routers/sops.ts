@@ -31,6 +31,7 @@ import { raiseAlerts } from "../alerts-store";
 import type { Trail, Tx } from "../audit";
 import { audited } from "../audit";
 import { protectedProcedure } from "../index";
+import { nameTaken } from "../names";
 import { tell } from "../notice";
 import { requirePersonalSession, requireRole } from "../roles";
 import {
@@ -277,6 +278,36 @@ const tellTheProposer = async (
 };
 
 /**
+ * Refuses a procedure named as another in force already is, in either language — the farm's name-clash rule. The
+ * standard head count adopted twice was two procedures raising every Pen's count twice, and one renamed brought the
+ * standard one back on offer. A retired procedure's name is free again, as it raises nothing.
+ */
+const assertNameFree = async (
+  tx: Tx,
+  farmId: string,
+  definitionId: string,
+  name: SopContent["name"]
+) => {
+  const inForce = await tx.query.sopDefinition.findMany({
+    where: { farmId, retiredAt: { isNull: true } },
+    columns: { id: true },
+    with: { currentVersion: { columns: { content: true } } },
+  });
+  const named = inForce.flatMap((one) => {
+    const said = (one.currentVersion?.content as SopContent | undefined)?.name;
+    return said
+      ? [{ id: one.id, nameBn: said.bn, nameEn: said.en ?? null }]
+      : [];
+  });
+  if (nameTaken(named, name, definitionId)) {
+    throw new ORPCError("CONFLICT", {
+      message: "Another procedure in force already has this name",
+      data: { refusal: "sop_name_taken" },
+    });
+  }
+};
+
+/**
  * Refuses a publish begun from a Version the procedure has moved on from: an edit started from a copy cached days ago,
  * or a Manager's proposal drafted against Version 1 approved after the Owner published Version 2, published whole and
  * quietly undid what came between. Drafted again from the Version in force, nothing is lost unseen.
@@ -355,6 +386,8 @@ const publishVersion = async (
   }
   await assertProductsMayBeGiven(tx, farmId, content);
   await assertOneSuchProcedure(tx, farmId, definitionId, content);
+  // After what is wrong with the procedure itself: a name already in force is a clash with the farm, said last.
+  await assertNameFree(tx, farmId, definitionId, content.name);
   const previous = await tx.query.sopVersion.findMany({
     where: { definitionId },
     columns: { number: true },
@@ -645,12 +678,35 @@ export const sopsRouter = {
           person: { columns: { name: true } },
         },
       });
-      return rows.map(({ version, person, ...row }) => ({
-        ...row,
-        versionNumber: version.number,
-        versionPublishedAt: version.publishedAt,
-        personName: person?.name ?? null,
-      }));
+      // The Version in force on the day asked about: a person taught Version 2 while Version 4 is in force still needs
+      // teaching, and the card said only "Version 2".
+      const asOf = input.asOf ?? context.clock.now();
+      const versions = await context.db.query.sopVersion.findMany({
+        where: {
+          farmId: context.farm.id,
+          definitionId: input.definitionId,
+          publishedAt: { lte: asOf },
+        },
+        columns: { id: true, number: true },
+        orderBy: { number: "desc" },
+        limit: 1,
+      });
+      const [inForce] = versions;
+      const seen = new Set<string>();
+      return rows.map(({ version, person, ...row }) => {
+        // Rows come latest first: each person's first is what they were last taught.
+        const latest = !seen.has(row.userId);
+        seen.add(row.userId);
+        return {
+          ...row,
+          versionNumber: version.number,
+          versionPublishedAt: version.publishedAt,
+          personName: person?.name ?? null,
+          latest,
+          versionInForce: inForce?.number ?? null,
+          onVersionInForce: row.versionId === inForce?.id,
+        };
+      });
     }),
 
   /**
