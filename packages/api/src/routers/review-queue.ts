@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { and, eq, isNull, sql } from "@OpenFarm/db/operators";
 import { weighIn } from "@OpenFarm/db/schema/fattening";
 import { needsReview } from "@OpenFarm/db/schema/review";
 import { syncEntry } from "@OpenFarm/db/schema/sync";
@@ -114,6 +114,23 @@ export const reviewQueueRouter = {
       )
     ),
 
+  /** How many are waiting in all: the list carries the oldest of them, and a tab that counted only those would say a
+   *  hundred however many more were behind them. */
+  waiting: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(async ({ context }) => {
+      const [row] = await context.db
+        .select({ waiting: sql<number>`count(*)::int` })
+        .from(needsReview)
+        .where(
+          and(
+            eq(needsReview.farmId, context.farm.id),
+            isNull(needsReview.resolvedAt)
+          )
+        );
+      return { waiting: row?.waiting ?? 0 };
+    }),
+
   /** Closing one is a judgement, so it is recorded as one: what was decided, by whom, under
    *  which Role. Nothing is removed. */
   resolve: protectedProcedure
@@ -166,6 +183,7 @@ export const reviewQueueRouter = {
           if (!row) {
             throw new ORPCError("NOT_FOUND", {
               message: "That is not waiting to be looked at",
+              data: { refusal: "review_closed" },
             });
           }
           if (

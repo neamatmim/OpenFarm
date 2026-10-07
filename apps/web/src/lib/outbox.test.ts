@@ -570,6 +570,117 @@ describe("what a crash must not cost", () => {
     expect(state).toMatchObject({ pending: 1, rejected: 0 });
   });
 
+  it("keeps trying through hours of no signal and a restarting farm, and never hands the work back for it", async () => {
+    const outbox = outboxOn();
+    for (const [i, litres] of [11, 9, 7].entries()) {
+      // oxlint-disable-next-line no-await-in-loop
+      await outbox.add("step_completion", milk(litres), `weak-${i}`);
+    }
+    const failures = [
+      new TypeError("Failed to fetch"),
+      { code: "SERVICE_UNAVAILABLE", message: "Service Unavailable" },
+      { code: "GATEWAY_TIMEOUT", message: "Gateway Timeout" },
+      { code: "INTERNAL_SERVER_ERROR", message: "Internal Server Error" },
+    ];
+    // Six hours of a weak signal and a farm being restarted, tried every time it is due.
+    for (let minute = 0; minute < 6 * 60; minute += 1) {
+      farm.refuses(failures[minute % failures.length] as object);
+      at = new Date(at.getTime() + 60_000);
+      // oxlint-disable-next-line no-await-in-loop
+      await outbox.flush();
+    }
+    expect(farm.sends.length).toBeGreaterThan(12);
+    // Still waiting, all of it, and the phone does not claim the farm took anything.
+    expect(await outbox.state()).toMatchObject({
+      pending: 3,
+      rejected: 0,
+      lastSyncAt: null,
+    });
+
+    farm.says(takesEverything);
+    at = new Date(at.getTime() + 60 * 60_000);
+    await outbox.flush();
+    expect(await outbox.state()).toMatchObject({ pending: 0, rejected: 0 });
+  });
+
+  it("hands back a batch the farm refused by its code, as an oRPC error comes with no HTTP status", async () => {
+    const outbox = outboxOn();
+    await outbox.add("step_completion", milk(11), "a");
+    farm.refuses({ code: "BAD_REQUEST", message: "Input validation failed" });
+
+    await outbox.flush();
+
+    expect(await outbox.state()).toMatchObject({
+      pending: 0,
+      rejected: 1,
+      lastSyncAt: null,
+    });
+  });
+
+  it("tries again a batch the farm is still applying from the last try", async () => {
+    const outbox = outboxOn();
+    await outbox.add("step_completion", milk(11), "a");
+    farm.refuses({
+      code: "CONFLICT",
+      message: "That batch is still being applied",
+      data: { refusal: "still_applying" },
+    });
+
+    await outbox.flush();
+
+    expect(await outbox.state()).toMatchObject({ pending: 1, rejected: 0 });
+  });
+
+  it("waits, rather than handing work back, on a phone the farm took off its list", async () => {
+    const outbox = outboxOn();
+    await outbox.add("step_completion", milk(11), "a");
+    farm.refuses({
+      code: "FORBIDDEN",
+      message: "This phone is no longer one of the farm's: enrol it again",
+      data: { refusal: "phone_revoked" },
+    });
+
+    await outbox.flush();
+
+    expect(await outbox.state()).toMatchObject({
+      paused: "signed_out",
+      pending: 1,
+      rejected: 0,
+    });
+  });
+
+  it("sends only the signed-in person's work, leaving another's to wait for them", async () => {
+    let signedIn = "rahim";
+    const outbox = new Outbox({
+      storage,
+      transport: farm.transport,
+      retry: new DefaultRetryPolicy(5, false),
+      now: () => at,
+      newKey: () => {
+        keys += 1;
+        return `key-${keys}`;
+      },
+      actorOf: () => signedIn,
+      mayCarry: (entry) => entry.actorId === signedIn,
+    });
+    await outbox.add("step_completion", milk(11), "rahims");
+    // Rahim signs out of the office computer with his milking still queued; Karim signs in.
+    signedIn = "karim";
+    await outbox.add("step_completion", milk(9), "karims");
+
+    await outbox.flush();
+    expect(
+      farm.sends.map((one) => one.entries.map((entry) => entry.id))
+    ).toEqual([["karims"]]);
+    expect(await outbox.state()).toMatchObject({ pending: 1, rejected: 0 });
+
+    signedIn = "rahim";
+    await outbox.flush();
+    expect(farm.sends.at(-1)?.entries.map((entry) => entry.id)).toEqual([
+      "rahims",
+    ]);
+  });
+
   it("remembers it was signed out, even after a restart", async () => {
     const outbox = outboxOn();
     await outbox.add("step_completion", milk(11), "a");

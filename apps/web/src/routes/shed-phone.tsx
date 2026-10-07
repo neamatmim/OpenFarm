@@ -27,6 +27,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { BackToSignIn, CODE_FIELD, DoorScreen } from "@/components/door-screen";
 import { EmptyState, Notice } from "@/components/page";
 import { PublicHeader } from "@/components/public-header";
+import { useOutboxSender } from "@/components/sync-banner";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import type { LockedOn } from "@/lib/after-unlock";
 import { afterUnlock, insideTheApp } from "@/lib/after-unlock";
@@ -510,10 +511,12 @@ const DevicePage = () => {
   );
 };
 
-/** The Shed Phone's own door: the farm's name at the top, and the one card that asks what is needed next. */
+/** The Shed Phone's own door: the farm's name at the top, and the one card that asks what is needed next. Locked on
+ *  the shelf, it still sends what the phone holds whenever its signal comes back. */
 const DeviceScreen = () => {
   const t = useT();
   const farmName = useFarmName();
+  useOutboxSender();
   const token = useSyncExternalStore(
     subscribeDevice,
     getDeviceToken,

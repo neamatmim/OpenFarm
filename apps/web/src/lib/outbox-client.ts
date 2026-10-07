@@ -12,6 +12,7 @@ import {
   getActiveUser,
   getDeviceToken,
   getSignedInPerson,
+  getSwitchToken,
   tokenForProof,
 } from "./device";
 import type { ProofSettled, Transport } from "./outbox";
@@ -22,14 +23,28 @@ import { proveHeldSwitches } from "./shed-phone";
  *  the one seam where a field the server does not recognise would quietly lose a morning's work. It sends what it is
  *  given: a Batch is frozen before it gets here, so every attempt under one key carries the same entries. */
 const farm: Transport = {
-  send: (batch) =>
-    client.sync.batch({
+  send: (batch) => {
+    const sending = {
       key: batch.key,
       sentAt: new Date(batch.sentAt),
       outboxId: batch.outboxId,
       entries: batch.entries,
-    }),
+    };
+    // A Shed Phone locked on the shelf, its signal back, sends what it holds with nobody switched in: each entry carries
+    // the token that proves its own person, so the work reaches the farm before the Manager takes it for undone.
+    return getDeviceToken() && !getSwitchToken()
+      ? client.sync.fromTheShelf(sending)
+      : client.sync.batch(sending);
+  },
 };
+
+/** What this phone may send now. A Shed Phone sends everybody's, each entry proving its own person. A person's own
+ *  phone or the office computer sends only the work of whoever is signed in: work somebody else left queued under
+ *  their own name waits for them to sign in again, rather than going under the wrong session and being refused. */
+const mayCarry = (entry: { actorId?: string }): boolean =>
+  Boolean(getDeviceToken()) ||
+  entry.actorId === undefined ||
+  entry.actorId === getSignedInPerson();
 
 /**
  * What the proofs in a Batch being frozen are worth. Work recorded under a PIN entered with no signal goes under
@@ -57,10 +72,6 @@ const settleProofs = async (
   return settled;
 };
 
-/** How many times a batch is offered before its entries are handed back to the person. A
- *  phone can be out of signal for days, so this is generous; what it is not is forever. */
-const MAX_ATTEMPTS = 12;
-
 let outbox: Outbox | null = null;
 
 /**
@@ -75,7 +86,9 @@ export const phoneOutbox = (): Outbox | null => {
   outbox ??= new Outbox({
     storage: new IndexedDBAdapter("openfarm-outbox", "entries"),
     transport: farm,
-    retry: new DefaultRetryPolicy(MAX_ATTEMPTS, true),
+    // Only how long to wait between tries: the Outbox never gives up on a Batch for want of signal (the Owner,
+    // 2026-10-07), and hands one back only when the farm has looked at it and refused it.
+    retry: new DefaultRetryPolicy(Number.POSITIVE_INFINITY, true),
     // Web Locks: two tabs open on the same phone would otherwise send the same entries
     // twice, under two keys, and the farm would have no way to know they were one thing.
     leader: new WebLocksLeader("openfarm-outbox"),
@@ -86,6 +99,7 @@ export const phoneOutbox = (): Outbox | null => {
         ? (getActiveUser()?.userId ?? null)
         : getSignedInPerson(),
     proofOf: () => (getDeviceToken() ? currentProof() : null),
+    mayCarry,
     settleProofs,
   });
   return outbox;

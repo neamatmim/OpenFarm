@@ -34,6 +34,7 @@ const SignOffPage = () => {
 
   const queue = useQuery(orpc.work.signOffQueue.queryOptions());
   const review = useQuery(orpc.reviewQueue.list.queryOptions());
+  const reviewWaiting = useQuery(orpc.reviewQueue.waiting.queryOptions());
   const late = useQuery(orpc.work.overdue.queryOptions());
 
   return (
@@ -57,8 +58,13 @@ const SignOffPage = () => {
             value: "review",
             label: t("review.title"),
             icon: Gavel,
-            count: review.data?.length,
-            content: <NeedsReview queue={review} />,
+            count: reviewWaiting.data?.waiting ?? review.data?.length,
+            content: (
+              <NeedsReview
+                queue={review}
+                waiting={reviewWaiting.data?.waiting}
+              />
+            ),
           },
           {
             value: "late",

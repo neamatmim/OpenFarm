@@ -214,6 +214,7 @@ const WORDED_REFUSALS = {
   no_such_pen: "refusal.noSuchPen",
   pen_not_yours: "refusal.penNotYours",
   pin_not_proved: "refusal.pinNotProved",
+  still_applying: "refusal.stillApplying",
   work_closed: "refusal.workClosed",
   review_closed: "refusal.reviewClosed",
   not_held_work: "refusal.notHeldWork",

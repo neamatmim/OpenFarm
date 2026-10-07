@@ -81,6 +81,8 @@ interface PendingBatch {
    *  midway through clearing its queue comes back and finishes the job — rather than
    *  offering the same key a shorter batch, which the farm rightly refuses. */
   verdicts?: EntryVerdict[];
+  /** The verdicts above are the phone's own, written when the farm refused the Batch whole: the farm took nothing. */
+  givenUp?: boolean;
 }
 
 export interface Transport {
@@ -107,6 +109,8 @@ export interface OutboxState {
   reviewed: number;
   /** When the farm last took something from this phone. */
   lastSyncAt: string | null;
+  /** When the oldest entry still waiting was recorded: how long the farm has been without it. */
+  oldestWaitingAt: string | null;
   paused: OutboxPause;
 }
 
@@ -170,22 +174,55 @@ const takeWhatFits = (waiting: OutboxEntry[]): OutboxEntry[] => {
   return taken;
 };
 
+/** The farm's own word for why, where it gave one. */
+const refusalWordOf = (error: unknown): unknown =>
+  (error as { data?: { refusal?: unknown } } | null)?.data?.refusal;
+
 /** The one shape an error has to have for the outbox to know it must stop and ask the
  *  person to sign in again rather than retry for ever. */
 const isSignedOut = (error: unknown): boolean => {
-  const code = (error as { code?: string; status?: number } | null)?.code;
-  const status = (error as { status?: number } | null)?.status;
-  return code === "UNAUTHORIZED" || status === 401;
+  const { code, status } = (error ?? {}) as { code?: string; status?: number };
+  // A phone the farm took off its list is enrolled again before anything can be sent; its work waits for that, as
+  // it waits for a sign-in, rather than being handed back to the person.
+  return (
+    code === "UNAUTHORIZED" ||
+    status === 401 ||
+    refusalWordOf(error) === "phone_revoked"
+  );
 };
 
 /** Codes that mean "not now" rather than "not ever": a farm too busy to answer, a request
  *  that timed out on a weak signal. Offering the same batch again is exactly right. */
 const TRY_AGAIN = new Set([408, 425, 429]);
 
-/** An error the farm will never accept, however often it is offered. Everything else — no
- *  route, a gateway, a server that fell over — is worth another go. */
+/** What the farm answers when it has looked at a Batch and will never take it, however often it is offered. An oRPC
+ *  error reaches the phone with its code and no HTTP status, so the code is what is read. */
+const REFUSING = new Set([
+  "BAD_REQUEST",
+  "FORBIDDEN",
+  "NOT_FOUND",
+  "METHOD_NOT_SUPPORTED",
+  "NOT_ACCEPTABLE",
+  "CONFLICT",
+  "GONE",
+  "PRECONDITION_FAILED",
+  "PAYLOAD_TOO_LARGE",
+  "UNSUPPORTED_MEDIA_TYPE",
+  "UNPROCESSABLE_CONTENT",
+  "PRECONDITION_REQUIRED",
+]);
+
+/** An error the farm will never accept, however often it is offered. Everything else — no signal, a gateway, a
+ *  server that fell over or was restarting, the same Batch still being applied from the last try — is worth another
+ *  go, for as long as it takes (the Owner, 2026-10-07): work is never handed back for want of signal. */
 const isRefusal = (error: unknown): boolean => {
-  const status = (error as { status?: number } | null)?.status;
+  if (refusalWordOf(error) === "still_applying") {
+    return false;
+  }
+  const { code, status } = (error ?? {}) as { code?: string; status?: number };
+  if (typeof code === "string" && REFUSING.has(code)) {
+    return true;
+  }
   return (
     typeof status === "number" &&
     status >= 400 &&
@@ -215,6 +252,9 @@ export interface OutboxOptions {
   settleProofs?: (
     refs: readonly string[]
   ) => Promise<Map<string, ProofSettled>>;
+  /** Whether this entry may be sent now: on a device people sign in to, only the signed-in person's own. Unasked,
+   *  every entry may. Entries it may not send wait, counted as waiting, until it may. */
+  mayCarry?: (entry: OutboxEntry) => boolean;
 }
 
 /**
@@ -377,6 +417,7 @@ export class Outbox {
       rejected: refused.length,
       reviewed: looked.length,
       lastSyncAt,
+      oldestWaitingAt: waiting[0]?.recordedAt ?? null,
       paused: this.paused,
     };
   }
@@ -437,10 +478,16 @@ export class Outbox {
     // and a Batch written down before this phone knew how to freeze one is answered here like any other.
     const answered = await this.read<PendingBatch>(PENDING_BATCH);
     if (answered?.verdicts) {
-      await this.finish(answered, waiting);
+      await this.finish(answered, waiting, { taken: !answered.givenUp });
       return { sent: 0, verdicts: answered.verdicts };
     }
-    const batch = await this.batchFor(waiting);
+    const mayCarry = this.options.mayCarry ?? (() => true);
+    const carried = waiting.filter(mayCarry);
+    if (carried.length === 0) {
+      // Somebody else's work, waiting for them to sign in on this device again.
+      return nothing;
+    }
+    const batch = await this.batchFor(carried);
     if (!batch) {
       // A tab on this phone still holds a PIN somebody entered offline: the work is theirs, and there is nothing
       // yet to prove it with. Waiting is not a failed attempt (the glossary's Waiting for a PIN) — nothing is
@@ -463,7 +510,7 @@ export class Outbox {
       // phone; what is left is bookkeeping the next flush can finish.
       const settled = { ...batch, verdicts: answer.results };
       await this.write(PENDING_BATCH, settled);
-      await this.finish(settled, waiting);
+      await this.finish(settled, waiting, { taken: true });
       return { sent: batch.entries.length, verdicts: answer.results };
     } catch (error) {
       await this.stumble(batch, error);
@@ -541,11 +588,14 @@ export class Outbox {
    *  run again, because every step is a write to a known key or a delete of one. */
   private async finish(
     batch: PendingBatch,
-    waiting: OutboxEntry[]
+    waiting: OutboxEntry[],
+    { taken }: { taken: boolean }
   ): Promise<void> {
     await this.settle(waiting, batch.verdicts ?? []);
     await this.options.storage.delete(PENDING_BATCH);
-    await this.write(LAST_SYNC, this.now().toISOString());
+    if (taken) {
+      await this.write(LAST_SYNC, this.now().toISOString());
+    }
   }
 
   private async settle(
@@ -586,10 +636,7 @@ export class Outbox {
     }
     const retryCount = batch.retryCount + 1;
     const message = (error as Error)?.message ?? "could not send";
-    if (
-      isRefusal(error) ||
-      !this.options.retry.shouldRetry(error as Error, retryCount)
-    ) {
+    if (isRefusal(error)) {
       // The farm will not take this batch however often it is offered. Its entries go to
       // the refused list with their data rather than blocking everything behind them.
       // Written down before a single entry is moved, exactly as the farm's own answer is: a phone that dies
@@ -600,6 +647,7 @@ export class Outbox {
       const stuck = waiting.filter((entry) => inIt.has(entry.id));
       const givenUp = {
         ...batch,
+        givenUp: true,
         verdicts: stuck.map((entry) => ({
           id: entry.id,
           seq: entry.seq,
@@ -608,7 +656,8 @@ export class Outbox {
         })),
       };
       await this.write(PENDING_BATCH, givenUp);
-      await this.finish(givenUp, waiting);
+      // The farm took nothing: when this phone last sent stays when the farm last took something.
+      await this.finish(givenUp, waiting, { taken: false });
       return;
     }
     await this.write(PENDING_BATCH, {

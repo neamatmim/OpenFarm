@@ -16,6 +16,7 @@ import {
   setSignedInPerson,
 } from "@/lib/device";
 import { installShell, keepStorage } from "@/lib/install";
+import { phoneOutbox } from "@/lib/outbox-client";
 import { whoTheyAre } from "@/lib/who-they-are";
 
 /** How long the farm's answer about who somebody is stands before it is asked again. Long enough that moving
@@ -130,6 +131,11 @@ export const Route = createFileRoute("/_authenticated")({
       throw redirect({ to: "/join" });
     }
     setSignedInPerson(me.id);
+    // Signed in again: whatever the Outbox stopped holding back for want of a session can go, without the person having
+    // to find the pill's small retry. A Shed Phone resumes on its PIN instead.
+    if (!getDeviceToken()) {
+      await phoneOutbox()?.resume();
+    }
     return { session, me };
   },
 });

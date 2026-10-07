@@ -414,6 +414,7 @@ export const applyBatch = async (
         }
         throw new ORPCError("CONFLICT", {
           message: "That batch is already being applied",
+          data: { refusal: "still_applying" },
         });
       }
       const applied = await applyEntries(tx, context, input, {

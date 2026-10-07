@@ -5,6 +5,7 @@ import { useMatches } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 
+import { useOutboxSender } from "@/components/sync-banner";
 import { useShedPhoneKeeper } from "@/lib/shed-phone";
 import { orpc } from "@/utils/orpc";
 
@@ -78,6 +79,7 @@ export const useSidebarOpen = () => {
  */
 export const AppShell = ({ children }: { children: ReactNode }) => {
   useShedPhoneKeeper();
+  useOutboxSender();
   const me = useQuery(orpc.people.me.queryOptions());
   const focused = useMatches({
     select: (matches) => matches.some((match) => match.staticData?.focusedWork),

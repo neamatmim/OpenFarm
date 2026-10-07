@@ -2,6 +2,7 @@ import { and, eq } from "@OpenFarm/db/operators";
 import { auditEvent } from "@OpenFarm/db/schema/audit";
 import { deviceSwitch } from "@OpenFarm/db/schema/device";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
+import { needsReview } from "@OpenFarm/db/schema/review";
 import type { SopContent } from "@OpenFarm/domain";
 import {
   FakeClock,
@@ -573,5 +574,107 @@ describe("work the farm held, taken in by the Manager", () => {
     expect(still.some((row) => row.id === waiting?.id)).toBe(true);
     const board = await staff.work.get({ id: instance.id });
     expect(board.completions).toHaveLength(1);
+  });
+});
+
+describe("a Shed Phone locked on the shelf", () => {
+  beforeAll(async () => {
+    await scratchDb()
+      .update(penAssignment)
+      .set({ endedAt: null })
+      .where(eq(penAssignment.id, `pa-attr-${world.pen.id}`));
+  });
+
+  it("sends what it holds when its signal comes back, each entry under the person its token proves", async () => {
+    const { instance, clock } = await morning("2031-08-01");
+    const milkedAt = clock.now();
+    const token = await provedPin(thePerson("staff").id, milkedAt);
+    // She put the phone back at six; it found signal at seven with nobody switched in.
+    clock.advance(90 * 60_000);
+    const { client: shelf } = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+      phone: PHONE,
+      locked: true,
+    });
+    const proved = milked(instance.id, thePerson("staff").id, milkedAt, token);
+    // And somebody else's, with nothing to prove it: never taken on the strength of hers.
+    const unproved = {
+      ...milked(instance.id, thePerson("otherStaff").id, milkedAt),
+      animalTag: `${world.cow.tagNumber}`,
+      stepId: "milk",
+    };
+    const sent = await shelf.sync.fromTheShelf({
+      key: `attr-${suffix}-${counted()}`,
+      entries: [proved, unproved],
+    });
+    expect(sent.results.map((one) => one.outcome)).toEqual(["applied", "kept"]);
+    const written = await scratchDb().query.stepCompletion.findFirst({
+      where: { id: proved.id },
+      columns: { recordedBy: true, deviceId: true },
+    });
+    expect(written).toEqual({
+      recordedBy: thePerson("staff").id,
+      deviceId: PHONE.id,
+    });
+  });
+
+  it("asks for a PIN when nothing it holds proves anybody", async () => {
+    const { instance, clock } = await morning("2031-08-02");
+    const { client: shelf } = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+      phone: PHONE,
+      locked: true,
+    });
+    await expect(
+      shelf.sync.fromTheShelf({
+        key: `attr-${suffix}-${counted()}`,
+        entries: [milked(instance.id, thePerson("staff").id, clock.now())],
+      })
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("is refused from anything but a Shed Phone", async () => {
+    const { instance, clock, staff } = await morning("2031-08-03");
+    await expect(
+      staff.sync.fromTheShelf({
+        key: `attr-${suffix}-${counted()}`,
+        entries: [milked(instance.id, thePerson("staff").id, clock.now())],
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("how many are waiting", () => {
+  it("counts every Needs Review waiting, though the list carries only the oldest hundred", async () => {
+    const { client: manager } = await createTestClient(appRouter, {
+      as: "manager",
+    });
+    const [anyEvent] = await scratchDb()
+      .select({ id: auditEvent.id })
+      .from(auditEvent)
+      .where(eq(auditEvent.farmId, theFarm().id))
+      .limit(1);
+    const { waiting: before } = await manager.reviewQueue.waiting();
+    await scratchDb()
+      .insert(needsReview)
+      .values(
+        Array.from({ length: 101 }, (_, i) => ({
+          id: `waiting-${suffix}-${i}`,
+          farmId: theFarm().id,
+          entity: "weigh_in",
+          entityId: `waiting-${suffix}-${i}`,
+          reason: "implausible_weight" as const,
+          auditEventId: anyEvent?.id ?? "",
+          raisedAt: new Date(),
+        }))
+      );
+    const listed = await manager.reviewQueue.list();
+    const { waiting } = await manager.reviewQueue.waiting();
+    expect(listed).toHaveLength(100);
+    expect(waiting).toBe(before + 101);
   });
 });
