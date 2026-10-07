@@ -11,6 +11,7 @@ import { audited } from "../audit";
 import { farmsOwnOf } from "../farm-capital-store";
 import { farmDay } from "../farm-clock";
 import { amountInput } from "../money-inputs";
+import { forgetTheMoneyOf } from "../money-store";
 import { closePayInNotes } from "../pay-in-notes";
 import { lockTheFarm, readMovement } from "../venture-store";
 import type { CorrectionKind } from "./correction";
@@ -40,6 +41,19 @@ const findMovement = (tx: Tx, farmId: string, id: string) =>
 
 type MovementRow = NonNullable<Awaited<ReturnType<typeof findMovement>>>;
 
+/**
+ * The Settlement's own money — an Investor's payout, the Advance coming back, the Farm's share or its share of a loss —
+ * is what the approved Settlement worked out, frozen; the Farm's Money Event for its share says the same figure. Its
+ * amount typed over left the Venture settled at less or more than nothing and the Farm's books disagreeing with it:
+ * only the day it moved and the reference on it are put right.
+ */
+const SETTLEMENT_MONEY: ReadonlySet<string> = new Set([
+  "payout",
+  "advance_repaid",
+  "farm_share",
+  "farm_loss_in",
+]);
+
 /** Why nothing about a Venture Movement may be put right, as the farm says it — or null, where it may be. */
 export interface WhyItStands {
   message: string;
@@ -59,13 +73,16 @@ export const whyItStands = (
     internalSaleId: string | null;
     saleId: string | null;
     intakeId: string | null;
-    /** Whether it moved the Farm's own capital, whose Money Event stands on the Farm's books beside it. */
+    /** Whether it moved the Farm's own capital, whose Money Event stands on the Farm's books beside it: put right
+     *  together with it, so no longer a reason it stands. */
     farmsOwn?: boolean;
   },
   ventureState: string | undefined,
   floatCounted: boolean
 ): WhyItStands | null => {
-  if (ventureState === "settled") {
+  // A settled Venture's own payouts are still put right in their day and reference: neither moves a figure the
+  // Settlement froze, and a mistyped reference on the last payout otherwise stood for good.
+  if (ventureState === "settled" && !SETTLEMENT_MONEY.has(row.kind)) {
     return {
       message: "That Venture is settled; raise a Settlement Adjustment instead",
       refusal: "venture_is_settled",
@@ -95,15 +112,6 @@ export const whyItStands = (
       message:
         "That made a lost animal good from the Farm's own money; it is not put right on the Venture's side alone",
       refusal: "made_good_with_the_farms_money",
-    };
-  }
-  if (row.farmsOwn) {
-    // The Farm's own capital in or out is a Money Event on the Farm's books as well. Changed here alone, the Venture
-    // and the Farm's books would disagree about one transfer, as with a lost animal made good.
-    return {
-      message:
-        "That moved the Farm's own capital, which its own books hold too; it is not put right on the Venture's side alone",
-      refusal: "the_farms_own_capital",
     };
   }
   if (row.intakeId) {
@@ -215,19 +223,6 @@ const assertMayBeVoided = async (tx: Tx, row: MovementRow) => {
   }
 };
 
-/**
- * The Settlement's own money — an Investor's payout, the Advance coming back, the Farm's share or its share of a loss —
- * is what the approved Settlement worked out, frozen; the Farm's Money Event for its share says the same figure. Its
- * amount typed over left the Venture settled at less or more than nothing and the Farm's books disagreeing with it:
- * only the day it moved and the reference on it are put right.
- */
-const SETTLEMENT_MONEY: ReadonlySet<string> = new Set([
-  "payout",
-  "advance_repaid",
-  "farm_share",
-  "farm_loss_in",
-]);
-
 const assertNotASettlementFigure = (row: MovementRow) => {
   if (SETTLEMENT_MONEY.has(row.kind)) {
     throw refuse(
@@ -337,6 +332,8 @@ export const ventureMovementCorrection: CorrectionKind<
   apply: async (tx, row, to, { context, now }) => {
     if (to.voided) {
       await assertMayBeVoided(tx, row);
+      // The Farm's own capital written twice leaves its books with it.
+      await forgetTheMoneyOf(tx, "venture_capital_out", row.id);
       await tx.delete(ventureMovement).where(eq(ventureMovement.id, row.id));
       return;
     }
@@ -368,9 +365,11 @@ export const ventureMovementCorrection: CorrectionKind<
         .set(putRight)
         .where(eq(ventureMovement.id, row.id));
     }
-    // The Farm's own side of it — its share, its loss — is a Money Event named by this movement: its day and reference
-    // move with it, so the Farm's books and the Venture's say the same transfer.
+    // The Farm's own side of it — its share, its loss, its own capital — is a Money Event named by this movement: its
+    // day and reference move with it, and for the Farm's own capital its amount too, so the Farm's books and the
+    // Venture's say the same transfer. (A Settlement's figures never reach here with an amount: refused above.)
     const followed = {
+      ...(to.amountMoney === undefined ? {} : { amountMoney: to.amountMoney }),
       ...(to.movedOn === undefined
         ? {}
         : { occurredAt: startOfFarmDay(to.movedOn) }),

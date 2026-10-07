@@ -23,7 +23,14 @@ const as = (role: "owner" | "manager" | "vet", instant: string) =>
 let fmdId = "";
 let releaseId = "";
 let penId = "";
-const tags = { owes: "", given: "", excused: "", byHand: "", early: "" };
+const tags = {
+  owes: "",
+  given: "",
+  excused: "",
+  byHand: "",
+  early: "",
+  takenBack: "",
+};
 
 /** The work one procedure raised about him, oldest first. */
 const workOf = async (definitionId: string, tagNumber: string) => {
@@ -100,7 +107,13 @@ beforeAll(async () => {
   // His FMD, skipped for every bull but the early one, whose day the test never turns to.
   const day = await as("manager", DOSE_DAY);
   await day.client.work.ensureDue();
-  for (const key of ["owes", "given", "excused", "byHand"] as const) {
+  for (const key of [
+    "owes",
+    "given",
+    "excused",
+    "byHand",
+    "takenBack",
+  ] as const) {
     // oxlint-disable-next-line no-await-in-loop -- one bull at a time
     const [work] = await workOf(fmdId, tags[key]);
     // oxlint-disable-next-line no-await-in-loop -- as above
@@ -188,5 +201,37 @@ describe("a Release while an arrival dose is owed", () => {
     });
     const him = await owner.client.animals.get({ tagNumber: tags.early });
     expect(him.state).toBe("fattening");
+  });
+
+  it("holds him again when the Vet takes the excuse back, the dose raised again — never once he is released on it", async () => {
+    const vet = await as("vet", RELEASE_DAY);
+    const excuse = {
+      tagNumber: tags.takenBack,
+      definitionId: fmdId,
+      reason: `কার্ড দেখেছি ${suffix}`,
+    };
+    await vet.client.treatments.excuseArrivalDose(excuse);
+    await vet.client.treatments.takeBackExcuse({
+      ...excuse,
+      reason: `কার্ডটি অন্য ষাঁড়ের ছিল ${suffix}`,
+    });
+
+    await expect(releaseHim(tags.takenBack)).rejects.toMatchObject({
+      data: { refusal: "arrival_dose_owed" },
+    });
+    const work = await workOf(fmdId, tags.takenBack);
+    expect(
+      work.some(
+        (one) => one.cause?.includes(":again:") && one.state !== "called_off"
+      )
+    ).toBe(true);
+    // The bull released on his excuse keeps it: his doses are now given in the herd.
+    await expect(
+      vet.client.treatments.takeBackExcuse({
+        tagNumber: tags.excused,
+        definitionId: fmdId,
+        reason: `ভুল ${suffix}`,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "released_on_it" } });
   });
 });

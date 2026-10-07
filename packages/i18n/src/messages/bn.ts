@@ -1436,6 +1436,14 @@ export const bn: Record<MessageKey, string> = {
   "ventures.wasPaid": "বাড়তি দেওয়া হয়েছে",
   "ventures.wasWaived": "মকুব করা হয়েছে",
   "ventures.waive": "মকুব করুন",
+  "ventures.uncount": "আবার গুনুন",
+  "ventures.uncountHint":
+    "ভুল স্লিপের সাথে মেলানো, বা ফেরত নগদ ভুল লেখা: ফেরত আসার হিসাব উঠে যাবে আর ফ্লোট আবার খোলা থাকবে, নতুন করে গোনার জন্য।",
+  "ventures.uncountIt": "গণনা ফিরিয়ে নিন: ভুল গোনা হয়েছিল",
+  "ventures.reopen": "আবার খুলুন",
+  "ventures.reopenHint":
+    "ভুল অঙ্কে পাঠানো, বা মওকুফ করা হয়েছিল যখন পাঠানো উচিত ছিল: যা পাঠানো হয়েছিল খামারের হিসাব থেকে উঠে যাবে, আর নতুন করে পাঠানো বা মওকুফের অপেক্ষায় থাকবে।",
+  "ventures.reopenIt": "আবার খুলুন: ভুল করে নিষ্পত্তি হয়েছিল",
   "ventures.waiveHint":
     "এর জন্য {currencySum} পাঠানোর দরকার নেই বলে ঠিক করছেন। কেন, তা লিখুন — এ সিদ্ধান্ত আপনারই।",
   "ventures.whyLetItGo": "কেন মকুব করছেন",
@@ -1668,6 +1676,15 @@ export const bn: Record<MessageKey, string> = {
     "এর জন্য কোর্স লেখা হয়েছে: আগে কোর্স বন্ধ করে ডোজগুলো ঠিক করুন",
   "refusal.herDeathNamesIt": "তার মৃত্যুর কারণ এটি বলা আছে: আগে মৃত্যুর রেকর্ড ঠিক করুন",
   "refusal.reportDelivered": "এর রিপোর্ট অফিসে পৌঁছে গেছে: যে চিঠি গেছে, তা গেছে",
+  "refusal.adjustmentNotClosed": "এই সমন্বয় পরিশোধ বা মওকুফ করা হয়নি",
+  "refusal.laterAdjustmentRestsOnIt":
+    "পরের একটি সমন্বয় এটি থেকে হিসাব করা হয়েছে: আগে সেটি খুলুন",
+  "refusal.countedSince": "এর পরে ওই হাতের নগদ গোনা হয়েছে: আগে সেই গণনা ঠিক করুন",
+  "refusal.handoverOfAnOuting":
+    "এই নগদ একটি হাট যাত্রার সাথে বা ভেঞ্চারে গেছে: সেখানেই ঠিক করুন",
+  "refusal.floatNotCounted": "এই ফ্লোট এখনো গোনা হয়নি",
+  "refusal.notExcused": "এই ডোজ মাফ করা হয়নি",
+  "refusal.releasedOnIt": "এর ভিত্তিতে তাকে ছেড়ে দেওয়া হয়েছে: পালের মধ্যে ডোজটি দিন",
   "refusal.notOnTheFarm":
     "খামারে এই রেকর্ডটি নেই: হয় এখনো কোনো ফোন থেকে আসেনি, নয়তো তুলে নেওয়া হয়েছে। একটু পরে পাতাটি আবার খুলুন",
   "refusal.recordedByALeaver":
@@ -2791,6 +2808,10 @@ export const bn: Record<MessageKey, string> = {
   "animals.doseComesRound": "আবার আসবে {day}",
   "animals.doseNotRaised": "এখনো আবার আসেনি",
   "animals.doseNotNeeded": "দরকার নেই",
+  "animals.excuseTakeBack": "ফিরিয়ে নিন",
+  "animals.excuseTakeBackHint":
+    "কারণটি অন্য পশুর ছিল: ডোজটি আবার বাকি, আর তার জন্য আবার তোলা হবে। তাকে এর ভিত্তিতে ছেড়ে দেওয়া হলে নয়।",
+  "animals.excuseTakeBackIt": "মাফ ফিরিয়ে নিন: ডোজ বাকি",
   "animals.doseNotNeededWhy": "কেন দরকার নেই",
   "animals.doseNotNeededHint":
     "লিখে রাখুন কেন এই ডোজ দরকার নেই — যেমন আগের খামারে দেওয়া, কার্ড দেখেছেন। তখন এটি আর বাকি থাকবে না, আর কোয়ারেন্টিন থেকে ছাড়া যাবে।",
@@ -4636,6 +4657,7 @@ export const bn: Record<MessageKey, string> = {
   "abortion.when": "কখন",
   "abortion.stageMonths": "কত মাসের গর্ভ ছিল",
   "abortion.note": "ভেটের মন্তব্য",
+  "abortion.voidIt": "তুলে নিন: এটি তার নয়। তার গর্ভ আবার পরীক্ষা করে জানা যাবে",
   "abortion.record": "গর্ভপাত রেকর্ড করুন",
   "abortion.recorded": "গর্ভপাত রেকর্ড হয়েছে",
   "refusal.abortionOfACowNotCarrying": "সে গর্ভবতী নয়, তাই গর্ভপাতের কিছু নেই",
@@ -5861,6 +5883,12 @@ export const bn: Record<MessageKey, string> = {
   "cash.col.bought": "কেনা",
   "cash.col.due": "ফেরত আসার কথা",
   "cash.none": "এই হাতে এখনো কোনো নগদ আসা-যাওয়া হয়নি।",
+  "cash.uncountHint":
+    "ভুল অঙ্কে গোনা হয়েছিল: ফেরত আনা নগদ যিনি বহন করেছিলেন তাঁর হাতে ফিরবে, আর হাট যাত্রা নতুন করে গোনা হবে।",
+  "cash.voidHandover": "ফিরিয়ে নিন",
+  "cash.voidHandoverHint":
+    "দুবার, বা ভুল হাতে লেখা হয়েছে: নগদ আবার সেই হাতে ফিরবে যেখান থেকে আসলে যায়নি। এর পরে কোনো হাত গোনা হয়ে থাকলে তা এর ওপর দাঁড়িয়ে।",
+  "cash.voidHandoverIt": "বাতিল করুন: নগদ হাতবদল হয়নি",
   "cash.heldBy": "{name}-এর হাতে",
   "cash.neverCounted": "এখনো গোনা হয়নি",
   "cash.forTrip": "হাটে কেনার যাত্রার {currencySum}",

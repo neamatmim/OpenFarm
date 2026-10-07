@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { audited } from "../audit";
 import {
+  uncountFarmFloat,
   cashInHand,
   cashMovementsOf,
   farmTripFloat,
@@ -12,6 +13,11 @@ import {
   recordHandover,
 } from "../cash-store";
 import type { HandEnd } from "../cash-store";
+import { correct } from "../corrections/correction";
+import {
+  handoverCorrection,
+  handoverCorrectionInput,
+} from "../corrections/handover";
 import { protectedProcedure } from "../index";
 import { amountInput } from "../money-inputs";
 import {
@@ -148,6 +154,51 @@ export const cashRouter = {
         }
       );
       return { id };
+    }),
+
+  /** A Handover voided: written twice, or to the wrong hand (`handoverCorrection`). */
+  correctHandover: protectedProcedure
+    .use(requireRole(...handoverCorrection.roles))
+    .use(requirePersonalSession())
+    .input(handoverCorrectionInput)
+    .handler(async ({ context, input }) => {
+      await correct(context, handoverCorrection, input);
+      return { id: input.id };
+    }),
+
+  /** A Farm Float's count taken back, with the Owner's reason (`uncountFarmFloat`). */
+  uncountFloat: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        tripId: z.string(),
+        reason: z.string().trim().min(1).max(400),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      await audited(context).write(
+        {
+          entity: "buying_trip",
+          entityId: input.tripId,
+          action: "correct",
+          reason: input.reason,
+          after: async (tx) => {
+            const float = await farmTripFloat(
+              tx,
+              context.farm.id,
+              input.tripId
+            );
+            return float ? { ...float } : null;
+          },
+        },
+        (tx) =>
+          uncountFarmFloat(tx, {
+            farmId: context.farm.id,
+            tripId: input.tripId,
+          })
+      );
+      return { tripId: input.tripId };
     }),
 
   /** Every Buying Float the Farm handed out for its own outings and has not yet counted home. */

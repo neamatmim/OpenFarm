@@ -486,6 +486,46 @@ describe("buying closed with a Float still out", () => {
   });
 });
 
+describe("a Float's count taken back", () => {
+  it("opens the Float again, its homecoming gone, to be counted afresh", async () => {
+    const owner = await as("owner", "2046-12-22T04:00:00.000Z");
+    const venture = await funded(owner, 9, 400_000);
+    const trip = await outing(owner, 9);
+    await owner.client.ventures.floats.draw({
+      ventureId: venture,
+      buyingTripId: trip,
+      amountMoney: 100_000,
+      movedOn: "2046-12-22",
+      paymentMethod: "bank",
+      reference: `FLT-${suffix}-9`,
+    });
+    await owner.client.ventures.floats.reconcile({
+      buyingTripId: trip,
+      cashBackMoney: 100_000,
+      movedOn: "2046-12-22",
+      reference: `DEP-${suffix}-9`,
+    });
+
+    await owner.client.ventures.floats.uncount({
+      buyingTripId: trip,
+      reason: "ভুল স্লিপের সাথে মেলানো হয়েছিল",
+    });
+
+    const movements = await scratchDb().query.ventureMovement.findMany({
+      where: { buyingTripId: trip },
+      columns: { kind: true, reconciledAt: true },
+    });
+    expect(movements).toEqual([{ kind: "float_out", reconciledAt: null }]);
+    // Counted again, the right slip this time.
+    await owner.client.ventures.floats.reconcile({
+      buyingTripId: trip,
+      cashBackMoney: 100_000,
+      movedOn: "2046-12-22",
+      reference: `DEP-${suffix}-9b`,
+    });
+  });
+});
+
 describe("a Float drawn at the moment a Farm bull is taken in on the same outing", () => {
   it("is drawn or the bull is taken in, never both", async () => {
     const owner = await as("owner", "2046-12-21T04:00:00.000Z");

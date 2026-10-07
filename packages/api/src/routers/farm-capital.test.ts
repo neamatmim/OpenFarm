@@ -189,20 +189,37 @@ describe("the Farm's own Units on a Venture", () => {
     expect(money).toEqual([
       expect.objectContaining({ amountMoney: 100_000, direction: "out" }),
     ]);
-    // Its Money Event stands on the Farm's books beside it: not put right on the Venture's side alone.
+    // Its Money Event stands on the Farm's books beside it: put right together, the two still say one transfer.
     const listed = await owner.ventures.movements.list({ ventureId });
-    expect(listed.find((one) => one.id === paid.id)?.whyItStands).toBe(
-      "the_farms_own_capital"
-    );
-    expect(
-      await refusalOf(
-        owner.ventures.movements.correct({
-          id: paid.id,
-          reason: `ভুল অঙ্ক ${suffix}`,
-          changes: { amountMoney: { from: 100_000, to: 90_000 } },
-        })
-      )
-    ).toBe("the_farms_own_capital");
+    expect(listed.find((one) => one.id === paid.id)?.whyItStands).toBeNull();
+    await owner.ventures.movements.correct({
+      id: paid.id,
+      reason: `ভুল অঙ্ক ${suffix}`,
+      changes: {
+        amountMoney: { from: 100_000, to: 90_000 },
+        reference: { from: `FARM-${suffix}`, to: `FARM-2-${suffix}` },
+      },
+    });
+    const followed = await scratchDb().query.moneyEvent.findMany({
+      where: {
+        farmId: theFarm().id,
+        source: "venture_capital_out",
+        sourceId: paid.id,
+      },
+      columns: { amountMoney: true, reference: true },
+    });
+    expect(followed).toEqual([
+      { amountMoney: 90_000, reference: `FARM-2-${suffix}` },
+    ]);
+    // Put back as it was, for what the tests after this one read.
+    await owner.ventures.movements.correct({
+      id: paid.id,
+      reason: `আগের অঙ্কে ফেরত ${suffix}`,
+      changes: {
+        amountMoney: { from: 90_000, to: 100_000 },
+        reference: { from: `FARM-2-${suffix}`, to: `FARM-${suffix}` },
+      },
+    });
   });
 });
 

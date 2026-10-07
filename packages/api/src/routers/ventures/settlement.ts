@@ -23,7 +23,12 @@ import { farmsOwnOf } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
 import { protectedProcedure } from "../../index";
 import { farmAccountIdInput } from "../../money-inputs";
-import { accountSaid, bookMoney, bookingOf } from "../../money-store";
+import {
+  accountSaid,
+  bookMoney,
+  bookingOf,
+  forgetTheMoneyOf,
+} from "../../money-store";
 import { requirePasswordGiven } from "../../password-again";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../../roles";
 import {
@@ -33,6 +38,7 @@ import {
   closeAdjustment,
   raiseAdjustment,
   theAdjustment,
+  reopenAdjustment,
 } from "../../settlement-adjustment-store";
 import {
   approvedSettlementOf,
@@ -854,6 +860,65 @@ export const settlementProcedures = {
               return { paidMoney };
             }
           );
+        }),
+
+      /**
+       * A paid or waived Adjustment opened again, with the Owner's reason: what it sent taken off the Farm's books, one
+       * Money Event for each Investor as it was paid, and it stands outstanding to be sent or waived afresh.
+       */
+      reopen: protectedProcedure
+        .use(requireOnly("owner", OWNER_ONLY))
+        .use(requirePersonalSession())
+        .input(
+          z.object({
+            ventureId: z.string(),
+            adjustmentId: z.string(),
+            reason: z.string().trim().min(1).max(400),
+          })
+        )
+        .handler(async ({ context, input }) => {
+          const row = await ours(context, input.ventureId);
+          await audited(context).write(
+            {
+              entity: "venture_settlement",
+              entityId: row.id,
+              action: "correct",
+              reason: input.reason,
+              before: (tx) => readSettlement(tx, context.farm.id, row.id),
+              after: (tx) => readSettlement(tx, context.farm.id, row.id),
+            },
+            async (tx) => {
+              await lockTheFarm(tx, context.farm.id);
+              const approved = await approvedSettlementOf(
+                tx,
+                context.farm.id,
+                row.id
+              );
+              if (!approved) {
+                throw new ORPCError("BAD_REQUEST", {
+                  message: "Nothing to adjust until the Settlement is approved",
+                  data: { refusal: "not_yet_approved" },
+                });
+              }
+              const was = await reopenAdjustment(
+                tx,
+                context.farm.id,
+                approved.row.id,
+                input.adjustmentId
+              );
+              if (was.outcome === "paid") {
+                for (const share of approved.shares) {
+                  // oxlint-disable-next-line no-await-in-loop -- one transaction, one Investor's payment at a time
+                  await forgetTheMoneyOf(
+                    tx,
+                    "settlement_adjustment",
+                    `${input.adjustmentId}:${share.agreementId}`
+                  );
+                }
+              }
+            }
+          );
+          return { reopened: true as const };
         }),
 
       /**

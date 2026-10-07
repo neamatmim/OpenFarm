@@ -195,6 +195,36 @@ describe("a course the Vet gives up", () => {
   });
 });
 
+describe("a Diagnosis on the wrong animal with a course on it", () => {
+  it("is taken away with its course while no dose has been given, the work of each dose called off", async () => {
+    const clock = new FakeClock("2026-11-12T03:00:00.000Z");
+    const { heifer, vet, course } = await onACourse(clock, 3);
+    const recorded = await scratchDb().query.prescription.findFirst({
+      where: { id: course.id },
+      columns: { diagnosisId: true },
+    });
+
+    await vet.client.diagnoses.correct({
+      id: recorded?.diagnosisId ?? "",
+      reason: "অন্য বকনা, ট্যাগ ভুল পড়া",
+      changes: { voided: { from: false, to: true } },
+    });
+
+    expect(
+      await scratchDb().query.prescription.findFirst({
+        where: { id: course.id },
+        columns: { id: true },
+      })
+    ).toBeUndefined();
+    const work = await scratchDb().query.sopInstance.findMany({
+      where: { animalId: heifer.id },
+      columns: { state: true },
+    });
+    expect(work.length).toBeGreaterThan(0);
+    expect(work.every((one) => one.state === "called_off")).toBe(true);
+  });
+});
+
 describe("a dose not prescribed", () => {
   it("from a Lot past its day is told to the Vet and the Manager", async () => {
     const clock = new FakeClock("2033-03-01T04:00:00.000Z");

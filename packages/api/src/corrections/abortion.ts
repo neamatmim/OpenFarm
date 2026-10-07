@@ -16,12 +16,15 @@ export const abortionCorrectionInput = correctionInput({
   abortedAt: changeOf(z.coerce.date(), z.coerce.date()),
   stageMonths: changeOf(z.number().int().min(1).max(9), z.number()),
   note: changeOf(z.string().trim().min(1).max(2000), z.string()),
+  /** Written against the wrong cow: taken away by the Vet who wrote it, with a reason kept in the trail. */
+  voided: changeOf(z.literal(true), z.boolean()),
 });
 
 /**
  * An abortion put right. The Vet's to change, as it was the Vet's to record — the Vet who recorded it, however long ago.
- * What it did to her pregnancy stands, and is nothing the Manager has to look at: an abortion recorded against the
- * wrong cow is a pregnancy to find again with a check, not one to restore from here.
+ * Voided when written against the wrong cow, so it no longer stands in her fertility figures. What it did to her
+ * pregnancy stands, and is nothing the Manager has to look at: her pregnancy is one to find again with a check, not one
+ * to restore from here.
  */
 export const abortionCorrection: CorrectionKind<
   NonNullable<Awaited<ReturnType<typeof loadAbortion>>>,
@@ -50,9 +53,14 @@ export const abortionCorrection: CorrectionKind<
       abortedAt: row.abortedAt,
       stageMonths: row.stageMonths,
       note: row.note,
+      voided: false,
     }),
   trail: (tx, row) => readAbortion(tx, row.id),
   apply: async (tx, row, to, { now }) => {
+    if (to.voided) {
+      await tx.delete(abortion).where(eq(abortion.id, row.id));
+      return;
+    }
     if (to.abortedAt !== undefined) {
       await assertLostWhenItCouldBe(tx, to.abortedAt, now, row.serviceId);
     }

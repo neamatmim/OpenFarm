@@ -1,3 +1,5 @@
+import { and, eq } from "@OpenFarm/db/operators";
+import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import type { VentureState } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -111,4 +113,40 @@ export const actOnVenture = async (
     }
     await act.apply(tx, standing);
   });
+};
+
+/**
+ * A Venture Float's count taken back: its homecoming goes and the Float is open again, to be counted afresh. Refused
+ * once the Venture is settled up, whose figures it is part of. Behind the Farm lock, as counting it is.
+ */
+export const uncountVentureFloat = async (
+  tx: Tx,
+  farmId: string,
+  buyingTripId: string
+): Promise<{ id: string }> => {
+  await lockTheFarm(tx, farmId);
+  const float = await tx.query.ventureMovement.findFirst({
+    where: { farmId, buyingTripId, kind: "float_out" },
+  });
+  if (!float?.reconciledAt) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That Float has not been counted",
+      data: { refusal: "float_not_counted" },
+    });
+  }
+  await assertNotSettledUp(tx, farmId, float.ventureId);
+  await tx
+    .delete(ventureMovement)
+    .where(
+      and(
+        eq(ventureMovement.farmId, farmId),
+        eq(ventureMovement.refundsId, float.id),
+        eq(ventureMovement.kind, "float_back")
+      )
+    );
+  await tx
+    .update(ventureMovement)
+    .set({ reconciledAt: null, reconciledBy: null })
+    .where(eq(ventureMovement.id, float.id));
+  return { id: float.id };
 };

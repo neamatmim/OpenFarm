@@ -110,8 +110,10 @@ const CorrectConclusion = ({ made }: { made: Made }) => {
     outcome: choice(made.outcome ?? null),
     voided: voiding(),
   });
-  // Taken away only while no course rests on it: a course is stopped, and its doses put right, first.
-  const mayVoid = made.prescriptions.length === 0;
+  // Taken away, with any course, while no dose has been given on it: a dose given is put right on its Step first.
+  const mayVoid = made.prescriptions.every((course) =>
+    course.doses.every((dose) => dose.givenAt === null)
+  );
   const correct = useMutation(orpc.diagnoses.correct.mutationOptions({}));
   return (
     <CorrectionDialog

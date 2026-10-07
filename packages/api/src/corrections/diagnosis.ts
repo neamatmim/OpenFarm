@@ -1,8 +1,10 @@
-import { eq } from "@OpenFarm/db/operators";
+import { eq, inArray } from "@OpenFarm/db/operators";
 import {
   DIAGNOSIS_OUTCOMES,
   diagnosis,
   dlsReport,
+  prescription,
+  treatment,
 } from "@OpenFarm/db/schema/health";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { ORPCError } from "@orpc/server";
@@ -48,9 +50,50 @@ const refuse = (message: string, refusal: string) =>
   new ORPCError("BAD_REQUEST", { message, data: { refusal } });
 
 /**
+ * The courses prescribed for a Diagnosis taken away with it, where none of their doses has been given: the work of each
+ * dose owed is called off, and the doses and courses go. A dose given is the record of something put into an animal,
+ * and is put right on its Step first.
+ */
+const takeAwayItsCourses = async (
+  tx: Tx,
+  row: { id: string; farmId: string },
+  trail: Trail
+) => {
+  const courses = await tx.query.prescription.findMany({
+    where: { diagnosisId: row.id, farmId: row.farmId },
+    columns: { id: true },
+  });
+  const ids = courses.map((one) => one.id);
+  const given = await tx.query.treatment.findFirst({
+    where: { prescriptionId: { in: ids }, givenAt: { isNotNull: true } },
+    columns: { id: true },
+  });
+  if (given) {
+    throw refuse(
+      "A dose of its course has been given: put that dose right on its step first",
+      "prescribed_for_it"
+    );
+  }
+  const owed = await tx.query.treatment.findMany({
+    where: { prescriptionId: { in: ids } },
+    columns: { instanceId: true },
+  });
+  const work = owed.flatMap((one) => (one.instanceId ? [one.instanceId] : []));
+  if (work.length > 0) {
+    await callOffWork(tx, row.farmId, inArray(sopInstance.id, work), {
+      trail,
+      by: "course_stopped",
+    });
+  }
+  await tx.delete(treatment).where(inArray(treatment.prescriptionId, ids));
+  await tx.delete(prescription).where(inArray(prescription.id, ids));
+};
+
+/**
  * A Diagnosis written against the wrong animal, taken away: a notifiable disease on the wrong cow could leave her list
- * only by being renamed, which said something false about her. Refused while what was done on it stands — a course
- * prescribed for it, her death put down to it, a letter that has reached the office — each put right on its own first.
+ * only by being renamed, which said something false about her. Refused while what was done on it stands — a dose of its
+ * course given, her death put down to it, a letter that has reached the office — each put right on its own first. A
+ * course with nothing given goes with it.
  * A letter not yet taken goes with it, and the work to take it.
  */
 const voidTheDiagnosis = async (
@@ -74,10 +117,7 @@ const voidTheDiagnosis = async (
     }),
   ]);
   if (prescribed) {
-    throw refuse(
-      "A course was prescribed for it: stop the course and put its doses right first",
-      "prescribed_for_it"
-    );
+    await takeAwayItsCourses(tx, row, trail);
   }
   if (died) {
     throw refuse(

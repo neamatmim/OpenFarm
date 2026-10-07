@@ -324,6 +324,17 @@ describe("the abortion", () => {
     });
     expect(corrected.abortions[0]).toMatchObject({ stageMonths: 5 });
 
+    // Written against the wrong cow, the Vet takes it away: it no longer stands in her fertility record.
+    await vet.client.breeding.correctAbortion({
+      id: recorded.id,
+      changes: { voided: { from: false, to: true } },
+      reason: "অন্য বকনার, ট্যাগ ভুল পড়া",
+    });
+    const taken = await manager.client.animals.get({
+      tagNumber: world.carrying,
+    });
+    expect(taken.abortions).toEqual([]);
+
     // A cow who is not carrying has nothing to lose.
     await expect(
       vet.client.breeding.recordAbortion({

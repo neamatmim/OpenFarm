@@ -7,6 +7,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Banknote, HandCoins } from "lucide-react";
 import { useState } from "react";
 
+import { TakeItBack } from "@/components/animal/take-it-back";
 import {
   ActionsHeader,
   DataTable,
@@ -376,6 +377,26 @@ const MovementWhat = ({ one }: { one: Movement }) => {
   });
 };
 
+/** A Handover written twice or to the wrong hand, voided by whoever wrote it in their window or by the Owner. */
+const VoidHandover = ({ id }: { id: string }) => {
+  const { t } = useLanguage();
+  const correct = useMutation(orpc.cash.correctHandover.mutationOptions({}));
+  return (
+    <TakeItBack
+      choice={t("cash.voidHandoverIt")}
+      hint={t("cash.voidHandoverHint")}
+      onSave={(reason) =>
+        correct.mutateAsync({
+          id,
+          reason,
+          changes: { voided: { from: false, to: true } },
+        })
+      }
+      title={t("cash.voidHandover")}
+    />
+  );
+};
+
 /** What moved cash into or out of one hand, newest first: the money that named it, and every Handover. */
 const Movements = ({ hand }: { hand: Hand }) => {
   const { t, language } = useLanguage();
@@ -407,13 +428,18 @@ const Movements = ({ hand }: { hand: Hand }) => {
               {one.note ? ` · ${one.note}` : ""}
             </span>
           </span>
-          <span
-            className={cn(
-              "whitespace-nowrap tabular-nums",
-              one.amount < 0 ? "text-muted-foreground" : "font-medium"
-            )}
-          >
-            {one.amount < 0 ? `− ${asMoney(-one.amount)}` : asMoney(one.amount)}
+          <span className="flex items-baseline gap-2">
+            <span
+              className={cn(
+                "whitespace-nowrap tabular-nums",
+                one.amount < 0 ? "text-muted-foreground" : "font-medium"
+              )}
+            >
+              {one.amount < 0
+                ? `− ${asMoney(-one.amount)}`
+                : asMoney(one.amount)}
+            </span>
+            {one.kind === "handover" ? <VoidHandover id={one.id} /> : null}
           </span>
         </li>
       ))}

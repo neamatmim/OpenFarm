@@ -183,6 +183,26 @@ describe("a Buying Float for the Farm's own outing", () => {
   });
 });
 
+describe("a Farm float's count taken back", () => {
+  it("opens the float again: the cash back leaves the Owner's hand for the carrier's, and it is counted afresh", async () => {
+    const owner = await as("owner");
+    const ownerBefore = await handOf("owner");
+    const managerBefore = await handOf("manager");
+    await owner.client.cash.uncountFloat({
+      tripId,
+      reason: "নয় হাজার নয়, আট হাজার ফেরত এসেছিল",
+    });
+    expect(await handOf("owner")).toBe(ownerBefore - 9000);
+    expect(await handOf("manager")).toBe(managerBefore + 9000);
+    const manager = await as("manager");
+    const floats = await manager.client.cash.tripFloats();
+    expect(floats.map((one) => one.tripId)).toContain(tripId);
+    // Counted again, to the taka.
+    await owner.client.cash.countFloatHome({ tripId, cashBackMoney: 9000 });
+    expect(await handOf("owner")).toBe(ownerBefore);
+  });
+});
+
 describe("a Farm float counted home twice at once", () => {
   it("is counted home once: one count goes through, the other is refused, and the cash back is booked once", async () => {
     const owner = await as("owner", "2072-03-01T04:00:00.000Z");

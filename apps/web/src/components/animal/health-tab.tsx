@@ -8,7 +8,7 @@ import { ClipboardPlus, Eye, Stethoscope } from "lucide-react";
 import { useState } from "react";
 
 import { DoseTable } from "@/components/animal-histories";
-import { WithdrawSighting } from "@/components/animal/take-it-back";
+import { TakeItBack, WithdrawSighting } from "@/components/animal/take-it-back";
 import type { Course } from "@/components/course";
 import { CourseLine } from "@/components/course";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
@@ -292,6 +292,30 @@ const ExcuseDose = ({
   );
 };
 
+/** The Vet's excuse taken back: the dose is owed again, and raised again for him. */
+const TakeBackExcuse = ({
+  tagNumber,
+  definitionId,
+}: {
+  tagNumber: string;
+  definitionId: string;
+}) => {
+  const { t } = useLanguage();
+  const takeBack = useMutation(
+    orpc.treatments.takeBackExcuse.mutationOptions({})
+  );
+  return (
+    <TakeItBack
+      choice={t("animals.excuseTakeBackIt")}
+      hint={t("animals.excuseTakeBackHint")}
+      onSave={(reason) =>
+        takeBack.mutateAsync({ tagNumber, definitionId, reason })
+      }
+      title={t("animals.excuseTakeBack")}
+    />
+  );
+};
+
 /**
  * Her arrival doses still owed — put off, and not given since — each with when it comes round next; the Vet may write
  * why one is not needed, and one excused reads as the Vet's word. Nothing when none.
@@ -335,8 +359,16 @@ const DosesOwed = ({
             </span>
             {/* Missing from an answer kept from before the Vet could excuse a dose: read as not excused. */}
             {one.excused ? (
-              <span className="text-muted-foreground">
-                {t("animals.doseExcused", { reason: one.excused.reason })}
+              <span className="flex items-center gap-2">
+                <span className="text-muted-foreground">
+                  {t("animals.doseExcused", { reason: one.excused.reason })}
+                </span>
+                {isVet ? (
+                  <TakeBackExcuse
+                    definitionId={one.definitionId}
+                    tagNumber={tagNumber}
+                  />
+                ) : null}
               </span>
             ) : (
               <span className="flex items-center gap-2">
