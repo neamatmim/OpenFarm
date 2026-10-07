@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Truck } from "lucide-react";
 
 import {
   CorrectionAnswer,
+  CorrectionChoice,
   CorrectionDialog,
   useCorrecting,
 } from "@/components/correction-dialog";
@@ -30,6 +31,7 @@ import {
   moment,
   note,
   optionalFigure,
+  voiding,
 } from "@/lib/correcting";
 import { orpc } from "@/utils/orpc";
 
@@ -41,6 +43,7 @@ import { shiftDay, worthOf } from "./milk-types";
 const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
   const { t } = useLanguage();
   const correcting = useCorrecting({
+    voided: voiding(),
     // A collection typed in after midnight is put back on the day the milk left.
     dispatchedAt: moment(dispatch.dispatchedAt),
     litres: amount(dispatch.litres),
@@ -141,6 +144,13 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
           value={correcting.typed.promisedBy ?? ""}
         />
       </div>
+      <CorrectionChoice
+        label={t("correct.voidWhy")}
+        onChange={(value) => correcting.set("voided", value)}
+        options={[{ value: "void", label: t("correct.voidIt") }]}
+        unchosen={t("correct.keep")}
+        value={correcting.typed.voided ?? ""}
+      />
     </CorrectionDialog>
   );
 };

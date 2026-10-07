@@ -18,6 +18,7 @@ import {
   bookingOf,
   bookMoney,
   farmAccountShownOf,
+  forgetTheMoneyOf,
   moneySnapshotOf,
   paymentMethodOf,
 } from "../money-store";
@@ -63,6 +64,9 @@ export const medicinePurchaseCorrectionInput = correctionInput({
   paymentMethod: paymentMethodChange,
   /** Which Farm Account mobile money or bank money names, and its transaction ID. */
   farmAccount: farmAccountChange,
+  /** Entered twice, or it never came: taken off the books with its money, by whoever may correct it in their window,
+   *  the Owner at any time (the Owner, 2026-10-07). */
+  voided: changeOf(z.literal(true), z.boolean()),
 });
 
 /**
@@ -117,10 +121,18 @@ export const medicinePurchaseCorrection: CorrectionKind<
       "medicine_purchase",
       row.id
     ),
+    voided: false,
   }),
   shownAs: { seller: (to) => to.name },
   trail: (tx, row) => readPurchase(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
+    // The store and its Lots are read again from what was bought, so a purchase taken away leaves them as if it never
+    // came.
+    if (to.voided) {
+      await forgetTheMoneyOf(tx, "medicine_purchase", row.id);
+      await tx.delete(medicinePurchase).where(eq(medicinePurchase.id, row.id));
+      return;
+    }
     const purchasedOn = to.purchasedOn ?? farmDayOf(row.purchasedOn);
     if (startOfFarmDay(purchasedOn) > now) {
       throw new ORPCError("BAD_REQUEST", {

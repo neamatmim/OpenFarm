@@ -1,5 +1,14 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { and, eq, gte, isNull, like, lt, sql } from "@OpenFarm/db/operators";
+import {
+  and,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  like,
+  lt,
+  sql,
+} from "@OpenFarm/db/operators";
 import { alert } from "@OpenFarm/db/schema/alert";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import type { SIDES } from "@OpenFarm/db/schema/herd";
@@ -13,6 +22,7 @@ import {
   RECORD_SOURCES,
   moneyCategory,
   moneyEvent,
+  moneyReceipt,
 } from "@OpenFarm/db/schema/money";
 import type { ApprovedTerms, MoneyApproval } from "@OpenFarm/domain";
 import {
@@ -1047,4 +1057,25 @@ export const awaitingApproval = async (
     totalMoney: roundMoney(Number(row?.totalMoney ?? 0)),
     farmsOldestOn: oldest ? farmDayOf(oldest) : null,
   };
+};
+
+/**
+ * Takes a voided record's money off the books: its Money Events and their receipts. A void is a record that should
+ * never have been written — entered twice, or never spent — so its money is gone with it rather than set to nothing.
+ */
+export const forgetTheMoneyOf = async (
+  tx: Tx,
+  source: MoneySource,
+  sourceId: string
+): Promise<void> => {
+  const events = await tx.query.moneyEvent.findMany({
+    where: { source, sourceId },
+    columns: { id: true },
+  });
+  const ids = events.map((one) => one.id);
+  if (ids.length === 0) {
+    return;
+  }
+  await tx.delete(moneyReceipt).where(inArray(moneyReceipt.moneyEventId, ids));
+  await tx.delete(moneyEvent).where(inArray(moneyEvent.id, ids));
 };

@@ -35,6 +35,7 @@ import {
   figure,
   isWholeWindow,
   targetWindow,
+  voiding,
   withWindowDay,
 } from "@/lib/correcting";
 import { useRefused } from "@/lib/refused";
@@ -328,6 +329,7 @@ const intakeAnswers = (
   buyingTrip: outingOf(intake.buyingTrip?.id ?? null),
   weightKg: amount(intake.weightKg),
   estimatedAgeMonths: figure(intake.estimatedAgeMonths),
+  voided: voiding(),
   ...(intake.paymentMethod
     ? { paymentMethod: choice(intake.paymentMethod) }
     : {}),
@@ -430,6 +432,13 @@ const IntakeCorrection = ({
           forTheFarmFrom={owner?.name ?? null}
         />
       ) : null}
+      <CorrectionChoice
+        label={t("correct.voidWhy")}
+        onChange={(value) => correcting.set("voided", value)}
+        options={[{ value: "void", label: t("correct.voidAnimal") }]}
+        unchosen={t("correct.keep")}
+        value={correcting.typed.voided ?? ""}
+      />
     </CorrectionDialog>
   );
 };

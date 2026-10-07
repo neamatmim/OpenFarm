@@ -1,4 +1,5 @@
-import { moneyEvent } from "@OpenFarm/db/schema/money";
+import { eq } from "@OpenFarm/db/operators";
+import { moneyEvent, moneyReceipt } from "@OpenFarm/db/schema/money";
 import type { Side } from "@OpenFarm/domain";
 import { farmDayOf, herdShares, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -67,6 +68,10 @@ export const moneyByHandCorrectionInput = correctionInput({
   note: changeOf(noteInput.nullable(), z.string().nullable()),
   wageMonth: changeOf(monthInput.nullable(), z.string().nullable()),
   side: changeOf(sideInput.nullable(), z.string().nullable()),
+  /** Entered twice — the Owner and the Manager both wrote up the bill, a Save tapped again on a weak signal — or never
+   *  spent: taken off the books with its receipt, by whoever may correct it in their window, the Owner at any time (the
+   *  Owner, 2026-10-07). */
+  voided: changeOf(z.literal(true), z.boolean()),
 }).extend({ receipt: receiptInput.optional() });
 
 type Input = z.infer<typeof moneyByHandCorrectionInput>;
@@ -174,6 +179,7 @@ export const moneyByHandCorrection: CorrectionKind<
       note: row.note,
       wageMonth: row.wageMonth,
       side: row.side,
+      voided: false,
     }),
   shownAs: { counterparty: (to) => to.name },
   changesBeyondValues: ({ receipt }) => receipt !== undefined,
@@ -182,6 +188,7 @@ export const moneyByHandCorrection: CorrectionKind<
     // A wage that took Wage Draws booked only what was paid on the day: its amount, the person or the month put right
     // alone would leave the draws taken against the wrong figure.
     const touchesTheWage =
+      to.voided === true ||
       to.amountMoney !== undefined ||
       to.counterparty !== undefined ||
       to.wageMonth !== undefined;
@@ -191,6 +198,13 @@ export const moneyByHandCorrection: CorrectionKind<
           "This wage took the person's draws; its amount, person and month stand as they were",
         data: { refusal: "wage_took_draws" },
       });
+    }
+    if (to.voided) {
+      await tx
+        .delete(moneyReceipt)
+        .where(eq(moneyReceipt.moneyEventId, row.id));
+      await tx.delete(moneyEvent).where(eq(moneyEvent.id, row.id));
+      return;
     }
     const wageMonth = to.wageMonth === undefined ? row.wageMonth : to.wageMonth;
     const categoryId = to.categoryId ?? row.categoryId;

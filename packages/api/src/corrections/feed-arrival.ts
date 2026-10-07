@@ -11,6 +11,7 @@ import {
   accountSaid,
   bookingOf,
   farmAccountShownOf,
+  forgetTheMoneyOf,
   paymentMethodOf,
 } from "../money-store";
 import {
@@ -58,6 +59,9 @@ export const feedArrivalCorrectionInput = correctionInput({
   paymentMethod: paymentMethodChange,
   /** Which Farm Account mobile money or bank money names, and its transaction ID. */
   farmAccount: farmAccountChange,
+  /** Entered twice, or it never came: taken off the books with its money, by whoever may correct it in their window,
+   *  the Owner at any time (the Owner, 2026-10-07). */
+  voided: changeOf(z.literal(true), z.boolean()),
 });
 
 /**
@@ -100,10 +104,17 @@ export const feedArrivalCorrection: CorrectionKind<
     seller: row.seller?.name ?? null,
     receivedOn: farmDayOf(row.receivedOn),
     paymentMethod: await paymentMethodOf(tx, row.farmId, "feed_in", row.id),
+    voided: false,
   }),
   shownAs: { seller: (to) => to.name },
   trail: (tx, row) => readFeedArrival(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
+    // The store is read again from what came in, so a lorry taken away leaves it as if it never came.
+    if (to.voided) {
+      await forgetTheMoneyOf(tx, "feed_in", row.id);
+      await tx.delete(feedIn).where(eq(feedIn.id, row.id));
+      return;
+    }
     assertShapeOf({
       kind: row.kind,
       // A Harvest carries what the farm's own fodder is worth, which nobody typed: only a price actually
