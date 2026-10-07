@@ -202,4 +202,29 @@ describe("the weekly cash count", () => {
       manager.client.farm.setParameters({ cashShortTellMoney: 50_000 })
     ).rejects.toThrow("Owner");
   });
+
+  it("takes the Owner's notice down when the count is put right to no shortfall", async () => {
+    const hand = await managersHand(fridayEvening("2071-08-07"));
+    const holding = hand?.amount ?? 0;
+    const { manager, completionId } = await countOn(
+      "2071-08-07",
+      holding - 2000
+    );
+    const told = async () =>
+      await scratchDb().query.alert.findMany({
+        where: { kind: "cash_short", entityId: completionId },
+        columns: { dismissedAt: true },
+      });
+    expect(await told()).toEqual([{ dismissedAt: null }]);
+
+    await correctStepAsShown(manager.client, {
+      completionId,
+      reason: "আরেকটি খাম পাওয়া গেছে",
+      evidence: [holding, ""],
+    });
+
+    const after = await told();
+    expect(after).toHaveLength(1);
+    expect(after[0]?.dismissedAt).not.toBeNull();
+  });
 });

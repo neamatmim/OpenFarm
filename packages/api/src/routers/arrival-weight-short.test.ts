@@ -52,7 +52,7 @@ const weighInSop = (): SopContent => ({
 
 let weighingId = "";
 let penId = "";
-const tags = { short: "", fine: "", twice: "", dips: "", late: "" };
+const tags = { short: "", fine: "", twice: "", dips: "", late: "", typo: "" };
 const intakeOf = new Map<string, string>();
 
 /** The Pen's weighing on one morning: each tag with what the scale said. */
@@ -119,6 +119,7 @@ beforeAll(async () => {
     [tags.fine, 270],
     [tags.twice, 250],
     [tags.dips, 285],
+    [tags.typo, 255],
   ]);
   await weigh(DAY_26, [
     [tags.twice, 252],
@@ -168,5 +169,24 @@ describe("the weight a bull was bought at, against his first Weigh-in", () => {
     await expect(
       owner.client.farm.setParameters({ arrivalShortPercent: 10 })
     ).resolves.toBeDefined();
+  });
+
+  it("is taken down when the weight he was bought at is put right to within the line", async () => {
+    expect(await toldOf(tags.typo)).toHaveLength(1);
+    const manager = await as("manager", "2084-03-14T05:00:00.000Z");
+    await manager.client.intakes.correct({
+      id: intakeOf.get(tags.typo) ?? "",
+      reason: "গেটে ২৬০ লেখার কথা, ২৮০ লেখা হয়েছিল",
+      changes: { weightKg: { from: 280, to: 260 } },
+    });
+    const showing = await scratchDb().query.alert.findMany({
+      where: {
+        kind: "arrival_weight_short",
+        entityId: intakeOf.get(tags.typo) ?? "",
+        dismissedAt: { isNull: true },
+      },
+      columns: { id: true },
+    });
+    expect(showing).toEqual([]);
   });
 });

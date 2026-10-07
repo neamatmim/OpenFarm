@@ -1,5 +1,6 @@
 import { farmDayOf } from "@OpenFarm/domain";
 
+import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
 import type { MedicineAdjustment } from "../medicine-count-store";
 import {
@@ -22,7 +23,8 @@ type MedicineCountFacts = Pick<
 
 /**
  * Tells the Owner of a count that found more medicine missing than the Owner's line, in taka at what each dose cost —
- * told once for the count, in the evening's post. A count put right later is not told again.
+ * told once for the count, in the evening's post. A count put right later is not told again, but one put right to
+ * no shortfall takes its notice down.
  */
 const tellIfTheMedicineCameUpShort = async (
   tx: Tx,
@@ -35,6 +37,14 @@ const tellIfTheMedicineCameUpShort = async (
     columns: { medicineShortTellMoney: true },
   });
   if (!farm || shortMoney <= farm.medicineShortTellMoney) {
+    // Put right to no shortfall, or skipped: the notice of one goes, in the post and in the app.
+    await clearNoticesAbout(
+      tx,
+      input.instance.farmId,
+      [input.completionId],
+      input.now,
+      ["medicine_short"]
+    );
     return;
   }
   await tell(

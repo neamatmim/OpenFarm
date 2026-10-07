@@ -1,5 +1,6 @@
 import { farmDayOf, roundKg, shortfallOf } from "@OpenFarm/domain";
 
+import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
 import { tell } from "../notice";
 import { recordStockCount } from "../stock-store";
@@ -33,6 +34,14 @@ const tellIfTheStoreCameUpShort = async (
     columns: { storeShortfallTellMoney: true },
   });
   if (!farm || shortMoney <= farm.storeShortfallTellMoney) {
+    // Put right to no shortfall, or skipped: the notice of one goes, in the post and in the app.
+    await clearNoticesAbout(
+      tx,
+      input.instance.farmId,
+      [input.completionId],
+      input.now,
+      ["store_shortfall"]
+    );
     return;
   }
   await tell(

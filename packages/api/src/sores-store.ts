@@ -74,6 +74,51 @@ export const soresInPens = async (
     }));
 };
 
+/**
+ * Whether a Pen's sores are still so, as a notice named them (`pen:first sighting`): not if the sighting it began from
+ * was withdrawn, nor if, the withdrawn left out, fewer animals than the farm tells at have been seen with them since.
+ */
+export const soresStillSeen = async (
+  db: Db,
+  farm: { id: string; soresTellAnimals: number },
+  keys: readonly string[]
+): Promise<Set<string>> => {
+  const still = new Set<string>();
+  for (const key of keys) {
+    const at = key.indexOf(":");
+    const penId = key.slice(0, at);
+    const firstId = key.slice(at + 1);
+    // oxlint-disable-next-line no-await-in-loop -- a notice or two at a time, each its own Pen
+    const first = await db.query.observation.findFirst({
+      where: { id: firstId, farmId: farm.id },
+      columns: { seenAt: true, withdrawnAt: true },
+    });
+    if (!first || first.withdrawnAt !== null) {
+      continue;
+    }
+    // oxlint-disable-next-line no-await-in-loop -- as above
+    const since = await db.query.observation.findMany({
+      where: {
+        farmId: farm.id,
+        saw: ROUND_WORDS.sores,
+        withdrawnAt: { isNull: true },
+        seenAt: { gte: first.seenAt },
+      },
+      columns: { animalId: true },
+      with: { animal: { columns: { penId: true } } },
+    });
+    const animals = new Set(
+      since
+        .filter((one) => one.animal.penId === penId)
+        .map((one) => one.animalId)
+    );
+    if (animals.size >= farm.soresTellAnimals) {
+      still.add(key);
+    }
+  }
+  return still;
+};
+
 /** The Pens with sores nobody has been told about yet. */
 export const soresToTell = async (
   db: Db,

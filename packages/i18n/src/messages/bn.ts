@@ -3791,6 +3791,9 @@ export const bn: Record<MessageKey, string> = {
   "digest.workMissed": "খামার বন্ধ থাকার সময় {count}টি কাজ দেরি হয়েছে",
   "alerts.workMissed":
     "{since} থেকে এখন পর্যন্ত, খামারের দিন না চলার সময় {count}টি কাজ দেরি হয়েছে। সেগুলো দেরির তালিকায় আছে।",
+  "alerts.takenBack": "{tag}: {what}",
+  "push.takenBackTitle": "ফিরিয়ে নেওয়া হয়েছে",
+  "digest.takenBack": "{count}টি ভুল ফিরিয়ে নেওয়া হয়েছে",
   "push.workMissedTitle": "খামার বন্ধ থাকার সময় কাজ দেরি হয়েছে",
   "push.workMissedBody": "{count}টি কাজ — দেরির তালিকা দেখুন",
   "alerts.openTheWorkList": "কাজের তালিকা খুলুন",

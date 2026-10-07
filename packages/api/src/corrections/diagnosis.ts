@@ -8,7 +8,7 @@ import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { clearNoticesAbout } from "../alerts-store";
+import { clearNoticesAbout, tellItWasTakenBack } from "../alerts-store";
 import type { Trail, Tx } from "../audit";
 import { audited } from "../audit";
 import {
@@ -101,17 +101,19 @@ const voidTheDiagnosis = async (
     await tx.delete(dlsReport).where(eq(dlsReport.id, report.id));
   }
   await tx.delete(diagnosis).where(eq(diagnosis.id, row.id));
-  await clearNoticesAbout(tx, row.farmId, [row.id], now);
-  const nothingToReport: {
+  const cleared = await clearNoticesAbout(tx, row.farmId, [row.id], now);
+  // A disease that woke somebody is taken back in their pocket too.
+  const takenBack = await tellItWasTakenBack(tx, row.farmId, cleared, now);
+  const takenAway: {
     notifiable: false;
     reportInstanceId: null;
     alerts: RaisedAlert[];
   } = {
     notifiable: false,
     reportInstanceId: null,
-    alerts: [],
+    alerts: takenBack,
   };
-  return nothingToReport;
+  return takenAway;
 };
 
 /** Whether the farm must report what she now has, the work to deliver the report, and who to tell. */
@@ -199,11 +201,14 @@ export const diagnosisCorrection: CorrectionKind<
       now,
       trail: audited(context).recordEvent,
     });
+    let takenBack: RaisedAlert[] = [];
     if (!owed.notifiable) {
-      // Taken off the notifiable list: the report work is closed above, and the notice that ordered it goes with it.
-      await clearNoticesAbout(tx, row.farmId, [row.id], now, [
+      // Taken off the notifiable list: the report work is closed above, and the notice that ordered it goes with it —
+      // in the pocket of anybody it woke as well.
+      const cleared = await clearNoticesAbout(tx, row.farmId, [row.id], now, [
         "notifiable_diagnosis",
       ]);
+      takenBack = await tellItWasTakenBack(tx, row.farmId, cleared, now);
     }
     const alerts = owed.notifiable
       ? await raiseNotifiableAlerts(
@@ -216,7 +221,7 @@ export const diagnosisCorrection: CorrectionKind<
           },
           now
         )
-      : [];
+      : takenBack;
     return {
       notifiable: owed.notifiable,
       reportInstanceId: owed.instanceId,

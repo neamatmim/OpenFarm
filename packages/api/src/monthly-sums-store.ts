@@ -113,6 +113,30 @@ export const missedByEach = async (
 };
 
 /**
+ * Which missed months are still missed today, as their notices name them (`agreement|day`): paid late, or a later month
+ * missed since, and the month a notice named is no longer the one owing.
+ */
+export const stillMissed = async (
+  db: Db,
+  farmId: string,
+  today: string
+): Promise<Set<string>> => {
+  const ventures = await db.query.venture.findMany({
+    where: {
+      farmId,
+      capitalPaid: "by_the_month",
+      state: { in: [...TAKES_MONTHLY_SUMS] },
+    },
+  });
+  const standings = await standingsOf(db, farmId, ventures, today);
+  return new Set(
+    standings
+      .filter((one) => one.standing.lastMissedOn !== null)
+      .map((one) => `${one.agreementId}|${one.standing.lastMissedOn}`)
+  );
+};
+
+/**
  * The Agreements of Ventures paid by the month that have missed a Monthly Sum — past its seven days — and whose latest
  * missed month the Owner has not been told of. Told once a month per Agreement, however many mornings it stays missed;
  * a month missed after it is told again, because it is a second month gone. Only while the Venture still takes its

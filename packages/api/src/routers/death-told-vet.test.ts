@@ -255,12 +255,24 @@ describe("a death told to the Vet", () => {
       with: { mortality: { columns: { id: true } } },
     });
     const deathId = her?.mortality?.id ?? "";
+    const pushedBefore = vetsOwn(tags.voided).length;
+    expect(pushedBefore).toBeGreaterThan(0);
     const owner = await as("owner", `${DAY}T06:00:00.000Z`);
     await owner.client.animals.correctMortality({
       tagNumber: tags.voided,
       reason: `ভুল ট্যাগে লেখা ${suffix}`,
       changes: { voided: { from: false, to: true } },
     });
+
+    // The Vet's pocket heard of the death, so it hears it was taken back; the notice in the app clears quietly.
+    const pushed = vetsOwn(tags.voided);
+    expect(pushed).toHaveLength(pushedBefore + 1);
+    expect(pushed.at(-1)?.message.body).toContain("ফিরিয়ে নেওয়া হয়েছে");
+    const takenBack = await scratchDb().query.alert.findMany({
+      where: { kind: "taken_back", entityId: deathId },
+      columns: { userId: true },
+    });
+    expect(takenBack.map((one) => one.userId)).toContain(thePerson("vet").id);
 
     const still = await scratchDb().query.alert.findMany({
       where: {

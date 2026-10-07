@@ -50,5 +50,6 @@ export const ALERT_KINDS = [
   "password_guessed",
   "monthly_copy_failed",
   "work_missed",
+  "taken_back",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];

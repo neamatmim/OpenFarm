@@ -207,6 +207,14 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [theOwner],
     entity: "sale",
   },
+  // Raised by `tellItWasTakenBack` to exactly the people the death or the disease reached in their pocket, never to an
+  // audience worked out afresh: about the record taken back, so told once. These are the Roles a death or a disease is
+  // told to, so a person who loses all of them stops seeing it.
+  taken_back: {
+    audience: [{ roles: ["owner", "manager", "vet"] }],
+    entity: "animal",
+    noOwnerFallback: true,
+  },
   // A death or a cull is the Owner's to hear at once, unless she wrote it; about the Mortality, so told once.
   mortality_recorded: {
     audience: [theOwner],

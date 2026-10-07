@@ -4064,6 +4064,10 @@ export const en = {
     "{count, plural, one {# piece} other {# pieces}} of work went late while the farm was not turning",
   "alerts.workMissed":
     "{count, plural, one {# piece} other {# pieces}} of work went late between {since} and now, while the farm's day was not turning. They are on the overdue list.",
+  "alerts.takenBack": "{tag}: {what}",
+  "push.takenBackTitle": "Taken back",
+  "digest.takenBack":
+    "{count, plural, one {# mistake taken back} other {# mistakes taken back}}",
   "push.workMissedTitle": "Work went late while the farm was down",
   "push.workMissedBody":
     "{count, plural, one {# piece} other {# pieces}} of work — see the overdue list",

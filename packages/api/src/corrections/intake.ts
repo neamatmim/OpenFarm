@@ -1,10 +1,11 @@
 import { eq } from "@OpenFarm/db/operators";
 import { intake } from "@OpenFarm/db/schema/fattening";
 import { animal } from "@OpenFarm/db/schema/herd";
-import { EXIT_STATES, farmDayOf } from "@OpenFarm/domain";
+import { EXIT_STATES, farmDayOf, weighedShort } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import { targetWindowInput } from "../farm-clock";
@@ -100,6 +101,41 @@ const refuseAnOwnerSoldOnSince = async (tx: Tx, animalId: string) => {
         "She has been sold on since she was bought; her owner is the Internal Sale's to put right",
       data: { refusal: "sold_on_since" },
     });
+  }
+};
+
+/**
+ * The notice that the lorry came short, taken down when the weight she was bought at is put right to within the line
+ * of her first weighing: the shortfall was a figure typed wrong at the gate.
+ */
+const clearIfNoLongerShort = async (
+  tx: Tx,
+  row: { id: string; farmId: string; animalId: string; arrivedAt: Date },
+  arrivalKg: number,
+  now: Date
+) => {
+  const [first, farm] = await Promise.all([
+    tx.query.weighIn.findFirst({
+      where: { animalId: row.animalId },
+      orderBy: { weighedAt: "asc", id: "asc" },
+      columns: { weightKg: true, weighedAt: true },
+    }),
+    tx.query.farm.findFirst({
+      where: { id: row.farmId },
+      columns: { arrivalShortPercent: true },
+    }),
+  ]);
+  const short = first
+    ? weighedShort(
+        { arrivalKg, arrivedAt: row.arrivedAt },
+        { weightKg: Number(first.weightKg), weighedAt: first.weighedAt },
+        farm?.arrivalShortPercent ?? 5
+      )
+    : null;
+  if (!short) {
+    await clearNoticesAbout(tx, row.farmId, [row.id], now, [
+      "arrival_weight_short",
+    ]);
   }
 };
 
@@ -303,6 +339,9 @@ export const intakeCorrection: CorrectionKind<
     // only moves her between owners leaves this row exactly as it was.
     if (somethingChanged(putRight)) {
       await tx.update(intake).set(putRight).where(eq(intake.id, row.id));
+    }
+    if (to.weightKg !== undefined) {
+      await clearIfNoLongerShort(tx, row, to.weightKg, now);
     }
     const booking = bookingOf(
       context,

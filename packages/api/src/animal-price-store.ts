@@ -16,6 +16,7 @@ import {
   soldUnder,
 } from "@OpenFarm/domain";
 
+import { clearNoticesAbout } from "./alerts-store";
 import type { Tx } from "./audit";
 import type { FarmCosts } from "./cost-store";
 import {
@@ -327,6 +328,8 @@ export const tellIfSoldUnderCost = async (
     range,
   });
   if (!(under.underCost || under.underMarket)) {
+    // A price put right above her cost and the market: the notice of a loss goes.
+    await clearNoticesAbout(tx, farm.id, [saleId], now, ["sold_under_cost"]);
     return;
   }
   await tell(
@@ -386,6 +389,8 @@ export const tellIfShrankTooMuch = async (
       })
     : null;
   if (!(last && shrink && shrankPast(shrink, farm.shrinkTellPercent))) {
+    // A sale weight put right inside the Owner's line: the notice of a shrink goes.
+    await clearNoticesAbout(tx, farmId, [saleId], now, ["large_shrink"]);
     return;
   }
   await tell(

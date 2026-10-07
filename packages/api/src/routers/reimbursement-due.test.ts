@@ -128,13 +128,11 @@ describe("a month's Reimbursement due", () => {
     expect(await toldOf("manager", "2078-02-01T10:00:00.000Z")).toEqual([]);
   });
 
-  it("says nothing of a month already repaid, nor of one that came to nothing", async () => {
+  it("says nothing of a month already repaid, nor of one that came to nothing — and takes the repaid one down", async () => {
     await reimburse("2078-02-02T04:00:00.000Z", "2078-01");
-    // February costs nothing at all, and January has been repaid.
+    // February costs nothing at all, and January has been repaid: its notice no longer says something true.
     await sweptOn("2078-03-01T04:00:00.000Z");
-    expect(await toldOf("owner", "2078-03-01T10:00:00.000Z")).toEqual([
-      { month: "2078-01", owedMoney: 3000 },
-    ]);
+    expect(await toldOf("owner", "2078-03-01T10:00:00.000Z")).toEqual([]);
   });
 
   it("asks of a month that came to nothing once a day, not at every opening of the staff's page", async () => {
