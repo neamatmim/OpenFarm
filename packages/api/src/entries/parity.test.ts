@@ -53,6 +53,10 @@ const COVERED: readonly SyncKind[] = [
   "instance_complete",
 ];
 
+/** Kinds a phone sends that are not Entries, held to their office twin elsewhere: a Correction made with no signal is
+ *  the office's own Correction, judged at when it was made (routers/milk.test.ts, "a Correction a Shed Phone made"). */
+const HELD_ELSEWHERE: readonly SyncKind[] = ["step_correction"];
+
 const tickSop = (): SopContent => ({
   name: { bn: `পরীক্ষা ${suffix}`, en: "Parity" },
   purpose: { bn: "একই কাজ দুই পথে" },
@@ -426,7 +430,9 @@ afterAll(async () => {
 
 describe("every kind a phone can send", () => {
   it("is held to parity here", () => {
-    expect([...SYNC_KINDS].toSorted()).toEqual([...COVERED].toSorted());
+    expect([...SYNC_KINDS].toSorted()).toEqual(
+      [...COVERED, ...HELD_ELSEWHERE].toSorted()
+    );
   });
 });
 

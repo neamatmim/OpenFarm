@@ -14,6 +14,15 @@ import {
 const refusalIn = (error: unknown): unknown =>
   (error as { data?: { refusal?: unknown } } | null)?.data?.refusal;
 
+/** What a browser's fetch says when it never reached the farm: Chrome, Firefox and Safari each in their own words. */
+const NO_CONNECTION =
+  /failed to fetch|networkerror|load failed|network request failed/iu;
+
+/** Whether a save failed for want of a connection rather than being refused: the farm never heard it. */
+export const neverReachedTheFarm = (error: unknown): boolean =>
+  (error instanceof TypeError && NO_CONNECTION.test(error.message)) ||
+  (error as { name?: unknown } | null)?.name === "AbortError";
+
 /** Everything the farm said beside its refusal — the word, and whatever the refusal names. */
 const dataOf = (error: unknown): Record<string, unknown> =>
   (error as { data?: Record<string, unknown> } | null)?.data ?? {};
@@ -60,6 +69,9 @@ export const sayWhy = (
   const own = ownWords[wordOf(error) ?? ""] ?? FARM_WORDS[wordOf(error) ?? ""];
   if (own) {
     return t(own, figuresOf(dataOf(error)));
+  }
+  if (neverReachedTheFarm(error)) {
+    return t("common.noSignalNotSaved");
   }
   return (
     correctionRefusalMessage(error, t) ??

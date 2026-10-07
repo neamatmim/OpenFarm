@@ -49,22 +49,22 @@ import type {
 } from "@/components/work/work-types";
 import { isClosed, finishedWord } from "@/components/work/work-types";
 import { useLanguage } from "@/i18n/language-provider";
-import {
-  correctionRefusalMessage,
-  isChangedSince,
-} from "@/lib/correction-refusal";
+import { isChangedSince } from "@/lib/correction-refusal";
 import { cachedWithdrawal, herdCacheQuery } from "@/lib/herd-cache";
-import type { StepRecord } from "@/lib/record-offline";
+import type { StepCorrection, StepRecord } from "@/lib/record-offline";
 import {
   claimInstance,
+  correctOnThePhone,
   finishInstance,
+  keptOnThePhone,
   recordStep,
 } from "@/lib/record-offline";
 import { refreshTheScreen } from "@/lib/refresh";
+import { sayWhy } from "@/lib/saying";
 import type { StepAnswer } from "@/lib/step-answer";
 import { journeyOf } from "@/lib/step-answer";
 import { toast } from "@/lib/toast";
-import { orpc } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
 
 /** Work opened by Start on the day's list is taken as it opens, once, as the Claim button would take it: not work
  *  somebody else holds, and not work already under way. */
@@ -110,15 +110,13 @@ const WorkPage = () => {
   // What this phone last knew of the herd. With no signal the board still has to say which
   // cow may not go to the tank: a shed with no bars is exactly where that mistake is made.
   const herd = useQuery(herdCacheQuery);
-  const onError = (error: Error) =>
-    toast.error(
-      correctionRefusalMessage(error, t) ?? error.message ?? t("common.error")
-    );
+  const onError = (error: Error) => toast.error(sayWhy(error, t));
 
   const instanceKey = orpc.work.get.queryKey({
     input: { id: instanceId },
   });
   const claim = useMutation({
+    ...keptOnThePhone,
     mutationFn: () => claimInstance(queryClient, instanceKey, instanceId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["outbox"] });
@@ -126,6 +124,7 @@ const WorkPage = () => {
     onError,
   });
   const finish = useMutation({
+    ...keptOnThePhone,
     mutationFn: () => finishInstance(queryClient, instanceKey, instanceId),
     onSuccess: () => {
       toast.success(t(finishedWord(instance.data?.checkerRole)));
@@ -145,6 +144,7 @@ const WorkPage = () => {
     claim: claim.mutate,
   });
   const record = useMutation({
+    ...keptOnThePhone,
     mutationFn: (entry: StepRecord) =>
       recordStep(queryClient, instanceKey, entry),
     onSuccess: (_id, entry) => {
@@ -170,27 +170,39 @@ const WorkPage = () => {
       onError,
     })
   );
-  const correct = useMutation(
-    orpc.work.correctStep.mutationOptions({
-      onSuccess: ({ effect, needsReview }) => {
-        setOutcome(effect?.kind === "bulk_total" ? effect : null);
-        if (needsReview) {
-          toast.warning(t("review.corrected_after_sign_off"));
-        }
+  // Put right wherever the entry is: replaced on the phone while it waits there, sent to the farm, or kept behind it
+  // with no signal (lib/record-offline).
+  const correct = useMutation({
+    ...keptOnThePhone,
+    mutationFn: (correction: StepCorrection) =>
+      correctOnThePhone(queryClient, instanceKey, correction, {
+        online: navigator.onLine,
+        send: (input) => client.work.correctStep(input),
+        animalId: openAnimalId,
+      }),
+    onSuccess: ({ how, corrected }) => {
+      const effect = corrected?.effect;
+      setOutcome(effect?.kind === "bulk_total" ? effect : null);
+      if (corrected?.needsReview) {
+        toast.warning(t("review.corrected_after_sign_off"));
+      }
+      if (how === "kept") {
+        toast.info(t("work.correctionKept"));
+      }
+      void queryClient.invalidateQueries({ queryKey: ["outbox"] });
+      setOpenAnimalId(null);
+      setOpenStep(null);
+    },
+    onError: (error) => {
+      onError(error);
+      // Put right by somebody else since: read the work again, and start from what it says now.
+      if (isChangedSince(error)) {
         setOpenAnimalId(null);
         setOpenStep(null);
-      },
-      onError: (error) => {
-        onError(error);
-        // Put right by somebody else since: read the work again, and start from what it says now.
-        if (isChangedSince(error)) {
-          setOpenAnimalId(null);
-          setOpenStep(null);
-          refreshTheScreen(queryClient);
-        }
-      },
-    })
-  );
+        refreshTheScreen(queryClient);
+      }
+    },
+  });
 
   if (!instance.data) {
     return <WorkNotShown error={instance.error} />;

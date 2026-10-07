@@ -28,6 +28,7 @@ const KIND_WORD: Record<OutboxEntry["kind"], MessageKey> = {
   instance_complete: "review.held.instance_complete",
   animal_move: "review.held.animal_move",
   observation: "review.held.observation",
+  step_correction: "review.held.step_correction",
 };
 
 /** What the person actually typed, so they can see it and put it in again: figures in the reader's own digits, a yes

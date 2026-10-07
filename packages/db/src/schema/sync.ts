@@ -20,6 +20,8 @@ export const SYNC_KINDS = [
   "instance_complete",
   "animal_move",
   "observation",
+  // A Correction of a Step the phone has already sent, made with no signal and sent behind it.
+  "step_correction",
 ] as const;
 export type SyncKind = (typeof SYNC_KINDS)[number];
 

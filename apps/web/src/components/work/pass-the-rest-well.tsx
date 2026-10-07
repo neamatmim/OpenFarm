@@ -11,7 +11,8 @@ import { useState } from "react";
 import { ConfirmDialog } from "@/components/page-kit";
 import type { Animal } from "@/components/work/work-types";
 import { useLanguage } from "@/i18n/language-provider";
-import { recordStep } from "@/lib/record-offline";
+import { keptOnThePhone, recordStep } from "@/lib/record-offline";
+import { sayWhy } from "@/lib/saying";
 import { journeyOf } from "@/lib/step-answer";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -47,6 +48,7 @@ export const PassTheRestWell = ({
   const well = nothingToNoteOf(step);
   const instanceKey = orpc.work.get.queryKey({ input: { id: instanceId } });
   const pass = useMutation({
+    ...keptOnThePhone,
     mutationFn: async (reason: string) => {
       for (const beast of rest) {
         const journey = journeyOf(
@@ -70,7 +72,7 @@ export const PassTheRestWell = ({
       void queryClient.invalidateQueries({ queryKey: ["outbox"] });
       onPassed();
     },
-    onError: (error) => toast.error(error.message || t("common.error")),
+    onError: (error) => toast.error(sayWhy(error, t)),
   });
   if (!well || heldByAnother || isFinished(state) || rest.length < 2) {
     return null;

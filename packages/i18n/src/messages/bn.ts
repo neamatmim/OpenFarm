@@ -3004,6 +3004,9 @@ export const bn: Record<MessageKey, string> = {
   "passwordAgain.slowed":
     "অনেকবার ভুল পাসওয়ার্ড দেওয়া হয়েছে। এক মিনিট পর আবার চেষ্টা করুন।",
   "passwordAgain.notGiven": "হয়নি: এতে আপনার পাসওয়ার্ড লাগে।",
+  "common.noSignalNotSaved":
+    "নেটওয়ার্ক নেই: এটি সেভ হয়নি। লেখা যা ছিল তা আছে — নেটওয়ার্ক পেলে আবার সেভ করুন।",
+  "work.correctionKept": "এই ফোনে ঠিক করা হয়েছে। নেটওয়ার্ক পেলে খামারে যাবে।",
   "common.cancel": "বাতিল",
   "common.close": "বন্ধ করুন",
   "nav.signOff": "যাচাই",
@@ -4355,6 +4358,7 @@ export const bn: Record<MessageKey, string> = {
   "review.held.instance_complete": "কাজটি শেষ করা",
   "review.held.animal_move": "একটি সরানো",
   "review.held.observation": "একটি দেখা",
+  "review.held.step_correction": "একটি ধাপ ঠিক করা",
   "review.heldBy": "{name} লিখেছেন",
   "review.takeIn": "রেকর্ডে নিন",
   "review.takeInHint":

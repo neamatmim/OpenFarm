@@ -49,6 +49,7 @@ const HELD_KIND: Record<string, MessageKey> = {
   instance_complete: "review.held.instance_complete",
   animal_move: "review.held.animal_move",
   observation: "review.held.observation",
+  step_correction: "review.held.step_correction",
 };
 
 /** What a row can do: open the dialog that closes it with a judgement, or the one that takes held work in. */

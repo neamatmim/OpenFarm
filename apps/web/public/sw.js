@@ -11,7 +11,11 @@
  */
 const SHELL = "openfarm-shell-v11";
 const ASSETS = "openfarm-assets-v3";
-const KEEP = new Set([SHELL, ASSETS]);
+/** The files kept for the build before this one: let go when the next build comes. */
+const PREVIOUS = "openfarm-assets-previous";
+/** Which build ASSETS holds. */
+const BUILDS = "openfarm-builds";
+const KEEP = new Set([SHELL, ASSETS, PREVIOUS, BUILDS]);
 const SHELL_FILES = ["/", "/work", "/manifest.webmanifest", "/icon.svg"];
 
 /** One at a time, so one file that will not cache does not take the rest with it. */
@@ -71,6 +75,13 @@ const fromCacheFirst = async (request) => {
   const cached = await cache.match(request);
   if (cached) {
     return cached;
+  }
+  // Kept for the last build and still wanted by this one: carried forward, so the next turn-over keeps it.
+  const kept = await caches.open(PREVIOUS);
+  const earlier = await kept.match(request);
+  if (earlier) {
+    await cache.put(request, earlier.clone());
+    return earlier;
   }
   const answer = await fetch(request);
   if (answer.ok) {
@@ -160,6 +171,58 @@ self.addEventListener("fetch", (event) => {
   if (isBuildAsset(url)) {
     event.respondWith(fromCacheFirst(request));
   }
+});
+
+/** The build the files in ASSETS were kept for, written down so a new one can be told apart. */
+const BUILD_NOTE = "/__openfarm-build";
+
+/**
+ * The page's word on which build it is (lib/keep-the-build.ts). A new one turns the kept files over: those kept for
+ * the last build become the previous ones, and the build before that is let go — so each deploy no longer leaves its
+ * files on a phone with little room, while a screen of the last build not yet opened again is still there with no
+ * signal. A file still wanted is carried forward the first time it is asked for (fromCacheFirst).
+ */
+const turnOver = async (build) => {
+  const notes = await caches.open(BUILDS);
+  const noted = await notes.match(BUILD_NOTE);
+  if (noted && (await noted.text()) === build) {
+    return;
+  }
+  await caches.delete(PREVIOUS);
+  const current = await caches.open(ASSETS);
+  const previous = await caches.open(PREVIOUS);
+  for (const request of await current.keys()) {
+    // oxlint-disable-next-line no-await-in-loop -- a phone's few hundred files, one at a time
+    const answer = await current.match(request);
+    if (answer) {
+      // oxlint-disable-next-line no-await-in-loop -- as above
+      await previous.put(request, answer);
+    }
+  }
+  await caches.delete(ASSETS);
+  await notes.put(BUILD_NOTE, new Response(build));
+};
+
+self.addEventListener("message", (event) => {
+  const said = event.data;
+  const fromThisApp = !event.origin || event.origin === self.location.origin;
+  if (
+    !fromThisApp ||
+    said?.kind !== "this-build" ||
+    typeof said.build !== "string"
+  ) {
+    return;
+  }
+  event.waitUntil(
+    (async () => {
+      try {
+        await turnOver(said.build);
+      } finally {
+        // The page waits for this before it loads the shed's screens, so they land among this build's files.
+        event.ports[0]?.postMessage("settled");
+      }
+    })()
+  );
 });
 
 /**

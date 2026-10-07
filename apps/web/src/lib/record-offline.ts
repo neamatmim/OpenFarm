@@ -1,7 +1,17 @@
 import type { QueryClient } from "@tanstack/react-query";
 
+import type { client } from "@/utils/orpc";
+
 import type { EntryBody } from "./outbox";
 import { phoneOutbox } from "./outbox-client";
+import { pinAnswerOf } from "./pin-answer";
+
+/**
+ * For a save that writes only to this phone: run it whatever the network says. React Query otherwise parks a mutation
+ * while the browser says it is offline — which it does on walking into a shed with no coverage — and the tap is never
+ * written down: the tile does not turn green, nothing says why, and the work is gone if the tab is (ADR 0002).
+ */
+export const keptOnThePhone = { networkMode: "always" } as const;
 
 /** A Completion as the pen board reads it back, before the farm has seen it. */
 interface OptimisticCompletion {
@@ -47,6 +57,28 @@ const held = () => {
 const newId = (): string =>
   globalThis.crypto?.randomUUID?.() ??
   `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+/** Puts an answer on the pen board as the person gave it, in place of whatever the board showed for that Step and
+ *  animal: the farm has not seen it yet, and refetching would ask about work it has not been told of. */
+const showOnTheBoard = (
+  queryClient: QueryClient,
+  instanceKey: readonly unknown[],
+  shown: OptimisticCompletion
+) => {
+  queryClient.setQueryData(
+    instanceKey,
+    (current: { completions?: OptimisticCompletion[] } | undefined) => {
+      if (!current) {
+        return current;
+      }
+      const others = (current.completions ?? []).filter(
+        (row) =>
+          !(row.stepId === shown.stepId && row.animalId === shown.animalId)
+      );
+      return { ...current, completions: [...others, shown] };
+    }
+  );
+};
 
 /**
  * Records a Step the way a barn phone has to: into the Outbox first, then onto the screen.
@@ -113,22 +145,7 @@ export const recordStep = async (
         : {}),
     },
   };
-  queryClient.setQueryData(
-    instanceKey,
-    (current: { completions?: OptimisticCompletion[] } | undefined) => {
-      if (!current) {
-        return current;
-      }
-      const others = (current.completions ?? []).filter(
-        (row) =>
-          !(
-            row.stepId === optimistic.stepId &&
-            row.animalId === optimistic.animalId
-          )
-      );
-      return { ...current, completions: [...others, optimistic] };
-    }
-  );
+  showOnTheBoard(queryClient, instanceKey, optimistic);
   return id;
 };
 
@@ -179,4 +196,124 @@ export const queueObservation = async (
   seen: EntryBody<"observation">
 ): Promise<void> => {
   await held().add("observation", seen, newId());
+};
+
+/**
+ * Sends a sighting or a Move now when the farm answers, and keeps it on the phone when it does not. Asking the browser
+ * first is not enough: a phone with bars and no data says it is online, the send fails, and the person had to type it
+ * again. Only the farm's own no comes back as a refusal; not being answered is kept, as one made out of signal is.
+ */
+export const sendOrKeep = async ({
+  online,
+  send,
+  keep,
+}: {
+  online: boolean;
+  send: () => Promise<unknown>;
+  keep: () => Promise<void>;
+}): Promise<"sent" | "kept"> => {
+  if (!online) {
+    await keep();
+    return "kept";
+  }
+  try {
+    await send();
+    return "sent";
+  } catch (error) {
+    if (pinAnswerOf(error) !== "no_signal") {
+      throw error;
+    }
+    await keep();
+    return "kept";
+  }
+};
+
+/** A Correction of a Step as the work screen asks for it: which Completion, why, and the answer shown beside the one
+ *  it should hold now. */
+export type StepCorrection = Parameters<typeof client.work.correctStep>[0];
+type Corrected = Awaited<ReturnType<typeof client.work.correctStep>>;
+
+/**
+ * Puts a Step right from the phone, wherever the entry is (the Owner, 2026-10-07): still waiting on the phone, it is
+ * replaced there and the farm only ever hears the corrected figure; already with the farm, the Correction is sent —
+ * and with no answer, kept in the Outbox behind the Step it puts right, judged by the farm at when it was made.
+ */
+export const correctOnThePhone = async (
+  queryClient: QueryClient,
+  instanceKey: readonly unknown[],
+  correction: StepCorrection,
+  {
+    online,
+    send,
+    animalId,
+  }: {
+    online: boolean;
+    send: (correction: StepCorrection) => Promise<Corrected>;
+    animalId: string | null;
+  }
+): Promise<{ how: "replaced" | "sent" | "kept"; corrected?: Corrected }> => {
+  const outbox = held();
+  const to = correction.changes?.answer?.to;
+  if (to) {
+    let stepId = "";
+    const replaced = await outbox.replaceWaiting(
+      correction.id,
+      "step_completion",
+      (was) => {
+        ({ stepId } = was);
+        return {
+          instanceId: was.instanceId,
+          stepId: was.stepId,
+          animalTag: was.animalTag,
+          ...(was.photoSlots ? { photoSlots: was.photoSlots } : {}),
+          ...to,
+        };
+      }
+    );
+    if (replaced) {
+      showOnTheBoard(queryClient, instanceKey, {
+        id: correction.id,
+        stepId,
+        animalId,
+        status: to.skipReason ? "skipped" : "done",
+        skipReason: to.skipReason ?? null,
+        evidence: to.evidence,
+        destination: to.destination ?? null,
+        outOfRange: to.outOfRange ?? null,
+        facts: {
+          ...(to.feeding ? { feeding: to.feeding } : {}),
+          ...(to.counts ? { counts: to.counts } : {}),
+          ...(to.medicineCounts ? { medicineCounts: to.medicineCounts } : {}),
+        },
+      });
+      return { how: "replaced" };
+    }
+  }
+  const keep = async () => {
+    await outbox.add(
+      "step_correction",
+      {
+        completionId: correction.id,
+        reason: correction.reason,
+        changes: correction.changes,
+      },
+      newId()
+    );
+  };
+  // Still on the phone, on its way in a Batch the farm has not answered: the farm does not have it yet, so the
+  // Correction goes behind it rather than ahead of it.
+  const waiting = await outbox.pending();
+  if (waiting.some((entry) => entry.id === correction.id)) {
+    await keep();
+    return { how: "kept" };
+  }
+  let corrected: Corrected | undefined;
+  const how = await sendOrKeep({
+    online,
+    send: async () => {
+      corrected = await send(correction);
+    },
+    keep,
+  });
+  return { how, corrected };
 };

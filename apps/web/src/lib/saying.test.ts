@@ -14,6 +14,23 @@ const refused = (refusal: unknown, message = "server's English") =>
   Object.assign(new Error(message), { data: { refusal } });
 
 describe("saying why the farm refused", () => {
+  it("says a save that never reached the farm was not saved, in words, never the browser's", () => {
+    for (const lost of [
+      new TypeError("Failed to fetch"),
+      new TypeError("NetworkError when attempting to fetch resource."),
+      new TypeError("Load failed"),
+      Object.assign(new Error("The operation was aborted."), {
+        name: "AbortError",
+      }),
+    ]) {
+      expect(sayWhy(lost, t)).toBe(t("common.noSignalNotSaved"));
+    }
+    // A mistake in the screen's own code is no lost connection.
+    expect(sayWhy(new TypeError("x is undefined"), t)).not.toBe(
+      t("common.noSignalNotSaved")
+    );
+  });
+
   it("says a refusal the farm has its own word for", () => {
     expect(sayWhy(refused("changed_since"), t)).toBe(t("refusal.changedSince"));
   });

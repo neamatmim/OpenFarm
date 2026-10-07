@@ -239,26 +239,30 @@ const forgetKeptDatabase = () => {
 /**
  * Starts keeping and restoring the cache — on the farm's address. On the portal's own it keeps nothing, and forgets
  * whatever an older visit left there (ADR 0009). Browser only: the server renders the same components and has neither
- * IndexedDB nor any need of them.
+ * IndexedDB nor any need of them. Settles once what was kept is back in the cache.
  */
 export const keepQueriesOnDevice = (
   queryClient: QueryClient,
   host: Host
-): void => {
+): Promise<void> => {
   if (typeof window === "undefined") {
-    return;
+    return Promise.resolve();
   }
   if (host === "portal") {
     forgetKeptDatabase();
-    return;
+    return Promise.resolve();
   }
-  persistQueryClient({
+  const [, restored] = persistQueryClient({
     queryClient,
     persister: onDevice(),
     maxAge: KEEP_FOR_MS,
     dehydrateOptions: {
       shouldDehydrateQuery: (query) => keptOnDevice(query, host),
     },
+  });
+  // A restore that fails leaves the cache empty, which is what the phone would have had anyway.
+  return restored.catch(() => {
+    // Nothing kept to restore: the phone starts from nothing, as it would have anyway.
   });
 };
 

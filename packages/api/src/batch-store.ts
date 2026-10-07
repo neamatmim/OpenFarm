@@ -6,6 +6,8 @@ import { ORPCError } from "@orpc/server";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Recorder } from "./completion-store";
+import { correct } from "./corrections/correction";
+import { stepCorrection } from "./corrections/step-completion";
 import { claimEntry } from "./entries/claim";
 import type { EntryKind, EntryRefusal } from "./entries/entry";
 import { recordHeld, refusalOf } from "./entries/entry";
@@ -44,7 +46,8 @@ const message = (error: unknown): string => {
   return "could not be recorded";
 };
 
-/** Each kind a phone can send, and the Entry that records it (ADR 0004). */
+/** Each kind a phone can send, and the Entry that records it (ADR 0004) — but a Correction, which is put right as the
+ *  office puts one right (`correctHeld`). */
 const ENTRIES = {
   instance_claim: claimEntry,
   instance_complete: finishEntry,
@@ -52,7 +55,30 @@ const ENTRIES = {
   completion_photo: stepPhotoEntry,
   animal_move: moveEntry,
   observation: observationEntry,
-} as const satisfies Record<SyncKind, unknown>;
+} as const satisfies Record<Exclude<SyncKind, "step_correction">, unknown>;
+
+/**
+ * A Correction a phone made with no signal and sent behind the Step it puts right (the Owner, 2026-10-07): the
+ * Correction itself, as the office makes it — whose window, the screen it was made from, its reason and its trail — on
+ * this entry's own savepoint, and judged at when it was made: the phone's time, put forward by as much as the phone
+ * was found behind, and never later than the farm heard of it.
+ */
+const correctHeld = (
+  tx: Tx,
+  context: Recorder,
+  entry: Extract<Entry, { kind: "step_correction" }>,
+  receivedAt: Date,
+  phoneBehindMs: number
+): Promise<unknown> => {
+  const madeAt = new Date(
+    Math.min(receivedAt.getTime(), entry.recordedAt.getTime() + phoneBehindMs)
+  );
+  return correct(
+    { ...context, db: tx as unknown as Database, clock: { now: () => madeAt } },
+    stepCorrection,
+    { id: entry.completionId, reason: entry.reason, changes: entry.changes }
+  );
+};
 
 /** One entry, recorded by its Entry on the transaction the caller holds, with its Audit Event. */
 const applyEntry = (
@@ -65,20 +91,22 @@ const applyEntry = (
   eventId: string,
   phoneBehindMs: number
 ): Promise<unknown> =>
-  recordHeld(
-    tx,
-    context,
-    ENTRIES[entry.kind] as EntryKind<Entry, unknown>,
-    entry,
-    {
-      recordedAt: entry.recordedAt,
-      receivedAt,
-      id: entry.id,
-      eventId,
-      device: { id: context.device?.id ?? null, seq: entry.seq },
-      phoneBehindMs,
-    }
-  );
+  entry.kind === "step_correction"
+    ? correctHeld(tx, context, entry, receivedAt, phoneBehindMs)
+    : recordHeld(
+        tx,
+        context,
+        ENTRIES[entry.kind] as EntryKind<Entry, unknown>,
+        entry,
+        {
+          recordedAt: entry.recordedAt,
+          receivedAt,
+          id: entry.id,
+          eventId,
+          device: { id: context.device?.id ?? null, seq: entry.seq },
+          phoneBehindMs,
+        }
+      );
 
 /** What the phone sent, as the trail records it. The photo is left out: it is a row of its own
  *  where the entry was taken, or held whole on the entry where it was not (heldWhole), and a
@@ -497,20 +525,23 @@ export const takeInHeld = async (
     entry.actorId ?? held.sentBy,
     phone?.id ?? null
   );
+  // A held Correction is put right now, by whoever takes it in, as they would put it right themselves.
   await tx.transaction((entryTx) =>
-    recordHeld(
-      entryTx,
-      recorder,
-      ENTRIES[entry.kind] as EntryKind<Entry, unknown>,
-      entry,
-      {
-        recordedAt: entry.recordedAt,
-        receivedAt: now,
-        id: entry.id,
-        eventId: uuidv7(now),
-        device: { id: phone?.id ?? null, seq: held.seq },
-        takenIn: true,
-      }
-    )
+    entry.kind === "step_correction"
+      ? correctHeld(entryTx, recorder, entry, now, 0)
+      : recordHeld(
+          entryTx,
+          recorder,
+          ENTRIES[entry.kind] as EntryKind<Entry, unknown>,
+          entry,
+          {
+            recordedAt: entry.recordedAt,
+            receivedAt: now,
+            id: entry.id,
+            eventId: uuidv7(now),
+            device: { id: phone?.id ?? null, seq: held.seq },
+            takenIn: true,
+          }
+        )
   );
 };
