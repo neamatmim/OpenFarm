@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
 import { alert } from "@OpenFarm/db/schema/alert";
+import type { AlertKind } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 
 import { withdrawalNoticeId } from "./health-store";
@@ -18,27 +19,6 @@ import { backupGap, monthlyCopyFailed } from "./the-machinery-notices";
 /** The work states in which work is no longer owed: done, approved, missed and closed, or called off. */
 const WORK_OVER = new Set(["completed", "approved", "missed", "called_off"]);
 
-/** The kinds a sweep can see the cause of again, and clears once it is gone. */
-const SETTLED_BY_THE_SWEEP = [
-  "instance_overdue",
-  "instance_escalated",
-  "animal_missing",
-  "backup_overdue",
-  "day_not_turning",
-  "needs_review",
-  "receivable_overdue",
-  "monthly_copy_failed",
-  "low_stock",
-  "medicine_low_stock",
-  "lot_expiring",
-  "lot_expired",
-  "reimbursement_due",
-  "monthly_sum_missed",
-  "investor_statement_due",
-  "withdrawal_ending",
-  "pen_sores_seen",
-] as const;
-
 /** The Venture states in which a month's Reimbursement is still asked for. */
 const RUNNING_VENTURES: ReadonlySet<string> = new Set([
   "buying",
@@ -47,14 +27,11 @@ const RUNNING_VENTURES: ReadonlySet<string> = new Set([
 ]);
 
 /** The notices still showing, of these kinds, with what they are about and when they were raised. */
-const showing = (
-  context: Turning,
-  kinds: (typeof SETTLED_BY_THE_SWEEP)[number][]
-) =>
+const showing = (context: Turning, kinds: readonly AlertKind[]) =>
   context.db.query.alert.findMany({
     where: {
       farmId: context.farm.id,
-      kind: { in: kinds },
+      kind: { in: [...kinds] },
       dismissedAt: { isNull: true },
     },
     columns: { id: true, kind: true, entityId: true, createdAt: true },
@@ -84,22 +61,73 @@ interface Open {
   createdAt: Date;
 }
 
-/** One question the sweep asks again: which of these notices, of its kinds, the farm would still raise now, as
- *  `kind|entityId`. */
-interface Asker {
-  kinds: readonly string[];
-  ask: (
-    context: Turning,
-    open: readonly Open[],
-    now: Date
-  ) => Promise<Iterable<string>>;
-}
+/** The question the sweep asks again of a kind: which of these notices the farm would still raise now, as
+ *  `kind|entityId`. Asked only while one of them is showing. */
+type StillSo = (
+  context: Turning,
+  open: readonly Open[],
+  now: Date
+) => Promise<Iterable<string>>;
 
 const keysOf = (kind: string, ids: Iterable<string>) =>
   [...ids].map((id) => `${kind}|${id}`);
 
+const keyOf = (one: Open) => `${one.kind}|${one.entityId}`;
+
+/** Late or escalated work still owed: not done, approved, missed and closed, or called off. Work that is not there at
+ *  all is not said to be over. */
+const workStillOwed: StillSo = async (context, open) => {
+  const work = await context.db.query.sopInstance.findMany({
+    where: {
+      farmId: context.farm.id,
+      id: { in: open.map((one) => one.entityId) },
+    },
+    columns: { id: true, state: true },
+  });
+  const over = new Set(
+    work.filter((one) => WORK_OVER.has(one.state)).map((one) => one.id)
+  );
+  return open.filter((one) => !over.has(one.entityId)).map(keyOf);
+};
+
+/** A Missing animal still missing: neither Found nor written off — nor gone, as a Missing a Correction took back is
+ *  deleted, and its red notice once stood for good because nothing could find it to ask. */
+const stillMissing: StillSo = async (context, open) => {
+  const missing = await context.db.query.missing.findMany({
+    where: {
+      farmId: context.farm.id,
+      id: { in: open.map((one) => one.entityId) },
+    },
+    columns: { id: true, foundAt: true, writtenOffAt: true },
+  });
+  const still = new Set(
+    missing
+      .filter((one) => one.foundAt === null && one.writtenOffAt === null)
+      .map((one) => one.id)
+  );
+  return open.filter((one) => still.has(one.entityId)).map(keyOf);
+};
+
+/** A backup still late: no good copy since. */
+const backupStillLate: StillSo = async (context, open, now) =>
+  (await backupGap(context.db, now)) === null ? [] : open.map(keyOf);
+
+/** The day still not turning: no whole turn since the alarm was raised. */
+const dayStillNotTurning: StillSo = async (context, open) => {
+  const schedule = await context.db.query.schedulerState.findFirst({
+    where: { id: "farm-day" },
+    columns: { lastOkAt: true },
+  });
+  const lastTurnedWholeAt = schedule?.lastOkAt ?? null;
+  return open
+    .filter(
+      (one) => lastTurnedWholeAt === null || lastTurnedWholeAt <= one.createdAt
+    )
+    .map(keyOf);
+};
+
 /** A Reimbursement still owed: its Venture still running, not settled, and nothing repaid for that month. */
-const reimbursementsStillOwed: Asker["ask"] = async (context, open) => {
+const reimbursementsStillOwed: StillSo = async (context, open) => {
   const asked = open.map((one) => {
     const at = one.entityId.lastIndexOf(":");
     return {
@@ -151,7 +179,7 @@ const reimbursementsStillOwed: Asker["ask"] = async (context, open) => {
 
 /** A Venture's progress paper still due: the Venture still running, and the paper not yet made for every one of its
  *  Investors since the notice was raised. */
-const papersStillDue: Asker["ask"] = async (context, open) => {
+const papersStillDue: StillSo = async (context, open) => {
   const still: string[] = [];
   for (const one of open) {
     const ventureId = one.entityId.slice(0, one.entityId.indexOf(":"));
@@ -203,7 +231,7 @@ const papersStillDue: Asker["ask"] = async (context, open) => {
 };
 
 /** A hold still ending when it was said to: lengthened by a later dose, or shortened, the day it named has gone. */
-const holdsStillEnding: Asker["ask"] = async (context, open) => {
+const holdsStillEnding: StillSo = async (context, open) => {
   const animalIds = [
     ...new Set(
       open.map((one) => one.entityId.slice(0, one.entityId.indexOf(":")))
@@ -223,105 +251,107 @@ const holdsStillEnding: Asker["ask"] = async (context, open) => {
   );
 };
 
-/** The kinds whose cause the sweep can ask again, each with its question. */
-const ASKERS: readonly Asker[] = [
-  {
-    kinds: ["needs_review"],
-    ask: async (context, open) => {
-      const unresolved = await context.db.query.needsReview.findMany({
-        where: {
-          farmId: context.farm.id,
-          entityId: { in: open.map((one) => one.entityId) },
-          resolvedAt: { isNull: true },
-        },
-        columns: { entityId: true },
-      });
-      return keysOf(
-        "needs_review",
-        unresolved.map((one) => one.entityId)
-      );
-    },
-  },
-  {
-    kinds: ["receivable_overdue"],
-    ask: async (context, _open, now) => {
-      const overdue = await overdueReceivable(
-        context.db,
-        context.farm,
-        farmDayOf(now)
-      );
-      return keysOf(
-        "receivable_overdue",
-        overdue.flatMap((buyer) => buyer.items.map((item) => overdueKey(item)))
-      );
-    },
-  },
-  {
-    kinds: ["monthly_copy_failed"],
-    ask: async (context, _open, now) => {
-      const failed = await monthlyCopyFailed(context.db, now);
-      return keysOf("monthly_copy_failed", failed ? [failed.id] : []);
-    },
-  },
-  {
-    kinds: ["low_stock"],
-    ask: async (context, _open, now) => {
-      const low = await runningLow(context.db, context.farm, now);
-      return keysOf(
-        "low_stock",
-        low.map((one) => lowStockNoticeId(one))
-      );
-    },
-  },
-  {
-    kinds: ["medicine_low_stock", "lot_expiring", "lot_expired"],
-    ask: async (context, _open, now) => {
-      const said = await whatTheStoreHasToSay(context.db, context.farm, now);
-      return said.map((one) => `${one.kind}|${one.id}`);
-    },
-  },
-  { kinds: ["reimbursement_due"], ask: reimbursementsStillOwed },
-  {
-    kinds: ["monthly_sum_missed"],
-    ask: async (context, _open, now) =>
-      keysOf(
-        "monthly_sum_missed",
-        await stillMissed(context.db, context.farm.id, farmDayOf(now))
-      ),
-  },
-  { kinds: ["investor_statement_due"], ask: papersStillDue },
-  { kinds: ["withdrawal_ending"], ask: holdsStillEnding },
-  {
-    kinds: ["pen_sores_seen"],
-    ask: async (context, open) =>
-      keysOf(
-        "pen_sores_seen",
-        await soresStillSeen(
-          context.db,
-          context.farm,
-          open.map((one) => one.entityId)
-        )
-      ),
-  },
-];
+/** What the store would say now: a feed or a medicine low, a Lot near its day or past it. One question for the three. */
+const storeStillSays: StillSo = async (context, _open, now) => {
+  const said = await whatTheStoreHasToSay(context.db, context.farm, now);
+  return said.map((one) => `${one.kind}|${one.id}`);
+};
 
 /**
- * Of the notices whose cause the farm can ask again, which it would still raise now, as `kind|entityId`. Each kind's
- * question is asked only when one of its notices is showing: every sweep runs this.
+ * Every kind a sweep can see the cause of again, with its question; it clears a notice once the answer no longer names
+ * it. A kind added here without a question does not compile — once, a kind on the sweep's list with no question was
+ * cleared the moment it was raised, by the silence of an answer nobody asked.
+ */
+const QUESTIONS = {
+  instance_overdue: workStillOwed,
+  instance_escalated: workStillOwed,
+  animal_missing: stillMissing,
+  backup_overdue: backupStillLate,
+  day_not_turning: dayStillNotTurning,
+  needs_review: async (context, open) => {
+    const unresolved = await context.db.query.needsReview.findMany({
+      where: {
+        farmId: context.farm.id,
+        entityId: { in: open.map((one) => one.entityId) },
+        resolvedAt: { isNull: true },
+      },
+      columns: { entityId: true },
+    });
+    return keysOf(
+      "needs_review",
+      unresolved.map((one) => one.entityId)
+    );
+  },
+  receivable_overdue: async (context, _open, now) => {
+    const overdue = await overdueReceivable(
+      context.db,
+      context.farm,
+      farmDayOf(now)
+    );
+    return keysOf(
+      "receivable_overdue",
+      overdue.flatMap((buyer) => buyer.items.map((item) => overdueKey(item)))
+    );
+  },
+  monthly_copy_failed: async (context, _open, now) => {
+    const failed = await monthlyCopyFailed(context.db, now);
+    return keysOf("monthly_copy_failed", failed ? [failed.id] : []);
+  },
+  low_stock: async (context, _open, now) => {
+    const low = await runningLow(context.db, context.farm, now);
+    return keysOf(
+      "low_stock",
+      low.map((one) => lowStockNoticeId(one))
+    );
+  },
+  medicine_low_stock: storeStillSays,
+  lot_expiring: storeStillSays,
+  lot_expired: storeStillSays,
+  reimbursement_due: reimbursementsStillOwed,
+  monthly_sum_missed: async (context, _open, now) =>
+    keysOf(
+      "monthly_sum_missed",
+      await stillMissed(context.db, context.farm.id, farmDayOf(now))
+    ),
+  investor_statement_due: papersStillDue,
+  withdrawal_ending: holdsStillEnding,
+  pen_sores_seen: async (context, open) =>
+    keysOf(
+      "pen_sores_seen",
+      await soresStillSeen(
+        context.db,
+        context.farm,
+        open.map((one) => one.entityId)
+      )
+    ),
+} as const satisfies Partial<Record<AlertKind, StillSo>>;
+
+/** The kinds a sweep clears once their cause is gone. */
+export const SETTLED_BY_THE_SWEEP = Object.keys(
+  QUESTIONS
+) as (keyof typeof QUESTIONS)[];
+
+/**
+ * Of the notices still showing, which the farm would still raise now, as `kind|entityId`. Each question is asked once,
+ * of all its kinds' notices together, and only when one of them is showing: every sweep runs this.
  */
 const whatIsStillSo = async (
   context: Turning,
   open: readonly Open[],
   now: Date
 ): Promise<Set<string>> => {
+  const byQuestion = new Map<StillSo, Open[]>();
+  for (const one of open) {
+    const question = (QUESTIONS as Partial<Record<string, StillSo>>)[one.kind];
+    if (question) {
+      byQuestion.set(question, [...(byQuestion.get(question) ?? []), one]);
+    }
+  }
   const still = new Set<string>();
-  for (const { kinds, ask } of ASKERS) {
-    const theirs = open.filter((one) => kinds.includes(one.kind));
-    if (theirs.length > 0) {
-      // oxlint-disable-next-line no-await-in-loop -- one question at a time, on one connection
-      for (const key of await ask(context, theirs, now)) {
-        still.add(key);
-      }
+  for (const [question, theirs] of byQuestion) {
+    // oxlint-disable-next-line no-await-in-loop -- one question at a time, on one connection
+    for (const key of await question(context, theirs, now)) {
+      still.add(key);
     }
   }
   return still;
@@ -339,76 +369,7 @@ export const settleWhatIsSettled = async (context: Turning) => {
     return;
   }
   const stillSo = await whatIsStillSo(context, open, now);
-  const aboutWork = open.filter(
-    (one) =>
-      one.kind === "instance_overdue" || one.kind === "instance_escalated"
-  );
-  const aboutMissing = open.filter((one) => one.kind === "animal_missing");
-  const [work, missing, backupStillLate, schedule] = await Promise.all([
-    aboutWork.length === 0
-      ? []
-      : context.db.query.sopInstance.findMany({
-          where: {
-            farmId: context.farm.id,
-            id: { in: aboutWork.map((one) => one.entityId) },
-          },
-          columns: { id: true, state: true },
-        }),
-    aboutMissing.length === 0
-      ? []
-      : context.db.query.missing.findMany({
-          where: {
-            farmId: context.farm.id,
-            id: { in: aboutMissing.map((one) => one.entityId) },
-          },
-          columns: { id: true, foundAt: true, writtenOffAt: true },
-        }),
-    open.some((one) => one.kind === "backup_overdue")
-      ? backupGap(context.db, now)
-      : null,
-    // When the day last turned whole: a day-turning alarm raised before it is over.
-    context.db.query.schedulerState.findFirst({
-      where: { id: "farm-day" },
-      columns: { lastOkAt: true },
-    }),
-  ]);
-  const lastTurnedWholeAt = schedule?.lastOkAt ?? null;
-  const workOver = new Set(
-    work.filter((one) => WORK_OVER.has(one.state)).map((one) => one.id)
-  );
-  // Found, written off — or no longer there at all: a Missing a Correction took back is deleted, and its red notice stood
-  // for good because nothing could find it to ask.
-  const stillThere = new Set(missing.map((one) => one.id));
-  const missingOver = new Set([
-    ...missing
-      .filter((one) => one.foundAt !== null || one.writtenOffAt !== null)
-      .map((one) => one.id),
-    ...aboutMissing
-      .map((one) => one.entityId)
-      .filter((id) => !stillThere.has(id)),
-  ]);
-  const settled = open.filter((one) => {
-    switch (one.kind) {
-      case "instance_overdue":
-      case "instance_escalated": {
-        return workOver.has(one.entityId);
-      }
-      case "animal_missing": {
-        return missingOver.has(one.entityId);
-      }
-      case "backup_overdue": {
-        return backupStillLate === null;
-      }
-      case "day_not_turning": {
-        return lastTurnedWholeAt !== null && lastTurnedWholeAt > one.createdAt;
-      }
-      default: {
-        // Asked of what the farm would say now: a review dealt with, a debt paid or written off, a good monthly copy
-        // since, a store stocked again or a Lot used up — no longer said, so no longer showing.
-        return !stillSo.has(`${one.kind}|${one.entityId}`);
-      }
-    }
-  });
+  const settled = open.filter((one) => !stillSo.has(keyOf(one)));
   await clear(
     context,
     settled.map((one) => one.id),

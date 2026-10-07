@@ -27,7 +27,12 @@ const showing = (
     | "monthly_sum_missed"
     | "investor_statement_due"
     | "withdrawal_ending"
-    | "pen_sores_seen",
+    | "pen_sores_seen"
+    | "low_stock"
+    | "medicine_low_stock"
+    | "lot_expiring"
+    | "lot_expired"
+    | "instance_overdue",
   entityId: string
 ) => ({
   id: `${kind}-${suffix}`,
@@ -116,5 +121,45 @@ describe("a notice whose cause has gone", () => {
       .filter((one) => one.dismissedAt === null)
       .map((one) => one.id);
     expect(showingNow).toEqual([stillSo.id]);
+  });
+
+  it("is cleared once the store no longer says it: a feed low, a medicine low, a Lot near its day or past it", async () => {
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock(NOW),
+    });
+    const notices = [
+      showing("low_stock", `no-such-feed-${suffix}`),
+      showing("medicine_low_stock", `no-such-medicine-${suffix}`),
+      showing("lot_expiring", `no-such-lot-${suffix}`),
+      showing("lot_expired", `no-such-old-lot-${suffix}`),
+    ];
+    await scratchDb().insert(alert).values(notices);
+
+    await owner.client.alerts.sweep();
+
+    const after = await scratchDb().query.alert.findMany({
+      where: { id: { in: notices.map((one) => one.id) } },
+      columns: { kind: true, dismissedAt: true },
+    });
+    expect(after).toHaveLength(4);
+    expect(after.filter((one) => one.dismissedAt === null)).toEqual([]);
+  });
+
+  it("stays while its cause is still so: late work nobody has finished, or the farm cannot find to call over", async () => {
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock(NOW),
+    });
+    const late = showing("instance_overdue", `work-still-owed-${suffix}`);
+    await scratchDb().insert(alert).values([late]);
+
+    await owner.client.alerts.sweep();
+
+    const after = await scratchDb().query.alert.findFirst({
+      where: { id: late.id },
+      columns: { dismissedAt: true },
+    });
+    expect(after?.dismissedAt).toBeNull();
   });
 });
