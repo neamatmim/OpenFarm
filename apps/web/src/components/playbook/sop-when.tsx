@@ -6,6 +6,7 @@ import {
   LIVE_STATES,
   SERVICE,
 } from "@OpenFarm/domain";
+import { timeInDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Clock, Plus, Trash2, Zap } from "lucide-react";
 import type { ReactNode } from "react";
@@ -14,7 +15,8 @@ import { Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { FigureBox } from "@/components/playbook/figure-box";
 import { ListInput } from "@/components/playbook/list-input";
-import { useT } from "@/i18n/language-provider";
+import { useLanguage, useT } from "@/i18n/language-provider";
+import { timeOf } from "@/lib/course-times";
 import type { HappeningTrigger } from "@/lib/sop-draft";
 import {
   emptyHappening,
@@ -343,7 +345,7 @@ export const WhenSection = ({
   content: SopContent;
   onChange: (content: SopContent) => void;
 }) => {
-  const t = useT();
+  const { t, language } = useLanguage();
   return (
     <Section
       description={t("sop.editor.whenHint")}
@@ -364,10 +366,20 @@ export const WhenSection = ({
           <ListInput
             id="times"
             onTyped={(typed) =>
-              onChange(withScheduleTimes(content, splitList(typed)))
+              onChange(
+                withScheduleTimes(
+                  content,
+                  // Bangla digits as the Bangla help shows them, and an hour without its nought; anything that is not a
+                  // time stays as typed, for publishing to name.
+                  splitList(typed).map((part) => timeOf(part) ?? part)
+                )
+              )
             }
             placeholder={t("sop.timesHelp")}
-            shown={scheduleTimes(content).join(", ")}
+            // In the reader's digits, as they type them: "০৫:০০" stays as typed rather than turning into "05:00".
+            shown={scheduleTimes(content)
+              .map((time) => timeInDigits(time, language))
+              .join(", ")}
           />
         </FormField>
         <ScheduleDays content={content} onChange={onChange} />

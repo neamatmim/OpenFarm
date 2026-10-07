@@ -354,6 +354,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "params.recordsHint":
     "কোনো মাপ কতটা সরে গেলে ধরা পড়বে, আর খামারকর্মী নিজের রেকর্ড কতক্ষণ সংশোধন করতে পারবেন।",
   "params.checks": "ম্যানেজারের ওপর নজর",
+  "params.range": "{min} থেকে {max}",
+  "params.notAWholeFigure": "একটি পূর্ণ সংখ্যা লিখুন",
   "params.checksHint":
     "কাজ কতটা দেরি হলে আপনাকে জানানো হবে, ম্যানেজার কতদিন রেকর্ড সংশোধন করতে পারবেন, আর কত {currencyOf} খরচে আপনার অনুমোদন লাগবে। এগুলো আপনি ঠিক করবেন; বাকি সেটিং ম্যানেজার বদলালে আপনাকে জানানো হবে।",
   "params.breedingHint":

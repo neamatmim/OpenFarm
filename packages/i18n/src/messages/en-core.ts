@@ -378,6 +378,8 @@ export const enCore = {
   "params.recordsHint":
     "How far a reading may drift before it is flagged, and how long barn staff may correct their own records.",
   "params.checks": "Checks on the manager",
+  "params.range": "From {min} to {max}",
+  "params.notAWholeFigure": "Write a whole number",
   "params.checksHint":
     "How long work may run late before you are told, how long the manager may correct records, and what spending waits for your approval. Yours to set: you are told when the manager changes any other setting.",
   "params.breedingHint":

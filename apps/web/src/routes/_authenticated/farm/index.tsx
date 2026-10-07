@@ -51,21 +51,6 @@ const differs = <T extends object>(draft: T | null, saved: T): boolean =>
   draft !== null &&
   (Object.keys(saved) as (keyof T)[]).some((key) => draft[key] !== saved[key]);
 
-/** Putting the farm's name right: the Owner's alone. */
-const useRename = (onSaved: () => void) => {
-  const { t } = useLanguage();
-  const refused = useRefused();
-  return useMutation(
-    orpc.farm.rename.mutationOptions({
-      onSuccess: () => {
-        toast.success(t("identity.saved"));
-        onSaved();
-      },
-      onError: refused,
-    })
-  );
-};
-
 /** The farm's name, set when it was created and put right by the Owner, and how it is reached. */
 const ContactSection = ({
   farm,
@@ -75,10 +60,12 @@ const ContactSection = ({
   isOwner: boolean;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   // Null until somebody types: the fields show the record until then.
   const [draft, setDraft] = useState<Contact | null>(null);
-  const save = useSaveIdentity(() => setDraft(null));
-  const rename = useRename(() => setDraft(null));
+  // Sent here in turn, never cleared by one of them: a name refused after the address saved kept nothing typed.
+  const save = useMutation(orpc.farm.setIdentity.mutationOptions({}));
+  const rename = useMutation(orpc.farm.rename.mutationOptions({}));
   const saved: Contact = {
     name: farm.name,
     address: farm.address ?? "",
@@ -86,20 +73,35 @@ const ContactSection = ({
   };
   const fields = draft ?? saved;
   const edit = (patch: Partial<Contact>) => setDraft({ ...fields, ...patch });
-  const handleSubmit = () => {
-    if (fields.name.trim() !== saved.name) {
-      rename.mutate({ name: fields.name });
+  // A name changed only by its spaces is the name it was.
+  const renaming = fields.name.trim() !== saved.name;
+  const reaching =
+    fields.address !== saved.address || fields.phone !== saved.phone;
+  const handleSubmit = async () => {
+    if (renaming && fields.name.trim() === "") {
+      toast.error(t("identity.nameEmpty"));
+      return;
     }
-    if (fields.address !== saved.address || fields.phone !== saved.phone) {
-      save.mutate({
-        address: fields.address || null,
-        phone: fields.phone || null,
-      });
+    try {
+      if (renaming) {
+        await rename.mutateAsync({ name: fields.name.trim() });
+      }
+      if (reaching) {
+        await save.mutateAsync({
+          address: fields.address || null,
+          phone: fields.phone || null,
+        });
+      }
+      toast.success(t("identity.saved"));
+      setDraft(null);
+    } catch (error) {
+      // What was typed stays, so the part refused is put right without typing the rest again.
+      refused(error);
     }
   };
   return (
     <SettingsSection
-      changed={differs(draft, saved)}
+      changed={draft !== null && (renaming || reaching)}
       description={t("identity.contactHint")}
       id="farm-contact"
       onReset={() => setDraft(null)}
