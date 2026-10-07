@@ -53,7 +53,7 @@ import type {
 } from "@/components/work/work-types";
 import { useLanguage } from "@/i18n/language-provider";
 import { fieldOfMoment, momentOfField } from "@/lib/farm-moment";
-import { namesIn } from "@/lib/names-in";
+import { namesIn, saidIn } from "@/lib/names-in";
 import type { Photo } from "@/lib/photo";
 import { photoProblem, shrink } from "@/lib/photo";
 import type { MedicineCountEntry, StockCountEntry } from "@/lib/record-offline";
@@ -650,7 +650,7 @@ const SheetHead = ({
   correcting: boolean;
   locked: boolean;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <header className="surface flex items-center gap-4 p-4">
       {animal ? (
@@ -666,7 +666,7 @@ const SheetHead = ({
       )}
       <div className="flex min-w-0 flex-col gap-1.5">
         {animal ? <TagChip>{animal.tagNumber}</TagChip> : null}
-        <h1 className="text-xl font-semibold">{step.text.bn}</h1>
+        <h1 className="text-xl font-semibold">{saidIn(step.text, language)}</h1>
         <LastTime last={animal?.last} step={step} />
         {correcting ? (
           <StatusBadge tone="info">{t("work.correcting")}</StatusBadge>
@@ -803,7 +803,9 @@ const NumberPad = ({
   return (
     <div className="surface flex flex-col gap-3 p-4">
       {evidence.label ? (
-        <p className="text-sm font-medium">{evidence.label.bn}</p>
+        <p className="text-sm font-medium">
+          {saidIn(evidence.label, language)}
+        </p>
       ) : null}
       <p
         aria-hidden
@@ -848,26 +850,31 @@ const ChoiceButtons = ({
   evidence: Evidence;
   value: boolean | number | string | undefined;
   onValue: (value: string) => void;
-}) => (
-  <fieldset className="flex min-w-0 flex-col gap-2">
-    {evidence.label ? (
-      <legend className="mb-2 text-sm font-medium">{evidence.label.bn}</legend>
-    ) : null}
-    <div className="grid grid-cols-2 gap-2">
-      {(evidence.choices ?? []).map((choice) => (
-        <Button
-          aria-pressed={value === choice.value}
-          key={choice.value}
-          variant={value === choice.value ? "default" : "outline"}
-          className="h-auto min-h-14 py-2 text-base whitespace-normal md:h-auto"
-          onClick={() => onValue(choice.value)}
-        >
-          {choice.label.bn}
-        </Button>
-      ))}
-    </div>
-  </fieldset>
-);
+}) => {
+  const { language } = useLanguage();
+  return (
+    <fieldset className="flex min-w-0 flex-col gap-2">
+      {evidence.label ? (
+        <legend className="mb-2 text-sm font-medium">
+          {saidIn(evidence.label, language)}
+        </legend>
+      ) : null}
+      <div className="grid grid-cols-2 gap-2">
+        {(evidence.choices ?? []).map((choice) => (
+          <Button
+            aria-pressed={value === choice.value}
+            key={choice.value}
+            variant={value === choice.value ? "default" : "outline"}
+            className="h-auto min-h-14 py-2 text-base whitespace-normal md:h-auto"
+            onClick={() => onValue(choice.value)}
+          >
+            {saidIn(choice.label, language)}
+          </Button>
+        ))}
+      </div>
+    </fieldset>
+  );
+};
 
 /** One piece of Evidence: a big number pad, a note, a choice, or the camera. A tick needs no
  *  control — confirming the Step is the tick. */

@@ -26,6 +26,7 @@ import { EmptyState, Notice, StatusBadge } from "@/components/page";
 import { RowMenu } from "@/components/page-kit";
 import { ChangeLines } from "@/components/work/work-notices";
 import { useLanguage } from "@/i18n/language-provider";
+import { saidIn } from "@/lib/names-in";
 
 import type { Proposal } from "./playbook-types";
 import { whenWords } from "./playbook-types";
@@ -322,7 +323,7 @@ const ProposalSheet = ({
                       {formatNumber(index + 1, language)}
                     </span>
                     <div className="flex min-w-0 flex-col gap-0.5">
-                      <span>{step.text.bn || "—"}</span>
+                      <span>{saidIn(step.text, language) || "—"}</span>
                       <span className="text-muted-foreground text-xs">
                         {step.evidence
                           .map((item) => t(`sop.evidence.${item.type}`))
