@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   correctionRefusalMessage,
   isChangedSince,
+  wordFor,
   wordedRefusal,
 } from "./correction-refusal";
 
@@ -12,6 +13,9 @@ import {
 
 const t = (key: MessageKey, params?: MessageParams) =>
   translate("en", key, params);
+
+const bangla = (key: MessageKey, params?: MessageParams) =>
+  translate("bn", key, params);
 
 const refused = (refusal: unknown) => ({
   message: "server's English",
@@ -94,5 +98,32 @@ describe("a refusal about one feed of several", () => {
     expect(wordedRefusal(aboutTheFeed("bundles_by_the_head"), t)).toContain(
       "কাঁচা ঘাস"
     );
+  });
+});
+
+describe("a refusal word", () => {
+  it("is said by its own sentence, named after it, with no line for it in this module", () => {
+    expect(wordedRefusal(refused("visiting_vet"), t)).toBe(
+      "A visiting vet sees only the animals on their own cases"
+    );
+    expect(wordFor("wage_needs_month", t)).toBe(t("refusal.wageNeedsMonth"));
+  });
+
+  it("borrows another sentence where it says so", () => {
+    expect(wordFor("wrong_pin", t)).toBe(t("device.wrongPin"));
+    expect(wordFor("nominees_too_many", t)).toBe(
+      t("nominees.problem.too_many")
+    );
+  });
+
+  it("is said in Bangla to a Bangla reader", () => {
+    expect(wordedRefusal(refused("visiting_vet"), bangla)).toBe(
+      "বাইরের ভেট শুধু নিজের কেসের পশুগুলোই দেখতে পারেন"
+    );
+  });
+
+  it("is left unsaid when no sentence says it, for the screen's own words or the plainest", () => {
+    expect(wordedRefusal(refused("never_heard_of_it"), t)).toBeNull();
+    expect(wordFor("never_heard_of_it", t)).toBeNull();
   });
 });

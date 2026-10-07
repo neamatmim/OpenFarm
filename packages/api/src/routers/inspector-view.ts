@@ -236,7 +236,10 @@ const refuse = (missing: "csv" | "paper") =>
       missing === "csv"
         ? "That register is printed, not given as a CSV"
         : "That register is given as a CSV, not printed",
-    data: { refusal: `register_has_no_${missing}` },
+    data: {
+      refusal:
+        missing === "csv" ? "register_has_no_csv" : "register_has_no_paper",
+    },
   });
 
 /** What the farm can hand this register over as, refused before the farm's own Registration is looked at:

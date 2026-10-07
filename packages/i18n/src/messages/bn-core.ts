@@ -619,6 +619,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.caseAlreadyOpen": "এই ভেটের তার জন্য আগে থেকেই একটি কেস খোলা আছে",
   "refusal.notAVisitingVet": "তিনি এখন এই খামারের বাইরের ভেট নন",
   "refusal.visitEndsBeforeToday": "ভিজিট অন্তত আজ পর্যন্ত চলতে হবে",
+  "refusal.visitingVet": "বাইরের ভেট শুধু নিজের কেসের পশুগুলোই দেখতে পারেন",
   "refusal.alreadyTrained": "তাঁকে এই সংস্করণে আগেই প্রশিক্ষিত লেখা হয়েছে",
   "refusal.notOverdueYet": "এই কাজের সময় এখনো পেরোয়নি: এখনো করার সুযোগ আছে",
   "refusal.movedOnSince":
@@ -774,8 +775,6 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "এই ভেঞ্চারের একটি গরু খুঁজে পাওয়া যাচ্ছে না: খুঁজে পান, নয়তো হারানো লিখুন — খামার তার ক্ষতিপূরণ দেবে",
   "refusal.madeGoodWithTheFarmsMoney":
     "এটি খামারের নিজের টাকায় হারানো পশুর ক্ষতিপূরণ। ভুল ট্যাগের নামে হারানো লেখা হলে তার পাতায় তা ফিরিয়ে নিন; পাওয়া গেলে সে খামারের হয়ে যায়",
-  "refusal.theFarmsOwnCapital":
-    "এটি খামারের নিজের মূলধন, যা খামারের নিজের হিসাবেও আছে; শুধু ভেঞ্চারের দিকে এটি ঠিক করা যায় না",
   "refusal.notFattening": "শুধু মোটাতাজা করা হচ্ছে এমন পশুকেই বিক্রির জন্য তৈরি বলা যায়",
   "refusal.soldBeforeSheCame":
     "যেদিন পশুটি এসেছে, বা শেষবার হাতবদল হয়েছে, তার আগের দিনে তাকে বিক্রি করা যায় না",

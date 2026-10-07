@@ -1,7 +1,10 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
+import { en } from "@OpenFarm/i18n/messages/en";
 import { describe, expect, it } from "vitest";
+
+import { refusalKeyOf } from "../lib/correction-refusal";
 
 /**
  * Which of the farm's refusals nobody has given a word to.
@@ -12,11 +15,13 @@ import { describe, expect, it } from "vitest";
  * looked at. Add either kind without saying so and this fails.
  */
 const API = "../../packages/api/src";
+/** Where the farm's words for its refusals are written as strings: the server, and the rules it throws from. */
+const SERVER = [API, "../../packages/domain/src", "../../packages/auth/src"];
 const WEB = "src";
 
-/** The maps a screen's words live in, whatever it calls them. */
+/** The maps a screen's own words live in, whatever it calls them. Every other word is said by its own `refusal.`
+ *  sentence (`refusalKeyOf`), found in the catalog rather than in any map. */
 const WORD_MAPS = [
-  "WORDED_REFUSALS",
   "STANDING_ASIDE_WORDS",
   "WHY_NOT",
   "BLOCK_WORD",
@@ -41,6 +46,23 @@ const read = (dir: string, keep: (file: string) => boolean) =>
     .filter(keep)
     .map((file) => readFileSync(file, "utf-8"));
 
+/** Where a refusal word is written beside what throws it: `refusal:` and whatever it is given — a word, or one of two
+ *  — and the `reason` of a Refusal handed to `forbidden`. A word only a variable carries is not seen here; the
+ *  catalog's side below still asks that it is written somewhere. */
+const THROWN_AS = [
+  /refusal:\s*(?<said>[^,\n}]+)/gu,
+  /(?:forbidden\(\{|: Refusal = \{)[^}]*?reason:\s*(?<said>"[a-z_]+")/gu,
+];
+
+const A_WORD = /"(?<word>[a-z][a-z0-9_]*)"/gu;
+
+/** What a refusal is given, less what decides between two words: a ternary's question and a type's brackets. */
+const givenWords = (said: string): string =>
+  (said.includes("?") ? said.slice(said.indexOf("?")) : said).replaceAll(
+    /\[[^\]]*\]/gu,
+    ""
+  );
+
 /**
  * Every refusal the farm can give, and every one a screen has a word for.
  *
@@ -50,15 +72,34 @@ const read = (dir: string, keep: (file: string) => boolean) =>
 const refusalsThrown = (): Set<string> => {
   const words = new Set<string>();
   for (const source of read(API, (file) => !file.includes(".test."))) {
-    for (const found of source.matchAll(/refusal: "(?<word>[a-z_]+)"/gu)) {
-      const word = found.groups?.word;
-      if (word) {
-        words.add(word);
+    for (const pattern of THROWN_AS) {
+      for (const found of source.matchAll(pattern)) {
+        for (const word of givenWords(found.groups?.said ?? "").matchAll(
+          A_WORD
+        )) {
+          words.add(word.groups?.word ?? "");
+        }
+      }
+    }
+  }
+  words.delete("");
+  return words;
+};
+
+/** Every word a refusal could be, written as a string anywhere on the server's side. */
+const wordsWrittenOnTheServer = (): Set<string> => {
+  const words = new Set<string>();
+  for (const dir of SERVER) {
+    for (const source of read(dir, (file) => !file.includes(".test."))) {
+      for (const found of source.matchAll(A_WORD)) {
+        words.add(found.groups?.word ?? "");
       }
     }
   }
   return words;
 };
+
+const inTheCatalog = (key: string): boolean => Object.hasOwn(en, key);
 
 const refusalsWorded = (): Set<string> => {
   const words = new Set<string>();
@@ -194,8 +235,25 @@ describe("the farm's refusals", () => {
   it("all have a word on the screens", () => {
     const thrown = refusalsThrown();
     const worded = refusalsWorded();
-    const unworded = [...thrown].filter((word) => !worded.has(word)).toSorted();
+    const unworded = [...thrown]
+      .filter((word) => !worded.has(word) && !inTheCatalog(refusalKeyOf(word)))
+      .toSorted();
     expect(unworded).toEqual([]);
+  });
+
+  it("keep no sentence for a refusal nothing throws any more", () => {
+    // Read the other way: a `refusal.` sentence whose word the server no longer writes anywhere is a sentence for
+    // nothing — or a word renamed on one side only.
+    const written = wordsWrittenOnTheServer();
+    const usedByAScreen = read(WEB, (file) => !file.includes(".test.")).join(
+      "\n"
+    );
+    const dead = Object.keys(en)
+      .filter((key) => key.startsWith("refusal."))
+      .filter((key) => !usedByAScreen.includes(`"${key}"`))
+      .filter((key) => ![...written].some((word) => refusalKeyOf(word) === key))
+      .toSorted();
+    expect(dead).toEqual([]);
   });
 
   it("throw no refusal without a word unless it is named here", () => {
@@ -205,7 +263,7 @@ describe("the farm's refusals", () => {
 
   it("finds the words to check against at all", () => {
     // If a rename quietly emptied either side, the comparison above would pass by knowing nothing.
-    expect(refusalsThrown().size).toBeGreaterThan(100);
-    expect(refusalsWorded().size).toBeGreaterThan(100);
+    expect(refusalsThrown().size).toBeGreaterThan(300);
+    expect(refusalsWorded().size).toBeGreaterThan(50);
   });
 });
