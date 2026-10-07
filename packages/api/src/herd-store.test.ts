@@ -397,7 +397,11 @@ describe("what follows from what happens to her", () => {
   it("is dried off: Dry, and nothing else moves", async () => {
     const subject = await her({ inMilk: true });
     await onHer(subject.id, (tx, beast) =>
-      entersState(tx, theFarm().id, beast, { state: "dry", ...later })
+      entersState(tx, theFarm().id, beast, {
+        state: "dry",
+        ...later,
+        trail: nobodysTrail,
+      })
     );
     expect(await followed(subject)).toEqual({
       move: null,
@@ -416,6 +420,7 @@ describe("what follows from what happens to her", () => {
       entersState(tx, theFarm().id, beast, {
         state: "pregnant_heifer",
         ...later,
+        trail: nobodysTrail,
       })
     );
     expect(await followed(subject)).toEqual({
@@ -439,6 +444,7 @@ describe("what follows from what happens to her", () => {
       entersState(tx, theFarm().id, beast, {
         state: "ready_for_sale",
         ...later,
+        trail: nobodysTrail,
       })
     );
     expect(await followed(subject)).toEqual({
@@ -459,7 +465,11 @@ describe("what follows from what happens to her", () => {
   it("loses the calf: a Heifer again, and the dates of the pregnancy are breeding's to put right", async () => {
     const subject = await her();
     await onHer(subject.id, (tx, beast) =>
-      entersState(tx, theFarm().id, beast, { state: "heifer", ...later })
+      entersState(tx, theFarm().id, beast, {
+        state: "heifer",
+        ...later,
+        trail: nobodysTrail,
+      })
     );
     expect(await followed(subject)).toEqual({
       move: null,
@@ -476,7 +486,11 @@ describe("what follows from what happens to her", () => {
     const subject = await her();
     await expect(
       onHer(subject.id, (tx, beast) =>
-        entersState(tx, theFarm().id, beast, { state: "milking", ...later })
+        entersState(tx, theFarm().id, beast, {
+          state: "milking",
+          ...later,
+          trail: nobodysTrail,
+        })
       )
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     await onHer(subject.id, (tx, beast) =>
@@ -488,7 +502,11 @@ describe("what follows from what happens to her", () => {
     );
     await expect(
       onHer(subject.id, (tx, beast) =>
-        entersState(tx, theFarm().id, beast, { state: "heifer", ...later })
+        entersState(tx, theFarm().id, beast, {
+          state: "heifer",
+          ...later,
+          trail: nobodysTrail,
+        })
       )
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });

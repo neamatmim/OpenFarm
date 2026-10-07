@@ -110,6 +110,7 @@ export const breedingRouter = {
               state: "heifer",
               at: input.abortedAt,
               now,
+              trail: audited(context).recordEvent,
             });
           }
         }

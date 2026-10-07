@@ -150,7 +150,12 @@ export const readyForSaleRouter = {
             tx,
             context.farm.id,
             { id: her.id, side: "fattening", state: now_.state },
-            { state: "ready_for_sale", at: now, now }
+            {
+              state: "ready_for_sale",
+              at: now,
+              now,
+              trail: audited(context).recordEvent,
+            }
           );
         }
       );
