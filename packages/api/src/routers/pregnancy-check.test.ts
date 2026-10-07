@@ -124,7 +124,7 @@ const setup = async () => {
     name: `গর্ভ ${suffix}`,
   });
   const cows = [];
-  for (let index = 0; index < 5; index += 1) {
+  for (let index = 0; index < 6; index += 1) {
     cows.push(
       // oxlint-disable-next-line no-await-in-loop
       await owner.client.animals.register({
@@ -458,6 +458,39 @@ describe("the pregnancy check", () => {
     expect(rows.map((row) => row.dueAt.toISOString())).toEqual([
       "2030-02-23T18:00:00.000Z",
     ]);
+  });
+
+  it("moves a check already waiting when the farm's days to a check change", async () => {
+    // Served on 12 January: the check waits for the farm's 26 February, forty-five days on.
+    await heatAndServe("2030-01-12", tagOf(5), ["2030-01-12T12:00:00.000Z"]);
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2030-01-13T03:00:00.000Z"),
+    });
+    // The next morning's work is raised, and with it the check her service is owed.
+    await owner.client.work.ensureDue();
+    const her = await owner.client.animals.get({ tagNumber: tagOf(5) });
+    const raised = await scratchDb().query.sopInstance.findMany({
+      where: { definitionId: world.check.definitionId, animalId: her.id },
+      columns: { dueAt: true },
+    });
+    expect(raised.map((one) => one.dueAt.toISOString())).toEqual([
+      "2030-02-25T18:00:00.000Z",
+    ]);
+    await owner.client.farm.setParameters({ pregnancyCheckAfterDays: 35 });
+    try {
+      const { rows } = await workFor(
+        "2030-02-17T03:00:00.000Z",
+        world.check.definitionId,
+        tagOf(5)
+      );
+      // Thirty-five days on: the farm's 16 February, not the 26th it was raised for.
+      expect(rows.map((row) => row.dueAt.toISOString())).toEqual([
+        "2030-02-15T18:00:00.000Z",
+      ]);
+    } finally {
+      await owner.client.farm.setParameters({ pregnancyCheckAfterDays: 45 });
+    }
   });
 
   it("is the Vet's alone to record", async () => {

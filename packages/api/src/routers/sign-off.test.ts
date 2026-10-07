@@ -310,6 +310,39 @@ describe("going late", () => {
     }
   });
 
+  it("tells the Owner of work already late when the window is lowered past it", async () => {
+    const { instance, clock } = await workFor("2026-11-05", "23:05:00.000Z");
+    // Overdue from 05:30 and swept twice, the window still two hours.
+    clock.set(after("2026-11-05", 40));
+    await sweepUntilQuiet(await as("manager", clock));
+    clock.set(after("2026-11-05", 90));
+    await sweepUntilQuiet(await as("manager", clock));
+    const setter = await as("owner", clock);
+    await setter.farm.setParameters({ escalationMinutes: 15 });
+    try {
+      // Lowered to a quarter of an hour: the work has been past that line since 05:45, behind the last sweep.
+      clock.set(after("2026-11-05", 95));
+      await sweepUntilQuiet(await as("manager", clock));
+      const owner = await as("owner", clock);
+      expect(
+        alertFor(
+          await owner.alerts.mine({ entityId: instance.id }),
+          instance.id,
+          "instance_escalated"
+        )
+      ).toBeDefined();
+    } finally {
+      await setter.farm.setParameters({ escalationMinutes: 120 });
+    }
+  });
+
+  it("is the Owner's to set: the Manager may not move when the Owner hears of late work", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    await expect(
+      manager.client.farm.setParameters({ escalationMinutes: 600 })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("stops being late the moment the work is finished, without anything having run", async () => {
     const { instance, clock } = await doneWork("2026-11-05");
     const manager = await as("manager", clock);

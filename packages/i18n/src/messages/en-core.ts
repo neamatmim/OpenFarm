@@ -374,12 +374,12 @@ export const enCore = {
   "params.breeding": "Breeding calendar",
   "params.fatteningAndPapers": "Fattening and papers",
   "params.alertsHint":
-    "When the day's digest goes out, the quiet hours, and how long work may run late before the owner is told.",
+    "When the day's digest goes out, the quiet hours, and how long before a lot expires it is warned of.",
   "params.recordsHint":
     "How far a reading may drift before it is flagged, and how long barn staff may correct their own records.",
   "params.checks": "Checks on the manager",
   "params.checksHint":
-    "How long the manager may correct records, and what spending waits for your approval. Yours to set: you are told when the manager changes any other setting.",
+    "How long work may run late before you are told, how long the manager may correct records, and what spending waits for your approval. Yours to set: you are told when the manager changes any other setting.",
   "params.breedingHint":
     "The days the Playbook times breeding work from, the same for every cow.",
   "params.fatteningAndPapersHint":
@@ -595,6 +595,20 @@ export const enCore = {
     "That sighting was corrected since this list was opened. Answer the one in its place",
   "refusal.feedOnARation":
     "A ration a pen is on still feeds it ({ration}). Change that ration first",
+  "refusal.feedInTheStore":
+    "The store still holds {left} of it. Count it to nothing at the store count, then retire it",
+  "refusal.penHoldsAnimals":
+    "Animals stand in this pen. Move them out before retiring it",
+  "refusal.penOnARation":
+    "This pen is on a ration. Take it off the ration before retiring it",
+  "refusal.penIsQuarantine":
+    "This is a quarantine pen. Unmark it before retiring it",
+  "refusal.penRetired":
+    "That pen is retired. Bring it back on the sheds page first",
+  "refusal.categoryIsStandard":
+    "A standard category keeps its name: the farm's own records book under it",
+  "refusal.registrationBackwards":
+    "The registration cannot run out before the day it was issued. Check the year on both dates",
   "refusal.arrivedBeforeTheTrip":
     "She can't have come home before the outing that brought her went. Check the day",
   "refusal.wentInTheFuture":
@@ -1121,6 +1135,15 @@ export const enCore = {
   "herd.shedName": "Shed name",
   "herd.penName": "Pen name",
   "herd.rename": "Rename",
+  "list.rename": "Rename",
+  "list.renameTitle": "Rename {name}",
+  "list.renameHint":
+    "Put a slip in the name right. Everything that named it before names it by the new name; the trail keeps the old one.",
+  "herd.penRetired": "Retired",
+  "herd.retirePen": "Retire pen",
+  "herd.restorePen": "Bring back",
+  "herd.penRetiredDone": "Pen retired: it is out of every list",
+  "herd.penRestoredDone": "Pen brought back",
   "herd.noSheds": "No sheds yet",
   "herd.noShedsHint": "Add the farm's first shed, then the pens inside it.",
   "herd.subtitle":
@@ -3898,6 +3921,8 @@ export const enCore = {
   "identity.registrationExpiresOn": "Expires on",
   "identity.save": "Save",
   "identity.saved": "The farm's identity is saved",
+  "identity.nameEmpty":
+    "The farm's name cannot be empty: it heads every paper the farm sends",
   "identity.missing":
     "No registration number written down — the transport card cannot be printed complete.",
   "identity.expired": "The registration ran out on {when}.",

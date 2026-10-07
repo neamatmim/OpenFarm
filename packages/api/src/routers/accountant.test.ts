@@ -2,6 +2,7 @@ import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { setFeedAside } from "../test/feed-set-aside";
 import { appRouter } from "./index";
 
 // The accountant's export: every Money Event of a period as a CSV, and a summary of income against
@@ -131,9 +132,8 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // Retired, so a Stock Count later in this file does not find a lorry from 2040 still in the store.
-  const manager = await as("manager", "2040-04-01T04:00:00.000Z");
-  await manager.client.feed.items.retire({ id: world.feed.id });
+  // Set aside, so a Stock Count later in this file does not find a lorry from 2040 still in the store.
+  await setFeedAside(world.feed.id);
 });
 
 describe("the accountant's export", () => {

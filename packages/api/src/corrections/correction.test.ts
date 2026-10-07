@@ -13,6 +13,7 @@ import { appRouter } from "../routers/index";
 import { requireAnimalInScope } from "../scope";
 import { createTestClient } from "../test/client";
 import { A_DEATH_PHOTO } from "../test/death-photo";
+import { setFeedAside } from "../test/feed-set-aside";
 import type { Change, CorrectionKind } from "./correction";
 import { correct } from "./correction";
 
@@ -193,8 +194,8 @@ const KINDS: Kind[] = [
         seller: { name: `খড়ের দোকান ${suffix}` },
         receivedOn: "2039-03-01",
       });
-      // Retired at once: a Stock Count later in this file must not find this lot still in the store.
-      await manager.feed.items.retire({ id: feed.id });
+      // Set aside at once: a Stock Count later in this file must not find this lot still in the store.
+      await setFeedAside(feed.id);
       return {
         id: made.id,
         trail: { entity: "feed_in", entityId: made.id },

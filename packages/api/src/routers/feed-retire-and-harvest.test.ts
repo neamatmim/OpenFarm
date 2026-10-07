@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-// A feed is not retired while a Pen is still fed it, and a cut from the farm's own fields is priced once the farm says
+// A feed is not retired while a Pen is still fed it or the store holds it, a retired one is fed to no Pen, and a cut from the farm's own fields is priced once the farm says
 // what its fodder is worth.
 
 const suffix = `retire-harvest-${Date.now()}`;
@@ -40,6 +40,55 @@ describe("retiring a feed", () => {
     ).rejects.toMatchObject({
       data: { refusal: "feed_on_a_ration" },
     });
+  });
+});
+
+describe("a feed the store still holds", () => {
+  it("is not retired until a count brings it to nothing, and an empty one is the Manager's to retire", async () => {
+    const { client } = await manager();
+    const straw = await client.feed.items.create({
+      name: { bn: `খড় ${suffix}` },
+    });
+    await client.stock.receive({
+      feedItemId: straw.id,
+      kind: "harvest",
+      quantity: 200,
+      receivedOn: "2038-01-04",
+    });
+    await expect(
+      client.feed.items.retire({ id: straw.id })
+    ).rejects.toMatchObject({
+      data: { refusal: "feed_in_the_store", left: 200 },
+    });
+
+    const empty = await client.feed.items.create({
+      name: { bn: `খালি ${suffix}` },
+    });
+    await client.feed.items.retire({ id: empty.id });
+  });
+});
+
+describe("a Ration that feeds a retired feed", () => {
+  it("is not given to a Pen", async () => {
+    const { client } = await manager();
+    const shed = await client.sheds.create({ name: `রেশন ${suffix}` });
+    const pen = await client.sheds.pens.create({
+      shedId: shed.id,
+      name: `পেন ২ ${suffix}`,
+    });
+    const molasses = await client.feed.items.create({
+      name: { bn: `চিটাগুড় ${suffix}` },
+    });
+    const ration = await client.feed.rations.save({
+      name: { bn: `গুড়ের রেশন ${suffix}` },
+      items: [{ feedItemId: molasses.id, kgPerAnimalPerDay: 1 }],
+    });
+    // On no Pen yet, so the feed may be retired.
+    await client.feed.items.retire({ id: molasses.id });
+
+    await expect(
+      client.feed.rations.assign({ penId: pen.id, rationId: ration.rationId })
+    ).rejects.toMatchObject({ data: { refusal: "feed_retired" } });
   });
 });
 

@@ -350,12 +350,12 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "params.breeding": "প্রজনন ক্যালেন্ডার",
   "params.fatteningAndPapers": "মোটাতাজাকরণ ও কাগজপত্র",
   "params.alertsHint":
-    "দিনের সারসংক্ষেপ কখন যাবে, নীরব সময়, আর কাজ কতটা দেরি হলে মালিককে জানানো হবে।",
+    "দিনের সারসংক্ষেপ কখন যাবে, নীরব সময়, আর মেয়াদ ফুরানোর কতদিন আগে জানানো হবে।",
   "params.recordsHint":
     "কোনো মাপ কতটা সরে গেলে ধরা পড়বে, আর খামারকর্মী নিজের রেকর্ড কতক্ষণ সংশোধন করতে পারবেন।",
   "params.checks": "ম্যানেজারের ওপর নজর",
   "params.checksHint":
-    "ম্যানেজার কতদিন রেকর্ড সংশোধন করতে পারবেন, আর কত {currencyOf} খরচে আপনার অনুমোদন লাগবে। এগুলো আপনি ঠিক করবেন; বাকি সেটিং ম্যানেজার বদলালে আপনাকে জানানো হবে।",
+    "কাজ কতটা দেরি হলে আপনাকে জানানো হবে, ম্যানেজার কতদিন রেকর্ড সংশোধন করতে পারবেন, আর কত {currencyOf} খরচে আপনার অনুমোদন লাগবে। এগুলো আপনি ঠিক করবেন; বাকি সেটিং ম্যানেজার বদলালে আপনাকে জানানো হবে।",
   "params.breedingHint":
     "প্লেবুক প্রজননের কাজ যে দিনগুলো ধরে সাজায় — সব গাভীর জন্য একই।",
   "params.fatteningAndPapersHint":
@@ -549,6 +549,16 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "এই তালিকা খোলার পর ঘটনাটি সংশোধন হয়েছে। তার জায়গার ঘটনাটির উত্তর দিন",
   "refusal.feedOnARation":
     "একটি পেন যে রেশনে আছে তাতে এটি এখনো খাওয়ানো হয় ({ration})। আগে সেই রেশন বদলান",
+  "refusal.feedInTheStore":
+    "গুদামে এখনো এর {left} আছে। গুদাম গণনায় শূন্য গুনে তারপর বাদ দিন",
+  "refusal.penHoldsAnimals": "এই পেনে পশু আছে। বাদ দেওয়ার আগে তাদের সরান",
+  "refusal.penOnARation": "এই পেন একটি রেশনে আছে। বাদ দেওয়ার আগে রেশন থেকে সরান",
+  "refusal.penIsQuarantine": "এটি কোয়ারেন্টাইন পেন। বাদ দেওয়ার আগে চিহ্ন তুলে নিন",
+  "refusal.penRetired": "সেই পেন বাদ দেওয়া হয়েছে। আগে শেডের পাতায় ফিরিয়ে আনুন",
+  "refusal.categoryIsStandard":
+    "আদর্শ খাতের নাম বদলায় না: খামারের নিজের রেকর্ড এর নামে লেখা হয়",
+  "refusal.registrationBackwards":
+    "নিবন্ধন দেওয়ার দিনের আগে তার মেয়াদ শেষ হতে পারে না। দুটি তারিখের সাল দেখুন",
   "refusal.arrivedBeforeTheTrip":
     "যে যাত্রায় এসেছে তা যাওয়ার আগে সে আসতে পারে না। দিনটি দেখে নিন",
   "refusal.wentInTheFuture": "এমন দিনে ট্রাক যেতে পারে না যা এখনো আসেনি",
@@ -1021,6 +1031,15 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "herd.shedName": "শেডের নাম",
   "herd.penName": "পেনের নাম",
   "herd.rename": "নাম বদলান",
+  "list.rename": "নাম বদলান",
+  "list.renameTitle": "{name}-এর নাম বদলান",
+  "list.renameHint":
+    "নামের ভুল ঠিক করুন। আগে যেখানে এই নাম ছিল, সেখানে নতুন নাম দেখাবে; পুরনো নাম রেকর্ডে থাকবে।",
+  "herd.penRetired": "বাদ দেওয়া",
+  "herd.retirePen": "পেন বাদ দিন",
+  "herd.restorePen": "ফিরিয়ে আনুন",
+  "herd.penRetiredDone": "পেন বাদ দেওয়া হয়েছে: আর কোনো তালিকায় নেই",
+  "herd.penRestoredDone": "পেন ফিরিয়ে আনা হয়েছে",
   "herd.noSheds": "এখনো কোনো শেড নেই",
   "herd.noShedsHint": "খামারের প্রথম শেড যোগ করুন, তারপর তার ভেতরের পেনগুলো।",
   "herd.subtitle": "খামারের শেড ও তার ভেতরের পেন। নাম বদলালে কোনো পশু জায়গা বদলায় না।",
@@ -3627,6 +3646,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "identity.registrationExpiresOn": "মেয়াদ শেষ",
   "identity.save": "সংরক্ষণ",
   "identity.saved": "খামারের পরিচয় সংরক্ষিত হয়েছে",
+  "identity.nameEmpty": "খামারের নাম খালি রাখা যায় না: খামারের প্রতিটি কাগজের মাথায় এটি থাকে",
   "identity.missing": "নিবন্ধন নম্বর লেখা নেই — পরিবহন কার্ড সম্পূর্ণ ছাপা যাবে না।",
   "identity.expired": "নিবন্ধনের মেয়াদ {when} তারিখে শেষ হয়েছে।",
   "identity.endingSoon": "নিবন্ধনের মেয়াদ {when} তারিখে শেষ হবে।",

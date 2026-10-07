@@ -21,6 +21,7 @@ import type { Context } from "../context";
 import { dataKeepersInput, readKeepers } from "../data-keepers";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
+import { retimePregnancyChecks } from "../instances-store";
 import { tell } from "../notice";
 import type { OwnersFigure } from "../owners-figures";
 import {
@@ -266,6 +267,9 @@ const WHEN_MONTHLY_COSTS_ARE_LOOKED_FOR = ["monthlyCostsFromDay"] as const;
 const THE_CHECKS_ON_THE_MANAGER = [
   "approvalThresholdMoney",
   "managerCorrectionDays",
+  // When the Owner hears of late work: lowered or raised by the Manager, the Owner would hear of his late work when he
+  // chose (the Owner's decision of 2026-10-07).
+  "escalationMinutes",
 ] as const;
 
 /** How long a buyer may owe with no promised day: the Owner's to set, as whom the farm lends to is. */
@@ -331,7 +335,7 @@ const refuseWhatIsTheOwners = (
   if (namesAny(input, THE_CHECKS_ON_THE_MANAGER)) {
     throw forbidden({
       message:
-        "What the Manager may book without the Owner, and how long he may put his own work right, are the Owner's to set",
+        "What the Manager may book without the Owner, how long he may put his own work right, and when the Owner hears of late work are the Owner's to set",
       reason: "owner_only",
     });
   }
@@ -340,6 +344,44 @@ const refuseWhatIsTheOwners = (
       message:
         "When a short store, unaccounted milk, dearer feed or short cash is told is the Owner's to set",
       reason: "owner_only",
+    });
+  }
+};
+
+/**
+ * Refuses a Registration that runs out before it was issued, judged with whichever of the two dates the farm already
+ * holds: one slip of the year marked the farm's registration expired, raised renewal work, and warned the inspector.
+ */
+const refuseExpiryBeforeIssue = async (
+  tx: Tx,
+  farmId: string,
+  changes: {
+    registrationIssuedOn?: Date | null;
+    registrationExpiresOn?: Date | null;
+  }
+) => {
+  if (
+    changes.registrationIssuedOn === undefined &&
+    changes.registrationExpiresOn === undefined
+  ) {
+    return;
+  }
+  const stored = await tx.query.farm.findFirst({
+    where: { id: farmId },
+    columns: { registrationIssuedOn: true, registrationExpiresOn: true },
+  });
+  const issued =
+    changes.registrationIssuedOn === undefined
+      ? stored?.registrationIssuedOn
+      : changes.registrationIssuedOn;
+  const expires =
+    changes.registrationExpiresOn === undefined
+      ? stored?.registrationExpiresOn
+      : changes.registrationExpiresOn;
+  if (issued && expires && expires < issued) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A registration cannot run out before it was issued",
+      data: { refusal: "registration_expires_before_issued" },
     });
   }
 };
@@ -704,6 +746,8 @@ export const farmRouter = {
             by: context.actor.id,
             now,
           });
+          // The certificate is printed beside every transport card: the Owner hears when the Manager changes it.
+          await tellTheOwnerOfTheChange(context, tx, { certificate: kept });
         }
       );
       return { id: kept, certificateUpdatedAt: now };
@@ -729,20 +773,20 @@ export const farmRouter = {
           before: (tx) => readIdentity(tx, farmId),
           after: (tx) => readIdentity(tx, farmId),
         },
-        (tx) =>
-          tx
-            .update(farm)
-            .set(
-              touched({
-                address: input.address,
-                phone: input.phone,
-                registrationNumber: input.registrationNumber,
-                registrationOffice: input.registrationOffice,
-                registrationIssuedOn: onFarmDay(input.registrationIssuedOn),
-                registrationExpiresOn: onFarmDay(input.registrationExpiresOn),
-              })
-            )
-            .where(eq(farm.id, farmId))
+        async (tx) => {
+          const changes = touched({
+            address: input.address,
+            phone: input.phone,
+            registrationNumber: input.registrationNumber,
+            registrationOffice: input.registrationOffice,
+            registrationIssuedOn: onFarmDay(input.registrationIssuedOn),
+            registrationExpiresOn: onFarmDay(input.registrationExpiresOn),
+          });
+          await refuseExpiryBeforeIssue(tx, farmId, changes);
+          await tx.update(farm).set(changes).where(eq(farm.id, farmId));
+          // Printed on every transport card, receipt and Investor paper: the Owner hears when the Manager changes them.
+          await tellTheOwnerOfTheChange(context, tx, changes);
+        }
       );
       return { id: farmId };
     }),
@@ -827,6 +871,7 @@ export const farmRouter = {
       // Only the Parameters this request named; the rest stay as the Manager last set them.
       const changes = touched(input);
       let retimed: CalvingWorkFollowed | null = null;
+      let checksMoved: { instanceId: string; from: Date; to: Date }[] = [];
       await audited(context).write(
         {
           entity: "farm",
@@ -902,7 +947,12 @@ export const farmRouter = {
                 runningBudgetWarnMoney: true,
               },
             })) ?? null,
-          after: () => Promise.resolve({ ...changes, ...retimed }),
+          after: () =>
+            Promise.resolve({
+              ...changes,
+              ...retimed,
+              ...(checksMoved.length > 0 ? { checksMoved } : {}),
+            }),
         },
         async (tx) => {
           await lockTheFarm(tx, context.farm.id);
@@ -926,9 +976,19 @@ export const farmRouter = {
             retimed = await retimeEveryCalving(
               tx,
               context.farm.id,
-              pregnancyTimesOf({ ...context.farm, ...changes }),
+              // As the farm stands behind the lock, not as this request found it: a lead saved a moment ago by
+              // somebody else is the lead the calvings go by.
+              pregnancyTimesOf({ ...standing, ...changes }),
               context.clock.now(),
               audited(context).recordEvent
+            );
+          }
+          // A check waiting goes to the new days after a service, as calving work goes to its new day.
+          if (changes.pregnancyCheckAfterDays !== undefined) {
+            checksMoved = await retimePregnancyChecks(
+              tx,
+              context.farm.id,
+              changes.pregnancyCheckAfterDays
             );
           }
         }

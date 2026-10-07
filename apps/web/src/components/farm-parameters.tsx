@@ -119,13 +119,6 @@ const GROUPS: {
       { key: "quietFrom", label: "params.quietFrom", time: true },
       { key: "quietUntil", label: "params.quietUntil", time: true },
       {
-        key: "escalationMinutes",
-        label: "params.escalation",
-        unit: "params.minutes",
-        min: 0,
-        max: 1440,
-      },
-      {
         key: "expiryWarnDays",
         label: "params.expiryWarn",
         unit: "params.days",
@@ -176,6 +169,13 @@ const GROUPS: {
     // The checks on the Manager himself are the Owner's to set (the Owner's decision of 2026-10-04).
     owner: true,
     fields: [
+      {
+        key: "escalationMinutes",
+        label: "params.escalation",
+        unit: "params.minutes",
+        min: 0,
+        max: 1440,
+      },
       {
         key: "managerCorrectionDays",
         label: "params.managerCorrection",
