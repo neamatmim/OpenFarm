@@ -2,7 +2,7 @@ import { settleFarmLocale } from "@OpenFarm/api/farm-locale";
 import { hostOf } from "@OpenFarm/auth/hosts";
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 
-import { FARM_POLICY, portalPolicy } from "./lib/content-policy";
+import { farmPolicy, portalPolicy } from "./lib/content-policy";
 import { atTheWrongAddress } from "./lib/two-addresses";
 import { withTheWipe } from "./lib/wipe";
 
@@ -42,7 +42,7 @@ export default createServerEntry({
   fetch: async (request) => {
     const elsewhere = atTheWrongAddress(request);
     if (elsewhere) {
-      return withSecurityHeaders(elsewhere, FARM_POLICY);
+      return withSecurityHeaders(elsewhere, farmPolicy(aNonce()));
     }
     if (hostOf(request.url) === "portal") {
       const nonce = aNonce();
@@ -56,9 +56,10 @@ export default createServerEntry({
         withSecurityHeaders(answer, portalPolicy(nonce))
       );
     }
+    const nonce = aNonce();
     return withSecurityHeaders(
-      await handler.fetch(request, { context: { host: "farm" } }),
-      FARM_POLICY
+      await handler.fetch(request, { context: { host: "farm", nonce } }),
+      farmPolicy(nonce)
     );
   },
 });

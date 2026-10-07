@@ -1,28 +1,30 @@
 // What a page may load and run, by which of the farm's two addresses it is on (ADR 0009).
 
 /**
- * Only the parts of a policy that cannot break the app: no plugins, no framing, no rewriting where relative links
- * point, forms sent only to the farm. Scripts are left alone — the theme and the server render write inline ones — so
- * this is not a defence against injected script, only against the page being borrowed.
+ * A policy for a page: scripts only from the address itself or carrying this answer's nonce, which the router and the
+ * theme put on the ones they write inline; nothing fetched or sent anywhere but itself. Styles may be inline — the
+ * components set them — and pictures may be data the page made. Both addresses load nothing from anywhere else, so
+ * both can hold to it.
  */
-export const FARM_POLICY =
-  "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'";
-
-/**
- * The Investor address's own policy, strict because it is an origin of its own (ADR 0009): scripts only from itself
- * or carrying this answer's nonce, which the router and the theme put on the ones they write inline; nothing fetched
- * or sent anywhere but itself. Styles may be inline — the components set them — and pictures may be data the page
- * made.
- */
-export const portalPolicy = (nonce: string) =>
+const policyWith = (nonce: string, baseUri: string) =>
   [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}'`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "connect-src 'self'",
-    "base-uri 'none'",
+    `base-uri ${baseUri}`,
     "object-src 'none'",
     "frame-ancestors 'none'",
     "form-action 'self'",
   ].join("; ");
+
+/**
+ * The farm address's policy. It once left scripts alone, so a script slipped into a page — a name, a note — would have
+ * run with the Owner's own session and every Investor's NID and bank account within reach; now it is as strict as the
+ * Investor address's.
+ */
+export const farmPolicy = (nonce: string) => policyWith(nonce, "'self'");
+
+/** The Investor address's own policy, strict because it is an origin of its own (ADR 0009). */
+export const portalPolicy = (nonce: string) => policyWith(nonce, "'none'");

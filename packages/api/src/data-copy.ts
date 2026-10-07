@@ -374,6 +374,39 @@ export const dataCopyOf = async (
       changesAboutThem(db, farm.id, investorId),
     ]);
   const nominations = await nominationsOf(db, farm.id, investorId);
+  // What they said they paid through the portal, and what they agreed to there: theirs, as much as a signed paper is.
+  const [payInNotes, offers, amendmentsAgreed] = await Promise.all([
+    db.query.payInNote.findMany({
+      where: { farmId: farm.id, investorId },
+      orderBy: { createdAt: "asc", id: "asc" },
+    }),
+    db.query.agreementOffer.findMany({
+      where: { farmId: farm.id, investorId },
+      orderBy: { offeredAt: "asc", id: "asc" },
+    }),
+    money.agreements.length === 0
+      ? Promise.resolve([])
+      : db.query.amendmentOfferAnswer.findMany({
+          where: {
+            farmId: farm.id,
+            agreementId: { in: money.agreements.map((one) => one.id) },
+          },
+          orderBy: { agreedAt: "asc", id: "asc" },
+        }),
+  ]);
+  const portalVentureIds = [
+    ...new Set([...payInNotes, ...offers].map((one) => one.ventureId)),
+  ];
+  const portalVentures =
+    portalVentureIds.length === 0
+      ? []
+      : await db.query.venture.findMany({
+          where: { farmId: farm.id, id: { in: portalVentureIds } },
+          columns: { id: true, name: true },
+        });
+  const ventureNamed = new Map(
+    portalVentures.map((one) => [one.id, one.name] as const)
+  );
   const places = access?.userId ? await signedInOn(db, access.userId, now) : [];
   const ventureOf = new Map(
     money.agreements.map((one) => [one.id, one.venture.name] as const)
@@ -471,6 +504,41 @@ export const dataCopyOf = async (
         };
       })
     ),
+    facts(
+      { bn: "আপনার জমার খবর", en: "Your Pay-in Notes" },
+      payInNotes.map((one) => ({
+        label: { bn: onDay(one.sentOn), en: "" },
+        value: joined(
+          ventureNamed.get(one.ventureId) ?? null,
+          asMoney(one.amountMoney),
+          bn(`portal.payIn.way.${one.way}`),
+          one.reference,
+          bn(`portal.payIn.state.${one.state}`),
+          one.answerLine ? `“${one.answerLine}”` : null,
+          `জানানো ${when(one.createdAt)}`
+        ),
+      }))
+    ),
+    facts({ bn: "পোর্টালে রাজি হওয়া চুক্তি ও সংশোধন", en: "Agreed in the portal" }, [
+      ...offers.map((one) => ({
+        label: { bn: ventureNamed.get(one.ventureId) ?? "", en: "" },
+        value: joined(
+          `${inBangla(one.units)} ইউনিট, আপনার অংশ ${inBangla(one.investorsPercent)}%`,
+          `প্রস্তাব ${when(one.offeredAt)}`,
+          one.agreedAt ? `আপনি রাজি ${when(one.agreedAt)}` : null,
+          one.approvedAt ? `খামারের অনুমোদন ${when(one.approvedAt)}` : null,
+          one.withdrawnAt ? `প্রস্তাব তুলে নেওয়া ${when(one.withdrawnAt)}` : null,
+          `কাগজের ছাপ ${one.paperHash.slice(0, 12)}`
+        ),
+      })),
+      ...amendmentsAgreed.map((one) => ({
+        label: {
+          bn: `সংশোধন: ${ventureOf.get(one.agreementId) ?? ""}`,
+          en: "",
+        },
+        value: `আপনি রাজি ${when(one.agreedAt)}`,
+      })),
+    ]),
     facts({ bn: "ভেঞ্চারে যোগ দেওয়ার অনুরোধ", en: "Your Requests to Join" }, [
       ...requests.map((one) => ({
         label: { bn: one.ventureName, en: "" },

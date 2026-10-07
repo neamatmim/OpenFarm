@@ -52,7 +52,7 @@ const useNoShellOnThePortal = () => {
 
 const RootDocument = () => {
   useNoShellOnThePortal();
-  // The theme's inline script runs under the Investor address's policy only with the page's nonce.
+  // The theme's inline script runs under either address's policy only with the page's nonce.
   const { nonce } = useRouter().options.ssr ?? {};
   // Which address this is and where the farm is, written on the page for the browser to read back
   // (lib/page-context).

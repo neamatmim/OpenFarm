@@ -25,7 +25,7 @@ export const getRouter = () => {
     defaultPendingComponent: () => <Loader />,
     defaultNotFoundComponent: NotFound,
     defaultErrorComponent: PageFailed,
-    // The scripts the server writes into the page carry the nonce the Investor address's policy lets run.
+    // The scripts the server writes into the page carry the nonce both addresses' policies let run.
     ssr: { nonce: pageNonce() },
   });
 

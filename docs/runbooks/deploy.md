@@ -171,6 +171,21 @@ A release contains only `apps/web/.output`, copied as shown above. The releases 
 Install the checked-in unit once, keep its environment root-owned, and let the reverse proxy own
 TLS:
 
+First the machine itself, once: **Node 24** at `/usr/bin/node` (the unit runs it from there, and
+the repo pins 24), the `openfarm` user that owns the releases, and `/etc/openfarm` for the two
+environments — the app's, read by systemd as root, and the backup job's, read only by its own user
+(see the restore runbook).
+
+```sh
+# Node 24 from NodeSource; `node --version` must say v24.
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash - && sudo apt-get install -y nodejs
+node --version
+sudo useradd --system --create-home --home-dir /home/openfarm --shell /bin/bash openfarm
+sudo install -d -o root -g root -m 0755 /etc/openfarm
+```
+
+Then the releases and the service:
+
 ```sh
 sudo install -d -o openfarm -g openfarm -m 0755 /srv/openfarm /srv/openfarm/releases
 echo 'openfarm ALL=(root) NOPASSWD: /usr/bin/systemctl restart openfarm, /usr/bin/systemctl stop openfarm, /usr/bin/systemctl start openfarm' \
@@ -184,9 +199,53 @@ systemctl status openfarm
 journalctl -u openfarm --since today
 ```
 
-The environment file contains the runtime values from `.env.example`. `BETTER_AUTH_URL`
-must be the public HTTPS origin. The service runs unprivileged, restarts after failures, and
-writes structured application events to the system journal.
+The environment file contains the runtime values from `.env.example`, each one filled in — the
+server refuses to start on a value still saying `example.com`. `BETTER_AUTH_URL` must be the public
+HTTPS origin. The service runs unprivileged, restarts after failures, and writes structured
+application events to the system journal.
+
+### The farm's own address in nginx
+
+The app answers on `127.0.0.1:3001` and nginx stands in front of it with the certificate
+(`sudo certbot --nginx -d farm.example.com`). The built files and the service worker are served
+before the app sees the request, so they carry none of the headers it sets on its pages; nginx adds
+the two that matter for them.
+
+```nginx
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name farm.example.com;
+    # ssl_certificate lines as certbot wrote them
+
+    # A Shed Phone's batch of photographs, and no more.
+    client_max_body_size 8m;
+    # What every request passes on: the name asked for, and the address it came from — set, not added to.
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    location / { proxy_pass http://127.0.0.1:3001; }
+    # The built files and those in public/, served before the app's own headers are set.
+    location ~ ^/(assets/|sw\.js$|icon\.svg$|manifest\.webmanifest$|portal\.webmanifest$|robots\.txt$) {
+        proxy_pass http://127.0.0.1:3001;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    }
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name farm.example.com;
+    return 301 https://$host$request_uri;
+}
+```
+
+**Check it:** `curl -sI https://farm.example.com/sign-in | grep -i content-security` shows a
+policy with `script-src 'self' 'nonce-…'`, and `curl -sI https://farm.example.com/sw.js` shows
+`x-content-type-options: nosniff`.
 
 ## The outside watch
 
@@ -276,7 +335,7 @@ server {
 }
 ```
 
-The farm's own server block needs `proxy_set_header Host $host;` too. It does not need to
+The farm's own server block, above, already passes the Host. It does not need to
 redirect `/portal` itself: the app answers `/portal/...` on the farm's address with a
 permanent redirect to the same page on the Investor address.
 
