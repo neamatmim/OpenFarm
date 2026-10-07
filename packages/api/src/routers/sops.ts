@@ -1,5 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, gte, isNull } from "@OpenFarm/db/operators";
+import { and, eq, gte, isNull, like, or, sql } from "@OpenFarm/db/operators";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import {
@@ -253,6 +253,11 @@ const publishVersion = async (
     trail: Trail;
   }
 ): Promise<{ id: string; number: number }> => {
+  // One publish at a time for one procedure: two at once — the Owner's phone and her desk, Approve beside Publish —
+  // both counted the same next number, and one met the database's own refusal in English.
+  await tx.execute(
+    sql`select 1 from ${sopDefinition} where ${sopDefinition.id} = ${definitionId} for update`
+  );
   await requireInForce(tx, farmId, definitionId);
   const blockers = findPublishBlockers(content);
   if (blockers.length > 0) {
@@ -297,7 +302,9 @@ const publishVersion = async (
       farmId,
       and(
         eq(sopInstance.definitionId, definitionId),
-        isNull(sopInstance.cause),
+        // Its Pens' scheduled work, and the whole farm's, which carries its time as its cause. A slot the new Version
+        // keeps is taken back up under it when the day's work is raised next.
+        or(isNull(sopInstance.cause), like(sopInstance.cause, "whole-farm:%")),
         gte(sopInstance.dueAt, now)
       ) as SQL,
       { trail, by: "version_published", unstartedOnly: true }

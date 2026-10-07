@@ -90,6 +90,32 @@ describe("a schedule kept on some days of the week", () => {
   });
 });
 
+/** The day's work still standing for this procedure, by its due time. */
+const standing = async (definitionId: string) => {
+  const day = await scratchDb().query.sopInstance.findMany({
+    where: {
+      definitionId,
+      state: { ne: "called_off" },
+      dueAt: {
+        gte: new Date("2066-03-03T18:00:00.000Z"),
+        lt: new Date("2066-03-04T18:00:00.000Z"),
+      },
+    },
+    columns: { dueAt: true, versionId: true },
+    orderBy: { dueAt: "asc" },
+  });
+  return day;
+};
+
+/** The Owner's client on the farm's clock at this moment. */
+const ownerAt = async (instant: string) => {
+  const { client } = await createTestClient(appRouter, {
+    as: "owner",
+    clock: new FakeClock(instant),
+  });
+  return client;
+};
+
 describe("a schedule moved by a new Version during the day", () => {
   const twiceADay = (times: string[]): SopContent => ({
     ...weighing(),
@@ -143,6 +169,116 @@ describe("a schedule moved by a new Version during the day", () => {
     expect(day.map((one) => one.dueAt.toISOString())).toEqual([
       "2066-03-01T23:00:00.000Z",
       "2066-03-02T10:30:00.000Z",
+    ]);
+  });
+
+  it("keeps the afternoon's work when the new Version keeps its time — raised under the new one", async () => {
+    const { client: owner } = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2066-03-03T00:00:00.000Z"),
+    });
+    const content = {
+      ...twiceADay(["05:00", "16:00"]),
+      name: { bn: `একই সময় ${suffix}` },
+    };
+    const sop = await owner.sops.create({ content });
+    const morning = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2066-03-04T03:00:00.000Z"),
+    });
+    await morning.client.work.ensureDue();
+    // At ten a word is put right: the times stay as they were.
+    const publishing = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2066-03-04T04:00:00.000Z"),
+    });
+    const fixed = await publishing.client.sops.publish({
+      definitionId: sop.definitionId,
+      content: { ...content, graceMinutes: 180 },
+      note: "বানান ঠিক",
+    });
+    const later = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2066-03-04T04:30:00.000Z"),
+    });
+    await later.client.work.ensureDue();
+
+    const day = await standing(sop.definitionId);
+    expect(day.map((one) => one.dueAt.toISOString())).toEqual([
+      "2066-03-03T23:00:00.000Z",
+      "2066-03-04T10:00:00.000Z",
+    ]);
+    expect(day.at(1)?.versionId).toBe(fixed.versionId);
+  });
+
+  it("raises the afternoon's work again when the procedure is retired and brought back the same morning", async () => {
+    const { client: owner } = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2066-03-03T00:00:00.000Z"),
+    });
+    const content = {
+      ...twiceADay(["05:00", "16:00"]),
+      name: { bn: `ফেরত আনা ${suffix}` },
+    };
+    const sop = await owner.sops.create({ content });
+    const raising = await ownerAt("2066-03-04T03:00:00.000Z");
+    await raising.work.ensureDue();
+    const retiring = await ownerAt("2066-03-04T03:30:00.000Z");
+    await retiring.sops.retire({
+      definitionId: sop.definitionId,
+      note: "ভুল করে",
+    });
+    const restoring = await ownerAt("2066-03-04T04:00:00.000Z");
+    await restoring.sops.restore({
+      definitionId: sop.definitionId,
+      note: "ফিরিয়ে আনা",
+    });
+    const afterwards = await ownerAt("2066-03-04T04:30:00.000Z");
+    await afterwards.work.ensureDue();
+
+    const day = await standing(sop.definitionId);
+    expect(day.map((one) => one.dueAt.toISOString())).toContain(
+      "2066-03-04T10:00:00.000Z"
+    );
+  });
+
+  it("moves the whole farm's work to its new time without leaving it at the old one too", async () => {
+    const { client: owner } = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2066-03-05T00:00:00.000Z"),
+    });
+    const content = {
+      ...twiceADay(["16:00"]),
+      wholeFarm: true,
+      name: { bn: `পুরো খামার ${suffix}` },
+    };
+    const sop = await owner.sops.create({ content });
+    const raising = await ownerAt("2066-03-06T03:00:00.000Z");
+    await raising.work.ensureDue();
+    const publishing = await ownerAt("2066-03-06T04:00:00.000Z");
+    await publishing.sops.publish({
+      definitionId: sop.definitionId,
+      content: {
+        ...content,
+        triggers: [{ kind: "schedule", times: ["16:30"] }],
+      },
+      note: "আধা ঘণ্টা পরে",
+    });
+    const afterwards = await ownerAt("2066-03-06T04:30:00.000Z");
+    await afterwards.work.ensureDue();
+    const day = await scratchDb().query.sopInstance.findMany({
+      where: {
+        definitionId: sop.definitionId,
+        state: { ne: "called_off" },
+        dueAt: {
+          gte: new Date("2066-03-05T18:00:00.000Z"),
+          lt: new Date("2066-03-06T18:00:00.000Z"),
+        },
+      },
+      columns: { dueAt: true },
+    });
+    expect(day.map((one) => one.dueAt.toISOString())).toEqual([
+      "2066-03-06T10:30:00.000Z",
     ]);
   });
 });

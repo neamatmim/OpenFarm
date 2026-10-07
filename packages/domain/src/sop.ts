@@ -1046,6 +1046,23 @@ export const findStructuralProblems = (content: SopContent): string[] => {
   if (content.steps.length === 0) {
     problems.push("steps: an SOP needs at least one step");
   }
+  // A Step is found by its id: two with one id, and answering the first finishes the work without the second ever
+  // being asked.
+  for (const [stepIndex, step] of content.steps.entries()) {
+    if (content.steps.findIndex((one) => one.id === step.id) !== stepIndex) {
+      problems.push(
+        `steps[${stepIndex}].id: "${step.id}" is already the id of an earlier step`
+      );
+    }
+    for (const [evidenceIndex, evidence] of step.evidence.entries()) {
+      const values = (evidence.choices ?? []).map((choice) => choice.value);
+      if (new Set(values).size !== values.length) {
+        problems.push(
+          `steps[${stepIndex}].evidence[${evidenceIndex}].choices: two choices share one value`
+        );
+      }
+    }
+  }
   // No Trigger is no longer work that never arrives: the Manager can raise a piece of work for
   // a Pen when the farm decides to do it, which is exactly how a campaign happens. A quarterly
   // deworming has no time of day, and giving it one would put it on the shed's list every

@@ -62,6 +62,9 @@ export const sopInstance = pgTable(
      *  same check twice, however often the app is opened. Null for scheduled work, which is
      *  kept unique by its due time instead. */
     cause: text("cause"),
+    /** What called this work off, where it was: a new Version or a retiring brings back the slots it called off when
+     *  the day's work is raised again, and nothing else does. Null for work never called off. */
+    calledOffBy: text("called_off_by"),
     /** The animal this work is about, for work something happened to one animal raised. Null
      *  for work that concerns the whole Pen. */
     animalId: text("animal_id").references(() => animal.id),

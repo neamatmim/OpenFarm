@@ -1,5 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
+import { sql } from "@OpenFarm/db/operators";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type {
@@ -208,8 +209,9 @@ export const dueSlotsFor = (
       for (const time of schedule.times) {
         const dueAt = dueAtFor(now, time);
         // A later Version's time — or one brought back from being retired — already late when it came into force is
-        // not raised that day: the Version before it raised the day's work, and work late the moment it was raised is
-        // work nobody was asked to do in time. As the first Version's catch-up, it raises nothing already overdue.
+        // not raised that day: the Version before it raised the day's work. A first Version raises the whole of its first
+        // day, late or not: it is new to the farm, and the Manager is told of what is already late rather than never
+        // asked (`sign-off.test.ts`).
         const lateBeforeItsVersion =
           sop.catchesUp === false &&
           sop.triggersInForceSince !== undefined &&
@@ -249,6 +251,25 @@ export const dueSlotsFor = (
   }
   return slots;
 };
+
+/** Anything written out with its keys in order, at every depth, so two equal triggers write out the same. */
+const inOrder = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(inOrder);
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .toSorted(([a], [b]) => a.localeCompare(b))
+        .map(([key, one]) => [key, inOrder(one)])
+    );
+  }
+  return value;
+};
+
+/** A trigger as two Versions are compared by: what it is, written out. */
+export const triggerKey = (trigger: SopContent["triggers"][number]): string =>
+  JSON.stringify(inOrder(trigger));
 
 /** How far back the farm looks for things that should have raised work. Long enough to
  *  cover a phone left in a drawer over a weekend, short enough that publishing an SOP does
@@ -359,6 +380,8 @@ export const happeningSlotsFor = (
      * the first Version: a later one does not raise again what the earlier one raised.
      */
     catchesUp?: boolean;
+    /** When each trigger came into force without a break, across the Versions that carried it (`triggerKey`). */
+    triggerInForceSince?: Map<string, Date>;
   }[],
   happenings: Happening[],
   /** The Farm Parameters Breeding's work is timed by rather than the Version: the AI window a
@@ -394,9 +417,12 @@ export const happeningSlotsFor = (
           continue;
         }
         const timing = timingOf(happening, trigger, sop.content, breeding);
+        const since =
+          sop.triggerInForceSince?.get(triggerKey(trigger)) ??
+          sop.triggersInForceSince;
         const inForce =
-          happening.at >= sop.triggersInForceSince ||
-          (sop.catchesUp === true && timing.dueAt >= sop.triggersInForceSince);
+          happening.at >= since ||
+          (sop.catchesUp === true && timing.dueAt >= since);
         if (!inForce) {
           continue;
         }
@@ -750,32 +776,80 @@ export const raiseDueInstances = async (
   if (slots.some((slot) => slot.penId === null && !slot.cause)) {
     throw new Error("Work about the whole farm is raised by a cause");
   }
-  const created = await tx
-    .insert(sopInstance)
-    .values(
-      slots.map((slot) => ({
-        id: uuidv7(now),
-        farmId,
-        definitionId: slot.definitionId,
-        versionId: slot.versionId,
-        penId: slot.penId,
-        state: "due" as const,
-        cause: slot.cause ?? null,
-        animalId: slot.animalId ?? null,
-        dueAt: slot.dueAt,
-        graceMinutes: slot.graceMinutes,
-        assignedRole: slot.assignedRole,
-        checkerRole: slot.checkerRole,
-        createdAt: now,
-      }))
-    )
-    .onConflictDoNothing()
-    // The cause as well as the id: work already raised is quietly skipped, so a caller that
-    // has something to hang on each new Instance has to know which slot it came from rather
-    // than counting on the rows lining up.
-    .returning({ id: sopInstance.id, cause: sopInstance.cause });
+  const rows = (of: DueSlot[]) =>
+    of.map((slot) => ({
+      id: uuidv7(now),
+      farmId,
+      definitionId: slot.definitionId,
+      versionId: slot.versionId,
+      penId: slot.penId,
+      state: "due" as const,
+      cause: slot.cause ?? null,
+      animalId: slot.animalId ?? null,
+      dueAt: slot.dueAt,
+      graceMinutes: slot.graceMinutes,
+      assignedRole: slot.assignedRole,
+      checkerRole: slot.checkerRole,
+      createdAt: now,
+    }));
+  const inPens = slots.filter((slot) => !slot.cause);
+  const byCause = slots.filter((slot) => slot.cause);
+  // The cause as well as the id: work already raised is quietly skipped, so a caller that has something to hang on each
+  // new Instance has to know which slot it came from rather than counting on the rows lining up. A slot a new Version
+  // or a retiring called off is taken back up under the Version raising it now — left called off, it held its time
+  // against the new Version, and a word put right at ten lost the afternoon's milking in every Pen.
+  const returned = { id: sopInstance.id, cause: sopInstance.cause };
+  const created = [
+    ...(inPens.length === 0
+      ? []
+      : await tx
+          .insert(sopInstance)
+          .values(rows(inPens))
+          .onConflictDoUpdate({
+            target: [
+              sopInstance.definitionId,
+              sopInstance.penId,
+              sopInstance.dueAt,
+            ],
+            targetWhere: sql`${sopInstance.cause} is null`,
+            set: TAKEN_BACK_UP,
+            setWhere: CALLED_OFF_BY_A_CHANGE,
+          })
+          .returning(returned)),
+    ...(byCause.length === 0
+      ? []
+      : await tx
+          .insert(sopInstance)
+          .values(rows(byCause))
+          .onConflictDoUpdate({
+            target: [sopInstance.definitionId, sopInstance.cause],
+            targetWhere: sql`${sopInstance.cause} is not null`,
+            set: TAKEN_BACK_UP,
+            // Work something happened to raise stays called off, as the glossary says: only the whole farm's scheduled
+            // work, which carries its time as its cause, is taken back up.
+            setWhere: sql`${CALLED_OFF_BY_A_CHANGE} and ${sopInstance.cause} like 'whole-farm:%'`,
+          })
+          .returning(returned)),
+  ];
   return created;
 };
+
+/** A called-off slot taken back up: due again, under the Version raising it now and as that Version says it. */
+const TAKEN_BACK_UP = {
+  state: "due" as const,
+  versionId: sql`excluded.version_id`,
+  graceMinutes: sql`excluded.grace_minutes`,
+  assignedRole: sql`excluded.assigned_role`,
+  checkerRole: sql`excluded.checker_role`,
+  calledOffBy: null,
+  assignedTo: null,
+  assignedBy: null,
+  claimedBy: null,
+  claimedAt: null,
+};
+
+/** Called off by a new Version or a retiring, not by somebody deciding the work was not owed. */
+const CALLED_OFF_BY_A_CHANGE = sql`${sopInstance.state} = 'called_off' and ${sopInstance.calledOffBy} in ('version_published', 'sop_retired')`;
 
 /** The animals in a piece of work's Pen, or none for work in no Pen. */
 const penOfWork = (penId: string | null) => (penId === null ? null : { penId });

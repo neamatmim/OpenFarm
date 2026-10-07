@@ -139,7 +139,10 @@ export const callOffWork = async (
   for (const work of open) {
     // Sequential: one guarded write and one trail entry for each piece of work.
     // oxlint-disable-next-line no-await-in-loop
-    if (await applyTransition(tx, work, "callOff")) {
+    if (
+      // oxlint-disable-next-line no-await-in-loop -- as above
+      await applyTransition(tx, work, "callOff", { set: { calledOffBy: by } })
+    ) {
       // oxlint-disable-next-line no-await-in-loop
       await trail(tx, {
         entity: "sop_instance",
@@ -164,7 +167,7 @@ export const raiseWorkAgain = async (
   { trail, dueAt, by }: { trail: Trail; dueAt: Date; by: RaisedAgainBy }
 ): Promise<boolean> => {
   const raised = await applyTransition(tx, work, "raiseAgain", {
-    set: { dueAt, claimedBy: null, claimedAt: null },
+    set: { dueAt, claimedBy: null, claimedAt: null, calledOffBy: null },
   });
   if (raised) {
     await trail(tx, {
