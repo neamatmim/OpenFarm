@@ -95,6 +95,17 @@ export const passwordGiven = pgTable("password_given", {
   givenAt: timestamp("given_at", { withTimezone: true }).notNull(),
 });
 
+/**
+ * The one-time code the first Owner signs up with, kept as its hash: printed once in the server's log when a production
+ * server starts with no farm set up, so only somebody who can read that log — the Owner — can open the account that
+ * becomes the Owner's. Deleted once the farm exists.
+ */
+export const setupCode = pgTable("setup_code", {
+  id: text("id").primaryKey(),
+  codeHash: text("code_hash").notNull(),
+  madeAt: timestamp("made_at", { withTimezone: true }).notNull(),
+});
+
 export const account = pgTable(
   "account",
   {

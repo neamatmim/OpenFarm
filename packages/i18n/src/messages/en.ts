@@ -67,6 +67,10 @@ export const en = {
     "The farm has not invited this address. Ask the owner to invite you, then open the account with the code you are given.",
   "auth.onlyTheOwnerFirst":
     "The farm is not set up yet, and only its owner's address may open the first account.",
+  "auth.setupCodeWrong":
+    "That is not the setup code. It is in the server's log, printed when the server first started: journalctl -u openfarm | grep 'setup code'.",
+  "auth.setupCode": "Setup code",
+  "auth.setupCodeHint": "From the server's log, printed when it first started.",
   "auth.ownerNotNamed":
     "The farm is not open yet. Whoever runs the server must first name the owner's address (OPENFARM_OWNER_EMAIL).",
   "portal.account.title": "Your account",

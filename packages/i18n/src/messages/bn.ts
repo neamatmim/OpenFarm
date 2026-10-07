@@ -65,6 +65,10 @@ export const bn: Record<MessageKey, string> = {
     "এই ঠিকানায় খামার কাউকে ডাকেনি। মালিককে বলুন আপনাকে যোগ করতে, তারপর যে কোড পাবেন তা দিয়ে অ্যাকাউন্ট খুলুন।",
   "auth.onlyTheOwnerFirst":
     "খামার এখনো চালু হয়নি। প্রথম অ্যাকাউন্ট কেবল মালিকের ঠিকানায় খোলা যায়।",
+  "auth.setupCodeWrong":
+    "এটি সেটআপ কোড নয়। সার্ভার প্রথম চালু হওয়ার সময় তার লগে কোডটি লেখা আছে: journalctl -u openfarm | grep 'setup code'।",
+  "auth.setupCode": "সেটআপ কোড",
+  "auth.setupCodeHint": "সার্ভারের লগ থেকে, প্রথম চালু হওয়ার সময় লেখা।",
   "auth.ownerNotNamed":
     "খামার এখনো খোলেনি। সার্ভার যিনি চালান, তাঁকে আগে মালিকের ঠিকানা (OPENFARM_OWNER_EMAIL) লিখে দিতে হবে।",
   "portal.account.title": "আপনার অ্যাকাউন্ট",

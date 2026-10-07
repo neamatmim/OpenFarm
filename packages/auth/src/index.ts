@@ -19,7 +19,16 @@ import type { Host, Hosts } from "./hosts";
 import { HOSTS, originOf, portalOrigin, signInPageOf } from "./hosts";
 import { authLogger } from "./logged";
 import { PASSWORD_MIN_LENGTH, PASSWORD_TOO_COMMON } from "./password";
+import { setupCodeAnswers, theSetupCodeHash } from "./setup-code";
+import { SETUP_CODE_HEADER } from "./setup-code-header";
 import { WRONG_ADDRESS } from "./wrong-address";
+
+/** What the first account is refused with, by why. */
+const FIRST_ACCOUNT_REFUSED = {
+  not_the_owner: "auth.onlyTheOwnerFirst",
+  owner_not_named: "auth.ownerNotNamed",
+  setup_code_wrong: "auth.setupCodeWrong",
+} as const;
 
 /**
  * The other half of the door: an account is opened by somebody the farm is waiting for, and by nobody else.
@@ -30,7 +39,8 @@ import { WRONG_ADDRESS } from "./wrong-address";
  * wants asked. So the account is made only where the farm has already said whose it will be.
  *
  * Two ways in, and no third. Before any Farm exists, the Owner opens the first account — there is nobody yet to
- * invite them, so the server names their address (OPENFARM_OWNER_EMAIL) and nobody else's opens. Afterwards, an account is opened only against an invite the Owner or a
+ * invite them, so the server names their address (OPENFARM_OWNER_EMAIL) and nobody else's opens — on a production
+ * server, only with the setup code it printed in its log as it started. Afterwards, an account is opened only against an invite the Owner or a
  * Manager wrote for that address, and only while it is still open; the code they were handed separately is
  * what then takes it up, so this is a narrower door than the invite, not a way around it.
  */
@@ -60,17 +70,16 @@ const turnAwayWhoWasNotAsked = (db: Database) =>
       const first = whoMayOpenTheFarm(email, {
         ownerEmail: env.OPENFARM_OWNER_EMAIL,
         production: env.NODE_ENV === "production",
+        setupCodeRight: setupCodeAnswers(
+          ctx.headers?.get(SETUP_CODE_HEADER),
+          await theSetupCodeHash(db)
+        ),
       });
       if (first === "open") {
         return;
       }
       throw new APIError("FORBIDDEN", {
-        message: translate(
-          DEFAULT_LANGUAGE,
-          first === "not_the_owner"
-            ? "auth.onlyTheOwnerFirst"
-            : "auth.ownerNotNamed"
-        ),
+        message: translate(DEFAULT_LANGUAGE, FIRST_ACCOUNT_REFUSED[first]),
       });
     }
     // By the address alone, not by which Farm the invite is on: one database holds one farm, and the address
