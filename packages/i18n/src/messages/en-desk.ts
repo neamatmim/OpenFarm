@@ -1753,6 +1753,8 @@ export const enDesk = {
   "push.takenBackTitle": "Taken back",
   "digest.takenBack":
     "{count, plural, one {# mistake taken back} other {# mistakes taken back}}",
+  "digest.proposalAnswered":
+    "{count, plural, one {# proposal answered} other {# proposals answered}}",
   "push.workMissedTitle": "Work went late while the farm was down",
   "push.workMissedBody":
     "{count, plural, one {# piece} other {# pieces}} of work — see the overdue list",

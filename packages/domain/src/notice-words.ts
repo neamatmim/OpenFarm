@@ -216,6 +216,14 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     ),
     cause: facts.cause,
   }),
+  proposal_answered: (facts, language) => ({
+    sop: named(facts.sopBn, facts.sopEn, language),
+    answer: facts.approved
+      ? named("অনুমোদিত হয়েছে", "was approved", language)
+      : named("অনুমোদিত হয়নি", "was turned down", language),
+    // The Owner's reason after a colon, and nothing for an approval given without one.
+    note: facts.note ? `: ${facts.note}` : "",
+  }),
   taken_back: (facts, language) => ({
     tag: facts.tag,
     what:

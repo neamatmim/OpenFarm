@@ -1474,7 +1474,25 @@ export const enCore = {
   "sop.col.note": "Note",
   "sop.approve": "Approve and publish",
   "sop.reject": "Reject",
-  "sop.rejectReason": "Why not",
+  "sop.rejected": "Turned down; the proposer has been told why",
+  "sop.rejectWhy.title": "Turn this change down",
+  "sop.rejectWhy.description":
+    "Whoever proposed it is told, with what you write here.",
+  "sop.rejectWhy.label": "Why not?",
+  "sop.proposeWhy.title": "Send this change to the owner",
+  "sop.proposeWhy.description":
+    "The owner reads this beside your change before deciding.",
+  "sop.proposeWhy.label": "Why should it change?",
+  "sop.outOfDate": "Drafted on version {number}",
+  "sop.outOfDateTitle":
+    "Drafted on version {drafted}; version {number} is in force now",
+  "sop.outOfDateWhy":
+    "Approving it would undo what changed since. Turn it down and ask for it again on the version in force.",
+  "sop.whatItChanges": "What it changes in version {number}",
+  "sop.refused.proposalOutOfDate":
+    "The procedure has had a new version since this change was drafted. Turn it down and ask for it again on version {version}.",
+  "sop.refused.changedSinceYouBegan":
+    "Version {version} was published while you were writing. Close this and start again from it, so nothing it changed is undone.",
   "sop.noProposals": "No changes waiting",
   "sop.blocker.bangla": "{where}: write it in Bangla",
   "sop.blocker.noSteps": "Add at least one step",
@@ -2350,6 +2368,7 @@ export const enCore = {
   "alerts.workMissed":
     "{count, plural, one {# piece} other {# pieces}} of work went late between {since} and now, while the farm's day was not turning. They are on the overdue list.",
   "alerts.takenBack": "{tag}: {what}",
+  "alerts.proposalAnswered": "Your change to {sop} {answer}{note}",
   "alerts.openTheWorkList": "Open the work list",
   "alerts.openTheReviews": "Open what needs a look",
   "alerts.openTheOverdue": "Open the overdue list",

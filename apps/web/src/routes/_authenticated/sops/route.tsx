@@ -17,6 +17,7 @@ import { ProceduresTab } from "@/components/playbook/procedures-tab";
 import { ProposalsTab } from "@/components/playbook/proposals-tab";
 import { SopEditor } from "@/components/playbook/sop-editor";
 import { StandardSops } from "@/components/playbook/standard-sops";
+import { ReasonDialog } from "@/components/sign-off/reason-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
@@ -32,6 +33,8 @@ const REFUSALS: Record<string, MessageKey> = {
   sop_retired: "sop.refused.retired",
   treatment_sop_exists: "sop.refused.treatmentExists",
   report_sop_exists: "sop.refused.reportExists",
+  proposal_out_of_date: "sop.refused.proposalOutOfDate",
+  changed_since_you_began: "sop.refused.changedSinceYouBegan",
 };
 type Tab = (typeof TABS)[number];
 
@@ -89,7 +92,12 @@ const SopsPage = () => {
   const [draft, setDraft] = useState<{
     content: SopContent;
     definitionId: string | null;
+    /** The Version in force when the change began: refused once a newer one is published meanwhile. */
+    basedOnVersionId: string | null;
   } | null>(null);
+  // A Manager's change waits on why they propose it; the Owner turning one down, on why not.
+  const [proposing, setProposing] = useState(false);
+  const [rejecting, setRejecting] = useState<string | null>(null);
 
   const me = useQuery(orpc.people.me.queryOptions());
   // The Pens a moving Step may walk an animal to, named as the farm names them.
@@ -126,6 +134,7 @@ const SopsPage = () => {
     orpc.sops.proposals.create.mutationOptions({
       onSuccess: () => {
         toast.success(t("sop.proposed"));
+        setProposing(false);
         setDraft(null);
       },
       onError,
@@ -138,7 +147,13 @@ const SopsPage = () => {
     })
   );
   const reject = useMutation(
-    orpc.sops.proposals.reject.mutationOptions({ onError })
+    orpc.sops.proposals.reject.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("sop.rejected"));
+        setRejecting(null);
+      },
+      onError,
+    })
   );
   const [retiring, setRetiring] = useState<{
     definitionId: string;
@@ -166,10 +181,7 @@ const SopsPage = () => {
     }
     if (!isOwner) {
       if (draft.definitionId) {
-        propose.mutate({
-          definitionId: draft.definitionId,
-          content: draft.content,
-        });
+        setProposing(true);
       }
       return;
     }
@@ -177,6 +189,7 @@ const SopsPage = () => {
       publish.mutate({
         definitionId: draft.definitionId,
         content: draft.content,
+        basedOnVersionId: draft.basedOnVersionId,
       });
     } else {
       create.mutate({ content: draft.content });
@@ -190,19 +203,41 @@ const SopsPage = () => {
   );
 
   if (draft) {
+    const { definitionId } = draft;
     return (
-      <SopEditor
-        blockers={findPublishBlockers(draft.content)}
-        canPublish={isOwner}
-        content={draft.content}
-        isNew={draft.definitionId === null}
-        onCancel={() => setDraft(null)}
-        onChange={(content) => setDraft({ ...draft, content })}
-        onSave={save}
-        pending={create.isPending || publish.isPending || propose.isPending}
-        pens={pens}
-        products={products}
-      />
+      <>
+        <SopEditor
+          blockers={findPublishBlockers(draft.content)}
+          canPublish={isOwner}
+          content={draft.content}
+          isNew={draft.definitionId === null}
+          onCancel={() => setDraft(null)}
+          onChange={(content) => setDraft({ ...draft, content })}
+          onSave={save}
+          pending={create.isPending || publish.isPending || propose.isPending}
+          pens={pens}
+          products={products}
+        />
+        <ReasonDialog
+          description={t("sop.proposeWhy.description")}
+          handleSubmit={(note) => {
+            if (definitionId) {
+              propose.mutate({
+                definitionId,
+                content: draft.content,
+                note,
+                basedOnVersionId: draft.basedOnVersionId,
+              });
+            }
+          }}
+          label={t("sop.proposeWhy.label")}
+          onOpenChange={setProposing}
+          open={proposing}
+          pending={propose.isPending}
+          submitLabel={t("sop.propose")}
+          title={t("sop.proposeWhy.title")}
+        />
+      </>
     );
   }
 
@@ -213,7 +248,11 @@ const SopsPage = () => {
           isOwner ? (
             <Button
               onClick={() =>
-                setDraft({ content: emptySop(), definitionId: null })
+                setDraft({
+                  content: emptySop(),
+                  definitionId: null,
+                  basedOnVersionId: null,
+                })
               }
               type="button"
             >
@@ -240,8 +279,8 @@ const SopsPage = () => {
                 <div className="flex flex-col gap-6">
                   <ProceduresTab
                     isOwner={isOwner}
-                    onEdit={(definitionId, content) =>
-                      setDraft({ content, definitionId })
+                    onEdit={(definitionId, content, basedOnVersionId) =>
+                      setDraft({ content, definitionId, basedOnVersionId })
                     }
                     onRestore={(definitionId) =>
                       restore.mutate({ definitionId })
@@ -255,7 +294,11 @@ const SopsPage = () => {
                   {isOwner ? (
                     <StandardSops
                       onAdopt={(content) =>
-                        setDraft({ content, definitionId: null })
+                        setDraft({
+                          content,
+                          definitionId: null,
+                          basedOnVersionId: null,
+                        })
                       }
                       pens={pens}
                       products={products}
@@ -277,9 +320,7 @@ const SopsPage = () => {
                   deciding={approve.isPending || reject.isPending}
                   isOwner={isOwner}
                   onApprove={(id) => approve.mutate({ id })}
-                  onReject={(id) =>
-                    reject.mutate({ id, note: t("sop.rejectReason") })
-                  }
+                  onReject={setRejecting}
                   proposals={proposals.data ?? []}
                 />
               </Loaded>
@@ -287,6 +328,26 @@ const SopsPage = () => {
           },
         ]}
         value={tab}
+      />
+      <ReasonDialog
+        // A fresh box for each proposal turned down.
+        description={t("sop.rejectWhy.description")}
+        handleSubmit={(note) => {
+          if (rejecting) {
+            reject.mutate({ id: rejecting, note });
+          }
+        }}
+        key={rejecting}
+        label={t("sop.rejectWhy.label")}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRejecting(null);
+          }
+        }}
+        open={rejecting !== null}
+        pending={reject.isPending}
+        submitLabel={t("sop.reject")}
+        title={t("sop.rejectWhy.title")}
       />
       <ConfirmDialog
         confirmLabel={t("sop.retire")}

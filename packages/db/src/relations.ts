@@ -619,6 +619,11 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
     proposer: r.one.user({ from: r.sopProposal.proposedBy, to: r.user.id }),
+    /** The Version it was drafted against: approved only while that is still the one in force. */
+    basedOn: r.one.sopVersion({
+      from: r.sopProposal.basedOnVersionId,
+      to: r.sopVersion.id,
+    }),
   },
   deviceSwitch: {
     device: r.one.shedPhone({

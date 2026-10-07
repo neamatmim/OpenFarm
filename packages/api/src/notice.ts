@@ -207,6 +207,12 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [theOwner],
     entity: "sale",
   },
+  // Raised by `tellTheProposer` to whoever proposed the change, and nobody else: about the proposal, so told once.
+  proposal_answered: {
+    audience: [{ roles: ["owner", "manager"] }],
+    entity: "sop_proposal",
+    noOwnerFallback: true,
+  },
   // Raised by `tellItWasTakenBack` to exactly the people the death or the disease reached in their pocket, never to an
   // audience worked out afresh: about the record taken back, so told once. These are the Roles a death or a disease is
   // told to, so a person who loses all of them stops seeing it.

@@ -1358,7 +1358,24 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sop.col.note": "মন্তব্য",
   "sop.approve": "অনুমোদন ও প্রকাশ",
   "sop.reject": "প্রত্যাখ্যান",
-  "sop.rejectReason": "কেন নয়",
+  "sop.rejected": "বাতিল হয়েছে; যিনি প্রস্তাব করেছিলেন তাঁকে কারণ জানানো হয়েছে",
+  "sop.rejectWhy.title": "এই বদলটি বাতিল করুন",
+  "sop.rejectWhy.description":
+    "যিনি প্রস্তাব করেছিলেন, তাঁকে এখানে লেখা কারণসহ জানানো হবে।",
+  "sop.rejectWhy.label": "কেন নয়?",
+  "sop.proposeWhy.title": "বদলটি মালিকের কাছে পাঠান",
+  "sop.proposeWhy.description":
+    "সিদ্ধান্ত নেওয়ার আগে মালিক আপনার বদলের পাশে এটি পড়বেন।",
+  "sop.proposeWhy.label": "কেন বদলানো দরকার?",
+  "sop.outOfDate": "সংস্করণ {number}-এর ওপর লেখা",
+  "sop.outOfDateTitle": "সংস্করণ {drafted}-এর ওপর লেখা; এখন চালু সংস্করণ {number}",
+  "sop.outOfDateWhy":
+    "অনুমোদন দিলে এর মধ্যে যা বদলেছে তা মুছে যাবে। বাতিল করে চালু সংস্করণের ওপর আবার প্রস্তাব করতে বলুন।",
+  "sop.whatItChanges": "সংস্করণ {number}-এ যা বদলাবে",
+  "sop.refused.proposalOutOfDate":
+    "এই বদল লেখার পর পদ্ধতির নতুন সংস্করণ এসেছে। বাতিল করে সংস্করণ {version}-এর ওপর আবার প্রস্তাব করতে বলুন।",
+  "sop.refused.changedSinceYouBegan":
+    "আপনি লেখার সময় সংস্করণ {version} প্রকাশ হয়েছে। এটি বন্ধ করে সেখান থেকে আবার শুরু করুন, যাতে তার কোনো বদল মুছে না যায়।",
   "sop.noProposals": "কোনো পরিবর্তন অপেক্ষায় নেই",
   "sop.blocker.bangla": "{where}: বাংলায় লিখুন",
   "sop.blocker.noSteps": "অন্তত একটি ধাপ যোগ করুন",
@@ -2174,6 +2191,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "alerts.workMissed":
     "{since} থেকে এখন পর্যন্ত, খামারের দিন না চলার সময় {count}টি কাজ দেরি হয়েছে। সেগুলো দেরির তালিকায় আছে।",
   "alerts.takenBack": "{tag}: {what}",
+  "alerts.proposalAnswered": "{sop}-এ আপনার প্রস্তাবিত বদল {answer}{note}",
   "alerts.openTheWorkList": "কাজের তালিকা খুলুন",
   "alerts.openTheReviews": "যা দেখা দরকার তা খুলুন",
   "alerts.openTheOverdue": "দেরির তালিকা খুলুন",

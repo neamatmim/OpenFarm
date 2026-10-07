@@ -238,14 +238,8 @@ const CHANGE_MESSAGE: Record<SopChange["kind"], MessageKey> = {
   now_per_pen: "changed.now_per_pen",
 };
 
-/**
- * What changed in this Version, the first time somebody opens work on it — in the words of
- * the job rather than as a list of fields. It stays until they have done the work once,
- * which is the farm's evidence they read it: there is no button, because a button between
- * somebody and the job is a button that gets pressed without reading (notification
- * channels, R1).
- */
-export const WhatChanged = ({ changed }: { changed: Changed }) => {
+/** Each change between two Versions, a line each, in the words of the job: on work, and on a proposal waiting. */
+export const ChangeLines = ({ changes }: { changes: SopChange[] }) => {
   const { t, language } = useLanguage();
   /** The Step's own words in the reader's language, and a Role named rather than spelled. */
   const said = (change: SopChange): Record<string, string | number> => {
@@ -270,15 +264,29 @@ export const WhatChanged = ({ changed }: { changed: Changed }) => {
     };
   };
   return (
+    <ul className="mt-1 list-disc space-y-1 ps-5">
+      {changes.map((change, index) => (
+        <li key={`${change.kind}-${index}`}>
+          {t(CHANGE_MESSAGE[change.kind], said(change))}
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+/**
+ * What changed in this Version, the first time somebody opens work on it — in the words of
+ * the job rather than as a list of fields. It stays until they have done the work once,
+ * which is the farm's evidence they read it: there is no button, because a button between
+ * somebody and the job is a button that gets pressed without reading (notification
+ * channels, R1).
+ */
+export const WhatChanged = ({ changed }: { changed: Changed }) => {
+  const { t } = useLanguage();
+  return (
     <Notice title={t("changed.title")} tone="info">
       <p>{t("changed.versions", { from: changed.from, to: changed.to })}</p>
-      <ul className="mt-1 list-disc space-y-1 ps-5">
-        {changed.changes.map((change, index) => (
-          <li key={`${change.kind}-${index}`}>
-            {t(CHANGE_MESSAGE[change.kind], said(change))}
-          </li>
-        ))}
-      </ul>
+      <ChangeLines changes={changed.changes} />
     </Notice>
   );
 };

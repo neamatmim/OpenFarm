@@ -34,7 +34,11 @@ import { contentOf, whenWords } from "./playbook-types";
  *  and, the Owner's alone, retire it or bring it back. */
 interface ProcedureActions {
   isOwner: boolean;
-  handleEdit: (definitionId: string, content: SopContent) => void;
+  handleEdit: (
+    definitionId: string,
+    content: SopContent,
+    versionId: string | null
+  ) => void;
   handleRetire: (definitionId: string, name: string) => void;
   handleRestore: (definitionId: string) => void;
 }
@@ -48,6 +52,8 @@ interface ProcedureRow {
   english: string;
   purpose: string;
   version: number;
+  /** The Version in force, which an edit or a proposal begins from. */
+  versionId: string | null;
   steps: number;
   content: SopContent | undefined;
   /** Out of force: its work is raised no more, and it is kept for what was done under it. */
@@ -63,6 +69,7 @@ const toRow = (sop: Sop, actions: ProcedureActions): ProcedureRow => {
     english: content?.name.en ?? "",
     purpose: content?.purpose.bn ?? "",
     version: sop.currentVersion?.number ?? 0,
+    versionId: sop.currentVersion?.id ?? null,
     steps: content?.steps.length ?? 0,
     content,
     retired: sop.retiredAt !== null,
@@ -121,7 +128,7 @@ const inForceActions = (
   const change = {
     label: isOwner ? t("sop.edit") : t("sop.propose"),
     icon: isOwner ? Pencil : GitPullRequestArrow,
-    handleSelect: () => handleEdit(row.id, content),
+    handleSelect: () => handleEdit(row.id, content, row.versionId),
   };
   if (!isOwner) {
     return [change];
@@ -324,7 +331,11 @@ export const ProceduresTab = ({
 }: {
   sops: Sop[];
   isOwner: boolean;
-  onEdit: (definitionId: string, content: SopContent) => void;
+  onEdit: (
+    definitionId: string,
+    content: SopContent,
+    versionId: string | null
+  ) => void;
   onRetire: (definitionId: string, name: string) => void;
   onRestore: (definitionId: string) => void;
 }) => {
