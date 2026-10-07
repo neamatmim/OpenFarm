@@ -60,18 +60,31 @@ describe("saying why the farm refused", () => {
     expect(sayWhy(outOfTime, t)).toContain(t("role.staff"));
   });
 
-  it("falls back to what the server said when the farm has no word for it", () => {
-    // Sixteen of the farm's refusals have no wording of their own — a cow already sold, a hold that may not be made
-    // longer. The person must still be told something, and the server's English is better than silence.
-    // Which sixteen is pinned in `i18n/unworded-refusals.test.ts`, so a seventeenth cannot arrive unnoticed.
-    expect(
-      sayWhy(refused("already_sold", "She has already been sold"), t)
-    ).toBe("She has already been sold");
+  it("never says the server's English, even for a refusal the farm has no word for", () => {
+    // The reader is standing at an animal with a Bangla phone: "This work is not overdue yet" told her nothing.
+    expect(sayWhy(refused("no_word_yet", "She has already been sold"), t)).toBe(
+      t("common.error")
+    );
+    expect(sayWhy(new Error("the network went"), t)).toBe(t("common.error"));
+    expect(sayWhy({}, t)).toBe(t("common.error"));
   });
 
-  it("says something for an error the farm gave no refusal with at all", () => {
-    expect(sayWhy(new Error("the network went"), t)).toBe("the network went");
-    expect(sayWhy({}, t)).toBe(t("common.error"));
+  it("says a figure the farm's checks refused, and a door not open to this Role, in words", () => {
+    const badFigure = Object.assign(new Error("Input validation failed"), {
+      code: "BAD_REQUEST",
+      data: { issues: [{ path: ["tagNumber"], message: "Expected string" }] },
+    });
+    expect(sayWhy(badFigure, t)).toBe(t("common.figureRefused"));
+    const notOpen = Object.assign(new Error("Forbidden"), {
+      code: "FORBIDDEN",
+    });
+    expect(sayWhy(notOpen, t)).toBe(t("common.forbidden"));
+  });
+
+  it("says a phone that cannot keep work kept none", () => {
+    expect(sayWhy(refused("cannot_keep_work"), t)).toBe(
+      t("common.cannotKeepWork")
+    );
   });
 
   it("says what a held Entry was refused for, when a phone's queue says so", () => {

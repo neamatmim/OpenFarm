@@ -55,11 +55,28 @@ export type OwnWords = Readonly<Record<string, MessageKey>>;
 /** Refusals any screen may meet, by their word: an act the password was asked for, and not given. */
 const FARM_WORDS: OwnWords = {
   password_needed: "passwordAgain.notGiven",
+  cannot_keep_work: "common.cannotKeepWork",
+};
+
+/** The oRPC code a refusal came back with: what is left to go on when the farm gave it no word. */
+const codeOf = (error: unknown): unknown =>
+  (error as { code?: unknown } | null)?.code;
+
+/**
+ * The farm's last word for a refusal it gave no word of its own: a figure the screen allowed and the farm's checks did
+ * not, something not open to this Role, or — never the server's English — that something went wrong.
+ */
+const lastWord = (error: unknown): MessageKey => {
+  const data = dataOf(error);
+  if (codeOf(error) === "BAD_REQUEST" && Array.isArray(data.issues)) {
+    return "common.figureRefused";
+  }
+  return codeOf(error) === "FORBIDDEN" ? "common.forbidden" : "common.error";
 };
 
 /**
  * Says why the farm refused: the screen's own words for it, then the farm's — a Correction Window, an Entry the world
- * moved past, a refusal with a word of its own — and only then whatever the server said in English.
+ * moved past, a refusal with a word of its own — and last the farm's plainest words, never the server's English.
  */
 export const sayWhy = (
   error: unknown,
@@ -78,7 +95,6 @@ export const sayWhy = (
     // Only when it is one: a refusal that is a bare word is the farm's, not a phone's, and asking the Outbox to word
     // it would be asking it about a shape it has never seen.
     entryRefusalMessage(heldEntryRefusal(error), t) ??
-    (error as Error | null)?.message ??
-    t("common.error")
+    t(lastWord(error))
   );
 };

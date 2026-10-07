@@ -116,6 +116,7 @@ export const peopleRouter = {
         throw new ORPCError("FORBIDDEN", {
           message:
             "Only you, or whoever runs the farm, may write down your number",
+          data: { refusal: "your_own_number" },
         });
       }
       if (!mine) {

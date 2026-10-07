@@ -625,6 +625,7 @@ export const sopsRouter = {
             throw new ORPCError("CONFLICT", {
               message:
                 "That person was already marked as trained on this version",
+              data: { refusal: "already_trained" },
             });
           }
         }

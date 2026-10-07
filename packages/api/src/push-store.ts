@@ -213,6 +213,7 @@ export const rememberPushBrowser = async (
   ) {
     throw new ORPCError("CONFLICT", {
       message: "That browser is already listening for somebody else",
+      data: { refusal: "browser_listens_for_another" },
     });
   }
   const id = standing?.id ?? uuidv7(now);

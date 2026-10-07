@@ -52,6 +52,7 @@ const quantityReceived = (
   if ((input.quantity === undefined) === (input.pack === undefined)) {
     throw new ORPCError("BAD_REQUEST", {
       message: "Say how much came — in its own unit, or in bags or maunds",
+      data: { refusal: "say_how_much_came" },
     });
   }
   if (input.quantity !== undefined) {

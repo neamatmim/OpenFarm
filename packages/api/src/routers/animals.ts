@@ -411,6 +411,7 @@ const assertCalvedInThePast = (calvedAt: Date | undefined, now: Date) => {
   if (calvedAt && calvedAt.getTime() > now.getTime()) {
     throw new ORPCError("BAD_REQUEST", {
       message: "A calving date cannot be in the future",
+      data: { refusal: "calved_in_the_future" },
     });
   }
 };
@@ -473,6 +474,7 @@ const assertStateFitsSide = (side: string, state: AnimalState) => {
   if (sideOfState(state) !== side) {
     throw new ORPCError("BAD_REQUEST", {
       message: `An animal in state ${state} cannot be registered on the ${side} side`,
+      data: { refusal: "state_not_of_side" },
     });
   }
 };
@@ -1216,6 +1218,7 @@ export const animalsRouter = {
       if (happenedAt > now) {
         throw new ORPCError("BAD_REQUEST", {
           message: "An animal cannot have died in the future",
+          data: { refusal: "died_in_the_future" },
         });
       }
       const id = newId(now);
@@ -2062,6 +2065,7 @@ export const animalsRouter = {
       if (records.length > IMPORT_MAX_ROWS) {
         throw new ORPCError("BAD_REQUEST", {
           message: `At most ${IMPORT_MAX_ROWS} rows at a time`,
+          data: { refusal: "too_many_rows" },
         });
       }
       const pens = await context.db.query.pen.findMany({

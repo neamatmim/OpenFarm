@@ -14,7 +14,8 @@ import { useTheme } from "next-themes";
 import { useT } from "@/i18n/language-provider";
 import { useInTheBrowser } from "@/lib/in-the-browser";
 
-const THEMES = [
+/** The looks the farm offers, each with its icon and word: the bar's menu on a desk, the account menu on a phone. */
+export const THEMES = [
   { value: "light", icon: Sun, label: "theme.light" },
   { value: "dark", icon: Moon, label: "theme.dark" },
   { value: "system", icon: Monitor, label: "theme.system" },

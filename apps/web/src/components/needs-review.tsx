@@ -71,15 +71,21 @@ interface ReviewCell {
 const WhatWasHeld = ({ held }: { held: NonNullable<OpenReview["held"]> }) => {
   const { t, language } = useLanguage();
   const kind = HELD_KIND[held.kind];
-  // Figures in the reader's own digits; anything else as it was typed.
+  // Figures in the reader's own digits, a choice by what the Step calls it, anything else as it was typed.
   const entered =
     held.skipReason ??
     held.evidence
-      .map((value) =>
-        typeof value === "number"
-          ? formatNumber(value, language)
-          : String(value)
-      )
+      .map((value, slot) => {
+        if (typeof value === "number") {
+          return formatNumber(value, language);
+        }
+        // Missing from a queue kept from before the farm named the choices.
+        const choice = held.choices?.[slot];
+        if (choice) {
+          return language === "en" ? (choice.en ?? choice.bn) : choice.bn;
+        }
+        return String(value);
+      })
       .join(", ");
   return (
     <span className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">

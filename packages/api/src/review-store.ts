@@ -2,9 +2,12 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import type { ReviewReason } from "@OpenFarm/db/schema/review";
 import { needsReview } from "@OpenFarm/db/schema/review";
+import type { Bilingual } from "@OpenFarm/domain";
+import { choiceSaid } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import type { EntryRefusal } from "./entries/entry";
+import { contentOf } from "./sop-content";
 
 /**
  * Writes down that the farm owes somebody's judgement: a Correction changed something it could not put right on its
@@ -80,6 +83,8 @@ export interface WhatWasHeld {
   recordedBy: string | null;
   animalTag: string | null;
   evidence: unknown[];
+  /** What each answer is called where it is one of its Step's choices, in both languages: "গর্ভবতী", not `positive`. */
+  choices: (Bilingual | null)[];
   skipReason: string | null;
   refusal: EntryRefusal | null;
   /** Still held: the Manager may take it into the records. */
@@ -152,6 +157,29 @@ export const withWhatWasHeld = async <
           columns: { id: true, name: true },
         });
   const nameOf = new Map(people.map((one) => [one.id, one.name]));
+  // The Version each held Step was answered on, which is what its choices are called by.
+  const instanceIds = [
+    ...new Set(
+      [...said.values()].flatMap((one) => {
+        const id = asText(one.payload.instanceId);
+        return id ? [id] : [];
+      })
+    ),
+  ];
+  const works =
+    instanceIds.length === 0
+      ? []
+      : await db.query.sopInstance.findMany({
+          where: { farmId, id: { in: instanceIds } },
+          columns: { id: true },
+          with: { version: { columns: { content: true } } },
+        });
+  const versionOf = new Map(
+    works.map((one) => [
+      one.id,
+      one.version ? contentOf(one.version) : undefined,
+    ])
+  );
   return rows.map((row) => {
     const found = row.entity === "sync_entry" ? said.get(row.entityId) : null;
     if (!found) {
@@ -168,6 +196,15 @@ export const withWhatWasHeld = async <
         // A Step and a sighting name her by animalTag; a Move by tagNumber.
         animalTag: asText(payload.animalTag) ?? asText(payload.tagNumber),
         evidence: Array.isArray(payload.evidence) ? payload.evidence : [],
+        choices: (Array.isArray(payload.evidence) ? payload.evidence : []).map(
+          (value, slot) =>
+            choiceSaid(
+              versionOf.get(asText(payload.instanceId) ?? ""),
+              asText(payload.stepId) ?? undefined,
+              slot,
+              value
+            )
+        ),
         skipReason: asText(payload.skipReason),
         refusal: (one.refusal as WhatWasHeld["refusal"]) ?? null,
         mayTakeIn: one.outcome === "kept" && one.payload !== null,

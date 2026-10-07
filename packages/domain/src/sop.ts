@@ -60,6 +60,26 @@ export interface Evidence {
   choices?: Choice[];
 }
 
+/**
+ * What a Step's answer in one slot is called, where it is one of the slot's choices: "গর্ভবতী", not `positive`. Nothing
+ * for a figure, a tick, a word typed, or a Step this content no longer has.
+ */
+export const choiceSaid = (
+  content: Pick<SopContent, "steps"> | undefined,
+  stepId: string | undefined,
+  slot: number,
+  value: unknown
+): Bilingual | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const step = content?.steps.find((one) => one.id === stepId);
+  return (
+    step?.evidence[slot]?.choices?.find((one) => one.value === value)?.label ??
+    null
+  );
+};
+
 /** Where a figure falls outside the range its Evidence warns at — "below 0", "above 40" — or nothing. */
 export const outOfRangeOf = (
   evidence: Evidence | undefined,

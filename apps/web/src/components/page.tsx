@@ -326,7 +326,8 @@ export const StatTile = ({
 }) => (
   <TileFrame onSelect={onSelect} selected={selected}>
     <div className="text-muted-foreground flex items-center justify-between gap-2 text-sm font-medium">
-      <span className="truncate" data-slot="figure-label">
+      {/* Wrapped, never cut: "মাংস আটকে রাখার দিন" is wider than a quarter of a desk's row. */}
+      <span className="min-w-0 break-words" data-slot="figure-label">
         {label}
       </span>
       {Icon ? (

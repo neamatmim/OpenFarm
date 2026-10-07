@@ -94,6 +94,7 @@ const loadCheckableInstance = async (
   if (!(awaitsSignOff(instance) && instance.checkerRole)) {
     throw new ORPCError("BAD_REQUEST", {
       message: "This work is not checked by anyone",
+      data: { refusal: "not_checked_by_anyone" },
     });
   }
   const mayCheck =
@@ -102,6 +103,7 @@ const loadCheckableInstance = async (
   if (!mayCheck) {
     throw new ORPCError("FORBIDDEN", {
       message: `This work is signed off by ${instance.checkerRole}`,
+      data: { refusal: "not_yours_to_sign_off" },
     });
   }
   // Marking your own work as checked is not a check — except for the Owner. The rule is the domain's, and the
@@ -109,6 +111,7 @@ const loadCheckableInstance = async (
   if (!maySignOff(instance, { id: context.actor.id, roles: context.roles })) {
     throw new ORPCError("FORBIDDEN", {
       message: "Work is signed off by someone other than the person who did it",
+      data: { refusal: "own_work_not_signed_off" },
     });
   }
   return instance;
@@ -572,6 +575,7 @@ export const workRouter = {
             if (!canWorkIt) {
               throw new ORPCError("BAD_REQUEST", {
                 message: `That person cannot do ${instance.assignedRole} work on this farm`,
+                data: { refusal: "cannot_do_that_work" },
               });
             }
           }
@@ -748,6 +752,7 @@ export const workRouter = {
           if (!isOverdue(instance, now)) {
             throw new ORPCError("BAD_REQUEST", {
               message: "This work is not overdue yet",
+              data: { refusal: "not_overdue_yet" },
             });
           }
           // No completedAt: nobody completed it. When it was closed, and by whom, is the

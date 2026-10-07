@@ -1788,6 +1788,61 @@ export const en = {
     "Her death is put down to it: put her death right first",
   "refusal.reportDelivered":
     "Its report has reached the office: a letter that went, went",
+  "refusal.recordedByALeaver":
+    "Recorded under somebody who no longer works on this farm: give it back to them, or write it again yourself",
+  "refusal.alreadySold": "She has already been sold",
+  "refusal.exitNeedsARecord":
+    "An animal leaves the herd by the record of how she went — a sale, a death — not by a change of state",
+  "refusal.meatWithdrawal": "She is still inside her meat withdrawal",
+  "refusal.noSuchAnimal": "That animal is no longer here to show",
+  "refusal.noSuchProduct": "That medicine is not on the farm's drug list",
+  "refusal.noSuchVenture": "That venture is not one of yours",
+  "refusal.notNotifiable":
+    "That diagnosis is not one the farm's list says must be reported",
+  "refusal.ownerWritesTheirOwn": "The owner writes down their own number",
+  "refusal.prescriptionRaisesIt":
+    "A prescription raises this work, one dose at a time",
+  "refusal.readyNeedsConfirming":
+    "Ready for sale is confirmed against her withdrawal record, from the ready-for-sale list",
+  "refusal.servedInTheFuture": "A service cannot be later than now",
+  "refusal.tooManyForOnePaper":
+    "One paper carries at most {limit, plural, one {# animal} other {# animals}}: make it in parts",
+  "refusal.browserListensForAnother":
+    "This phone's browser is already giving notices to somebody else: they turn theirs off first",
+  "refusal.caseAlreadyOpen": "That vet already has a case open on her",
+  "refusal.notAVisitingVet":
+    "That person is not a visiting vet on this farm now",
+  "refusal.visitEndsBeforeToday": "A visit has to last until today at least",
+  "refusal.alreadyTrained":
+    "That person is already marked as trained on this version",
+  "refusal.notOverdueYet":
+    "This work is not late yet: it has not had its chance",
+  "refusal.movedOnSince":
+    "She is no longer where this was decided on: open her page again and look",
+  "refusal.sayHowMuchCame":
+    "Say how much came — in its own unit, or in bags or maunds",
+  "refusal.diedInTheFuture": "A death cannot be on a day that has not come yet",
+  "refusal.arrivedInTheFuture":
+    "An animal cannot have arrived on a day that has not come yet",
+  "refusal.notASightingWord":
+    "That is not one of the things the farm records seeing: choose from the list",
+  "refusal.sayWhatWasSeen": "Say what was seen",
+  "refusal.notThisAnimals":
+    "That belongs to another animal: open it from her own page",
+  "refusal.cannotDoThatWork":
+    "That person does not hold the role this work is for",
+  "refusal.notCheckedByAnyone": "Nobody signs this work off",
+  "refusal.notYoursToSignOff": "This work is signed off by another role",
+  "refusal.ownWorkNotSignedOff":
+    "Work is signed off by someone other than the person who did it",
+  "refusal.yourOwnNumber":
+    "Only you, or whoever runs the farm, may write down your number",
+  "refusal.tooManyRows":
+    "Too many rows at once: split the sheet into smaller ones",
+  "refusal.stateNotOfSide":
+    "That state is not one of this side's: choose the other side, or another state",
+  "refusal.noSuchChangeOfState":
+    "An animal cannot go from the state she is in to that one",
   "refusal.alreadyInThatPen": "She is already in that pen",
   "refusal.calfMovedBeforeThat":
     "The calf was moved before that time, so the calving can't be after it",
@@ -3261,10 +3316,15 @@ export const en = {
   "passwordAgain.notGiven": "Not done: it needs your password.",
   "common.noSignalNotSaved":
     "No signal: this was not saved. It is still here — save again when the phone has signal.",
+  "common.figureRefused":
+    "The farm will not take what was typed: look at each box and try again",
+  "common.cannotKeepWork":
+    "This phone cannot keep work, so nothing was recorded: open the app in its own browser, not a private window",
   "work.correctionKept":
     "Put right on this phone. It goes to the farm when the phone has signal.",
   "common.cancel": "Cancel",
   "common.close": "Close",
+  "common.messages": "Messages",
   "nav.signOff": "Review",
   "nav.backups": "Backups",
   "nav.settings": "Your settings",

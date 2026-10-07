@@ -161,6 +161,7 @@ export const mortalityCorrection: CorrectionKind<
     if (to.happenedAt && to.happenedAt > now) {
       throw new ORPCError("BAD_REQUEST", {
         message: "An animal cannot have died in the future",
+        data: { refusal: "died_in_the_future" },
       });
     }
     // Only a newer photograph: nothing of the record itself to put right.

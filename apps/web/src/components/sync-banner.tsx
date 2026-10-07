@@ -207,7 +207,7 @@ export const SyncBanner = () => {
     <output
       aria-live="polite"
       className={cn(
-        "inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border px-3 py-1 text-sm",
+        "inline-flex max-w-full min-w-0 items-center gap-2 rounded-2xl border px-3 py-1 text-sm lg:rounded-full",
         attention
           ? "border-warning/30 bg-warning-surface text-warning"
           : "bg-muted/60 text-muted-foreground border-transparent"
@@ -215,18 +215,20 @@ export const SyncBanner = () => {
       title={[sent, fresh].filter(Boolean).join(" · ")}
     >
       <Icon aria-hidden className="size-4 shrink-0" />
-      {hasSentBack && !waiting ? (
-        <Link
-          className="truncate font-medium underline-offset-2 hover:underline"
-          to="/outbox"
-        >
-          {label}
-        </Link>
-      ) : (
-        <span className="truncate font-medium">{label}</span>
-      )}
-      <span className="hidden truncate text-xs opacity-80 lg:inline">
-        {sent}
+      {/* On a phone, when it was last sent goes under what is waiting: the bar is the pill's there, and a title is
+          read only by a pointer that can hover. */}
+      <span className="flex min-w-0 flex-col lg:flex-row lg:items-center lg:gap-2">
+        {hasSentBack && !waiting ? (
+          <Link
+            className="truncate font-medium underline-offset-2 hover:underline"
+            to="/outbox"
+          >
+            {label}
+          </Link>
+        ) : (
+          <span className="truncate font-medium">{label}</span>
+        )}
+        <span className="truncate text-xs opacity-80">{sent}</span>
       </span>
       {waiting ? (
         <Link
@@ -239,7 +241,8 @@ export const SyncBanner = () => {
       {waiting ? (
         <Button
           aria-label={t("outbox.retry")}
-          className="-mr-2 size-7 rounded-full"
+          // A thumb's width on a phone, the bar's small icon on a desk.
+          className="-mr-2 size-11 rounded-full md:size-7"
           onClick={async () => {
             await phoneOutbox()?.resume();
             await queryClient.invalidateQueries({ queryKey: ["outbox"] });

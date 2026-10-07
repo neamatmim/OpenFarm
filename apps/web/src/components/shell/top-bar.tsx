@@ -22,8 +22,12 @@ export const TopBar = () => {
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <GoToAnimal />
-        <LanguageToggle />
-        <ThemeMenu />
+        {/* On a phone the bar is the sync status's, and a language one tap away on a shared Shed Phone was pressed by
+            mistake: both are in the account menu there. */}
+        <div className="hidden items-center gap-1 md:flex">
+          <LanguageToggle />
+          <ThemeMenu />
+        </div>
         <UserMenu />
       </div>
     </header>

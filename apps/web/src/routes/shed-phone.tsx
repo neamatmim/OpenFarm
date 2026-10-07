@@ -152,14 +152,14 @@ const PinPad = ({
       {PAD_DIGITS.map((digit) => (
         <PadKey
           key={digit}
-          label={String(digit)}
+          label={formatDigits(digit, language)}
           onPress={() => onDigit(digit)}
         >
           {formatDigits(digit, language)}
         </PadKey>
       ))}
       <span aria-hidden />
-      <PadKey label="0" onPress={() => onDigit(0)}>
+      <PadKey label={formatDigits(0, language)} onPress={() => onDigit(0)}>
         {formatDigits(0, language)}
       </PadKey>
       <PadKey label={t("device.pinDelete")} onPress={onDelete}>

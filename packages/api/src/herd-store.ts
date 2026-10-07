@@ -733,6 +733,7 @@ export const entersState = async (
   if (!canTransition(her.state, state)) {
     throw new ORPCError("BAD_REQUEST", {
       message: `An animal cannot go from ${her.state} to ${state}`,
+      data: { refusal: "no_such_change_of_state" },
     });
   }
   const [reached] = await tx
@@ -747,6 +748,7 @@ export const entersState = async (
   if (!reached) {
     throw new ORPCError("BAD_REQUEST", {
       message: "This animal is no longer where this was decided on",
+      data: { refusal: "moved_on_since" },
     });
   }
   // Out of milk: the day her Lactation ended, kept past the calving that will overwrite her State.
@@ -810,6 +812,7 @@ export const calves = async (
   if (!calved) {
     throw new ORPCError("BAD_REQUEST", {
       message: "This animal is no longer where this was decided on",
+      data: { refusal: "moved_on_since" },
     });
   }
   const calvingWork = await forgetExpectedCalving(
@@ -913,6 +916,7 @@ export const leaves = async (
     // Recording a second exit over the first would lose which one the farm stands behind.
     throw new ORPCError("BAD_REQUEST", {
       message: "This animal has already left the farm",
+      data: { refusal: "she_is_gone" },
     });
   }
   // Missing no more: a Missing still open — not written off — when she is sold, dies or is culled is closed at her

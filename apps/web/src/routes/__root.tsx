@@ -91,8 +91,8 @@ const RootDocument = () => {
                 <Outlet />
               </div>
             </TooltipProvider>
+            <AppToaster />
           </LanguageProvider>
-          <AppToaster />
         </ThemeProvider>
         {SHOW_DEVTOOLS ? (
           <>
