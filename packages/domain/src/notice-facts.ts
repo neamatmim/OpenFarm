@@ -88,6 +88,13 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") the latest missed sum fell due. */
     dueOn: string;
   };
+  /** A death or a disease somebody was told of, written by mistake and taken back: told to those it reached. */
+  taken_back: {
+    was: "death" | "diagnosis";
+    tag: string;
+    /** The disease, for a Diagnosis taken back; nothing for a death. */
+    disease?: string;
+  };
   /** Never what she cost: that is the Owner's, as every price is. */
   mortality_undiagnosed: {
     tag: string;

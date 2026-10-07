@@ -9,7 +9,7 @@ import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import { farmDayOf, roundMoney } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import { holdersOf } from "./alerts-store";
+import { clearNoticesAbout, holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
 import { THE_FARMS_PURSE } from "./money-store";
 import { tell } from "./notice";
@@ -523,6 +523,16 @@ export const recordCashCount = async (
     })
     .onConflictDoUpdate({ target: cashCount.completionId, set: row });
   const shortMoney = roundMoney(expected - input.counted);
+  if (shortMoney <= input.farm.cashShortTellMoney) {
+    // Put right to no shortfall: the notice of one goes.
+    await clearNoticesAbout(
+      tx,
+      input.farm.id,
+      [input.completionId],
+      input.now,
+      ["cash_short"]
+    );
+  }
   if (shortMoney > input.farm.cashShortTellMoney) {
     const counter = await tx.query.user.findFirst({
       where: { id: input.userId },
@@ -546,12 +556,21 @@ export const recordCashCount = async (
   return { differs: input.counted !== expected };
 };
 
-/** A count taken back — the Step put right to a skip — is no count. */
+/** A count taken back — the Step put right to a skip — is no count, and a shortfall it was told of is no shortfall. */
 export const removeCashCount = async (
   tx: Tx,
-  completionId: string
+  completionId: string,
+  now: Date
 ): Promise<void> => {
-  await tx.delete(cashCount).where(eq(cashCount.completionId, completionId));
+  const [removed] = await tx
+    .delete(cashCount)
+    .where(eq(cashCount.completionId, completionId))
+    .returning({ farmId: cashCount.farmId });
+  if (removed) {
+    await clearNoticesAbout(tx, removed.farmId, [completionId], now, [
+      "cash_short",
+    ]);
+  }
 };
 
 /** One way cash came into a hand or left it, as that hand's own list shows it. */

@@ -4,7 +4,7 @@ import { DISPOSALS, MORTALITY_KINDS } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { clearNoticesAbout } from "../alerts-store";
+import { clearNoticesAbout, tellItWasTakenBack } from "../alerts-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { comesBackFromAVoidedExit } from "../herd-store";
@@ -14,6 +14,8 @@ import {
   keepDeathPhoto,
   readMortality,
 } from "../mortality-store";
+import type { Raised } from "../notice";
+import { pushRaised } from "../push-send";
 import { assertNotSettledUp } from "../venture-act";
 import { keepWhatWasPhotographed } from "../voided-photos";
 import type { CorrectionKind, Corrector } from "./correction";
@@ -116,7 +118,8 @@ export const mortalityCorrectionInput = correctionInput({
 export const mortalityCorrection: CorrectionKind<
   NonNullable<Awaited<ReturnType<typeof loadMortality>>>,
   z.infer<typeof mortalityCorrectionInput>["changes"],
-  unknown,
+  /** Who is told the death was taken back, for a void that undoes one that reached a pocket. */
+  Raised[] | undefined,
   Pick<z.infer<typeof mortalityCorrectionInput>, "photo">
 > = {
   entity: "mortality",
@@ -141,12 +144,16 @@ export const mortalityCorrection: CorrectionKind<
   // A newer photograph is a change of its own, with nothing else put right beside it.
   changesBeyondValues: ({ photo }) => photo !== undefined,
   trail: (tx, row) => readMortality(tx, row.id),
+  // Outside the transaction, as every push is.
+  afterwards: async (context, told) => {
+    await pushRaised(context, told ?? [], context.clock.now());
+  },
   apply: async (tx, row, to, { now, context, extra }) => {
     if (to.voided) {
       await voidTheDeath(tx, row, context, now);
       // Her death told to the Owner, the Vet asked to name what she died of: neither is true of a bull standing in his Pen.
-      await clearNoticesAbout(tx, row.farmId, [row.id], now);
-      return;
+      const cleared = await clearNoticesAbout(tx, row.farmId, [row.id], now);
+      return await tellItWasTakenBack(tx, row.farmId, cleared, now);
     }
     if (extra.photo) {
       await keepDeathPhoto(

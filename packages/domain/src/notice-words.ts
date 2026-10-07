@@ -216,6 +216,21 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     ),
     cause: facts.cause,
   }),
+  taken_back: (facts, language) => ({
+    tag: facts.tag,
+    what:
+      facts.was === "death"
+        ? named(
+            "তার মৃত্যু ভুল করে লেখা হয়েছিল, ফিরিয়ে নেওয়া হয়েছে",
+            "her death was written by mistake and has been taken back",
+            language
+          )
+        : named(
+            `${facts.disease ?? ""} ভুল করে লেখা হয়েছিল, ফিরিয়ে নেওয়া হয়েছে; জানানোর কিছু নেই`,
+            `${facts.disease ?? ""} was written by mistake and has been taken back; nothing to report`,
+            language
+          ),
+  }),
   mortality_recorded: (facts, language) => ({
     tag: facts.tag,
     how: named(

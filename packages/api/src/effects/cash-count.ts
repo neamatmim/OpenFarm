@@ -30,7 +30,7 @@ const countTheCash = async (
   input: CashCountFacts
 ): Promise<EffectResult> => {
   if (input.skipped) {
-    await removeCashCount(tx, input.completionId);
+    await removeCashCount(tx, input.completionId, input.now);
     return null;
   }
   const farm = await tx.query.farm.findFirst({

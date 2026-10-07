@@ -132,6 +132,26 @@ describe("a sale under her cost or the market", () => {
     expect(await toldOf(saleId)).toHaveLength(1);
   });
 
+  it("takes the notice down when a Correction puts the price back over both", async () => {
+    const bull = await aBull();
+    const saleId = await sell(bull.tagNumber, 95_000);
+    const manager = await as("manager", "2078-03-20T09:00:00.000Z");
+    await manager.client.sales.correct({
+      id: saleId,
+      reason: `একটা শূন্য বাদ পড়েছিল ${suffix}`,
+      changes: { priceMoney: { from: 95_000, to: 165_000 } },
+    });
+    const showing = await scratchDb().query.alert.findMany({
+      where: {
+        kind: "sold_under_cost",
+        entityId: saleId,
+        dismissedAt: { isNull: true },
+      },
+      columns: { id: true },
+    });
+    expect(showing).toEqual([]);
+  });
+
   it("leaves the dairy side alone: a cow culled to a butcher was never going to fetch her working life back", async () => {
     const owner = await as("owner", "2078-03-01T04:00:00.000Z");
     const cow = await owner.client.animals.register({

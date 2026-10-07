@@ -11,6 +11,7 @@ import {
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
+import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
 import { tell } from "../notice";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
@@ -74,6 +75,10 @@ const judgeHerFirstWeighIn = async (
     farm?.arrivalShortPercent ?? 5
   );
   if (!short) {
+    // A first weighing put right to within the line: the notice that the lorry came short goes.
+    await clearNoticesAbout(tx, input.instance.farmId, [bought.id], input.now, [
+      "arrival_weight_short",
+    ]);
     return;
   }
   await tell(

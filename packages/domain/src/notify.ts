@@ -129,6 +129,9 @@ export const DELIVERY = {
   // A death or a cull is the Owner's to hear at once — a bull sold on the quiet and written "died" is caught the day it
   // happens or not at all. At once, but it does not wake the farm: the quiet hours hold its push till morning.
   mortality_recorded: { when: "immediate" },
+  // Told the moment a death or a disease that went to a pocket is taken back, but never across the quiet hours: a
+  // mistake undone can wait for the morning, as the buzz it undoes could not.
+  taken_back: { when: "immediate" },
   // A death nobody had diagnosed is the Vet's to look at, the same day: at once, held through the quiet hours.
   mortality_undiagnosed: { when: "immediate" },
   // A Monthly Sum missed is the evening's for the Owner, who rings the man: the farm reminds him, the app never does.
@@ -350,6 +353,11 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
       body: "alerts.mortalityUndiagnosed",
     },
     digest: "digest.mortalityUndiagnosed",
+  },
+  taken_back: {
+    app: "alerts.takenBack",
+    push: { title: "push.takenBackTitle", body: "alerts.takenBack" },
+    digest: "digest.takenBack",
   },
   mortality_recorded: {
     app: "alerts.mortalityRecorded",
