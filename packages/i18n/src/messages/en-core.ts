@@ -851,6 +851,8 @@ export const enCore = {
   "refusal.handedLaterThanNow": "Cash cannot have changed hands later than now",
   "refusal.splitNotTheFarms":
     "The farm's own units in this venture are on a {investorsPercent}% split; every investor signs on the same",
+  "refusal.splitNotTheVentures":
+    "This venture's investors are on a {investorsPercent}% split: every investor signs on the same, or an amendment moves them all",
   "refusal.theFarmsOwnUnits":
     "The farm's own units are its own capital: they are signed, papered and told nothing as a person's are",
   "refusal.madeGoodNeedsReference":

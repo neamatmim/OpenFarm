@@ -1,0 +1,1 @@
+ALTER TABLE "investment_agreement" ADD COLUMN "farm_as_signed" jsonb;

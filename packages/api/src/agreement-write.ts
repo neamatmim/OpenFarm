@@ -12,7 +12,8 @@ import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Trail, Tx } from "./audit";
-import { assertTheFarmsSplit } from "./farm-capital-store";
+import { farmAsItIs } from "./farm-as-signed";
+import { assertTheVenturesSplit } from "./farm-capital-store";
 import { countedInvestors, nextPayInCode, unitsTaken } from "./investor-store";
 import { nominationBySigning } from "./nominations";
 import { answerBySigning } from "./requests-to-join";
@@ -119,7 +120,7 @@ export const writeAgreement = async (
       data: { refusal: "venture_units_gone" },
     });
   }
-  await assertTheFarmsSplit(
+  await assertTheVenturesSplit(
     tx,
     farm.id,
     venture.id,
@@ -136,7 +137,10 @@ export const writeAgreement = async (
   const given = await nextPayInCode(tx, farm.id, venture);
   // As the Amendments the Investors before them signed have left it, not as the Venture opened.
   const window = await windowInForceOn(tx, farm.id, venture, farmDayOf(by.now));
+  // The farm as it names itself today, kept with the paper: a copy printed after a rename is headed as the original was.
+  const farmAsSigned = await farmAsItIs(tx, farm.id);
   await tx.insert(investmentAgreement).values({
+    farmAsSigned,
     id: agreement.id,
     farmId: farm.id,
     ventureId: venture.id,

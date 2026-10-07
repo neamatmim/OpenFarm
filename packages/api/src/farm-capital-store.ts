@@ -259,27 +259,69 @@ export const farmUnitsOf = async (
 };
 
 /**
- * Refuses terms on a split other than the Farm's own Units': they are on the same terms as everyone's, so every
- * Investor is signed on that split — or the Settlement could not divide the run. Asked wherever terms are first put to an
- * Investor — the paper laid out to sign, the offer in the app — and again where they are signed. Nothing where the Farm
- * holds no Units.
+ * The split a Venture's Agreements are on, once it has any: the Farm's own Units' where it holds some, else its first
+ * Investor's. A Venture is settled on one split, and a later Investor signed on another left it unable to settle
+ * (`agreements_disagree`). Nothing for a Venture nobody has signed for.
  */
-export const assertTheFarmsSplit = async (
+export const theVenturesSplit = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  ventureId: string
+): Promise<{ investorsPercent: number; farmsOwn: boolean } | null> => {
+  const signed = await db.query.investmentAgreement.findMany({
+    where: { farmId, ventureId },
+    columns: { investorsPercent: true, stampKind: true },
+    orderBy: { createdAt: "asc", id: "asc" },
+  });
+  const first =
+    signed.find((one) => one.stampKind === "farm_own") ?? signed.at(0);
+  return first
+    ? {
+        investorsPercent: first.investorsPercent,
+        farmsOwn: first.stampKind === "farm_own",
+      }
+    : null;
+};
+
+/** The split each of these Ventures is on, for those anybody has signed for. */
+export const splitsOf = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  ventureIds: readonly string[]
+): Promise<Map<string, number>> => {
+  const splits = new Map<string, number>();
+  for (const ventureId of ventureIds) {
+    // oxlint-disable-next-line no-await-in-loop -- a few open Ventures at a time
+    const split = await theVenturesSplit(db, farmId, ventureId);
+    if (split) {
+      splits.set(ventureId, split.investorsPercent);
+    }
+  }
+  return splits;
+};
+
+/**
+ * A new Agreement or offer is on the split the Venture's Agreements are already on, refused otherwise: the Farm's own
+ * Units' (`split_not_the_farms`), or the first Investor's (`split_not_the_ventures`). The only way to a new split is an
+ * Amendment that moves them all.
+ */
+export const assertTheVenturesSplit = async (
   db: Pick<Tx, "query">,
   farmId: string,
   ventureId: string,
   investorsPercent: number
 ): Promise<void> => {
-  const farmsOwn = await db.query.investmentAgreement.findFirst({
-    where: { farmId, ventureId, stampKind: "farm_own" },
-    columns: { investorsPercent: true },
-  });
-  if (farmsOwn && farmsOwn.investorsPercent !== investorsPercent) {
+  const split = await theVenturesSplit(db, farmId, ventureId);
+  if (split && split.investorsPercent !== investorsPercent) {
     throw new ORPCError("BAD_REQUEST", {
-      message: `The Farm's own Units in this Venture are on a ${farmsOwn.investorsPercent}% split; every Investor signs on the same`,
+      message: split.farmsOwn
+        ? `The Farm's own Units in this Venture are on a ${split.investorsPercent}% split; every Investor signs on the same`
+        : `This Venture's Investors are on a ${split.investorsPercent}% split; every Investor signs on the same`,
       data: {
-        refusal: "split_not_the_farms",
-        investorsPercent: farmsOwn.investorsPercent,
+        refusal: split.farmsOwn
+          ? "split_not_the_farms"
+          : "split_not_the_ventures",
+        investorsPercent: split.investorsPercent,
       },
     });
   }

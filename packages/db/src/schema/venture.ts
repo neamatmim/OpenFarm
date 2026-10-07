@@ -454,6 +454,10 @@ export const investmentAgreement = pgTable(
     stampValueMoney: numericMoney("stamp_value_money").notNull(),
     stampedOn: text("stamped_on").notNull(),
     stampSerial: text("stamp_serial").notNull(),
+    /** The farm as it named itself on the day it was signed — its name, address, phone and Registration: what a copy
+     *  of the stamped paper is headed with, whatever the farm has been renamed or registered as since. Null for an
+     *  Agreement signed before it was kept, which a copy heads with the farm as it is. */
+    farmAsSigned: jsonb("farm_as_signed"),
     /** The wording it was printed and signed in. Every Agreement signed before the wording could be edited is
      *  recorded against the standard wording the farm was given, which is what those papers said. */
     templateVersionId: text("template_version_id").references(

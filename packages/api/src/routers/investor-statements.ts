@@ -13,7 +13,8 @@ import { agreedPaperOf } from "../agreement-offer-store";
 import { agreementLaidOut, amendmentLaidOut } from "../agreement-paper";
 import { audited } from "../audit";
 import { assertRegistered, exportedPaper } from "../export-store";
-import { assertTheFarmsSplit, farmUnitsOf } from "../farm-capital-store";
+import { farmOnTheStampedDay } from "../farm-as-signed";
+import { assertTheVenturesSplit, farmUnitsOf } from "../farm-capital-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import {
@@ -151,7 +152,7 @@ export const investorStatementsRouter = {
       );
       assertNamable(nominees, today);
       // On the Farm's own Units' split, where it holds any: a stamp bought for terms the farm would refuse is wasted.
-      await assertTheFarmsSplit(
+      await assertTheVenturesSplit(
         context.db,
         context.farm.id,
         run.id,
@@ -264,6 +265,11 @@ export const investorStatementsRouter = {
       const { monthly } = paidForBy(run);
       // The Farm's own Units, which it takes only before anybody signs: as this paper told him.
       const farmUnits = await farmUnitsOf(context.db, context.farm.id, run.id);
+      // Headed as the stamped paper was: the farm's name and Registration on the day it was signed.
+      const asSigned = farmOnTheStampedDay(
+        agreement.farmAsSigned,
+        context.farm
+      );
       const farmCapital =
         farmUnits > 0 ? { farmUnits, ventureUnits: run.units } : null;
       const document = paperFrom(
@@ -274,12 +280,12 @@ export const investorStatementsRouter = {
         {
           kind: "investment_agreement",
           parties: {
-            farm: context.farm,
+            farm: asSigned,
             ownerName,
             investors: [investor],
           },
           values: paperValues({
-            farm: context.farm,
+            farm: asSigned,
             ownerName,
             him: investor,
             ventureName: run.name,
