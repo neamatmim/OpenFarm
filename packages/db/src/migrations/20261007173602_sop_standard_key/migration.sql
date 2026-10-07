@@ -1,0 +1,2 @@
+ALTER TABLE "sop_definition" ADD COLUMN "standard_key" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "sop_definition_standard_uidx" ON "sop_definition" ("farm_id","standard_key") WHERE "standard_key" is not null and "retired_at" is null;

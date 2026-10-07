@@ -1,4 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
+import { standardPlaybook } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
@@ -71,6 +72,31 @@ describe("a procedure's name", () => {
       definitionId: other.definitionId,
       content: { ...named(`খাওয়ানো ${suffix}`), graceMinutes: 90 },
     });
+  });
+});
+
+describe("a standard procedure adopted", () => {
+  it("is known by what it is, renamed or not: not adopted twice, nor brought back beside another", async () => {
+    const owner = await ownerAt("2072-03-01T04:00:00.000Z");
+    const { headCount } = standardPlaybook();
+    const first = await owner.sops.create({
+      content: headCount,
+      standardKey: "headCount",
+    });
+    // Renamed as the farm calls it.
+    await owner.sops.publish({
+      definitionId: first.definitionId,
+      content: { ...headCount, name: { bn: `আমাদের গণনা ${suffix}` } },
+    });
+    await expect(
+      owner.sops.create({ content: headCount, standardKey: "headCount" })
+    ).rejects.toMatchObject({ data: { refusal: "sop_standard_adopted" } });
+
+    await owner.sops.retire({ definitionId: first.definitionId, note: "নতুন" });
+    await owner.sops.create({ content: headCount, standardKey: "headCount" });
+    await expect(
+      owner.sops.restore({ definitionId: first.definitionId, note: "ফেরত" })
+    ).rejects.toMatchObject({ data: { refusal: "sop_standard_adopted" } });
   });
 });
 

@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   index,
@@ -32,12 +33,23 @@ export const sopDefinition = pgTable(
     /** When the Owner last brought it back from being retired: its work is raised afresh from then, and nothing that
      *  happened while it was retired is owed. */
     restoredAt: timestamp("restored_at", { withTimezone: true }),
+    /** The standard procedure it was adopted from, where it was: what it is, whatever it has been renamed since — so
+     *  the standard is not offered again, nor adopted twice to raise the same work twice. */
+    standardKey: text("standard_key"),
     createdBy: text("created_by").references(() => user.id),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
-  (table) => [index("sop_definition_farm_idx").on(table.farmId)]
+  (table) => [
+    index("sop_definition_farm_idx").on(table.farmId),
+    // One procedure in force for each standard: retired, its standard may be adopted again.
+    uniqueIndex("sop_definition_standard_uidx")
+      .on(table.farmId, table.standardKey)
+      .where(
+        sql`${table.standardKey} is not null and ${table.retiredAt} is null`
+      ),
+  ]
 );
 
 /**

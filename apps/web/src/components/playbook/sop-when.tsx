@@ -232,7 +232,7 @@ const TriggerFields = ({
             onChange={(next) => replace(index, next)}
           />
           <Button
-            aria-label={t("sop.trigger.remove")}
+            aria-label={t("sop.trigger.removeNumber", { number: index + 1 })}
             className="text-danger self-end sm:ml-auto sm:self-center"
             onClick={() => replace(index, null)}
             size="icon"

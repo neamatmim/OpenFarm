@@ -72,7 +72,10 @@ export const DraftEditor = ({
         basedOnVersionId: draft.basedOnVersionId,
       });
     } else {
-      create.mutate({ content: draft.content });
+      create.mutate({
+        content: draft.content,
+        ...(draft.standardKey ? { standardKey: draft.standardKey } : {}),
+      });
     }
   };
   return (

@@ -8,6 +8,8 @@ export interface SopDraft {
   basedOnVersionId: string | null;
   /** What it said when the change began, whose meanings the editor keeps. */
   startedFrom: SopContent;
+  /** The standard procedure it is adopted from, where it is. */
+  standardKey?: string | null;
 }
 
 const KEY = "openfarm-sop-draft:";

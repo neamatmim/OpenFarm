@@ -37,6 +37,7 @@ const REFUSALS: Record<string, MessageKey> = {
   report_sop_exists: "sop.refused.reportExists",
   proposal_out_of_date: "sop.refused.proposalOutOfDate",
   sop_name_taken: "sop.refused.nameTaken",
+  sop_standard_adopted: "sop.refused.standardAdopted",
   changed_since_you_began: "sop.refused.changedSinceYouBegan",
 };
 type Tab = (typeof TABS)[number];
@@ -245,12 +246,13 @@ const SopsPage = () => {
                   {/* Publishing is the Owner's; anybody else would only be proposing a procedure that is not there. */}
                   {isOwner ? (
                     <StandardSops
-                      onAdopt={(content) =>
+                      onAdopt={(content, standardKey) =>
                         keeping.open({
                           content,
                           definitionId: null,
                           basedOnVersionId: null,
                           startedFrom: content,
+                          standardKey,
                         })
                       }
                       pens={pens}
