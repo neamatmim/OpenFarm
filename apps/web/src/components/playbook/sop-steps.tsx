@@ -9,9 +9,10 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { ArrowDown, ArrowUp, ListOrdered, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 import { EmptyState, Section } from "@/components/page";
-import { FormField, NativeSelect } from "@/components/page-kit";
+import { ConfirmDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { FigureBox } from "@/components/playbook/figure-box";
 import { ListInput } from "@/components/playbook/list-input";
 import { StepAnswers } from "@/components/playbook/step-answers";
@@ -261,12 +262,14 @@ const StepEditor = ({
         >
           {formatNumber(position + 1, language)}
         </span>
-        <h3 className="min-w-0 flex-1 font-semibold">
+        {/* Its words after its number, so moving through the Steps by heading says what each is. */}
+        <h3 className="min-w-0 flex-1 truncate font-semibold">
           {t("sop.stepNumber", { number: position + 1 })}
+          {step.text.bn ? ` — ${step.text.bn}` : ""}
         </h3>
         <div className="flex shrink-0 gap-0.5">
           <Button
-            aria-label={t("sop.moveUp")}
+            aria-label={t("sop.moveStepUp", { number: position + 1 })}
             disabled={position === 0}
             onClick={() => onMove(-1)}
             size="icon"
@@ -276,7 +279,7 @@ const StepEditor = ({
             <ArrowUp aria-hidden />
           </Button>
           <Button
-            aria-label={t("sop.moveDown")}
+            aria-label={t("sop.moveStepDown", { number: position + 1 })}
             disabled={position === count - 1}
             onClick={() => onMove(1)}
             size="icon"
@@ -330,6 +333,13 @@ const StepEditor = ({
           />
           {t("sop.repeatPerAnimal")}
         </label>
+        {/* Greyed with a reason: what the Step records decides both, and the Owner is told so rather than left to
+            wonder why the box will not tick. */}
+        {step.effect ? (
+          <p className="text-muted-foreground -mt-2 text-xs">
+            {t("sop.setByEffect")}
+          </p>
+        ) : null}
 
         <EvidenceFields onChange={onChange} step={step} />
         <StepAnswers onChange={onChange} step={step} />
@@ -390,6 +400,10 @@ export const StepsSection = ({
   };
   const add = () =>
     onChange({ ...content, steps: [...steps, emptyStep(freshStepId(steps))] });
+  const [removing, setRemoving] = useState<number | null>(null);
+  const remove = (index: number) =>
+    onChange({ ...content, steps: steps.filter((_, at) => at !== index) });
+  const asked = removing === null ? undefined : steps[removing];
 
   return (
     <Section
@@ -414,12 +428,15 @@ export const StepsSection = ({
               key={step.id}
               onChange={(next) => setStep(index, next)}
               onMove={(by) => move(index, by)}
-              onRemove={() =>
-                onChange({
-                  ...content,
-                  steps: steps.filter((_, at) => at !== index),
-                })
-              }
+              onRemove={() => {
+                // A Step with words written is asked about first: the bin sits beside "move down", and one tap took a
+                // written Step with no way back.
+                if (step.text.bn.trim()) {
+                  setRemoving(index);
+                } else {
+                  remove(index);
+                }
+              }}
               pens={pens}
               position={index}
               products={products}
@@ -437,6 +454,26 @@ export const StepsSection = ({
         <Plus aria-hidden data-icon="inline-start" />
         {t("sop.addStep")}
       </Button>
+      <ConfirmDialog
+        confirmLabel={t("sop.removeStep")}
+        description={t("sop.removeStepWhy")}
+        onConfirm={() => {
+          if (removing !== null) {
+            remove(removing);
+          }
+          setRemoving(null);
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRemoving(null);
+          }
+        }}
+        open={removing !== null}
+        title={t("sop.removeStepTitle", {
+          number: (removing ?? 0) + 1,
+          words: asked?.text.bn ?? "",
+        })}
+      />
     </Section>
   );
 };

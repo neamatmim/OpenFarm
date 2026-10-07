@@ -1462,7 +1462,6 @@ export const enCore = {
   "sop.trigger.perDose": "One piece of work per dose",
   "sop.effect.treatment": "Records a dose given",
   "sop.trigger.after": "Days after",
-  "sop.trigger.remove": "Remove",
   "event.move": "A move",
   "event.arrival": "An arrival",
   "sop.assignedRole": "Who does it",
@@ -1548,6 +1547,8 @@ export const enCore = {
     "The procedure has had a new version since this change was drafted. Turn it down and ask for it again on version {version}.",
   "sop.refused.nameTaken":
     "Another procedure in force has this name, in Bangla or in English. Give this one a name of its own.",
+  "sop.refused.standardAdopted":
+    "The farm already has this standard procedure in force, under whatever name. Change that one, or retire it first.",
   "sop.refused.changedSinceYouBegan":
     "Version {version} was published while you were writing. Close this and start again from it, so nothing it changed is undone.",
   "sop.noProposals": "No changes waiting",
@@ -1665,9 +1666,15 @@ export const enCore = {
   "sop.readProposal": "Read the proposed change",
   "sop.inForce": "Version {number} in force now",
   "sop.stepNumber": "Step {number}",
-  "sop.moveUp": "Move this step up",
-  "sop.moveDown": "Move this step down",
   "sop.removeStepNumber": "Remove step {number}",
+  "sop.moveStepUp": "Move step {number} up",
+  "sop.moveStepDown": "Move step {number} down",
+  "sop.removeStep": "Remove step",
+  "sop.removeStepTitle": "Remove step {number}, “{words}”?",
+  "sop.removeStepWhy":
+    "Its words and what it asks go with it. Nothing is published until you publish.",
+  "sop.setByEffect": "Set by what this step records",
+  "sop.trigger.removeNumber": "Remove what raises it, number {number}",
   "sop.editor.details": "About this procedure",
   "sop.editor.detailsHint":
     "Its name and why it is done, in Bangla. English is optional.",
@@ -1695,6 +1702,10 @@ export const enCore = {
   "card.who": "Who does it",
   "card.when": "When",
   "card.perAnimal": "Once per animal",
+  "card.upTo": "up to {most}",
+  "card.from": "from {least}",
+  "card.gives": "Gives {product}",
+  "card.choices": "Choose from: {choices}",
   "card.checker": "Checked by",
   "card.where": "Where",
   "card.eachPen": "Each pen with animals",

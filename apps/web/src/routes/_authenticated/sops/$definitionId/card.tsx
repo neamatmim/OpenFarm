@@ -1,4 +1,9 @@
-import { formatDate, formatDigits, translate } from "@OpenFarm/i18n";
+import {
+  formatDate,
+  formatDigits,
+  formatNumber,
+  translate,
+} from "@OpenFarm/i18n";
 import { Badge } from "@OpenFarm/ui/components/badge";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
@@ -62,20 +67,75 @@ const Fact = ({ label, children }: { label: string; children: ReactNode }) => (
   </div>
 );
 
-/** What a Step asks to be written down, one mark each: a tick, a photo, a number in its unit. */
-const EvidenceMarks = ({ step }: { step: Card["steps"][number] }) => {
+/** A number's range as the card says it, in Bangla digits: "০–৪০", "৪০ পর্যন্ত", "৫ থেকে". Nothing for none. */
+const rangeOf = (item: Card["steps"][number]["evidence"][number]) => {
   const t = onTheWall;
+  const least =
+    item.min === undefined ? null : formatNumber(item.min, CARD_LANGUAGE);
+  const most =
+    item.max === undefined ? null : formatNumber(item.max, CARD_LANGUAGE);
+  if (least !== null && most !== null) {
+    return `${least}–${most}`;
+  }
+  if (most !== null) {
+    return t("card.upTo", { most });
+  }
+  return least === null ? null : t("card.from", { least });
+};
+
+/**
+ * What a Step asks to be written down, one mark each — a tick, a photo, a number in its unit and its range — and, where
+ * something is chosen, what may be chosen, and which medicine a campaign gives: somebody taught from the card learns
+ * the options the phone will offer.
+ */
+const EvidenceMarks = ({
+  step,
+  productNames,
+}: {
+  step: Card["steps"][number];
+  productNames: Record<string, string>;
+}) => {
+  const t = onTheWall;
+  const product =
+    step.effect?.kind === "treatment" && step.effect.productId
+      ? productNames[step.effect.productId]
+      : undefined;
   return (
-    <span className="flex flex-wrap gap-1.5">
-      {step.evidence.map((item, index) => (
-        <Badge key={`${item.type}-${index}`} variant="outline">
-          {t(`sop.evidence.${item.type}`)}
-          {item.type === "number" && item.unit ? ` · ${item.unit.bn}` : ""}
-        </Badge>
-      ))}
-      {step.repeatPerAnimal ? (
-        <Badge variant="secondary">{t("card.perAnimal")}</Badge>
-      ) : null}
+    <span className="flex flex-col gap-1.5">
+      <span className="flex flex-wrap gap-1.5">
+        {step.evidence.map((item, index) => {
+          const range = item.type === "number" ? rangeOf(item) : null;
+          return (
+            <Badge key={`${item.type}-${index}`} variant="outline">
+              {t(`sop.evidence.${item.type}`)}
+              {item.type === "number" && item.unit ? ` · ${item.unit.bn}` : ""}
+              {range ? ` · ${range}` : ""}
+            </Badge>
+          );
+        })}
+        {step.repeatPerAnimal ? (
+          <Badge variant="secondary">{t("card.perAnimal")}</Badge>
+        ) : null}
+        {product ? (
+          <Badge variant="secondary">{t("card.gives", { product })}</Badge>
+        ) : null}
+      </span>
+      {step.evidence.flatMap((item, index) =>
+        item.type === "choice" && (item.choices?.length ?? 0) > 0
+          ? [
+              <span
+                className="text-muted-foreground text-xs"
+                key={`choices-${index}`}
+              >
+                {t("card.choices", {
+                  choices: (item.choices ?? [])
+                    .map((choice) => choice.label.bn)
+                    .join(", "),
+                })}
+              </span>,
+            ]
+          : []
+      )}
     </span>
   );
 };
@@ -158,7 +218,10 @@ const WallCard = ({ card }: { card: Card }) => {
               </span>
               <div className="flex min-w-0 flex-col gap-1.5">
                 <p className="text-base font-medium">{step.text.bn}</p>
-                <EvidenceMarks step={step} />
+                <EvidenceMarks
+                  productNames={card.productNames ?? {}}
+                  step={step}
+                />
                 {step.skipReasons.length > 0 ? (
                   <p className="text-muted-foreground text-xs">
                     {t("card.skippable")}:{" "}

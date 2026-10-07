@@ -106,7 +106,8 @@ export const StandardSops = ({
   pens: Pen[];
   /** What a campaign may give: the Drug List's products whose withdrawal days are known. */
   products: Product[];
-  onAdopt: (content: SopContent) => void;
+  /** Adopted with the standard it is: the farm keeps which, so it is not offered again however it is renamed. */
+  onAdopt: (content: SopContent, standardKey: PlaybookKey) => void;
 }) => {
   const { t, language } = useLanguage();
   const [chosen, setChosen] = useState<StandardSopChoices>({});
@@ -123,12 +124,22 @@ export const StandardSops = ({
         : [];
     })
   );
+  // Which standards a procedure in force was adopted from: had, whatever it has been renamed since. One adopted before
+  // the farm kept which is known by its names, as it always was.
+  const adopted = new Set(
+    sops.flatMap((sop) =>
+      sop.standardKey && !sop.retiredAt ? [sop.standardKey] : []
+    )
+  );
   const written = standardPlaybook(choices);
   const missing = (Object.keys(written) as PlaybookKey[]).filter((key) => {
     const { bn, en } = written[key].name;
-    return ![bn, en ?? ""]
-      .filter(Boolean)
-      .some((name) => have.has(nameAsCompared(name)));
+    return !(
+      adopted.has(key) ||
+      [bn, en ?? ""]
+        .filter(Boolean)
+        .some((name) => have.has(nameAsCompared(name)))
+    );
   });
   if (missing.length === 0) {
     return null;
@@ -175,7 +186,7 @@ export const StandardSops = ({
               <Button
                 className="self-start"
                 disabled={!named}
-                onClick={() => onAdopt(content)}
+                onClick={() => onAdopt(content, key)}
                 type="button"
                 variant="outline"
               >

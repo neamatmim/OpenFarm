@@ -21,6 +21,7 @@ import type { SopContent } from "@OpenFarm/domain";
 import {
   findPublishBlockers,
   mayBePrescribed,
+  standardPlaybook,
   whyNotPrescribable,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -191,7 +192,7 @@ const requireProcedure = async (
 ) => {
   const definition = await db.query.sopDefinition.findFirst({
     where: { id: definitionId, farmId },
-    columns: { id: true, retiredAt: true },
+    columns: { id: true, retiredAt: true, standardKey: true },
     with: { currentVersion: { columns: { content: true } } },
   });
   if (!definition) {
@@ -275,6 +276,27 @@ const tellTheProposer = async (
     },
     answered.now
   );
+};
+
+/**
+ * Refuses a standard procedure adopted while one adopted from it is in force: adopted twice, under whatever names, it
+ * raised every Pen's head count twice. The database's index says the same; this says it in words.
+ */
+const assertStandardFree = async (
+  tx: Tx,
+  farmId: string,
+  standardKey: string
+) => {
+  const adopted = await tx.query.sopDefinition.findFirst({
+    where: { farmId, standardKey, retiredAt: { isNull: true } },
+    columns: { id: true },
+  });
+  if (adopted) {
+    throw new ORPCError("CONFLICT", {
+      message: "The farm already has this standard procedure in force",
+      data: { refusal: "sop_standard_adopted" },
+    });
+  }
 };
 
 /**
@@ -511,7 +533,17 @@ export const sopsRouter = {
   create: protectedProcedure
     .use(requireRole("owner"))
     .use(requirePersonalSession())
-    .input(z.object({ content: sopContentSchema, note }))
+    .input(
+      z.object({
+        content: sopContentSchema,
+        note,
+        /** The standard procedure it is adopted from, where it is: what it is, whatever it is renamed later. */
+        standardKey: z
+          .string()
+          .refine((key) => Object.hasOwn(standardPlaybook(), key))
+          .optional(),
+      })
+    )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const definitionId = uuidv7(now);
@@ -525,9 +557,13 @@ export const sopsRouter = {
           reason: input.note,
         },
         async (tx) => {
+          if (input.standardKey) {
+            await assertStandardFree(tx, context.farm.id, input.standardKey);
+          }
           await tx.insert(sopDefinition).values({
             id: definitionId,
             farmId: context.farm.id,
+            standardKey: input.standardKey ?? null,
             createdBy: context.actor.id,
             createdAt: now,
           });
@@ -635,7 +671,23 @@ export const sopsRouter = {
         });
       }
       const content = definition.currentVersion.content as SopContent;
+      // The medicine each campaign Step gives, by the farm's name for it: the card says what is given, not an id.
+      const productIds = content.steps.flatMap((step) =>
+        step.effect?.kind === "treatment" && step.effect.productId
+          ? [step.effect.productId]
+          : []
+      );
+      const products =
+        productIds.length > 0
+          ? await context.db.query.drugProduct.findMany({
+              where: { farmId: context.farm.id, id: { in: productIds } },
+              columns: { id: true, nameBn: true },
+            })
+          : [];
       return {
+        productNames: Object.fromEntries(
+          products.map((one) => [one.id, one.nameBn])
+        ),
         definitionId: definition.id,
         versionId: definition.currentVersion.id,
         number: definition.currentVersion.number,
@@ -1132,6 +1184,11 @@ export const sopsRouter = {
         async (tx, eventId) => {
           if (content) {
             await assertOneSuchProcedure(tx, farmId, existing.id, content);
+            // Nor back beside one in force that has taken its name, or adopted its standard, while it was retired.
+            await assertNameFree(tx, farmId, existing.id, content.name);
+          }
+          if (existing.standardKey) {
+            await assertStandardFree(tx, farmId, existing.standardKey);
           }
           await tx
             .update(sopDefinition)
