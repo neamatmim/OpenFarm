@@ -4,6 +4,7 @@ import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
@@ -131,6 +132,7 @@ export const medicinePurchaseCorrection: CorrectionKind<
     if (to.voided) {
       await forgetTheMoneyOf(tx, "medicine_purchase", row.id);
       await tx.delete(medicinePurchase).where(eq(medicinePurchase.id, row.id));
+      await clearNoticesAbout(tx, row.farmId, [row.id], now);
       return;
     }
     const purchasedOn = to.purchasedOn ?? farmDayOf(row.purchasedOn);

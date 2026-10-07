@@ -1,6 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import { and, eq, gt, isNull, lt, sql } from "@OpenFarm/db/operators";
 import { deviceSwitch, shedPhone } from "@OpenFarm/db/schema/device";
+import { pushSubscription } from "@OpenFarm/db/schema/push";
 import { verifyPin } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -260,4 +261,27 @@ export const requireDevice = <T>(
     });
   }
   return device;
+};
+
+/**
+ * The Shed Phone stops being told what was one person's: on Lock, their notices no longer reach the barn phone's lock
+ * screen — for somebody who is also the Owner, what a death cost — until the next person PINs in with signal and the
+ * phone takes their notices on. Only theirs: a Lock reaching the farm late, after the next person, leaves that person's.
+ */
+export const stopTellingThePhone = async (
+  db: Pick<Database, "update">,
+  deviceId: string,
+  userId: string,
+  now: Date
+): Promise<void> => {
+  await db
+    .update(pushSubscription)
+    .set({ revokedAt: now })
+    .where(
+      and(
+        eq(pushSubscription.deviceId, deviceId),
+        eq(pushSubscription.userId, userId),
+        isNull(pushSubscription.revokedAt)
+      )
+    );
 };

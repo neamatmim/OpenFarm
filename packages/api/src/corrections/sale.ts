@@ -11,6 +11,7 @@ import {
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { clearDebtNoticesOf, clearNoticesAbout } from "../alerts-store";
 import {
   tellIfShrankTooMuch,
   tellIfSoldUnderCost,
@@ -362,6 +363,9 @@ export const saleCorrection: CorrectionKind<
   apply: async (tx, row, to, { context, now }) => {
     if (to.voided) {
       await voidTheSale(tx, row, context, now);
+      // Sold under cost, shrunk on the lorry, owed and overdue: said of a Sale that never was.
+      await clearNoticesAbout(tx, row.farmId, [row.id], now);
+      await clearDebtNoticesOf(tx, row.farmId, row.id, now);
       return;
     }
     if (to.soldAt) {

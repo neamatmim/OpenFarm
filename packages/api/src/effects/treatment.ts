@@ -181,7 +181,7 @@ export const tellIfItsLotHadExpired = async (
     where: { id: doseId },
     columns: { productId: true, givenAt: true },
     with: {
-      product: { columns: { nameBn: true } },
+      product: { columns: { nameBn: true, nameEn: true } },
       animal: { columns: { tagNumber: true } },
     },
   });
@@ -207,6 +207,7 @@ export const tellIfItsLotHadExpired = async (
       facts: {
         tag: dose.animal?.tagNumber ?? "",
         name: dose.product.nameBn,
+        nameEn: dose.product.nameEn,
         lotNumber: lot.lotNumber,
         expiresOn: lot.expiresOn,
       },

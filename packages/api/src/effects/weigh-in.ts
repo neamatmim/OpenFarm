@@ -185,6 +185,12 @@ const askAboutTheWeight = async (
     eventId?: string;
   }
 ): Promise<void> => {
+  // Named, so the notice says whose weighing it doubts rather than that something somewhere needs a look.
+  const weighed = await tx.query.stepCompletion.findFirst({
+    where: { id: doubt.completionId },
+    columns: { id: true },
+    with: { animal: { columns: { tagNumber: true } } },
+  });
   await tell(
     tx,
     doubt.farmId,
@@ -199,6 +205,7 @@ const askAboutTheWeight = async (
         reason: "implausible_weight",
         weightKg: doubt.weightKg,
         note: doubt.note,
+        tag: weighed?.animal?.tagNumber ?? null,
       },
     },
     doubt.now
@@ -368,6 +375,11 @@ const weighHer = async (tx: Tx, input: WeighInFacts): Promise<EffectResult> => {
       columns: { id: true },
     })) !== undefined;
   if (flaggedNote && !alreadyAsked) {
+    // Named, so the notice says whose weighing it doubts.
+    const weighed = await tx.query.animal.findFirst({
+      where: { id: animalId },
+      columns: { tagNumber: true },
+    });
     await tell(
       tx,
       input.instance.farmId,
@@ -378,7 +390,12 @@ const weighHer = async (tx: Tx, input: WeighInFacts): Promise<EffectResult> => {
           entity: "weigh_in",
           auditEventId: input.eventId,
         },
-        facts: { reason: "implausible_weight", weightKg, note: flaggedNote },
+        facts: {
+          reason: "implausible_weight",
+          weightKg,
+          note: flaggedNote,
+          tag: weighed?.tagNumber ?? null,
+        },
       },
       input.now
     );

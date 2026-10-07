@@ -608,7 +608,7 @@ export interface OverdueToTell {
 
 /** What an overdue Receivable is told under: the Sale or Dispatch and the day it went past — a promise moved later is a
  *  new day to keep, and told again when that one goes by too. */
-const overdueKey = (item: Pick<OverdueItem, "id" | "overdueFrom">) =>
+export const overdueKey = (item: Pick<OverdueItem, "id" | "overdueFrom">) =>
   `${item.id}@${item.overdueFrom}`;
 
 /**

@@ -3715,6 +3715,8 @@ export const bn: Record<MessageKey, string> = {
     "{since} থেকে এখন পর্যন্ত, খামারের দিন না চলার সময় {count}টি কাজ দেরি হয়েছে। সেগুলো দেরির তালিকায় আছে।",
   "push.workMissedTitle": "খামার বন্ধ থাকার সময় কাজ দেরি হয়েছে",
   "push.workMissedBody": "{count}টি কাজ — দেরির তালিকা দেখুন",
+  "alerts.openTheWorkList": "কাজের তালিকা খুলুন",
+  "alerts.openTheReviews": "যা দেখা দরকার তা খুলুন",
   "alerts.openTheOverdue": "দেরির তালিকা খুলুন",
   "digest.monthlyCopyFailed": "মাসিক কপি সফল হয়নি",
   "digest.passwordGuessed": "কেউ {who}-এর পাসওয়ার্ড আন্দাজ করেছে",
@@ -4384,7 +4386,8 @@ export const bn: Record<MessageKey, string> = {
   "review.col.why": "দেওয়া কারণ",
   "review.corrected_after_sign_off": "অনুমোদনের পরে একটি এন্ট্রি সংশোধন হয়েছে",
   "review.irreversible_effect": "সংশোধনে এমন কিছু বদলেছে যা ফেরানো যায় না",
-  "alerts.needsReview": "{pen}-এ {sop} দেখা দরকার",
+  "alerts.needsReview": "{what}: দেখা দরকার",
+  "alerts.needsReviewWork": "{pen}-এ {sop}",
   "review.late_entry": "যে অবস্থার কথা লেখা ছিল তা বদলে যাওয়ার পরে এন্ট্রি এসেছে",
   "review.sync_gap": "একটি ফোনের কিছু এন্ট্রি পৌঁছায়নি",
   "review.clock_skew": "একটি ফোনের ঘড়ি খামারের ঘড়ি থেকে অনেক দূরে",
@@ -5565,8 +5568,9 @@ export const bn: Record<MessageKey, string> = {
   "alerts.medicineShort":
     "{day} তারিখের ওষুধ গণনায় {currencySign}{amount}-এর ডোজ কম পাওয়া গেছে, যা কোনো চিকিৎসায় দেওয়া লেখা নেই",
   "digest.medicineShort": "{count}টি ওষুধ গণনায় কম পাওয়া গেছে",
+  "alerts.ofThemVentures": " (তার {count}টি ভেঞ্চারের)",
   "alerts.stillHereAfterEid":
-    "{day} থেকে কোরবানি শেষ, তবু সেই ঈদের জন্য রাখা {animals}টি পশু এখনো খামারে (তার {inVentures}টি ভেঞ্চারের)",
+    "{day} থেকে কোরবানি শেষ, তবু সেই ঈদের জন্য রাখা {animals}টি পশু এখনো খামারে{ofVentures}",
   "digest.stillHereAfterEid": "{count}টি ঈদের পরেও পশু খামারে রয়ে গেছে",
   "alerts.soldUnderCost":
     "{tag} বিক্রি হলো {currencySign}{price}-তে; তার খরচ পড়েছিল {currencySign}{cost}, আর কম দরে তার ওজনের দাম {low}{basis}",

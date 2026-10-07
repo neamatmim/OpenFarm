@@ -1,4 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
+import { and, eq, inArray, isNull, like } from "@OpenFarm/db/operators";
 import type { AlertKind } from "@OpenFarm/db/schema/alert";
 import { alert } from "@OpenFarm/db/schema/alert";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
@@ -156,4 +157,54 @@ export const doersOf = async (
   return byHand.length > 0
     ? byHand
     : await peopleOnTheWork(tx, farmId, instance);
+};
+
+/**
+ * Clears every notice still showing about these records, as read now: a record voided or put right so that what the
+ * notice said is no longer true — a death voided, a Sale taken back, a Diagnosis taken off the notifiable list. Left
+ * up, the Vet was asked to look into the death of a bull standing in his Pen. Dismissed, never deleted: the notice was
+ * true when it was raised, and the trail keeps the record it was about.
+ */
+export const clearNoticesAbout = async (
+  tx: Tx,
+  farmId: string,
+  entityIds: readonly string[],
+  now: Date,
+  kinds?: readonly AlertKind[]
+): Promise<void> => {
+  if (entityIds.length === 0) {
+    return;
+  }
+  await tx
+    .update(alert)
+    .set({ dismissedAt: now })
+    .where(
+      and(
+        eq(alert.farmId, farmId),
+        inArray(alert.entityId, [...entityIds]),
+        isNull(alert.dismissedAt),
+        ...(kinds ? [inArray(alert.kind, [...kinds])] : [])
+      )
+    );
+};
+
+/** The same, for a record whose notices are keyed by its id and a day — an overdue debt, `sale@2026-10-01` — so a Sale or
+ *  a Dispatch voided takes every one of its overdue notices with it. */
+export const clearDebtNoticesOf = async (
+  tx: Tx,
+  farmId: string,
+  recordId: string,
+  now: Date
+): Promise<void> => {
+  await tx
+    .update(alert)
+    .set({ dismissedAt: now })
+    .where(
+      and(
+        eq(alert.farmId, farmId),
+        eq(alert.kind, "receivable_overdue"),
+        like(alert.entityId, `${recordId}@%`),
+        isNull(alert.dismissedAt)
+      )
+    );
 };

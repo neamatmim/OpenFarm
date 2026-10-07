@@ -750,6 +750,32 @@ describe("whose a browser's pushes are", () => {
     expect(row?.userId).toBe(thePerson("otherStaff").id);
   });
 
+  it("stops reaching the Shed Phone once the person who held it locks it", async () => {
+    const post = listeningPost();
+    const clock = new FakeClock("2027-04-05T09:00:00.000Z");
+    const handset = endpoint();
+    const milker = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+      push: post.transport,
+    });
+    await milker.client.push.subscribe({
+      endpoint: handset,
+      p256dh: "key",
+      auth: "secret",
+    });
+
+    await milker.client.devices.lock();
+
+    // Her notices no longer go to the barn phone's lock screen; the next person to PIN in with signal takes it on.
+    const row = await scratchDb().query.pushSubscription.findFirst({
+      where: { endpoint: handset },
+      columns: { revokedAt: true },
+    });
+    expect(row?.revokedAt).not.toBeNull();
+  });
+
   it("is given up by signing out, and the next person on that browser is told instead", async () => {
     const post = listeningPost();
     const clock = new FakeClock("2027-04-06T05:00:00.000Z");

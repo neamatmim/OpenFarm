@@ -16,6 +16,7 @@ import { audited } from "../audit";
 import {
   checkPin,
   closeSwitches,
+  stopTellingThePhone,
   extendSwitch,
   hashToken,
   openSwitch,
@@ -322,9 +323,12 @@ export const devicesRouter = {
     // locked itself already.
     const switchedIn = context.actor?.id;
     if (switchedIn) {
-      await closeSwitches(context.db, device.id, context.clock.now(), {
+      const now = context.clock.now();
+      await closeSwitches(context.db, device.id, now, {
         userId: switchedIn,
       });
+      // And the phone stops being told what was theirs (`stopTellingThePhone`).
+      await stopTellingThePhone(context.db, device.id, switchedIn, now);
     }
     return { locked: true };
   }),

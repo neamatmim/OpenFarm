@@ -124,6 +124,14 @@ const TO_THE_MEDICINES: Place = {
     </Link>
   ),
 };
+const TO_WHO_OWES: Place = {
+  label: "alerts.seeWhoOwes",
+  Way: ({ children }) => (
+    <Link className={LEADS_CLASS} to="/money/receivables">
+      {children}
+    </Link>
+  ),
+};
 const TO_THE_BACKUPS: Place = {
   label: "alerts.openTheBackups",
   Way: ({ children }) => (
@@ -168,6 +176,48 @@ const PLACES = {
   day_not_turning: TO_THE_BACKUPS,
   backup_overdue: TO_THE_BACKUPS,
   monthly_copy_failed: TO_THE_BACKUPS,
+  receivable_overdue: TO_WHO_OWES,
+  credit_after_write_off: TO_WHO_OWES,
+  pen_sores_seen: {
+    label: "alerts.openObservations",
+    Way: ({ children }) => (
+      <Link className={LEADS_CLASS} to="/observations">
+        {children}
+      </Link>
+    ),
+  },
+  still_here_after_eid: {
+    label: "alerts.openTheEids",
+    Way: ({ children }) => (
+      <Link className={LEADS_CLASS} to="/farm/eid-dates">
+        {children}
+      </Link>
+    ),
+  },
+  cash_short: {
+    label: "alerts.openTheCash",
+    Way: ({ children }) => (
+      <Link className={LEADS_CLASS} to="/money/cash">
+        {children}
+      </Link>
+    ),
+  },
+  store_shortfall: {
+    label: "alerts.openTheCounts",
+    Way: ({ children }) => (
+      <Link className={LEADS_CLASS} to="/feed/stock-counts">
+        {children}
+      </Link>
+    ),
+  },
+  needs_review: {
+    label: "alerts.openTheReviews",
+    Way: ({ children }) => (
+      <Link className={LEADS_CLASS} to="/review-queue/needs-review">
+        {children}
+      </Link>
+    ),
+  },
   work_missed: {
     label: "alerts.openTheOverdue",
     Way: ({ children }) => (
@@ -239,6 +289,27 @@ const investorsTabOf = (kind: string) =>
     >
   )[kind];
 
+/** The notices about a procedure: its pages are for those who run the farm. A milker or the Vet is told what changed,
+ *  and has nowhere there to be sent — the work list is where the procedure reaches them. */
+const ABOUT_THE_PROCEDURES: ReadonlySet<string> = new Set([
+  "sop_published",
+  "sop_retired",
+  "sop_restored",
+]);
+
+/** Whether the reader runs the farm: the Owner or a Manager. */
+const useRunsTheFarm = (): boolean => {
+  const me = useQuery(orpc.people.me.queryOptions());
+  return (me.data?.roles ?? []).some(
+    (role) => role === "owner" || role === "manager"
+  );
+};
+
+/** A Lot of feed near its day: it is in the feed store, not among the medicines. */
+const isAFeedLot = (notice: { kind: string; params: unknown }): boolean =>
+  (notice.kind === "lot_expiring" || notice.kind === "lot_expired") &&
+  (notice.params as { what?: unknown } | null)?.what === "feed";
+
 /**
  * Where a notice leads: to what it is about, so the notice is a way there rather than a sentence to go and act on
  * somewhere else — the work that is late or was sent back, the animal it names, the Venture whose Investors are
@@ -251,19 +322,24 @@ const WhereItLeads = ({
   notice: { kind: string; params: unknown; entity: string; entityId: string };
 }) => {
   const { t } = useLanguage();
+  const runsTheFarm = useRunsTheFarm();
+  if (ABOUT_THE_PROCEDURES.has(notice.kind) && !runsTheFarm) {
+    return (
+      <Link className={LEADS_CLASS} to="/work">
+        {t("alerts.openTheWorkList")}
+      </Link>
+    );
+  }
+  if (isAFeedLot(notice)) {
+    return (
+      <Link className={LEADS_CLASS} to="/feed">
+        {t("alerts.openTheStore")}
+      </Link>
+    );
+  }
   const place = placeOf(notice.kind);
   if (place) {
     return <place.Way>{t(place.label)}</place.Way>;
-  }
-  if (
-    notice.kind === "receivable_overdue" ||
-    notice.kind === "credit_after_write_off"
-  ) {
-    return (
-      <Link className={LEADS_CLASS} to="/money/receivables">
-        {t("alerts.seeWhoOwes")}
-      </Link>
-    );
   }
   if (notice.kind === "reimbursement_due") {
     const ventureId = ventureOf(notice.params);
@@ -279,38 +355,16 @@ const WhereItLeads = ({
       </Link>
     );
   }
-  if (notice.kind === "pen_sores_seen") {
-    return (
-      <Link className={LEADS_CLASS} to="/observations">
-        {t("alerts.openObservations")}
-      </Link>
-    );
-  }
-  if (notice.kind === "still_here_after_eid") {
-    return (
-      <Link className={LEADS_CLASS} to="/farm/eid-dates">
-        {t("alerts.openTheEids")}
-      </Link>
-    );
-  }
   if (notice.kind === "entered_twice") {
+    // The day it was for, not this month: money entered twice in another month is not on this month's page.
+    const day = (notice.params as { day?: unknown } | null)?.day;
     return (
-      <Link className={LEADS_CLASS} to="/money">
+      <Link
+        className={LEADS_CLASS}
+        search={typeof day === "string" ? { from: day, to: day } : {}}
+        to="/money"
+      >
         {t("alerts.openTheMoney")}
-      </Link>
-    );
-  }
-  if (notice.kind === "cash_short") {
-    return (
-      <Link className={LEADS_CLASS} to="/money/cash">
-        {t("alerts.openTheCash")}
-      </Link>
-    );
-  }
-  if (notice.kind === "store_shortfall") {
-    return (
-      <Link className={LEADS_CLASS} to="/feed/stock-counts">
-        {t("alerts.openTheCounts")}
       </Link>
     );
   }

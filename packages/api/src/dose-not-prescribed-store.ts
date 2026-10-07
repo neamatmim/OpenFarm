@@ -106,6 +106,7 @@ export interface DoseToTell {
   id: string;
   tagNumber: string;
   product: string;
+  productEn: string | null;
   advice: string;
 }
 
@@ -125,7 +126,7 @@ export const dosesToTell = async (
     columns: { id: true, advice: true },
     with: {
       animal: { columns: { tagNumber: true } },
-      product: { columns: { nameBn: true } },
+      product: { columns: { nameBn: true, nameEn: true } },
     },
     orderBy: { createdAt: "asc", id: "asc" },
   });
@@ -147,6 +148,7 @@ export const dosesToTell = async (
       id: one.id,
       tagNumber: one.animal.tagNumber,
       product: one.product.nameBn,
+      productEn: one.product.nameEn,
       advice: one.advice ?? "",
     }));
 };
@@ -169,7 +171,12 @@ export const tellOfDoses = async (
       {
         kind: "dose_not_prescribed",
         about: { id: one.id },
-        facts: { tag: one.tagNumber, product: one.product, advice: one.advice },
+        facts: {
+          tag: one.tagNumber,
+          product: one.product,
+          productEn: one.productEn,
+          advice: one.advice,
+        },
       },
       now,
       remembering

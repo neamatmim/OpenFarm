@@ -4,6 +4,7 @@ import { DISPOSALS, MORTALITY_KINDS } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { comesBackFromAVoidedExit } from "../herd-store";
@@ -143,6 +144,8 @@ export const mortalityCorrection: CorrectionKind<
   apply: async (tx, row, to, { now, context, extra }) => {
     if (to.voided) {
       await voidTheDeath(tx, row, context, now);
+      // Her death told to the Owner, the Vet asked to name what she died of: neither is true of a bull standing in his Pen.
+      await clearNoticesAbout(tx, row.farmId, [row.id], now);
       return;
     }
     if (extra.photo) {

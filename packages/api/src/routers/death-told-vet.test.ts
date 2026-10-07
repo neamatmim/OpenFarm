@@ -73,7 +73,13 @@ const calvingRoundSop = (): SopContent => ({
   ],
 });
 
-const tags = { undiagnosed: "", diagnosed: "", corrected: "", stillborn: "" };
+const tags = {
+  undiagnosed: "",
+  diagnosed: "",
+  corrected: "",
+  voided: "",
+  stillborn: "",
+};
 
 const vetsOwn = (tag: string) =>
   sent.filter(
@@ -130,7 +136,12 @@ beforeAll(async () => {
     name: `কোয়ারেন্টিন ${suffix}`,
     quarantine: true,
   });
-  for (const key of ["undiagnosed", "diagnosed", "corrected"] as const) {
+  for (const key of [
+    "undiagnosed",
+    "diagnosed",
+    "corrected",
+    "voided",
+  ] as const) {
     // oxlint-disable-next-line no-await-in-loop -- one bull after another off the lorry
     const bought = await owner.client.intakes.record({
       penId: pen.id,
@@ -234,6 +245,33 @@ describe("a death told to the Vet", () => {
     expect(
       await toldOf(tags.corrected, "mortality_undiagnosed", "vet")
     ).toHaveLength(1);
+  });
+
+  it("is taken down, with the Owner's, when the death is voided: the bull is standing in his Pen", async () => {
+    await died(tags.voided);
+    const her = await scratchDb().query.animal.findFirst({
+      where: { tagNumber: tags.voided, farmId: theFarm().id },
+      columns: { id: true },
+      with: { mortality: { columns: { id: true } } },
+    });
+    const deathId = her?.mortality?.id ?? "";
+    const owner = await as("owner", `${DAY}T06:00:00.000Z`);
+    await owner.client.animals.correctMortality({
+      tagNumber: tags.voided,
+      reason: `ভুল ট্যাগে লেখা ${suffix}`,
+      changes: { voided: { from: false, to: true } },
+    });
+
+    const still = await scratchDb().query.alert.findMany({
+      where: {
+        farmId: theFarm().id,
+        entityId: deathId,
+        kind: { in: ["mortality_recorded", "mortality_undiagnosed"] },
+      },
+      columns: { kind: true, dismissedAt: true },
+    });
+    expect(still.length).toBeGreaterThan(1);
+    expect(still.filter((one) => one.dismissedAt === null)).toEqual([]);
   });
 
   it("is told of a stillborn calf at her disposal", async () => {

@@ -231,6 +231,26 @@ const sentencesOf = (kind: (typeof ALERT_KINDS)[number]): MessageKey[] => {
   );
 };
 
+const stillHereSaid = (inVentures: number) =>
+  translate(
+    "en",
+    "alerts.stillHereAfterEid",
+    noticeFilling(
+      "still_here_after_eid",
+      { day: "2038-03-12", animals: 3, inVentures },
+      "en"
+    )
+  );
+
+const low = (nameEn: string | null) => ({
+  feedItemId: "f-1",
+  nameBn: "খড়",
+  nameEn,
+  unit: "kg",
+  onHand: 40,
+  threshold: 100,
+});
+
 describe("what a Notice's words are filled with", () => {
   it("leaves no placeholder unfilled in any kind, in either language", () => {
     const unfilled = ALERT_KINDS.flatMap((kind) =>
@@ -249,6 +269,45 @@ describe("what a Notice's words are filled with", () => {
       )
     );
     expect(unfilled).toEqual([]);
+  });
+
+  it("says how many of those still here after Eid are a Venture's only where there are some", () => {
+    expect(stillHereSaid(0)).not.toContain("of them");
+    expect(stillHereSaid(2)).toContain("(2 of them a venture's)");
+    // A farm day is the day it is, never midnight UTC read on the farm's clock.
+    expect(stillHereSaid(0)).toContain("12");
+  });
+
+  it("names feed and medicine in the reader's language, the Bangla where no English was kept", () => {
+    expect(noticeFilling("low_stock", low("Rice straw"), "en").feed).toBe(
+      "Rice straw"
+    );
+    expect(noticeFilling("low_stock", low("Rice straw"), "bn").feed).toBe("খড়");
+    expect(noticeFilling("low_stock", low(null), "en").feed).toBe("খড়");
+    expect(noticeFilling("low_stock", low(""), "en").feed).toBe("খড়");
+  });
+
+  it("names whose weighing or entry needs a look, never the whole farm", () => {
+    const doubted = {
+      reason: "implausible_weight",
+      weightKg: 412,
+      tag: "F-0007",
+    };
+    const en = translate(
+      "en",
+      "alerts.needsReview",
+      noticeFilling("needs_review", doubted, "en")
+    );
+    expect(en).toContain("F-0007");
+    expect(en).not.toMatch(/whole farm/iu);
+    // A piece of work still names itself and its Pen.
+    expect(
+      translate(
+        "en",
+        "alerts.needsReview",
+        noticeFilling("needs_review", EXAMPLE.needs_review, "en")
+      )
+    ).toBe("Feeding in বাছুর পেন: needs a look");
   });
 
   it("names a new Version of an SOP, in the reader's language", () => {
