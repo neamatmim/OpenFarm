@@ -1,5 +1,5 @@
 import type { PayInNoteState, PayInWay } from "@OpenFarm/domain";
-import { PAY_IN_LINE_MOST } from "@OpenFarm/domain";
+import { PAY_IN_LINE_MOST, PAY_IN_ANCHOR } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
@@ -31,9 +31,6 @@ import { orpc } from "@/utils/orpc";
 
 // The Investors' Pay-in Notes on one Venture (ADR 0018), the Owner's to check against the Venture Account: each one
 // recorded from — the capital sheet opened with what it says — or answered not found, with a line the Investor reads.
-
-/** Where the Owner's Notice of a note leads, on the Venture's Investors tab. */
-export const PAY_IN_ANCHOR = "pay-in-notes";
 
 type Note = Awaited<
   ReturnType<typeof orpc.ventures.payInNotes.list.call>

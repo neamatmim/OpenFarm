@@ -17,10 +17,6 @@ type ARequest = Awaited<
   ReturnType<typeof orpc.ventures.requests.list.call>
 >["requests"][number];
 
-/** Where on a Venture's page its Requests are, as an address names them: the Owner's Notice and an Investor's page
- *  both lead here. */
-export const REQUESTS_ANCHOR = "requests";
-
 /** How each place a Request can stand in reads at a glance, from the Owner's side: one waiting is work for her, where
  *  to the Investor it is only news to wait for. */
 export const STATE_TONE: Record<RequestToJoinState, Tone> = {

@@ -1,4 +1,4 @@
-import { isPastDecideBy } from "@OpenFarm/domain";
+import { isPastDecideBy, REQUESTS_ANCHOR } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
@@ -17,7 +17,6 @@ import {
 } from "@/components/ventures/answer-request-sheets";
 import {
   KIND_WORDS,
-  REQUESTS_ANCHOR,
   WhatTheyAsked,
   WhereItStands,
 } from "@/components/ventures/request-parts";

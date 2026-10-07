@@ -1,5 +1,12 @@
 import type { AlertKind } from "@OpenFarm/domain";
-import { ALERT_KINDS, SAYS, goesNow, noticeFilling } from "@OpenFarm/domain";
+import {
+  ALERT_KINDS,
+  SAYS,
+  addressOf,
+  goesNow,
+  noticeFilling,
+  whereANoticeLeads,
+} from "@OpenFarm/domain";
 import type { Language, MessageKey } from "@OpenFarm/i18n";
 import { resolveLanguage, translate } from "@OpenFarm/i18n";
 
@@ -40,42 +47,19 @@ export const silentTransport: PushTransport = {
   send: () => Promise.resolve({ delivered: false, gone: false }),
 };
 
-/** The places a kind leads to whatever it names, as the in-app list's own (alert-list.tsx). */
-const PLACE_OF: Partial<Record<string, string>> = {
-  day_not_turning: "/farm/backups",
-  backup_overdue: "/farm/backups",
-  monthly_copy_failed: "/farm/backups",
-  entry_rejected: "/outbox",
-  // Filed under work, but about many pieces of it: the list they are on, never one card.
-  work_missed: "/review-queue/overdue",
-  pen_sores_seen: "/observations",
-};
-
-/**
- * Where a push opens, as the in-app list leads: a kind's own place; a Venture's Investors for an Investor's note; the
- * work it is about; the animal it names by her tag; else the day's list.
- */
+/** Where a push opens: where the notice leads in the farm's own list (`whereANoticeLeads`), or the day's list, since
+ *  a push must open somewhere. A push goes to whoever is told, so it leads as it would for those who run the farm. */
 export const urlOf = (alert: {
   kind?: string;
   entity: string;
   entityId: string;
   params: unknown;
 }): string => {
-  const place = alert.kind ? PLACE_OF[alert.kind] : undefined;
-  if (place) {
-    return place;
-  }
-  const params = (alert.params ?? {}) as { tag?: unknown; ventureId?: unknown };
-  if (
-    alert.kind === "pay_in_note_sent" &&
-    typeof params.ventureId === "string"
-  ) {
-    return `/ventures/${params.ventureId}/investors`;
-  }
-  if (alert.entity === "sop_instance") {
-    return `/work/${alert.entityId}`;
-  }
-  return typeof params.tag === "string" ? `/animals/${params.tag}` : "/work";
+  const place = whereANoticeLeads(
+    { kind: alert.kind ?? "", ...alert },
+    { runsTheFarm: true }
+  );
+  return place ? addressOf(place) : "/work";
 };
 
 /** What a kind says in a pocket, and nothing for the kinds that do not travel that way: the farm's own table puts a

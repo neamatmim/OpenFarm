@@ -1,4 +1,4 @@
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { startOfFarmDay, PAY_IN_ANCHOR } from "@OpenFarm/domain";
 import type { MessageKey, MessageParams, Language } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Link } from "@tanstack/react-router";
@@ -11,7 +11,6 @@ import {
   QueueRow,
   ROW_LINK,
 } from "@/components/home/queue";
-import { PAY_IN_ANCHOR } from "@/components/ventures/venture-pay-in-notes";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
 import type { VentureNeedingHer, VentureTrouble } from "@/lib/ventures";

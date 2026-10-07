@@ -1,9 +1,9 @@
+import { REQUESTS_ANCHOR } from "@OpenFarm/domain";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 
 import { Section } from "@/components/page";
 import {
-  REQUESTS_ANCHOR,
   WhatTheyAsked,
   WhereItStands,
 } from "@/components/ventures/request-parts";
