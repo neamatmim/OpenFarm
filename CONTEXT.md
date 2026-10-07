@@ -501,7 +501,7 @@ One still gathering capital comes from its plan alone: every band bought at its 
 
 **PIN Switch**: A Staff member making themselves the active user on a Shed Phone with their 4-digit PIN. Works offline; every entry is attributed to the active user, never to the phone. _Avoid_: Login (that's the device session), shared account
 
-**Switch Token**: What the farm gives a person for one stint on a Shed Phone when it has seen their PIN, and what an Entry recorded during that stint carries to prove whose work it is. Kept only until the Entry is sent; never written into a record anybody can read, because a proof anybody can read is a proof anybody can use. _Avoid_: Session token (that's the device's), password, key
+**Switch Token**: What the farm gives a person for one stint on a Shed Phone when it has seen their PIN, and what an Entry recorded during that stint carries to prove whose work it is. Kept only until the Entry is sent; never written into a record anybody can read, because a proof anybody can read is a proof anybody can use. Its stint runs on from one thing recorded under it to the next while it is open; once it is ended on purpose — the phone locked, or the person's PIN set anew — it is never opened again, and covers only what was done before its end. _Avoid_: Session token (that's the device's), password, key
 
 **Coach Overlay**: The one-time in-app hint shown the first time a person meets a screen type. Dismissable; re-openable from help. _Avoid_: Tutorial, tour, onboarding flow
 

@@ -38,7 +38,7 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
-import { hashToken } from "./device";
+import { endedNow, hashToken } from "./device";
 
 /** As much of the farm's records as a reader needs — inside a transaction, or out of one, because what
  *  somebody holds is as often a question the screen asks as one a rule does. */
@@ -552,7 +552,7 @@ export const setPin = async (
   if (phones.length > 0) {
     await tx
       .update(deviceSwitch)
-      .set({ expiresAt: now })
+      .set(endedNow(now))
       .where(
         and(
           eq(deviceSwitch.userId, userId),
@@ -560,7 +560,9 @@ export const setPin = async (
             deviceSwitch.deviceId,
             phones.map((one) => one.id)
           ),
-          gt(deviceSwitch.expiresAt, now)
+          // Every stint of theirs not already ended, run out or not: one that ran out could otherwise be stretched
+          // open again by work queued under the old PIN's token.
+          isNull(deviceSwitch.endedAt)
         )
       );
   }

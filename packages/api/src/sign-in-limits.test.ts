@@ -1,5 +1,7 @@
 import { createAuth } from "@OpenFarm/auth";
+import { passwordGuess } from "@OpenFarm/db/schema/auth";
 import { env } from "@OpenFarm/env/server";
+import { scratchDb } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
 // Sign-in is counted per address, so a script guessing passwords is stopped. The phones on a farm's Wi-Fi share
@@ -59,5 +61,66 @@ describe("how often the farm's sign-in will answer one address", () => {
       )
     );
     expect(statuses).toEqual([401, 401, 401, 401, 401, 429]);
+  });
+});
+
+/** A wrong password for this login, from an address of its own each time. */
+const guessFromAnywhere = (login: string) =>
+  auth.handler(
+    new Request(`${AUTH}/sign-in/email`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: env.BETTER_AUTH_URL,
+        "x-forwarded-for": anAddress(),
+      },
+      body: JSON.stringify({
+        email: login,
+        password: "not-the-password-at-all",
+      }),
+    })
+  );
+
+describe("how often the farm's sign-in will answer one account", () => {
+  it("slows an account guessed at from many addresses to one try a minute", async () => {
+    const login = `guessed-${Date.now()}@test.openfarm`;
+    const statuses = await statusesOf(WRONG_PASSWORDS_ALLOWED + 1, () =>
+      guessFromAnywhere(login)
+    );
+    expect(statuses).toEqual([401, 401, 401, 401, 401, 429]);
+    const slowed = await guessFromAnywhere(login);
+    expect(await slowed.json()).toMatchObject({ code: "ACCOUNT_SLOWED" });
+  });
+
+  it("takes a try again once a minute has passed since the last wrong one", async () => {
+    const login = `waited-${Date.now()}@test.openfarm`;
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60_000);
+    await scratchDb()
+      .insert(passwordGuess)
+      .values(
+        Array.from({ length: WRONG_PASSWORDS_ALLOWED }, (_, i) => ({
+          id: `${login}-${i}`,
+          login,
+          guessedAt: twoMinutesAgo,
+        }))
+      );
+    const statuses = await statusesOf(2, () => guessFromAnywhere(login));
+    // One try, answered; and the next straight after it waits again.
+    expect(statuses).toEqual([401, 429]);
+  });
+
+  it("does not check a password for anybody but the sign-in and its change", async () => {
+    const response = await auth.handler(
+      new Request(`${AUTH}/verify-password`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: env.BETTER_AUTH_URL,
+          "x-forwarded-for": anAddress(),
+        },
+        body: JSON.stringify({ password: "anything-at-all" }),
+      })
+    );
+    expect(response.status).toBe(404);
   });
 });

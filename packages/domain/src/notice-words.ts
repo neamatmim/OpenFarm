@@ -306,6 +306,11 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
   backup_overdue: (facts, language) => ({
     since: saidDate(facts.since, language, "dateTime"),
   }),
+  password_guessed: (facts, language) => ({
+    who: facts.name ?? facts.login,
+    guesses: Number(facts.guesses),
+    since: saidDate(facts.since, language, "dateTime"),
+  }),
   lot_expiring: theLot,
   lot_expired: theLot,
   medicine_low_stock: (facts) => ({

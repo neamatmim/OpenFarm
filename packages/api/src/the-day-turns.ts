@@ -1,3 +1,7 @@
+import {
+  GUESSES_BEFORE_SLOWING,
+  GUESS_WINDOW_MS,
+} from "@OpenFarm/auth/guesses";
 import { eq } from "@OpenFarm/db/operators";
 import { farm } from "@OpenFarm/db/schema/farm";
 import {
@@ -626,6 +630,83 @@ const tellAboutOverdueReceivable = async (context: Turning, now: Date) => {
 };
 
 /**
+ * Tells the Owner of each sign-in address somebody has guessed at — five wrong passwords within the hour, from however
+ * many places — once for each run of guessing, named by its first wrong password. The account is already slowed by the sign-in itself; this is the Owner hearing of it.
+ */
+const tellAboutPasswordGuesses = async (context: Turning, now: Date) => {
+  const rows = await context.db.query.passwordGuess.findMany({
+    where: { guessedAt: { gt: new Date(now.getTime() - GUESS_WINDOW_MS) } },
+    columns: { login: true, guessedAt: true },
+    orderBy: { guessedAt: "asc", id: "asc" },
+  });
+  const byLogin = new Map<string, Date[]>();
+  for (const row of rows) {
+    byLogin.set(row.login, [...(byLogin.get(row.login) ?? []), row.guessedAt]);
+  }
+  const guessed = [...byLogin]
+    .filter(([, at]) => at.length >= GUESSES_BEFORE_SLOWING)
+    .map(([login, at]) => ({
+      login,
+      guesses: at.length,
+      since: at[0] ?? now,
+      id: `guess:${login}:${(at[0] ?? now).toISOString()}`,
+    }));
+  if (guessed.length === 0) {
+    return;
+  }
+  const told = await context.db.query.alert.findMany({
+    where: {
+      farmId: context.farm.id,
+      kind: "password_guessed",
+      entityId: { in: guessed.map((one) => one.id) },
+    },
+    columns: { entityId: true },
+  });
+  const untold = guessed.filter(
+    (one) => !told.some((row) => row.entityId === one.id)
+  );
+  const [first] = untold;
+  if (!first) {
+    return;
+  }
+  const people = await context.db.query.user.findMany({
+    where: { email: { in: untold.map((one) => one.login) } },
+    columns: { email: true, name: true },
+  });
+  await audited(context).write(
+    {
+      entity: "password_guess",
+      entityId: first.id,
+      action: "update",
+      after: () =>
+        Promise.resolve({ toldGuessing: untold.map((one) => one.login) }),
+    },
+    async (tx) => {
+      for (const one of untold) {
+        // oxlint-disable-next-line no-await-in-loop -- one transaction, one client
+        await tell(
+          tx,
+          context.farm.id,
+          {
+            kind: "password_guessed",
+            about: { id: one.id },
+            facts: {
+              login: one.login,
+              name:
+                people.find((person) => person.email === one.login)?.name ??
+                null,
+              guesses: one.guesses,
+              since: one.since.toISOString(),
+            },
+          },
+          now
+        );
+      }
+    }
+  );
+};
+
+/**
  * Monthly Sums missed: each Agreement's latest missed month told once to the Owner, in the evening's post. Keyed on the
  * first Agreement it tells about, with the rest named in the event, as the overdue Receivable is — the money owed, not any
  * work, is what these are about.
@@ -768,6 +849,7 @@ export const theSweep = async (context: Turning) => {
     ["the store", () => tellAboutTheStore(context, now)],
     ["overdue Receivables", () => tellAboutOverdueReceivable(context, now)],
     ["missed sums", () => tellAboutMissedSums(context, now)],
+    ["password guesses", () => tellAboutPasswordGuesses(context, now)],
     ["papers", () => tellAboutPapers(context, now)],
     ["Reimbursements", () => tellAboutReimbursements(context, now)],
     // And the safety texts that did not go when their notice was raised, tried again until they do.

@@ -85,6 +85,10 @@ export const deviceSwitch = pgTable(
     tokenHash: text("token_hash").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    /** When the stint was ended on purpose — the phone locked, the person's PIN set anew — rather than run out. Ended, it
+     *  is never opened again: work recorded before it still proves its person, nothing after it, and no later entry or
+     *  keep-awake stretches it. Null for a stint still open or one that ran out. */
+    endedAt: timestamp("ended_at", { withTimezone: true }),
   },
   (table) => [
     uniqueIndex("device_switch_token_uidx").on(table.tokenHash),

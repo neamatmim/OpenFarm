@@ -1,5 +1,5 @@
 import type { Database } from "@OpenFarm/db";
-import { and, eq, gt, lt } from "@OpenFarm/db/operators";
+import { and, eq, gt, isNull, lt, sql } from "@OpenFarm/db/operators";
 import { deviceSwitch, shedPhone } from "@OpenFarm/db/schema/device";
 import { verifyPin } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -187,7 +187,8 @@ export const extendSwitch = async (
       and(
         eq(deviceSwitch.deviceId, deviceId),
         eq(deviceSwitch.userId, userId),
-        gt(deviceSwitch.expiresAt, now)
+        gt(deviceSwitch.expiresAt, now),
+        isNull(deviceSwitch.endedAt)
       )
     );
 };
@@ -202,10 +203,24 @@ export const stretchSwitch = async (
   await db
     .update(deviceSwitch)
     .set({ expiresAt: until })
-    .where(and(eq(deviceSwitch.id, id), lt(deviceSwitch.expiresAt, until)));
+    .where(
+      and(
+        eq(deviceSwitch.id, id),
+        lt(deviceSwitch.expiresAt, until),
+        // A stint the phone locked, or a new PIN ended, stays ended: work queued under its old token is still taken,
+        // but never opens it again.
+        isNull(deviceSwitch.endedAt)
+      )
+    );
 };
 
-/** Locks a phone: its switch sessions expire at once. Rows stay, so the audit of who was
+/** What ending a stint writes: run out now, if it had not already, and ended on purpose, for good. */
+export const endedNow = (now: Date) => ({
+  expiresAt: sql`least(${deviceSwitch.expiresAt}, ${now})`,
+  endedAt: now,
+});
+
+/** Locks a phone: its switch sessions end at once, for good. Rows stay, so the audit of who was
  *  working when is not rewritten. */
 export const closeSwitches = async (
   db: Database,
@@ -216,15 +231,13 @@ export const closeSwitches = async (
 ): Promise<void> => {
   await db
     .update(deviceSwitch)
-    .set({ expiresAt: now })
+    .set(endedNow(now))
     .where(
-      only
-        ? and(
-            eq(deviceSwitch.deviceId, deviceId),
-            eq(deviceSwitch.userId, only.userId),
-            gt(deviceSwitch.expiresAt, now)
-          )
-        : eq(deviceSwitch.deviceId, deviceId)
+      and(
+        eq(deviceSwitch.deviceId, deviceId),
+        isNull(deviceSwitch.endedAt),
+        ...(only ? [eq(deviceSwitch.userId, only.userId)] : [])
+      )
     );
 };
 

@@ -748,7 +748,9 @@ export const peopleRouter = {
         });
       }
       const now = context.clock.now();
-      const guesses = `password-code:${input.email}`;
+      // Counted against whoever is calling, never the account: a stranger who knew somebody's address could otherwise
+      // keep them from setting their own password with the code they were given.
+      const guesses = `password-code:${context.callerAddress ?? "unknown"}`;
       if (lockedOut(guesses, now, CODE_ATTEMPTS)) {
         throw new ORPCError("TOO_MANY_REQUESTS", {
           message: "Too many wrong codes — wait fifteen minutes",

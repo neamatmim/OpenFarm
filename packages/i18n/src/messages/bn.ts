@@ -884,6 +884,8 @@ export const bn: Record<MessageKey, string> = {
   "auth.showPassword": "পাসওয়ার্ড দেখুন",
   "auth.hidePassword": "পাসওয়ার্ড লুকান",
   "auth.signUpRefused": "অ্যাকাউন্ট খোলা যায়নি",
+  "auth.accountSlowed":
+    "এই অ্যাকাউন্টে অনেকবার ভুল পাসওয়ার্ড দেওয়া হয়েছে। এক মিনিট অপেক্ষা করে আবার চেষ্টা করুন।",
   "auth.refused": "সাইন ইন করা যায়নি",
   "auth.passwordTooShort": "পাসওয়ার্ড কমপক্ষে {min} অক্ষরের হতে হবে",
   "auth.passwordTooCommon":
@@ -2414,6 +2416,7 @@ export const bn: Record<MessageKey, string> = {
   "audit.entity.treatment": "চিকিৎসা",
   "audit.entity.request_to_join": "যোগদানের অনুরোধ",
   "audit.entity.pay_in_note": "জমার খবর",
+  "audit.entity.password_guess": "ভুল পাসওয়ার্ড",
   "audit.entity.receivable": "বাকি",
   "audit.entity.missing": "পাওয়া যাচ্ছে না",
   "audit.entity.farm_day": "খামারের দিন",
@@ -3664,8 +3667,11 @@ export const bn: Record<MessageKey, string> = {
   "alerts.dayNotTurning":
     "{since} থেকে খামারের সময়সূচি ঠিকমতো চলেনি: কাজ তৈরি না-ও হতে পারে, খবর না-ও যেতে পারে। খামারের কপি পাতায় দেখুন।",
   "digest.backupOverdue": "খামারের কপি নেওয়া হচ্ছে না",
+  "digest.passwordGuessed": "কেউ {who}-এর পাসওয়ার্ড আন্দাজ করেছে",
   "alerts.backupOverdue":
     "{since} থেকে খামারের কোনো কপি সফল হয়নি। খামারের কপি পাতায় দেখুন।",
+  "alerts.passwordGuessed":
+    "{since} থেকে {who}-এর অ্যাকাউন্টে {guesses} বার ভুল পাসওয়ার্ড দেওয়া হয়েছে। অ্যাকাউন্টটি এখন মিনিটে একবার চেষ্টা নেয়।",
   "refusal.workInNoPen": "এই ধাপ একটি পেনের কাজ লেখে, আর এই কাজ কোনো পেনে নয়",
   "renewal.issuedOn": "নবায়িত সনদ ইস্যুর তারিখ",
   "nav.inspector": "পরিদর্শনের পাতা",
@@ -4396,6 +4402,9 @@ export const bn: Record<MessageKey, string> = {
   "push.backupOverdueTitle": "খামারের কপি নেওয়া হচ্ছে না",
   "push.backupOverdueBody":
     "দেড় দিনের বেশি কোনো কপি সফল হয়নি। কারণ দেখতে খামারের কপি পাতা খুলুন।",
+  "push.passwordGuessedTitle": "কেউ পাসওয়ার্ড আন্দাজ করছে",
+  "push.passwordGuessedBody":
+    "{who}-এর অ্যাকাউন্টে অনেকবার ভুল পাসওয়ার্ড। অ্যাকাউন্টটি মিনিটে একবার চেষ্টায় নামানো হয়েছে।",
   "push.escalatedTitle": "এখনো হয়নি",
   "push.sentBackTitle": "আপনাকে ফেরত পাঠানো হয়েছে",
   "push.enable": "এই ডিভাইসে জানান",
