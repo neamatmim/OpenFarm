@@ -46,6 +46,10 @@ export const env = createEnv({
     OPENFARM_TIME_ZONE: z.string().optional(),
     OPENFARM_COUNTRY: z.string().optional(),
     OPENFARM_YEAR_STARTS: z.string().optional(),
+    /** "yes" to start a server whose currency, time zone or first year-start month differs from the one this
+     *  database's records were kept under, knowing every sum, day and ended year will read anew. Left unset, such a
+     *  server is refused at start. */
+    OPENFARM_LOCALE_CHANGED: z.string().optional(),
   },
   runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

@@ -11,6 +11,7 @@ import {
   CalendarClock,
   Plus,
   Tags,
+  PencilLine,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -36,6 +37,7 @@ import {
   FormField,
   RowMenu,
 } from "@/components/page-kit";
+import { RenameDialog } from "@/components/rename-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -56,6 +58,9 @@ interface CategoryRow extends Category {
   mayMarkMonthly: boolean;
   /** Whether it is a Monthly Cost, defaulted for an answer a phone kept from before there were any. */
   monthly: boolean;
+  /** The farm's own Categories only: a standard one keeps its name. */
+  mayRename: boolean;
+  handleRename: () => void;
   handleRetire: () => void;
   handleBringBack: () => void;
   handleMark: () => void;
@@ -105,6 +110,15 @@ const Retired = ({ row }: { row: CategoryRow }) =>
 const CategoryMenu = ({ row }: { row: CategoryRow }) => {
   const { t } = useLanguage();
   const { handleRetire, handleBringBack, handleMark, handleMarkMonthly } = row;
+  const rename = row.mayRename
+    ? [
+        {
+          label: t("list.rename"),
+          icon: PencilLine,
+          handleSelect: row.handleRename,
+        },
+      ]
+    : [];
   if (row.retiredAt) {
     return (
       <RowMenu
@@ -119,12 +133,13 @@ const CategoryMenu = ({ row }: { row: CategoryRow }) => {
       />
     );
   }
-  if (!(row.retirable || row.mayMark || row.mayMarkMonthly)) {
+  if (!(row.retirable || row.mayMark || row.mayMarkMonthly || row.mayRename)) {
     return null;
   }
   return (
     <RowMenu
       actions={[
+        ...rename,
         ...(row.mayMark
           ? [
               {
@@ -296,6 +311,17 @@ export const CategoriesTab = () => {
   const [retiring, setRetiring] = useState<{ id: string; name: string } | null>(
     null
   );
+  const [renaming, setRenaming] = useState<{
+    id: string;
+    bn: string;
+    en: string | null;
+  } | null>(null);
+  const rename = useMutation(
+    orpc.money.categories.rename.mutationOptions({
+      onSuccess: () => setRenaming(null),
+      onError,
+    })
+  );
   const retire = useMutation(
     orpc.money.categories.retire.mutationOptions({
       onSuccess: () => {
@@ -338,6 +364,9 @@ export const CategoriesTab = () => {
           categoryId: one.id,
           chargedToAnimals: !one.chargedToAnimals,
         }),
+      mayRename: one.key === null,
+      handleRename: () =>
+        setRenaming({ id: one.id, bn: one.nameBn, en: one.nameEn }),
       handleBringBack: () => bringBack.mutate({ id: one.id }),
       handleRetire: () =>
         setRetiring({
@@ -381,6 +410,30 @@ export const CategoriesTab = () => {
         ) : null}
       </Loaded>
       <AddCategoryDialog onOpenChange={setAdding} open={adding} />
+      <RenameDialog
+        bn={renaming?.bn ?? ""}
+        description={t("list.renameHint")}
+        en={renaming?.en}
+        handleSave={(name) => {
+          if (renaming) {
+            rename.mutate({
+              id: renaming.id,
+              nameBn: name.bn,
+              ...(name.en ? { nameEn: name.en } : {}),
+            });
+          }
+        }}
+        key={renaming?.id}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRenaming(null);
+          }
+        }}
+        open={renaming !== null}
+        pending={rename.isPending}
+        title={t("list.renameTitle", { name: renaming?.bn ?? "" })}
+        withEnglish
+      />
       <ConfirmDialog
         confirmLabel={t("byHand.retire")}
         description={t("byHand.retireWhy")}

@@ -69,6 +69,9 @@ export const pen = pgTable(
     /** How many head the Pen was built to hold, as the Owner or the Manager reckons it. None until one of them says:
      *  a Pen of unknown size is never called full. */
     capacity: integer("capacity"),
+    /** Torn down or no longer used: out of every picker, and nothing is moved, raised or fed into it. Retired only
+     *  while it stands empty, on no Ration, and is not a quarantine Pen; brought back as it was. */
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

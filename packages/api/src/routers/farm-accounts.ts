@@ -22,6 +22,8 @@ import {
   farmAccountStandingOf,
   firstReadingOf,
 } from "../farm-account-store";
+import type { FarmList } from "../farm-list";
+import { bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
 import { monthInput } from "../money-inputs";
 import {
@@ -38,6 +40,15 @@ import { lockTheFarm } from "../venture-store";
 /** A Farm Account as the trail records it. */
 const readFarmAccount = async (tx: Tx, id: string) =>
   (await tx.query.farmAccount.findFirst({ where: { id } })) ?? null;
+
+/** The Farm Accounts as a list of the farm's: retired and brought back by the list's own rule — a second tap is not a
+ *  second event, and an account that is not the farm's is not found. */
+const FARM_ACCOUNTS = {
+  entity: "farm_account",
+  table: farmAccount,
+  read: (tx: Tx, _farmId: string, id: string) => readFarmAccount(tx, id),
+  notFound: "No such Farm Account",
+} satisfies FarmList;
 
 /** A month's reading of a Farm Account's statement, as the trail records it. */
 const readCheck = async (tx: Pick<Tx, "query">, id: string) =>
@@ -173,41 +184,14 @@ export const farmAccountsRouter = {
       return { id };
     }),
 
-  /** Retired, never removed: money booked last year still names it, and no new money may. */
-  retire: protectedProcedure
+  /**
+   * What the farm calls an account, put right: its number is what it is known by, and stays; the name is only how the
+   * money forms say it. The Owner's, as listing it is, and on the trail with what it said before.
+   */
+  rename: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
-    .input(z.object({ id: z.string() }))
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      await audited(context).write(
-        {
-          entity: "farm_account",
-          entityId: input.id,
-          action: "update",
-          before: (tx) => readFarmAccount(tx, input.id),
-          after: (tx) => readFarmAccount(tx, input.id),
-        },
-        async (tx) => {
-          await tx
-            .update(farmAccount)
-            .set({ retiredAt: now })
-            .where(
-              and(
-                eq(farmAccount.id, input.id),
-                eq(farmAccount.farmId, context.farm.id)
-              )
-            );
-        }
-      );
-      return { id: input.id };
-    }),
-
-  /** A Farm Account retired by mistake, back on every money form: its number is the farm's still. */
-  bringBack: protectedProcedure
-    .use(requireOnly("owner", OWNER_ONLY))
-    .use(requirePersonalSession())
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string(), name: z.string().trim().min(1).max(80) }))
     .handler(async ({ context, input }) => {
       await audited(context).write(
         {
@@ -220,7 +204,7 @@ export const farmAccountsRouter = {
         async (tx) => {
           const [row] = await tx
             .update(farmAccount)
-            .set({ retiredAt: null })
+            .set({ name: input.name })
             .where(
               and(
                 eq(farmAccount.id, input.id),
@@ -230,11 +214,31 @@ export const farmAccountsRouter = {
             .returning({ id: farmAccount.id });
           if (!row) {
             throw new ORPCError("NOT_FOUND", {
-              message: "No such Farm Account",
+              message: FARM_ACCOUNTS.notFound,
             });
           }
         }
       );
+      return { id: input.id };
+    }),
+
+  /** Retired, never removed: money booked last year still names it, and no new money may. */
+  retire: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      await retireFromList(context, FARM_ACCOUNTS, input.id);
+      return { id: input.id };
+    }),
+
+  /** A Farm Account retired by mistake, back on every money form: its number is the farm's still. */
+  bringBack: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      await bringBackToList(context, FARM_ACCOUNTS, input.id);
       return { id: input.id };
     }),
 

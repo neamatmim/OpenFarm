@@ -208,6 +208,49 @@ export const notifiableDiseasesRouter = {
     }),
 
   /**
+   * A disease's name put right — a slip typed when it was added — on every report it raises from now on, refused when
+   * another disease on the list already answers to it. Kept by whoever keeps the list, and on the trail with what it
+   * said before: the reports already sent said that.
+   */
+  rename: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .input(z.object({ id: z.string(), name }))
+    .handler(async ({ context, input }) => {
+      await audited(context).write(
+        {
+          entity: "notifiable_disease",
+          entityId: input.id,
+          action: "update",
+          before: (tx) => readDisease(tx, input.id),
+          after: (tx) => readDisease(tx, input.id),
+        },
+        async (tx) => {
+          await assertNameFree(
+            tx,
+            context.farm.id,
+            DISEASES,
+            input.name,
+            input.id
+          );
+          const changed = await tx
+            .update(notifiableDisease)
+            .set({ nameBn: input.name.bn, nameEn: input.name.en ?? null })
+            .where(
+              and(
+                eq(notifiableDisease.id, input.id),
+                eq(notifiableDisease.farmId, context.farm.id)
+              )
+            )
+            .returning({ id: notifiableDisease.id });
+          if (changed.length === 0) {
+            throw new ORPCError("NOT_FOUND", { message: DISEASES.notFound });
+          }
+        }
+      );
+      return { id: input.id };
+    }),
+
+  /**
    * The other names a disease on the list goes by — "FMD", "খুরা রোগ" — so a Vet who writes one of them is still read as
    * naming it, and the report is not missed for a spelling. Replaces the ones it had. Kept by whoever keeps the list.
    */

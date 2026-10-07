@@ -11,6 +11,7 @@ import {
   databaseIsBehind,
   isBehind,
   schemaIsCurrent,
+  THE_LOCALE_CHANGED,
   whyTheDatabaseWillNotDo,
 } from "./readiness";
 import { causesOf } from "./thrown";
@@ -121,6 +122,36 @@ describe("why a built server will not start on its database", () => {
   it("starts on a database it may read that has every migration", async () => {
     expect(
       await whyTheDatabaseWillNotDo(process.env.DATABASE_URL ?? "")
+    ).toBeNull();
+  });
+});
+
+describe("where the farm is, as a server starting says it", () => {
+  const url = process.env.DATABASE_URL ?? "";
+  const dhaka = { currency: "BDT", timeZone: "Asia/Dhaka", yearStarts: 7 };
+
+  it("is kept at the first start, and a server set up to say otherwise is refused unless the change is meant", async () => {
+    expect(
+      await whyTheDatabaseWillNotDo(url, { now: dhaka, changeMeant: false })
+    ).toBeNull();
+
+    const april = { ...dhaka, yearStarts: 4 };
+    const refused = await whyTheDatabaseWillNotDo(url, {
+      now: april,
+      changeMeant: false,
+    });
+    expect(refused).toContain(THE_LOCALE_CHANGED);
+    expect(refused).toContain("OPENFARM_YEAR_STARTS 7 → 4");
+
+    // Said plainly, the change is kept from then on — and going back is a change too.
+    expect(
+      await whyTheDatabaseWillNotDo(url, { now: april, changeMeant: true })
+    ).toBeNull();
+    expect(
+      await whyTheDatabaseWillNotDo(url, { now: dhaka, changeMeant: false })
+    ).toContain("OPENFARM_YEAR_STARTS 4 → 7");
+    expect(
+      await whyTheDatabaseWillNotDo(url, { now: dhaka, changeMeant: true })
     ).toBeNull();
   });
 });

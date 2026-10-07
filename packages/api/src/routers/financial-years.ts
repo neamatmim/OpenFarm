@@ -154,36 +154,45 @@ export const financialYearsRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const [rules, row] = await Promise.all([
-        yearRulesOf(context.db, context.farm.id),
-        context.db.query.financialYearChange.findFirst({
-          where: {
-            id: input.changeId,
-            farmId: context.farm.id,
-            ...YEAR_CHANGE_IN_FORCE,
-          },
-        }),
-      ]);
-      if (!row) {
-        throw new ORPCError("NOT_FOUND", {
-          message: "No such change in force",
-        });
-      }
-      const refusal = refusalOfWithdrawal(rules, row, farmDayOf(now));
-      if (refusal) {
-        throw refuse(refusal);
-      }
+      // Judged inside the write, behind the farm lock recording a change takes: a change recorded meanwhile could
+      // otherwise stand on one withdrawn, and two withdrawals at once both wrote an event.
       await audited(context).write(
         {
           entity: "financial_year_change",
-          entityId: row.id,
+          entityId: input.changeId,
           action: "update",
           reason: input.reason,
-          before: { changingFrom: row.changingFrom, newFrom: row.newFrom },
+          before: async (tx) => {
+            const was = await tx.query.financialYearChange.findFirst({
+              where: { id: input.changeId, farmId: context.farm.id },
+              columns: { changingFrom: true, newFrom: true },
+            });
+            return was ?? null;
+          },
           after: { withdrawn: true },
         },
-        (tx) =>
-          tx
+        async (tx) => {
+          await lockTheFarm(tx, context.farm.id);
+          const [rules, row] = await Promise.all([
+            yearRulesOf(tx, context.farm.id),
+            tx.query.financialYearChange.findFirst({
+              where: {
+                id: input.changeId,
+                farmId: context.farm.id,
+                ...YEAR_CHANGE_IN_FORCE,
+              },
+            }),
+          ]);
+          if (!row) {
+            throw new ORPCError("NOT_FOUND", {
+              message: "No such change in force",
+            });
+          }
+          const refusal = refusalOfWithdrawal(rules, row, farmDayOf(now));
+          if (refusal) {
+            throw refuse(refusal);
+          }
+          await tx
             .update(financialYearChange)
             .set({
               withdrawnBy: context.actor.id,
@@ -195,8 +204,9 @@ export const financialYearsRouter = {
                 eq(financialYearChange.id, row.id),
                 isNull(financialYearChange.withdrawnAt)
               )
-            )
+            );
+        }
       );
-      return { id: row.id };
+      return { id: input.changeId };
     }),
 };

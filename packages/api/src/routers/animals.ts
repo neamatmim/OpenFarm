@@ -2069,7 +2069,8 @@ export const animalsRouter = {
         });
       }
       const pens = await context.db.query.pen.findMany({
-        where: { farmId: context.farm.id },
+        // A register row names a Pen standing in use, not one retired.
+        where: { farmId: context.farm.id, retiredAt: { isNull: true } },
         columns: { id: true, name: true },
         with: { shed: { columns: { name: true } } },
       });

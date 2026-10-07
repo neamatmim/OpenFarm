@@ -2,7 +2,15 @@ import { stockingOf } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
-import { Fence, PencilLine, Plus, Ruler, Warehouse } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  Fence,
+  PencilLine,
+  Plus,
+  Ruler,
+  Warehouse,
+} from "lucide-react";
 
 import {
   ActionsHeader,
@@ -27,6 +35,8 @@ export interface ShedRow {
     quarantine?: boolean;
     head?: number;
     capacity?: number | null;
+    /** Missing from an answer kept from before Pens could be retired: read as standing. */
+    retiredAt?: Date | string | null;
   }[];
 }
 
@@ -43,6 +53,9 @@ export interface ShedActions {
     name: string;
     capacity: number | null;
   }) => void;
+  /** Out of every picker once it stands empty, or back on them. */
+  handleRetirePen: (pen: { id: string }) => void;
+  handleRestorePen: (pen: { id: string }) => void;
 }
 
 interface PenRow {
@@ -51,6 +64,7 @@ interface PenRow {
   quarantine: boolean;
   animals: number;
   capacity: number | null;
+  retired: boolean;
   actions: ShedActions;
 }
 
@@ -100,6 +114,9 @@ const PenName = ({ row }: { row: PenRow }) => {
   return (
     <span className="flex min-w-0 flex-wrap items-center gap-2">
       <span className="truncate font-medium">{row.name}</span>
+      {row.retired ? (
+        <StatusBadge tone="neutral">{t("herd.penRetired")}</StatusBadge>
+      ) : null}
       {row.quarantine ? (
         <StatusBadge tone="warning">{t("herd.quarantinePen")}</StatusBadge>
       ) : null}
@@ -110,6 +127,9 @@ const PenName = ({ row }: { row: PenRow }) => {
 /** Whether this is a quarantine pen: where bought animals come in and are kept until released. */
 const QuarantineMark = ({ row }: { row: PenRow }) => {
   const { t } = useLanguage();
+  if (row.retired) {
+    return null;
+  }
   return (
     <label className="flex items-center gap-2 text-sm whitespace-nowrap">
       <Checkbox
@@ -123,12 +143,18 @@ const QuarantineMark = ({ row }: { row: PenRow }) => {
   );
 };
 
-/** What a Pen's row can ask for beyond marking it: the head it holds, and a new name. */
+/** What a Pen's row can ask for beyond marking it: the head it holds, a new name, and retiring it — or, retired, back. */
 const PenMenu = ({ row }: { row: PenRow }) => {
   const { t } = useLanguage();
-  return (
-    <RowMenu
-      actions={[
+  const acts = row.retired
+    ? [
+        {
+          label: t("herd.restorePen"),
+          icon: ArchiveRestore,
+          handleSelect: () => row.actions.handleRestorePen(row),
+        },
+      ]
+    : [
         {
           label: t("herd.setCapacity"),
           icon: Ruler,
@@ -139,9 +165,14 @@ const PenMenu = ({ row }: { row: PenRow }) => {
           icon: PencilLine,
           handleSelect: () => row.actions.handleRenamePen(row),
         },
-      ]}
-      label={t("stock.rowActions", { name: row.name })}
-    />
+        {
+          label: t("herd.retirePen"),
+          icon: Archive,
+          handleSelect: () => row.actions.handleRetirePen(row),
+        },
+      ];
+  return (
+    <RowMenu actions={acts} label={t("stock.rowActions", { name: row.name })} />
   );
 };
 
@@ -211,6 +242,7 @@ export const ShedCard = ({
     quarantine: pen.quarantine === true,
     animals: pen.head ?? 0,
     capacity: pen.capacity ?? null,
+    retired: Boolean(pen.retiredAt),
     actions,
   }));
   const table = useListTable({
@@ -239,7 +271,10 @@ export const ShedCard = ({
               </StatusBadge>
               <span className="text-muted-foreground">
                 {t("herd.penCount", {
-                  count: formatNumber(pens.length, language),
+                  count: formatNumber(
+                    pens.filter((pen) => !pen.retired).length,
+                    language
+                  ),
                 })}
               </span>
             </div>

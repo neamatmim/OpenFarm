@@ -6,6 +6,7 @@ import {
   DESHI_BREEDS,
   STANDARD_BREED_KEYS,
   STANDARD_BREEDS,
+  nameAsCompared,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -148,7 +149,8 @@ export const breedNamed = (
   }[],
   name: string
 ): string | null => {
-  const wanted = name.trim().toLowerCase();
+  // As the farm compares any two names: "Red  Chittagong" typed with two spaces is still the breed.
+  const wanted = nameAsCompared(name);
   return (
     breeds.find(
       (one) => one.retiredAt === null && namesOf(one).includes(wanted)

@@ -289,6 +289,69 @@ export const moneyEntryProcedures = {
       }),
 
     /**
+     * A Category's name put right — "বিদুৎ বিল" typed for "বিদ্যুৎ বিল" — where making a new one and retiring the old
+     * split a year of money across two names. The farm's own Categories only: a standard one's name is what the farm's
+     * own records book under, and is kept. Refused for a name another Category, or a standard one, already has.
+     */
+    rename: protectedProcedure
+      .use(requireRole("owner", "manager"))
+      .use(requirePersonalSession())
+      .input(
+        z.object({
+          id: z.string(),
+          nameBn: z.string().trim().min(1).max(80),
+          nameEn: z.string().trim().min(1).max(80).optional(),
+        })
+      )
+      .handler(async ({ context, input }) => {
+        await audited(context).write(
+          {
+            entity: "money_category",
+            entityId: input.id,
+            action: "update",
+            before: (tx) => readCategory(tx, context.farm.id, input.id),
+            after: (tx) => readCategory(tx, context.farm.id, input.id),
+          },
+          async (tx) => {
+            const category = await tx.query.moneyCategory.findFirst({
+              where: { id: input.id, farmId: context.farm.id },
+              columns: { key: true },
+            });
+            if (!category) {
+              throw new ORPCError("NOT_FOUND", {
+                message: CATEGORIES.notFound,
+              });
+            }
+            if (category.key !== null) {
+              throw refusedByHand(
+                "A standard Category keeps its name",
+                "category_is_standard"
+              );
+            }
+            const names = { bn: input.nameBn, en: input.nameEn };
+            if (isStandardName(names)) {
+              throw refusedByHand(
+                "The farm already has that Category",
+                "category_exists"
+              );
+            }
+            await assertNameFree(
+              tx,
+              context.farm.id,
+              CATEGORIES,
+              names,
+              input.id
+            );
+            await tx
+              .update(moneyCategory)
+              .set({ nameBn: input.nameBn, nameEn: input.nameEn ?? null })
+              .where(eq(moneyCategory.id, input.id));
+          }
+        );
+        return { id: input.id };
+      }),
+
+    /**
      * Marks a Category as charged to the animals of its Side — a Vet visit that named nobody, lab tests, fly
      * spray — or takes the mark off. The month's money under it is then split across the animals standing
      * that month, by the days each stood.
