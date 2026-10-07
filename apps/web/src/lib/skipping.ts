@@ -1,5 +1,5 @@
 import type { Bilingual, Step } from "@OpenFarm/domain";
-import { maySkip } from "@OpenFarm/domain";
+import { WRITTEN_BY_MISTAKE, maySkip } from "@OpenFarm/domain";
 
 /**
  * The reasons this Step may be skipped with, as the phone can offer them — none, when it may not be
@@ -15,5 +15,14 @@ import { maySkip } from "@OpenFarm/domain";
  * list, so one cannot offer what the other has not got.
  */
 export const skipReasonsOffered = (
-  step: Pick<Step, "repeatPerAnimal" | "effect" | "skipReasons">
-): Bilingual[] => (maySkip(step) ? step.skipReasons : []);
+  step: Pick<Step, "repeatPerAnimal" | "effect" | "skipReasons">,
+  /** Putting an answer right, which may also say it was written by mistake. */
+  correcting = false
+): Bilingual[] => {
+  if (!maySkip(step)) {
+    return [];
+  }
+  return correcting
+    ? [...step.skipReasons, WRITTEN_BY_MISTAKE]
+    : step.skipReasons;
+};

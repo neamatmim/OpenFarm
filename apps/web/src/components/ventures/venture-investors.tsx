@@ -28,6 +28,7 @@ import { Nothing } from "@/components/list-cells";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { RowMenu } from "@/components/page-kit";
 import { AgreementPaperButton } from "@/components/ventures/agreement-paper";
+import { CorrectAgreement } from "@/components/ventures/correct-agreement";
 import { FarmTakesSheet } from "@/components/ventures/farm-takes-sheet";
 import type { StatementKind } from "@/components/ventures/investor-papers";
 import {
@@ -329,6 +330,9 @@ const RowActions = ({
   idPrefix: string;
 }) => {
   const { t } = useLanguage();
+  // Put right against the stamped paper only while nothing has been paid on it.
+  const nothingPaidOnIt = row.paidMoney === 0;
+  const mayPutRight = nothingPaidOnIt && !row.cancelled && !row.isFarm;
   return (
     <>
       {row.share ? (
@@ -353,6 +357,7 @@ const RowActions = ({
       {paperOnFile(row) || row.cancelled || row.isFarm ? null : (
         <AgreementPaperButton agreementId={row.id} idPrefix={idPrefix} />
       )}
+      {mayPutRight ? <CorrectAgreement agreement={row} /> : null}
       {/* The Farm's own Units have no papers: no Agreement, no statements to send itself. */}
       {row.cancelled || row.isFarm ? null : (
         <PapersMenu

@@ -485,6 +485,7 @@ export {
   isOneTap,
   maySkip,
   meaningOfSkip,
+  WRITTEN_BY_MISTAKE,
   nothingToNoteOf,
   missingEvidence,
   raisesItsOwnWork,

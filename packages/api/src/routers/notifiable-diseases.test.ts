@@ -134,6 +134,40 @@ describe("the letter that goes without delay", () => {
     ).rejects.toThrow(/must be reported/u);
   });
 
+  it("takes the report back with a Diagnosis written against the wrong cow, and the work to deliver it", async () => {
+    const clock = new FakeClock("2027-01-06T06:00:00.000Z");
+    const cow = await aCow(clock);
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    const vet = await createTestClient(appRouter, { as: "vet", clock });
+    await manager.client.notifiableDiseases.create({
+      name: { bn: "গলাফোলা", en: "Haemorrhagic septicaemia" },
+      note: "ইউএলও নিশ্চিত করেছেন",
+    });
+    const made = await vet.client.diagnoses.record({
+      animalTag: cow.tagNumber,
+      disease: { bn: "গলাফোলা", en: "Haemorrhagic septicaemia" },
+    });
+    expect(made.notifiable).toBe(true);
+
+    await vet.client.diagnoses.correct({
+      id: made.id,
+      reason: "অন্য গাভী, ট্যাগ ভুল পড়া হয়েছিল",
+      changes: { voided: { from: false, to: true } },
+    });
+
+    // She has no such disease, and nobody is sent to the office to say she has.
+    const work = await manager.client.work.today({ penId: world.pen.id });
+    expect(
+      work.some(
+        (row) =>
+          row.definitionId === world.sop.definitionId && row.animalId === cow.id
+      )
+    ).toBe(false);
+    await expect(
+      manager.client.notifiableDiseases.letter({ diagnosisId: made.id })
+    ).rejects.toThrow();
+  });
+
   it("writes the letter from what the farm already knows", async () => {
     const clock = new FakeClock("2027-01-07T04:00:00.000Z");
     const cow = await aCow(clock);

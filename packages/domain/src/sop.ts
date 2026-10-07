@@ -196,6 +196,17 @@ export interface SkipReason extends Bilingual {
   means?: SkipMeaning;
 }
 
+/**
+ * The farm's own word for a Step answered against the wrong animal or by a slip of the thumb, offered only when putting
+ * an answer right and whatever the Version's own reasons are. Taking back a campaign dose tapped on the wrong cow had
+ * only the Version's reasons to say it with — "Unwell — to be given later" — which said something false about her. It
+ * means nothing the farm acts on: she was not given it, so what was owed is still owed, and nobody is sent to her.
+ */
+export const WRITTEN_BY_MISTAKE: SkipReason = {
+  bn: "ভুল করে লেখা",
+  en: "Written by mistake",
+};
+
 /** What the reason somebody skipped with means, read from the Step they skipped: nothing for a reason the farm does
  *  not act on, or a Step that was not skipped. Matched on the Bangla, because that is what a phone sends. */
 export const meaningOfSkip = (

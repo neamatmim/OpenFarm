@@ -1254,6 +1254,9 @@ export const bn: Record<MessageKey, string> = {
   "ventures.investorsPercent": "বিনিয়োগকারীদের ভাগ (%)",
   "ventures.splitHint": "খামার পায় {farm}%",
   "ventures.arbitrator": "সালিশ",
+  "ventures.correctAgreement": "কাগজ দেখে ঠিক করুন",
+  "ventures.correctAgreementHint":
+    "স্ট্যাম্প করা কাগজ থেকে যা লেখা হয়েছিল: ইউনিট, স্ট্যাম্প, সালিশকারী। শুধু এর ওপর পুঁজি নেওয়ার আগ পর্যন্ত; ভাগ আর সময়সীমা সংশোধনীর কাজ।",
   "ventures.arbitratorHint": "মতভেদ হলে যাঁর কাছে যাওয়া হবে, দুই পক্ষ এখনই তাঁর নাম দেয়",
   "ventures.stampValue": "স্ট্যাম্পের মূল্য",
   "ventures.stampedOn": "স্ট্যাম্পের তারিখ",
@@ -1647,6 +1650,19 @@ export const bn: Record<MessageKey, string> = {
   "refusal.beforeSheWasHere":
     "তখন সে এখানে ছিল না, বা তার পরে তাকে সরানো হয়েছে। দিন ও সময় দেখে নিন",
   "refusal.bornInTheFuture": "জন্মের দিন ভবিষ্যতে হতে পারে না",
+  "refusal.correctTheStep":
+    "এটি একটি কাজের মধ্যে দেওয়া বা দেখা হয়েছে: সেই ধাপে ঠিক করুন",
+  "refusal.alreadyWithdrawn": "এটি আগেই তুলে নেওয়া হয়েছে",
+  "refusal.notWrittenOff": "তাকে হারানো হিসেবে লেখা হয়নি",
+  "refusal.capitalTakenOnIt":
+    "এই চুক্তির ওপর পুঁজি নেওয়া হয়েছে: এতে যা লেখা, টাকা তার ওপরেই দাঁড়িয়ে",
+  "refusal.sexRestsOnBreeding":
+    "তার প্রজনন, বাছুর হওয়া বা তার কোনো বাছুর এর ওপর দাঁড়িয়ে: লিঙ্গ বদলানো যাবে না",
+  "refusal.notHerDam": "মা এই খামারেরই একটি গাভী: তার ট্যাগ দিন",
+  "refusal.prescribedForIt":
+    "এর জন্য কোর্স লেখা হয়েছে: আগে কোর্স বন্ধ করে ডোজগুলো ঠিক করুন",
+  "refusal.herDeathNamesIt": "তার মৃত্যুর কারণ এটি বলা আছে: আগে মৃত্যুর রেকর্ড ঠিক করুন",
+  "refusal.reportDelivered": "এর রিপোর্ট অফিসে পৌঁছে গেছে: যে চিঠি গেছে, তা গেছে",
   "refusal.alreadyInThatPen": "সে আগে থেকেই ওই পেনে আছে",
   "refusal.calfMovedBeforeThat":
     "বাছুরটিকে ওই সময়ের আগে সরানো হয়েছে, তাই বাচ্চা দেওয়া তার পরে হতে পারে না",
@@ -1781,7 +1797,7 @@ export const bn: Record<MessageKey, string> = {
   "refusal.anAnimalIsMissing":
     "এই ভেঞ্চারের একটি গরু খুঁজে পাওয়া যাচ্ছে না: খুঁজে পান, নয়তো হারানো লিখুন — খামার তার ক্ষতিপূরণ দেবে",
   "refusal.madeGoodWithTheFarmsMoney":
-    "এটি খামারের নিজের টাকায় হারানো পশুর ক্ষতিপূরণ; শুধু ভেঞ্চারের দিকে এটি ঠিক করা যায় না",
+    "এটি খামারের নিজের টাকায় হারানো পশুর ক্ষতিপূরণ। ভুল ট্যাগের নামে হারানো লেখা হলে তার পাতায় তা ফিরিয়ে নিন; পাওয়া গেলে সে খামারের হয়ে যায়",
   "refusal.theFarmsOwnCapital":
     "এটি খামারের নিজের মূলধন, যা খামারের নিজের হিসাবেও আছে; শুধু ভেঞ্চারের দিকে এটি ঠিক করা যায় না",
   "refusal.notFattening": "শুধু মোটাতাজা করা হচ্ছে এমন পশুকেই বিক্রির জন্য তৈরি বলা যায়",
@@ -1830,7 +1846,8 @@ export const bn: Record<MessageKey, string> = {
     "এই ভেঞ্চারের হিসাব শেষ — যে হিসাবে {currencySum} দেওয়া হয়েছে তা বদলানোর বদলে বণ্টন সমন্বয় করুন",
   "refusal.ventureIsCancelled":
     "এই ভেঞ্চার বাতিল হয়েছে, {currencySum}ও ফেরত গেছে; যা এসেছিল তা এখন আর বদলানো যাবে না",
-  "refusal.oneSideOfASale": "এটি ভেতরের বেচাকেনার এক পাশ — বেচাকেনাটিই ঠিক করতে হবে",
+  "refusal.oneSideOfASale":
+    "এটি ভেতরের বেচাকেনার এক পাশ: সারির বেচাকেনাটি ঠিক করুন, দুই পাশই সাথে ঠিক হবে",
   "refusal.reimbursementIsComputed":
     "মাসের ফেরত খরচের হিসাব থেকেই আসে; তারিখ আর রেফারেন্স এখনও আপনি ঠিক করতে পারেন",
   "refusal.sellerCannotTrade": "যে ভেঞ্চার দিচ্ছে, তার গরু দেওয়ার সময় পার হয়ে গেছে",
@@ -2709,6 +2726,10 @@ export const bn: Record<MessageKey, string> = {
     "গরম, পাল, গর্ভ পরীক্ষা আর বাচ্চা দেওয়া নথিভুক্ত হলে এখানে দেখা যাবে।",
   "animals.healthNone": "এখনো কিছু চোখে পড়েনি বা দেওয়া হয়নি",
   "observations.all": "সব",
+  "observations.withdraw": "তুলে নিন",
+  "observations.withdrawHint":
+    "ভুল পশুর নামে লেখা, বা ভুল দেখা: এর জন্য তোলা কাজ বাতিল হবে। যে পশুকে আসলে দেখা গেছে তার নামে আবার লিখুন।",
+  "observations.withdrawIt": "তুলে নিন: তাকে এমন দেখা যায়নি",
   "observations.none": "গত কিছু দিনে কিছু চোখে পড়েনি",
   "observations.days": "গত {days} দিন",
   "observations.col.saw": "যা দেখা গেছে",
@@ -3569,6 +3590,9 @@ export const bn: Record<MessageKey, string> = {
   "vetFee.hint": "এখানে কেবল আপনার নিজের ফি লেখেন আর দেখেন।",
   "vetFee.none": "এখনও কোনো ফি লেখা হয়নি",
   "vetFee.noAnimals": "খামারে এখনো কোনো গরু নেই যা ভেট দেখেছেন বলা যায়",
+  "vetFee.correct": "ঠিক করুন",
+  "vetFee.correctHint":
+    "ফি, দেখার দিন বা নোট। টাকাও সাথে ঠিক হবে; যেসব পশুর নামে ধরা হয়েছে সেগুলো আগের মতোই থাকবে।",
   "refusal.ownerOnly": "এটি শুধু মালিক করতে পারেন",
   "refusal.personalPhoneOnly": "এটি শেডের ফোন থেকে নয়, নিজের ফোন থেকে করুন",
   "refusal.shedPhoneOnly":
@@ -3636,7 +3660,7 @@ export const bn: Record<MessageKey, string> = {
   "refusal.categoryRetired": "এই খাত বাদ দেওয়া হয়েছে",
   "refusal.categoryKeptByRecords": "এই খাতের {currencySum} নিজের রেকর্ড থেকে আসে",
   "refusal.correctTheRecord":
-    "এই {currencySum} একটি রেকর্ড থেকে এসেছে; রেকর্ডটি সংশোধন করুন",
+    "এই {currencySum} একটি রেকর্ড থেকে এসেছে — বিক্রি, কেনা, দুধের গাড়ি, ভেটের ফি: যেখানে লেখা হয়েছিল সেখানেই ঠিক করুন, টাকাও সাথে ঠিক হবে",
   "refusal.enteredInTheFuture":
     "যে দিন আসেনি সেদিন {currencySum} লেনদেন হতে পারে না",
   "byHand.side": "দিক",
@@ -4110,6 +4134,9 @@ export const bn: Record<MessageKey, string> = {
   "vet.recorded": "রোগ লেখা হয়েছে",
   "vet.answering": "{saw} দেখে",
   "vet.correct": "সংশোধন",
+  "vet.voidWhy": "ভুল পশুর নামে লেখা হয়েছে",
+  "vet.voidDiagnosis":
+    "তুলে নিন: তার এই রোগ নেই, এখনো না পাঠানো রিপোর্টও সাথে উঠে যাবে",
   "vet.subtitle":
     "রাউন্ডে যা দেখা গেছে কিন্তু কেউ উত্তর দেননি, আপনার সিদ্ধান্ত, আর আপনার দেওয়া চিকিৎসার কোর্স।",
   "vet.tab.repeat": "গর্ভ ধরছে না",
@@ -4335,6 +4362,10 @@ export const bn: Record<MessageKey, string> = {
   "correct.purchase": "এই কেনা সংশোধন",
   "correct.soldAt": "কখন চলে গেছে",
   "correct.registration": "এই নিবন্ধন বাতিল করুন",
+  "correct.whatSheIs": "সে কী, তা ঠিক করুন",
+  "correct.whatSheIsHint":
+    "তার লিঙ্গ, জাত, জন্মদিন বা মা, আসলে যা। তার প্রজনন বা কোনো বাছুর এর ওপর দাঁড়িয়ে থাকলে লিঙ্গ আর বদলানো যায় না।",
+  "correct.damTag": "মায়ের ট্যাগ (জানা না থাকলে খালি)",
   "correct.void": "ভুল পশুর নামে লেখা হয়েছে",
   "correct.voidSale": "এই বিক্রি বাতিল করুন: সে আগের মতো ফিরে আসবে",
   "correct.voidPaymentWhy": "দুবার লেখা, ভুল ক্রেতার নামে, বা ভুল খাতে",
@@ -5836,6 +5867,10 @@ export const bn: Record<MessageKey, string> = {
   "dose.askTheVet":
     "ভেট এই ওষুধের দিন লেখেননি, সাধারণ দিনও না। আগে ভেটকে জিজ্ঞেস করুন।",
   "dose.recorded": "ওষুধ লেখা হলো; ভেটকে জানানো হবে",
+  "dose.void": "ফিরিয়ে নিন",
+  "dose.voidHint":
+    "ভুল পশুর নামে বা দুবার লেখা হয়েছে: এটি বাদ দিয়ে তার আটকে রাখার সময় আবার হিসাব হবে। যে পশুকে আসলে দেওয়া হয়েছে তার নামে আবার লিখুন।",
+  "dose.voidIt": "বাতিল করুন: তাকে এটি দেওয়া হয়নি",
   "drugs.defaultDays": "সাধারণ উইথড্রয়াল-এর দিন",
   "drugs.defaultDaysHint":
     "প্রেসক্রিপশন ছাড়া দেওয়া এমন ওষুধের জন্য, যার দিন এখনো লেখা হয়নি। আগে দেওয়া ডোজ যে দিন ধরেছিল তা-ই থাকে।",
@@ -5881,5 +5916,9 @@ export const bn: Record<MessageKey, string> = {
   "animals.writtenOff": "{day} তারিখে হারিয়ে গেছে বলে বাদ দেওয়া হয়েছে",
   "animals.writtenOffStolen": "চুরি · জিডি {gd}",
   "animals.foundAfterAll": "পাওয়া গেছে",
+  "animals.voidWriteOff": "ভুল ট্যাগ",
+  "animals.voidWriteOffHint":
+    "ভুল ট্যাগের নামে হারানো লেখা হয়েছে: সে কখনো হারায়নি। সে আগের মতো ফিরে আসবে; ভেঞ্চারের পশু ভেঞ্চারেরই থাকবে, আর তার ক্ষতিপূরণের টাকা খামারে ফিরে আসবে।",
+  "animals.voidWriteOffIt": "হারানো লেখা ফিরিয়ে নিন: সে কখনো হারায়নি",
   "owner.lostYear": "১২ মাসে হারিয়ে গেছে: {count}টি · খরচ হয়েছিল {amount}",
 };

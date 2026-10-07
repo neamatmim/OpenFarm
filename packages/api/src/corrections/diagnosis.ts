@@ -1,10 +1,15 @@
 import { eq } from "@OpenFarm/db/operators";
-import { DIAGNOSIS_OUTCOMES, diagnosis } from "@OpenFarm/db/schema/health";
+import {
+  DIAGNOSIS_OUTCOMES,
+  diagnosis,
+  dlsReport,
+} from "@OpenFarm/db/schema/health";
+import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { clearNoticesAbout } from "../alerts-store";
-import type { Tx } from "../audit";
+import type { Trail, Tx } from "../audit";
 import { audited } from "../audit";
 import {
   diagnosisNoteInput,
@@ -17,6 +22,7 @@ import type { RaisedAlert } from "../instances-store";
 import { pushRaised } from "../push-send";
 import { requireClinicalInScope } from "../scope";
 import { textTheSafetyAlerts } from "../sms-send";
+import { callOffWork } from "../work-transitions";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, herVenturesAround } from "./correction";
 
@@ -34,7 +40,79 @@ export const diagnosisCorrectionInput = correctionInput({
     z.enum(DIAGNOSIS_OUTCOMES).nullable(),
     z.string().nullable()
   ),
+  /** Written against the wrong animal: taken away by the Vet who wrote it, with a reason kept in the trail. */
+  voided: changeOf(z.literal(true), z.boolean()),
 });
+
+const refuse = (message: string, refusal: string) =>
+  new ORPCError("BAD_REQUEST", { message, data: { refusal } });
+
+/**
+ * A Diagnosis written against the wrong animal, taken away: a notifiable disease on the wrong cow could leave her list
+ * only by being renamed, which said something false about her. Refused while what was done on it stands — a course
+ * prescribed for it, her death put down to it, a letter that has reached the office — each put right on its own first.
+ * A letter not yet taken goes with it, and the work to take it.
+ */
+const voidTheDiagnosis = async (
+  tx: Tx,
+  row: { id: string; farmId: string },
+  now: Date,
+  trail: Trail
+) => {
+  const [prescribed, died, report] = await Promise.all([
+    tx.query.prescription.findFirst({
+      where: { diagnosisId: row.id },
+      columns: { id: true },
+    }),
+    tx.query.mortality.findFirst({
+      where: { diagnosisId: row.id },
+      columns: { id: true },
+    }),
+    tx.query.dlsReport.findFirst({
+      where: { diagnosisId: row.id },
+      columns: { id: true, instanceId: true, deliveredAt: true },
+    }),
+  ]);
+  if (prescribed) {
+    throw refuse(
+      "A course was prescribed for it: stop the course and put its doses right first",
+      "prescribed_for_it"
+    );
+  }
+  if (died) {
+    throw refuse(
+      "Her death is put down to it: put her death right first",
+      "her_death_names_it"
+    );
+  }
+  if (report?.deliveredAt) {
+    throw refuse(
+      "Its report has reached the office: a letter that went, went",
+      "report_delivered"
+    );
+  }
+  if (report) {
+    if (report.instanceId) {
+      await callOffWork(tx, row.farmId, eq(sopInstance.id, report.instanceId), {
+        trail,
+        by: "report_withdrawn",
+      });
+    }
+    await tx.delete(dlsReport).where(eq(dlsReport.id, report.id));
+  }
+  await tx.delete(diagnosis).where(eq(diagnosis.id, row.id));
+  await clearNoticesAbout(tx, row.farmId, [row.id], now);
+  const nothingToReport: {
+    notifiable: false;
+    reportInstanceId: null;
+    alerts: RaisedAlert[];
+  } = {
+    notifiable: false,
+    reportInstanceId: null,
+    alerts: [],
+  };
+  return nothingToReport;
+};
 
 /** Whether the farm must report what she now has, the work to deliver the report, and who to tell. */
 interface Reconsidered {
@@ -75,8 +153,12 @@ export const diagnosisCorrection: CorrectionKind<
       disease: row.disease,
       note: row.note,
       outcome: row.outcome,
+      voided: false,
     }),
   apply: async (tx, row, to, { context, now }) => {
+    if (to.voided) {
+      return await voidTheDiagnosis(tx, row, now, audited(context).recordEvent);
+    }
     const disease = to.disease ?? {
       bn: row.disease,
       en: row.diseaseEn ?? undefined,

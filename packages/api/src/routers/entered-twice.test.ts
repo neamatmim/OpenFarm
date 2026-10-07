@@ -371,4 +371,28 @@ describe("an Investor's capital payment written twice", () => {
     });
     expect(left).toEqual([{ reference: "TRF-1", amountMoney: 100_000 }]);
   });
+
+  it("before capital is taken on it, its Units are put right against the stamped paper; after, they stand", async () => {
+    const { owner, agreementId } = await signedFor("typo");
+
+    await owner.client.ventures.agreements.correct({
+      id: agreementId,
+      reason: "কাগজে ছয় ইউনিট",
+      changes: { units: { from: 4, to: 6 } },
+    });
+    const put = await scratchDb().query.investmentAgreement.findFirst({
+      where: { id: agreementId },
+      columns: { units: true },
+    });
+    expect(put?.units).toBe(6);
+
+    await owner.client.ventures.takeCapital(paid(agreementId, "TRF-TYPO"));
+    await expect(
+      owner.client.ventures.agreements.correct({
+        id: agreementId,
+        reason: "আবার",
+        changes: { units: { from: 6, to: 5 } },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "capital_taken_on_it" } });
+  });
 });

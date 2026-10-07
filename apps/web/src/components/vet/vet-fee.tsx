@@ -8,6 +8,7 @@ import { Plus, Receipt } from "lucide-react";
 import { useState } from "react";
 
 import {
+  ActionsHeader,
   DataTable,
   createListColumns,
   listHeader,
@@ -17,6 +18,7 @@ import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Loaded, Section, TagChip } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { SearchableMultiPicker } from "@/components/searchable-picker";
+import { CorrectVetFee } from "@/components/vet/correct-vet-fee";
 import { useLanguage } from "@/i18n/language-provider";
 import { usePenNames } from "@/lib/pen-names";
 import { useRefused } from "@/lib/refused";
@@ -65,6 +67,10 @@ const AnimalsCell = ({ row }: { row: { original: Fee } }) => (
 const NoteCell = ({ row }: { row: { original: Fee } }) =>
   row.original.note ?? <Nothing />;
 
+const FixCell = ({ row }: { row: { original: Fee } }) => (
+  <CorrectVetFee fee={row.original} />
+);
+
 const column = createListColumns<Fee>();
 const feeColumns = column.columns([
   column.accessor((fee) => new Date(fee.visitedOn).getTime(), {
@@ -87,6 +93,12 @@ const feeColumns = column.columns([
     header: listHeader("vetFee.note"),
     cell: NoteCell,
   }),
+  column.display({
+    id: "actions",
+    header: ActionsHeader,
+    cell: FixCell,
+    meta: { align: "end" },
+  }),
 ]);
 
 /** A fee on a phone: the day, the fee large, the animals and the note beneath. */
@@ -105,6 +117,9 @@ const FeeCard = ({ row }: { row: Fee }) => {
       {row.note ? (
         <span className="text-muted-foreground text-xs">{row.note}</span>
       ) : null}
+      <div className="flex justify-end">
+        <CorrectVetFee fee={row} />
+      </div>
     </div>
   );
 };

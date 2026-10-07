@@ -27,6 +27,7 @@ import {
 } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { PAYMENT_METHOD_WORD } from "@/components/payment-method";
+import { CorrectVetFee } from "@/components/vet/correct-vet-fee";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
 import type { orpc } from "@/utils/orpc";
@@ -71,6 +72,8 @@ interface MoneyRow {
   what: string;
   canApprove: boolean;
   entersMoney: boolean;
+  /** The Owner, who alone puts a Vet Fee right from here. */
+  isOwner: boolean;
   approving: boolean;
   handleApprove: (event: MoneyEvent) => void;
 }
@@ -169,9 +172,12 @@ const Detail = ({ event }: { event: MoneyEvent }) => {
   return <>{parts.join(" · ")}</>;
 };
 
-/** Whether this entry is put right from the register: money entered by hand, and a Wage Draw's. */
-const correctableHere = ({ event, entersMoney }: MoneyRow) =>
-  entersMoney && (event.source === "by_hand" || event.source === "wage_draw");
+/** Whether this entry is put right from the register: money entered by hand, a Wage Draw's, and — the Owner's — a Vet
+ *  Fee, which has no page of its own on the farm's side. */
+const correctableHere = ({ event, entersMoney, isOwner }: MoneyRow) =>
+  (entersMoney &&
+    (event.source === "by_hand" || event.source === "wage_draw")) ||
+  (isOwner && event.source === "vet_fee");
 
 /** The receipt and the Correction, where the entry has them. */
 const EntryActions = ({ row }: { row: MoneyRow }) => {
@@ -185,6 +191,15 @@ const EntryActions = ({ row }: { row: MoneyRow }) => {
       {event.hasReceipt ? <ReceiptLink id={event.id} /> : null}
       {correctable && event.source === "by_hand" ? (
         <CorrectEntered entered={event} />
+      ) : null}
+      {correctable && event.source === "vet_fee" ? (
+        <CorrectVetFee
+          fee={{
+            id: event.sourceId,
+            amountMoney: event.amountMoney,
+            visitedOn: event.occurredAt,
+          }}
+        />
       ) : null}
       {correctable && event.source === "wage_draw" ? (
         <DrawCorrection
@@ -462,6 +477,7 @@ export const RegisterTab = ({
     what: categoryName(event, language),
     canApprove: isOwner,
     entersMoney,
+    isOwner,
     approving: approve.isPending,
     handleApprove: (one: MoneyEvent) =>
       approve.mutate({

@@ -8,6 +8,7 @@ import { ClipboardPlus, Eye, Stethoscope } from "lucide-react";
 import { useState } from "react";
 
 import { DoseTable } from "@/components/animal-histories";
+import { WithdrawSighting } from "@/components/animal/take-it-back";
 import type { Course } from "@/components/course";
 import { CourseLine } from "@/components/course";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
@@ -208,6 +209,10 @@ const HealthChain = ({
                   <SeenWhere instanceId={seen.instanceId} note={seen.note} />
                 </p>
               </div>
+              {/* One seen on the round is put right on its Step; one seen off it is withdrawn here. */}
+              {seen.withdrawn || seen.instanceId !== null ? null : (
+                <WithdrawSighting id={seen.id} />
+              )}
             </div>
             {seen.diagnoses.length > 0 ? (
               <ul className="ml-7 flex flex-col gap-2">
@@ -401,7 +406,7 @@ export const HealthTab = ({
       <HealthChain detail={detail} mayClose={powers.isVet} />
       {detail.treatments.length > 0 ? (
         <Section title={t("animals.treatments")}>
-          <DoseTable doses={detail.treatments} />
+          <DoseTable doses={detail.treatments} mayVoid={powers.runsTheFarm} />
         </Section>
       ) : null}
       <DosesOwed

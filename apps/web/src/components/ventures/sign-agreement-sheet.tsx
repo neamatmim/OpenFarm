@@ -48,7 +48,7 @@ interface Terms {
 type StampKind = "paper" | "e_challan";
 
 /** The three stamp boxes' names, which say what is being asked for either way. */
-const STAMP_LABELS = {
+export const STAMP_LABELS = {
   paper: {
     value: "ventures.stampValue",
     on: "ventures.stampedOn",

@@ -16,7 +16,12 @@ import { CourseLine, DoseLine, stillOwed } from "@/components/course";
 import { EmptyState, Loaded } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { bilingual, choice, note as writtenNote } from "@/lib/correcting";
+import {
+  bilingual,
+  choice,
+  voiding,
+  note as writtenNote,
+} from "@/lib/correcting";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -103,7 +108,10 @@ const CorrectConclusion = ({ made }: { made: Made }) => {
     note: writtenNote(made.note),
     // How it ended is put right here too: a mis-tap on Recovered could not be undone on any screen.
     outcome: choice(made.outcome ?? null),
+    voided: voiding(),
   });
+  // Taken away only while no course rests on it: a course is stopped, and its doses put right, first.
+  const mayVoid = made.prescriptions.length === 0;
   const correct = useMutation(orpc.diagnoses.correct.mutationOptions({}));
   return (
     <CorrectionDialog
@@ -138,6 +146,15 @@ const CorrectConclusion = ({ made }: { made: Made }) => {
             label: t(`animals.outcome.${one}`),
           }))}
           value={correcting.typed.outcome ?? ""}
+        />
+      ) : null}
+      {mayVoid ? (
+        <CorrectionChoice
+          label={t("vet.voidWhy")}
+          onChange={(value) => correcting.set("voided", value)}
+          options={[{ value: "void", label: t("vet.voidDiagnosis") }]}
+          unchosen={t("correct.keep")}
+          value={correcting.typed.voided ?? ""}
         />
       ) : null}
     </CorrectionDialog>

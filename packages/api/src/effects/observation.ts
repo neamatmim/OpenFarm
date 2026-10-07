@@ -34,7 +34,7 @@ type ObservationFacts = Pick<
  * later sighting of the same heat that still stands will begin it instead, and raise afresh on the
  * next pass. Anything else it saw closes the Manager's work on it.
  */
-const unraiseWhatItRaised = async (
+export const unraiseWhatItRaised = async (
   tx: Tx,
   farmId: string,
   withdrawn: { id: string; saw: string },

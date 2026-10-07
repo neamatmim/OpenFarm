@@ -3,6 +3,11 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { correct } from "../corrections/correction";
+import {
+  doseNotPrescribedCorrection,
+  doseNotPrescribedCorrectionInput,
+} from "../corrections/dose-not-prescribed";
 import { recordDoseNotPrescribed } from "../dose-not-prescribed-store";
 import { protectedProcedure } from "../index";
 import { excuseArrivalDose } from "../put-off-store";
@@ -62,6 +67,16 @@ export const treatmentsRouter = {
         }
       );
       return { id: done.id };
+    }),
+
+  /** A dose not prescribed voided: the wrong cow, written twice (`doseNotPrescribedCorrection`). */
+  correctNotPrescribed: protectedProcedure
+    .use(requireRole(...doseNotPrescribedCorrection.roles))
+    .use(requirePersonalSession())
+    .input(doseNotPrescribedCorrectionInput)
+    .handler(async ({ context, input }) => {
+      await correct(context, doseNotPrescribedCorrection, input);
+      return { id: input.id };
     }),
 
   /**

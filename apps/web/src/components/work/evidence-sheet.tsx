@@ -1057,7 +1057,7 @@ export const EvidenceSheet = ({
   // Asked of one place, not worked out here: the server refuses a skip by the same rule, and when this
   // screen had its own the two disagreed — a dose Step written with "ওষুধ শেষ" against it drew no
   // button at all. The reasons rather than a yes, so the button and the sheet cannot differ on them.
-  const skipReasons = skipReasonsOffered(step);
+  const skipReasons = skipReasonsOffered(step, correcting);
   const skippable = skipReasons.length > 0;
   // A Correction starts from what was fed, not from what the Ration owed: saving it unchanged keeps what went out.
   const recorded = factsOf(existing);

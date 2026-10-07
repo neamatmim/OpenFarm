@@ -2,6 +2,7 @@ import { eq } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
+import { WRITTEN_BY_MISTAKE } from "@OpenFarm/domain";
 import {
   DAY,
   FakeClock,
@@ -221,6 +222,56 @@ describe("a campaign over a Pen", () => {
       (row) => row.animalId === missed.id && row.stepId === "dose"
     );
     expect(hers).toMatchObject({ status: "skipped", skipReason: "গর্ভবতী" });
+  });
+
+  it("takes back a dose tapped on the wrong cow as written by mistake, and nothing is said of her", async () => {
+    const clock = new FakeClock("2026-11-03T03:30:00.000Z");
+    const { pen, cows } = await aPenOfCows(clock, 1);
+    const [cow] = cows;
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    await manager.client.work.raiseNow({
+      definitionId: world.sop.definitionId,
+      penId: pen.id,
+    });
+    const today = await staff.client.work.today({ penId: pen.id });
+    const campaign = today.find(
+      (row) => row.definitionId === world.sop.definitionId
+    );
+    if (!(campaign && cow)) {
+      throw new Error("expected the campaign on the day's work");
+    }
+    await staff.client.work.claim({ id: campaign.id });
+    await staff.client.work.completeStep({
+      instanceId: campaign.id,
+      stepId: "dose",
+      animalTag: cow.tagNumber,
+      evidence: [true],
+    });
+    const board = await manager.client.work.get({ id: campaign.id });
+    const completionId = board.completions[0]?.id ?? "";
+
+    // A reason the Version never wrote is still refused for a skip; the farm's own word for a slip is not.
+    await expect(
+      correctStepAsShown(manager.client, {
+        completionId,
+        evidence: [],
+        skipReason: "অন্য কিছু",
+        reason: "ভুল গাভী",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "skip_reason_not_offered" } });
+    await correctStepAsShown(manager.client, {
+      completionId,
+      evidence: [],
+      skipReason: WRITTEN_BY_MISTAKE.bn,
+      reason: "ভুল গাভী",
+    });
+
+    const dose = await scratchDb().query.treatment.findFirst({
+      where: { instanceId: campaign.id, animalId: cow.id },
+      columns: { givenAt: true, milkWithdrawalDays: true },
+    });
+    expect(dose).toEqual({ givenAt: null, milkWithdrawalDays: null });
   });
 
   it("will not publish a campaign naming a product nobody may give", async () => {

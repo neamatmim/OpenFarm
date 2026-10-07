@@ -358,3 +358,26 @@ describe("the milk-hold notices", () => {
     expect(now.length - before.length).toBe(1);
   });
 });
+
+describe("a dose not prescribed against the wrong cow", () => {
+  it("is voided, and her holds are worked out again from the doses she was really given", async () => {
+    const tag = await aCow(`ভুল গাভী ${suffix}`);
+    const manager = await as("manager");
+    const dose = await manager.client.treatments.giveNotPrescribed({
+      animalTag: tag,
+      productId: known,
+      givenAt: new Date(NOW),
+      advice: `ভুল ট্যাগ ${suffix}`,
+    });
+    const held = await heldUntil(tag);
+    expect(held.milk).not.toBeNull();
+
+    await manager.client.treatments.correctNotPrescribed({
+      id: dose.id,
+      reason: "অন্য গাভীকে দেওয়া হয়েছিল",
+      changes: { voided: { from: false, to: true } },
+    });
+
+    expect(await heldUntil(tag)).toEqual({ milk: null, meat: null });
+  });
+});

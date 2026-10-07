@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import type { Table as TableInstance } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 
+import { VoidDoseNotPrescribed } from "@/components/animal/take-it-back";
 import type { ListFeatures } from "@/components/data-table";
 import {
   ActionsHeader,
@@ -219,6 +220,10 @@ interface DoseRow extends Dated {
   productNameBn: string;
   productNameEn: string | null;
   fromPrescription: boolean;
+  /** Given on somebody's advice, with no course and no Campaign. */
+  notPrescribed: boolean;
+  /** The Owner or the Manager reading, who may void a dose not prescribed. */
+  mayVoid: boolean;
   givenByName: string | null;
 }
 
@@ -234,13 +239,24 @@ const ProductCell = ({ row }: { row: { original: DoseRow } }) => {
     : row.original.productNameBn;
 };
 
-/** Whether a course the Vet wrote gave it, or a Campaign over her Pen. */
+/** Whether a course the Vet wrote gave it, a Campaign over her Pen, or somebody's advice with neither. */
+const sourceWord = (row: DoseRow): MessageKey => {
+  if (row.fromPrescription) {
+    return "prescribe.course";
+  }
+  return row.notPrescribed ? "dose.give" : "animals.fromCampaign";
+};
+
 const SourceCell = ({ row }: { row: { original: DoseRow } }) => {
   const { t } = useLanguage();
-  return row.original.fromPrescription
-    ? t("prescribe.course")
-    : t("animals.fromCampaign");
+  return t(sourceWord(row.original));
 };
+
+/** A dose not prescribed is voided from her page: no Step gave it, so there is no Step to put right. */
+const DoseActionsCell = ({ row }: { row: { original: DoseRow } }) =>
+  row.original.notPrescribed && row.original.mayVoid ? (
+    <VoidDoseNotPrescribed id={row.original.id} />
+  ) : null;
 
 const dose = createListColumns<DoseRow>();
 const doseColumns = dose.columns([
@@ -261,6 +277,12 @@ const doseColumns = dose.columns([
     id: "givenBy",
     header: listHeader("animals.col.givenBy"),
   }),
+  dose.display({
+    id: "actions",
+    header: ActionsHeader,
+    cell: DoseActionsCell,
+    meta: { align: "end" },
+  }),
 ]);
 
 /** A dose on a phone: what was given, then when, from what, and by whom. */
@@ -273,13 +295,14 @@ const DoseCard = ({ row }: { row: DoseRow }) => {
           {row.given ? (
             <span>{formatDate(new Date(row.at), language, "dateTime")}</span>
           ) : null}
-          <span>
-            {row.fromPrescription
-              ? t("prescribe.course")
-              : t("animals.fromCampaign")}
-          </span>
+          <span>{t(sourceWord(row))}</span>
           {row.givenByName ? <span>{row.givenByName}</span> : null}
         </>
+      }
+      trailing={
+        row.notPrescribed && row.mayVoid ? (
+          <VoidDoseNotPrescribed id={row.id} />
+        ) : null
       }
       title={
         language === "en" && row.productNameEn
@@ -293,7 +316,14 @@ const DoseCard = ({ row }: { row: DoseRow }) => {
 const doseCard = (row: DoseRow) => <DoseCard row={row} />;
 
 /** What she has been given, a course's doses and a Campaign's alike: when, what, from which, and by whom. */
-export const DoseTable = ({ doses }: { doses: AnimalDetail["treatments"] }) => {
+export const DoseTable = ({
+  doses,
+  mayVoid = false,
+}: {
+  doses: AnimalDetail["treatments"];
+  /** The Owner or the Manager reading. */
+  mayVoid?: boolean;
+}) => {
   const table = useListTable({
     columns: doseColumns,
     data: doses.map((one) => ({
@@ -303,6 +333,9 @@ export const DoseTable = ({ doses }: { doses: AnimalDetail["treatments"] }) => {
       productNameBn: one.productNameBn,
       productNameEn: one.productNameEn,
       fromPrescription: one.fromPrescription,
+      // Missing from a page kept from before the farm said so: taken as a course's or a Campaign's.
+      notPrescribed: one.notPrescribed ?? false,
+      mayVoid,
       givenByName: one.givenByName,
     })),
     getRowId: (row) => row.id,
