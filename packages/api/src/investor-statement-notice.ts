@@ -2,9 +2,8 @@ import type { Database } from "@OpenFarm/db";
 import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 
-import { holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
-import { tell } from "./notice";
+import { tell, whoHears } from "./notice";
 import {
   signedForEach,
   windUpDaysOf,
@@ -182,7 +181,10 @@ export const papersToTell = async (
         noticeId: noticeId(one.id, occasion),
       }));
     });
-  const owners = await holdersOf(db as Tx, farmId, ["owner"]);
+  // As `tell` will tell it: an Owner who has left is not counted as never told.
+  const owners = await whoHears(db, farmId, "investor_statement_due", {
+    id: "",
+  });
   if (owners.length === 0) {
     return [];
   }

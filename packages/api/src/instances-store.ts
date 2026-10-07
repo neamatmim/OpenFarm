@@ -894,10 +894,17 @@ const ALERTED_KINDS = ["instance_overdue", "instance_escalated"] as const;
 export interface PendingNotices {
   overdue: LateInstance[];
   escalated: LateInstance[];
+  /** Work that went late long before this sweep, while the farm's day was not turning: counted, not told one by one —
+   *  it is on the Overdue list. Null when the sweep is not catching up. */
+  missed: { count: number; since: Date; firstId: string } | null;
   /** How far back this sweep has now told people about: everything that went late at or
    *  after this is said. Older work is on the Overdue list, not in anyone's notifications. */
   sweptFrom: Date;
 }
+
+/** A sweep whose window reaches back further than this is catching up after a silence — a server down, a farm nobody
+ *  turned — and tells one by one only what went late within it. */
+export const CATCHING_UP_AFTER_MS = 60 * MINUTE_MS;
 
 /** The instant an Instance stopped being merely due. */
 const wentLateAt = (instance: LateInstance): number =>
@@ -969,7 +976,7 @@ export const findPendingNotices = async (
   );
   const inWindow = await findLate(db, farm.id, now, due, from);
   if (inWindow.length === 0) {
-    return { overdue: [], escalated: [], sweptFrom: now };
+    return { overdue: [], escalated: [], missed: null, sweptFrom: now };
   }
   const told = await db.query.alert.findMany({
     where: {
@@ -984,25 +991,50 @@ export const findPendingNotices = async (
   const toldOverdue = toldOf("instance_overdue");
   const toldEscalated = toldOf("instance_escalated");
 
+  // Back after days down, every late milking pushed at once stacked on the phones and pushed the urgent notices off the
+  // list: when catching up, what went late long ago is counted into one notice and left to the Overdue list.
+  // Not the first sweep a farm ever makes, whose window is its own day so far: that is the farm starting to notice,
+  // not coming back from a silence.
+  const catchingUp =
+    farm.alertsSweptFrom !== null &&
+    now.getTime() - from.getTime() > CATCHING_UP_AFTER_MS;
+  const toldNow = (moment: number) =>
+    !catchingUp || moment >= now.getTime() - CATCHING_UP_AFTER_MS;
+  const lateUntold = inWindow.filter(
+    (instance) => inside(instance, from) && !toldOverdue.has(instance.id)
+  );
+  const escalatedAtOf = (instance: LateInstance) =>
+    escalatedAt(instance, farm.escalationMinutes);
+  const ownersUntold = inWindow.filter(
+    (instance) =>
+      isEscalated(instance, farm.escalationMinutes, now) &&
+      (escalatedAtOf(instance) >= from.getTime() ||
+        instance.createdAt.getTime() >= from.getTime()) &&
+      !toldEscalated.has(instance.id)
+  );
   const late = takeUntold(
-    inWindow.filter(
-      (instance) => inside(instance, from) && !toldOverdue.has(instance.id)
-    ),
+    lateUntold.filter((instance) => toldNow(wentLateAt(instance))),
     wentLateAt
   );
   const owners = takeUntold(
-    inWindow.filter(
-      (instance) =>
-        isEscalated(instance, farm.escalationMinutes, now) &&
-        (escalatedAt(instance, farm.escalationMinutes) >= from.getTime() ||
-          instance.createdAt.getTime() >= from.getTime()) &&
-        !toldEscalated.has(instance.id)
-    ),
-    (instance) => escalatedAt(instance, farm.escalationMinutes)
+    ownersUntold.filter((instance) => toldNow(escalatedAtOf(instance))),
+    escalatedAtOf
   );
+  const missedIds = [
+    ...new Set(
+      [
+        ...lateUntold.filter((instance) => !toldNow(wentLateAt(instance))),
+        ...ownersUntold.filter((instance) => !toldNow(escalatedAtOf(instance))),
+      ].map((instance) => instance.id)
+    ),
+  ];
+  const [firstMissed] = missedIds;
   return {
     overdue: late.taken,
     escalated: owners.taken,
+    missed: firstMissed
+      ? { count: missedIds.length, since: from, firstId: firstMissed }
+      : null,
     // The window stays open over anything this sweep did not reach. The told-filter means
     // the next sweep carries on rather than saying it all again.
     sweptFrom: late.leftOver || owners.leftOver ? from : now,
@@ -1069,6 +1101,24 @@ export const raiseLateAlerts = async (
     );
     escalated += rows.length;
     raised.push(...rows);
+  }
+  if (pending.missed) {
+    raised.push(
+      ...(await tell(
+        tx,
+        farmId,
+        {
+          kind: "work_missed",
+          about: { id: `missed:${pending.missed.since.toISOString()}` },
+          facts: {
+            count: pending.missed.count,
+            since: pending.missed.since.toISOString(),
+          },
+        },
+        now,
+        remembering
+      ))
+    );
   }
   return { overdue, escalated, raised };
 };

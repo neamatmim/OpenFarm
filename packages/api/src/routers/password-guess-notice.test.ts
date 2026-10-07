@@ -50,4 +50,55 @@ describe("a password guessed at", () => {
       },
     ]);
   });
+
+  it("goes on being guessed at, and is still one notice — until an hour's quiet ends the run", async () => {
+    const clock = new FakeClock("2088-05-02T22:00:00.000Z");
+    const { client: owner } = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+    });
+    const login = `nobody-${Date.now()}@guessing.test`;
+    const guessNow = (n: number) =>
+      scratchDb()
+        .insert(passwordGuess)
+        .values({
+          id: `run-${login}-${clock.now().getTime()}-${n}`,
+          login,
+          guessedAt: clock.now(),
+        });
+    const toldOfThisLogin = async () => {
+      const all = await scratchDb().query.alert.findMany({
+        where: { farmId: theFarm().id, kind: "password_guessed" },
+        columns: { entityId: true },
+      });
+      return new Set(
+        all.flatMap((one) =>
+          one.entityId?.startsWith(`guess:${login}:`) ? [one.entityId] : []
+        )
+      );
+    };
+    // A guess a minute through a long night, the farm sweeping every five.
+    for (let minute = 0; minute < 90; minute += 1) {
+      // oxlint-disable-next-line no-await-in-loop -- one guess after another, as they come
+      await guessNow(minute);
+      if (minute % 5 === 4) {
+        // oxlint-disable-next-line no-await-in-loop -- as above
+        await owner.alerts.sweep();
+      }
+      clock.advance(60_000);
+    }
+    const firstRun = await toldOfThisLogin();
+    expect(firstRun.size).toBe(1);
+
+    // An hour and more of quiet, then somebody starts again: a new run, told again.
+    clock.advance(2 * 60 * 60_000);
+    for (let n = 0; n < 5; n += 1) {
+      // oxlint-disable-next-line no-await-in-loop -- as above
+      await guessNow(1000 + n);
+      clock.advance(60_000);
+    }
+    await owner.alerts.sweep();
+    const bothRuns = await toldOfThisLogin();
+    expect(bothRuns.size).toBe(2);
+  });
 });

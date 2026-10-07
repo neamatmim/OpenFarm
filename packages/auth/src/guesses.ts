@@ -10,6 +10,9 @@ import { APIError } from "better-auth/api";
 export const GUESSES_BEFORE_SLOWING = 5;
 /** How far back wrong passwords are counted. */
 export const GUESS_WINDOW_MS = 60 * 60_000;
+/** How long a wrong password is kept: long enough to tell one run of guessing — guesses never an hour apart — from the
+ *  next, so the Owner is told of a run once rather than every few minutes while it goes on. */
+export const GUESSES_KEPT_MS = 24 * 60 * 60_000;
 /** A slowed account takes one try in this long. */
 export const ONE_TRY_EVERY_MS = 60_000;
 
@@ -88,10 +91,10 @@ export const countTheGuess = async (
   await db
     .insert(passwordGuess)
     .values({ id: randomUUID(), login, guessedAt: now });
-  // And forgets what the hour has passed, which nothing reads again: the count stays the hour's, whoever guesses.
+  // And forgets what the day has passed, which nothing reads again: the count that slows an account stays the hour's.
   await db
     .delete(passwordGuess)
     .where(
-      lt(passwordGuess.guessedAt, new Date(now.getTime() - GUESS_WINDOW_MS))
+      lt(passwordGuess.guessedAt, new Date(now.getTime() - GUESSES_KEPT_MS))
     );
 };

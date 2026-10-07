@@ -168,6 +168,14 @@ const PLACES = {
   day_not_turning: TO_THE_BACKUPS,
   backup_overdue: TO_THE_BACKUPS,
   monthly_copy_failed: TO_THE_BACKUPS,
+  work_missed: {
+    label: "alerts.openTheOverdue",
+    Way: ({ children }) => (
+      <Link className={LEADS_CLASS} to="/review-queue/overdue">
+        {children}
+      </Link>
+    ),
+  },
   low_stock: {
     label: "alerts.openTheStore",
     Way: ({ children }) => (

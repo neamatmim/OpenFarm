@@ -3683,6 +3683,12 @@ export const bn: Record<MessageKey, string> = {
   "alerts.dayNotTurning":
     "{since} থেকে খামারের সময়সূচি ঠিকমতো চলেনি: কাজ তৈরি না-ও হতে পারে, খবর না-ও যেতে পারে। খামারের কপি পাতায় দেখুন।",
   "digest.backupOverdue": "খামারের কপি নেওয়া হচ্ছে না",
+  "digest.workMissed": "খামার বন্ধ থাকার সময় {count}টি কাজ দেরি হয়েছে",
+  "alerts.workMissed":
+    "{since} থেকে এখন পর্যন্ত, খামারের দিন না চলার সময় {count}টি কাজ দেরি হয়েছে। সেগুলো দেরির তালিকায় আছে।",
+  "push.workMissedTitle": "খামার বন্ধ থাকার সময় কাজ দেরি হয়েছে",
+  "push.workMissedBody": "{count}টি কাজ — দেরির তালিকা দেখুন",
+  "alerts.openTheOverdue": "দেরির তালিকা খুলুন",
   "digest.monthlyCopyFailed": "মাসিক কপি সফল হয়নি",
   "digest.passwordGuessed": "কেউ {who}-এর পাসওয়ার্ড আন্দাজ করেছে",
   "alerts.backupOverdue":
@@ -3997,6 +4003,8 @@ export const bn: Record<MessageKey, string> = {
   "alerts.openTheWork": "কাজটি খুলুন",
   "alerts.openTheCard": "এর কার্ড খুলুন",
   "alerts.openHer": "{tag} দেখুন",
+  "push.withdrawalEndingTitle": "দুধ আটকে রাখার সময় শেষ হচ্ছে",
+  "push.notifiableDiagnosisTitle": "ডিএলএস-কে জানাতে হবে এমন রোগ",
   "push.withdrawalChangedTitle": "আটকে রাখার সময় বদলেছে",
   "push.withdrawalChangedBody": "{tag} — খামারের অ্যাপ দেখুন",
   "nav.farm": "খামারের অবস্থা",

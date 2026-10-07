@@ -3,11 +3,10 @@ import type { NoticeFacts } from "@OpenFarm/domain";
 import type { ExpiryStanding } from "@OpenFarm/domain/lots";
 import { expiryWindow, runsLow } from "@OpenFarm/domain/lots";
 
-import { holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
 import { medicineStockOf } from "./medicine-stock";
 import type { Raised } from "./notice";
-import { rememberingPeople, tell } from "./notice";
+import { rememberingPeople, tell, whoHears } from "./notice";
 import { stockOnHand } from "./stock-store";
 
 /** One thing the store has to say: which kind of notice, what it is about, and what it carries. */
@@ -173,9 +172,17 @@ export const storeNoticesUntold = async (
   farmId: string,
   said: StoreNotice[]
 ): Promise<StoreNotice[]> => {
-  const managers = await holdersOf(db as Tx, farmId, ["manager"]);
-  if (said.length === 0 || managers.length === 0) {
+  if (said.length === 0) {
     return [];
+  }
+  // As `tell` will tell each kind: the Owner on a farm with no Manager, and a Manager who has left not counted as
+  // never told.
+  const remembering = rememberingPeople();
+  const hearing = new Map<string, string[]>();
+  for (const kind of new Set(said.map((one) => one.kind))) {
+    // oxlint-disable-next-line no-await-in-loop -- one or two kinds, asked once each
+    const people = await whoHears(db, farmId, kind, { id: "" }, remembering);
+    hearing.set(kind, people);
   }
   const told = await db.query.alert.findMany({
     where: {
@@ -189,7 +196,9 @@ export const storeNoticesUntold = async (
     told.map((row) => `${row.userId}|${row.kind}|${row.entityId}`)
   );
   return said.filter((one) =>
-    managers.some((userId) => !heard.has(`${userId}|${one.kind}|${one.id}`))
+    (hearing.get(one.kind) ?? []).some(
+      (userId) => !heard.has(`${userId}|${one.kind}|${one.id}`)
+    )
   );
 };
 
