@@ -29,6 +29,7 @@ export const requireMayTransition = (
   if (!mayTransition(transition, work.state)) {
     throw lateEntry(`This work is ${work.state.replaceAll("_", " ")}`, {
       state: work.state,
+      refusal: "work_closed",
     });
   }
 };

@@ -216,7 +216,69 @@ describe("who recorded work on a Shed Phone", () => {
     });
   });
 
-  it("refuses work naming somebody without the token their PIN earned on this phone for it", async () => {
+  it("keeps an hour's milking hers when the signal went a minute after her PIN and the next hand sends it", async () => {
+    // Three more cows in her Pen, so the milking runs on cow after cow.
+    const ownerClient = await createTestClient(appRouter, { as: "owner" });
+    const { client: owner } = ownerClient;
+    const cows = [world.cow.tagNumber];
+    for (const _ of [1, 2, 3]) {
+      // oxlint-disable-next-line no-await-in-loop
+      const cow = await owner.animals.register({
+        sex: "female",
+        side: "dairy",
+        state: "heifer",
+        penId: world.pen.id,
+        source: "born",
+        aliases: [],
+      });
+      // oxlint-disable-next-line no-await-in-loop
+      await owner.animals.setState({
+        tagNumber: cow.tagNumber,
+        state: "pregnant_heifer",
+        expectedCalvingOn: aMonthOn(ownerClient),
+      });
+      // oxlint-disable-next-line no-await-in-loop
+      await owner.animals.setState({
+        tagNumber: cow.tagNumber,
+        state: "milking",
+      });
+      cows.push(cow.tagNumber);
+    }
+    const { instance, clock, staff, other } = await morning("2031-03-06");
+    // Her PIN reached the farm at 05:30; keep-awake never did again, so on the farm's side her stint ran out at 05:35.
+    const token = await provedPin(thePerson("staff").id, clock.now());
+    const pinned = clock.now().getTime();
+    const minutes = (n: number) => new Date(pinned + n * 60_000);
+    // The feeder PINs in at nine, and the phone sends what it held.
+    clock.advance(3.5 * 60 * 60_000);
+    const sent = await other.sync.batch({
+      key: `attr-${suffix}-${counted()}`,
+      entries: cows.map((tag, i) => ({
+        ...milked(
+          instance.id,
+          thePerson("staff").id,
+          minutes(12 * (i + 1)),
+          token
+        ),
+        animalTag: tag,
+      })),
+    });
+    // 05:42, 05:54, 06:06, 06:18: each within her lock window of the one before.
+    expect(sent.results.map((one) => one.outcome)).toEqual([
+      "applied",
+      "applied",
+      "applied",
+      "applied",
+    ]);
+    const board = await staff.work.get({ id: instance.id });
+    expect(
+      board.completions.filter(
+        (one) => one.recordedBy === thePerson("staff").id
+      )
+    ).toHaveLength(4);
+  });
+
+  it("keeps for the Manager, and never writes, work naming somebody without the token their PIN earned on this phone for it", async () => {
     const { instance, clock, other } = await morning("2031-03-04");
     // They did enter their PIN here this morning — but whoever sends cannot just say so.
     const theirs = await provedPin(thePerson("staff").id, clock.now());
@@ -240,11 +302,18 @@ describe("who recorded work on a Shed Phone", () => {
       ],
     });
 
+    // Kept for the Manager to judge, and nothing of it in the records: the farm cannot say it was theirs.
     expect(sent.results.map((result) => result.outcome)).toEqual([
-      "rejected",
-      "rejected",
-      "rejected",
+      "kept",
+      "kept",
+      "kept",
     ]);
+    expect(sent.results[0]?.refusal?.word).toBe("pin_not_proved");
+    const written = await scratchDb().query.stepCompletion.findMany({
+      where: { instanceId: instance.id },
+      columns: { id: true },
+    });
+    expect(written).toHaveLength(0);
   });
 
   it("refuses work naming somebody who has no PIN on this farm", async () => {
@@ -292,6 +361,47 @@ describe("work a Shed Phone held while things changed", () => {
     });
   });
 
+  it("is still hers when her Pen was handed to somebody else after she milked it, before the phone found signal", async () => {
+    // Milked at 05:30 with no signal; the Manager gave her Pen to another hand at 07:30; the phone sent at 08:30.
+    const { instance, clock } = await morning("2031-06-05");
+    const milkedAt = clock.now();
+    const handedOn = new Date(milkedAt.getTime() + 2 * 60 * 60_000);
+    await scratchDb()
+      .update(penAssignment)
+      .set({ endedAt: handedOn })
+      .where(eq(penAssignment.id, `pa-attr-${world.pen.id}`));
+    try {
+      clock.advance(3 * 60 * 60_000);
+      // Her phone, as the farm knows her now.
+      const { client: staff } = await createTestClient(appRouter, {
+        as: "staff",
+        clock,
+      });
+      // Nothing she says she did in it after it was handed on.
+      const after = await staff.sync.batch({
+        key: `attr-${suffix}-${counted()}`,
+        entries: [
+          milked(
+            instance.id,
+            undefined,
+            new Date(handedOn.getTime() + 30 * 60_000)
+          ),
+        ],
+      });
+      expect(after.results[0]?.refusal?.word).toBe("pen_not_yours");
+      const sent = await staff.sync.batch({
+        key: `attr-${suffix}-${counted()}`,
+        entries: [milked(instance.id, undefined, milkedAt)],
+      });
+      expect(sent.results[0]?.outcome).toBe("applied");
+    } finally {
+      await scratchDb()
+        .update(penAssignment)
+        .set({ endedAt: null })
+        .where(eq(penAssignment.id, `pa-attr-${world.pen.id}`));
+    }
+  });
+
   it("is still hers when it reaches the farm after she has left, done before she did", async () => {
     // Milked at dawn on the 2nd of June with no signal; the Owner disabled her at noon; the phone found signal after.
     const { instance, clock, other } = await morning("2031-06-02");
@@ -324,5 +434,144 @@ describe("work a Shed Phone held while things changed", () => {
     } finally {
       await owner.people.enable({ userId: thePerson("staff").id });
     }
+  });
+});
+
+describe("work the farm held, taken in by the Manager", () => {
+  beforeAll(async () => {
+    // Her leaving, above, ended her Pen; she is back on it.
+    await scratchDb()
+      .update(penAssignment)
+      .set({ endedAt: null })
+      .where(eq(penAssignment.id, `pa-attr-${world.pen.id}`));
+  });
+
+  it("writes a milking done before the Manager closed the work as Missed, once the Manager takes it in", async () => {
+    // Milked at 05:30 with no signal; the Manager closed the milking as Missed at eight; the phone sent at nine.
+    const { instance, clock } = await morning("2031-07-01");
+    const milkedAt = clock.now();
+    const token = await provedPin(thePerson("staff").id, milkedAt);
+    clock.advance(150 * 60_000);
+    const { client: manager } = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+    });
+    await manager.work.closeAsMissed({
+      id: instance.id,
+      reason: "দোহনের কেউ ছিল না",
+    });
+    clock.advance(60 * 60_000);
+    const { client: other } = await createTestClient(appRouter, {
+      as: "otherStaff",
+      clock,
+      onShedPhone: true,
+      phone: PHONE,
+    });
+    const entry = milked(instance.id, thePerson("staff").id, milkedAt, token);
+    const sent = await other.sync.batch({
+      key: `attr-${suffix}-${counted()}`,
+      entries: [entry],
+    });
+    expect(sent.results[0]).toMatchObject({
+      outcome: "kept",
+      refusal: { category: "late", word: "work_closed" },
+    });
+    const litres = () =>
+      scratchDb().query.milkRecord.findFirst({
+        where: { completionId: entry.id },
+        columns: { litres: true, recordedBy: true },
+      });
+    expect(await litres()).toBeUndefined();
+
+    const queue = await manager.reviewQueue.list();
+    const waiting = queue.find((row) => row.entityId === entry.id);
+    // What she entered, about which cow, by whom, and why it was held — and the work it was meant for.
+    expect(waiting).toMatchObject({
+      instanceId: instance.id,
+      held: {
+        kind: "step_completion",
+        animalTag: world.cow.tagNumber,
+        evidence: [12],
+        recordedBy: thePerson("staff").name,
+        refusal: { word: "work_closed" },
+        mayTakeIn: true,
+      },
+    });
+    await manager.reviewQueue.takeIn({ id: waiting?.id ?? "" });
+
+    // Her litres, under her name, on the work the Manager had closed.
+    expect(await litres()).toMatchObject({
+      recordedBy: thePerson("staff").id,
+    });
+    const after = await manager.reviewQueue.list();
+    expect(after.some((row) => row.id === waiting?.id)).toBe(false);
+    // Asked again, the phone is told it is in the records; taken in twice, nothing changes.
+    const again = await other.sync.batch({
+      key: `attr-${suffix}-${counted()}`,
+      entries: [entry],
+    });
+    expect(again.results[0]?.outcome).toBe("applied");
+    await expect(
+      manager.reviewQueue.takeIn({ id: waiting?.id ?? "" })
+    ).rejects.toMatchObject({ data: { refusal: "review_closed" } });
+  });
+
+  it("writes work kept because nothing showed who was switched in, under the person it names, once the Manager takes it in", async () => {
+    const { instance, clock, other } = await morning("2031-07-02");
+    // Her PIN was entered with no signal and lost with the tab: nothing proves it.
+    const entry = milked(instance.id, thePerson("staff").id, clock.now());
+    const sent = await other.sync.batch({
+      key: `attr-${suffix}-${counted()}`,
+      entries: [entry],
+    });
+    expect(sent.results[0]?.refusal?.word).toBe("pin_not_proved");
+    const { client: manager } = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+    });
+    const queue = await manager.reviewQueue.list();
+    const waiting = queue.find((row) => row.entityId === entry.id);
+    await manager.reviewQueue.takeIn({
+      id: waiting?.id ?? "",
+      note: "রহিমা নিজে বলেছে সে দুইয়েছে",
+    });
+    const board = await manager.work.get({ id: instance.id });
+    expect(board.completions[0]).toMatchObject({
+      recordedBy: thePerson("staff").id,
+      deviceId: PHONE.id,
+    });
+  });
+
+  it("is refused, and changes nothing, where the farm still cannot take it", async () => {
+    const { instance, clock, other, staff } = await morning("2031-07-03");
+    const token = await provedPin(thePerson("staff").id, clock.now());
+    // Recorded with signal at 05:30 as 12 litres; the phone held a second answer of 9 for the same cow.
+    await other.sync.batch({
+      key: `attr-${suffix}-${counted()}`,
+      entries: [milked(instance.id, thePerson("staff").id, clock.now(), token)],
+    });
+    const second = {
+      ...milked(instance.id, thePerson("staff").id, clock.now(), token),
+      evidence: [9],
+    };
+    const sent = await other.sync.batch({
+      key: `attr-${suffix}-${counted()}`,
+      entries: [second],
+    });
+    expect(sent.results[0]?.outcome).toBe("kept");
+    const { client: manager } = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+    });
+    const queue = await manager.reviewQueue.list();
+    const waiting = queue.find((row) => row.entityId === second.id);
+    await expect(
+      manager.reviewQueue.takeIn({ id: waiting?.id ?? "" })
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    // Still waiting, and the first answer stands.
+    const still = await manager.reviewQueue.list();
+    expect(still.some((row) => row.id === waiting?.id)).toBe(true);
+    const board = await staff.work.get({ id: instance.id });
+    expect(board.completions).toHaveLength(1);
   });
 });

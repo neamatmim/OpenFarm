@@ -411,6 +411,13 @@ const pensOf = (db: Database, farmId: string, row: PersonRow) =>
     ? pensKeptUntil(db, farmId, row.id, row.disabledAt)
     : Promise.resolve(row.penAssignments.map((p) => p.penId));
 
+/** Whose request this is: the person signed in, whoever is switched in on the phone, or the person named. */
+const actingUserOf = (
+  session: Session | null,
+  device: DeviceSession | null,
+  personId: string | null
+): string | null => session?.user.id ?? device?.activeUserId ?? personId;
+
 /** The one place a Context is assembled — production and tests both go through it.
  *  Resolves the Farm, the person, their Roles and Pen Assignments from the database. */
 export const buildContext = async ({
@@ -425,6 +432,7 @@ export const buildContext = async ({
   farmId = null,
   callerAddress = null,
   evenIfLeft = false,
+  personId = null,
 }: {
   session: Session | null;
   device?: DeviceSession | null;
@@ -440,6 +448,9 @@ export const buildContext = async ({
   /** Read a person the Owner has since disabled as they were until they left — their Roles, and the Pens they kept to
    *  the end — for work they did before it reaching the farm after (sync). Never for a request of their own. */
   evenIfLeft?: boolean;
+  /** Somebody read with no request of their own: whose held work the Owner or the Manager takes into the records, done
+   *  on their own phone. Read as on that phone — every Role they hold. */
+  personId?: string | null;
 }): Promise<Context> => {
   const base = {
     auth: null,
@@ -454,7 +465,7 @@ export const buildContext = async ({
     deviceStatus,
     callerAddress,
   } as const;
-  const actingUserId = session?.user.id ?? device?.activeUserId ?? null;
+  const actingUserId = actingUserOf(session, device, personId);
   const deviceInfo = device
     ? { id: device.id, name: device.name, farmId: device.farmId }
     : null;

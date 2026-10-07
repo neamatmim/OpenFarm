@@ -23,6 +23,7 @@ type MilkFacts = Pick<
   | "tolerancePercent"
   | "recordedBy"
   | "recordedAt"
+  | "recordedAtByTheFarm"
   | "now"
   | "trail"
 >;
@@ -74,6 +75,7 @@ const recordTheMilk = async (
     requested: input.destination ?? "bulk",
     recordedBy: input.recordedBy,
     recordedAt: input.recordedAt,
+    recordedAtByTheFarm: input.recordedAtByTheFarm,
     now: input.now,
   });
   // A cow corrected after the tank was read would otherwise leave a stale difference.

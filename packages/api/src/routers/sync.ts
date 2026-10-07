@@ -7,8 +7,9 @@ import { applyBatch } from "../batch-store";
 import type { Recorder } from "../completion-store";
 import type { Context } from "../context";
 import { buildContext } from "../context";
-import { hashToken } from "../device";
+import { hashToken, stretchSwitch } from "../device";
 import { protectedProcedure } from "../index";
+import { lateEntry } from "../late";
 import { pushRaised } from "../push-send";
 import { pickRoleUsed, requireRole } from "../roles";
 import { workingAs } from "../scope";
@@ -22,6 +23,7 @@ import { batchUnder, fingerprint, sourceKeyFor } from "../sync-store";
 const PROOF_BEFORE_MS = 7 * 24 * 60 * 60 * 1000;
 /** And after the switch ran out, for a phone's clock a little ahead of the farm's. */
 const PROOF_AFTER_MS = 10 * 60 * 1000;
+const MINUTE_MS = 60_000;
 
 const ANY_ROLE = ["owner", "manager", "staff", "vet"] as const;
 
@@ -49,7 +51,7 @@ const recordersFor = (context: Recorder): RecorderFor => {
             userId: entry.actorId ?? "",
             device: { farmId: context.farm.id },
           },
-          columns: { createdAt: true, expiresAt: true },
+          columns: { id: true, createdAt: true, expiresAt: true },
         })
       : undefined;
     const at = entry.recordedAt.getTime();
@@ -57,12 +59,24 @@ const recordersFor = (context: Recorder): RecorderFor => {
       stint !== undefined &&
       at >= stint.createdAt.getTime() - PROOF_BEFORE_MS &&
       at <= stint.expiresAt.getTime() + PROOF_AFTER_MS;
-    if (!during) {
-      throw new ORPCError("FORBIDDEN", {
-        message:
-          "Recorded under somebody who did not enter their PIN on this phone for it",
-      });
+    if (!(stint && during)) {
+      // Somebody who works on this phone, with nothing to show the farm they were switched in when it was done: the PIN
+      // they entered with no signal was lost with the tab, or the phone put away. Kept whole for the Manager to judge
+      // — never refused back to whoever happened to send it, who did not do it (the glossary's Waiting for a PIN).
+      throw lateEntry(
+        "Recorded under somebody who did not enter their PIN on this phone for it",
+        { refusal: "pin_not_proved" }
+      );
     }
+    // Each thing she recorded is a tap that kept the phone unlocked under her, as the keep-awake would have said had
+    // there been signal to say it: a milking of an hour in a shed with none is hers to its last cow, each one within the
+    // farm's lock window of the one before. Never back, and never past when the farm heard of it.
+    const tapped = Math.min(at, context.clock.now().getTime());
+    await stretchSwitch(
+      context.db,
+      stint.id,
+      new Date(tapped + context.farm.pinAutoLockMinutes * MINUTE_MS)
+    );
   };
   const asSomebodyElse = async (actorId: string): Promise<Recorder> => {
     if (!context.device) {
