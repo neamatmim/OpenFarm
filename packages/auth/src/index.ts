@@ -453,3 +453,20 @@ export const openInvestorAccount = async (
   });
   return person.id;
 };
+
+/**
+ * Whether a password is a signed-in person's own, for an act that asks for it again. Better Auth checks it against
+ * the hash it keeps; nothing here holds the password longer than the call, and `/verify-password` stays shut.
+ */
+export const passwordIsTheirs = async (
+  which: ReturnType<typeof createAuth>,
+  userId: string,
+  password: string
+): Promise<boolean> => {
+  const context = await which.$context;
+  const accounts = await context.internalAdapter.findAccounts(userId);
+  const hash = accounts.find(
+    (one) => one.providerId === "credential"
+  )?.password;
+  return hash ? context.password.verify({ hash, password }) : false;
+};

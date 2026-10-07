@@ -24,6 +24,7 @@ import { farmDay } from "../../farm-clock";
 import { protectedProcedure } from "../../index";
 import { farmAccountIdInput } from "../../money-inputs";
 import { accountSaid, bookMoney, bookingOf } from "../../money-store";
+import { requirePasswordGiven } from "../../password-again";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../../roles";
 import {
   adjustmentAgainst,
@@ -245,6 +246,7 @@ export const settlementProcedures = {
     approve: protectedProcedure
       .use(requireOnly("owner", OWNER_ONLY))
       .use(requirePersonalSession())
+      .use(requirePasswordGiven())
       .input(
         z.object({
           ventureId: z.string(),
@@ -321,6 +323,7 @@ export const settlementProcedures = {
     pay: protectedProcedure
       .use(requireOnly("owner", OWNER_ONLY))
       .use(requirePersonalSession())
+      .use(requirePasswordGiven())
       .input(
         z.object({
           ventureId: z.string(),

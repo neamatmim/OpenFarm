@@ -2991,6 +2991,15 @@ export const bn: Record<MessageKey, string> = {
   "common.selectPage": "এই পাতার সব সারি বাছুন",
   "common.showDetails": "বিস্তারিত দেখুন",
   "common.hideDetails": "বিস্তারিত লুকান",
+  "passwordAgain.title": "আপনার পাসওয়ার্ড দিন",
+  "passwordAgain.why":
+    "টাকা পরিশোধ, টাকা অনুমোদন, পোর্টাল খোলা আর বিনিয়োগকারীর তথ্যের কপি — পনেরো মিনিট পার হলে এগুলোতে আবার পাসওয়ার্ড লাগে।",
+  "passwordAgain.label": "পাসওয়ার্ড",
+  "passwordAgain.give": "এগিয়ে যান",
+  "passwordAgain.wrong": "এটি আপনার পাসওয়ার্ড নয়।",
+  "passwordAgain.slowed":
+    "অনেকবার ভুল পাসওয়ার্ড দেওয়া হয়েছে। এক মিনিট পর আবার চেষ্টা করুন।",
+  "passwordAgain.notGiven": "হয়নি: এতে আপনার পাসওয়ার্ড লাগে।",
   "common.cancel": "বাতিল",
   "common.close": "বন্ধ করুন",
   "nav.signOff": "যাচাই",

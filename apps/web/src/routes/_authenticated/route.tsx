@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 
+import { PasswordAgainDialog } from "@/components/password-again-dialog";
 import { AppShell } from "@/components/shell/app-shell";
 import { getUser } from "@/functions/get-user";
 import {
@@ -48,6 +49,7 @@ const AuthLayout = () => {
   return (
     <AppShell>
       <Outlet />
+      <PasswordAgainDialog />
     </AppShell>
   );
 };

@@ -26,6 +26,7 @@ import {
   settleMoneyNotices,
   termsOf,
 } from "../money-store";
+import { requirePasswordGiven } from "../password-again";
 import { periodInput, periodOf } from "../period";
 import {
   OWNER_ONLY,
@@ -203,6 +204,7 @@ export const moneyRouter = {
   approve: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
+    .use(requirePasswordGiven())
     .input(
       z.object({
         id: z.string(),

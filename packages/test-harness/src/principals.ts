@@ -183,11 +183,12 @@ export const createTestPrincipal = async (
     userAgent: null,
   };
   // The same person seeded again by a later test in this file: a conflict on any unique index is fine (the row is
-  // already there), and the expiry is refreshed from this test's clock.
+  // already there), and the session is signed in afresh on this test's clock — its start is when the password was
+  // last given (password-again.ts).
   await db.insert(sessionTable).values(sessionValues).onConflictDoNothing();
   const [session] = await db
     .update(sessionTable)
-    .set({ expiresAt: sessionValues.expiresAt, updatedAt: now })
+    .set({ expiresAt: sessionValues.expiresAt, createdAt: now, updatedAt: now })
     .where(eq(sessionTable.id, sessionValues.id))
     .returning();
   if (!session) {

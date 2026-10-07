@@ -16,8 +16,10 @@ import { createIsomorphicFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 
 import { getDeviceToken, getSwitchToken, setDeviceToken } from "@/lib/device";
+import { askForPassword } from "@/lib/password-again";
 import { pinAnswerOf } from "@/lib/pin-answer";
 import { refreshAfterASave } from "@/lib/refresh";
+import { wordOf } from "@/lib/saying";
 import { toast } from "@/lib/toast";
 
 /** What a failed read says, in the language the page is showing: a code the person can act on, never the server's
@@ -117,6 +119,21 @@ const getORPCClient = createIsomorphicFn()
           } catch (error) {
             if (getDeviceToken() && pinAnswerOf(error) === "revoked") {
               setDeviceToken(null);
+            }
+            throw error;
+          }
+        },
+        // An act that asks for the password again (money out, the portal opened, an Investor's data copied) waits
+        // while the shell asks for it, and is sent again once it is given; not given, it is left refused.
+        async ({ next }) => {
+          try {
+            return await next();
+          } catch (error) {
+            if (
+              wordOf(error) === "password_needed" &&
+              (await askForPassword())
+            ) {
+              return await next();
             }
             throw error;
           }
