@@ -1,6 +1,7 @@
 import { MOST_NOMINEES } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { Plus, X } from "lucide-react";
 
 import { FormField, NativeSelect } from "@/components/page-kit";
@@ -259,6 +260,8 @@ export const NomineesForm = ({
 }) => {
   const { t } = useLanguage();
   const problem = draftsProblem(drafts, onDay);
+  // Nothing wrong with the list, by the domain's own rule: the shares are said in the colour of a thing done.
+  const whole = problem === null;
   const roomForMore = drafts.length < MOST_NOMINEES;
   const noNominees = drafts.length === 0;
   return (
@@ -280,7 +283,12 @@ export const NomineesForm = ({
       {noNominees ? (
         <p className="text-muted-foreground text-sm">{t("nominees.noneYet")}</p>
       ) : (
-        <p className="text-muted-foreground text-sm tabular-nums">
+        <p
+          className={cn(
+            "text-sm font-medium tabular-nums",
+            whole ? "text-success" : "text-muted-foreground"
+          )}
+        >
           {t("nominees.total", { total: sharesSoFar(drafts) })}
         </p>
       )}
