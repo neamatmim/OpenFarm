@@ -150,7 +150,8 @@ export const portalClosed = () =>
 /**
  * Invites an Investor to the portal, or gives them a new code — for somebody who never used the first, or who has
  * forgotten their password: the code is shown once, to the Owner, to hand over in person, and the farm keeps only its
- * hash. Given again to somebody whose access was taken away, it gives it back once they take it up.
+ * hash. Given again to somebody whose access was taken away, it gives it back once they take it up. Refused while the
+ * portal is shut: a code nobody can take up would only run out in their hand.
  */
 export const inviteToPortal = async (
   context: Owned,
@@ -159,6 +160,14 @@ export const inviteToPortal = async (
   const farmId = context.farm.id;
   const now = context.clock.now();
   const { loginEmail } = await invitable(context, investorId);
+  // Read as it stands now, not as the request found it: the Owner may have shut it a moment ago.
+  const standing = await context.db.query.farm.findFirst({
+    where: { id: farmId },
+    columns: { investorPortal: true },
+  });
+  if (!standing?.investorPortal) {
+    throw portalClosed();
+  }
   // No code before consent: the Investor signs the Portal Consent in front of the Owner first (the glossary's entry).
   if (!(await consentInForce(context.db, farmId, investorId))) {
     throw refused(

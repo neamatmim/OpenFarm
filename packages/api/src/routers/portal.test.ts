@@ -88,9 +88,19 @@ beforeAll(async () => {
 });
 
 describe("the portal, shut", () => {
-  it("takes up no invitation until the Owner opens it", async () => {
+  it("gives no code while it is shut: nobody could take one up", async () => {
     const owner = await asOwner();
+
+    await expect(invitedWithConsent(owner, investorId)).rejects.toMatchObject({
+      data: { refusal: "portal_closed" },
+    });
+  });
+
+  it("takes up no invitation given before the Owner shut it", async () => {
+    const owner = await asOwner();
+    await owner.investors.setPortalOpen({ open: true });
     const { code } = await invitedWithConsent(owner, investorId);
+    await owner.investors.setPortalOpen({ open: false });
     const nobody = await asNobody();
 
     await expect(

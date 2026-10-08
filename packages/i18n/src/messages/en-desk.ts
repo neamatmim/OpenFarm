@@ -707,6 +707,8 @@ export const enDesk = {
     "«আপনার তথ্য» on the letter's back still needs facts the farm has not written down. Write them under \"Who keeps the farm's records\" on the Agreement templates page and print again — the code is still here.",
   "portal.refused.letterHandedOver":
     "They have been handed their welcome letter already. Print the slip for this code.",
+  "portal.refused.inviteWhileShut":
+    "Open the portal first: a code given while it is shut could not be used, and would run out in a week.",
   "portal.refused.noCodeToHandOver":
     "They have no open code. Give them a new one, and print it while it is on the screen.",
   "portal.takeAway": "Take access away",
