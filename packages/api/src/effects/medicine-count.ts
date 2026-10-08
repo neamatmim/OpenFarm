@@ -15,7 +15,6 @@ type MedicineCountFacts = Pick<
   | "instance"
   | "completionId"
   | "medicineCounts"
-  | "skipped"
   | "recordedBy"
   | "recordedAt"
   | "now"
@@ -37,7 +36,7 @@ const tellIfTheMedicineCameUpShort = async (
     columns: { medicineShortTellMoney: true },
   });
   if (!farm || shortMoney <= farm.medicineShortTellMoney) {
-    // Put right to no shortfall, or skipped: the notice of one goes, in the post and in the app.
+    // Put right to no shortfall: the notice of one goes, in the post and in the app.
     await clearNoticesAbout(
       tx,
       input.instance.farmId,
@@ -72,7 +71,6 @@ const countTheMedicine = async (
     farmId: input.instance.farmId,
     completionId: input.completionId,
     counts: input.medicineCounts,
-    skipped: input.skipped,
     countedAt: input.recordedAt,
     countedBy: input.recordedBy,
     now: input.now,

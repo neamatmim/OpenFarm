@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Step } from "./sop";
+import type { SopContent, Step } from "./sop";
 import {
   describeChanges,
   findStructuralProblems,
@@ -54,6 +54,68 @@ describe("which Steps may be skipped", () => {
     expect(maySkip(doneOnce({ kind: "bulk_total" }))).toBe(false);
     expect(maySkip(doneOnce({ kind: "weigh_in" }))).toBe(false);
   });
+});
+
+/** Each count the Playbook keeps, the Effect its counting Step carries, and what a Version is told that counts it once
+ *  per animal. */
+const COUNTS = [
+  {
+    of: "the store",
+    procedure: standardPlaybook().stockCount,
+    effect: "stock_count",
+    refused: "the store is counted once, not once per animal",
+  },
+  {
+    of: "the medicine",
+    procedure: standardPlaybook().medicineCount,
+    effect: "medicine_count",
+    refused: "the medicine is counted once, not once per animal",
+  },
+  {
+    of: "the cash",
+    procedure: standardPlaybook().cashCount,
+    effect: "cash_count",
+    refused: "the cash is counted once, not once per animal",
+  },
+  {
+    of: "a Pen's head",
+    procedure: standardPlaybook().headCount,
+    effect: "head_count",
+    refused: "a Pen is counted once, not once per animal",
+  },
+] as const satisfies readonly {
+  of: string;
+  procedure: SopContent;
+  effect: NonNullable<Step["effect"]>["kind"];
+  refused: string;
+}[];
+
+/** The Step of a count that does the counting. */
+const countingStep = ({ procedure, effect }: (typeof COUNTS)[number]) => {
+  const step = procedure.steps.find((one) => one.effect?.kind === effect);
+  if (!step) {
+    throw new Error("a count has its counting Step");
+  }
+  return step;
+};
+
+describe("a count of the store, the medicine, the cash or a Pen's head", () => {
+  for (const count of COUNTS) {
+    it(`is never skipped: ${count.of} is counted, or the work is missed`, () => {
+      expect(maySkip(countingStep(count))).toBe(false);
+    });
+
+    it(`is never counted once per animal, so no Version makes ${count.of} a count that may be skipped`, () => {
+      const step = countingStep(count);
+      const problems = findStructuralProblems({
+        ...count.procedure,
+        steps: count.procedure.steps.map((one) =>
+          one === step ? { ...one, repeatPerAnimal: true } : one
+        ),
+      });
+      expect(problems.some((one) => one.endsWith(count.refused))).toBe(true);
+    });
+  }
 });
 
 /** A Step asking for exactly the slots named, in that order. */

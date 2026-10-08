@@ -1,6 +1,5 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { eq } from "@OpenFarm/db/operators";
 import { headCount } from "@OpenFarm/db/schema/head-count";
 import { isExitState } from "@OpenFarm/domain";
 
@@ -103,14 +102,6 @@ export const recordHeadCount = async (
     })
     .onConflictDoUpdate({ target: headCount.completionId, set: row });
   return { differs: input.counted !== expected };
-};
-
-/** A count taken back — the Step put right to a skip — is no count. */
-export const removeHeadCount = async (
-  tx: Tx,
-  completionId: string
-): Promise<void> => {
-  await tx.delete(headCount).where(eq(headCount.completionId, completionId));
 };
 
 /** One Pen whose count does not match the register, as the Manager is told it. */

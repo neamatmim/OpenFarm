@@ -1,5 +1,5 @@
 import type { Tx } from "../audit";
-import { recordCashCount, removeCashCount } from "../cash-store";
+import { recordCashCount } from "../cash-store";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
 import { numberIn } from "./evidence";
 
@@ -9,7 +9,6 @@ type CashCountFacts = Pick<
   | "instance"
   | "completionId"
   | "evidence"
-  | "skipped"
   | "recordedBy"
   | "recordedAt"
   | "now"
@@ -29,10 +28,6 @@ const countTheCash = async (
   tx: Tx,
   input: CashCountFacts
 ): Promise<EffectResult> => {
-  if (input.skipped) {
-    await removeCashCount(tx, input.completionId, input.now);
-    return null;
-  }
   const farm = await tx.query.farm.findFirst({
     where: { id: input.instance.farmId },
     columns: { id: true, cashShortTellMoney: true },

@@ -532,20 +532,12 @@ export const recordStockCount = async (
   entry: {
     farmId: string;
     completionId: string;
-    /** Empty when the Step was skipped: nothing was counted. */
     counts: StockCountLine[];
-    skipped: boolean;
     countedAt: Date;
     countedBy: string;
     now: Date;
   }
 ): Promise<StockAdjustment[]> => {
-  if (entry.skipped) {
-    await tx
-      .delete(stockCount)
-      .where(eq(stockCount.completionId, entry.completionId));
-    return [];
-  }
   const items = await tx.query.feedItem.findMany({
     where: { farmId: entry.farmId },
     columns: { id: true, nameBn: true, retiredAt: true },

@@ -1,5 +1,5 @@
 import type { Tx } from "../audit";
-import { recordHeadCount, removeHeadCount } from "../head-count-store";
+import { recordHeadCount } from "../head-count-store";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
 import { numberIn } from "./evidence";
 
@@ -9,7 +9,6 @@ type HeadCountFacts = Pick<
   | "instance"
   | "completionId"
   | "evidence"
-  | "skipped"
   | "recordedBy"
   | "recordedAt"
   | "now"
@@ -21,8 +20,8 @@ const countThePen = async (
   input: HeadCountFacts
 ): Promise<EffectResult> => {
   const { penId } = input.instance;
-  if (input.skipped || !penId) {
-    await removeHeadCount(tx, input.completionId);
+  // Work about no Pen counts no head: there is no register to set the count beside, and so nothing is recorded.
+  if (!penId) {
     return null;
   }
   const { differs } = await recordHeadCount(tx, {
