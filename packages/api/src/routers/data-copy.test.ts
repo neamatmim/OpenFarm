@@ -45,20 +45,45 @@ const BANK = `সোনালী ব্যাংক, সাভার শাখ�
 /** A Bangla numeral: never in a figure the farm writes on the English paper. */
 const BANGLA_DIGIT = /[০-৯]/u;
 
-/** One facts part of the paper as it is drawn in one language: each line its label and what it says. */
+/** One part of the paper as it is drawn in one language, a line at a time: a fact's label and what it says, or a
+ *  table's cells across. Found by its Bangla heading, or the start of it. */
 const drawn = (
   document: PaperDocument,
   heading: string,
   language: Language
 ): string[] => {
-  const section = document.sections.find((one) => one.heading.bn === heading);
-  if (section?.kind !== "facts") {
-    throw new Error(`expected the part «${heading}»`);
+  const section =
+    document.sections.find((one) => one.heading.bn === heading) ??
+    document.sections.find((one) => one.heading.bn.startsWith(heading));
+  if (section?.kind === "facts") {
+    return section.rows.map(
+      (row) =>
+        `${inLanguage(row.label, language)}: ${inLanguage(row.value, language)}`
+    );
   }
-  return section.rows.map(
-    (row) =>
-      `${inLanguage(row.label, language)}: ${inLanguage(row.value, language)}`
-  );
+  if (section?.kind === "table") {
+    return section.rows.map((row) =>
+      row.map((cell) => inLanguage(cell, language)).join(" | ")
+    );
+  }
+  throw new Error(`expected the part «${heading}»`);
+};
+
+/** Their Nominations as the Nominees table draws them: each paper's lines together, the one in force first. */
+const nominationsDrawn = (
+  document: PaperDocument,
+  language: Language
+): string[] => {
+  const papers: string[] = [];
+  for (const line of drawn(document, "আপনার নমিনি", language)) {
+    // A line with no paper of its own is another Nominee on the paper above it.
+    if (line.startsWith(" | ") || line.startsWith("| ")) {
+      papers[papers.length - 1] = `${papers.at(-1) ?? ""}\n${line}`;
+    } else {
+      papers.push(line);
+    }
+  }
+  return papers;
 };
 
 /**
@@ -209,10 +234,11 @@ describe("«খামারে আপনার তথ্য»", () => {
     expect(headings.slice(0, notice?.parts.length)).toEqual(
       notice?.parts.map((part) => part.heading)
     );
-    // Each part of theirs, read on its own.
+    // Each part of theirs, read on its own, found by its heading or the start of it.
     const part = (heading: string) =>
       JSON.stringify(
-        document.sections.find((one) => one.heading.bn === heading)
+        document.sections.find((one) => one.heading.bn === heading) ??
+          document.sections.find((one) => one.heading.bn.startsWith(heading))
       );
     // The record, unmasked: the whole NID and bank account, never the last digits alone.
     const record = part("আপনার রেকর্ড");
@@ -220,40 +246,37 @@ describe("«খামারে আপনার তথ্য»", () => {
     expect(record).toContain(BANK);
     expect(record).not.toContain("নমিনি");
     // Every Nomination on file, the one in force first and said so, each Nominee with a minor's Receiver.
-    const nominees = document.sections.find(
-      (one) => one.heading.bn === "আপনার নমিনি"
-    );
-    if (nominees?.kind !== "facts") {
-      throw new Error("expected his Nominees");
-    }
+    // A table, one Nominee to a line.
+    expect(
+      document.sections.find((one) => one.heading.bn === "আপনার নমিনি")?.kind
+    ).toBe("table");
     // The Agreement he signed afterwards names the same list and is now the one in force; before it, his মনোনয়নপত্র;
     // and first of all, the nominee carried over.
-    expect(nominees.rows.map((row) => row.label.bn)).toEqual([
-      expect.stringContaining("বিনিয়োগ চুক্তিতে · এখন বহাল"),
-      expect.stringContaining("মনোনয়নপত্র"),
-      expect.stringContaining("এখনো সই হয়নি"),
-    ]);
-    const [inForce, signed, carried] = drawn(document, "আপনার নমিনি", "bn");
+    const [inForce, signed, carried] = nominationsDrawn(document, "bn");
+    expect(inForce).toContain("বিনিয়োগ চুক্তিতে · এখন বহাল");
+    expect(signed).toContain("মনোনয়নপত্র");
+    expect(carried).toContain("এখনো সই হয়নি");
     expect(inForce).toContain(`রাশেদের মেয়ে ${suffix}`);
-    expect(inForce).toContain("অংশ ৪০%");
+    expect(inForce).toContain("৪০%");
     expect(inForce).toContain(
       `গ্রহণকারী রাশেদের স্ত্রী ${suffix} (মা), এনআইডি 1965 0712 3390`
     );
     // Their Nominees' numbers in full: the copy is theirs.
-    expect(inForce).toContain("এনআইডি 1990 0203 5546");
+    expect(inForce).toContain("1990 0203 5546");
     expect(inForce).toContain("জন্ম নিবন্ধন 20502691507114382");
     expect(signed).toContain(`রাশেদের মেয়ে ${suffix}`);
-    expect(carried).toContain("অংশ ১০০%");
-    // Their Agreement, and the money it moved.
-    expect(part("আপনার চুক্তি")).toContain(`S-${suffix}`);
+    expect(carried).toContain("১০০%");
+    // Their Agreement on its own, and the money it moved.
+    expect(part("চুক্তি — ")).toContain(`S-${suffix}`);
     expect(part("আপনার টাকার লেনদেন")).toContain(`TRF-${suffix}`);
     expect(part("আপনার টাকার লেনদেন")).toContain(ventureName);
     // The papers made for them.
     expect(part("আপনার জন্য তৈরি কাগজ")).toContain("পোর্টাল সম্মতিপত্র");
     // Their Request, and each change they made to it.
     const requests = part("ভেঞ্চারে যোগ দেওয়ার অনুরোধ");
+    expect(requests).toContain(ventureName);
     expect(requests).toContain("তিনটি");
-    expect(requests).toContain("বদলে ৩টি ইউনিট করেছেন");
+    expect(part("অনুরোধে আপনার প্রতিটি বদল")).toContain("বদলে ৩টি ইউনিট করেছেন");
     // Their portal access, and the consent they signed.
     const portal = part("পোর্টাল");
     expect(portal).toContain("প্রথম সাইন ইন");
@@ -270,7 +293,7 @@ describe("«খামারে আপনার তথ্য»", () => {
     // Nothing on the trail printed as the database keeps it: every moment worded in Bangla.
     expect(changes).not.toMatch(ISO_MOMENT);
     // The Agreement's photo kept, said so.
-    expect(part("আপনার চুক্তি")).toContain("ছবি");
+    expect(part("চুক্তি — ")).toContain("ছবি");
   });
 
   it("is read in English with every day, sum, count and word the farm writes in English", async () => {
@@ -289,18 +312,18 @@ describe("«খামারে আপনার তথ্য»", () => {
     );
     expect(inLanguage(document.produced, "en")).not.toMatch(BANGLA_DIGIT);
     // Each Nominee in English: their numbers in full, their birth day and share in English figures.
-    const [inForce] = drawn(document, "আপনার নমিনি", "en");
+    const [inForce] = nominationsDrawn(document, "en");
     expect(inForce).toContain("in force now");
-    expect(inForce).toContain("NID 1990 0203 5546");
-    expect(inForce).toContain("born 3 February 1990");
+    expect(inForce).toContain("1990 0203 5546");
+    expect(inForce).toContain("3 February 1990");
     expect(inForce).toContain("birth registration 20502691507114382");
-    expect(inForce).toContain("share 40%");
+    expect(inForce).toContain("40%");
     expect(inForce).toContain("Receiver");
     // Their Agreement, money, Pay-in Note and Request, each in English figures.
-    const [agreement] = drawn(document, "আপনার চুক্তি", "en");
+    const agreement = drawn(document, "চুক্তি — ", "en").join("\n");
     expect(agreement).toContain("3 Units");
-    expect(agreement).toContain("your share 60%");
-    expect(agreement).toContain(`stamp S-${suffix}`);
+    expect(agreement).toContain("Your share: 60%");
+    expect(agreement).toContain(`Stamp: S-${suffix}`);
     expect(agreement).toContain("2 January 2061");
     expect(drawn(document, "আপনার টাকার লেনদেন", "en").join("\n")).toContain(
       "150,000"
@@ -309,7 +332,7 @@ describe("«খামারে আপনার তথ্য»", () => {
       "Mobile money to the Venture Account"
     );
     expect(
-      drawn(document, "ভেঞ্চারে যোগ দেওয়ার অনুরোধ", "en").join("\n")
+      drawn(document, "অনুরোধে আপনার প্রতিটি বদল", "en").join("\n")
     ).toContain("Changed to 3 units");
     expect(drawn(document, "পোর্টাল", "en").join("\n")).toContain("in force");
     // The changes about them in English, the farm's moments too.
@@ -320,7 +343,7 @@ describe("«খামারে আপনার তথ্য»", () => {
     // in Bangla (the Nominees' line) are theirs, as written.
     const farmWritten = document.sections
       .flatMap((one) =>
-        one.kind === "facts" &&
+        (one.kind === "facts" || one.kind === "table") &&
         one.heading.bn !== "আপনার রেকর্ড" &&
         one.heading.bn !== "আপনার সম্পর্কে প্রতিটি বদল"
           ? drawn(document, one.heading.bn, "en")
@@ -329,11 +352,14 @@ describe("«খামারে আপনার তথ্য»", () => {
       .join("\n");
     expect(farmWritten).not.toMatch(BANGLA_DIGIT);
     expect(
-      document.sections.flatMap((one) =>
-        one.kind === "facts"
-          ? one.rows.map((row) => inLanguage(row.label, "en"))
-          : []
-      )
+      document.sections.flatMap((one) => {
+        if (one.kind === "facts") {
+          return one.rows.map((row) => inLanguage(row.label, "en"));
+        }
+        return one.kind === "table"
+          ? one.columns.map((column) => inLanguage(column.label, "en"))
+          : [];
+      })
     ).not.toContainEqual(expect.stringMatching(BANGLA_DIGIT));
   });
 

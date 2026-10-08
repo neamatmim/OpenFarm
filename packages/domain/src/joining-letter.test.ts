@@ -73,7 +73,13 @@ describe("the joining letter, read in either language", () => {
     expect(english).toContain("3 July 2026 · TRF-1 · 150,000 taka");
     expect(english).toContain("1. This is a mudarabah.");
     expect(english).toContain("Wife");
-    expect(english).toContain("Stamp value: 300 taka");
+    // The stamp in the Agreement's own box, its blanks filled as the copy of the Agreement fills them.
+    expect(english).toContain("Serial / challan no.: AA-1");
+    expect(english).toContain("Value: 300 taka");
+    expect(english).toContain("Date: 3 July 2026");
+    expect(
+      joiningLetterPaper(FACTS).sections.find((one) => one.kind === "stamp")
+    ).toBeDefined();
     expect(english).toContain("No return is guaranteed.");
     // No Bangla numeral in anything the farm wrote.
     expect(english.replaceAll("ঈদ ২০২৭", "")).not.toMatch(/[০-৯]/u);
