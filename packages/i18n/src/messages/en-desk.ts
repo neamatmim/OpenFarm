@@ -1677,6 +1677,7 @@ export const enDesk = {
   "auditField.signedOn": "Day signed",
   "auditField.nominationHow": "Which paper",
   "auditField.nominees": "Nominees",
+  "auditField.photoKeptAt": "Photo of the signed paper",
   "auditField.withdrawnOn": "Day withdrawn",
   "auditField.withdrawnHow": "How it was withdrawn",
   "auditField.visitedOn": "Visited on",

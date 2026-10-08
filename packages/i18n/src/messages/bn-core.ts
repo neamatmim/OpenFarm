@@ -902,11 +902,16 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "nominees.signedOn": "সইয়ের দিন",
   "nominees.photo": "সই করা কাগজ",
   "nominees.photoHint":
-    "সই করা মনোনয়নপত্রের ছবি: তিনি নিজেই এঁদের নাম দিয়েছেন, তার প্রমাণ হিসেবে খামারে থাকে।",
+    "সই করা মনোনয়নপত্রের ছবি: তিনি নিজেই এঁদের নাম দিয়েছেন, তার প্রমাণ হিসেবে খামারে থাকে। এখন হাতে না থাকলে পরে রাখা যাবে।",
   "nominees.photoTake": "মনোনয়নপত্রের ছবি তুলুন",
   "nominees.record": "মনোনয়নপত্র লিখে রাখুন",
   "nominees.recorded": "মনোনয়নপত্র লেখা হলো: এঁরাই এখন তাঁর নমিনি",
   "nominees.photoKept": "ছবি রাখা আছে",
+  "nominees.photoMissing": "ছবি এখনো রাখা হয়নি",
+  "nominees.keepPhoto": "ছবি রাখুন",
+  "nominees.photoKeptNow": "মনোনয়নপত্রের ছবি রাখা হলো",
+  "refusal.nominationHasNoPaper":
+    "শুধু মনোনয়নপত্রেরই নিজের কাগজ থাকে: চুক্তিতে দেওয়া নমিনির প্রমাণ চুক্তির ছবি।",
   "nav.investors": "বিনিয়োগকারী",
   "nav.templates": "চুক্তির নমুনা",
   "params.approvalThreshold": "এর বেশি খরচে মালিকের অনুমোদন",

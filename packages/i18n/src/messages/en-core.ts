@@ -1003,11 +1003,16 @@ export const enCore = {
   "nominees.signedOn": "Day they signed it",
   "nominees.photo": "The signed paper",
   "nominees.photoHint":
-    "A photo of the signed মনোনয়নপত্র, kept as the farm's proof that they named these people themselves.",
+    "A photo of the signed মনোনয়নপত্র, kept as the farm's proof that they named these people themselves. No photo to hand? Add it later.",
   "nominees.photoTake": "Photograph the মনোনয়নপত্র",
   "nominees.record": "Record the মনোনয়নপত্র",
   "nominees.recorded": "মনোনয়নপত্র recorded: these are now their Nominees",
   "nominees.photoKept": "Photo kept",
+  "nominees.photoMissing": "No photo kept yet",
+  "nominees.keepPhoto": "Add the photo",
+  "nominees.photoKeptNow": "Photo of the মনোনয়নপত্র kept",
+  "refusal.nominationHasNoPaper":
+    "Only a মনোনয়নপত্র has a paper of its own. Nominees named in an agreement are proved by the agreement's photo.",
   "nav.investors": "Investors",
   "nav.templates": "Agreement templates",
   "params.approvalThreshold": "Owner approves spending above",

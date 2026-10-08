@@ -33,6 +33,7 @@ import {
 import {
   nominationToSign,
   nomineesInput,
+  keepNominationPaper,
   recordNomination,
 } from "../nominations";
 import { assertPasswordGiven, requirePasswordGiven } from "../password-again";
@@ -472,14 +473,14 @@ export const investorsRouter = {
     ),
 
   /**
-   * Records a মনোনয়নপত্র signed in front of the Owner, with its day and a photo of it: from then on the list in force for
-   * all the Investor's Agreements. The Owner's alone, from their own phone.
+   * Records a মনোনয়নপত্র signed in front of the Owner, with its day and — when the Owner has one to hand — a photo of
+   * it: from then on the list in force for all the Investor's Agreements. The Owner's alone, from their own phone.
    */
   recordNomination: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
     .input(
-      photoInput.extend({
+      photoInput.partial().extend({
         id: z.string(),
         nominees: nomineesInput,
         signedOn: farmDay,
@@ -490,6 +491,24 @@ export const investorsRouter = {
         investorId: input.id,
         nominees: input.nominees,
         signedOn: input.signedOn,
+        photo:
+          input.contentType && input.data
+            ? { contentType: input.contentType, data: input.data }
+            : null,
+      })
+    ),
+
+  /**
+   * Keeps the photo of a মনোনয়নপত্র recorded without one, or puts a better one in its place. The Owner's alone, from
+   * their own phone.
+   */
+  keepNominationPaper: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(photoInput.extend({ nominationId: z.string() }))
+    .handler(({ context, input }) =>
+      keepNominationPaper(context, {
+        nominationId: input.nominationId,
         photo: { contentType: input.contentType, data: input.data },
       })
     ),

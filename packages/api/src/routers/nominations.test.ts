@@ -404,6 +404,74 @@ describe("a মনোনয়নপত্র", () => {
     });
   });
 
+  it("may be recorded before its photo, is in force from the day signed, and has the photo kept later", async () => {
+    const owner = await as("owner");
+    const { id } = await owner.investors.record({
+      name: `ছবি পরে ${suffix}`,
+      phone: `0177${suffix}`,
+    });
+    const [adult] = THREE;
+    if (!adult) {
+      throw new Error("expected a Nominee");
+    }
+
+    await owner.investors.recordNomination({
+      id,
+      nominees: [{ ...adult, sharePercent: 100 }],
+      signedOn: "2063-01-01",
+    });
+
+    const [unphotographed] = await owner.investors.nominations({ id });
+    expect(unphotographed).toMatchObject({
+      how: "nomination",
+      hasPhoto: false,
+      nominees: [{ name: `রহিমা ${suffix}` }],
+    });
+
+    await owner.investors.keepNominationPaper({
+      nominationId: unphotographed?.id ?? "",
+      ...PHOTO,
+    });
+    // A better photo in place of the first.
+    await owner.investors.keepNominationPaper({
+      nominationId: unphotographed?.id ?? "",
+      contentType: "image/png",
+      data: "d29ybGQ=",
+    });
+
+    const [kept] = await owner.investors.nominations({ id });
+    expect(kept).toMatchObject({ id: unphotographed?.id, hasPhoto: true });
+    const trail = await owner.audit.list({
+      entity: "nomination",
+      entityId: id,
+    });
+    const keeping = trail.filter((one) => one.action === "update");
+    expect(keeping).toHaveLength(2);
+    expect(keeping.at(-1)?.before).toMatchObject({ photoKeptAt: null });
+  });
+
+  it("keeps no photo for a list that has no paper of its own, and is the Owner's alone to keep", async () => {
+    const owner = await as("owner");
+    const manager = await as("manager");
+    const { id } = await owner.investors.record({
+      name: `পুরোনো তালিকা ${suffix}`,
+      phone: `0178${suffix}`,
+    });
+    const carried = await nominationOnFile({
+      investorId: id,
+      nominees: [theWhole(`আগের ${suffix}`)],
+      signedOn: "2062-01-01",
+      recordedAt: at(1),
+    });
+
+    await expect(
+      owner.investors.keepNominationPaper({ nominationId: carried, ...PHOTO })
+    ).rejects.toMatchObject({ data: { refusal: "nomination_has_no_paper" } });
+    await expect(
+      manager.investors.keepNominationPaper({ nominationId: carried, ...PHOTO })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("is refused on a day still to come, or before the one in force was signed", async () => {
     const owner = await as("owner");
     const [first] = THREE;

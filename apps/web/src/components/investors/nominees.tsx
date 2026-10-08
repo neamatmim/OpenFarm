@@ -10,6 +10,7 @@ import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
+import { NominationPaperButton } from "./nomination-paper";
 import { NominationSheet } from "./nomination-sheet";
 import { phoneLink } from "./phone-link";
 
@@ -128,6 +129,25 @@ const FromWhere = ({
   );
 };
 
+/** A মনোনয়নপত্র recorded before its photo was kept: said so, with the camera to keep it. It is in force all the same —
+ *  the signature makes it so, not the photo. Nothing for an Agreement's Nominees, whose proof is the Agreement's. */
+const PaperMissing = ({
+  nomination,
+}: {
+  nomination: Pick<Nomination, "id" | "how" | "hasPhoto">;
+}) => {
+  const { t } = useLanguage();
+  if (nomination.how !== "nomination" || nomination.hasPhoto) {
+    return null;
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <StatusBadge tone="warning">{t("nominees.photoMissing")}</StatusBadge>
+      <NominationPaperButton nominationId={nomination.id} />
+    </div>
+  );
+};
+
 /** The Nominees of one Nomination, in the order the paper prints them — or plainly none. The Owner's page and the
  *  Investor's own account page read it alike. */
 export const NomineeList = ({ nominees }: { nominees: PaperNominee[] }) => {
@@ -175,6 +195,7 @@ const Earlier = ({ investorId }: { investorId: string }) => {
             <span className="text-muted-foreground text-xs">
               <FromWhere nomination={one} />
             </span>
+            <PaperMissing nomination={one} />
             <NomineeList nominees={one.nominees} />
           </li>
         ))}
@@ -227,6 +248,7 @@ export const Nominees = ({ investor }: { investor: Investor }) => {
           {notSignedFor ? <> · {t("nominees.notSignedForHint")}</> : null}
         </p>
       ) : null}
+      {nomination ? <PaperMissing nomination={nomination} /> : null}
       <NomineeList nominees={nomination?.nominees ?? []} />
       <Earlier investorId={investor.id} />
       <NominationSheet
