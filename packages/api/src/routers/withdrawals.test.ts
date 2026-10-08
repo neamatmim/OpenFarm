@@ -571,3 +571,37 @@ describe("withdrawal, from the last dose actually given", () => {
     ).rejects.toThrow(/shortened/u);
   });
 });
+
+describe("a hold lengthened", () => {
+  it("takes the notice of its ending down: the day it named is no longer her day", async () => {
+    // Last in the file, on the latest days: its sweeps run after every other test's work is done with.
+    const clock = new FakeClock("2026-10-22T02:00:00.000Z");
+    const { cow } = await onACourse(clock, 1);
+    await giveDose(clock, cow.tagNumber, 1);
+    clock.advance(3 * DAY + DAY / 2);
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    await manager.client.alerts.sweep();
+    const held = await manager.client.animals.get({
+      tagNumber: cow.tagNumber,
+    });
+    const about = {
+      entityId: `${cow.id}:${held.milkWithdrawalUntil?.toISOString()}`,
+    };
+    const ending = async () => {
+      const told = await manager.client.alerts.mine(about);
+      return told.filter((one) => one.kind === "withdrawal_ending");
+    };
+    expect(await ending()).toHaveLength(1);
+
+    // Dosed again before it ran out: her milk is held four days from now, not from the course.
+    await manager.client.treatments.giveNotPrescribed({
+      animalTag: cow.tagNumber,
+      productId: world.product.id,
+      givenAt: clock.now(),
+      advice: "জ্বর ফিরে এসেছে",
+    });
+    await manager.client.alerts.sweep();
+
+    expect(await ending()).toEqual([]);
+  });
+});

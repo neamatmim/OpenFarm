@@ -35,6 +35,7 @@ let ventureId = "";
 let unsignedId = "";
 let penId = "";
 let tagNumber = "";
+let agreementId = "";
 
 /**
  * The Owner's own list, narrowed to one Venture's tellings.
@@ -78,6 +79,7 @@ beforeAll(async () => {
     stampedOn: "2054-01-02",
     stampSerial: `AA ${suffix}`,
   });
+  agreementId = agreement.id;
   await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
@@ -308,5 +310,27 @@ describe("hearing that a paper is due", () => {
     // And the one still running is still told, so the silence is about the canceled run and not
     // about the sweep having stopped.
     expect(await papersDue(april, ventureId)).toContain("এপ্রিল ২০৫৪");
+  });
+});
+
+describe("a paper made", () => {
+  it("takes the notice down at the next sweep once every Investor's progress paper is made", async () => {
+    const owner = await as("owner", "2054-04-03T04:00:00.000Z");
+    expect(await papersDue(owner, ventureId)).not.toEqual([]);
+
+    // No paper is written for an Investor until the farm's DLS registration is on record.
+    await owner.client.farm.setIdentity({
+      address: `সাভার ${suffix}`,
+      phone: "+8801711000097",
+      registrationNumber: `DLS/SAV/2054/${suffix}`,
+      registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
+      registrationExpiresOn: "2055-06-30",
+    });
+    // Asked again, so the farm the paper is headed with is the one just recorded.
+    const registered = await as("owner", "2054-04-03T05:00:00.000Z");
+    await registered.client.investorStatements.progress({ agreementId });
+    await registered.client.alerts.sweep();
+
+    expect(await papersDue(registered, ventureId)).toEqual([]);
   });
 });

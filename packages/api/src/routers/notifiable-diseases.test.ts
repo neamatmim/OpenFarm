@@ -2,6 +2,7 @@ import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import type { PushMessage, PushTarget, PushTransport } from "../push";
 import { createTestClient } from "../test/client";
 import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
@@ -527,5 +528,58 @@ describe("the letter that goes without delay", () => {
       disease,
       reportReference: "ULO/2027/৩৩",
     });
+  });
+});
+
+describe("a notifiable Diagnosis voided", () => {
+  it("takes the notice down, and tells a phone it woke that it was taken back", async () => {
+    // Everything the farm pushed: the Manager's own phone is the one listening.
+    const sent: { target: PushTarget; message: PushMessage }[] = [];
+    const push: PushTransport = {
+      send: (target, message) => {
+        sent.push({ target, message });
+        return Promise.resolve({ delivered: true, gone: false });
+      },
+    };
+    // Ten in the morning at the farm: pushed at once, not held for the morning.
+    const clock = new FakeClock("2027-01-12T04:00:00.000Z");
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      push,
+    });
+    const vet = await createTestClient(appRouter, { as: "vet", clock, push });
+    const endpoint = `https://fcm.googleapis.com/fcm/send/notifiable-${Date.now()}`;
+    await manager.client.push.subscribe({
+      endpoint,
+      p256dh: "test-p256dh-key",
+      auth: "test-auth-key",
+    });
+    const cow = await aCow(clock);
+    await manager.client.notifiableDiseases.create({
+      name: { bn: `তড়কা ${Date.now()}` },
+    });
+    const listed = await manager.client.notifiableDiseases.list();
+    const disease = listed.at(-1)?.nameBn ?? "";
+    const made = await vet.client.diagnoses.record({
+      animalTag: cow.tagNumber,
+      disease: { bn: disease },
+    });
+    const pushedBefore = sent.filter(
+      (one) => one.target.endpoint === endpoint
+    ).length;
+    expect(pushedBefore).toBeGreaterThan(0);
+
+    await vet.client.diagnoses.correct({
+      id: made.id,
+      reason: "অন্য গাভী, ট্যাগ ভুল পড়া হয়েছিল",
+      changes: { voided: { from: false, to: true } },
+    });
+
+    const told = await manager.client.alerts.mine({ entityId: made.id });
+    expect(told.map((one) => one.kind)).toEqual(["taken_back"]);
+    const pushed = sent.filter((one) => one.target.endpoint === endpoint);
+    expect(pushed).toHaveLength(pushedBefore + 1);
+    expect(pushed.at(-1)?.message.body).toContain("ফিরিয়ে নেওয়া হয়েছে");
   });
 });

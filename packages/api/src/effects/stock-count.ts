@@ -21,7 +21,8 @@ type StockCountFacts = Pick<
 /**
  * Tells the Owner and the Manager of a count that found more feed missing than the Owner's line, in taka at what the
  * feed cost — told once for the count, in the evening's post. A count put right later is not told again: the Notice is
- * about the count, and the feed page shows what it says now.
+ * about the count, and the feed page shows what it says now. One put right to no shortfall, or to a skip, takes its
+ * Notice down.
  */
 const tellIfTheStoreCameUpShort = async (
   tx: Tx,

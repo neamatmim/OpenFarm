@@ -243,21 +243,31 @@ describe("the Owner's line", () => {
   });
 });
 
+// Last in the file, on its latest day: a count put right moves what the store holds, and the counts before it read it.
 describe("a count put right", () => {
-  it("leaves the Owner's notices once the count is put right to no shortfall", async () => {
+  it("takes the Owner's and the Manager's notices down when the count is put right to no shortfall", async () => {
     const owner = await as("owner", "2057-03-01T03:00:00.000Z");
     // What the store holds before anybody counts: what a count finding nothing missing says.
     const stock = await owner.client.stock.onHand();
-    const { completionId } = await countOn("2057-03-01", {
-      // Two hundred kilos short at ৳40, past the Owner's line of ৳5,000.
-      [bran]: {
-        counted:
-          (stock.find((line) => line.feedItemId === bran)?.onHand ?? 0) - 200,
-        reason: "ভুল গোনা",
-      },
+    const held = (feedItemId: string) =>
+      Math.max(
+        0,
+        stock.find((line) => line.feedItemId === feedItemId)?.onHand ?? 0
+      );
+    const { manager, completionId } = await countOn("2057-03-01", {
+      // Two hundred kilos short at ৳40: ৳8,000, past the line the Owner set above.
+      [bran]: { counted: held(bran) - 200, reason: "ভুল গোনা" },
     });
-    const before = await owner.client.alerts.mine({ entityId: completionId });
-    expect(before.map((one) => one.kind)).toContain("store_shortfall");
+    const showing = async () => {
+      const owners = await owner.client.alerts.mine({ entityId: completionId });
+      const managers = await manager.client.alerts.mine({
+        entityId: completionId,
+      });
+      return [...owners, ...managers].filter(
+        (one) => one.kind === "store_shortfall"
+      );
+    };
+    expect(await showing()).toHaveLength(2);
 
     const again = await as("manager", "2057-03-01T06:00:00.000Z");
     await correctStepAsShown(again.client, {
@@ -266,14 +276,10 @@ describe("a count put right", () => {
       evidence: [true],
       counts: [bran, napier].map((feedItemId) => ({
         feedItemId,
-        counted: Math.max(
-          0,
-          stock.find((line) => line.feedItemId === feedItemId)?.onHand ?? 0
-        ),
+        counted: held(feedItemId),
       })),
     });
 
-    const after = await owner.client.alerts.mine({ entityId: completionId });
-    expect(after.map((one) => one.kind)).not.toContain("store_shortfall");
+    expect(await showing()).toEqual([]);
   });
 });

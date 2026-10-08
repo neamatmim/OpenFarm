@@ -99,12 +99,18 @@ const count = async (
     throw new Error("expected the monthly medicine count");
   }
   await manager.client.work.claim({ id: work.id });
-  return await manager.client.work.completeStep({
+  const done = await manager.client.work.completeStep({
     instanceId: work.id,
     stepId: "count",
     evidence: [true],
     medicineCounts,
   });
+  // The completion a Correction is made against: `completeStep` answers with the work and the Step, not its row.
+  const completion = await scratchDb().query.stepCompletion.findFirst({
+    where: { instanceId: work.id, stepId: "count" },
+    columns: { id: true },
+  });
+  return { ...done, completionId: completion?.id ?? "" };
 };
 
 const onHandOf = async (productId: string) => {
@@ -171,27 +177,12 @@ describe("the monthly medicine count", () => {
     ]);
   });
 
-  it("leaves the Owner's notices once the count is put right to no shortfall", async () => {
+  it("takes the Owner's notice down when the count is put right to no shortfall", async () => {
     // May's first Friday: four doses short at ৳100, past the ৳300 line.
-    const { manager, work } = await theCount("2084-05-05");
-    if (!work) {
-      throw new Error("expected the monthly medicine count");
-    }
-    await manager.client.work.claim({ id: work.id });
-    await manager.client.work.completeStep({
-      instanceId: work.id,
-      stepId: "count",
-      evidence: [true],
-      medicineCounts: [
-        { drugProductId: oxy, counted: 1, reason: `ভুল গোনা ${suffix}` },
-        { drugProductId: dewormer, counted: 5 },
-      ],
-    });
-    const done = await scratchDb().query.stepCompletion.findFirst({
-      where: { instanceId: work.id, stepId: "count" },
-      columns: { id: true },
-    });
-    const completionId = done?.id ?? "";
+    const { completionId } = await count("2084-05-05", [
+      { drugProductId: oxy, counted: 1, reason: `ভুল গোনা ${suffix}` },
+      { drugProductId: dewormer, counted: 5 },
+    ]);
     const owner = await as("owner", "2084-05-05T05:00:00.000Z");
     const before = await owner.client.alerts.mine({ entityId: completionId });
     expect(before.map((one) => one.kind)).toContain("medicine_short");

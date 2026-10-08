@@ -309,13 +309,14 @@ describe("shrink past the farm's allowance", () => {
     expect(await toldOf(bulls.twelve)).toHaveLength(1);
   });
 
-  it("leaves the Owner's notices once the weight is put right within the allowance", async () => {
+  it("takes the Owner's notice down when the weight is put right within the allowance", async () => {
     const saleId = saleOf.get(bulls.twelve) ?? "";
+    // Read as the Owner reads it, not through `toldOf`: what is taken down stays on file, and only her list leaves it out.
     const owner = await as("owner", "2079-03-19T04:00:00.000Z");
     const before = await owner.client.alerts.mine({ entityId: saleId });
     expect(before.map((one) => one.kind)).toContain("large_shrink");
 
-    // The scale read wrong: he went on at 380, five in a hundred down on his 400.
+    // The scale read wrong: he went on at 380, five in a hundred down on his 400. The test before put him at 350.
     const manager = await as("manager", "2079-03-19T05:00:00.000Z");
     await manager.client.sales.correct({
       id: saleId,

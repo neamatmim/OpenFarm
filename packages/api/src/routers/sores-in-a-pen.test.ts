@@ -100,6 +100,35 @@ describe("sores in one Pen", () => {
     expect(await toldOf(pen.name, "owner")).toHaveLength(0);
   });
 
+  it("is taken down by the sweep once the sighting it began from is withdrawn", async () => {
+    const pen = await aPen(`ঘা পেন ঘ ${suffix}`, 3);
+    const [first, second, third] = pen.tags;
+    const wrong = await seenWithSores(first ?? "", "2061-04-02T02:00:00.000Z");
+    await seenWithSores(second ?? "", "2061-04-02T03:00:00.000Z");
+    await seenWithSores(third ?? "", "2061-04-02T04:00:00.000Z");
+    await sweepAt("2061-04-02T05:00:00.000Z");
+    const showingOf = async (instant: string) => {
+      const owner = await as("owner", instant);
+      const mine = await owner.client.alerts.mine();
+      return mine.filter(
+        (one) =>
+          one.kind === "pen_sores_seen" &&
+          (one.params as { pen?: string }).pen === pen.name
+      );
+    };
+    expect(await showingOf("2061-04-02T05:30:00.000Z")).toHaveLength(1);
+
+    const manager = await as("manager", "2061-04-02T06:00:00.000Z");
+    await manager.client.observations.withdraw({
+      id: wrong.id,
+      reason: `অন্য গাভী ছিল ${suffix}`,
+      changes: { withdrawn: { from: false, to: true } },
+    });
+    await sweepAt("2061-04-02T07:00:00.000Z");
+
+    expect(await showingOf("2061-04-02T07:30:00.000Z")).toEqual([]);
+  });
+
   it("counts by the farm's own number, which the Manager may set", async () => {
     const manager = await as("manager", "2061-03-01T00:00:00.000Z");
     await manager.client.farm.setParameters({ soresTellAnimals: 2 });

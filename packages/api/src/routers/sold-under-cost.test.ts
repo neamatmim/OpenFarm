@@ -152,6 +152,23 @@ describe("a sale under her cost or the market", () => {
     expect(showing).toEqual([]);
   });
 
+  it("takes the Owner's notice down when the Sale is voided: he was never sold", async () => {
+    const bull = await aBull();
+    const saleId = await sell(bull.tagNumber, 95_000);
+    const owner = await as("owner", "2078-03-20T09:00:00.000Z");
+    const before = await owner.client.alerts.mine({ entityId: saleId });
+    expect(before.map((one) => one.kind)).toContain("sold_under_cost");
+
+    await owner.client.sales.correct({
+      id: saleId,
+      reason: `ভুল ট্যাগে লেখা হয়েছিল ${suffix}`,
+      changes: { voided: { from: false, to: true } },
+    });
+
+    const after = await owner.client.alerts.mine({ entityId: saleId });
+    expect(after.map((one) => one.kind)).not.toContain("sold_under_cost");
+  });
+
   it("leaves the dairy side alone: a cow culled to a butcher was never going to fetch her working life back", async () => {
     const owner = await as("owner", "2078-03-01T04:00:00.000Z");
     const cow = await owner.client.animals.register({
