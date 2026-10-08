@@ -276,9 +276,37 @@ describe("«খামারে আপনার তথ্য»", () => {
       (one) => one.entityId === history.id && one.action === "create"
     );
 
-    expect(Object.keys(made?.after ?? {}).toSorted()).toEqual(
-      [...TRAILED.investor.fields].toSorted()
+    const fields: readonly string[] = TRAILED.investor.fields;
+    expect(
+      Object.keys(made?.after ?? {}).filter((field) => !fields.includes(field))
+    ).toEqual([]);
+  });
+
+  it("reads every field the trail keeps of an Organisation's record, but the kind it never changes from", async () => {
+    const owner = await as("owner");
+    const them = await owner.investors.record({
+      kind: "organisation",
+      name: `প্রতিষ্ঠান ${suffix}`,
+      phone: `0195${suffix}9`,
+      tradeLicence: "TRAD/1",
+      rjscNumber: "C-1",
+      tin: "1",
+      authority: "পর্ষদের সিদ্ধান্ত",
+      authorityOn: "2046-01-01",
+      signatoryName: "স্বাক্ষরকারী",
+      signatoryNid: "1",
+      signatoryRole: "পরিচালক",
+    });
+    const trail = await owner.audit.list({ entity: "investor", limit: 50 });
+    const made = trail.find(
+      (one) => one.entityId === them.id && one.action === "create"
     );
+
+    expect(
+      Object.keys(made?.after ?? {})
+        .filter((field) => field !== "kind")
+        .toSorted()
+    ).toEqual([...TRAILED.investor.fields].toSorted());
   });
 
   it("words a retirement's moment in Bangla", async () => {

@@ -9,6 +9,7 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { nominationsInForceFor, paperNominees } from "./nomination-store";
+import type { InvestorOnPaper } from "./paper-values";
 import { paperInvestor, paperValues } from "./paper-values";
 import type { VentureRow } from "./venture-store";
 import { paidForBy, windUpDaysOf } from "./venture-store";
@@ -53,12 +54,8 @@ export const agreementLaidOut = ({
     | "firstSumDueOn"
     | "windUpDays"
   >;
-  him: {
-    name: string;
-    phone: string;
-    address: string | null;
-    nid: string | null;
-  };
+  /** The Investor's row as the farm holds it: a person, or an Organisation and its Signatory. */
+  him: InvestorOnPaper;
   nominees: readonly Nominee[];
   terms: AgreementTerms;
   wording: TemplateContent;
@@ -78,6 +75,7 @@ export const agreementLaidOut = ({
     wordingFor(wording, {
       paidByTheMonth: monthly !== null,
       farmCapital: farmCapital !== null,
+      organisation: Boolean(investor.organisation),
     }),
     {
       kind: "investment_agreement",

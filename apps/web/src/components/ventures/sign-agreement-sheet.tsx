@@ -424,14 +424,17 @@ const PrintToSign = ({
   );
 };
 
-/** The Nominees the Agreement names, once somebody is chosen to sign: their list in force, to change for this signing. */
+/** The Nominees the Agreement names, once somebody is chosen to sign: their list in force, to change for this signing.
+ *  An Organisation names none, and is told so (ADR 0020). */
 const TheNomineesItNames = ({
   chosen,
+  organisation,
   drafts,
   onChange,
   onDay,
 }: {
   chosen: boolean;
+  organisation: boolean;
   drafts: NomineeDraft[];
   onChange: (drafts: NomineeDraft[]) => void;
   onDay: string;
@@ -439,6 +442,13 @@ const TheNomineesItNames = ({
   const { t } = useLanguage();
   if (!chosen) {
     return null;
+  }
+  if (organisation) {
+    return (
+      <p className="text-muted-foreground text-sm">
+        {t("nominees.noneForAnOrganisation")}
+      </p>
+    );
   }
   return (
     <div className="flex flex-col gap-2">
@@ -855,6 +865,10 @@ export const SignAgreementSheet = ({
       </FormField>
       <TheNomineesItNames
         chosen={terms.investorId !== ""}
+        organisation={
+          signable.find((one) => one.id === terms.investorId)?.kind ===
+          "organisation"
+        }
         drafts={nomineeDrafts}
         onChange={setNomineeDrafts}
         onDay={stampDay}

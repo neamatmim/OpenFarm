@@ -181,9 +181,14 @@ export const venturePlanLine = pgTable(
   (table) => [index("venture_plan_line_plan_idx").on(table.planId)]
 );
 
+/** A person, or an Organisation acting through its one Signatory (ADR 0020). Chosen when written down, never changed. */
+export const INVESTOR_KINDS = ["person", "organisation"] as const;
+export type InvestorKind = (typeof INVESTOR_KINDS)[number];
+
 /**
  * Somebody whose money is in a Venture: known to the Owner personally or personally introduced, resident
- * here, and one of at most twenty at a time, the Owner among them.
+ * here, and one of at most twenty at a time, the Owner among them. A person, or an Organisation — a company, a firm,
+ * a society — whose name, phone and bank account are its own and whose Signatory's are kept beside them.
  *
  * Not a **Counterparty**, who is paid for something. An Investor shares what the Farm makes, and so needs
  * what paying them and their family needs: a bank account, and their Nominees — kept as each **Nomination** they
@@ -196,13 +201,28 @@ export const investor = pgTable(
     farmId: text("farm_id")
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: INVESTOR_KINDS }).notNull().default("person"),
     name: text("name").notNull(),
+    /** The mobile the farm reaches them on and they sign in to the portal with: an Organisation's Signatory's. */
     phone: text("phone").notNull(),
     address: text("address"),
-    /** The number on their National ID, as the agreement and the tax man ask for it. */
+    /** The number on a person's National ID, as the agreement and the tax man ask for it. An Organisation has none;
+     *  its Signatory's is `signatoryNid`. */
     nid: text("nid"),
     /** Where their money goes: bank channels only, so the account is the way to pay them. */
     bankAccount: text("bank_account"),
+    /** An Organisation's own papers: its trade licence, its RJSC registration and its TIN. */
+    tradeLicence: text("trade_licence"),
+    rjscNumber: text("rjsc_number"),
+    tin: text("tin"),
+    /** The paper that names an Organisation's Signatory — a board resolution, a letter — as the Owner describes it,
+     *  and the day it is dated. */
+    authority: text("authority"),
+    authorityOn: text("authority_on"),
+    /** The one person an Organisation acts through: they sign its papers and sign in to the portal for it on `phone`. */
+    signatoryName: text("signatory_name"),
+    signatoryNid: text("signatory_nid"),
+    signatoryRole: text("signatory_role"),
     recordedBy: text("recorded_by").references(() => user.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
     /** Retired, never removed: their Agreements, payouts and statements are kept for twelve years and every
@@ -213,6 +233,18 @@ export const investor = pgTable(
     isFarm: boolean("is_farm").notNull().default(false),
   },
   (table) => [
+    check(
+      "investor_organisation_has_a_signatory",
+      sql`${table.kind} <> 'organisation' or (${table.signatoryName} is not null and ${table.authority} is not null and ${table.nid} is null)`
+    ),
+    check(
+      "investor_person_has_no_signatory",
+      sql`${table.kind} <> 'person' or num_nonnulls(${table.tradeLicence}, ${table.rjscNumber}, ${table.tin}, ${table.authority}, ${table.authorityOn}, ${table.signatoryName}, ${table.signatoryNid}, ${table.signatoryRole}) = 0`
+    ),
+    check(
+      "investor_authority_on_day",
+      sql`${table.authorityOn} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`
+    ),
     uniqueIndex("investor_farm_uidx")
       .on(table.farmId)
       .where(sql`${table.isFarm}`),
@@ -228,13 +260,15 @@ export const investor = pgTable(
 );
 
 /**
- * Why the Owner took an Investor's portal access away: they withdrew their Portal Consent, their phone was lost, or the
- * Owner's own decision. Only a withdrawal touches the consent.
+ * Why the Owner took an Investor's portal access away: they withdrew their Portal Consent, their phone was lost, the
+ * Owner's own decision, or an Organisation's Signatory changed — the sign-in was the old Signatory's (ADR 0020). Only a
+ * withdrawal and a change of Signatory touch the consent.
  */
 export const PORTAL_TAKEN_AWAY_WHY = [
   "withdrew_consent",
   "lost_phone",
   "owner",
+  "signatory_changed",
 ] as const;
 
 /**
@@ -282,8 +316,13 @@ export const investorAccess = pgTable(
   ]
 );
 
-/** How an Investor asked to withdraw their Portal Consent: a signed letter, or a message from their own number. */
-export const CONSENT_WITHDRAWN_HOW = ["letter", "message"] as const;
+/** How an Investor's Portal Consent stopped being in force: they asked by a signed letter, or by a message from their
+ *  own number; or, for an Organisation, the Signatory who signed it was changed for another (ADR 0020). */
+export const CONSENT_WITHDRAWN_HOW = [
+  "letter",
+  "message",
+  "signatory_changed",
+] as const;
 
 /**
  * An Investor's Portal Consent: signed on paper in front of the Owner, before any code is given, to the portal showing

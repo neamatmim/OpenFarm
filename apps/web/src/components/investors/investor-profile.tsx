@@ -2,7 +2,14 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Archive, ArchiveRestore, Check, Copy, Pencil } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  Check,
+  Copy,
+  Pencil,
+  UserRoundPen,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -19,6 +26,7 @@ import { orpc } from "@/utils/orpc";
 import { DataCopyAct } from "./data-copy";
 import { Nominees } from "./nominees";
 import { phoneLink } from "./phone-link";
+import { SignatorySheet } from "./signatory-sheet";
 
 /** How long "copied" stays on the button before it offers to copy again. */
 const COPIED_FOR_MS = 2000;
@@ -56,12 +64,15 @@ const Detail = ({
 /** A part of the record under the same heading it was written under, so the paper and the form read alike. */
 const DetailCard = ({
   title,
+  action,
   children,
 }: {
   title: string;
+  /** An act on this part of the record, beside its heading. */
+  action?: ReactNode;
   children: ReactNode;
 }) => (
-  <Section title={title}>
+  <Section action={action} title={title}>
     <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">{children}</dl>
   </Section>
 );
@@ -330,6 +341,83 @@ const PortalActivity = ({ investor }: { investor: Investor }) => {
 };
 
 /**
+ * An Organisation as the farm wrote it down (ADR 0020): the Organisation and its own papers, then the one Signatory it
+ * acts through and the paper that names them — the mobile on the record is the Signatory's.
+ */
+const OrganisationCards = ({
+  investor,
+  organisation,
+}: {
+  investor: Investor;
+  organisation: NonNullable<Investor["organisation"]>;
+}) => {
+  const { t, language } = useLanguage();
+  const [changing, setChanging] = useState(false);
+  return (
+    <>
+      <DetailCard title={t("investors.section.organisation")}>
+        <Detail label={t("investors.organisationName")} wide>
+          {investor.name}
+        </Detail>
+        <Detail label={t("investors.tradeLicence")}>
+          {organisation.tradeLicence}
+        </Detail>
+        <Detail label={t("investors.rjscNumber")}>
+          {organisation.rjscNumber}
+        </Detail>
+        <Detail label={t("investors.tin")}>{organisation.tin}</Detail>
+        <Detail label={t("investors.address")}>{investor.address}</Detail>
+      </DetailCard>
+      <DetailCard
+        action={
+          investor.retiredAt ? null : (
+            <Button
+              onClick={() => setChanging(true)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <UserRoundPen aria-hidden data-icon="inline-start" />
+              {t("investors.changeSignatory")}
+            </Button>
+          )
+        }
+        title={t("investors.section.signatory")}
+      >
+        <Detail label={t("investors.signatoryName")}>
+          {organisation.signatory.name}
+        </Detail>
+        <Detail label={t("investors.signatoryRole")}>
+          {organisation.signatory.role}
+        </Detail>
+        <Detail label={t("investors.signatoryPhone")}>
+          {phoneLink(investor.phone)}
+        </Detail>
+        <Detail label={t("investors.signatoryNid")}>
+          {organisation.signatory.nid}
+        </Detail>
+        <Detail label={t("investors.authority")} wide>
+          {organisation.authorityOn
+            ? t("investors.authorityDated", {
+                paper: organisation.authority,
+                day: formatDate(
+                  new Date(`${organisation.authorityOn}T00:00:00Z`),
+                  language
+                ),
+              })
+            : organisation.authority}
+        </Detail>
+      </DetailCard>
+      <SignatorySheet
+        investor={investor}
+        onOpenChange={setChanging}
+        open={changing}
+      />
+    </>
+  );
+};
+
+/**
  * Everything the farm holds about who one Investor is, in the parts it was written in — who they are, where their
  * money goes, and their nominee — with their way into the portal beside it, and whether the farm may still sign
  * them.
@@ -350,14 +438,21 @@ export const InvestorProfile = ({
   return (
     <div className="grid items-start gap-4 lg:grid-cols-3">
       <div className="flex flex-col gap-4 lg:col-span-2">
-        <DetailCard title={t("investors.section.who")}>
-          <Detail label={t("investors.name")}>{investor.name}</Detail>
-          <Detail label={t("investors.phone")}>
-            {phoneLink(investor.phone)}
-          </Detail>
-          <Detail label={t("investors.nid")}>{investor.nid}</Detail>
-          <Detail label={t("investors.address")}>{investor.address}</Detail>
-        </DetailCard>
+        {investor.organisation ? (
+          <OrganisationCards
+            investor={investor}
+            organisation={investor.organisation}
+          />
+        ) : (
+          <DetailCard title={t("investors.section.who")}>
+            <Detail label={t("investors.name")}>{investor.name}</Detail>
+            <Detail label={t("investors.phone")}>
+              {phoneLink(investor.phone)}
+            </Detail>
+            <Detail label={t("investors.nid")}>{investor.nid}</Detail>
+            <Detail label={t("investors.address")}>{investor.address}</Detail>
+          </DetailCard>
+        )}
         <DetailCard title={t("investors.section.money")}>
           <Detail label={t("investors.bank")} wide>
             {investor.bankAccount ? (
@@ -365,7 +460,8 @@ export const InvestorProfile = ({
             ) : null}
           </Detail>
         </DetailCard>
-        <Nominees investor={investor} />
+        {/* An Organisation names no Nominee: its share is its own (ADR 0020). */}
+        {investor.organisation ? null : <Nominees investor={investor} />}
       </div>
       <div className="flex flex-col gap-4">
         <Section description={t("portal.recordHint")} title={t("portal.title")}>

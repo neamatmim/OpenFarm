@@ -1,7 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import type { StampKind } from "@OpenFarm/db/schema/venture";
 import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture-account";
-import type { PaperNominee } from "@OpenFarm/domain";
+import type { PaperNominee, PaperOrganisation } from "@OpenFarm/domain";
 import { exitOf, roundMoney, unitsHeld, whatUnitsTake } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -9,6 +9,7 @@ import type { Tx } from "./audit";
 import { farmCosts } from "./cost-store";
 import { shareOfUnits } from "./investor-statement-words";
 import { nominationInForce, paperNominees } from "./nomination-store";
+import { organisationOnPaper } from "./paper-values";
 import type { ChargeWord } from "./settlement-store";
 import { readSettlement, whatItWasCharged } from "./settlement-store";
 import type { VentureRow } from "./venture-store";
@@ -61,6 +62,9 @@ export interface HimAndHisNominees {
   phone: string;
   address: string | null;
   nid: string | null;
+  /** An Organisation's papers and its Signatory; null for a person (ADR 0020). */
+  organisation: PaperOrganisation | null;
+  /** None for an Organisation, which names none. */
   nominees: PaperNominee[];
 }
 
@@ -190,7 +194,9 @@ export const hisStanding = async (
       phone: investor.phone,
       address: investor.address,
       nid: investor.nid,
-      nominees: paperNominees(inForce, on),
+      organisation: organisationOnPaper(investor),
+      nominees:
+        investor.kind === "organisation" ? [] : paperNominees(inForce, on),
     },
     agreement: {
       id: agreement.id,

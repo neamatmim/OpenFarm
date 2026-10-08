@@ -21,8 +21,14 @@ const said = z.object({
   en: z.string().max(LONGEST),
 });
 
-/** When a line is printed at all, kept through the wire so a Version the Owner publishes keeps its conditions. */
-const only = z.enum(PAPER_CONDITIONS).optional();
+/** When a line is printed at all — one condition, or several that must all hold — kept through the wire so a Version
+ *  the Owner publishes keeps its conditions. */
+const only = z
+  .union([
+    z.enum(PAPER_CONDITIONS),
+    z.array(z.enum(PAPER_CONDITIONS)).min(1).max(PAPER_CONDITIONS.length),
+  ])
+  .optional();
 
 const section = z.discriminatedUnion("kind", [
   z.object({

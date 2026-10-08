@@ -159,6 +159,7 @@ export const joiningLetterFor = async (
       wordingFor(signedIn.content, {
         paidByTheMonth: monthly !== null,
         farmCapital: farmCapital !== null,
+        organisation: standing.him.organisation !== null,
       }),
       paperValues({
         farm: context.farm,

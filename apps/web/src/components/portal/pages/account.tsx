@@ -83,8 +83,8 @@ const TheirNominees = ({ nominees }: { nominees: PaperNominee[] }) => {
 
 /**
  * Their record as the farm holds it, to check against their own papers — the NID and the bank account with all but
- * their last digits hidden, enough to know them by. Put right by the Owner, never here: the portal changes nothing
- * the farm holds.
+ * their last digits hidden, enough to know them by. An Organisation's is its own, with its Signatory's beside it and no
+ * Nominees (ADR 0020). Put right by the Owner, never here: the portal changes nothing the farm holds.
  */
 const TheirDetails = ({ me }: { me: Me }) => {
   const { t } = useLanguage();
@@ -99,14 +99,42 @@ const TheirDetails = ({ me }: { me: Me }) => {
       description={t("portal.account.detailsHint")}
       title={t("portal.account.details")}
     >
-      <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-        <Held label={t("investors.name")}>{me.name}</Held>
-        <Held label={t("investors.phone")}>{record.phone}</Held>
-        <Held label={t("investors.address")}>{record.address}</Held>
-        <Held label={t("investors.nid")}>{record.nid}</Held>
-        <Held label={t("investors.bank")}>{record.bankAccount}</Held>
-      </dl>
-      <TheirNominees nominees={record.nominees ?? []} />
+      {/* Kept from before an Investor could be an Organisation, an answer has no such field: a person's. */}
+      {record.organisation ? (
+        <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+          <Held label={t("investors.organisationName")}>{me.name}</Held>
+          <Held label={t("investors.address")}>{record.address}</Held>
+          <Held label={t("investors.tradeLicence")}>
+            {record.organisation.tradeLicence}
+          </Held>
+          <Held label={t("investors.rjscNumber")}>
+            {record.organisation.rjscNumber}
+          </Held>
+          <Held label={t("investors.tin")}>{record.organisation.tin}</Held>
+          <Held label={t("investors.bank")}>{record.bankAccount}</Held>
+          <Held label={t("investors.signatoryName")}>
+            {record.organisation.signatory.name}
+          </Held>
+          <Held label={t("investors.signatoryRole")}>
+            {record.organisation.signatory.role}
+          </Held>
+          <Held label={t("investors.signatoryPhone")}>{record.phone}</Held>
+          <Held label={t("investors.signatoryNid")}>
+            {record.organisation.signatory.nid}
+          </Held>
+        </dl>
+      ) : (
+        <>
+          <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+            <Held label={t("investors.name")}>{me.name}</Held>
+            <Held label={t("investors.phone")}>{record.phone}</Held>
+            <Held label={t("investors.address")}>{record.address}</Held>
+            <Held label={t("investors.nid")}>{record.nid}</Held>
+            <Held label={t("investors.bank")}>{record.bankAccount}</Held>
+          </dl>
+          <TheirNominees nominees={record.nominees ?? []} />
+        </>
+      )}
     </Section>
   );
 };

@@ -1,4 +1,4 @@
-import type { StampKind } from "@OpenFarm/db/schema/venture";
+import type { StampKind, investor } from "@OpenFarm/db/schema/venture";
 import { payInCode } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
@@ -6,8 +6,8 @@ import type { Tx } from "./audit";
 /** The Ventures whose Investors still count against the cap: everything but settled and called off. */
 const STILL_RUNNING = ["open", "buying", "fattening", "selling"] as const;
 
-/** Whether this Farm has written this person down already: the same name on the same phone is the same
- *  person, however many Ventures they have joined. */
+/** Whether this Farm has written this Investor down already: the same name on the same phone is the same Investor,
+ *  however many Ventures they have joined — for an Organisation, its name on its Signatory's mobile. */
 export const theSamePerson = async (
   tx: Pick<Tx, "query">,
   farmId: string,
@@ -20,19 +20,54 @@ export const theSamePerson = async (
   return row ?? null;
 };
 
+/** What is written down about an Organisation beyond what a person has — its own papers, its authority and its
+ *  Signatory (ADR 0020) — or null for a person. */
+export const organisationOf = (row: typeof investor.$inferSelect) =>
+  row.kind === "organisation"
+    ? {
+        tradeLicence: row.tradeLicence,
+        rjscNumber: row.rjscNumber,
+        tin: row.tin,
+        authority: row.authority ?? "",
+        authorityOn: row.authorityOn,
+        signatory: {
+          name: row.signatoryName ?? "",
+          nid: row.signatoryNid,
+          role: row.signatoryRole,
+        },
+      }
+    : null;
+
 /** One Investor as the trail records them. Their Nominees are each Nomination's own trail, not theirs. */
 export const readInvestor = async (tx: Tx, farmId: string, id: string) => {
   const row = await tx.query.investor.findFirst({ where: { id, farmId } });
-  return row
+  if (!row) {
+    return null;
+  }
+  const said = {
+    name: row.name,
+    phone: row.phone,
+    address: row.address,
+    nid: row.nid,
+    bankAccount: row.bankAccount,
+    retiredAt: row.retiredAt,
+  };
+  // An Organisation's own fields side by side with the rest, so the trail reads a change to its TIN or its Signatory's
+  // NID field by field rather than as one changed object.
+  return row.kind === "organisation"
     ? {
-        name: row.name,
-        phone: row.phone,
-        address: row.address,
-        nid: row.nid,
-        bankAccount: row.bankAccount,
-        retiredAt: row.retiredAt,
+        kind: row.kind,
+        ...said,
+        tradeLicence: row.tradeLicence,
+        rjscNumber: row.rjscNumber,
+        tin: row.tin,
+        authority: row.authority,
+        authorityOn: row.authorityOn,
+        signatoryName: row.signatoryName,
+        signatoryNid: row.signatoryNid,
+        signatoryRole: row.signatoryRole,
       }
-    : null;
+    : said;
 };
 
 /**

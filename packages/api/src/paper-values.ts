@@ -1,9 +1,11 @@
+import type { InvestorKind } from "@OpenFarm/db/schema/venture";
 import type {
   FarmIdentity,
   FieldValues,
   MonthlySum,
   PaperInvestor,
   PaperNominee,
+  PaperOrganisation,
   Said,
 } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
@@ -95,6 +97,18 @@ const farmCapitalValues = (
       }
     : {};
 
+/** Who puts their name to a paper: a person themself, or an Organisation's Signatory for and on behalf of it. */
+const signerOf = (him: PaperInvestor | undefined): Said | undefined => {
+  const signatory = him?.organisation?.signatory;
+  if (!(him && signatory)) {
+    return same(him?.name);
+  }
+  return {
+    bn: `${signatory.name}, ${him.name}-এর পক্ষে`,
+    en: `${signatory.name}, for and on behalf of ${him.name}`,
+  };
+};
+
 /**
  * Every field a paper can fill, in both languages, from the facts the farm has: a number in each language's own
  * numerals, a date as each writes it. A fact the farm does not have is left out, and the paper leaves a blank.
@@ -117,6 +131,7 @@ export const paperValues = (facts: PaperFacts): FieldValues => {
     investorAddress: same(facts.him?.address),
     investorPhone: same(facts.him?.phone),
     investorNid: same(facts.him?.nid),
+    signerName: signerOf(facts.him),
     ventureName: same(facts.ventureName),
     units: facts.units === undefined ? undefined : figure(facts.units),
     unitPrice:
@@ -147,22 +162,57 @@ export const paperValues = (facts: PaperFacts): FieldValues => {
   );
 };
 
-/** An Investor row as a paper writes him down, with the Nominees the paper names. */
+/** An Investor as the farm holds them, as much as a paper needs: an Organisation's own columns where it is one. */
+export interface InvestorOnPaper {
+  name: string;
+  phone: string;
+  address: string | null;
+  nid: string | null;
+  kind?: InvestorKind;
+  tradeLicence?: string | null;
+  rjscNumber?: string | null;
+  tin?: string | null;
+  authority?: string | null;
+  authorityOn?: string | null;
+  signatoryName?: string | null;
+  signatoryNid?: string | null;
+  signatoryRole?: string | null;
+}
+
+/** An Organisation's papers and Signatory as a paper writes them, or null for a person (ADR 0020). */
+export const organisationOnPaper = (
+  row: InvestorOnPaper
+): PaperOrganisation | null =>
+  row.kind === "organisation"
+    ? {
+        tradeLicence: row.tradeLicence ?? null,
+        rjscNumber: row.rjscNumber ?? null,
+        tin: row.tin ?? null,
+        authority: row.authority ?? "",
+        authorityOn: row.authorityOn ? day(row.authorityOn).bn : null,
+        signatory: {
+          name: row.signatoryName ?? "",
+          role: row.signatoryRole ?? null,
+          nid: row.signatoryNid ?? null,
+        },
+      }
+    : null;
+
+/** An Investor row as a paper writes him down, with the Nominees the paper names — none for an Organisation. */
 export const paperInvestor = (
-  row: {
-    name: string;
-    phone: string;
-    address: string | null;
-    nid: string | null;
-  },
+  row: InvestorOnPaper,
   nominees: PaperNominee[]
-): PaperInvestor => ({
-  name: row.name,
-  phone: row.phone,
-  address: row.address,
-  nid: row.nid,
-  nominees,
-});
+): PaperInvestor => {
+  const organisation = organisationOnPaper(row);
+  return {
+    name: row.name,
+    phone: row.phone,
+    address: row.address,
+    nid: row.nid,
+    organisation,
+    nominees: organisation ? [] : nominees,
+  };
+};
 
 /** When a paper was made, as its reader reads it. */
 export const producedAt = (now: Date, language: Language) =>

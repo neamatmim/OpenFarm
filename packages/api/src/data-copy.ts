@@ -2,6 +2,7 @@ import { and, desc, eq, inArray, or, sql } from "@OpenFarm/db/operators";
 import { auditEvent } from "@OpenFarm/db/schema/audit";
 import { user } from "@OpenFarm/db/schema/auth";
 import { paperTemplateVersion } from "@OpenFarm/db/schema/paper-template";
+import type { investor } from "@OpenFarm/db/schema/venture";
 import { portalConsent } from "@OpenFarm/db/schema/venture";
 import type {
   DocumentRow,
@@ -128,6 +129,7 @@ const TAKEN_AWAY_WHY: Record<string, string> = {
   withdrew_consent: "আপনি সম্মতি তুলে নিয়েছেন",
   lost_phone: "ফোন হারানো",
   owner: "খামারের সিদ্ধান্ত",
+  signatory_changed: "প্রতিষ্ঠানের স্বাক্ষরকারী বদলেছে",
 };
 
 /**
@@ -138,7 +140,23 @@ const TAKEN_AWAY_WHY: Record<string, string> = {
 export const TRAILED = {
   investor: {
     what: "আপনার রেকর্ড",
-    fields: ["name", "phone", "address", "nid", "bankAccount", "retiredAt"],
+    fields: [
+      "name",
+      "phone",
+      "address",
+      "nid",
+      "bankAccount",
+      "retiredAt",
+      // An Organisation's own, and its Signatory's (ADR 0020).
+      "tradeLicence",
+      "rjscNumber",
+      "tin",
+      "authority",
+      "authorityOn",
+      "signatoryName",
+      "signatoryNid",
+      "signatoryRole",
+    ],
   },
   investor_access: {
     what: "পোর্টাল প্রবেশাধিকার",
@@ -191,7 +209,11 @@ const valueWords = (field: TrailedField, value: unknown): string => {
     return inBangla(value);
   }
   const text = String(value);
-  if (field === "signedOn" || field === "withdrawnOn") {
+  if (
+    field === "signedOn" ||
+    field === "withdrawnOn" ||
+    field === "authorityOn"
+  ) {
     return onDay(text);
   }
   if (field.endsWith("At")) {
@@ -203,7 +225,10 @@ const valueWords = (field: TrailedField, value: unknown): string => {
   if (field === "revokedWhy") {
     return TAKEN_AWAY_WHY[text] ?? text;
   }
-  if (field === "withdrawnHow" && (text === "letter" || text === "message")) {
+  if (
+    field === "withdrawnHow" &&
+    (text === "letter" || text === "message" || text === "signatory_changed")
+  ) {
     return bn(`portal.howLine.${text}`);
   }
   return text;
@@ -322,6 +347,32 @@ const settlementWords = (
       : null
   );
 
+/** An Organisation's own papers and the Signatory it acts through, as "Your record" lists them; nothing for a person,
+ *  whose columns are empty (ADR 0020). */
+const organisationLines = (them: typeof investor.$inferSelect) => [
+  ...linesFor({ bn: "ট্রেড লাইসেন্স", en: "Trade licence" }, them.tradeLicence),
+  ...linesFor(
+    { bn: "আরজেএসসি নিবন্ধন", en: "RJSC registration" },
+    them.rjscNumber
+  ),
+  ...linesFor({ bn: "টিআইএন", en: "TIN" }, them.tin),
+  ...linesFor({ bn: "স্বাক্ষরকারী", en: "Signatory" }, them.signatoryName),
+  ...linesFor({ bn: "পদবি", en: "Role" }, them.signatoryRole),
+  ...linesFor(
+    { bn: "স্বাক্ষরকারীর এনআইডি নম্বর", en: "Signatory's NID" },
+    them.signatoryNid
+  ),
+  ...linesFor(
+    { bn: "ক্ষমতা অর্পণের কাগজ", en: "Authority" },
+    them.authority
+      ? joined(
+          them.authority,
+          them.authorityOn ? onDay(them.authorityOn) : null
+        )
+      : null
+  ),
+];
+
 /**
  * The Data Copy of one Investor, laid out to print and hand over: the notice's points first, then their record
  * unmasked, their Agreements with any Settlement, the money they moved, the papers made for them, their Requests to
@@ -424,6 +475,7 @@ export const dataCopyOf = async (
       ...linesFor({ bn: "ফোন", en: "Phone" }, them.phone),
       ...linesFor({ bn: "ঠিকানা", en: "Address" }, them.address),
       ...linesFor({ bn: "এনআইডি নম্বর", en: "NID" }, them.nid),
+      ...organisationLines(them),
       ...linesFor({ bn: "ব্যাংক হিসাব", en: "Bank account" }, them.bankAccount),
       ...linesFor({ bn: "লেখা হয়েছে", en: "Recorded" }, when(them.createdAt)),
       ...linesFor(
@@ -431,36 +483,41 @@ export const dataCopyOf = async (
         them.retiredAt ? when(them.retiredAt) : null
       ),
     ]),
-    // Every Nomination on file, the list in force first: who they named, and on which paper.
-    facts(
-      { bn: "আপনার নমিনি", en: "Your Nominees" },
-      nominations.map((one, index) => ({
-        label: {
-          bn: joined(
-            onDay(one.signedOn),
-            NOMINATION_HOW_WORDS[one.how],
-            index === 0 ? "এখন বহাল" : null
+    // Every Nomination on file, the list in force first: who they named, and on which paper. An Organisation names
+    // none, and is not asked about them.
+    ...(them.kind === "organisation"
+      ? []
+      : [
+          facts(
+            { bn: "আপনার নমিনি", en: "Your Nominees" },
+            nominations.map((one, index) => ({
+              label: {
+                bn: joined(
+                  onDay(one.signedOn),
+                  NOMINATION_HOW_WORDS[one.how],
+                  index === 0 ? "এখন বহাল" : null
+                ),
+                en: "",
+              },
+              value:
+                one.nominees.length === 0
+                  ? "কোনো নমিনি নেই"
+                  : paperNominees(one, one.signedOn)
+                      .map((nominee) => {
+                        const row = nomineeRowOf(nominee);
+                        return joined(
+                          row.name,
+                          row.relation,
+                          row.born ? `জন্ম ${row.born}` : null,
+                          row.phone,
+                          `অংশ ${row.share}`,
+                          row.receiver ? `গ্রহণকারী ${row.receiver}` : null
+                        );
+                      })
+                      .join("; "),
+            }))
           ),
-          en: "",
-        },
-        value:
-          one.nominees.length === 0
-            ? "কোনো নমিনি নেই"
-            : paperNominees(one, one.signedOn)
-                .map((nominee) => {
-                  const row = nomineeRowOf(nominee);
-                  return joined(
-                    row.name,
-                    row.relation,
-                    row.born ? `জন্ম ${row.born}` : null,
-                    row.phone,
-                    `অংশ ${row.share}`,
-                    row.receiver ? `গ্রহণকারী ${row.receiver}` : null
-                  );
-                })
-                .join("; "),
-      }))
-    ),
+        ]),
     facts(
       { bn: "আপনার চুক্তি", en: "Your Agreements" },
       money.agreements.map((one) => ({

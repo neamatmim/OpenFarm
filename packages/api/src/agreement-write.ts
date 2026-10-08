@@ -67,7 +67,7 @@ export const writeAgreement = async (
   await lockTheFarm(tx, farm.id);
   const signing = await tx.query.investor.findFirst({
     where: { id: agreement.investorId, farmId: farm.id },
-    columns: { retiredAt: true, isFarm: true },
+    columns: { retiredAt: true, isFarm: true, kind: true },
   });
   // The Farm's own Units are taken as its own capital, before anybody signs — never signed for as a person's.
   if (signing?.isFarm) {
@@ -171,6 +171,10 @@ export const writeAgreement = async (
     .where(
       and(eq(ventureTable.id, venture.id), isNull(ventureTable.windUpDays))
     );
+  // An Organisation names no Nominee, so its Agreement is no Nomination (ADR 0020).
+  if (signing?.kind === "organisation") {
+    return given;
+  }
   await nominationBySigning(tx, trail, {
     farmId: farm.id,
     investorId: agreement.investorId,

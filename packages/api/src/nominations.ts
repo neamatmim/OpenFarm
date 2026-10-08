@@ -53,6 +53,14 @@ export const nomineesInput = z
 // Agreement. Printed from the farm's wording for the list the Owner writes down, signed in front of the Owner, and
 // recorded with the day and a photo of it; then it is the list in force for all their Agreements.
 
+/** An Organisation's share is its own and outlives any Signatory: it names no Nominee and signs no মনোনয়নপত্র
+ *  (ADR 0020). */
+const namesNoNominee = () =>
+  refused(
+    "An Organisation names no Nominee: its share is its own",
+    "organisation_names_no_nominee"
+  );
+
 /** The Investor a মনোনয়নপত্র is for: on this farm, and not retired — a retired Investor signs nothing new. */
 const theirs = async (context: Owned, investorId: string) => {
   const them = await context.db.query.investor.findFirst({
@@ -61,6 +69,9 @@ const theirs = async (context: Owned, investorId: string) => {
   });
   if (!them) {
     throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
+  }
+  if (them.kind === "organisation") {
+    throw namesNoNominee();
   }
   if (them.retiredAt) {
     throw refused(
@@ -274,7 +285,7 @@ export const recordNomination = async (
 
 /**
  * The Nominees an Agreement names when it is signed: those the Owner wrote down on the sign sheet, or — sent none — the
- * list in force, as the paper printed it.
+ * list in force, as the paper printed it. None for an Organisation, which is refused any.
  */
 export const nomineesToSign = async (
   db: Pick<Tx, "query">,
@@ -282,6 +293,16 @@ export const nomineesToSign = async (
   investorId: string,
   given: readonly Nominee[] | undefined
 ): Promise<readonly Nominee[]> => {
+  const them = await db.query.investor.findFirst({
+    where: { id: investorId, farmId },
+    columns: { kind: true },
+  });
+  if (them?.kind === "organisation") {
+    if (given && given.length > 0) {
+      throw namesNoNominee();
+    }
+    return [];
+  }
   if (given) {
     return given;
   }
