@@ -1,6 +1,6 @@
 import { setTimeout as sleep } from "node:timers/promises";
 
-import type { Nominee } from "@OpenFarm/domain";
+import type { Nominee, PaperDocument } from "@OpenFarm/domain";
 import { paperText } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -77,6 +77,12 @@ const offeredAndAgreed = async (them: Them, nominees: Nominee[] = [WIFE]) => {
   });
   const theirs = await them.client.portal.nominationOffers();
   expect(theirs.map((one) => one.id)).toContain(id);
+  // Nobody signs it in ink: it says how it is agreed where a printed one has its signature boxes.
+  const paper = theirs.find((one) => one.id === id)?.paper;
+  expect(paper?.sections.some((one) => one.kind === "signatures")).toBe(false);
+  expect(paperText(paper as PaperDocument, "bn")).toContain(
+    "পোর্টালে এককালীন কোড দিয়ে সম্মতি"
+  );
   await them.client.portal.agreeToNomination({
     offerId: id,
     paperHash,

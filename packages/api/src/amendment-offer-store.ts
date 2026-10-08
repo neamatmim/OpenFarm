@@ -156,6 +156,7 @@ export const proposeAmendmentInApp = async (
     wording: wording.content,
     today: farmDayOf(now),
     producedAt: madeOn(now),
+    inTheApp: true,
   });
   const kept = keepPaper(paper);
   const id = uuidv7(now);

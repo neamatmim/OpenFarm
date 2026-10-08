@@ -123,6 +123,7 @@ export const offerNomination = async (
       today,
       wording,
       now,
+      inTheApp: true,
     })
   );
   const id = uuidv7(now);

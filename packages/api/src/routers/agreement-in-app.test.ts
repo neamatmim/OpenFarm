@@ -418,6 +418,13 @@ describe("an Agreement agreed in the app", () => {
     });
     const copyOf = inLanguage(document.copyOf ?? "", "en");
     expect(copyOf).toContain("Agreed in the app");
+    // Agreed in the app, nobody signed it in ink: no signature boxes, but how each party gave it.
+    expect(document.sections.some((one) => one.kind === "signatures")).toBe(
+      false
+    );
+    expect(
+      document.sections.find((one) => one.heading.en === "Agreed and approved")
+    ).toBeDefined();
     expect(copyOf).toContain(offer?.paperHash.slice(0, 12).toUpperCase());
     expect(copyOf).not.toMatch(/Stamp serial|Stamped/u);
     const stamp = document.sections.find((one) => one.kind === "stamp");
