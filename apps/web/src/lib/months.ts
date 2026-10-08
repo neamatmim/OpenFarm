@@ -64,9 +64,13 @@ export const financialYearName = (
     : t("years.oddLength", { name, months: year.months });
 };
 
+/** Whether an address names a month as the farm writes one, "YYYY-MM". */
+export const isAMonth = (value: unknown): value is string =>
+  typeof value === "string" && A_MONTH.test(value);
+
 /** The financial year an address names, by the month it begins in, "YYYY-MM"; nothing for one it does not name. */
 export const financialYearNamed = (value: unknown): string | undefined =>
-  typeof value === "string" && A_MONTH.test(value) ? value : undefined;
+  isAMonth(value) ? value : undefined;
 
 /** What a month holds, as far as whether it holds anything. */
 interface MonthFigures {

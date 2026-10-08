@@ -111,7 +111,7 @@ const MonthsPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/monthly-report")({
+export const Route = createFileRoute("/_authenticated/monthly-report/")({
   beforeLoad: onlyFor("owner"),
   // The financial year picked, by the month it begins in; nothing for the last twelve months.
   validateSearch: (search: Record<string, unknown>): { year?: string } => {

@@ -3822,6 +3822,42 @@ export const enCore = {
   "months.yearOverheads":
     "Running the farm over the year: {amount}, {perHead} a head a day over every animal here, the ventures' among them. Wages, rent and electricity: no side, season or venture above carries it.",
   "months.soFar": "so far",
+  "months.one.title": "Monthly report — {month}",
+  "months.one.subtitle":
+    "How the farm did in one month, beside the month before: the farm's own money, the milk, fattening and overheads.",
+  "months.one.whichMonth": "Which month",
+  "months.one.line": "Figure",
+  "months.one.money": "The farm's money",
+  "months.one.moneyHint":
+    "The farm's own money, added up as the accountant's summary adds it; categories and sides for this month only.",
+  "months.one.byCategory": "Category",
+  "months.one.bySide": "Side",
+  "months.one.wholeFarm": "Whole farm",
+  "months.one.noMoney": "The farm's money did not move this month.",
+  "months.one.dairy": "Dairy",
+  "months.one.dairyHint":
+    "Milk sold, what a liter fetched, and what the farm's own cows cost.",
+  "months.one.litersSold": "Liters sold",
+  "months.one.fetchedPerLiter": "Fetched a liter",
+  "months.one.litersToBulk": "Milk to bulk",
+  "months.one.costPerLiter": "Cost a liter",
+  "months.one.fattening": "Fattening",
+  "months.one.fatteningHint":
+    "What the farm's own fattening animals cost, and the whole-life margins of those sold this month.",
+  "months.one.sold": "Animals sold",
+  "months.one.margins": "Their margins",
+  "months.one.overheads": "Overheads",
+  "months.one.overheadsHint":
+    "What running the place cost, charged to no side; and what that came to a head a day.",
+  "months.one.overheadsAmount": "In the month",
+  "months.one.perHeadPerDay": "A head a day",
+  "months.one.venturesTitle": "Ventures",
+  "months.one.ventures":
+    "Each venture keeps its own accounts, so none are above; each has its own page.",
+  "months.one.noVentures": "No venture ran this month.",
+  "months.one.soFarTo": "so far, to {day}",
+  "months.one.notBegun": "This month has not begun.",
+  "months.one.noSuchMonth": "There is no such month.",
   "months.pair": "{first} · {second}",
   "months.cardMilk": "Milk sold {sold} · the dairy cows cost {cost}",
   "months.cardLiter": "A liter fetched {fetched} and cost {cost}",

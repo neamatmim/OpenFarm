@@ -3549,6 +3549,42 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.yearOverheads":
     "বছরে খামার চালানোর খরচ: {amount}, ভেঞ্চারের পশুসহ খামারের সব পশুর হিসাবে প্রতি পশু প্রতিদিন {perHead}। মজুরি, ভাড়া আর বিদ্যুৎ: ওপরের কোনো দিক, মৌসুম বা ভেঞ্চারের হিসাবে এটা ধরা নেই।",
   "months.soFar": "এখন পর্যন্ত",
+  "months.one.title": "মাসিক প্রতিবেদন — {month}",
+  "months.one.subtitle":
+    "এক মাসে খামার কেমন চলল, আগের মাসের পাশে: খামারের নিজের টাকা, দুধ, মোটাতাজাকরণ আর পরিচালন খরচ।",
+  "months.one.whichMonth": "কোন মাস",
+  "months.one.line": "হিসাব",
+  "months.one.money": "খামারের টাকা",
+  "months.one.moneyHint":
+    "খামারের নিজের টাকা, হিসাবরক্ষকের সারাংশ যেভাবে যোগ করে; খাত আর বিভাগ শুধু এই মাসের।",
+  "months.one.byCategory": "খাত",
+  "months.one.bySide": "বিভাগ",
+  "months.one.wholeFarm": "পুরো খামার",
+  "months.one.noMoney": "এই মাসে খামারের টাকা নড়েনি।",
+  "months.one.dairy": "দুগ্ধ",
+  "months.one.dairyHint":
+    "বিক্রি হওয়া দুধ, এক লিটারে কত পাওয়া গেল, আর খামারের নিজের গাভীদের খরচ।",
+  "months.one.litersSold": "বিক্রি হওয়া দুধ",
+  "months.one.fetchedPerLiter": "লিটারে পাওয়া",
+  "months.one.litersToBulk": "সংগ্রহে যাওয়া দুধ",
+  "months.one.costPerLiter": "লিটারে খরচ",
+  "months.one.fattening": "মোটাতাজাকরণ",
+  "months.one.fatteningHint":
+    "খামারের নিজের মোটাতাজাকরণের পশুর খরচ, আর এই মাসে বিক্রি হওয়াগুলোর পুরো জীবনের মার্জিন।",
+  "months.one.sold": "বিক্রি হওয়া পশু",
+  "months.one.margins": "তাদের মার্জিন",
+  "months.one.overheads": "পরিচালন খরচ",
+  "months.one.overheadsHint":
+    "খামার চালানোর খরচ, কোনো বিভাগে ধরা নয়; আর মাথাপিছু দিনে কত।",
+  "months.one.overheadsAmount": "মাসে মোট",
+  "months.one.perHeadPerDay": "মাথাপিছু দিনে",
+  "months.one.venturesTitle": "ভেঞ্চার",
+  "months.one.ventures":
+    "প্রতিটি ভেঞ্চার নিজের হিসাব নিজে রাখে, তাই ওপরে নেই; প্রতিটির নিজের পাতা আছে।",
+  "months.one.noVentures": "এই মাসে কোনো ভেঞ্চার চলেনি।",
+  "months.one.soFarTo": "{day} পর্যন্ত",
+  "months.one.notBegun": "এই মাস এখনো শুরু হয়নি।",
+  "months.one.noSuchMonth": "এমন কোনো মাস নেই।",
   "months.pair": "{first} · {second}",
   "months.cardMilk": "দুধ বিক্রি {sold} · দুগ্ধ গাভীর খরচ {cost}",
   "months.cardLiter": "লিটারে পাওয়া গেছে {fetched}, খরচ {cost}",
