@@ -170,6 +170,27 @@ describe("a missed Monthly Sum in the evening's post", () => {
     ]);
   });
 
+  it("is taken down by the evening's sweep once he pays the months he missed", async () => {
+    const showingOf = async (owner: Owner) => {
+      const mine = await owner.alerts.mine();
+      return mine.filter(
+        (one) =>
+          one.kind === "monthly_sum_missed" &&
+          one.entityId.startsWith(`${behind}|`)
+      );
+    };
+    const before = await asOwner("2076-03-21T04:00:00.000Z");
+    expect(await showingOf(before)).not.toEqual([]);
+
+    // February's and March's sums, three Units at ৳2,500, paid late in one transfer.
+    await pay(before, behind, 15_000);
+    await sweepOn("2076-03-21T15:00:00.000Z");
+
+    expect(await showingOf(await asOwner("2076-03-21T16:00:00.000Z"))).toEqual(
+      []
+    );
+  });
+
   it("is told to nobody but the Owner", async () => {
     const rows = await scratchDb().query.alert.findMany({
       where: { kind: "monthly_sum_missed" },

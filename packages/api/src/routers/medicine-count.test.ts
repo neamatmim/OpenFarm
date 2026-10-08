@@ -3,6 +3,7 @@ import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 // The monthly medicine count: every product on the Drug List counted in doses, blind, on the first Friday of the
@@ -98,12 +99,18 @@ const count = async (
     throw new Error("expected the monthly medicine count");
   }
   await manager.client.work.claim({ id: work.id });
-  return await manager.client.work.completeStep({
+  const done = await manager.client.work.completeStep({
     instanceId: work.id,
     stepId: "count",
     evidence: [true],
     medicineCounts,
   });
+  // The completion a Correction is made against: `completeStep` answers with the work and the Step, not its row.
+  const completion = await scratchDb().query.stepCompletion.findFirst({
+    where: { instanceId: work.id, stepId: "count" },
+    columns: { id: true },
+  });
+  return { ...done, completionId: completion?.id ?? "" };
 };
 
 const onHandOf = async (productId: string) => {
@@ -168,6 +175,31 @@ describe("the monthly medicine count", () => {
     expect(told).toEqual([
       { params: { shortMoney: 400, countedOn: "2084-04-07" } },
     ]);
+  });
+
+  it("takes the Owner's notice down when the count is put right to no shortfall", async () => {
+    // May's first Friday: four doses short at ৳100, past the ৳300 line.
+    const { completionId } = await count("2084-05-05", [
+      { drugProductId: oxy, counted: 1, reason: `ভুল গোনা ${suffix}` },
+      { drugProductId: dewormer, counted: 5 },
+    ]);
+    const owner = await as("owner", "2084-05-05T05:00:00.000Z");
+    const before = await owner.client.alerts.mine({ entityId: completionId });
+    expect(before.map((one) => one.kind)).toContain("medicine_short");
+
+    const again = await as("manager", "2084-05-05T06:00:00.000Z");
+    await correctStepAsShown(again.client, {
+      completionId,
+      reason: `আবার গোনা হলো, সব ঠিক আছে ${suffix}`,
+      evidence: [true],
+      medicineCounts: [
+        { drugProductId: oxy, counted: 5 },
+        { drugProductId: dewormer, counted: 5 },
+      ],
+    });
+
+    const after = await owner.client.alerts.mine({ entityId: completionId });
+    expect(after.map((one) => one.kind)).not.toContain("medicine_short");
   });
 
   it("is the Owner's line to move, not the Manager's", async () => {

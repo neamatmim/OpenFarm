@@ -11,6 +11,8 @@ import {
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { Tx } from "./audit";
+import { settleWhatIsSettled } from "./settled-notices";
+import type { Turning } from "./the-day-turns";
 import type { Quiet } from "./the-machinery-notices";
 import {
   backupGap,
@@ -137,6 +139,36 @@ describe("a monthly copy that failed", () => {
         now
       );
       expect(told.map((one) => one.userId)).toEqual([thePerson("owner").id]);
+    });
+  });
+
+  it("is taken down by the sweep once a monthly has worked since", async () => {
+    await inside(async (tx) => {
+      await aCopy(tx, "monthly-failed-then-good", 30, "no", "monthly");
+      const failed = await monthlyCopyFailed(tx, now);
+      await tellTheOwnerAboutTheMachinery(
+        tx,
+        farmId,
+        failed ? [failed] : [],
+        now
+      );
+      const showing = async () => {
+        const told = await toldTheOwner(tx, "monthly_copy_failed");
+        return told.filter((one) => one.dismissedAt === null);
+      };
+      expect(await showing()).toHaveLength(1);
+
+      // Tried again the next night, and it worked.
+      await aCopy(tx, "monthly-good-since", 6, "yes", "monthly");
+      // The sweep's own first step, on this transaction: the copy history is the whole database's, so a sweep through
+      // the API would read the copies other files have written.
+      const farm = await tx.query.farm.findFirst({ where: { id: farmId } });
+      if (!farm) {
+        throw new Error("expected this file's farm");
+      }
+      await settleWhatIsSettled({ db: tx, farm, clock } as unknown as Turning);
+
+      expect(await showing()).toEqual([]);
     });
   });
 
