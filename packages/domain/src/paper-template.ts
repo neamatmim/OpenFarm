@@ -253,7 +253,11 @@ const RULES: Record<TemplateKind, PaperRules> = {
     dated: true,
     signers: {
       investor: { bn: "বিনিয়োগকারী", en: "Investor" },
-      farm: { bn: "সামনে — মালিক", en: "Before — the Owner" },
+      // The Owner signs as witness to the Investor's own signature, as on the Portal Consent.
+      farm: {
+        bn: "মালিক (সামনে সই হয়েছে)",
+        en: "Owner (signed in my presence)",
+      },
       investorFirst: true,
     },
   },
@@ -862,6 +866,42 @@ const investorSigns = (role: Said, him: PaperInvestor) => {
   };
 };
 
+/**
+ * What a paper agreed in the app has where a printed one has its signature boxes (ADR 0022): each party and how they
+ * give it — every Investor with the one-time code the farm sends them, the Owner by approving it — and that the code is
+ * their signature, its proof kept by the farm. Nobody signs it on paper, so it shows no box to sign.
+ */
+const agreedInTheApp = (
+  signers: Signers,
+  parties: PaperParties
+): PaperSection => ({
+  kind: "facts",
+  heading: { bn: "সম্মতি ও অনুমোদন", en: "Agreed and approved" },
+  rows: [
+    ...parties.investors.map((him) => {
+      const signs = investorSigns(signers.investor, him);
+      return {
+        label: signs.role,
+        value: {
+          bn: `${signs.name} — পোর্টালে এককালীন কোড দিয়ে সম্মতি`,
+          en: `${signs.name} — agrees in the portal with a one-time code`,
+        },
+      };
+    }),
+    {
+      label: { bn: "মালিক", en: "Owner" },
+      value: {
+        bn: `${parties.ownerName} — অ্যাপে অনুমোদন`,
+        en: `${parties.ownerName} — approves it in the app`,
+      },
+    },
+  ],
+  note: {
+    bn: "এই কাগজে কালি-কলমে সই হয় না: খামারের পাঠানো এককালীন কোড পোর্টালে দেওয়াই বিনিয়োগকারীর সই, আর মালিক অনুমোদন দিলে তবেই এটি বহাল হয়। কে, কখন, কোন পথে কোড পেয়ে সম্মতি দিলেন, তার প্রমাণ খামার রাখে।",
+    en: "Nobody signs this paper in ink: entering the one-time code the farm sends is the Investor's signature, and it stands only once the Owner approves it. The farm keeps the proof of who agreed, when, and by which way the code came.",
+  },
+});
+
 /** The signature lines in the order they are signed: the Farm first, unless the paper is the Investor's to give. */
 const signingOrder = (signers: Signers, parties: PaperParties) => {
   const farm = { role: signers.farm, name: parties.ownerName };
@@ -1055,6 +1095,7 @@ export const paperFrom = (
     producedBy,
     producedAt,
     version,
+    inTheApp = false,
   }: {
     kind: TemplateKind;
     parties: PaperParties;
@@ -1063,6 +1104,9 @@ export const paperFrom = (
     /** When it was laid out, said in both languages. */
     producedAt: Said;
     version?: number;
+    /** Laid out to be agreed in the app (ADR 0022): nobody signs it, so it says how it is agreed in place of the
+     *  signature boxes. */
+    inTheApp?: boolean;
   }
 ): PaperDocument => {
   const rules = RULES[kind];
@@ -1084,7 +1128,9 @@ export const paperFrom = (
     title: filled(forThem.title, values),
     preamble: filled(forThem.preamble, values),
     sections: forThem.sections.map((section) =>
-      laidOut(section, values, parties, signers, rules.dated)
+      inTheApp && section.kind === "signatures" && signers
+        ? agreedInTheApp(signers, parties)
+        : laidOut(section, values, parties, signers, rules.dated)
     ),
     closing: rules.aboutMoney ? [NO_GUARANTEE] : [],
     produced: { bn: said("bn"), en: said("en") },

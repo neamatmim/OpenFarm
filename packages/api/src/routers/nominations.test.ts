@@ -192,6 +192,14 @@ describe("a মনোনয়নপত্র", () => {
     });
 
     expect(document.title.bn).toBe("মনোনয়নপত্র");
+    // Printed to sign in front of the Owner: their box says so, as the Portal Consent's does.
+    const signatures = document.sections.find(
+      (one) => one.kind === "signatures"
+    );
+    expect(
+      signatures?.kind === "signatures" &&
+        signatures.signers.map((one) => one.role.bn)
+    ).toContain("মালিক (সামনে সই হয়েছে)");
     const parties = document.sections.find((one) => one.kind === "parties");
     if (parties?.kind !== "parties") {
       throw new Error("expected the parties");

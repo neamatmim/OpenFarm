@@ -215,6 +215,7 @@ export const offerInApp = async (
     today,
     producedAt: madeOn(now),
     farmUnits: await farmUnitsOf(context.db, context.farm.id, run.id),
+    inTheApp: true,
   });
   const kept = keepPaper(paper);
   const id = uuidv7(now);

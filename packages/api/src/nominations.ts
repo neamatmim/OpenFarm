@@ -110,12 +110,15 @@ export const nominationLaidOut = (
     today,
     wording,
     now,
+    inTheApp = false,
   }: {
     them: Parameters<typeof paperInvestor>[0];
     nominees: readonly Nominee[];
     today: string;
     wording: { content: Parameters<typeof paperFrom>[0]; number: number };
     now: Date;
+    /** Kept to be agreed in the app rather than printed to sign. */
+    inTheApp?: boolean;
   }
 ): PaperDocument => {
   const him = paperInvestor(
@@ -137,6 +140,7 @@ export const nominationLaidOut = (
     producedBy: context.actor.name,
     producedAt: madeOn(now),
     version: wording.number,
+    inTheApp,
   });
 };
 

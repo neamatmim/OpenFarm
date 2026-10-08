@@ -671,7 +671,7 @@ describe("the মনোনয়নপত্র", () => {
     ]);
   });
 
-  it("is signed and dated by the Investor first, then by the Owner before whom he signed, with no stamp", () => {
+  it("is signed and dated by the Investor first, then by the Owner before whom they signed, with no stamp", () => {
     const document = laidOutFor([SALMA]);
     const signatures = document.sections.find(
       (section) => section.kind === "signatures"
@@ -682,7 +682,7 @@ describe("the মনোনয়নপত্র", () => {
 
     expect(signatures.signers.map((one) => one.role.en)).toEqual([
       "Investor",
-      "Before — the Owner",
+      "Owner (signed in my presence)",
     ]);
     expect(signatures.dateBlank).not.toBeNull();
     expect(document.sections.some((one) => one.kind === "stamp")).toBe(false);

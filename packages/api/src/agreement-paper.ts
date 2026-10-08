@@ -39,6 +39,7 @@ export const agreementLaidOut = ({
   today,
   producedAt,
   farmUnits = 0,
+  inTheApp = false,
 }: {
   farm: FarmIdentity & { windUpDays: number };
   ownerName: string;
@@ -64,6 +65,8 @@ export const agreementLaidOut = ({
   producedAt: Said;
   /** The Farm's own Units in the Venture: told to every Investor before they sign, where it holds any. */
   farmUnits?: number;
+  /** Kept to be agreed in the app rather than printed to sign: how it is agreed in place of the signature boxes. */
+  inTheApp?: boolean;
 }): PaperDocument => {
   const investor = paperInvestor(
     him,
@@ -100,6 +103,7 @@ export const agreementLaidOut = ({
       }),
       producedBy: ownerName,
       producedAt,
+      inTheApp,
     }
   );
 };
@@ -128,6 +132,7 @@ export const amendmentLaidOut = async (
     wording,
     today,
     producedAt,
+    inTheApp = false,
   }: {
     farm: FarmIdentity & { id: string };
     ownerName: string;
@@ -137,6 +142,8 @@ export const amendmentLaidOut = async (
     wording: TemplateContent;
     today: string;
     producedAt: Said;
+    /** Kept to be agreed in the app rather than printed to sign. */
+    inTheApp?: boolean;
   }
 ): Promise<{ document: PaperDocument; run: { id: string; name: string } }> => {
   const run = await db.query.venture.findFirst({
@@ -194,6 +201,7 @@ export const amendmentLaidOut = async (
     }),
     producedBy: ownerName,
     producedAt,
+    inTheApp,
   });
   return { document, run };
 };
