@@ -1,6 +1,7 @@
 import { portalOrigin } from "@OpenFarm/auth/hosts";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { farm } from "@OpenFarm/db/schema/farm";
+import type { InvestorKind } from "@OpenFarm/db/schema/venture";
 import { investor } from "@OpenFarm/db/schema/venture";
 import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -16,6 +17,7 @@ import { bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
 import {
   countedInvestors,
+  organisationOf,
   readInvestor,
   theSamePerson,
 } from "../investor-store";
@@ -71,6 +73,8 @@ const takenAwaySaid = (
 };
 
 const personInput = z.object({
+  /** Left out by every caller written before an Investor could be an Organisation: a person. */
+  kind: z.literal("person").optional(),
   name: z.string().trim().min(1).max(120),
   phone: z.string().trim().min(1).max(20),
   address: z.string().trim().max(200).optional(),
@@ -81,19 +85,45 @@ const personInput = z.object({
   bankAccount: z.string().trim().max(300).optional(),
 });
 
-const updateInput = personInput.extend({ id: z.string().min(1) });
+/** An Organisation (ADR 0020): its own name, address, papers and bank account, and the one Signatory it acts through,
+ *  whose mobile is the record's phone. */
+const organisationInput = z.object({
+  kind: z.literal("organisation"),
+  name: z.string().trim().min(1).max(120),
+  /** The Signatory's mobile: the farm reaches the Organisation on it, and the Signatory signs in to the portal with it. */
+  phone: z.string().trim().min(1).max(20),
+  address: z.string().trim().max(200).optional(),
+  bankAccount: z.string().trim().max(300).optional(),
+  tradeLicence: z.string().trim().max(40).optional(),
+  rjscNumber: z.string().trim().max(40).optional(),
+  tin: z.string().trim().max(40).optional(),
+  /** The paper that names the Signatory — a board resolution, a letter — as the Owner describes it, and its date. */
+  authority: z.string().trim().min(1).max(200),
+  authorityOn: z.iso.date().optional(),
+  signatoryName: z.string().trim().min(1).max(120),
+  signatoryNid: z.string().trim().max(40).optional(),
+  signatoryRole: z.string().trim().max(80).optional(),
+});
 
-/** Somebody the farm has written down already, said by what the Owner can do about it: a retired person is
+/** A person or an Organisation, as the Owner writes them down. */
+const investorInput = z.union([organisationInput, personInput]);
+
+const updateInput = z.union([
+  organisationInput.extend({ id: z.string().min(1) }),
+  personInput.extend({ id: z.string().min(1) }),
+]);
+
+/** Somebody the farm has written down already, said by what the Owner can do about it: a retired Investor is
  *  brought back rather than written down twice. */
 const alreadyHere = (retired: boolean) =>
   retired
     ? new ORPCError("BAD_REQUEST", {
         message:
-          "This person is already an Investor here, retired; restore them rather than writing them down twice",
+          "This Investor is already written down here, retired; restore them rather than writing them down twice",
         data: { refusal: "investor_retired" },
       })
     : new ORPCError("BAD_REQUEST", {
-        message: "This person is already an Investor here",
+        message: "This Investor is already written down here",
         data: { refusal: "investor_exists" },
       });
 
@@ -112,15 +142,42 @@ const nominationSaid = (nomination: NominationOnFile | null, today: string) =>
       }
     : null;
 
-/** Everything written down about one person, as a correction replaces it: a field left out is a field
- *  cleared, since the form sends the whole record as it now stands. */
-const theRecord = (input: z.infer<typeof personInput>) => ({
-  name: input.name,
-  phone: input.phone,
-  address: input.address ?? null,
-  nid: input.nid ?? null,
-  bankAccount: input.bankAccount ?? null,
-});
+/** Everything written down about one Investor, as a correction replaces it: a field left out is a field cleared, since
+ *  the form sends the whole record as it now stands. The other kind's columns are always empty. */
+const theRecord = (input: z.infer<typeof investorInput>) =>
+  input.kind === "organisation"
+    ? {
+        kind: input.kind,
+        name: input.name,
+        phone: input.phone,
+        address: input.address ?? null,
+        nid: null,
+        bankAccount: input.bankAccount ?? null,
+        tradeLicence: input.tradeLicence ?? null,
+        rjscNumber: input.rjscNumber ?? null,
+        tin: input.tin ?? null,
+        authority: input.authority,
+        authorityOn: input.authorityOn ?? null,
+        signatoryName: input.signatoryName,
+        signatoryNid: input.signatoryNid ?? null,
+        signatoryRole: input.signatoryRole ?? null,
+      }
+    : {
+        kind: "person" as const,
+        name: input.name,
+        phone: input.phone,
+        address: input.address ?? null,
+        nid: input.nid ?? null,
+        bankAccount: input.bankAccount ?? null,
+        tradeLicence: null,
+        rjscNumber: null,
+        tin: null,
+        authority: null,
+        authorityOn: null,
+        signatoryName: null,
+        signatoryNid: null,
+        signatoryRole: null,
+      };
 
 /** The farm's Investors, as the one way a list is kept keeps it: retired, never removed, because everything they
  *  signed and were paid is kept for twelve years and names them. The same person is found by name and phone, not by
@@ -172,6 +229,26 @@ const assertAPerson = async (
   });
   if (theFarm) {
     throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
+  }
+};
+
+/** Refuses turning a person into an Organisation or back: what they signed is worded for the one they were (ADR 0020).
+ *  One written down as the wrong kind is retired and written down again. */
+const assertTheSameKind = async (
+  context: { db: { query: Tx["query"] }; farm: { id: string } },
+  id: string,
+  kind: InvestorKind
+) => {
+  const row = await context.db.query.investor.findFirst({
+    where: { id, farmId: context.farm.id },
+    columns: { kind: true },
+  });
+  if (row && row.kind !== kind) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "A person stays a person and an Organisation an Organisation; retire this one and write them down again",
+      data: { refusal: "investor_kind_fixed" },
+    });
   }
 };
 
@@ -270,11 +347,14 @@ export const investorsRouter = {
         farmPartnerId: theFarm?.id ?? null,
         people: rows.map((one) => ({
           id: one.id,
+          kind: one.kind,
           name: one.name,
           phone: one.phone,
           address: one.address,
           nid: one.nid,
           bankAccount: one.bankAccount,
+          /** An Organisation's own papers, authority and Signatory; null for a person. */
+          organisation: organisationOf(one),
           /** Their Nominees in force — how the list came, the day, and each Nominee marked a minor or not today — or
            *  null for somebody who has never had one on file. */
           nomination: nominationSaid(nominations.get(one.id) ?? null, today),
@@ -412,13 +492,14 @@ export const investorsRouter = {
     ),
 
   /**
-   * One person recorded once, and reused for every Venture they join: name, phone, address, NID and the bank
-   * account they are paid into. Their Nominees are not written here: only a paper they sign names them.
+   * One Investor recorded once, and reused for every Venture they join. A person: name, phone, address, NID and the
+   * bank account they are paid into; their Nominees are not written here, since only a paper they sign names them. An
+   * Organisation: its own name, address, papers and bank account, its authority, and its Signatory (ADR 0020).
    */
   record: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
-    .input(personInput)
+    .input(investorInput)
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const already = await theSamePerson(context.db, context.farm.id, {
@@ -440,11 +521,7 @@ export const investorsRouter = {
           tx.insert(investor).values({
             id,
             farmId: context.farm.id,
-            name: input.name,
-            phone: input.phone,
-            address: input.address,
-            nid: input.nid,
-            bankAccount: input.bankAccount,
+            ...theRecord(input),
             recordedBy: context.actor.id,
             createdAt: now,
           })
@@ -453,9 +530,11 @@ export const investorsRouter = {
     }),
 
   /**
-   * What was written down about somebody, put right — a phone changed, a bank account moved. Never their
-   * Nominees, which only a paper they sign changes. The whole record as it now stands replaces the old one, and the trail keeps what it
-   * said before: a payout sent to an account that was typed over has to be traceable to who typed it.
+   * What was written down about somebody, put right — a phone changed, a bank account moved, a Signatory's NID typed
+   * again. Never their Nominees, which only a paper they sign changes, and never whether they are a person or an
+   * Organisation: their papers are worded for the one they signed as. The whole record as it now stands replaces the
+   * old one, and the trail keeps what it said before: a payout sent to an account that was typed over has to be
+   * traceable to who typed it.
    */
   update: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
@@ -463,6 +542,7 @@ export const investorsRouter = {
     .input(updateInput)
     .handler(async ({ context, input }) => {
       await assertAPerson(context, input.id);
+      await assertTheSameKind(context, input.id, input.kind ?? "person");
       const already = await theSamePerson(context.db, context.farm.id, {
         name: input.name,
         phone: input.phone,

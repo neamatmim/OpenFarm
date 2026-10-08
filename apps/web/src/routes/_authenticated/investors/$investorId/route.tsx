@@ -157,6 +157,13 @@ const TheInvestor = ({
             {standingOf(investor) === "none" ? null : (
               <PortalStandingBadge investor={investor} />
             )}
+            {investor.organisation ? (
+              <span>
+                {t("investors.signatoryIs", {
+                  name: investor.organisation.signatory.name,
+                })}
+              </span>
+            ) : null}
             <span className="inline-flex items-center gap-1">
               <Phone aria-hidden className="size-4" />
               {phoneLink(investor.phone)}

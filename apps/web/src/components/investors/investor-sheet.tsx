@@ -4,53 +4,112 @@ import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
 import type { Investor } from "@/components/investors/investor-types";
+import { SegmentedControl } from "@/components/page";
 import { FormField, FormSection, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
-interface Person {
+type Kind = Investor["kind"];
+
+/** Everything the form holds, for either kind: what a person has, what an Organisation and its Signatory have. */
+interface Draft {
+  kind: Kind;
   name: string;
   phone: string;
   address: string;
   nid: string;
   bankAccount: string;
+  tradeLicence: string;
+  rjscNumber: string;
+  tin: string;
+  authority: string;
+  authorityOn: string;
+  signatoryName: string;
+  signatoryNid: string;
+  signatoryRole: string;
 }
 
-const NOBODY_YET: Person = {
+const NOBODY_YET: Draft = {
+  kind: "person",
   name: "",
   phone: "",
   address: "",
   nid: "",
   bankAccount: "",
+  tradeLicence: "",
+  rjscNumber: "",
+  tin: "",
+  authority: "",
+  authorityOn: "",
+  signatoryName: "",
+  signatoryNid: "",
+  signatoryRole: "",
 };
 
 /** A field left blank is a field the Owner did not answer, not an empty answer. */
 const orNothing = (value: string) => (value.trim() === "" ? undefined : value);
 
 /** What the farm has written down about somebody, as the form starts from when it is put right. */
-const asWritten = (investor: Investor): Person => ({
+const asWritten = (investor: Investor): Draft => ({
+  kind: investor.kind,
   name: investor.name,
   phone: investor.phone,
   address: investor.address ?? "",
   nid: investor.nid ?? "",
   bankAccount: investor.bankAccount ?? "",
+  tradeLicence: investor.organisation?.tradeLicence ?? "",
+  rjscNumber: investor.organisation?.rjscNumber ?? "",
+  tin: investor.organisation?.tin ?? "",
+  authority: investor.organisation?.authority ?? "",
+  authorityOn: investor.organisation?.authorityOn ?? "",
+  signatoryName: investor.organisation?.signatory.name ?? "",
+  signatoryNid: investor.organisation?.signatory.nid ?? "",
+  signatoryRole: investor.organisation?.signatory.role ?? "",
 });
 
-/** The record as the form now has it, in the shape both writing somebody down and putting them right take. */
-const theRecord = (person: Person) => ({
-  name: person.name,
-  phone: person.phone,
-  address: orNothing(person.address),
-  nid: orNothing(person.nid),
-  bankAccount: orNothing(person.bankAccount),
-});
+/** The record as the form now has it, in the shape both writing somebody down and putting them right take: a
+ *  person's fields for a person, an Organisation's for an Organisation, never both. */
+const theRecord = (draft: Draft) =>
+  draft.kind === "organisation"
+    ? {
+        kind: "organisation" as const,
+        name: draft.name,
+        phone: draft.phone,
+        address: orNothing(draft.address),
+        bankAccount: orNothing(draft.bankAccount),
+        tradeLicence: orNothing(draft.tradeLicence),
+        rjscNumber: orNothing(draft.rjscNumber),
+        tin: orNothing(draft.tin),
+        authority: draft.authority,
+        authorityOn: orNothing(draft.authorityOn),
+        signatoryName: draft.signatoryName,
+        signatoryNid: orNothing(draft.signatoryNid),
+        signatoryRole: orNothing(draft.signatoryRole),
+      }
+    : {
+        kind: "person" as const,
+        name: draft.name,
+        phone: draft.phone,
+        address: orNothing(draft.address),
+        nid: orNothing(draft.nid),
+        bankAccount: orNothing(draft.bankAccount),
+      };
+
+/** Whether the form holds enough to write down: a name and a mobile, and for an Organisation its Signatory and the
+ *  paper that names them. */
+const isReady = (draft: Draft) =>
+  draft.name.trim() !== "" &&
+  draft.phone.trim() !== "" &&
+  (draft.kind === "person" ||
+    (draft.signatoryName.trim() !== "" && draft.authority.trim() !== ""));
 
 /**
  * One Investor, written down once and reused for every Venture they join — or, given one already on file, put
- * right. Never their Nominees: those are named on a paper the Investor signs, the Agreement or a মনোনয়নপত্র, and
- * shown on their page.
+ * right. A person, or an Organisation and its Signatory (ADR 0020), chosen when they are written down and not changed
+ * afterwards. Never a person's Nominees: those are named on a paper the Investor signs, the Agreement or a
+ * মনোনয়নপত্র, and shown on their page.
  */
 export const InvestorSheet = ({
   open,
@@ -64,14 +123,14 @@ export const InvestorSheet = ({
 }) => {
   const { t } = useLanguage();
   const refused = useRefused();
-  const [person, setPerson] = useState<Person>(NOBODY_YET);
+  const [draft, setDraft] = useState<Draft>(NOBODY_YET);
   // Started afresh each time the sheet opens, from what is on file now, so a correction abandoned half-typed
   // is not waiting there the next time, and one saved since is.
   const [wasOpen, setWasOpen] = useState(false);
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) {
-      setPerson(investor ? asWritten(investor) : NOBODY_YET);
+      setDraft(investor ? asWritten(investor) : NOBODY_YET);
     }
   }
   const done = (said: string) => {
@@ -90,7 +149,14 @@ export const InvestorSheet = ({
       onSuccess: () => done(t("investors.updated")),
     })
   );
-  const ready = person.name.trim() !== "" && person.phone.trim() !== "";
+  const ready = isReady(draft);
+  const organisation = draft.kind === "organisation";
+  /** One text field of the draft, as every input here is wired. */
+  const field = (key: Exclude<keyof Draft, "kind">) => ({
+    onChange: (event: { target: { value: string } }) =>
+      setDraft({ ...draft, [key]: event.target.value }),
+    value: draft[key],
+  });
   return (
     <FormSheet
       description={
@@ -99,8 +165,8 @@ export const InvestorSheet = ({
       onOpenChange={onOpenChange}
       onSubmit={() =>
         investor
-          ? correcting.mutate({ id: investor.id, ...theRecord(person) })
-          : recording.mutate(theRecord(person))
+          ? correcting.mutate({ id: investor.id, ...theRecord(draft) })
+          : recording.mutate(theRecord(draft))
       }
       open={open}
       pending={recording.isPending || correcting.isPending}
@@ -113,64 +179,206 @@ export const InvestorSheet = ({
       }
       wide
     >
-      <FormSection title={t("investors.section.who")}>
-        <FormField
-          className="sm:col-span-2"
-          id="investor-name"
-          label={t("investors.name")}
-        >
-          <Input
-            autoComplete="off"
+      {investor ? null : (
+        <FormSection title={t("investors.kind.question")}>
+          <div className="flex sm:col-span-2">
+            <SegmentedControl
+              label={t("investors.kind.question")}
+              name="investor-kind"
+              onChange={(kind) => setDraft({ ...draft, kind })}
+              options={[
+                { value: "person", label: t("investors.kind.person") },
+                {
+                  value: "organisation",
+                  label: t("investors.kind.organisation"),
+                },
+              ]}
+              value={draft.kind}
+            />
+          </div>
+        </FormSection>
+      )}
+      {organisation ? (
+        <>
+          <FormSection title={t("investors.section.organisation")}>
+            <FormField
+              className="sm:col-span-2"
+              id="investor-name"
+              label={t("investors.organisationName")}
+            >
+              <Input
+                autoComplete="off"
+                id="investor-name"
+                maxLength={120}
+                required
+                {...field("name")}
+              />
+            </FormField>
+            <FormField
+              id="investor-trade-licence"
+              label={t("investors.tradeLicence")}
+            >
+              <Input
+                autoComplete="off"
+                id="investor-trade-licence"
+                maxLength={40}
+                {...field("tradeLicence")}
+              />
+            </FormField>
+            <FormField id="investor-rjsc" label={t("investors.rjscNumber")}>
+              <Input
+                autoComplete="off"
+                id="investor-rjsc"
+                maxLength={40}
+                {...field("rjscNumber")}
+              />
+            </FormField>
+            <FormField id="investor-tin" label={t("investors.tin")}>
+              <Input
+                autoComplete="off"
+                id="investor-tin"
+                inputMode="numeric"
+                maxLength={40}
+                {...field("tin")}
+              />
+            </FormField>
+            <FormField
+              className="sm:col-span-2"
+              id="investor-address"
+              label={t("investors.address")}
+            >
+              <Textarea
+                autoComplete="off"
+                id="investor-address"
+                maxLength={200}
+                rows={2}
+                {...field("address")}
+              />
+            </FormField>
+          </FormSection>
+          <FormSection
+            description={t("investors.signatoryHint")}
+            title={t("investors.section.signatory")}
+          >
+            <FormField
+              className="sm:col-span-2"
+              id="investor-signatory-name"
+              label={t("investors.signatoryName")}
+            >
+              <Input
+                autoComplete="off"
+                id="investor-signatory-name"
+                maxLength={120}
+                required
+                {...field("signatoryName")}
+              />
+            </FormField>
+            <FormField
+              id="investor-signatory-role"
+              label={t("investors.signatoryRole")}
+            >
+              <Input
+                autoComplete="off"
+                id="investor-signatory-role"
+                maxLength={80}
+                placeholder={t("investors.signatoryRolePlaceholder")}
+                {...field("signatoryRole")}
+              />
+            </FormField>
+            <FormField
+              id="investor-phone"
+              label={t("investors.signatoryPhone")}
+            >
+              <Input
+                id="investor-phone"
+                inputMode="tel"
+                maxLength={20}
+                required
+                {...field("phone")}
+              />
+            </FormField>
+            <FormField
+              id="investor-signatory-nid"
+              label={t("investors.signatoryNid")}
+            >
+              <Input
+                autoComplete="off"
+                id="investor-signatory-nid"
+                inputMode="numeric"
+                maxLength={40}
+                {...field("signatoryNid")}
+              />
+            </FormField>
+            <FormField id="investor-authority" label={t("investors.authority")}>
+              <Input
+                autoComplete="off"
+                id="investor-authority"
+                maxLength={200}
+                placeholder={t("investors.authorityPlaceholder")}
+                required
+                {...field("authority")}
+              />
+            </FormField>
+            <FormField
+              id="investor-authority-on"
+              label={t("investors.authorityOn")}
+            >
+              <Input
+                id="investor-authority-on"
+                type="date"
+                {...field("authorityOn")}
+              />
+            </FormField>
+          </FormSection>
+        </>
+      ) : (
+        <FormSection title={t("investors.section.who")}>
+          <FormField
+            className="sm:col-span-2"
             id="investor-name"
-            maxLength={120}
-            onChange={(event) =>
-              setPerson({ ...person, name: event.target.value })
-            }
-            required
-            value={person.name}
-          />
-        </FormField>
-        <FormField id="investor-phone" label={t("investors.phone")}>
-          <Input
-            id="investor-phone"
-            inputMode="tel"
-            maxLength={20}
-            onChange={(event) =>
-              setPerson({ ...person, phone: event.target.value })
-            }
-            required
-            value={person.phone}
-          />
-        </FormField>
-        <FormField id="investor-nid" label={t("investors.nid")}>
-          <Input
-            autoComplete="off"
-            id="investor-nid"
-            inputMode="numeric"
-            maxLength={40}
-            onChange={(event) =>
-              setPerson({ ...person, nid: event.target.value })
-            }
-            value={person.nid}
-          />
-        </FormField>
-        <FormField
-          className="sm:col-span-2"
-          id="investor-address"
-          label={t("investors.address")}
-        >
-          <Textarea
-            autoComplete="off"
+            label={t("investors.name")}
+          >
+            <Input
+              autoComplete="off"
+              id="investor-name"
+              maxLength={120}
+              required
+              {...field("name")}
+            />
+          </FormField>
+          <FormField id="investor-phone" label={t("investors.phone")}>
+            <Input
+              id="investor-phone"
+              inputMode="tel"
+              maxLength={20}
+              required
+              {...field("phone")}
+            />
+          </FormField>
+          <FormField id="investor-nid" label={t("investors.nid")}>
+            <Input
+              autoComplete="off"
+              id="investor-nid"
+              inputMode="numeric"
+              maxLength={40}
+              {...field("nid")}
+            />
+          </FormField>
+          <FormField
+            className="sm:col-span-2"
             id="investor-address"
-            maxLength={200}
-            onChange={(event) =>
-              setPerson({ ...person, address: event.target.value })
-            }
-            rows={2}
-            value={person.address}
-          />
-        </FormField>
-      </FormSection>
+            label={t("investors.address")}
+          >
+            <Textarea
+              autoComplete="off"
+              id="investor-address"
+              maxLength={200}
+              rows={2}
+              {...field("address")}
+            />
+          </FormField>
+        </FormSection>
+      )}
       <FormSection
         description={t("investors.bankHint")}
         title={t("investors.section.money")}
@@ -185,12 +393,9 @@ export const InvestorSheet = ({
             className="min-h-24"
             id="investor-bank"
             maxLength={300}
-            onChange={(event) =>
-              setPerson({ ...person, bankAccount: event.target.value })
-            }
             placeholder={t("investors.bankPlaceholder")}
             rows={4}
-            value={person.bankAccount}
+            {...field("bankAccount")}
           />
         </FormField>
       </FormSection>

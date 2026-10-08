@@ -831,6 +831,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.cashBackNeedsASlip":
     "ফেরত আসা {currencyOf} জমার তারিখ আর স্লিপ নম্বর দিন",
   "nominees.title": "নমিনি",
+  "nominees.noneForAnOrganisation":
+    "প্রতিষ্ঠান কোনো নমিনি দেয় না: তার অংশ তারই, যিনিই সই করুন",
   "nominees.hint":
     "ভেঞ্চারের হিসাব শেষ হওয়ার আগে তিনি মারা গেলে যাঁরা তাঁর মূলধন ও প্রাপ্য সংগ্রহ করে আইনগত উত্তরাধিকারীদের বুঝিয়ে দেবেন। শুধু তাঁর সই করা কাগজেই বদলায়।",
   "nominees.none": "কোনো নমিনি নেই",
@@ -1955,6 +1957,9 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "একসাথে যতজন বিনিয়োগকারী রাখা যায়, খামারে এখন ততজনই আছেন",
   "refusal.investorExists":
     "এই নাম আর এই ফোন নম্বরে একজন বিনিয়োগকারী আগেই লেখা আছে",
+  "refusal.organisationNamesNoNominee": "প্রতিষ্ঠান কোনো নমিনি দেয় না: তার অংশ তারই",
+  "refusal.investorKindFixed":
+    "ব্যক্তি ব্যক্তিই থাকেন, প্রতিষ্ঠান প্রতিষ্ঠানই থাকে। এটিকে বাদ দিয়ে নতুন করে লিখুন।",
   "refusal.investorAlreadySigned": "এই বিনিয়োগকারী এই ভেঞ্চারে আগেই সই করেছেন",
   "refusal.expiredWhenBought": "এই লটের মেয়াদ কেনার আগেই শেষ হয়ে গিয়েছিল",
   "refusal.noFarmLossToCover": "এই ভেঞ্চারে খামারের বহন করার মতো কোনো লোকসান হয়নি",

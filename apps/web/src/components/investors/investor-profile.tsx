@@ -330,6 +330,62 @@ const PortalActivity = ({ investor }: { investor: Investor }) => {
 };
 
 /**
+ * An Organisation as the farm wrote it down (ADR 0020): the Organisation and its own papers, then the one Signatory it
+ * acts through and the paper that names them — the mobile on the record is the Signatory's.
+ */
+const OrganisationCards = ({
+  investor,
+  organisation,
+}: {
+  investor: Investor;
+  organisation: NonNullable<Investor["organisation"]>;
+}) => {
+  const { t, language } = useLanguage();
+  return (
+    <>
+      <DetailCard title={t("investors.section.organisation")}>
+        <Detail label={t("investors.organisationName")} wide>
+          {investor.name}
+        </Detail>
+        <Detail label={t("investors.tradeLicence")}>
+          {organisation.tradeLicence}
+        </Detail>
+        <Detail label={t("investors.rjscNumber")}>
+          {organisation.rjscNumber}
+        </Detail>
+        <Detail label={t("investors.tin")}>{organisation.tin}</Detail>
+        <Detail label={t("investors.address")}>{investor.address}</Detail>
+      </DetailCard>
+      <DetailCard title={t("investors.section.signatory")}>
+        <Detail label={t("investors.signatoryName")}>
+          {organisation.signatory.name}
+        </Detail>
+        <Detail label={t("investors.signatoryRole")}>
+          {organisation.signatory.role}
+        </Detail>
+        <Detail label={t("investors.signatoryPhone")}>
+          {phoneLink(investor.phone)}
+        </Detail>
+        <Detail label={t("investors.signatoryNid")}>
+          {organisation.signatory.nid}
+        </Detail>
+        <Detail label={t("investors.authority")} wide>
+          {organisation.authorityOn
+            ? t("investors.authorityDated", {
+                paper: organisation.authority,
+                day: formatDate(
+                  new Date(`${organisation.authorityOn}T00:00:00Z`),
+                  language
+                ),
+              })
+            : organisation.authority}
+        </Detail>
+      </DetailCard>
+    </>
+  );
+};
+
+/**
  * Everything the farm holds about who one Investor is, in the parts it was written in — who they are, where their
  * money goes, and their nominee — with their way into the portal beside it, and whether the farm may still sign
  * them.
@@ -350,14 +406,21 @@ export const InvestorProfile = ({
   return (
     <div className="grid items-start gap-4 lg:grid-cols-3">
       <div className="flex flex-col gap-4 lg:col-span-2">
-        <DetailCard title={t("investors.section.who")}>
-          <Detail label={t("investors.name")}>{investor.name}</Detail>
-          <Detail label={t("investors.phone")}>
-            {phoneLink(investor.phone)}
-          </Detail>
-          <Detail label={t("investors.nid")}>{investor.nid}</Detail>
-          <Detail label={t("investors.address")}>{investor.address}</Detail>
-        </DetailCard>
+        {investor.organisation ? (
+          <OrganisationCards
+            investor={investor}
+            organisation={investor.organisation}
+          />
+        ) : (
+          <DetailCard title={t("investors.section.who")}>
+            <Detail label={t("investors.name")}>{investor.name}</Detail>
+            <Detail label={t("investors.phone")}>
+              {phoneLink(investor.phone)}
+            </Detail>
+            <Detail label={t("investors.nid")}>{investor.nid}</Detail>
+            <Detail label={t("investors.address")}>{investor.address}</Detail>
+          </DetailCard>
+        )}
         <DetailCard title={t("investors.section.money")}>
           <Detail label={t("investors.bank")} wide>
             {investor.bankAccount ? (
@@ -365,7 +428,8 @@ export const InvestorProfile = ({
             ) : null}
           </Detail>
         </DetailCard>
-        <Nominees investor={investor} />
+        {/* An Organisation names no Nominee: its share is its own (ADR 0020). */}
+        {investor.organisation ? null : <Nominees investor={investor} />}
       </div>
       <div className="flex flex-col gap-4">
         <Section description={t("portal.recordHint")} title={t("portal.title")}>

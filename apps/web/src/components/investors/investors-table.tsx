@@ -36,10 +36,29 @@ const RetiredBadge = ({ investor }: { investor: Investor }) => {
   ) : null;
 };
 
-/** Who they are, and where they live under it — what the Owner recognises somebody by. The name leads to their own
- *  page, as a Tag Number leads to an animal's: a link, so it opens in a tab of its own as well. */
+/** An Organisation's Signatory as one short line — "for it: their name, their role" — or nothing for a person. */
+const signatorySaid = (
+  investor: Investor,
+  t: ReturnType<typeof useLanguage>["t"]
+) => {
+  const signatory = investor.organisation?.signatory;
+  if (!signatory) {
+    return null;
+  }
+  return t("investors.signatoryIs", {
+    name: signatory.role
+      ? `${signatory.name}, ${signatory.role}`
+      : signatory.name,
+  });
+};
+
+/** Who they are, and where they live under it — what the Owner recognises somebody by; for an Organisation, the
+ *  Signatory she deals with first. The name leads to their own page, as a Tag Number leads to an animal's: a link, so
+ *  it opens in a tab of its own as well. */
 const NameCell = ({ row }: Cell) => {
+  const { t } = useLanguage();
   const { investor } = row.original;
+  const signatory = signatorySaid(investor, t);
   return (
     <Link
       className="group flex min-w-0 flex-col gap-0.5 text-start outline-none"
@@ -52,6 +71,9 @@ const NameCell = ({ row }: Cell) => {
         </span>
         <RetiredBadge investor={investor} />
       </span>
+      {signatory ? (
+        <span className="text-muted-foreground text-sm">{signatory}</span>
+      ) : null}
       {investor.address ? (
         <span className="text-muted-foreground text-sm">
           {investor.address}
@@ -206,6 +228,7 @@ const InvestorCard = ({ row }: { row: InvestorRow }) => {
         <PortalStandingLine investor={investor} />
         <span className="text-muted-foreground text-xs">
           {[
+            signatorySaid(investor, t),
             investor.phone,
             investor.address,
             firstNominee(investor)
