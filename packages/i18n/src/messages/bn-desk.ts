@@ -570,6 +570,15 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "agreeInApp.ready.both": "অ্যাপে সম্মতি দিতে পারবেন: কোড যাবে এসএমএস আর ইমেইলে।",
   "agreeInApp.ready.sms": "অ্যাপে সম্মতি দিতে পারবেন: কোড যাবে এসএমএসে।",
   "agreeInApp.ready.email": "অ্যাপে সম্মতি দিতে পারবেন: কোড যাবে ইমেইলে।",
+  "agreeInApp.portal.withdraw": "সম্মতি ফিরিয়ে নিন",
+  "agreeInApp.portal.withdrawTitle": "আপনার সম্মতি ফিরিয়ে নেবেন?",
+  "agreeInApp.portal.withdrawWhy":
+    "খামার অনুমোদন দেওয়ার আগ পর্যন্ত আপনার সম্মতি আপনি ফিরিয়ে নিতে পারেন। ফিরিয়ে নিলে কাগজটি আবার আপনার সম্মতির অপেক্ষায় থাকবে; চাইলে নতুন কোড দিয়ে আবার সম্মতি দিতে পারবেন।",
+  "agreeInApp.portal.withdrawn": "আপনার সম্মতি ফিরিয়ে নেওয়া হয়েছে",
+  "agreeInApp.portal.withdrawTooLate":
+    "খামার এরই মধ্যে অনুমোদন দিয়েছে; এটি এখন আপনার চুক্তির অংশ।",
+  "agreeInApp.agreementWithdrawn": "বিনিয়োগকারী সম্মতি ফিরিয়ে নিয়েছেন {on}",
+  "agreeInApp.agreementWithdrawnBy": "{name} সম্মতি ফিরিয়ে নিয়েছেন {on}",
   "agreeInApp.portal.agree": "আমি সম্মত",
   "agreeInApp.portal.agreedDone": "আপনার সম্মতি খামারে পৌঁছেছে",
   "agreeInApp.how": "কীভাবে সম্মতি",

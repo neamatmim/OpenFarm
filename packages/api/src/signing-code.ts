@@ -334,6 +334,26 @@ export const keepProof = async (
   });
 };
 
+/** Marks the proof of their standing agreement to one paper withdrawn, in the transaction that withdraws it. */
+export const proofWithdrawn = async (
+  tx: Tx,
+  now: Date,
+  investorId: string,
+  offer: { kind: SignedOfferKind; id: string }
+) => {
+  await tx
+    .update(signingProof)
+    .set({ withdrawnAt: now })
+    .where(
+      and(
+        eq(signingProof.offerKind, offer.kind),
+        eq(signingProof.offerId, offer.id),
+        eq(signingProof.investorId, investorId),
+        isNull(signingProof.withdrawnAt)
+      )
+    );
+};
+
 /** The proof kept for each Investor who agreed to one paper, as the Owner and the Data Copy read it. */
 export const proofsOf = (
   db: Pick<Tx, "query">,
@@ -341,7 +361,13 @@ export const proofsOf = (
   offer: { kind: SignedOfferKind; id: string }
 ) =>
   db.query.signingProof.findMany({
-    where: { farmId, offerKind: offer.kind, offerId: offer.id },
+    // Each standing agreement's: one withdrawn since is kept, and stands for nothing.
+    where: {
+      farmId,
+      offerKind: offer.kind,
+      offerId: offer.id,
+      withdrawnAt: { isNull: true },
+    },
     orderBy: { agreedAt: "asc", id: "asc" },
   });
 

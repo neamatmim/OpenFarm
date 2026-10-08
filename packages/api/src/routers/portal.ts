@@ -7,11 +7,13 @@ import {
   agreeToOffer,
   offerToAgree,
   theirOffers,
+  withdrawAgreementToOffer,
 } from "../agreement-offer-store";
 import {
   agreeToAmendment,
   amendmentToAgree,
   theirAmendmentOffers,
+  withdrawAgreementToAmendment,
 } from "../amendment-offer-store";
 import { protectedProcedure, publicProcedure } from "../index";
 import { confirmEmail, sendEmailCode } from "../investor-email";
@@ -268,6 +270,19 @@ export const portalRouter = {
     )
     .handler(async ({ context, input }) => {
       await agreeToOffer(context, context.investor.id, input);
+      return { id: input.offerId };
+    }),
+
+  /** Taking back their agreement to a paper before the Owner approves it (`withdrawAgreementToOffer`,
+   *  `withdrawAgreementToAmendment`). */
+  withdrawAgreement: investorProcedure
+    .input(z.object({ kind: z.enum(SIGNED_OFFER_KINDS), offerId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const withdraw =
+        input.kind === "agreement_offer"
+          ? withdrawAgreementToOffer
+          : withdrawAgreementToAmendment;
+      await withdraw(context, context.investor.id, input.offerId);
       return { id: input.offerId };
     }),
 

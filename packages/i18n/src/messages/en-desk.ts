@@ -614,6 +614,15 @@ export const enDesk = {
   "agreeInApp.ready.both": "Can agree in the app: codes go by text and email.",
   "agreeInApp.ready.sms": "Can agree in the app: codes go by text.",
   "agreeInApp.ready.email": "Can agree in the app: codes go by email.",
+  "agreeInApp.portal.withdraw": "Withdraw my agreement",
+  "agreeInApp.portal.withdrawTitle": "Withdraw your agreement?",
+  "agreeInApp.portal.withdrawWhy":
+    "Until the farm approves it, your agreement is yours to take back. Withdrawn, the paper waits on you again, and you may agree to it again with a new code.",
+  "agreeInApp.portal.withdrawn": "Your agreement is withdrawn",
+  "agreeInApp.portal.withdrawTooLate":
+    "The farm has approved it already; it is part of your Agreement now.",
+  "agreeInApp.agreementWithdrawn": "The Investor withdrew their agreement {on}",
+  "agreeInApp.agreementWithdrawnBy": "{name} withdrew their agreement {on}",
   "agreeInApp.portal.agree": "I agree",
   "agreeInApp.portal.agreedDone": "Your agreement has reached the farm",
   "agreeInApp.how": "How it is agreed",

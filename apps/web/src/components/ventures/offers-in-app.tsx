@@ -97,6 +97,18 @@ const OfferLine = ({ offer }: { offer: Offer }) => {
         </span>
         {/* An answer cached before the farm kept proofs has none. */}
         {offer.proof ? <ProofLine proof={offer.proof} /> : null}
+        {/* Waiting on them again because they took their agreement back: said, so it is no surprise. */}
+        {!agreed && offer.agreementWithdrawnAt ? (
+          <span className="text-muted-foreground text-xs">
+            {t("agreeInApp.agreementWithdrawn", {
+              on: formatDate(
+                new Date(offer.agreementWithdrawnAt),
+                language,
+                "dateTime"
+              ),
+            })}
+          </span>
+        ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge tone={agreed ? "success" : "info"}>
@@ -209,6 +221,17 @@ const AmendmentLine = ({ offer }: { offer: AmendmentOffer }) => {
             name={nameOf(proof.investorId)}
             proof={proof}
           />
+        ))}
+        {(offer.withdrawals ?? []).map((one) => (
+          <span
+            className="text-muted-foreground text-xs"
+            key={`${one.investorId}-${String(one.withdrawnAt)}`}
+          >
+            {t("agreeInApp.agreementWithdrawnBy", {
+              name: nameOf(one.investorId),
+              on: formatDate(new Date(one.withdrawnAt), language, "dateTime"),
+            })}
+          </span>
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2">
