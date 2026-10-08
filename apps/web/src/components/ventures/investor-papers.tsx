@@ -144,6 +144,7 @@ export const useInvestorPapers = () => {
       copying.isPending ||
       seeing.isPending,
     produced,
+    closeProduced: () => setProduced(null),
     askCopy: (agreementId: string) => copying.mutate({ agreementId }),
     copy,
     closeCopy: () => setCopy(null),
@@ -192,6 +193,46 @@ export const ProducedPaper = ({ produced }: { produced: Produced }) => {
         }))}
       />
     </div>
+  );
+};
+
+/** What each statement is called, by the kind it is. */
+const STATEMENT_WORD = Object.fromEntries(
+  PAPER_KINDS.map((one) => [one.kind, one.label])
+) as Record<StatementKind, MessageKey>;
+
+/**
+ * A statement in a dialog over the page it was asked from, as the Agreement's copy is: read and printed there in the
+ * language its switch shows, and gone when closed — never left standing under a table it was not made for.
+ */
+export const StatementDialog = ({
+  papers,
+}: {
+  papers: ReturnType<typeof useInvestorPapers>;
+}) => {
+  const { t } = useLanguage();
+  const { produced, closeProduced } = papers;
+  return (
+    <Dialog
+      onOpenChange={(open) => {
+        if (!open) {
+          closeProduced();
+        }
+      }}
+      open={produced !== null}
+    >
+      <DialogContent
+        className="max-h-[90vh] overflow-y-auto sm:max-w-4xl"
+        closeLabel={t("common.close")}
+      >
+        <DialogHeader>
+          <DialogTitle>
+            {produced ? t(STATEMENT_WORD[produced.kind]) : ""}
+          </DialogTitle>
+        </DialogHeader>
+        {produced ? <ProducedPaper produced={produced} /> : null}
+      </DialogContent>
+    </Dialog>
   );
 };
 

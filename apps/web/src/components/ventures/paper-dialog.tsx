@@ -1,6 +1,6 @@
 import type { PaperDocument } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
-import { formatDate, translate } from "@OpenFarm/i18n";
+import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
   Dialog,
@@ -56,6 +56,10 @@ const WordingLine = ({ wording }: { wording: WordingSaid }) => {
   );
 };
 
+/** Each language by its own name, whichever the app is read in: written here, not looked up, since the browser holds
+ *  only the reader's own language's words. */
+const LANGUAGE_NAMES: Record<Language, string> = { bn: "বাংলা", en: "English" };
+
 /**
  * Which language a paper is read in: বাংলা or English, never both on one paper (ADR 0021). Each choice is its name in
  * its own language, as the app's own language button is, so it reads rightly to a screen reader in either.
@@ -88,14 +92,14 @@ export const PaperLanguageSwitch = ({
         lang="bn"
         value="bn"
       >
-        {translate("bn", "language.bn")}
+        {LANGUAGE_NAMES.bn}
       </ToggleGroupItem>
       <ToggleGroupItem
         className="aria-pressed:bg-primary aria-pressed:text-primary-foreground px-3"
         lang="en"
         value="en"
       >
-        {translate("en", "language.en")}
+        {LANGUAGE_NAMES.en}
       </ToggleGroupItem>
     </ToggleGroup>
   );

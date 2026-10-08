@@ -1,5 +1,5 @@
 import type { Language } from "@OpenFarm/i18n";
-import { formatDate, formatDigits, translate } from "@OpenFarm/i18n";
+import { formatDate, formatDigits } from "@OpenFarm/i18n";
 
 import type { Said } from "./papers";
 
@@ -206,17 +206,38 @@ export const daySaid = (farmDay: string): Said => ({
   en: dayIn(farmDay, "en"),
 });
 
-/** The relations a form offers, kept as their Bangla words: the ones a paper read in English can say in English. */
-const USUAL_RELATIONS = [
-  "wife",
-  "husband",
-  "son",
-  "daughter",
-  "father",
-  "mother",
-  "brother",
-  "sister",
-] as const;
+/**
+ * The relations a form offers, by name, and the words each is kept and printed in: kept as its Bangla word whatever
+ * language the form was filled in, and printed in English on a paper read in English. Data, not a screen's label — the
+ * form names them from the same words, so a browser that holds only one language's catalog still keeps the Bangla.
+ */
+export const RELATION_WORDS = {
+  wife: { bn: "স্ত্রী", en: "Wife" },
+  husband: { bn: "স্বামী", en: "Husband" },
+  son: { bn: "ছেলে", en: "Son" },
+  daughter: { bn: "মেয়ে", en: "Daughter" },
+  father: { bn: "বাবা", en: "Father" },
+  mother: { bn: "মা", en: "Mother" },
+  brother: { bn: "ভাই", en: "Brother" },
+  sister: { bn: "বোন", en: "Sister" },
+} as const satisfies Record<string, Said>;
+
+export type Relation = keyof typeof RELATION_WORDS;
+
+/** Which usual relation a kept word is: its Bangla word — or its English, which a form in English kept until
+ *  2026-10-08 — or none. */
+export const relationOf = (
+  word: string | null | undefined
+): Relation | null => {
+  const kept = filledIn(word);
+  if (!kept) {
+    return null;
+  }
+  const found = Object.entries(RELATION_WORDS).find(
+    ([, said]) => said.bn === kept || said.en === kept
+  );
+  return found ? (found[0] as Relation) : null;
+};
 
 /** A relation as a paper says it: one of the usual ones in each language, and any other in the words it was written in,
  *  which both readings print as they are. */
@@ -225,13 +246,8 @@ export const relationSaid = (word: string | null): Said | null => {
   if (!kept) {
     return null;
   }
-  const usual = USUAL_RELATIONS.find(
-    (relation) => translate("bn", `investors.relation.${relation}`) === kept
-  );
-  return {
-    bn: kept,
-    en: usual ? translate("en", `investors.relation.${usual}`) : kept,
-  };
+  const usual = relationOf(kept);
+  return usual ? RELATION_WORDS[usual] : { bn: kept, en: kept };
 };
 
 /** The Receiver as one line, in both languages: their name, their relation to the Nominee in brackets, then a phone

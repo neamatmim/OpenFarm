@@ -34,7 +34,7 @@ import type { StatementKind } from "@/components/ventures/investor-papers";
 import {
   AgreementAgain,
   PAPER_KINDS,
-  ProducedPaper,
+  StatementDialog,
   useInvestorPapers,
 } from "@/components/ventures/investor-papers";
 import {
@@ -660,11 +660,7 @@ export const VentureInvestors = ({
         open={farmTaking}
         venture={farmTaking ? venture : null}
       />
-      {papers.produced ? (
-        <div className="mt-4">
-          <ProducedPaper produced={papers.produced} />
-        </div>
-      ) : null}
+      <StatementDialog papers={papers} />
       <AgreementAgain papers={papers} />
     </Section>
   );
