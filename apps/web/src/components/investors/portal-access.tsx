@@ -63,6 +63,7 @@ const REFUSALS = {
   withdrawn_in_the_future: "portal.refused.withdrawnInTheFuture",
   withdrawn_before_signed: "portal.refused.withdrawnBeforeSigned",
   letter_handed_over: "portal.refused.letterHandedOver",
+  portal_closed: "portal.refused.inviteWhileShut",
 } as const;
 
 /** Where an Investor stands with the portal, as a word with its color, in the order the list sorts them. */
@@ -169,14 +170,18 @@ export const PortalStandingLine = ({
   );
 };
 
-/** Why the Owner cannot invite somebody, said before she tries: retired, or a phone that is not a mobile they could
- *  sign in with. The same words the farm refuses with. */
-const whyNoInvite = (investor: Investor) => {
+/** Why the Owner cannot invite somebody, said before she tries: retired, a phone that is not a mobile they could sign
+ *  in with, or the portal shut for everybody. The same words the farm refuses with. */
+const whyNoInvite = (investor: Investor, portalOpen: boolean) => {
   if (investor.retiredAt) {
     return REFUSALS.investor_retired;
   }
   if (!mobileNumberOf(investor.phone)) {
     return REFUSALS.phone_not_mobile;
+  }
+  // A code given while the portal is shut could not be taken up, and would only run out in their hand.
+  if (!portalOpen) {
+    return REFUSALS.portal_closed;
   }
   return null;
 };
@@ -698,7 +703,7 @@ export const PortalAccess = ({
       : printing.mutate({ id: investor.id });
   const standing = standingOf(investor);
   const inviteWord = standing === "none" ? "portal.invite" : "portal.newCode";
-  const whyNot = whyNoInvite(investor);
+  const whyNot = whyNoInvite(investor, portalOpen);
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">

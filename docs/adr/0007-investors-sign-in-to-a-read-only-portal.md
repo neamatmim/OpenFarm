@@ -33,3 +33,5 @@ Investor opens is an Export in the trail, attributed to them, as the Owner's pri
 switch it off and keep the documents; if it is not, record the answer in ticket 11 and here.
 
 **2026-09-25:** the lawyer answered, verbally, that the portal as built is acceptable because it is by invitation only. On the same basis, [ADR 0008](./0008-invited-investors-see-ventures-raising-capital-and-how-to-pay.md) lets invited Investors see Ventures still raising capital and how to pay. The portal still takes no money and signs nothing.
+
+**2026-10-08:** while it is off, no code is given either. The Owner found the farm still handing out invitations with the portal shut, and a code given then could only run out unused.
