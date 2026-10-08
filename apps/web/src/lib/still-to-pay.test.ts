@@ -34,7 +34,7 @@ describe("what a paper still owes", () => {
   it("is nothing once it is all in, or the Venture has ended", () => {
     expect(owingOn(paper("open", true, 100_000))).toBeNull();
     expect(owingOn(paper("settled", false))).toBeNull();
-    expect(owingOn(paper("cancelled", false))).toBeNull();
+    expect(owingOn(paper("canceled", false))).toBeNull();
   });
 
   it("reads an answer kept from before the farm said whether it takes capital as it did then", () => {

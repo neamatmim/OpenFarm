@@ -80,7 +80,7 @@ const passTheLeftovers = async (
   input: FeedingFacts,
   self: { id: string; penId: string; fedAt: Date }
 ) => {
-  const neighbours = await tx.query.feeding.findMany({
+  const neighbors = await tx.query.feeding.findMany({
     where: {
       farmId: input.instance.farmId,
       penId: self.penId,
@@ -89,8 +89,8 @@ const passTheLeftovers = async (
     columns: { id: true, fedAt: true, lines: true, flaggedAt: true },
     orderBy: { fedAt: "asc", id: "asc" },
   });
-  const before = neighbours.findLast((one) => one.fedAt < self.fedAt);
-  const after = neighbours.find((one) => one.fedAt > self.fedAt);
+  const before = neighbors.findLast((one) => one.fedAt < self.fedAt);
+  const after = neighbors.find((one) => one.fedAt > self.fedAt);
   const write = async (
     row: { id: string; flaggedAt: Date | null },
     judged: ReturnType<typeof withLeftovers>

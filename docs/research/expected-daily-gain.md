@@ -24,7 +24,7 @@ Read in **abstract only**, and marked so where used:
 - **Energy, transport, heat:** Salah 2014; Alam 2010 and 2018; Islam 2024; Chang-Fung-Martel 2021; Azevedo 2024.
 - **Parasites:** the eight fluke and worm papers in §8.
 
-Moletta 2014 and Dadi 2023 were read only through a summarising fetch. Figures a read source quotes from another are marked **[SECONDARY]**. Anything I worked out is **(my arithmetic)**, including every energy prediction in §3.
+Moletta 2014 and Dadi 2023 were read only through a summarizing fetch. Figures a read source quotes from another are marked **[SECONDARY]**. Anything I worked out is **(my arithmetic)**, including every energy prediction in §3.
 
 **Not reached:** NASEM (2016) itself, whose reader serves an automated reader only the front matter (NRC 1996 carries the same equations); ICAR (2013), which is sold, not online; NRC (1981)'s temperature tables; any DLS fattening guide (none found); the Agriculture Information Service fattening pages ("page not found"); Jabbar 2009; Oklahoma State E-974.
 
@@ -233,7 +233,7 @@ Each factor is gain ÷ the comparison animal's gain on the same ration **(my ari
 
 - **Dairy against Brahman crosses.** Nothing measured separates them.
   - The trials give L×HF 1.01–1.17 (Siddque) and L×Brahman 0.87–0.98 (Rashid), on different rations and at different weights.
-  - NRC's lower maintenance for _Bos indicus_ would favour the Brahman cross by about a fifth. No trial has shown it.
+  - NRC's lower maintenance for _Bos indicus_ would favor the Brahman cross by about a fifth. No trial has shown it.
 - **Within a type, the sire alone** moved calf gain twofold: 0.36–0.72 kg/d by sire in one 50% Brahman population (Tahira 2022).
 - **Native cattle convert feed better** even where they gain more slowly. BCB-1 took 7.8 kg DM per kg of gain against 11–12 for the crosses (BLRI 2018).
 - **Mature size caps deshi bulls.** BLRI's 2-year weights were 356 kg for BCB-1 against 417 kg for Brahman crosses and 487–542 kg for European-beef crosses (BLRI 2020, three animals each). Red Chittagong males mature near 342 kg ([`expected-gain.md`](./expected-gain.md) §1.1).
@@ -257,7 +257,7 @@ Each factor is gain ÷ the comparison animal's gain on the same ration **(my ari
 | Steer ÷ bull, Angus × Nellore, 180 days                     | 1.38 against 1.60 kg/d                                  | 0.86                                         | Santiago et al. 2023 (**abstract only**)                          |
 | Female ÷ male, 25% Brahman calves, birth to 12 months       | 0.338 against 0.422 kg/d (422 calves)                   | 0.80                                         | Papry et al. 2020. From 9 months, weights by body-measure formula |
 | Female ÷ male, five BLRI beef genotypes, birth to 24 months | 0.39–0.61 against 0.46–0.74 kg/d                        | 0.75–0.92, median 0.84                       | BLRI 2018, Mostari et al. (2–8 animals a group)                   |
-| Female ÷ male, Holstein-cross calves, birth to 6 months     | 0.399 against 0.366 kg/d, not significant               | 1.09                                         | Rahman et al. 2015 (farmers favoured heifer calves)               |
+| Female ÷ male, Holstein-cross calves, birth to 6 months     | 0.399 against 0.366 kg/d, not significant               | 1.09                                         | Rahman et al. 2015 (farmers favored heifer calves)               |
 | Heifer ÷ steer, Kansas feedlot closeouts, 1985–91           | 2.66–2.84 against 3.12–3.30 lb/d                        | 0.85–0.88; × 0.84–0.86 = 0.72–0.76 of a bull | Williams et al., Beef Cattle Handbook BCH-8054                    |
 
 **Cull cows.**
@@ -270,7 +270,7 @@ Each factor is gain ÷ the comparison animal's gain on the same ration **(my ari
 
 **Shrink.**
 
-- **Rate** (Mississippi State P2577): "about 1 percent per hour for the first 3 to 4 hours and then roughly 0.25 percent per hour for the next 8 to 10 hours". Feeder cattle commonly lose 2–8%. About 65% is faeces and 28% urine.
+- **Rate** (Mississippi State P2577): "about 1 percent per hour for the first 3 to 4 hours and then roughly 0.25 percent per hour for the next 8 to 10 hours". Feeder cattle commonly lose 2–8%. About 65% is feces and 28% urine.
 - **By hours in a truck** (Brownson, BCH-8020): 5.5% at 8 hours, 7.9% at 16 and 8.9% at 24. Cattle bought at a sale yard shrank 9.1%, against 7.2% for those bought from the rancher. "Bulls usually shrink substantially because of travel-related stress."
 - **With recovery time** (Ohio State primer, after Fox 1985 **[SECONDARY]**):
   - 2–8 hours: 4–6% lost, 4–8 days to recover;
@@ -383,7 +383,7 @@ Hasan 2022's Rangpur fatteners sold bulls "having around 250 kg live weight with
 - BLRI's package advises medium-sized black or red cattle, because "very few buyers can afford a big animal" (my translation).
 - Each bull's suggestion therefore comes from his own Intake weight, his range and his days, not from a standard finish weight.
 
-**Steroids muddy what neighbours report.** Kamal 2019 found 58.8% of fatteners using steroids as growth promoters, and 98% believed they helped. Hasan 2022 found 5% in Rangpur; Bhowmik 2025 found none. A neighbour's gain may not be a clean-fed gain.
+**Steroids muddy what neighbors report.** Kamal 2019 found 58.8% of fatteners using steroids as growth promoters, and 98% believed they helped. Hasan 2022 found 5% in Rangpur; Bhowmik 2025 found none. A neighbor's gain may not be a clean-fed gain.
 
 ## 10. References for the Owner's page
 

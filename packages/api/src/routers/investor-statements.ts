@@ -516,7 +516,7 @@ export const investorStatementsRouter = {
    *
    * Every figure is the one approval **froze**, never what the costing says today. That is the whole
    * point of approving: the figures were written down as they stood and every Investor was paid on them,
-   * which is why a Correction that would move them is refused in favour of a Settlement Adjustment. A
+   * which is why a Correction that would move them is refused in favor of a Settlement Adjustment. A
    * sheet that recomputed would undo all of it quietly.
    *
    * Reissued as often as she likes. An Adjustment does not rewrite this paper — it appears at the foot of

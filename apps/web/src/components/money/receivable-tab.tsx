@@ -45,7 +45,7 @@ const useDay = () => {
   return (day: string) => formatDate(startOfFarmDay(day), language, "date");
 };
 
-/** One Sale or Dispatch he left owing on: the bull by her tag or the milk by its litres, what of it is still owed and
+/** One Sale or Dispatch he left owing on: the bull by her tag or the milk by its liters, what of it is still owed and
  *  what stays written off — and, for the Owner, the way to write off what will not be paid. */
 const OwedRow = ({
   item,
@@ -60,7 +60,7 @@ const OwedRow = ({
   const day = useDay();
   const what =
     item.tagNumber === null ? (
-      t("receivable.litres", { litres: item.litres ?? 0 })
+      t("receivable.liters", { liters: item.liters ?? 0 })
     ) : (
       <TagChip>{item.tagNumber}</TagChip>
     );

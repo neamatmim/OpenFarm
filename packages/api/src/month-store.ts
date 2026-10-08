@@ -8,7 +8,7 @@ import {
   farmDayOf,
   financialYearStarting,
   financialYearsBack,
-  litresPerCowMilked,
+  litersPerCowMilked,
   milkPriceOf,
   monthHasBegun,
   monthOf,
@@ -16,7 +16,7 @@ import {
   monthsOfFinancialYear,
   roundMoney,
   startOfFarmDay,
-  summariseMoney,
+  summarizeMoney,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -32,7 +32,7 @@ import { moneyForTheAccountant } from "./money-export-store";
 import { THE_FARMS_PURSE } from "./money-store";
 import type { OverheadMoneyOn } from "./overhead-store";
 import { overheadMoneyIn, overheadsOf } from "./overhead-store";
-import { fetchedPerLitre, writtenOffByItem } from "./receivable-store";
+import { fetchedPerLiter, writtenOffByItem } from "./receivable-store";
 import { approvedSettlementOf } from "./settlement-store";
 import { planAgainstActual } from "./venture-plan-store";
 import { ownedThenByOf } from "./venture-store";
@@ -52,7 +52,7 @@ const venturesAgainstPlan = async (
   now: Date
 ) => {
   const rows = await db.query.venture.findMany({
-    where: { farmId: farm.id, state: { ne: "cancelled" } },
+    where: { farmId: farm.id, state: { ne: "canceled" } },
     orderBy: { ordinal: "asc" },
   });
   return await Promise.all(
@@ -86,8 +86,8 @@ interface Read {
   dispatched: {
     id: string;
     dispatchedAt: Date;
-    litres: string;
-    pricePerLitreMoney: string;
+    liters: string;
+    pricePerLiterMoney: string;
   }[];
   /** What stays written off of each Dispatch: milk a buyer never paid for did not fetch its price. */
   writtenOff: ReadonlyMap<string, number>;
@@ -100,9 +100,9 @@ interface Read {
 
 /**
  * One stretch of the farm — a month, or the whole year — as the pages these come from say it: the accountant's income
- * and expense of the Farm's purse, the milk its Dispatches sold with what a litre fetched, and Costs by Side over the
- * same days, narrowed to the Farm's own animals. Worked over the stretch itself rather than added up from its months, so a year's cost a litre is its
- * costs over its litres, not a mean of twelve.
+ * and expense of the Farm's purse, the milk its Dispatches sold with what a liter fetched, and Costs by Side over the
+ * same days, narrowed to the Farm's own animals. Worked over the stretch itself rather than added up from its months, so a year's cost a liter is its
+ * costs over its liters, not a mean of twelve.
  */
 const figuresOver = (
   { from, until }: { from: Date; until: Date },
@@ -118,13 +118,13 @@ const figuresOver = (
 ) => {
   const within = (at: Date) => at >= from && at < until;
   const sides = costsBySide(costs, { from, until });
-  const cash = summariseMoney(money.filter((one) => within(one.occurredAt)));
+  const cash = summarizeMoney(money.filter((one) => within(one.occurredAt)));
   const milk = milkPriceOf(
     dispatched
       .filter((one) => within(one.dispatchedAt))
       .map((one) => ({
-        litres: Number(one.litres),
-        pricePerLitreMoney: fetchedPerLitre(one, writtenOff),
+        liters: Number(one.liters),
+        pricePerLiterMoney: fetchedPerLiter(one, writtenOff),
       }))
   );
   const sold = sides.soldFattening.animals;
@@ -144,15 +144,15 @@ const figuresOver = (
     },
     dairy: {
       milkSoldMoney: milk?.amount ?? 0,
-      litresSold: milk?.litres ?? 0,
-      /** What a litre fetched; nothing where no milk left. */
-      fetchedPerLitreMoney: milk?.moneyPerLitre ?? null,
+      litersSold: milk?.liters ?? 0,
+      /** What a liter fetched; nothing where no milk left. */
+      fetchedPerLiterMoney: milk?.moneyPerLiter ?? null,
       /** Everything charged to the dairy side's animals in it. */
       chargedMoney: roundMoney(chargedOf(sides.dairy)),
-      litresToBulk: sides.dairy.litresToBulk,
-      /** Litres to Bulk for each cow milked, a day: what the herd gives a cow, apart from how many it has. */
-      litresPerCowMilked: litresPerCowMilked(costs.litres, { from, until }),
-      costPerLitreMoney: sides.dairy.costPerLitreMoney,
+      litersToBulk: sides.dairy.litersToBulk,
+      /** Liters to Bulk for each cow milked, a day: what the herd gives a cow, apart from how many it has. */
+      litersPerCowMilked: litersPerCowMilked(costs.liters, { from, until }),
+      costPerLiterMoney: sides.dairy.costPerLiterMoney,
       unpricedKg: sides.dairy.unpricedKg,
       uncostedDoses: sides.dairy.uncostedDoses,
     },
@@ -228,8 +228,8 @@ const monthsRead = (
  * first, this one so far, and the year they make together — with the financial years there are to ask for.
  *
  * Nothing here is a sum of its own. Each is the accountant's income and expense of the Farm's purse, the milk its
- * Dispatches sold with what a litre fetched, and Costs by Side — what the dairy cows and the fattening animals were
- * charged, what a litre cost, and the Margins of the fattening animals sold — so a month here reads the same as the
+ * Dispatches sold with what a liter fetched, and Costs by Side — what the dairy cows and the fattening animals were
+ * charged, what a liter cost, and the Margins of the fattening animals sold — so a month here reads the same as the
  * same month on the pages those come from, but for one thing: as the purse is the Farm's own money, the animals are
  * the Farm's own, and a Venture's are left to its own line rather than counted twice. Money and costs stay apart: the
  * purse is what moved, and a Side's charges are what its animals ate and were dosed with, bought whenever.
@@ -267,8 +267,8 @@ export const monthByMonth = async (
       columns: {
         id: true,
         dispatchedAt: true,
-        litres: true,
-        pricePerLitreMoney: true,
+        liters: true,
+        pricePerLiterMoney: true,
       },
     }),
     venturesAgainstPlan(db, farm, now),

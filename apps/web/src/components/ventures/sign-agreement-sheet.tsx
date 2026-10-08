@@ -147,7 +147,7 @@ const stampMissing = (
 
 /**
  * The first thing the paper still needs before it can be signed, in the order the sheet asks for it, and the field it
- * is about — said when "Sign" is pressed too soon, rather than the button standing grey with its reason above it.
+ * is about — said when "Sign" is pressed too soon, rather than the button standing gray with its reason above it.
  */
 const stillMissing = (
   terms: Terms,

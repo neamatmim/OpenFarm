@@ -41,7 +41,7 @@ export const STANDING_LOOK: Record<
   onTrack: { tone: "success", icon: CircleCheck, word: "gain.onTrack" },
 };
 
-/** The three States of the fattening side, each with its colour and icon; a State from elsewhere reads plainly. */
+/** The three States of the fattening side, each with its color and icon; a State from elsewhere reads plainly. */
 const STATE_LOOK: Record<string, { tone: Tone; icon: LucideIcon }> = {
   quarantine: { tone: "warning", icon: ShieldAlert },
   fattening: { tone: "neutral", icon: Wheat },

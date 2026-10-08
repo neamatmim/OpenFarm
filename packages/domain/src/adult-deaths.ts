@@ -24,7 +24,7 @@ export const ADULT_DEATH_CAUSES = [
   { bn: "নিউমোনিয়া", en: "Pneumonia" },
   { bn: "প্রসবে জটিলতা", en: "Calving trouble" },
   { bn: "ক্ষুরা রোগ", en: "Foot-and-mouth disease" },
-  { bn: "গলাফোলা", en: "Haemorrhagic septicaemia" },
+  { bn: "গলাফোলা", en: "Hemorrhagic septicemia" },
   { bn: "দুর্ঘটনা বা আঘাত", en: "Accident or injury" },
   { bn: "কারণ জানা যায়নি", en: "Cause not known" },
 ] as const;

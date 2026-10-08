@@ -36,13 +36,13 @@ const setup = async () => {
     name: `হিসাব ${suffix}`,
   });
 
-  // Milk sold: 100 litres at 50.
+  // Milk sold: 100 liters at 50.
   const milk = await manager.client.milk.dispatch({
     dispatchedAt: new Date("2040-03-05T02:00:00.000Z"),
-    litres: 100,
+    liters: 100,
     buyer: { name: `মিল্ক ভিটা ${suffix}` },
     deliveryNote: "CH-2040",
-    pricePerLitreMoney: 50,
+    pricePerLiterMoney: 50,
     paymentMethod: "bank",
   });
   // A bull bought for 30,000 with 900 of Market toll on him: over the threshold, and not yet approved. What the
@@ -61,7 +61,7 @@ const setup = async () => {
   const categories = await manager.client.money.categories.list();
   const keyed = (key: string) =>
     categories.find((one) => one.key === key)?.id ?? "";
-  // The electricity for the milking parlour, and a milker's wage.
+  // The electricity for the milking parlor, and a milker's wage.
   const power = await manager.client.money.enter({
     categoryId: keyed("utilities"),
     amountMoney: 3000,

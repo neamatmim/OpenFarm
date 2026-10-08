@@ -34,7 +34,7 @@ export const enCore = {
   "auth.promise.playbook":
     "The Playbook turns the farm's procedures into each day's work, for the right person, at the right pen.",
   "auth.promise.record":
-    "Every litre, dose and sale is the record: signed, corrected in the open, ready for an inspector.",
+    "Every liter, dose and sale is the record: signed, corrected in the open, ready for an inspector.",
   "auth.promise.offline":
     "Works in the shed with no signal, and sends everything when the phone is back in range.",
   "auth.formHint": "Use the account the farm set up for you.",
@@ -126,7 +126,7 @@ export const enCore = {
   "cull.col.calving": "Calving",
   "cull.milk": "Milk {worth} · keep {keep}",
   "cull.over": "{over} over keep in {days, plural, one {# day} other {# days}}",
-  "cull.rate": "{litres} L a day · a litre costs {cost}",
+  "cull.rate": "{liters} L a day · a liter costs {cost}",
   "cull.noneToBulk": "no milk to bulk",
   "cull.dry": "Dry: no milk",
   "cull.tooSoon": "Too soon after calving to weigh",
@@ -137,7 +137,7 @@ export const enCore = {
     "{days, plural, one {# day} other {# days}} since calving",
   "cull.notInCalf": "Not in calf",
   "cull.price":
-    "Milk is priced at {price} a litre: what the farm's dispatches fetched over the last {days, plural, one {# day} other {# days}}.",
+    "Milk is priced at {price} a liter: what the farm's dispatches fetched over the last {days, plural, one {# day} other {# days}}.",
   "cull.unpriced":
     "No milk sold in the last {days, plural, one {# day} other {# days}}, so no cow's milk can be set against her keep.",
   "cull.unpricedUnset":
@@ -173,7 +173,7 @@ export const enCore = {
   "projection.kgAtSale": "Weight at sale",
   "projection.prices": "Sale price a kg",
   "projection.charged": "Costs counted",
-  "projection.realised": "Already sold for",
+  "projection.realized": "Already sold for",
   "projection.fromPlan": "Worked from plan version {version}, saved on {day}",
   "projection.lossAtLow":
     "At the low price this is a loss, and a loss comes off the Investors' capital.",
@@ -200,7 +200,7 @@ export const enCore = {
     "Investors see no projections. You can read them in the Portal Preview before you show them.",
   "projection.switch.confirmTitle": "Show projections to Investors?",
   "projection.switch.confirmWhy":
-    "Every invited Investor will see what each Venture might make at your sale prices, labelled as an estimate. The farm's lawyer and Shariah scholar approved the portal without projections: show their wording to them first.",
+    "Every invited Investor will see what each Venture might make at your sale prices, labeled as an estimate. The farm's lawyer and Shariah scholar approved the portal without projections: show their wording to them first.",
   "projection.switch.shownDone": "Investors now see projections",
   "projection.switch.hiddenDone": "Projections are hidden from Investors",
   "auth.signUpSuccess": "Account created",
@@ -757,7 +757,7 @@ export const enCore = {
   "refusal.hasLeftTheFarm": "That person no longer works on this farm.",
   "refusal.cannotDisableYourself": "You cannot disable yourself.",
   "refusal.phoneRevoked":
-    "This phone is no longer one of the farm's. Ask the manager for a code to enrol it again",
+    "This phone is no longer one of the farm's. Ask the manager for a code to enroll it again",
   "refusal.tooManyPins":
     "Too many wrong PINs: wait fifteen minutes, or ask the manager",
   "refusal.cannotWorkHere": "That person cannot work on this farm now",
@@ -921,7 +921,7 @@ export const enCore = {
     "Say what you found out about the month that did not agree",
   "refusal.ventureIsSettled":
     "That venture is settled — raise a settlement adjustment rather than changing what it was paid on",
-  "refusal.ventureIsCancelled":
+  "refusal.ventureIsCanceled":
     "That venture was called off and its money sent back; what came in cannot change now",
   "refusal.oneSideOfASale":
     "That is one side of an internal sale: put the sale right from its row, and both sides follow",
@@ -1354,9 +1354,9 @@ export const enCore = {
   "state.culled": "Culled",
   "state.lost": "Lost",
   "nav.devices": "Shed phones",
-  "device.add": "Enrol a phone",
+  "device.add": "Enroll a phone",
   "device.name": "Phone name",
-  "device.code": "Enrolment code",
+  "device.code": "Enrollment code",
   "device.codeHelp":
     "Type this code into the phone within {minutes, plural, one {# minute} other {# minutes}}",
   "device.claimed": "In use",
@@ -1388,7 +1388,7 @@ export const enCore = {
   "device.setup": "Set up this phone",
   "device.setupHelp":
     "Type the code on the manager's screen — ten letters and numbers.",
-  "device.enrol": "Set up",
+  "device.enroll": "Set up",
   "device.enrolled": "This phone is ready",
   "device.whoAreYou": "Who is working?",
   "device.enterPin": "Enter your PIN",
@@ -2148,7 +2148,7 @@ export const enCore = {
   "refusal.investorStillIn":
     "Their money is in a venture still running; they can be retired once it settles or is called off",
   "refusal.capitalMustBeByBank":
-    "A venture takes money by bank only — a transfer, a cheque or a deposit slip",
+    "A venture takes money by bank only — a transfer, a check or a deposit slip",
   "refusal.agreementHasNoPaper":
     "The photo of the stamped agreement has to be on file before its money is",
   "refusal.capitalNotSentBack":
@@ -2176,15 +2176,15 @@ export const enCore = {
   "dispatch.handedOver": "Handed over",
   "dispatch.noneThatDay": "No milk handed over that day",
   "dispatch.day": "Day",
-  "dispatch.litres": "litres",
+  "dispatch.liters": "liters",
   "dispatch.whenLeft": "When it left",
   "dispatch.when": "When it left (empty: now)",
-  "dispatch.litresField": "Litres",
+  "dispatch.litersField": "Liters",
   "dispatch.buyer": "Buyer",
   "dispatch.buyerAddress": "Buyer's address",
   "dispatch.buyerPhone": "Buyer's phone",
   "dispatch.deliveryNote": "Delivery note number",
-  "dispatch.price": "Price per litre ({currencySign})",
+  "dispatch.price": "Price per liter ({currencySign})",
   "dispatch.fat": "Fat %",
   "dispatch.snf": "SNF %",
   "dispatch.note": "Note",
@@ -2200,7 +2200,7 @@ export const enCore = {
   "dispatch.sheetDescription":
     "Milk from the tank handed to a buyer. Its price goes to the money register.",
   "dispatch.worth":
-    "{litres, plural, one {# litre} other {# litres}} × {currencySign}{price} = {currencySign}{amount}",
+    "{liters, plural, one {# liter} other {# liters}} × {currencySign}{price} = {currencySign}{amount}",
   "dispatch.dayBefore": "Day before",
   "dispatch.dayAfter": "Day after",
   "dispatch.tab.mismatches": "Tank mismatches",
@@ -2468,8 +2468,8 @@ export const enCore = {
   "costs.sold": "Sold for",
   "costs.margin": "Margin",
   "costs.notSold": "not sold yet",
-  "costs.litres": "Litres to bulk",
-  "costs.perLitre": "Cost per litre",
+  "costs.liters": "Liters to bulk",
+  "costs.perLiter": "Cost per liter",
   "costs.bySide": "Costs by side",
   "costs.unpricedNote":
     "{amount} kg of home-grown fodder was fed at no price, and costs nothing here",
@@ -2643,7 +2643,7 @@ export const enCore = {
   "owner.escalated": "Escalated to you",
   "owner.discardToday": "Discarded today",
   "owner.average":
-    "{litres, plural, one {# litre} other {# litres}} on an average day",
+    "{liters, plural, one {# liter} other {# liters}} on an average day",
   "owner.noNote": "No reason given",
   "owner.subtitle":
     "What only you can decide, then how the farm is doing today.",
@@ -2655,7 +2655,7 @@ export const enCore = {
   "owner.proposals": "Playbook proposals",
   "owner.endingWithdrawal": "Withdrawal ending",
   "owner.bulkToday": "To the tank today",
-  "owner.litres": "{litres, plural, one {# litre} other {# litres}}",
+  "owner.liters": "{liters, plural, one {# liter} other {# liters}}",
   "owner.noRecord": "nothing recorded",
   "owner.weekTitle": "Milk to the tank, last 7 days",
   "owner.milkHint": "Yesterday {yesterday} L · average {average} L",
@@ -3056,7 +3056,7 @@ export const enCore = {
   "milk.withdrawalShort": "Withdrawal",
   "milk.forced":
     "Under withdrawal — recorded as poured away, not sent to the tank",
-  "milk.difference": "The tank is {litres} L away from the cows",
+  "milk.difference": "The tank is {liters} L away from the cows",
   "milk.matched": "The tank matches the cows",
   "mismatch.hint":
     "Milkings where the bulk tank and the cows' figures are further apart than the farm allows. Correct the figure on the work and it leaves this list.",
@@ -3131,10 +3131,10 @@ export const enCore = {
     "Clean: done on time, nothing flagged, nothing skipped but animals passed as well.",
   "signOff.line.passedWell": "{count} well",
   "signOff.line.tankOver":
-    "tank {litres} L, {difference} L over what the cows gave",
+    "tank {liters} L, {difference} L over what the cows gave",
   "signOff.line.tankUnder":
-    "tank {litres} L, {difference} L under what the cows gave",
-  "signOff.line.tankEven": "tank {litres} L, as the cows gave",
+    "tank {liters} L, {difference} L under what the cows gave",
+  "signOff.line.tankEven": "tank {liters} L, as the cows gave",
   "signOff.line.shortFed": "{percent}% short-fed",
   "signOff.line.outOfRange":
     "{count, plural, one {# figure} other {# figures}} out of range",
@@ -3462,7 +3462,7 @@ export const enCore = {
     "This outing went to the livestock market on the farm's own money, so she is the farm's.",
   "intake.farmFloat": "on the farm's money",
   "intake.paidFromTheAccount": "Paid from the venture account by bank",
-  "intake.reference": "Cheque or transfer number",
+  "intake.reference": "Check or transfer number",
   "intake.paidOn": "Day the bank moved it",
   "intake.ventureAtTheGate":
     "A venture's bull bought with no outing is the owner's to take in: it is paid from the venture account by bank.",
@@ -3712,9 +3712,9 @@ export const enCore = {
   "months.yearNotBegun":
     "That financial year has not begun yet. Pick another one above.",
   "months.milkSold": "Milk sold over the year",
-  "months.milkSoldHint": "{litres} L · a litre fetched {fetched}",
+  "months.milkSoldHint": "{liters} L · a liter fetched {fetched}",
   "months.dairyCost": "What the dairy cows cost",
-  "months.dairyCostHint": "{perLitre} a litre sent to bulk",
+  "months.dairyCostHint": "{perLiter} a liter sent to bulk",
   "months.margins": "Margins on fattening sold",
   "months.marginsHint":
     "{count, plural, one {# animal sold} other {# animals sold}}",
@@ -3734,7 +3734,7 @@ export const enCore = {
   "months.col.now": "Now: made or projected",
   "months.col.milk": "Milk sold",
   "months.col.dairyCost": "Dairy cows cost",
-  "months.col.litre": "A litre fetched · cost",
+  "months.col.liter": "A liter fetched · cost",
   "months.col.perCow": "Per cow, a day",
   "months.col.sold": "Fattening sold · Margin",
   "months.col.fatteningCost": "Fattening cost",
@@ -3745,7 +3745,7 @@ export const enCore = {
   "months.soFar": "so far",
   "months.pair": "{first} · {second}",
   "months.cardMilk": "Milk sold {sold} · the dairy cows cost {cost}",
-  "months.cardLitre": "A litre fetched {fetched} and cost {cost}",
+  "months.cardLiter": "A liter fetched {fetched} and cost {cost}",
   "months.cardSold":
     "{count, plural, one {# fattening animal sold} other {# fattening animals sold}}, Margin {margin} · the fattening animals cost {cost}",
   "months.cardNoneSold":
@@ -3876,8 +3876,8 @@ export const enCore = {
   "receivable.itemOwes":
     "{currencySign}{owing} of {currencySign}{receivable} still owed",
   "receivable.itemPaidOff": "Paid off",
-  "receivable.litres":
-    "{litres, plural, one {# litre} other {# litres}} of milk",
+  "receivable.liters":
+    "{liters, plural, one {# liter} other {# liters}} of milk",
   "receivable.paymentLine": "{currencySign}{amount} paid on {day}",
   "receivable.writeOffLine": "{currencySign}{amount} written off on {day}",
   "receivable.record": "Record a payment",
@@ -3992,11 +3992,11 @@ export const enCore = {
   "money.payouts": "Settlement payouts",
   "money.refund": "Capital refunded",
   "money.refundedApart":
-    "Apart from these, {amount} of capital refunded when a venture was cancelled",
-  "money.refundedHint": "When a Venture was cancelled",
+    "Apart from these, {amount} of capital refunded when a venture was canceled",
+  "money.refundedHint": "When a Venture was canceled",
   "units.kg": "{kg} kg",
   "units.kgADay": "{kg} kg a day",
-  "units.litres": "{litres} L",
+  "units.liters": "{liters} L",
   "alerts.animalMissing": "{tag} was not found on the round in {pen}, {since}",
   "home.missing": "Not found",
   "home.missingWhere": "{pen}, since {day}",
@@ -4056,7 +4056,7 @@ export const enCore = {
     "{count, plural, one {# count} other {# counts}} in the period",
   "event.unwell": "The round sees an animal unwell",
   "event.calved": "A cow calves",
-  "event.unwell_urgent": "The round sees bloat or laboured breathing",
+  "event.unwell_urgent": "The round sees bloat or labored breathing",
   "unwell.seen": "What was seen",
   "alerts.penSoresSeen":
     "{animals, plural, one {# animal} other {# animals}} in {pen} seen with sores on the mouth or feet since {since}",
@@ -4110,7 +4110,7 @@ export const enCore = {
   "params.milkDropPercent": "Less than her week by",
   "params.milkDropDays": "Over the last",
   "alerts.milkUnaccounted":
-    "{litres} L of milk since {since} is neither out of the gate nor in the tank ({percent}%)",
+    "{liters} L of milk since {since} is neither out of the gate nor in the tank ({percent}%)",
   "params.milkUnaccounted": "Milk not accounted for",
   "params.milkUnaccountedHint":
     "When this much of a week's milk into the tank has neither left the gate nor is still in the tank, you and the manager are told in the evening's post.",
@@ -4156,7 +4156,7 @@ export const enCore = {
   "milkAccount.stillInTank": "Still in the tank",
   "milkAccount.notAccounted": "Not accounted for",
   "milkAccount.calves":
-    "To calves: {litres} L a day for {calves, plural, one {# calf} other {# calves}} — {perCalf} L each",
+    "To calves: {liters} L a day for {calves, plural, one {# calf} other {# calves}} — {perCalf} L each",
   "params.firstServiceMonths": "A crossbred heifer served by",
   "params.deshiFirstServiceMonths": "A deshi heifer served by",
   "params.months": "months",
@@ -4191,7 +4191,7 @@ export const enCore = {
   "wageDraw.correctHint":
     "Change what is wrong. A draw that never happened is taken back by putting it to 0. What a payday has already taken off it stays taken. The original stays readable in the audit trail.",
   "refusal.bankNeedsASlip":
-    "Cash into or out of the bank needs its slip or cheque",
+    "Cash into or out of the bank needs its slip or check",
   "refusal.holdsNoCash": "Only the owner or a manager holds the farm's cash",
   "refusal.handoverGoesNowhere":
     "Cash is handed from one hand to another, or to or from the bank",
@@ -4251,7 +4251,7 @@ export const enCore = {
   "cash.myOwnHand": "My own",
   "cash.bank": "The bank",
   "cash.amount": "Amount ({currencySign})",
-  "cash.slip": "Deposit slip or cheque",
+  "cash.slip": "Deposit slip or check",
   "cash.note": "Note",
   "cash.handedTo": "Handed to {name}",
   "cash.handedFrom": "From {name}",

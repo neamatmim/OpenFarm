@@ -26,7 +26,7 @@ export const saidAsMoney = (amount: number, language: Language): string =>
 /**
  * A rate as the reader reads it, keeping its paisa.
  *
- * A cost per litre or a cost of gain is not a sum but a figure to compare against another, and rounding
+ * A cost per liter or a cost of gain is not a sum but a figure to compare against another, and rounding
  * it to the taka is what makes two different rates print the same. This is the one place paisa are said.
  */
 export const saidAsMoneyRate = (amount: number, language: Language): string =>

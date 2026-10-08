@@ -16,8 +16,8 @@ import { aMonthOn } from "../test/carrying";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-// What an animal costs and what a litre costs: feed charged to the animals that ate it, a dose charged to
-// the animal who had it, and from those a fattening animal's margin and a dairy cow's cost per litre.
+// What an animal costs and what a liter costs: feed charged to the animals that ate it, a dose charged to
+// the animal who had it, and from those a fattening animal's margin and a dairy cow's cost per liter.
 
 const suffix = `${Date.now()}`;
 const PERIOD = { from: "2039-01-01", to: "2039-01-31" };
@@ -355,7 +355,7 @@ beforeAll(async () => {
   });
   bullB = taken.tagNumber;
 
-  // The cow's morning milking: ten litres to the tank.
+  // The cow's morning milking: ten liters to the tank.
   const milking = await workIn(
     world.dairy.id,
     world.sops.milking.definitionId,
@@ -432,7 +432,7 @@ beforeAll(async () => {
   // Bull A has gone: the next morning's feed is bull B's alone.
   await feed(world.fattening.id, "2039-01-11T02:00:00.000Z", 10, 20);
 
-  // Under a milk Withdrawal for a morning, the cow's six litres are poured away, not sent to the tank.
+  // Under a milk Withdrawal for a morning, the cow's six liters are poured away, not sent to the tank.
   await scratchDb()
     .update(animal)
     .set({ milkWithdrawalUntil: new Date("2039-01-05T12:00:00.000Z") })
@@ -490,7 +490,7 @@ afterAll(async () => {
     .where(inArray(feedItem.id, [world.concentrate.id, world.grass.id]));
 });
 
-describe("what an animal costs, and what a litre costs", () => {
+describe("what an animal costs, and what a liter costs", () => {
   it("charges a Pen's feed to the animals standing in it, day by day, and a sold bull's margin", async () => {
     const owner = await as("owner", "2039-02-01T04:00:00.000Z");
     // Bull A: 300 alone, then half of 300; 20 kg of grass alone, then half of 20; one dose at 100; half
@@ -534,20 +534,20 @@ describe("what an animal costs, and what a litre costs", () => {
     });
   });
 
-  it("works out a dairy cow's Cost per Litre over her Lactation, from her feed and her litres to Bulk", async () => {
+  it("works out a dairy cow's Cost per Liter over her Lactation, from her feed and her liters to Bulk", async () => {
     const owner = await as("owner", "2039-02-01T04:00:00.000Z");
     expect(
       await owner.client.costs.forAnimal({ tagNumber: world.cow.tagNumber })
     ).toMatchObject({
       side: "dairy",
-      // Everything she ate, heifer days included — but a litre is costed over her Lactation alone.
+      // Everything she ate, heifer days included — but a liter is costed over her Lactation alone.
       feedMoney: 1200,
       marginMoney: null,
-      // Her six litres poured away under the Withdrawal are not litres to Bulk.
+      // Her six liters poured away under the Withdrawal are not liters to Bulk.
       lactation: expect.objectContaining({
         feedMoney: 600,
-        litresToBulk: 10,
-        costPerLitreMoney: 60,
+        litersToBulk: 10,
+        costPerLiterMoney: 60,
       }),
     });
   });
@@ -561,8 +561,8 @@ describe("what an animal costs, and what a litre costs", () => {
       unpricedKg: 0,
       medicineMoney: 0,
       uncostedDoses: 0,
-      litresToBulk: 10,
-      costPerLitreMoney: 120,
+      litersToBulk: 10,
+      costPerLiterMoney: 120,
     });
     expect(report.fattening).toEqual({
       feedMoney: 900,
@@ -628,7 +628,7 @@ describe("what an animal costs, and what a litre costs", () => {
       marketTollMoney: 0,
       tripMoney: 0,
       herdMoney: 0,
-      costPerLitreMoney: 60,
+      costPerLiterMoney: 60,
     });
 
     const report = await owner.client.costs.bySide(PERIOD);
@@ -636,7 +636,7 @@ describe("what an animal costs, and what a litre costs", () => {
       marketTollMoney: 0,
       tripMoney: 0,
       herdMoney: 0,
-      costPerLitreMoney: 120,
+      costPerLiterMoney: 120,
     });
   });
 

@@ -13,7 +13,7 @@ Primary sources read in full:
 - **Bangladeshi birth weights:** Hridoy et al. 2025 (HF × Local crossbreds, CCBDF, 4,370 daughters); Rahman, Bhuiyan & Bhuiyan 2015 (registered 75% Friesian calves).
 - **Toxocara in Bangladeshi cattle:** Mustafa et al. 2022 (_RALF_, BAPARD farm and Gopalganj).
 
-Read through a summarising fetch only (a small model answered my questions from the page):
+Read through a summarizing fetch only (a small model answered my questions from the page):
 
 - **Merck Veterinary Manual:** _Feeding Young Dairy Calves_ (Van Saun & Abuelo, December 2025) and _Common Gastrointestinal Parasites of Cattle_ (VanHoy & Abuelo, September 2024).
 - **Extension and reviews:** University of Wisconsin–Madison, _Feeding the Newborn Calf_; CalfCare.ca (Veal Farmers of Ontario), _Preventing navel infections_; Robbers et al. 2021 (_Frontiers_ scoping review).
@@ -68,7 +68,7 @@ Search-snippet facts are marked **[SNIPPET]**. Figures a read source quotes from
    - **Red Chittagong:** 14.7–15.4 kg; males 16.2, females 13.9 (Nahar 2016). **Local:** 16.7 kg **[SNIPPET]**.
    - **Warn range: below 12 kg or above 45 kg** (my choice, §3). **The fattening weigh-in's 20 kg minimum must not apply to calves.**
 8. **First-day checks.**
-   - **Teagasc's vigour times:** head up in 3 minutes, sitting up in 5, trying to stand by 20, standing by 60–90 minutes.
+   - **Teagasc's vigor times:** head up in 3 minutes, sitting up in 5, trying to stand by 20, standing by 60–90 minutes.
    - **NG-GLPP:** suckling "within 20 min of birth" once standing; check "for atresia ani and other malformations"; watch that the calf passes dung and urine; tag each newborn ("rather with an ear tag").
 9. **_Toxocara vitulorum_ reaches the calf in the dam's milk. Worm at 10–16 days with a drug that kills immature worms.**
    - **Transmission and timing:** passes in milk mostly in the first ~9 days; eggs appear in the calf's dung from about 3 weeks. That is why Roberts treats at 10–16 days, in cattle calves too (Roberts 1992, abstract only).
@@ -92,7 +92,7 @@ Search-snippet facts are marked **[SNIPPET]**. Figures a read source quotes from
     - **90 days fits DLS's early weaning.** A 90-day crossbred calf weighs about 64 kg, not 100–120 (Rahman 2015). **So weaning at 90 days must check the starter intake, not the weight.**
 12. **Calf losses in Bangladesh.**
     - **How many:** calf mortality ran 6.29% over 4 months on small CIG farms (Islam 2015) and 12.28% on 73 commercial farms in 2014 (Parvez 2020). NG-GLPP says "Above 10% of calf mortality is not acceptable".
-    - **Diseases:** diarrhoea is the commonest, then navel ill and pneumonia (34.8%, 7.2% and 6.3% of calves, Islam 2015).
+    - **Diseases:** diarrhea is the commonest, then navel ill and pneumonia (34.8%, 7.2% and 6.3% of calves, Islam 2015).
     - **Causes of death:** pneumonia leads, with gut infections after it (Hossain 2013: respiratory 38.8% of deaths, alimentary 16.7%).
     - **Age and season:** the first month is the deadliest in every study. Winter was worst at CCBDF (38.0% of deaths); monsoon was worst at Bogra (36.4%) **[SNIPPET]**.
     - **Correction to the plan:** its "30.9% morbidity and 8.64% mortality" come from **Ethiopia** (Tora 2021, Gamo zone), not Bangladesh.
@@ -113,7 +113,7 @@ Search-snippet facts are marked **[SNIPPET]**. Figures a read source quotes from
 
 - **Godden 2019:** "Producers should aim to feed all calves within 1 to 2 hours after birth." Absorption "decreases linearly with time from birth to completely close at approximately 24 hours". Delaying the first feed "can only slightly postpone gut closure (36 hours)".
 - **Merck (Dec 2025):** "all calves should receive at least 3 L of high-quality colostrum (IgG concentration > 50 mg/mL) within 6 hours after birth". The second feeding comes "between 8 and 12 hours after birth"; "4 L (1 gallon) … within 6 hours" is the alternative.
-- **Teagasc** calls the first hour the "Golden Hour". Its "Colostrum 1-2-3" rule (from Animal Health Ireland) is: first milking, within two hours, at least three litres.
+- **Teagasc** calls the first hour the "Golden Hour". Its "Colostrum 1-2-3" rule (from Animal Health Ireland) is: first milking, within two hours, at least three liters.
 - **Wisconsin:** "within the first 2 hours of life"; after four hours absorption declines, "ending completely by 24 hours".
 - **Penn State's own barn:** "Feed one gallon of colostrum within 2 hours after birth. If the calf does not drink the colostrum it will need to be tube-fed."
 
@@ -210,7 +210,7 @@ In Chattogram 60% of farms used suckling (Chowdhury 2017). **So "fed by suckling
 | 62.5% HF × 37.5% Local          | 25.61 ± 0.16 (n 822), range 15–38                 | Hridoy 2025                                         |
 | 75% HF × 25% Local              | 27.20 ± 0.09 (n 2589), range 15–40                | Hridoy 2025                                         |
 | 75% Friesian, registered calves | mean 29.33; by season 28.65–30.58                 | Rahman 2015 (JAVAR 2(4))                            |
-| Sahiwal × Friesian              | 26.35 ± 0.35                                      | Baghabarighat study 2003 (summarised abstract)      |
+| Sahiwal × Friesian              | 26.35 ± 0.35                                      | Baghabarighat study 2003 (summarized abstract)      |
 | Red Chittagong                  | 15.4 (farm), 14.7 (field); male 16.2, female 13.9 | Nahar 2016                                          |
 | Red Chittagong, earlier         | 17.3 (farm), 16.0 (rural)                         | Khan 2000 **[SECONDARY]** via Nahar 2016            |
 | Local (CCBDF Savar)             | 16.7 ± 0.48; Friesian 37.5 ± 0.65                 | **[SNIPPET]**                                       |
@@ -357,11 +357,11 @@ This confirms [`bangladesh-regulatory.md`](./bangladesh-regulatory.md) §5.4 fro
 
 | Study                                            | Setting                                                             | Mortality                                                       | Main causes                                                                                                                            |
 | ------------------------------------------------ | ------------------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Islam et al. 2015 (_BJVM_ 13(1))                 | 92 CIG farms, Muktagacha; 119 calves followed Aug–Nov 2014          | **6.29%** (incidence risk over 4 months)                        | Morbidity 56.17%: diarrhoea 34.82%, navel ill 7.22%, pneumonia 6.29%, fever 4.50%, arthritis 3.63%; deaths: pneumonia 3.73%, FMD 1.78% |
-| Parvez et al. 2020 (_Res. J. Vet. Pract._ 8(4))  | 73 registered farms, seven divisions, 2014                          | **12.28%** (126 of 1,026 calves born); 10.16–14.91% by division | Not analysed; abortion a further 8.16%, "total calf crop loss" 20.44%                                                                  |
+| Islam et al. 2015 (_BJVM_ 13(1))                 | 92 CIG farms, Muktagacha; 119 calves followed Aug–Nov 2014          | **6.29%** (incidence risk over 4 months)                        | Morbidity 56.17%: diarrhea 34.82%, navel ill 7.22%, pneumonia 6.29%, fever 4.50%, arthritis 3.63%; deaths: pneumonia 3.73%, FMD 1.78% |
+| Parvez et al. 2020 (_Res. J. Vet. Pract._ 8(4))  | 73 registered farms, seven divisions, 2014                          | **12.28%** (126 of 1,026 calves born); 10.16–14.91% by division | Not analyzed; abortion a further 8.16%, "total calf crop loss" 20.44%                                                                  |
 | Hossain et al. 2013 (_Eurasian J Vet Sci_ 29(3)) | CCBDF, 16 years of records (1992–2007)                              | Shares of deaths, not a rate                                    | Respiratory 38.75%, tuberculosis 20.02%, alimentary 16.73%, malnutrition 5.28%, debility 4.72%                                         |
 | Islam et al. 2005 (_JAVA_ 4)                     | Milk and Cattle Improvement Farm, Bogra; 162 dead calves, 1995–2003 | —                                                               | Gastro-enteritis 28.57%, pneumonia 19.04%, parasites 4.76% **[SNIPPET]**                                                               |
-| "Prevalence of Calf Diseases…" (unread)          | BAU, Savar and RDA farms; 992 cases, Jan 2015–Jun 2017              | —                                                               | Diarrhoea 25.2%, parasitic infestation 14.82%, weak calf syndrome 12.72%, navel ill 5.73% **[SNIPPET]**                                |
+| "Prevalence of Calf Diseases…" (unread)          | BAU, Savar and RDA farms; 992 cases, Jan 2015–Jun 2017              | —                                                               | Diarrhea 25.2%, parasitic infestation 14.82%, weak calf syndrome 12.72%, navel ill 5.73% **[SNIPPET]**                                |
 
 **Age.**
 
@@ -415,7 +415,7 @@ This confirms [`bangladesh-regulatory.md`](./bangladesh-regulatory.md) §5.4 fro
 | Weaning                                          | **day 90** (Owner's choice), if she eats **1 kg starter a day for 3 days**                                                    | NG-GLPP §12.1.1.1.1(b)(4, 6); Teagasc                                                    | High (criterion) |
 | Weaning weight                                   | record it; DLS's 100–120 kg is not reached by day 90 (≈ 64 kg at 3 months)                                                    | NG-GLPP §11.6.1(g); Rahman 2015                                                          | Medium           |
 | Calf mortality benchmark                         | ≤ 10% before weaning                                                                                                          | NG-GLPP §11.5(a)                                                                         | High             |
-| Calf death causes to offer                       | **Scours (diarrhoea)**, **Pneumonia**, **Navel ill / joint ill**, **Weak at birth**, **Worms**; also FMD, Malnutrition, Other | Islam 2015; Hossain 2013; "Prevalence of Calf Diseases…" **[SNIPPET]**; Mustafa 2022     | High             |
+| Calf death causes to offer                       | **Scours (diarrhea)**, **Pneumonia**, **Navel ill / joint ill**, **Weak at birth**, **Worms**; also FMD, Malnutrition, Other | Islam 2015; Hossain 2013; "Prevalence of Calf Diseases…" **[SNIPPET]**; Mustafa 2022     | High             |
 
 Stillbirth is already recorded apart, at the Calving, and stays out of the list. "Weak at birth" matches the unread study's "weak calf syndrome" (12.72%) and Hossain's "debility" (4.72%).
 
@@ -425,7 +425,7 @@ Stillbirth is already recorded apart, at the Calving, and stays out of the list.
 
 - **The "each hour of delay … 10%" figure.** It came up only in a search engine's summary, credited to "Bangladesh dairy farms". Europe PMC full-text search found no such sentence. Not used. The per-hour figure that was read is Van Camp's navel-infection OR of 1.15 (abstract only).
 - **What Bangladeshi farms actually do at weaning.** No survey was found. DLS describes the options but reports no practice figures.
-- **A deshi birth-weight range.** Only means and standard errors were found, so the 12 kg floor is a judgement.
+- **A deshi birth-weight range.** Only means and standard errors were found, so the 12 kg floor is a judgment.
 - **Is 7% tincture of iodine sold in Bangladesh?** Not checked; povidone-iodine (usually 10% solution, 1% available iodine) is common in pharmacies. **The Vet should say which to use**, and whether chlorhexidine is the fallback. Teat dip is too weak (CalfCare.ca).
 - **Piperazine at day 5–6 (DLS) or a better drug at 10–16 days (Roberts)?** The two disagree; this is the Vet's call.
 - **Fenbendazole against _T. vitulorum_.** No efficacy figure found.
@@ -439,13 +439,13 @@ Stillbirth is already recorded apart, at the Calving, and stays out of the list.
 
 1. Department of Livestock Services (DLS), Ministry of Fisheries and Livestock, Bangladesh. _National Guidelines on Good Livestock Production Practices_ (NG-GLPP), June 2023. Chapter XI §§11.1–11.6 (pp. 155–161); §12.1.1.1 (pp. 165–167); Appendix 31 (p. 268); Appendix 35 (p. 270). https://dls.portal.gov.bd/sites/default/files/files/dls.portal.gov.bd/page/61d70f88_045d_4205_b5ed_2bfe65623e3f/2025-03-06-16-08-6165641f39ac4af51b27a3149f41366e.pdf (domain disabled on 29 Sep 2026; retrieved via https://web.archive.org/web/2025id_/ + the same URL).
 2. Godden SM, Lombard JE, Woolums AR. Colostrum Management for Dairy Calves. _Vet Clin North Am Food Anim Pract_ 2019; 35(3): 535–556. doi:10.1016/j.cvfa.2019.07.005. PMC7125574.
-3. Van Saun RJ, Abuelo A. Feeding Young Dairy Calves. _Merck Veterinary Manual_, updated December 2025. https://www.merckvetmanual.com/management-and-nutrition/nutrition-dairy-cattle/feeding-young-dairy-calves (summarising fetch).
-4. VanHoy G, Abuelo A. Common Gastrointestinal Parasites of Cattle. _Merck Veterinary Manual_, updated September 2024. https://www.merckvetmanual.com/digestive-system/gastrointestinal-parasites-of-ruminants/common-gastrointestinal-parasites-of-cattle (summarising fetch).
+3. Van Saun RJ, Abuelo A. Feeding Young Dairy Calves. _Merck Veterinary Manual_, updated December 2025. https://www.merckvetmanual.com/management-and-nutrition/nutrition-dairy-cattle/feeding-young-dairy-calves (summarizing fetch).
+4. VanHoy G, Abuelo A. Common Gastrointestinal Parasites of Cattle. _Merck Veterinary Manual_, updated September 2024. https://www.merckvetmanual.com/digestive-system/gastrointestinal-parasites-of-ruminants/common-gastrointestinal-parasites-of-cattle (summarizing fetch).
 5. Teagasc. _Calf Rearing Manual_, Section 1: The Newborn Calf (chapters 1–3). https://teagasc.ie/wp-content/uploads/2025/05/Section1-The-Newborn-Calf.pdf
 6. Penn State Department of Animal Science. Calf Barn Protocols: Newborn Calf Protocol (Dairy SOP 05). https://animalscience.psu.edu/about/facilities/dairy-barns/pdf-dairy-sop/dairy-sop-05.pdf/@@download/file/CalfBarn.pdf
-7. McCarville J, Schlesser H. Feeding the Newborn Calf. University of Wisconsin–Madison Division of Extension, updated August 2026. https://dairy.extension.wisc.edu/articles/feeding-the-newborn-calf/ (summarising fetch).
-8. Veal Farmers of Ontario. Preventing navel infections in newborn calves. CalfCare.ca, modified 1 August 2019. https://calfcare.ca/management/first-24-hours/navel-care/preventing-navel-infections-in-newborn-calves/ (summarising fetch).
-9. Robbers L, Jorritsma R, Nielen M, Koets A. A Scoping Review of On-Farm Colostrum Management Practices for Optimal Transfer of Immunity in Dairy Calves. _Front Vet Sci_ 2021; 8: 668639. doi:10.3389/fvets.2021.668639 (summarising fetch).
+7. McCarville J, Schlesser H. Feeding the Newborn Calf. University of Wisconsin–Madison Division of Extension, updated August 2026. https://dairy.extension.wisc.edu/articles/feeding-the-newborn-calf/ (summarizing fetch).
+8. Veal Farmers of Ontario. Preventing navel infections in newborn calves. CalfCare.ca, modified 1 August 2019. https://calfcare.ca/management/first-24-hours/navel-care/preventing-navel-infections-in-newborn-calves/ (summarizing fetch).
+9. Robbers L, Jorritsma R, Nielen M, Koets A. A Scoping Review of On-Farm Colostrum Management Practices for Optimal Transfer of Immunity in Dairy Calves. _Front Vet Sci_ 2021; 8: 668639. doi:10.3389/fvets.2021.668639 (summarizing fetch).
 10. Raboisson D, Trillat P, Cahuzac C. Failure of Passive Immune Transfer in Calves: A Meta-Analysis on the Consequences and Assessment of the Economic Impact. _PLOS ONE_ 2016; 11(3): e0150452. doi:10.1371/journal.pone.0150452 (abstract).
 11. Fischer AJ, Song Y, He Z, Haines DM, Guan LL, Steele MA. Effect of delaying colostrum feeding on passive transfer and intestinal bacterial colonization in neonatal male Holstein calves. _J Dairy Sci_ 2018; 101: 3099–3109. doi:10.3168/jds.2017-13397 (abstract only).
 12. Frederick G, Wieland M, Singh A, Ewing R, Steele MA, Somula H, Mann S. Effects of feeding colostrum volume at 6%, 8%, 10%, or 12% of birth body weight on efficiency of immunoglobulin G absorption, gastric emptying, and postfeeding behavior in Holstein calves. _J Dairy Sci_ 2025; 108: 13680–13690. doi:10.3168/jds.2025-27228 (abstract only).
@@ -454,14 +454,14 @@ Stillbirth is already recorded apart, at the Calving, and stays out of the list.
 15. Wieland M, Mann S, Guard CL, Nydam DV. The influence of 3 different navel dips on calf health, growth performance, and umbilical infection assessed by clinical and ultrasonographic examination. _J Dairy Sci_ 2017; 100: 513–524. doi:10.3168/jds.2016-11654 (abstract only).
 16. Hridoy MFA, Siddiqua SA, Lee DH, Kim YK, Khoda MS, Mou MA, Bhuiyan AKFH, Lee SH, Bhuiyan MSA. Genetic evaluation of different graded Holstein Friesian × Local (HF × L) crossbred breeding bulls of Bangladesh. _J Adv Vet Anim Res_ 2025; 12(2): 334–343. doi:10.5455/javar.2025.l901. PMC12506709.
 17. Rahman SMA, Bhuiyan MSA, Bhuiyan AKFH. Effects of genetic and non-genetic factors on growth traits of high yielding dairy seed calves and genetic parameter estimates. _J Adv Vet Anim Res_ 2015; 2(4): 450–457. https://bdvets.org/JAVAR/V2I4/b116_pp450-457.pdf
-18. Nahar S, Islam AFMF, Hoque MA, Bhuiyan AKFH. Animal performance of indigenous Red Chittagong cattle in Bangladesh. _Acta Scientiarum. Animal Sciences_ 2016; 38(2): 177–182. doi:10.4025/actascianimsci.v38i2.28718 (summarising fetch).
-19. Genetic groups at Baghabarighat milk pocket (Sahiwal × Friesian birth weight). _Journal of Biological Sciences_ 2003: 726–740. https://scialert.net/abstract/?doi=jbs.2003.726.740 (summarising fetch of the abstract).
+18. Nahar S, Islam AFMF, Hoque MA, Bhuiyan AKFH. Animal performance of indigenous Red Chittagong cattle in Bangladesh. _Acta Scientiarum. Animal Sciences_ 2016; 38(2): 177–182. doi:10.4025/actascianimsci.v38i2.28718 (summarizing fetch).
+19. Genetic groups at Baghabarighat milk pocket (Sahiwal × Friesian birth weight). _Journal of Biological Sciences_ 2003: 726–740. https://scialert.net/abstract/?doi=jbs.2003.726.740 (summarizing fetch of the abstract).
 20. Productive and reproductive performance of different breeds and crossbreds at CCBDF, Savar (local 16.7 kg, Friesian 37.5 kg). ResearchGate 323239923 **[SNIPPET]**.
 21. Roberts JA. _Toxocara vitulorum_: treatment based on the duration of the infectivity of buffalo cows (_Bubalus bubalis_) for their calves. _J Vet Pharmacol Ther_ 1989; 12: 5–13. doi:10.1111/j.1365-2885.1989.tb00634.x (abstract only).
 22. Roberts JA, Fernando ST, Sivanathan S. _Toxocara vitulorum_ in the milk of buffalo (_Bubalus bubalis_) cows. _Res Vet Sci_ 1990; 49: 289–291. doi:10.1016/0034-5288(90)90061-8 (abstract only).
 23. Roberts JA. The egg production of _Toxocara vitulorum_ in Asian buffalo (_Bubalus bubalis_). _Vet Parasitol_ 1990; 37: 113–120. doi:10.1016/0304-4017(90)90066-k (abstract only).
 24. Roberts JA. Preventive treatment against toxocarosis in bovine calves. _Vet Parasitol_ 1992; 44: 111–118. doi:10.1016/0304-4017(92)90149-4 (abstract only).
-25. Biswas H, Roy BC, Hasan MM, Ahmed N, Dutta PK, Begum N, Talukder MH. Efficacy of clinically used anthelmintics against toxocariasis of buffalo calves in Bangladesh. _J Parasit Dis_ 2022; 46: 988–997. doi:10.1007/s12639-022-01522-1. PMC9606160 (summarising fetch of the full text; abstract read).
+25. Biswas H, Roy BC, Hasan MM, Ahmed N, Dutta PK, Begum N, Talukder MH. Efficacy of clinically used anthelmintics against toxocariasis of buffalo calves in Bangladesh. _J Parasit Dis_ 2022; 46: 988–997. doi:10.1007/s12639-022-01522-1. PMC9606160 (summarizing fetch of the full text; abstract read).
 26. Biswas H, Roy BC, Dutta PK, et al. Prevalence and risk factors of _Toxocara vitulorum_ infection in buffalo calves in coastal, northeastern and northwestern regions of Bangladesh. _Vet Parasitol Reg Stud Reports_ 2021; 26: 100656. doi:10.1016/j.vprsr.2021.100656 (abstract only).
 27. Mustafa MMH, Islam MR, Rahman MM, Talukder MH. Prevalence of ecto and endo parasitic infections among BAPARD cattle farm and Gopalganj district of Bangladesh. _Res Agric Livest Fish_ 2022; 9(2): 145–152. https://www.banglajol.info/index.php/RALF/article/view/61620/42167
 28. Islam M, Rahman A, Nahar M, Khair A, Alam M. Incidence of Calf Morbidity and Mortality at CIG Dairy Farms of Muktagacha Upazila in Mymensingh District. _Bangl J Vet Med_ 2015; 13(1): 37–43. doi:10.3329/bjvm.v13i1.23715. https://www.banglajol.info/index.php/BJVM/article/view/23715
@@ -470,7 +470,7 @@ Stillbirth is already recorded apart, at the Calving, and stays out of the list.
 31. Chowdhury S, Barua SR, Rakib TM, Rahman MM, Ferdushy T, Hossain MA, Islam MS, Masuduzzaman M. Survey of Calf Management and Hygiene Practices Adopted in Commercial Dairy Farms in Chittagong, Bangladesh. _Adv Anim Vet Sci_ 2017; 5(1): 14–22. doi:10.14737/journal.aavs/2017/5.1.14.22 (read via https://web.archive.org/web/20250416004335/https://researcherslinks.com/table_contents_detail/Advances-in-Animal-and-Veterinary-Sciences/33/771/html).
 32. Islam SS, Ahmed AR, Ashraf A, Khanom N, Ahmed MB. Causes and consequences of calf mortality in a dairy farm of Bangladesh. _J Anim Vet Adv_ 2005; 4(2): 260–264. ResearchGate 26591013 **[SNIPPET]**.
 33. Prevalence of Calf Diseases in Different Dairy Farms of Bangladesh. ResearchGate 329058139 **[SNIPPET]**; authors and journal not found.
-34. Kamal MM. A Review on Cattle Reproduction in Bangladesh. _Int J Dairy Sci_ 2010; 5(4): 245–252. https://scialert.net/fulltext/?doi=ijds.2010.245.252 (summarising fetch).
+34. Kamal MM. A Review on Cattle Reproduction in Bangladesh. _Int J Dairy Sci_ 2010; 5(4): 245–252. https://scialert.net/fulltext/?doi=ijds.2010.245.252 (summarizing fetch).
 35. Tora E, Abayneh E, Seyoum W, Shurbe M. Longitudinal study of calf morbidity and mortality on smallholder farms in southern Ethiopia. _PLOS ONE_ 2021; 16(9): e0257139. doi:10.1371/journal.pone.0257139. PMC8445444 (abstract only; source of the plan's 30.9% / 8.64%).
 36. Abebe R, Dema T, Libiyos Y, et al. Longitudinal study of calf morbidity and mortality and the associated risk factors on urban and peri-urban dairy farms in southern Ethiopia. _BMC Vet Res_ 2023; 19: 15. doi:10.1186/s12917-023-03574-8 (abstract only; checked and not the source of the plan's figures).
 37. In-repo: [`docs/research/bangladesh-regulatory.md`](./bangladesh-regulatory.md) §5.4 (vaccination), confirmed here from the PDF.

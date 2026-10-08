@@ -89,7 +89,7 @@ const ROLE_FREE = new Map<string, string>([
   ],
   ["language.get", "is their own language"],
   ["language.set", "is their own language"],
-  ["devices.claim", "enrols a Shed Phone with a code the Manager gave it"],
+  ["devices.claim", "enrolls a Shed Phone with a code the Manager gave it"],
   ["devices.current", "says which phone this is and who is switched in on it"],
   ["devices.switchUser", "is a PIN Switch, which the PIN is the gate of"],
   [

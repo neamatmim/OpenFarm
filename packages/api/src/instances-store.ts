@@ -614,7 +614,7 @@ export const recentHappenings = async (
     columns: { id: true, animalId: true, movedAt: true },
   });
 
-  // Heats: the sightings of oestrus that still stand, and only those that *began* a heat. One a
+  // Heats: the sightings of estrus that still stand, and only those that *began* a heat. One a
   // Correction withdrew is not a heat the farm believes in. Read from a little before the lookback,
   // so a sighting near its edge can tell whether an earlier one had already begun that heat.
   const sightings = await db.query.observation.findMany({
@@ -1207,7 +1207,7 @@ export const raiseLateAlerts = async (
  * somebody who was away for two publications should see everything that changed while they
  * were away, not only the last of it.
  *
- * There is no acknowledgement step in Release 1: a button to press would be one more thing
+ * There is no acknowledgment step in Release 1: a button to press would be one more thing
  * between somebody and the job. Having recorded something on the new Version is the farm's
  * evidence that they saw what it says, and it is evidence that cannot be clicked away by
  * accident.
@@ -1406,8 +1406,8 @@ export const workAwaitingSignOff = async (
             where: { farmId, instanceId: { in: ids } },
             columns: {
               instanceId: true,
-              bulkLitres: true,
-              differenceLitres: true,
+              bulkLiters: true,
+              differenceLiters: true,
               flaggedAt: true,
             },
           }),
@@ -1436,8 +1436,8 @@ export const workAwaitingSignOff = async (
         completions,
         milk: milk
           ? {
-              bulkLitres: figure(milk.bulkLitres),
-              differenceLitres: figure(milk.differenceLitres),
+              bulkLiters: figure(milk.bulkLiters),
+              differenceLiters: figure(milk.differenceLiters),
               flagged: milk.flaggedAt !== null,
             }
           : null,

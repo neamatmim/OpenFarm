@@ -127,7 +127,7 @@ const Amount = ({
   );
 };
 
-/** Where the entry stands with the Owner, as a word with its colour; nothing for money that never waited. */
+/** Where the entry stands with the Owner, as a word with its color; nothing for money that never waited. */
 const Approval = ({ event }: { event: MoneyEvent }) => {
   const { t } = useLanguage();
   if (event.approval === "awaiting") {

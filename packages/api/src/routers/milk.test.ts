@@ -173,7 +173,7 @@ describe("the milking effect", () => {
     const loaded = await staff.client.milk.session({ instanceId: instance.id });
     expect(loaded.records).toHaveLength(1);
     expect(loaded.records[0]).toMatchObject({
-      litres: "13.00",
+      liters: "13.00",
       destination: "bulk",
       forced: false,
       recordedBy: thePerson("staff").id,
@@ -253,7 +253,7 @@ describe("the milking effect", () => {
       .where(eq(animal.tagNumber, world.sickCow.tagNumber));
   });
 
-  it("a skipped cow has no litres to her name, and skipping her later takes them away", async () => {
+  it("a skipped cow has no liters to her name, and skipping her later takes them away", async () => {
     const { instance, staff } = await session("2026-10-04");
 
     await staff.client.work.completeStep({
@@ -290,7 +290,7 @@ describe("the milking effect", () => {
     expect(loaded.records).toEqual([]);
   });
 
-  it("refuses to book litres to a cow that has left the farm", async () => {
+  it("refuses to book liters to a cow that has left the farm", async () => {
     // Her own cow, so that killing her does not take a cow off the later tests' pen board.
     const doomed = await world.owner.client.animals.register({
       sex: "female",
@@ -351,7 +351,7 @@ describe("reconciling the tank", () => {
       evidence: [10],
     });
 
-    // 21 litres in the tank against 20 the cows account for: one litre out, exactly 5%.
+    // 21 liters in the tank against 20 the cows account for: one liter out, exactly 5%.
     const closed = await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "bulk",
@@ -360,16 +360,16 @@ describe("reconciling the tank", () => {
 
     expect(closed.effect).toEqual({
       kind: "bulk_total",
-      sumBulkLitres: 20,
-      differenceLitres: 1,
+      sumBulkLiters: 20,
+      differenceLiters: 1,
       differencePercent: 5,
       flagged: false,
     });
     const loaded = await staff.client.milk.session({ instanceId: instance.id });
     expect(loaded).toMatchObject({
-      bulkLitres: "21.00",
-      sumBulkLitres: "20.00",
-      differenceLitres: "1.00",
+      bulkLiters: "21.00",
+      sumBulkLiters: "20.00",
+      differenceLiters: "1.00",
       tolerancePercent: 5,
       flaggedAt: null,
     });
@@ -398,7 +398,7 @@ describe("reconciling the tank", () => {
     });
 
     expect(closed.effect).toMatchObject({
-      differenceLitres: 1.5,
+      differenceLiters: 1.5,
       differencePercent: 7.5,
       flagged: true,
     });
@@ -429,8 +429,8 @@ describe("reconciling the tank", () => {
     });
 
     expect(closed.effect).toMatchObject({
-      sumBulkLitres: 10,
-      differenceLitres: 0,
+      sumBulkLiters: 10,
+      differenceLiters: 0,
       flagged: false,
     });
   });
@@ -468,8 +468,8 @@ describe("reconciling the tank", () => {
 
     const loaded = await staff.client.milk.session({ instanceId: instance.id });
     expect(loaded).toMatchObject({
-      sumBulkLitres: "21.50",
-      differenceLitres: "0.00",
+      sumBulkLiters: "21.50",
+      differenceLiters: "0.00",
       flaggedAt: null,
     });
   });
@@ -646,9 +646,9 @@ describe("review findings", () => {
 
     const opened = await manager.client.work.get({ id: instance.id });
     expect(opened.milkingSession).toMatchObject({
-      bulkLitres: "25.00",
-      sumBulkLitres: "20.00",
-      differenceLitres: "5.00",
+      bulkLiters: "25.00",
+      sumBulkLiters: "20.00",
+      differenceLiters: "5.00",
     });
     expect(opened.milkingSession?.flaggedAt).not.toBeNull();
   });
@@ -792,7 +792,7 @@ describe("lactations", () => {
 
     const curve = await staff.client.milk.forAnimal({ tagNumber: tagOf(0) });
     // Order-independent: other tests in this file milk her too, on their own days.
-    expect(curve.records.map((record) => record.litres)).toContain("14.00");
+    expect(curve.records.map((record) => record.liters)).toContain("14.00");
     expect(
       curve.records.every(
         (record) => record.lactationNumber === curve.lactationNumber
@@ -843,7 +843,7 @@ describe("lactations", () => {
       tagNumber: cow.tagNumber,
       state: "milking",
     });
-    // The 2nd's litres put right on the 3rd are still the first Lactation's milk.
+    // The 2nd's liters put right on the 3rd are still the first Lactation's milk.
     await correctStepAsShown(owner.client, {
       completionId: entry?.id ?? "",
       evidence: [11],
@@ -851,9 +851,9 @@ describe("lactations", () => {
     });
     const record = await scratchDb().query.milkRecord.findFirst({
       where: { completionId: entry?.id ?? "" },
-      columns: { litres: true, lactationNumber: true },
+      columns: { liters: true, lactationNumber: true },
     });
-    expect(record).toEqual({ litres: "11.00", lactationNumber: 1 });
+    expect(record).toEqual({ liters: "11.00", lactationNumber: 1 });
   });
 });
 
@@ -878,12 +878,12 @@ const theFix = (completionId: string, recordedAt: Date) => ({
   },
 });
 
-const litresOf = async (completionId: string) => {
+const litersOf = async (completionId: string) => {
   const record = await scratchDb().query.milkRecord.findFirst({
     where: { completionId },
-    columns: { litres: true },
+    columns: { liters: true },
   });
-  return record?.litres;
+  return record?.liters;
 };
 
 describe("a Correction a Shed Phone made with no signal", () => {
@@ -931,7 +931,7 @@ describe("a Correction a Shed Phone made with no signal", () => {
     });
 
     expect(sent.results).toMatchObject([{ outcome: "applied" }]);
-    expect(Number(await litresOf(completionId))).toBe(1.1);
+    expect(Number(await litersOf(completionId))).toBe(1.1);
     const trail = await scratchDb().query.auditEvent.findFirst({
       where: { entity: "step_completion", entityId: completionId },
       orderBy: { recordedAt: "desc", id: "desc" },
@@ -951,6 +951,6 @@ describe("a Correction a Shed Phone made with no signal", () => {
     });
 
     expect(sent.results[0]?.outcome).toBe("rejected");
-    expect(Number(await litresOf(completionId))).toBe(11);
+    expect(Number(await litersOf(completionId))).toBe(11);
   });
 });

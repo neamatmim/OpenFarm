@@ -24,7 +24,7 @@ export interface IntakeFields {
   targetWindowStart: string;
   targetWindowEnd: string;
   paymentMethod: PaymentMethod;
-  /** A Venture's bull with no outing, paid from its account by bank: the transfer or cheque, and the day it moved. */
+  /** A Venture's bull with no outing, paid from its account by bank: the transfer or check, and the day it moved. */
   reference: string;
   paidOn: string;
   /** Which Farm Account the Farm's own bull was paid from by mobile money or the bank. */

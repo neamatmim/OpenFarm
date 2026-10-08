@@ -68,7 +68,7 @@ const SIGN_OFF_LIMIT = 100;
 /**
  * Loads the Instance a checker may sign off, refusing if they may not: it must be waiting
  * for sign-off, and waiting on a Role they hold. Holding some other Role is not enough — the
- * Version named who checks this work. The Owner may always step in, the same licence they
+ * Version named who checks this work. The Owner may always step in, the same license they
  * have elsewhere.
  */
 const loadCheckableInstance = async (
@@ -372,16 +372,16 @@ export const workRouter = {
       const milkingSession = await context.db.query.milkingSession.findFirst({
         where: { farmId: context.farm.id, instanceId: instance.id },
         columns: {
-          bulkLitres: true,
-          sumBulkLitres: true,
-          differenceLitres: true,
+          bulkLiters: true,
+          sumBulkLiters: true,
+          differenceLiters: true,
           tolerancePercent: true,
           flaggedAt: true,
         },
       });
       const now = context.clock.now();
       // What changed in the Version this work runs on, for somebody who has not yet done it
-      // on that Version. No acknowledgement step: the marker is on the work until they have
+      // on that Version. No acknowledgment step: the marker is on the work until they have
       // done it once, which is when they have read it (notification channels, R1).
       const changed = await whatChangedFor(
         context.db,
@@ -782,7 +782,7 @@ export const workRouter = {
    * trail rather than quietly overwriting it. The Completion still holds the current truth;
    * every version it has ever held is in its history.
    *
-   * The Step's effects run again, keyed on the same Completion, so a corrected litres figure
+   * The Step's effects run again, keyed on the same Completion, so a corrected liters figure
    * replaces its Milk Record and the Session's reconciliation is worked out afresh.
    */
   correctStep: protectedProcedure

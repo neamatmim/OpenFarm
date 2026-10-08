@@ -10,14 +10,14 @@ import type { EntryRefusal } from "./entries/entry";
 import { contentOf } from "./sop-content";
 
 /**
- * Writes down that the farm owes somebody's judgement: a Correction changed something it could not put right on its
+ * Writes down that the farm owes somebody's judgment: a Correction changed something it could not put right on its
  * own — figures a checker had signed off, an Effect the farm has moved past — or an Entry arrived that no longer fits
  * the world it was made in.
  *
  * The row alone. Telling the Manager it is there is the Notice's business, and the two happen in one act (see
  * `tell`): a queue nobody is pointed at is a queue nobody reads.
  */
-export const writeTheJudgementOwed = async (
+export const writeTheJudgmentOwed = async (
   tx: Tx,
   farmId: string,
   owed: {

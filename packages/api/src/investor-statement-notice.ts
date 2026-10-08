@@ -68,7 +68,7 @@ const said = (occasion: Occasion): string =>
  * The Ventures whose Investors can be owed a progress paper.
  *
  * Not one still **Open**: it has taken money but bought nothing, and অগ্রগতি is what the animals weigh
- * and what has been spent on them. A Settled or Cancelled run tells nobody either — its books are shut.
+ * and what has been spent on them. A Settled or Canceled run tells nobody either — its books are shut.
  */
 const RUNNING = ["buying", "fattening", "selling"] as const;
 

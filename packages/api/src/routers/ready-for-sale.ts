@@ -102,7 +102,7 @@ export const readyForSaleRouter = {
   /**
    * The Manager's decision: this animal may be sold.
    *
-   * Confirming is the State change, because readiness is a judgement and not an arithmetic
+   * Confirming is the State change, because readiness is a judgment and not an arithmetic
    * result. The Owner may confirm too (roles matrix: Ready for Sale is `confirm` for both).
    *
    * An animal inside her meat Withdrawal cannot be made ready at all — not warned about, not

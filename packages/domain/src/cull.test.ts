@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   cullReasonsOf,
   fewestDaysBeforeMilkIsWeighed,
-  litresOver,
+  litersOver,
   milkAgainstKeep,
   milkPriceOf,
 } from "./cull";
@@ -11,18 +11,18 @@ import type { Kept, MilkAgainstKeep } from "./index";
 
 // ৳8,400 of keep over four weeks: ৳300 a day.
 const kept: Kept = { amount: 8400, days: 28, fed: true, whole: true };
-const price = { moneyPerLitre: 55 };
+const price = { moneyPerLiter: 55 };
 
-describe("what a litre of the farm's milk fetched", () => {
-  it("is everything the Dispatches fetched over every litre they took, not the mean of their prices", () => {
-    // 1,000 litres at ৳50 and 500 at ৳56: ৳78,000 over 1,500 litres is ৳52, where the mean of the two prices would
+describe("what a liter of the farm's milk fetched", () => {
+  it("is everything the Dispatches fetched over every liter they took, not the mean of their prices", () => {
+    // 1,000 liters at ৳50 and 500 at ৳56: ৳78,000 over 1,500 liters is ৳52, where the mean of the two prices would
     // say ৳53 and let the can at the gate count as much as the tanker.
     expect(
       milkPriceOf([
-        { litres: 1000, pricePerLitreMoney: 50 },
-        { litres: 500, pricePerLitreMoney: 56 },
+        { liters: 1000, pricePerLiterMoney: 50 },
+        { liters: 500, pricePerLiterMoney: 56 },
       ])
-    ).toEqual({ moneyPerLitre: 52, litres: 1500, amount: 78_000 });
+    ).toEqual({ moneyPerLiter: 52, liters: 1500, amount: 78_000 });
   });
 
   it("is nothing where no milk left the farm", () => {
@@ -30,16 +30,16 @@ describe("what a litre of the farm's milk fetched", () => {
   });
 });
 
-describe("the litres she sent to Bulk in the days her keep is read over", () => {
+describe("the liters she sent to Bulk in the days her keep is read over", () => {
   it("are read over the same weeks as her keep, and nothing before them", () => {
     const now = new Date("2040-03-01T04:00:00.000Z");
     expect(
-      litresOver(
+      litersOver(
         [
           // The 30th of January is more than four weeks before the 1st of March.
-          { at: new Date("2040-01-30T00:00:00.000Z"), litres: 40 },
-          { at: new Date("2040-02-10T00:00:00.000Z"), litres: 12.5 },
-          { at: new Date("2040-02-20T00:00:00.000Z"), litres: 7.25 },
+          { at: new Date("2040-01-30T00:00:00.000Z"), liters: 40 },
+          { at: new Date("2040-02-10T00:00:00.000Z"), liters: 12.5 },
+          { at: new Date("2040-02-20T00:00:00.000Z"), liters: 7.25 },
         ],
         now,
         28
@@ -48,13 +48,13 @@ describe("the litres she sent to Bulk in the days her keep is read over", () => 
   });
 
   it("are read over as many days as the farm says", () => {
-    // A fortnight back from the 1st of March is the 16th of February: only the 20th's 7.25 litres are inside it.
+    // A fortnight back from the 1st of March is the 16th of February: only the 20th's 7.25 liters are inside it.
     const now = new Date("2040-03-01T04:00:00.000Z");
     expect(
-      litresOver(
+      litersOver(
         [
-          { at: new Date("2040-02-10T00:00:00.000Z"), litres: 12.5 },
-          { at: new Date("2040-02-20T00:00:00.000Z"), litres: 7.25 },
+          { at: new Date("2040-02-10T00:00:00.000Z"), liters: 12.5 },
+          { at: new Date("2040-02-20T00:00:00.000Z"), liters: 7.25 },
         ],
         now,
         14
@@ -74,13 +74,13 @@ describe("the soonest a cow's milk may be weighed", () => {
 });
 
 describe("her milk against her keep", () => {
-  it("sets what her litres fetch beside what keeping her cost, and what a litre of hers costs to make", () => {
-    // 280 litres in 28 days is 10 a day. At ৳55 they fetch ৳15,400 against ৳8,400 of keep: ৳7,000 over, and a
-    // litre costs her ৳30 to make.
+  it("sets what her liters fetch beside what keeping her cost, and what a liter of hers costs to make", () => {
+    // 280 liters in 28 days is 10 a day. At ৳55 they fetch ৳15,400 against ৳8,400 of keep: ৳7,000 over, and a
+    // liter costs her ৳30 to make.
     expect(
       milkAgainstKeep({
         kept,
-        litres: 280,
+        liters: 280,
         daysInMilk: 90,
         weighedAfterDays: 35,
         needsDays: 7,
@@ -89,34 +89,34 @@ describe("her milk against her keep", () => {
     ).toEqual({
       known: true,
       days: 28,
-      litres: 280,
-      litresPerDay: 10,
-      moneyPerLitre: 55,
+      liters: 280,
+      litersPerDay: 10,
+      moneyPerLiter: 55,
       worthMoney: 15_400,
       keepMoney: 8400,
       overKeepMoney: 7000,
-      costPerLitreMoney: 30,
+      costPerLiterMoney: 30,
       whole: true,
     });
   });
 
   it("says where her milk falls short of her keep", () => {
-    // 140 litres at ৳55 is ৳7,700, ৳700 short of ৳8,400; a litre costs her ৳60 to make.
+    // 140 liters at ৳55 is ৳7,700, ৳700 short of ৳8,400; a liter costs her ৳60 to make.
     expect(
       milkAgainstKeep({
         kept,
-        litres: 140,
+        liters: 140,
         daysInMilk: 200,
         weighedAfterDays: 35,
         needsDays: 7,
         price,
       })
-    ).toMatchObject({ overKeepMoney: -700, costPerLitreMoney: 60 });
-    // None at all to Bulk: every taka of her keep is short, and a litre has no cost to say.
+    ).toMatchObject({ overKeepMoney: -700, costPerLiterMoney: 60 });
+    // None at all to Bulk: every taka of her keep is short, and a liter has no cost to say.
     expect(
       milkAgainstKeep({
         kept,
-        litres: 0,
+        liters: 0,
         daysInMilk: 200,
         weighedAfterDays: 35,
         needsDays: 7,
@@ -125,7 +125,7 @@ describe("her milk against her keep", () => {
     ).toMatchObject({
       worthMoney: 0,
       overKeepMoney: -8400,
-      costPerLitreMoney: null,
+      costPerLiterMoney: null,
     });
   });
 
@@ -133,7 +133,7 @@ describe("her milk against her keep", () => {
     const at = (overrides: Partial<Parameters<typeof milkAgainstKeep>[0]>) =>
       milkAgainstKeep({
         kept,
-        litres: 140,
+        liters: 140,
         daysInMilk: 90,
         weighedAfterDays: 35,
         needsDays: 7,
@@ -165,7 +165,7 @@ describe("her milk against her keep", () => {
     expect(
       milkAgainstKeep({
         kept: fiveDays,
-        litres: 50,
+        liters: 50,
         daysInMilk: 90,
         weighedAfterDays: 35,
         needsDays: 7,
@@ -175,7 +175,7 @@ describe("her milk against her keep", () => {
     expect(
       milkAgainstKeep({
         kept: fiveDays,
-        litres: 50,
+        liters: 50,
         daysInMilk: 90,
         weighedAfterDays: 35,
         needsDays: 3,
@@ -189,7 +189,7 @@ describe("her milk against her keep", () => {
     expect(
       milkAgainstKeep({
         kept,
-        litres: 140,
+        liters: 140,
         daysInMilk: 59,
         weighedAfterDays: 60,
         needsDays: 7,
@@ -199,7 +199,7 @@ describe("her milk against her keep", () => {
     expect(
       milkAgainstKeep({
         kept,
-        litres: 140,
+        liters: 140,
         daysInMilk: 60,
         weighedAfterDays: 60,
         needsDays: 7,
@@ -212,7 +212,7 @@ describe("her milk against her keep", () => {
 describe("why the farm names a cow to the Owner", () => {
   const short = milkAgainstKeep({
     kept,
-    litres: 140,
+    liters: 140,
     daysInMilk: 90,
     weighedAfterDays: 35,
     needsDays: 7,
@@ -220,7 +220,7 @@ describe("why the farm names a cow to the Owner", () => {
   });
   const paying = milkAgainstKeep({
     kept,
-    litres: 280,
+    liters: 280,
     daysInMilk: 90,
     weighedAfterDays: 35,
     needsDays: 7,

@@ -30,7 +30,7 @@ type MilkFacts = Pick<
 
 /**
  * A cow skipped as unwell is an Observation of her, so the Manager sees to her; anything else this Step now says — her
- * litres, or another reason — takes that back.
+ * liters, or another reason — takes that back.
  */
 const unwellOrNot = async (tx: Tx, input: MilkFacts) => {
   const where = {
@@ -61,7 +61,7 @@ const recordTheMilk = async (
   const sessionId = await sessionOf(tx, input);
   await unwellOrNot(tx, input);
   if (input.skipped || !input.animalId) {
-    // A cow skipped — or recorded before, then skipped — has no litres to her name.
+    // A cow skipped — or recorded before, then skipped — has no liters to her name.
     await removeMilkRecord(tx, input.completionId);
     await reReconcile(tx, sessionId, input.tolerancePercent, input.now);
     return null;
@@ -71,7 +71,7 @@ const recordTheMilk = async (
     sessionId,
     completionId: input.completionId,
     animalId: input.animalId,
-    litres: numberIn(input.step, input.evidence),
+    liters: numberIn(input.step, input.evidence),
     requested: input.destination ?? "bulk",
     recordedBy: input.recordedBy,
     recordedAt: input.recordedAt,

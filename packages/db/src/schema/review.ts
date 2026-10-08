@@ -20,7 +20,7 @@ export type ReviewReason = (typeof REVIEW_REASONS)[number];
  * Something the system could not put right on its own, waiting for a person to look at it.
  * Raised by a Correction whose effects it cannot safely undo — a calf already created, a
  * sale already made, or, in Release 1, figures a checker has already signed off. Never
- * raised by a person, and never resolved by the system: closing one is a judgement, and it
+ * raised by a person, and never resolved by the system: closing one is a judgment, and it
  * is recorded as one.
  */
 export const needsReview = pgTable(

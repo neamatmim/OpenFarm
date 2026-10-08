@@ -13,6 +13,6 @@ export const shiftDay = (day: string, days: number): string => {
   return at.toISOString().slice(0, "YYYY-MM-DD".length);
 };
 
-/** What a Dispatch comes to: its litres at its price, to the paisa. */
-export const worthOf = (litres: number, pricePerLitre: number): number =>
-  Math.round(litres * pricePerLitre * 100) / 100;
+/** What a Dispatch comes to: its liters at its price, to the paisa. */
+export const worthOf = (liters: number, pricePerLiter: number): number =>
+  Math.round(liters * pricePerLiter * 100) / 100;

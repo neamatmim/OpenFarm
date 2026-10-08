@@ -21,20 +21,20 @@ import { appRouter } from "./index";
 // Worked by hand. Concentrate at ৳30 a kilo. On 1 January 2045 the opening register takes two cows in milk, M and U,
 // both bought; M's heifer calf H and bull calf B, born that day, are registered in the calf Pen.
 // - 10 January: 100 kg to the cows, ৳3,000, ৳1,500 each; 20 kg to the calves, ৳600, ৳300 each.
-// - 10 January and 10 February: M and U each give 20 litres to Bulk.
-// - Milk sold on 20 January at ৳60 a litre and on 5 March at ৳70; none in February, so February's litres go at
+// - 10 January and 10 February: M and U each give 20 liters to Bulk.
+// - Milk sold on 20 January at ৳60 a liter and on 5 March at ৳70; none in February, so February's liters go at
 //   January's ৳60, never March's.
 // - 1 March: B walks across to Fattening, is weighed at 100 kg, and the Owner prices him next day at ৳300 a kilo:
 //   ৳30,000, where his dairy run ends.
 // - 15 March: M sold for ৳90,000.
-// M, priced by the Owner at ৳80,000 from 1 January: ৳81,500 cost; 40 litres × ৳60 = ৳2,400 of milk and ৳90,000 back,
+// M, priced by the Owner at ৳80,000 from 1 January: ৳81,500 cost; 40 liters × ৳60 = ৳2,400 of milk and ৳90,000 back,
 // ৳92,400; ৳10,900, 13.4 on the hundred. Her ৳80,000 was out 73.25 days and her ৳1,500 of feed 63.92, 73.1 days on
 // average: 13.374 × 365 ÷ 73.08 is 66.8 a year. Neither calf's money is hers.
 // B: ৳300 cost, ৳30,000 back, ৳29,700 — out 50 days, under the floor, so no year.
 // H: ৳300 so far, standing, at the Head Price for a calf once the Owner sets one: ৳15,000 to ৳20,000.
 // C: U's heifer calf, born 20 March, fed nothing yet — nothing spent, and still worth a calf's Head Price.
 // U: not priced, and named until she is; then priced at ৳60,000 from 1 January — ৳61,500 with her feed — her 40
-// litres ৳2,400 already back, and at a cow in milk's Head Price of ৳70,000 to ৳90,000.
+// liters ৳2,400 already back, and at a cow in milk's Head Price of ৳70,000 to ৳90,000.
 
 const suffix = `${Date.now()}`.slice(-7);
 
@@ -61,7 +61,7 @@ const feedingSop = (): SopContent => ({
   ],
 });
 
-/** Each cow's litres, then what went into the tank. */
+/** Each cow's liters, then what went into the tank. */
 const milkingSop = (): SopContent => ({
   name: { bn: `দোহন ${suffix}` },
   purpose: { bn: "দুধ সংগ্রহ" },
@@ -194,13 +194,13 @@ const milk = async (instant: string) => {
   await client.work.complete({ id });
 };
 
-const dispatch = async (on: string, pricePerLitreMoney: number) => {
+const dispatch = async (on: string, pricePerLiterMoney: number) => {
   const { client } = await as("manager", `${on}T03:00:00.000Z`);
   await client.milk.dispatch({
     dispatchedAt: new Date(`${on}T02:30:00.000Z`),
-    litres: 40,
+    liters: 40,
     buyer: { name: `দুধের ক্রেতা ${suffix}` },
-    pricePerLitreMoney,
+    pricePerLiterMoney,
   });
 };
 
@@ -404,7 +404,7 @@ describe("a cow bought, or here before the books", () => {
       came: "priced",
       left: { how: "sold" },
       costMoney: 81_500,
-      milkLitres: 40,
+      milkLiters: 40,
       milkMoney: 2400,
       endMoney: 90_000,
       // February had milk and no Dispatch: January's price, never March's.

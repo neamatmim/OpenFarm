@@ -102,7 +102,7 @@ export const FARM_PARAMETERS = {
     max: 30,
     ownersAlone: "to set",
   },
-  /** How many days back the Dispatches are read for what a litre fetches: at least a week of a milk buyer, and no
+  /** How many days back the Dispatches are read for what a liter fetches: at least a week of a milk buyer, and no
    *  more than a year, past which the price is last year's. */
   cullMilkPriceDays: { min: 7, max: 365, ownersAlone: "to set" },
   /** The fewest days money must have been tied up, on average, before a return is put a year: at least one, and no

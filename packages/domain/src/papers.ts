@@ -390,7 +390,7 @@ export const withdrawalSummary = (summary: WithdrawalSummary): string =>
 export interface DispatchLine {
   /** When the milk left, formatted for the reader. */
   at: string;
-  litres: string;
+  liters: string;
   buyerName: string;
   buyerAddress: string | null;
   deliveryNote: string | null;
@@ -403,7 +403,7 @@ export interface MilkDispatchRecord {
   from: string;
   to: string;
   dispatches: DispatchLine[];
-  totalLitres: string;
+  totalLiters: string;
   producedBy: string;
   producedAt: string;
 }
@@ -423,7 +423,7 @@ export const milkDispatchRecord = (record: MilkDispatchRecord): string =>
     ...(record.dispatches.length === 0
       ? ["এই সময়ে কোনো দুধ হস্তান্তর হয়নি / No milk was dispatched in this period"]
       : record.dispatches.flatMap((one) => [
-          `${one.at} · ${one.litres} লিটার / litres · ${one.buyerName}`,
+          `${one.at} · ${one.liters} লিটার / liters · ${one.buyerName}`,
           one.buyerAddress?.trim()
             ? `  ${field("ঠিকানা", "Address", one.buyerAddress)}`
             : null,
@@ -435,7 +435,7 @@ export const milkDispatchRecord = (record: MilkDispatchRecord): string =>
             : null,
         ])),
     "",
-    field("মোট", "Total", `${record.totalLitres} লিটার / litres`),
+    field("মোট", "Total", `${record.totalLiters} লিটার / liters`),
     "",
     `${record.producedAt} · ${record.producedBy}`,
   ]
@@ -931,7 +931,7 @@ const whoJoined = (him: JoiningLetter["him"]): (string | null)[] => {
  *
  * Every arrival is printed with its own day and bank reference rather than summed into one figure,
  * because the whole use of this sheet is that a man can hold it beside his own bank statement and see
- * the same lines. A total nobody can check against anything is not an acknowledgement.
+ * the same lines. A total nobody can check against anything is not an acknowledgment.
  */
 export const joiningLetter = (letter: JoiningLetter): string => {
   if (letter.capital.length === 0) {
@@ -1184,7 +1184,7 @@ export interface SettlementStatement {
   rounding: string;
   farmShare: string;
   /** Whether the Farm's share was a share of profit. On a losing run the Farm bears its part too, and a
-   *  figure labelled "the Farm's share" beside a loss would read as the Farm taking money. */
+   *  figure labeled "the Farm's share" beside a loss would read as the Farm taking money. */
   farmShareRose: boolean;
   /** The Owner's own money back at cost, which was never a charge against the run. */
   advance: string | null;

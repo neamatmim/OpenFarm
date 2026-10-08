@@ -60,9 +60,9 @@ const Figures = ({ read }: { read: Read }) => {
         <FigureTerm label={t("projection.charged")} size="sm">
           {asMoney(projection.chargedMoney)}
         </FigureTerm>
-        {projection.realisedMoney > 0 ? (
-          <FigureTerm label={t("projection.realised")} size="sm">
-            {asMoney(projection.realisedMoney)}
+        {projection.realizedMoney > 0 ? (
+          <FigureTerm label={t("projection.realized")} size="sm">
+            {asMoney(projection.realizedMoney)}
           </FigureTerm>
         ) : null}
       </dl>
@@ -92,7 +92,7 @@ export const VentureProjectionPanel = ({ venture }: { venture: Venture }) => {
   const read = useQuery(
     orpc.ventures.projection.queryOptions({ input: { ventureId: venture.id } })
   );
-  if (venture.state === "settled" || venture.state === "cancelled") {
+  if (venture.state === "settled" || venture.state === "canceled") {
     return null;
   }
   return (

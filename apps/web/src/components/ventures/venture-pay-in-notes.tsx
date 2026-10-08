@@ -46,7 +46,7 @@ const STATE_TONE: Record<PayInNoteState, Tone> = {
 
 const WAY_WORDS = {
   bank_transfer: "ventures.payIn.way.bank_transfer",
-  cheque: "ventures.payIn.way.cheque",
+  check: "ventures.payIn.way.check",
   deposit_slip: "ventures.payIn.way.deposit_slip",
   mobile_money: "ventures.payIn.way.mobile_money",
 } as const satisfies Record<PayInWay, MessageKey>;

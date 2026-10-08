@@ -28,7 +28,7 @@ import { useId } from "react";
 
 import { useT } from "@/i18n/language-provider";
 
-/** How loud a thing is: the farm's semantic colours, always with a word and an icon beside them. */
+/** How loud a thing is: the farm's semantic colors, always with a word and an icon beside them. */
 export type Tone = "neutral" | "success" | "warning" | "danger" | "info";
 
 const TONE_ICON: Record<Tone, LucideIcon> = {
@@ -359,7 +359,7 @@ const BADGE_VARIANT = {
   info: "info",
 } as const;
 
-/** A status as the farm says it: its word, its icon and its colour, never the colour alone. */
+/** A status as the farm says it: its word, its icon and its color, never the color alone. */
 export const StatusBadge = ({
   tone,
   children,
@@ -685,7 +685,7 @@ export const SegmentedControl = <T extends string>({
   </fieldset>
 );
 
-/** The period a page reads, with its two days labelled where they are typed. */
+/** The period a page reads, with its two days labeled where they are typed. */
 export const PeriodFilter = ({
   label,
   fromLabel,

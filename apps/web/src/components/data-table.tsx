@@ -99,7 +99,7 @@ export interface RowLead {
 /** A row that opens on a line of text: the small text a table's cells are, and a card's first line. */
 const TEXT_LEAD: RowLead = { desk: "1.25rem", phone: "1.5rem" };
 
-/** One row's box, centred on the row's first line so it sits level with whatever the row opens on. */
+/** One row's box, centered on the row's first line so it sits level with whatever the row opens on. */
 const RowBox = ({
   height,
   label,

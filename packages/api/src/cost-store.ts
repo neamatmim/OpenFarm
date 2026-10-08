@@ -17,7 +17,7 @@ import {
   costsOf,
   exitOf,
   costOfGainOf,
-  costPerLitreOf,
+  costPerLiterOf,
   dosePriceOf,
   feedShares,
   groupedBy,
@@ -26,7 +26,7 @@ import {
   penHistoryOf,
   priceHistory,
   roundKg,
-  roundLitres,
+  roundLiters,
   roundMoney,
   roundedCosts,
   herdShares,
@@ -66,12 +66,12 @@ interface VetShare {
   vetMoney: number;
 }
 
-/** Litres one animal sent to Bulk in one Milking Session. */
-interface LitresShare {
+/** Liters one animal sent to Bulk in one Milking Session. */
+interface LitersShare {
   animalId: string;
   side: Side;
   at: Date;
-  litres: number;
+  liters: number;
 }
 
 /** Shares gathered under the animal each is charged to. */
@@ -190,7 +190,7 @@ const linesOf = (lines: unknown): FeedingToCost["lines"] =>
 /**
  * Everything the farm's costs are worked out from, charged to its animals: every Feeding split across the
  * animals standing in its Pen, every dose charged to the animal who had it, every Vet Fee split across the
- * animals the Vet named, and every litre each cow sent to Bulk. Worked out afresh, never stored, so a
+ * animals the Vet named, and every liter each cow sent to Bulk. Worked out afresh, never stored, so a
  * corrected Feeding or a Purchase written up late moves it without anybody having to remember to.
  *
  * The whole farm's history at once: a Margin is a whole life's costs, and a Pen's split needs everybody
@@ -295,7 +295,7 @@ const workOutFarmCosts = async (db: Db, farmId: string) => {
     with: {
       records: {
         where: { destination: "bulk" },
-        columns: { animalId: true, litres: true },
+        columns: { animalId: true, liters: true },
       },
     },
   });
@@ -519,7 +519,7 @@ const workOutFarmCosts = async (db: Db, farmId: string) => {
   });
   const herd = herdCosts.shares;
 
-  const milked: LitresShare[] = sessions.flatMap((session) =>
+  const milked: LitersShare[] = sessions.flatMap((session) =>
     session.records.flatMap((record) => {
       const animal = byId.get(record.animalId);
       return animal
@@ -528,7 +528,7 @@ const workOutFarmCosts = async (db: Db, farmId: string) => {
               animalId: record.animalId,
               side: sideOf(animal, session.dueAt),
               at: session.dueAt,
-              litres: Number(record.litres),
+              liters: Number(record.liters),
             },
           ]
         : [];
@@ -564,8 +564,8 @@ const workOutFarmCosts = async (db: Db, farmId: string) => {
     unallocatedHerd: herdCosts.unallocated,
     /** Every charge to every Animal: what every sum of what an Animal cost is picked from. */
     charges,
-    /** Litres each cow sent to Bulk: not a charge, but read beside them for what a litre cost. */
-    litres: milked,
+    /** Liters each cow sent to Bulk: not a charge, but read beside them for what a liter cost. */
+    liters: milked,
     /**
      * Which outings were Selling Trips, and what each was called.
      *
@@ -577,7 +577,7 @@ const workOutFarmCosts = async (db: Db, farmId: string) => {
     sellingTrips: sellingTripNames,
     ofAnimal: {
       charges: byAnimal(charges),
-      litres: byAnimal(milked),
+      liters: byAnimal(milked),
     },
   };
 };
@@ -613,9 +613,9 @@ export const keepChargesOf = (
       ...(one.over ? { over: one.over } : {}),
     }));
 
-/** The litres some cows sent to Bulk. */
-const litresOf = (litres: readonly LitresShare[]): number =>
-  litres.reduce((sum, one) => sum + one.litres, 0);
+/** The liters some cows sent to Bulk. */
+const litersOf = (liters: readonly LitersShare[]): number =>
+  liters.reduce((sum, one) => sum + one.liters, 0);
 
 type FarmAnimal = FarmCosts["animals"][number];
 
@@ -639,35 +639,35 @@ const gainOf = (animal: FarmAnimal): number | null => {
 };
 
 /** A cow in milk's current Lactation: what it has cost, what she has sent to Bulk in it, and so her Cost
- *  per Litre. Null for an animal not in a Lactation. */
+ *  per Liter. Null for an animal not in a Lactation. */
 const lactationOf = (
   animal: FarmAnimal,
-  hers: { charges: readonly Charge[]; litres: readonly LitresShare[] }
+  hers: { charges: readonly Charge[]; liters: readonly LitersShare[] }
 ) => {
   const since = animal.lactationStartedAt;
   if (animal.side !== "dairy" || since === null) {
     return null;
   }
   const costs = costsOf(hers.charges.filter((one) => one.at >= since));
-  const litresToBulk = litresOf(hers.litres.filter((one) => one.at >= since));
+  const litersToBulk = litersOf(hers.liters.filter((one) => one.at >= since));
   return {
     since,
     ...roundedCosts(costs),
-    litresToBulk: roundLitres(litresToBulk),
-    costPerLitreMoney: costPerLitreOf(costs, litresToBulk),
+    litersToBulk: roundLiters(litersToBulk),
+    costPerLiterMoney: costPerLiterOf(costs, litersToBulk),
   };
 };
 
 /**
  * One animal on the farm: what she has cost over her whole time here, what she was bought and sold for,
  * her Margin and what each kilogram she put on cost — and, for a cow in milk, what she has cost and sent
- * to Bulk in this Lactation, and so her Cost per Litre. Not over her whole life: a first-lactation cow's
+ * to Bulk in this Lactation, and so her Cost per Liter. Not over her whole life: a first-lactation cow's
  * calf and heifer years are not what her milk costs.
  */
 export const economicsOfAnimal = (costs: FarmCosts, animal: FarmAnimal) => {
   const hers = {
     charges: costs.ofAnimal.charges.get(animal.id) ?? [],
-    litres: costs.ofAnimal.litres.get(animal.id) ?? [],
+    liters: costs.ofAnimal.liters.get(animal.id) ?? [],
   };
   const whole = costsOf(hers.charges);
   const purchaseMoney = animal.intake ? animal.intake.purchasePriceMoney : null;
@@ -754,7 +754,7 @@ export const economicsOfHerd = (
 };
 
 /**
- * The costing narrowed to each of several stretches at once: its charges and litres in each, every one read once. A
+ * The costing narrowed to each of several stretches at once: its charges and liters in each, every one read once. A
  * report of thirteen stretches asked of the whole would read a year's million charges thirteen times; asked of these,
  * each stretch reads its own. Everything else — the animals, each one's own charges — is the whole costing's, as
  * `costsBySide` needs it.
@@ -768,7 +768,7 @@ export const narrowedToEach = (
     from: range.from.getTime(),
     until: range.until.getTime(),
     charges: [] as FarmCosts["charges"][number][],
-    litres: [] as FarmCosts["litres"][number][],
+    liters: [] as FarmCosts["liters"][number][],
   }));
   for (const one of costs.charges) {
     const at = one.at.getTime();
@@ -778,20 +778,20 @@ export const narrowedToEach = (
       }
     }
   }
-  for (const one of costs.litres) {
+  for (const one of costs.liters) {
     const at = one.at.getTime();
     for (const slot of slots) {
       if (at >= slot.from && at < slot.until) {
-        slot.litres.push(one);
+        slot.liters.push(one);
       }
     }
   }
-  return slots.map(({ charges, litres }) => ({ ...costs, charges, litres }));
+  return slots.map(({ charges, liters }) => ({ ...costs, charges, liters }));
 };
 
 /**
  * A period added up by Side. What each Side's animals were fed, dosed and visited for in the period, and
- * the litres the Dairy side sent to Bulk in it with what a litre cost. Apart from those, the fattening
+ * the liters the Dairy side sent to Bulk in it with what a liter cost. Apart from those, the fattening
  * animals sold in the period, each with her whole-life Margin — a different sum from the period's feed,
  * and kept apart so that nobody reads one as part of the other.
  */
@@ -805,7 +805,7 @@ export const costsBySide = (
       share.side === side && inThePeriod(share.at);
     return {
       costs: costsOf(costs.charges.filter(here)),
-      litresToBulk: litresOf(costs.litres.filter(here)),
+      litersToBulk: litersOf(costs.liters.filter(here)),
     };
   };
   const dairy = onSide("dairy");
@@ -827,8 +827,8 @@ export const costsBySide = (
   return {
     dairy: {
       ...roundedCosts(dairy.costs),
-      litresToBulk: roundLitres(dairy.litresToBulk),
-      costPerLitreMoney: costPerLitreOf(dairy.costs, dairy.litresToBulk),
+      litersToBulk: roundLiters(dairy.litersToBulk),
+      costPerLiterMoney: costPerLiterOf(dairy.costs, dairy.litersToBulk),
     },
     fattening: roundedCosts(fattening.costs),
     soldFattening: {
@@ -985,7 +985,7 @@ export const theFarmsOwn = (
   const charges = chargesOfOwner(costs.charges, null, ownedThenBy).filter(
     sinceBoughtBack
   );
-  const litres = costs.litres.filter(
+  const liters = costs.liters.filter(
     (one) => ownedThenBy(one.animalId, one.at) === null
   );
   const atTheFarmsPrice = (one: FarmAnimal): FarmAnimal => {
@@ -1005,10 +1005,10 @@ export const theFarmsOwn = (
       )
       .map(atTheFarmsPrice),
     charges,
-    litres,
+    liters,
     ofAnimal: {
       charges: byAnimal(charges),
-      litres: byAnimal(litres),
+      liters: byAnimal(liters),
     },
   };
 };

@@ -76,8 +76,8 @@ const bankRatesOf = async (db: Database, farmId: string) => {
  *  the Dairy side, and the Bank Rates with their ids for the page to mark the one in force. */
 type Books = Omit<ReturnBooks, "bankRates"> & {
   costs: FarmCosts;
-  /** Every cow's litres to Bulk, for the Dairy side's runs. */
-  litres: DairyBooks["litres"];
+  /** Every cow's liters to Bulk, for the Dairy side's runs. */
+  liters: DairyBooks["liters"];
   bankRates: Awaited<ReturnType<typeof bankRatesOf>>;
 };
 
@@ -178,7 +178,7 @@ const booksOf = async (
   return {
     costs,
     charges: costs.ofAnimal.charges,
-    litres: costs.ofAnimal.litres,
+    liters: costs.ofAnimal.liters,
     animals: costs.animals,
     joinings,
     weights: {

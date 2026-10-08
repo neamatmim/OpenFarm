@@ -33,13 +33,13 @@ const costs = {
     charge("2026-02-15", "fattening", 50),
     charge("2026-03-01", "fattening", 70),
   ],
-  litres: [
-    { animalId: "cow", side: "dairy", at: day("2026-02-10"), litres: 12 },
+  liters: [
+    { animalId: "cow", side: "dairy", at: day("2026-02-10"), liters: 12 },
   ],
   unallocated: [],
   unallocatedTrips: [],
   unallocatedHerd: [],
-  ofAnimal: { charges: new Map(), litres: new Map() },
+  ofAnimal: { charges: new Map(), liters: new Map() },
   sideOf: () => "dairy",
 } as unknown as FarmCosts;
 
@@ -57,7 +57,7 @@ describe("the costing narrowed to several stretches at once", () => {
       );
     }
     expect(costsBySide(narrowed[1] ?? costs, february)).toMatchObject({
-      dairy: { feedMoney: 200, litresToBulk: 12 },
+      dairy: { feedMoney: 200, litersToBulk: 12 },
       fattening: { feedMoney: 50 },
     });
   });

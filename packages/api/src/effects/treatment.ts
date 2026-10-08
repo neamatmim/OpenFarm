@@ -31,7 +31,7 @@ interface DoseGiven {
   completionId: string | null;
   givenBy: string | null;
   givenAt: Date | null;
-  learntAt: Date | null;
+  learnedAt: Date | null;
   milkWithdrawalDays: number | null;
   meatWithdrawalDays: number | null;
 }
@@ -241,7 +241,7 @@ const followTheArrivalDose = async (tx: Tx, input: TreatmentFacts) => {
 };
 
 /**
- * What the dose's row says of its giving: who, when, when the farm learnt of it, and the days it holds her for — the
+ * What the dose's row says of its giving: who, when, when the farm learned of it, and the days it holds her for — the
  * product's on the Drug List now, kept on the dose so days lowered there afterwards free nobody. All of it nothing
  * for a skip.
  *
@@ -259,7 +259,7 @@ const doseGiven = async (
       completionId: null,
       givenBy: null,
       givenAt: null,
-      learntAt: null,
+      learnedAt: null,
       milkWithdrawalDays: null,
       meatWithdrawalDays: null,
     };
@@ -275,7 +275,7 @@ const doseGiven = async (
     completionId: input.completionId,
     givenBy: input.recordedBy,
     givenAt: input.recordedAt < raised ? raised : input.recordedAt,
-    learntAt: input.now,
+    learnedAt: input.now,
     milkWithdrawalDays: product?.milkWithdrawalDays ?? null,
     meatWithdrawalDays: product?.meatWithdrawalDays ?? null,
   };

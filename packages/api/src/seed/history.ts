@@ -34,7 +34,7 @@ export interface WorkContext {
   day: string;
   board: Board;
   /** What earlier Steps of this same work came to — the tank reading is the sum of the cows' bulk milk. */
-  tally: { bulkLitres: number };
+  tally: { bulkLiters: number };
 }
 
 /** An answer worked out from the Step alone, or one that reads the farm's books at the moment the work is done. */
@@ -59,21 +59,21 @@ const milking =
       // Now and then the tank is read wrong or a bucket goes in uncounted, and the Manager's queue has something in it.
       const misread = farm.random.chance(0.02);
       const reading =
-        tally.bulkLitres *
+        tally.bulkLiters *
         (misread
           ? farm.random.between(1.08, 1.12)
           : farm.random.between(0.985, 1.015));
       return { evidence: [round1(reading)] };
     }
     const cow = beast ? herd.cows.get(beast.tagNumber) : undefined;
-    const litres = cow ? dailyYield(cow, day) * share : 0;
-    if (!cow || litres <= 0.5) {
+    const liters = cow ? dailyYield(cow, day) * share : 0;
+    if (!cow || liters <= 0.5) {
       return { skipReason: "অসুস্থ" };
     }
     if (farm.random.chance(0.004)) {
       return { skipReason: "লাথি মারছে, দোহন করা যায়নি" };
     }
-    return { evidence: [round1(litres * farm.random.between(0.9, 1.1))] };
+    return { evidence: [round1(liters * farm.random.between(0.9, 1.1))] };
   };
 RESPONDERS.morningMilking = milking(0.56);
 RESPONDERS.eveningMilking = milking(0.44);
@@ -182,7 +182,7 @@ const answerTheStep = async ({
         destination?: string;
       } | null;
       if (effect?.kind === "milk_record" && effect.destination === "bulk") {
-        work.tally.bulkLitres += Number(answer.evidence?.[0] ?? 0);
+        work.tally.bulkLiters += Number(answer.evidence?.[0] ?? 0);
       }
     }
     if (!step.repeatPerAnimal) {
@@ -225,7 +225,7 @@ export const doTheWork = async (
     herd,
     day,
     board,
-    tally: { bulkLitres: 0 },
+    tally: { bulkLiters: 0 },
   };
 
   const pace = { at };

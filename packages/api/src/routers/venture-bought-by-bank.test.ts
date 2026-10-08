@@ -6,7 +6,7 @@ import { appRouter } from "./index";
 
 /**
  * A Venture pays for a bull one of two ways: its own Float on the outing she came home on, or — with no outing, at the
- * farm gate or from a neighbour — by bank straight from the Venture Account, with its reference. Never cash: no pocket
+ * farm gate or from a neighbor — by bank straight from the Venture Account, with its reference. Never cash: no pocket
  * carries Investors' money, and the account falls by what she cost the moment she is taken in.
  */
 const suffix = `by-bank-${Date.now()}`;

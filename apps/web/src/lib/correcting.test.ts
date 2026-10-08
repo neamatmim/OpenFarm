@@ -50,7 +50,7 @@ describe("what a Correction sends", () => {
 
   it("says what the record held, not what the box showed, so the farm can tell it is stale", () => {
     const [sent] = Object.values(
-      changesFrom({ litres: figure(210) }, { litres: "180" })
+      changesFrom({ liters: figure(210) }, { liters: "180" })
     );
     expect(sent?.from).toBe(210);
   });

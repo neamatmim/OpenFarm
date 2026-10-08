@@ -101,7 +101,7 @@ const MONEY_LINE =
 /** A panel still waiting for the farm's answer. */
 const Waiting = () => <Skeleton className="h-24 rounded-lg" />;
 
-/** A line that says all is well, in words and colour both. */
+/** A line that says all is well, in words and color both. */
 const AllWell = ({ children }: { children: ReactNode }) => (
   <p className="text-success flex items-center gap-2 text-sm">
     <CircleCheck aria-hidden className="size-4 shrink-0" />

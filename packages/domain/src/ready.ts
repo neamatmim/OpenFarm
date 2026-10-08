@@ -13,7 +13,7 @@ export type ReadyReason = (typeof READY_REASONS)[number];
  * "target weight reached **or** Target Window open", and which of the two moves a Manager is
  * theirs to weigh, not the farm's to decide for them.
  *
- * A suggestion, never a decision: whether an animal is ready to sell is a judgement about the
+ * A suggestion, never a decision: whether an animal is ready to sell is a judgment about the
  * animal standing in front of you, and the farm knows only two things about her.
  *
  * Her window is a ground from `leadDays` before it opens: Qurbani cattle sell at the livestock markets in the week

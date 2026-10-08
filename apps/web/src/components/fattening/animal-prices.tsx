@@ -126,7 +126,7 @@ const EstimateLine = ({ one }: { one: AnimalPriced }) => {
   );
 };
 
-/** Each answer to keep or sell as it is drawn: its colour, its mark and its words. */
+/** Each answer to keep or sell as it is drawn: its color, its mark and its words. */
 const KEEPING_LOOK: Record<
   Keeping,
   {

@@ -136,7 +136,7 @@ export const CorrectionDialog = ({
   );
 };
 
-/** A labelled box inside a correction, filled with what the record says now. */
+/** A labeled box inside a correction, filled with what the record says now. */
 export const CorrectionAnswer = ({
   label,
   value,

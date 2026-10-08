@@ -69,9 +69,9 @@ beforeAll(async () => {
   const manager = await as("manager", "2050-03-01T06:00:00.000Z");
   await manager.client.milk.dispatch({
     dispatchedAt: new Date("2050-03-01T03:00:00.000Z"),
-    litres: 25,
+    liters: 25,
     buyer: { name: SHOP },
-    pricePerLitreMoney: 70,
+    pricePerLiterMoney: 70,
     paidNowMoney: 0,
   });
 });

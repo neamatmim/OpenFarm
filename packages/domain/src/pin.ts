@@ -3,7 +3,7 @@
  * no signal (ADR 0003). The device holds the salt and the derived hash, never the PIN.
  *
  * A 4-digit PIN has only 10,000 possibilities, so anyone holding the hash can search it
- * exhaustively; the cost per guess is the only defence. PBKDF2 at this iteration count puts
+ * exhaustively; the cost per guess is the only defense. PBKDF2 at this iteration count puts
  * a full search in the order of hours on a phone — enough time for the Manager to revoke a
  * lost device, which is the mitigation the ADR relies on. PINs gate *attribution on a
  * farm-provided phone*, not remote access: a device token is still required, and it is

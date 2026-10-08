@@ -139,12 +139,12 @@ describe("the letter that goes without delay", () => {
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
     await manager.client.notifiableDiseases.create({
-      name: { bn: "গলাফোলা", en: "Haemorrhagic septicaemia" },
+      name: { bn: "গলাফোলা", en: "Hemorrhagic septicemia" },
       note: "ইউএলও নিশ্চিত করেছেন",
     });
     const made = await vet.client.diagnoses.record({
       animalTag: cow.tagNumber,
-      disease: { bn: "গলাফোলা", en: "Haemorrhagic septicaemia" },
+      disease: { bn: "গলাফোলা", en: "Hemorrhagic septicemia" },
     });
     expect(made.notifiable).toBe(true);
 

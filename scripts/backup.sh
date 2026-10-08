@@ -102,7 +102,7 @@ sql() {
 # It also says how many rows the farm's key tables held, and it goes in before the dump, so
 # the copy carries its own row: a restore of it is checked against what it held, not against
 # what a farm is supposed to have. A farm set up yesterday holds no milk yet, and its first
-# restore drill must pass; a farm with a year of milk must get every litre of it back.
+# restore drill must pass; a farm with a year of milk must get every liter of it back.
 cat > "$work/statement.sql" <<'SQL'
 insert into backup_run (id, kind, started_at, destination, ok, held)
 values (:'run_id', :'kind', :'started'::timestamptz, :'destination', 'no',

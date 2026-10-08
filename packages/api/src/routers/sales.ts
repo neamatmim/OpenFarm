@@ -151,7 +151,7 @@ export const salesRouter = {
         paymentMethod: paymentMethodInput,
         /** Which Farm Account mobile money or bank money went into or came out of. */
         farmAccountId: farmAccountIdInput,
-        /** Its transaction ID, or the cheque's or slip's number. */
+        /** Its transaction ID, or the check's or slip's number. */
         reference: referenceInput,
         /** Whose hand took the cash, where it was not the writer's: the Owner writing up the Manager's sale. */
         heldBy: z.string().optional(),

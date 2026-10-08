@@ -5,7 +5,7 @@ import { counterpartyNamed } from "./counterparty-store";
 import { appRouter } from "./routers/index";
 import { createTestClient } from "./test/client";
 
-// The trader is recorded once per farm and found by his name as the Manager writes it — whatever letters she capitalised
+// The trader is recorded once per farm and found by his name as the Manager writes it — whatever letters she capitalized
 // today. Two of him would split what he owes the farm between two names.
 
 const suffix = `counterparty-${Date.now()}`;
@@ -22,7 +22,7 @@ beforeAll(async () => {
 });
 
 describe("a trader found by his name", () => {
-  it("is the same trader however his name is capitalised", async () => {
+  it("is the same trader however his name is capitalized", async () => {
     const first = await named(`Karim Traders ${suffix}`);
     expect(await named(`karim traders ${suffix}`)).toBe(first);
     expect(await named(`KARIM TRADERS ${suffix}`)).toBe(first);

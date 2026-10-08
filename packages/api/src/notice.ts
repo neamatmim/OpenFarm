@@ -14,7 +14,7 @@ import {
 } from "./alerts-store";
 import type { Cleared } from "./alerts-store";
 import type { Tx } from "./audit";
-import { writeTheJudgementOwed } from "./review-store";
+import { writeTheJudgmentOwed } from "./review-store";
 
 // One thing the farm tells a person (the glossary's Notice): what facts it carries, who hears it, and — for the kind
 // that is not finished until somebody decides — the queue row that goes with it. One place, so that a kind cannot be
@@ -37,7 +37,7 @@ export type AudiencePart =
   | "thePeopleOnTheWork"
   /** Whoever actually did it, for news the doer has to have. */
   | "whoeverDidIt"
-  /** Whoever works the Pen the Notice is about — the milkers who decide where her litres go. */
+  /** Whoever works the Pen the Notice is about — the milkers who decide where her liters go. */
   | "thePeopleOfHerPen"
   /** Whoever does this work: the Role the procedure is assigned to. */
   | "whoDoesThisWork"
@@ -60,9 +60,9 @@ const theVet = { roles: ["vet"] } as const;
  */
 export interface NoticeKind {
   audience: Audience;
-  /** True for the kind of Notice that is not finished until a person has decided: raising it writes the judgement
+  /** True for the kind of Notice that is not finished until a person has decided: raising it writes the judgment
    *  owed beside it, under the reason its facts carry. */
-  wantsJudgement?: true;
+  wantsJudgment?: true;
   /** Left out: whoever wrote the thing it is about. A person is not told what they have just written themselves. */
   leavesOutTheWriter?: true;
   /** Never told to the Owner for want of its own people: the Owner hears of the same thing by another kind already. */
@@ -83,8 +83,8 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   instance_escalated: { audience: [theOwner], entity: "sop_instance" },
   // Sent back to whoever did it: work reappearing on a list with no reason anywhere is how people stop trusting it.
   instance_sent_back: { audience: ["whoeverDidIt"], entity: "sop_instance" },
-  // The Manager's to settle, with their judgement recorded; the Owner reads it on their own exception list.
-  needs_review: { audience: [theManagers], wantsJudgement: true },
+  // The Manager's to settle, with their judgment recorded; the Owner reads it on their own exception list.
+  needs_review: { audience: [theManagers], wantsJudgment: true },
   // Whoever does the work it changes, and nobody else: a procedure the milkers run is not the Vet's news.
   sop_published: { audience: ["whoDoesThisWork"], entity: "sop_version" },
   // A change somebody wants made to the Playbook is the Owner's to accept or not.
@@ -93,7 +93,7 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   // procedure retired a second time is told a second time.
   sop_retired: { audience: ["whoDoesThisWork"], entity: "audit_event" },
   sop_restored: { audience: ["whoDoesThisWork"], entity: "audit_event" },
-  // The Manager and the milkers of her Pen: they are the people who decide where tomorrow morning's litres go.
+  // The Manager and the milkers of her Pen: they are the people who decide where tomorrow morning's liters go.
   withdrawal_ending: {
     audience: [theManagers, "thePeopleOfHerPen"],
     entity: "withdrawal",
@@ -282,12 +282,12 @@ export interface Raised {
 }
 
 /** The kinds of Notice that are not finished until a person has decided. */
-type WantsJudgement = "needs_review";
+type WantsJudgment = "needs_review";
 
 /** What raising one needs to know beyond its facts: which thing it is about, and — where the audience depends on it —
- *  the work or the person. A kind that wants a person's judgement must also say which Audit Event raised it and what
+ *  the work or the person. A kind that wants a person's judgment must also say which Audit Event raised it and what
  *  sort of thing it is about: the queue row is written from both, and neither can be worked out here. */
-export type AboutFor<Kind extends AlertKind> = Kind extends WantsJudgement
+export type AboutFor<Kind extends AlertKind> = Kind extends WantsJudgment
   ? About & { entity: string; auditEventId: string }
   : About;
 
@@ -305,7 +305,7 @@ export interface About {
   penId?: string | null;
   /** The Role a procedure is assigned to, for news its doers hear. */
   assignedRole?: RoleName;
-  /** The Audit Event that raised it, which a judgement owed is read back from either end. */
+  /** The Audit Event that raised it, which a judgment owed is read back from either end. */
   auditEventId?: string;
   /** Who wrote the thing it is about, for a kind that leaves them out. */
   writtenBy?: string;
@@ -497,7 +497,7 @@ export const whoHears = async <Kind extends AlertKind>(
  * Tells the farm's people one thing, once.
  *
  * Who hears it is the kind's to say, not the caller's. A kind that is not finished until somebody decides writes the
- * Manager's queue row in the same act, so a judgement owed and the notice about it cannot come apart. What comes back
+ * Manager's queue row in the same act, so a judgment owed and the notice about it cannot come apart. What comes back
  * is what was actually written — nothing on a second raising of the same thing — for the request to carry to a pocket
  * once its transaction has closed, which is the only place a push may happen.
  */
@@ -512,16 +512,16 @@ export const tell = async <Kind extends AlertKind>(
   const kind = NOTICES[notice.kind];
   const about: About = notice.about;
   const entity = about.entity ?? kind.entity ?? "";
-  if (kind.wantsJudgement) {
-    const judgement = notice.facts as NoticeFacts[WantsJudgement];
-    await writeTheJudgementOwed(
+  if (kind.wantsJudgment) {
+    const judgment = notice.facts as NoticeFacts[WantsJudgment];
+    await writeTheJudgmentOwed(
       tx,
       farmId,
       {
         entity,
         entityId: about.id,
-        reason: judgement.reason,
-        // Required of a kind that wants a judgement, so there is always one to write.
+        reason: judgment.reason,
+        // Required of a kind that wants a judgment, so there is always one to write.
         auditEventId: about.auditEventId ?? "",
       },
       now
@@ -541,9 +541,9 @@ export const tell = async <Kind extends AlertKind>(
     entityId: about.id,
     params,
   };
-  // A judgement owed again on a record whose last notice was read and dismissed is new work for the Manager: the notice
+  // A judgment owed again on a record whose last notice was read and dismissed is new work for the Manager: the notice
   // is raised again rather than dropped by the once-only index, or the second review waits on a list nobody is pointed at.
-  const reopened = kind.wantsJudgement
+  const reopened = kind.wantsJudgment
     ? await raiseAgain(tx, farmId, people, written, now)
     : [];
   const rows = await raiseAlerts(tx, farmId, people, written, now);

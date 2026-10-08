@@ -52,7 +52,7 @@ export const unraiseWhatItRaised = async (
 };
 
 /**
- * Withdraws what this Step said it saw, with the work it raised: a milking put right to litres after the cow was
+ * Withdraws what this Step said it saw, with the work it raised: a milking put right to liters after the cow was
  * skipped as unwell. Nothing when it saw nothing.
  */
 export const takeBackWhatWasSeen = async (
@@ -112,7 +112,7 @@ export const seeHerUnwell = async (
  * Records what somebody saw of one animal on the round — the farm's Observation, which starts
  * the health chain and which Breeding reads as a Heat when that is what was seen.
  *
- * Unlike the litres and the Moves, a Correction here never rewrites the row and never removes
+ * Unlike the liters and the Moves, a Correction here never rewrites the row and never removes
  * it. It withdraws it and writes the new one beside it, pointing back: what somebody said they
  * saw is a fact about the round, and it stays true that they said it even after the farm
  * decides they were looking at the wrong cow.

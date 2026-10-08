@@ -240,7 +240,7 @@ export const tradingProcedures = {
         note: z.string().trim().min(1).max(300),
         soldOn: farmDay,
         paymentMethod: z.enum(PAYMENT_METHODS),
-        /** The transfer, cheque or deposit slip the money moved on. */
+        /** The transfer, check or deposit slip the money moved on. */
         reference: z.string().trim().min(1).max(120),
         /** The Farm Account the Farm's side of it went into or came out of: the transfer is the same one. */
         farmAccountId: farmAccountIdInput,
@@ -429,7 +429,7 @@ export const tradingProcedures = {
         note: z.string().trim().min(1).max(300),
         boughtOn: farmDay,
         paymentMethod: z.enum(PAYMENT_METHODS),
-        /** The transfer, cheque or deposit slip the money moved on. */
+        /** The transfer, check or deposit slip the money moved on. */
         reference: z.string().trim().min(1).max(120),
         /** The Farm Account the Farm's side of it went into or came out of: the transfer is the same one. */
         farmAccountId: farmAccountIdInput,

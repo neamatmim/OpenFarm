@@ -499,7 +499,7 @@ describe("what a Venture's animals are doing", () => {
     // 818.5 kg. The dead bull and the two sold are not in it.
     expect(projection?.kgAtSale).toBeCloseTo(818.5, 6);
     // What the one sold to a buyer fetched is a fact at both ends — the figure the Settlement counts.
-    expect(projection?.realisedMoney).toBe(settlement.proceedsMoney);
+    expect(projection?.realizedMoney).toBe(settlement.proceedsMoney);
     // Charged what the Settlement counts, and the rest of the ৳1,00,000 running budget (৳5,00,000 of capital less
     // ৳4,00,000 for cattle) taken as spent. Selling, it has nothing left to buy.
     const measured = await owner.client.ventures.plan.againstActual({

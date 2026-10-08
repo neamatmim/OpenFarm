@@ -13,10 +13,10 @@ const STAGES = ["open", "buying", "fattening", "selling", "settled"] as const;
  */
 export const StageMeter = ({ state }: { state: Venture["state"] }) => {
   const { t, language } = useLanguage();
-  const calledOff = state === "cancelled";
+  const calledOff = state === "canceled";
   const here = calledOff ? -1 : STAGES.indexOf(state);
   const said = calledOff
-    ? t("ventures.state.cancelled")
+    ? t("ventures.state.canceled")
     : t("portal.stageOf", {
         at: formatNumber(here + 1, language),
         of: formatNumber(STAGES.length, language),

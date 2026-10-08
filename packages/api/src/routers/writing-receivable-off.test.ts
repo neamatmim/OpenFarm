@@ -5,7 +5,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 /**
- * Writing Receivable off: the Owner closing what a buyer will not pay, with a reason. What the animal — or a litre of milk —
+ * Writing Receivable off: the Owner closing what a buyer will not pay, with a reason. What the animal — or a liter of milk —
  * fetched is then its price less it, in every figure that asks; the buyer carries the mark; and a buyer who pays after
  * all puts it back.
  */
@@ -60,13 +60,13 @@ beforeAll(async () => {
     driver: `চালক ${suffix}`,
   });
   saleId = sold.id;
-  // A hundred litres at seventy, none of it paid for.
+  // A hundred liters at seventy, none of it paid for.
   const dairy = await as("manager", "2051-03-03T04:00:00.000Z");
   const milk = await dairy.client.milk.dispatch({
     dispatchedAt: new Date("2051-03-03T03:00:00.000Z"),
-    litres: 100,
+    liters: 100,
     buyer: { name: SHOP },
-    pricePerLitreMoney: 70,
+    pricePerLiterMoney: 70,
     paidNowMoney: 0,
   });
   dispatchId = milk.id;
@@ -181,9 +181,9 @@ describe("writing Receivable off", () => {
     expect(his).toMatchObject({ owingMoney: 15_000, writtenOffMoney: 0 });
   });
 
-  it("lowers what a litre fetched when milk is written off", async () => {
+  it("lowers what a liter fetched when milk is written off", async () => {
     const before = await march();
-    expect(before?.dairy).toMatchObject({ fetchedPerLitreMoney: 70 });
+    expect(before?.dairy).toMatchObject({ fetchedPerLiterMoney: 70 });
     const owner = await as("owner", "2051-03-25T06:00:00.000Z");
     await owner.client.receivables.writeOff({
       source: "dispatch",
@@ -192,21 +192,21 @@ describe("writing Receivable off", () => {
       why: "দোকান বন্ধ হয়ে গেছে",
     });
     const after = await march();
-    // The milk still left the farm: its litres stand, and fetched nothing.
+    // The milk still left the farm: its liters stand, and fetched nothing.
     expect(after?.dairy).toMatchObject({
       milkSoldMoney: 0,
-      fetchedPerLitreMoney: 0,
+      fetchedPerLiterMoney: 0,
     });
   });
 
   it("refuses a Dispatch put right below what was written off on it, and says to lower the write-off first", async () => {
-    // ৳7,000 written off on a hundred litres at seventy. At fifty a litre he would owe ৳5,000 and the farm would have
+    // ৳7,000 written off on a hundred liters at seventy. At fifty a liter he would owe ৳5,000 and the farm would have
     // written off ৳2,000 he never owed — milk that fetched less than nothing.
     const owner = await as("owner", "2051-03-26T06:00:00.000Z");
     await expect(
       owner.client.milk.correctDispatch({
         id: dispatchId,
-        changes: { pricePerLitreMoney: { from: 70, to: 50 } },
+        changes: { pricePerLiterMoney: { from: 70, to: 50 } },
         reason: "দাম ভুল লেখা হয়েছিল",
       })
     ).rejects.toMatchObject({

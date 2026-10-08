@@ -37,9 +37,9 @@ const MUST_HOLD: { table: string; why: string }[] = [
   { table: "step_completion", why: "the Steps somebody actually did" },
   {
     table: "milk_record",
-    why: "the litres — the whole subject of increment 1",
+    why: "the liters — the whole subject of increment 1",
   },
-  { table: "milking_session", why: "the Sessions those litres were drawn in" },
+  { table: "milking_session", why: "the Sessions those liters were drawn in" },
   { table: "audit_event", why: "the trail of what happened" },
 ];
 

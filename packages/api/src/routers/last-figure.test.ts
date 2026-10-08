@@ -7,7 +7,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 // The sheet shows what each animal gave or weighed the time before, so a slip of the thumb is seen against her own
-// figure rather than against a range wide enough to let 55 litres through for 5.5.
+// figure rather than against a range wide enough to let 55 liters through for 5.5.
 
 const suffix = `last-${Date.now()}`;
 
@@ -80,7 +80,7 @@ beforeAll(async () => {
 });
 
 /** One milking of the cow, at the instant given, of the procedure given; the work it was. */
-const milk = async (instant: string, definitionId: string, litres?: number) => {
+const milk = async (instant: string, definitionId: string, liters?: number) => {
   const manager = await as("manager", instant);
   await manager.client.work.ensureDue();
   const today = await manager.client.work.today({ penId });
@@ -89,12 +89,12 @@ const milk = async (instant: string, definitionId: string, litres?: number) => {
     throw new Error("expected the milking");
   }
   await manager.client.work.claim({ id: work.id });
-  if (litres !== undefined) {
+  if (liters !== undefined) {
     await manager.client.work.completeStep({
       instanceId: work.id,
       stepId: "milk",
       animalTag: cowTag,
-      evidence: [litres],
+      evidence: [liters],
     });
   }
   return { manager, id: work.id };
@@ -102,7 +102,7 @@ const milk = async (instant: string, definitionId: string, litres?: number) => {
 
 describe("her last figure, beside the box", () => {
   it("is what she gave at the same milking the time before, not at the other one", async () => {
-    // Six litres on the first morning, four that evening; the next morning's sheet says six.
+    // Six liters on the first morning, four that evening; the next morning's sheet says six.
     await milk("2098-01-02T00:30:00.000Z", sops.morning, 6);
     await milk("2098-01-02T10:30:00.000Z", sops.evening, 4);
     const { manager, id } = await milk(
@@ -137,10 +137,10 @@ describe("her Lactation, on her page", () => {
     const hers = await owner.client.milk.forAnimal({ tagNumber: cowTag });
     // Six and four on the 2nd, nothing written on the 3rd, seven on the 4th.
     expect(hers.summary).toEqual({
-      litres: 17,
+      liters: 17,
       daysMilked: 2,
       perDay: 8.5,
-      peak: { day: "2098-01-02", litres: 10 },
+      peak: { day: "2098-01-02", liters: 10 },
       latelyPerDay: 8.5,
     });
   });

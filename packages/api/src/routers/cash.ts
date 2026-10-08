@@ -104,7 +104,7 @@ export const cashRouter = {
         amountMoney: amountInput,
         /** When it changed hands, if not now. */
         handedAt: z.coerce.date().optional(),
-        /** The deposit slip or the cheque, where the bank is one end. */
+        /** The deposit slip or the check, where the bank is one end. */
         reference: z.string().trim().min(1).max(80).optional(),
         note: z.string().trim().max(300).optional(),
         /** The Farm's own outing this is the Buying Float for, where it is one. */

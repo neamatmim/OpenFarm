@@ -11,7 +11,7 @@ const unitsCountedOn = (
   heldMoney: number,
   run: { state: string; unitPriceMoney: number } | undefined
 ) =>
-  !run || run.state === "open" || run.state === "cancelled"
+  !run || run.state === "open" || run.state === "canceled"
     ? signed
     : unitsHeld(heldMoney, run.unitPriceMoney);
 

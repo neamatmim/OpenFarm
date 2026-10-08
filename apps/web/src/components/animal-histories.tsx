@@ -583,7 +583,7 @@ interface CheckRow extends Dated {
   firstServedAt: number;
 }
 
-/** What the Vet found, as a word with its colour: carrying is good news, not carrying is said plainly. */
+/** What the Vet found, as a word with its color: carrying is good news, not carrying is said plainly. */
 const CheckResult = ({ positive }: { positive: boolean }) => {
   const { t } = useLanguage();
   return (

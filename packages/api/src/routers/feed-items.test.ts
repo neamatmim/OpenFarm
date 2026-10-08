@@ -62,7 +62,7 @@ describe("the farm's list of Feed Items", () => {
   it("renames a feed, and refuses a name another feed has", async () => {
     const { id } = await manager.feed.items.create({
       name: { bn: "ঝোলা গুড়" },
-      unit: "litre",
+      unit: "liter",
     });
 
     await manager.feed.items.rename({
@@ -76,7 +76,7 @@ describe("the farm's list of Feed Items", () => {
     expect(await itemNamed("চিটাগুড়")).toMatchObject({
       id,
       nameEn: "Molasses",
-      unit: "litre",
+      unit: "liter",
     });
     expect(refusal(clash)).toBe("feed_item_exists");
   });

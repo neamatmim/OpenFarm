@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { NO_RECEIVABLE } from "./receivable";
 import { saleStillMissing } from "./sale-missing";
 
-// A Save that stands grey says nothing; one that says what is missing sends the person to the box. These are the
+// A Save that stands gray says nothing; one that says what is missing sends the person to the box. These are the
 // things a Sale is sent back for, said before it is sent rather than after.
 
 const aSale = {

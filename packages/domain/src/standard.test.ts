@@ -179,7 +179,7 @@ describe("the standard lists", () => {
 });
 
 describe("what the round saw, and the work it raises", () => {
-  it("raises nothing here for a heat, an hour's work for bloat or laboured breathing, and a day's for the rest", () => {
+  it("raises nothing here for a heat, an hour's work for bloat or labored breathing, and a day's for the rest", () => {
     expect(eventOfObservation(ROUND_WORDS.heat)).toBeNull();
     expect(eventOfObservation(ROUND_WORDS.bloat)).toBe(UNWELL_URGENT);
     expect(eventOfObservation(ROUND_WORDS.breathing)).toBe(UNWELL_URGENT);

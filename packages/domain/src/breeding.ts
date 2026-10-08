@@ -1,7 +1,7 @@
 import { farmDayOf, startOfFarmDay } from "./farm-clock";
 
 /**
- * The word an Observation uses for oestrus. An Observation that says this is a **Heat**.
+ * The word an Observation uses for estrus. An Observation that says this is a **Heat**.
  *
  * A fixed word rather than a meaning somebody attaches to a choice, because the Version's choices
  * are the author's to reword and reorder, and the farm has to be able to tell a Heat from "off her

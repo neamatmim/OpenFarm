@@ -13,7 +13,7 @@ export interface ToProject {
   /** What the animals still to sell are expected to weigh between them when they are sold. */
   kgAtSale: number;
   /** What the animals already sold fetched: a fact, the same at both ends. */
-  realisedMoney: number;
+  realizedMoney: number;
   /** Everything the Venture is expected to have been charged by the end. */
   chargedMoney: number;
   investorsPercent: number;
@@ -50,7 +50,7 @@ export const livingKg = (kg: number, deathsPercent: number): number =>
  *  deaths expected taken off what is still to sell. */
 export const projectedSettlement = ({
   kgAtSale,
-  realisedMoney,
+  realizedMoney,
   chargedMoney,
   investorsPercent,
   units,
@@ -60,7 +60,7 @@ export const projectedSettlement = ({
 }: ToProject): Projected => {
   // What an animal that dies cost stays charged: only what she would have fetched is lost.
   const at = (saleMoneyPerKg: number, kg: number): ProjectedEnd => {
-    const proceedsMoney = Math.round(realisedMoney + kg * saleMoneyPerKg);
+    const proceedsMoney = Math.round(realizedMoney + kg * saleMoneyPerKg);
     const profitMoney = Math.round(proceedsMoney - chargedMoney);
     return {
       saleMoneyPerKg,

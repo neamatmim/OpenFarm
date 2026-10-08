@@ -101,7 +101,7 @@ export const savePlan = async (
   said: PlanSaid,
   by: { userId: string | null; at: Date }
 ) => {
-  if (run.state === "settled" || run.state === "cancelled") {
+  if (run.state === "settled" || run.state === "canceled") {
     throw new ORPCError("BAD_REQUEST", {
       message: "A Venture that has ended has nothing left to plan",
       data: { refusal: "plan_after_the_end" },

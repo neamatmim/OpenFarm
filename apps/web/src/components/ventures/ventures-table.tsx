@@ -104,7 +104,7 @@ const TargetCell = ({ row }: Cell) => {
 const AnimalsCell = ({ row }: Cell) => {
   const { language } = useLanguage();
   const { venture } = row.original;
-  if (venture.state === "open" || venture.state === "cancelled") {
+  if (venture.state === "open" || venture.state === "canceled") {
     return <Nothing />;
   }
   return (

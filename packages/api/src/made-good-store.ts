@@ -146,7 +146,7 @@ export const takeBackMadeGood = async (
     where: { id: her.ventureId, farmId },
     columns: { state: true },
   });
-  if (venture?.state === "settled" || venture?.state === "cancelled") {
+  if (venture?.state === "settled" || venture?.state === "canceled") {
     throw new ORPCError("BAD_REQUEST", {
       message: "That Venture is settled; raise a Settlement Adjustment instead",
       data: { refusal: "venture_is_settled" },

@@ -63,7 +63,7 @@ export interface ProjectionBasis {
 export interface Projection extends Projected {
   basis: ProjectionBasis;
   /** What the animals already sold fetched. */
-  realisedMoney: number;
+  realizedMoney: number;
   /** Everything it is taken to have been charged by the end. */
   chargedMoney: number;
   investorsPercent: number;
@@ -219,7 +219,7 @@ export const offerProjectionOf = async (
     now
   );
   const figures = {
-    realisedMoney: 0,
+    realizedMoney: 0,
     chargedMoney:
       run.targetCapitalMoney - run.cattleBudgetMoney + buying.costMoney,
     investorsPercent: offeredPercent,
@@ -275,7 +275,7 @@ export const projectionOf = async (
   ]);
   const buying = await stillToBuy(db, farmId, run, basis, now);
   const figures = {
-    realisedMoney: settled.proceedsMoney,
+    realizedMoney: settled.proceedsMoney,
     chargedMoney:
       settled.chargedMoney +
       Math.max(0, spend.runningBudgetMoney - spend.runningSpentMoney) +
@@ -322,7 +322,7 @@ export const hisProjection = (
   });
   return {
     ...saidBasis(projection),
-    realisedMoney: projection.realisedMoney,
+    realizedMoney: projection.realizedMoney,
     chargedMoney: projection.chargedMoney,
     low: end(projection.low),
     high: end(projection.high),

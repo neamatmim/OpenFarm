@@ -113,14 +113,14 @@ const KINDS: Kind[] = [
     make: async (manager) => {
       const made = await manager.milk.dispatch({
         dispatchedAt: new Date("2039-03-01T02:00:00.000Z"),
-        litres: 100,
+        liters: 100,
         buyer: { name: `ক্রেতা ${suffix}` },
-        pricePerLitreMoney: 50,
+        pricePerLiterMoney: 50,
       });
       return {
         id: made.id,
         trail: { entity: "dispatch", entityId: made.id },
-        field: "litres",
+        field: "liters",
         from: 100,
         to: 120,
         stale: 101,

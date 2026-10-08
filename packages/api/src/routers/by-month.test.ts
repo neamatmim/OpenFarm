@@ -9,7 +9,7 @@ import { appRouter } from "./index";
 // Venture's own animals, which are its Settlement's and never the Farm's.
 //
 // Worked by hand. In March 2044 the Farm buys a bull for ৳50,000 on the 2nd, ৳6,000 of fly spray is charged to the
-// fattening animals on the 10th, 100 litres of milk go at ৳60 and 50 at ৳66 on the 12th — ৳9,300, ৳62 a litre — and
+// fattening animals on the 10th, 100 liters of milk go at ৳60 and 50 at ৳66 on the 12th — ৳9,300, ৳62 a liter — and
 // the bull is sold for ৳80,000 on the 15th. Beside him stands a bull a Venture's money bought on the 3rd and sold on
 // the 16th, which takes his share of the spray, and whose money and Margin are the Venture's.
 
@@ -118,14 +118,14 @@ beforeAll(async () => {
   };
   await sending.milk.dispatch({
     dispatchedAt: new Date("2044-03-12T02:30:00.000Z"),
-    litres: 100,
-    pricePerLitreMoney: 60,
+    liters: 100,
+    pricePerLiterMoney: 60,
     buyer,
   });
   await sending.milk.dispatch({
     dispatchedAt: new Date("2044-03-12T03:30:00.000Z"),
-    litres: 50,
-    pricePerLitreMoney: 66,
+    liters: 50,
+    pricePerLiterMoney: 66,
     buyer,
   });
   const { client: selling } = await as("manager", "2044-03-15T06:00:00.000Z");
@@ -276,7 +276,7 @@ describe("the farm month by month", () => {
     // A month nothing happened in says so, rather than a price or a Margin nobody made.
     expect(months.at(-2)).toMatchObject({
       money: { inMoney: 0, outMoney: 0, netMoney: 0 },
-      dairy: { milkSoldMoney: 0, fetchedPerLitreMoney: null, chargedMoney: 0 },
+      dairy: { milkSoldMoney: 0, fetchedPerLiterMoney: null, chargedMoney: 0 },
       fattening: { sold: 0, marginMoney: null, chargedMoney: 0 },
     });
   });
@@ -294,8 +294,8 @@ describe("the farm month by month", () => {
 
     expect(march?.dairy).toMatchObject({
       milkSoldMoney: 9300,
-      litresSold: 150,
-      fetchedPerLitreMoney: 62,
+      litersSold: 150,
+      fetchedPerLiterMoney: 62,
     });
     expect(march?.dairy.chargedMoney).toBe(charged(sides.dairy));
     expect(march?.money).toEqual({
@@ -340,7 +340,7 @@ describe("the farm month by month", () => {
     const his = await owner.costs.forAnimal({ tagNumber: farmsBull });
     expect(year).toMatchObject({
       money: { netMoney: 33_300 },
-      dairy: { milkSoldMoney: 9300, fetchedPerLitreMoney: 62 },
+      dairy: { milkSoldMoney: 9300, fetchedPerLiterMoney: 62 },
       fattening: { sold: 1, marginMoney: his.marginMoney },
     });
   });

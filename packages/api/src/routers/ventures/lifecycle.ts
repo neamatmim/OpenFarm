@@ -72,7 +72,7 @@ import type { Context } from "./shared";
 import { openInput, planned } from "./shared";
 
 /** The states in which a Venture has animals somebody is looking after. One still Open has bought
- *  nothing; a settled or cancelled one has nothing left to feed. */
+ *  nothing; a settled or canceled one has nothing left to feed. */
 const AT_WORK = ["buying", "fattening", "selling"] as const;
 
 /**
@@ -347,7 +347,7 @@ export const lifecycleProcedures = {
    * told nothing about an Investor, a Unit, a split, a payout or what the run made.
    *
    * Only the runs with animals to look after. A Venture still Open has bought nothing and a settled or
-   * cancelled one has nothing left to feed, and neither is work he can do anything about today.
+   * canceled one has nothing left to feed, and neither is work he can do anything about today.
    */
   running: protectedProcedure
     .use(requireRole("owner", "manager"))
@@ -895,7 +895,7 @@ export const lifecycleProcedures = {
           sentBack = refunds.length;
           await tx
             .update(venture)
-            .set({ state: "cancelled", cancelledReason: input.reason })
+            .set({ state: "canceled", canceledReason: input.reason })
             .where(eq(venture.id, row.id));
           // Called off: every Request on it, answered or not, closes with it.
           await closeRequests(
@@ -903,7 +903,7 @@ export const lifecycleProcedures = {
             auditing.recordEvent,
             context.farm.id,
             { ventureId: row.id },
-            "venture_cancelled",
+            "venture_canceled",
             now
           );
           // And every note of money sent towards it: what came in has gone back above.
@@ -917,6 +917,6 @@ export const lifecycleProcedures = {
           );
         }
       );
-      return { state: "cancelled" as const, refunded: sentBack };
+      return { state: "canceled" as const, refunded: sentBack };
     }),
 };

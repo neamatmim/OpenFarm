@@ -8,10 +8,10 @@
 
 ## Answer for the ticket
 
-1. **In Bangladesh a nominee is a collector, not an owner.** The statutes do two things. They tell the payer (bank, insurer, depository, savings office) whom to pay, and they discharge the payer once it has paid. The only reported judgment that decides the question holds that the nominee "does not become absolute owner" and holds the money "in trust" for the heirs under Muslim law. That judgment is **Md. Monjurul Hoque Chowdhury v. Bilkis Ara Begum**, High Court Division, Civil Revision 1682 of 2015, decided 3 April 2016. It read Bank Company Act 1991 s.103 the same way, because s.103(4)'s proviso keeps every other person's claim against the person paid. Two things push the other way. News reports say the Appellate Division stayed that judgment and has not decided the appeal. And Bangladesh Bank's 2017 circulars tell banks to pay the nominee. Neither says the nominee keeps the money **[SECONDARY]**. The settled part is the payer's discharge. Who ends up owning the money is contested, and the only reasoned answer favours the heirs.
+1. **In Bangladesh a nominee is a collector, not an owner.** The statutes do two things. They tell the payer (bank, insurer, depository, savings office) whom to pay, and they discharge the payer once it has paid. The only reported judgment that decides the question holds that the nominee "does not become absolute owner" and holds the money "in trust" for the heirs under Muslim law. That judgment is **Md. Monjurul Hoque Chowdhury v. Bilkis Ara Begum**, High Court Division, Civil Revision 1682 of 2015, decided 3 April 2016. It read Bank Company Act 1991 s.103 the same way, because s.103(4)'s proviso keeps every other person's claim against the person paid. Two things push the other way. News reports say the Appellate Division stayed that judgment and has not decided the appeal. And Bangladesh Bank's 2017 circulars tell banks to pay the nominee. Neither says the nominee keeps the money **[SECONDARY]**. The settled part is the payer's discharge. Who ends up owning the money is contested, and the only reasoned answer favors the heirs.
 2. **Nothing governs a nominee in a private mudarabah except the contract.** Section 103 binds only bank companies, s.61 of the Finance Company Act 2023 binds only finance companies, and no Act covers a farm's Venture. The contract cannot turn a nominee into an owner as against the heirs. A term that gives the nominee the money in their own right, taking effect on the Investor's death, is a bequest (wasiyyah) under Muslim law. A bequest is valid only up to one third of the estate, and a bequest to an heir needs the other heirs' consent. No statute here says "notwithstanding any other law" for a private contract, so the heirs can recover from the nominee.
 3. **Shariah agrees with the collector reading.** The shares of the heirs are fixed (Qur'an 4:11–12). A bequest is capped at one third (Bukhari 2742), and there is "no bequest to an heir" (Abu Dawud 2870; Tirmidhi 2120). AAOIFI has no standard on nomination or on wills. Its nearest rule is SS 26 (Islamic Insurance, issued 2 May 2005) 6/2/1/4: a participant's **investment balances** "should be distributed among the inheritors according to the Islamic rules of inheritance." An Investor's capital and profit share in a Venture are exactly that kind of money. Read this way, the nominee is an _amin_ (trustee) or agent who collects and hands on. They are not a _musa lahu_ (legatee).
-4. **OpenFarm's own words already take the collector side, but the glossary does not.** The standard Agreement says "their capital and share are paid through their nominee to their lawful heirs". The nominee line says the farm holds the nominee's details "only to pay the Investor's heirs". CONTEXT.md says the nominee is the person named "to receive their capital and share", which reads as a beneficiary. **Fix the glossary to the collector meaning** before modelling several nominees, or shares will be read as inheritance.
+4. **OpenFarm's own words already take the collector side, but the glossary does not.** The standard Agreement says "their capital and share are paid through their nominee to their lawful heirs". The nominee line says the farm holds the nominee's details "only to pay the Investor's heirs". CONTEXT.md says the nominee is the person named "to receive their capital and share", which reads as a beneficiary. **Fix the glossary to the collector meaning** before modeling several nominees, or shares will be read as inheritance.
 5. **With several nominees, a share decides who collects which part. It does not decide who inherits.** Under the collector reading a percentage split changes nothing about the heirs' entitlement. It only decides which nominee must account for which part. Banks, CDBL and insurers still ask for a percentage, and the savings certificate asks for a taka amount. Families will likely read a percentage as a statement of who inherits. The grilling must choose one of two designs. **(a)** Several nominees who collect the whole together or singly. **(b)** A share per nominee as the market does, with words that say the share is not inheritance.
 6. **What the market allows.** Every statute says "one or more" with no cap: BCA s.103 since the 2013 amendment, Insurance Act 2010 s.57, FCA 2023 s.61, the Government Savings Banks Act 1873 s.4 and the Sanchayapatra Rules 1977 r.14. The forms cap the count:
    - CDBL Form 23 (revision 03/08/2004): **2 nominees**, each with a **percentage**. The older Bye-Laws Form 02 had three.
@@ -62,7 +62,7 @@ On its face (3) is the strongest pro-nominee wording in Bangladeshi law: a non-o
 
 Heading: _আমানতকারীর প্রতিনিধি মনোনয়ন সংক্রান্ত বিধান_. The provision is shorter than s.103.
 
-- (1) The deposit **"may be paid"** after the death of the depositor(s) to the "person or persons" they nominated. The nomination can be cancelled and replaced at any time.
+- (1) The deposit **"may be paid"** after the death of the depositor(s) to the "person or persons" they nominated. The nomination can be canceled and replaced at any time.
 - (2) The depositor may specify who receives if a nominee is still a minor.
 - (3) Bangladesh Bank may give directions on nomination and deposit claims.
 
@@ -73,7 +73,7 @@ Heading: _আমানতকারীর প্রতিনিধি মনো�
 Section 57, _বীমা পলিসি গ্রাহক কর্তৃক মনোনয়ন_ (nomination by the policyholder):
 
 - **(1)** A policyholder on their own life may nominate **"one or more persons"** (_এক বা একাধিক ব্যক্তিকে_) to receive the sum assured on their death. **Proviso:** if a nominee is a minor, the policyholder may lawfully appoint a person to receive the money if the policyholder dies during the minority.
-- **(2)** To take effect, the nomination must be in or endorsed on the policy and notified to and registered by the insurer. It may be cancelled or changed before maturity by endorsement or **by will**. Until the insurer has notice of a change, it "shall not be liable" if it pays the registered nominee in good faith.
+- **(2)** To take effect, the nomination must be in or endorsed on the policy and notified to and registered by the insurer. It may be canceled or changed before maturity by endorsement or **by will**. Until the insurer has notice of a change, it "shall not be liable" if it pays the registered nominee in good faith.
 - **(3)** The insurer acknowledges registration in writing and may charge a fee.
 - **(4)** Assignment of the policy cancels the nomination, with exceptions for loans against the policy.
 - **(5)** If the policy matures in the holder's lifetime, or **all the nominees die before it matures**, the sum is payable to the holder, "or their heir or lawful representative or holder of a succession certificate".
@@ -128,7 +128,7 @@ This is the most beneficiary-sounding regime in Bangladesh. It rests on bye-laws
   - (1) The investor may nominate "**any one or more persons**", effective on the investor's death.
   - (2) The nomination may be for **all or part** of the investment.
   - (3) It may be made after purchase.
-  - (4) It may be changed or cancelled at any time.
+  - (4) It may be changed or canceled at any time.
   - (5) It lapses as to a nominee who dies first.
   - (6) **Without a proper nomination, the heir or heirs take "under the personal law applicable to them".**
   - (7) After the death, "**the nominee or heir**" may encash or keep drawing profit to maturity.
@@ -170,7 +170,7 @@ Naima Haider J, with Khizir Ahmed Choudhury J agreeing. The court called it "a c
   No leave-petition number and no Appellate Division decision were found on supremecourt.gov.bd.
 
 - **Bangladesh Bank, 2017.** BRPD Circular 06/2017 (banks) and DFIM Circular 02, 15 June 2017 (financial institutions) are reported to tell institutions to pay the nominee under s.103, and to stop taking affidavits from nominees that they may not be entitled. [Dhaka Tribune, 20 April 2017](https://archive.dhakatribune.com/business/banks/2017/04/20/banks-asked-pay-nominees-depositors-death); the pieces above. **Not read in the original**, because bb.org.bd blocked automated access and the Internet Archive has no copy. As reported, they are about **whom the bank pays**. They do not say the nominee keeps the money against the heirs.
-- **2019.** New Age's report of the full text, [9 January 2019](https://www.newagebd.net/article/61266/nominee-only-authorised-hc), names the same parties and bench as Civil Revision 1682/2015. Dhaka Tribune's "full judgment in 2019" therefore appears to be the 2016 decision's written release, not a second case.
+- **2019.** New Age's report of the full text, [9 January 2019](https://www.newagebd.net/article/61266/nominee-only-authorized-hc), names the same parties and bench as Civil Revision 1682/2015. Dhaka Tribune's "full judgment in 2019" therefore appears to be the 2016 decision's written release, not a second case.
 
 ### 2.3 Asma Rahman v. Most. Rabeya Akhter, HCD, Civil Revision 5852 of 2022, judgment 4 February 2024 ([PDF](https://www.supremecourt.gov.bd/resources/documents/2333319_CIVILREVISIONNo.5852of2022.pdf))
 
@@ -284,11 +284,11 @@ There are two layers, and they should not be confused:
   - **percentage**;
   - relationship with A/C holder;
   - date of birth;
-  - identity document (NID, passport, birth certificate, driving licence, employee ID or student ID) and its number;
+  - identity document (NID, passport, birth certificate, driving license, employee ID or student ID) and its number;
   - nominee photo.
 - **Minor:** "If the nominee remains minor during settlement … I/We hereby authorize the following person to receive/draw the amount as per Bank Company Act, 1991 section 103(2)". The fields are the name of the authorized person, relationship with nominee, permanent address, and an identity document and its number.
 - **Terms cl.13:**
-  - a nomination is cancelled if the nominee dies in the holder's lifetime;
+  - a nomination is canceled if the nominee dies in the holder's lifetime;
   - the nominee may not continue the account;
   - "where there is no nominee the Succession Certificate … will be required".
 
@@ -302,7 +302,7 @@ There are two layers, and they should not be confused:
 
 - Item 8, _নমিনির মনোনয়ন সংক্রান্ত_. Nominee **(1)** and **(2)**, each with: name, relationship, **টাকার পরিমাণ** (amount in taka), permanent address, present address.
 - Also: an attested photo of the nominee(s), and the nominee(s)' signature or thumbprint.
-- The acknowledgement slip repeats the nominees' names (ক, খ) with their signatures.
+- The acknowledgment slip repeats the nominees' names (ক, খ) with their signatures.
 
 ### 5.2 What the forms have in common
 
@@ -312,7 +312,7 @@ There are two layers, and they should not be confused:
 | Share                | **Percentage** (bank, CDBL, insurance) or **taka amount** (savings certificates, r.14 "whole or in part"). No form says the shares must total 100%, though it is implied                                                                                    |
 | Order or substitutes | **None.** No form or statute provides a first and second choice, or a substitute who takes if a nominee dies. Nominees are concurrent                                                                                                                       |
 | A nominee dies first | Their nomination lapses (GSB Act s.4(3); r.14(2); FSC Policy 10(5); IFIC cl.13.2). What happens to **their share** is stated only for insurance: the sum goes to the **surviving** nominees (s.57(6)), and to the holder's heirs if all have died (s.57(5)) |
-| Minor nominee        | The holder names **who receives for the minor** (BCA s.103(2); Ins. s.57(1); FCA s.61(2)). CDBL: guardian name, relationship with nominee, minor's DOB, **maturity date**. IFIC: authorised person, relationship, address, ID                               |
+| Minor nominee        | The holder names **who receives for the minor** (BCA s.103(2); Ins. s.57(1); FCA s.61(2)). CDBL: guardian name, relationship with nominee, minor's DOB, **maturity date**. IFIC: authorized person, relationship, address, ID                               |
 | Who signs            | Holder(s) and **each nominee** (CDBL, IFIC, MetLife, savings), plus **each guardian** (CDBL)                                                                                                                                                                |
 | Identity             | Relationship and date of birth everywhere. NID or other ID and a photo at banks and CDBL. Phone and address everywhere                                                                                                                                      |
 | Change               | At any time, by the holder, in writing (every regime). The insurer needs notice and registers it (s.57(2))                                                                                                                                                  |
@@ -407,7 +407,7 @@ There are two layers, and they should not be confused:
 
 - Dhaka Tribune, 20 April 2017: https://archive.dhakatribune.com/business/banks/2017/04/20/banks-asked-pay-nominees-depositors-death
 - Dhaka Tribune, 2 March 2020: https://www.dhakatribune.com/business/banks/202768/laws-of-nomination-banks-need-to-set-the-right
-- New Age, 9 January 2019: https://www.newagebd.net/article/61266/nominee-only-authorised-hc
+- New Age, 9 January 2019: https://www.newagebd.net/article/61266/nominee-only-authorized-hc
 - The Business Standard, 8 January 2023: https://www.tbsnews.net/thoughts/nominee-or-heir-who-entitled-receive-money-deceased-564474
 - The Daily Star, "Your Advocate": https://www.thedailystar.net/law-our-rights/your-advocate/your-advocate-1510273
 - bankingnewsbd, 10 November 2019: https://www.bankingnewsbd.com/who-will-get-the-dead-persons-money-nominee-or-successor/

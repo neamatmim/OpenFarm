@@ -189,7 +189,7 @@ const VoidRegistration = ({ tagNumber }: { tagNumber: string }) => {
 
 /**
  * How she left the herd, for an animal who died or was culled: when, of what, and what was done with her. Disposal is
- * evidence an inspector may ask for, so a disposal nobody has written yet is said in the warning colour, with the way
+ * evidence an inspector may ask for, so a disposal nobody has written yet is said in the warning color, with the way
  * to write it for those who may.
  */
 const HowSheWent = ({
@@ -475,7 +475,7 @@ const inTheirs = (said: { bn: string; en?: string }, language: Language) =>
 
 type FirstDayLine = NonNullable<AnimalDetail["firstDay"]>[number];
 
-/** What one Step recorded of her, said as the procedure said it: litres, kilos, a choice, or done. */
+/** What one Step recorded of her, said as the procedure said it: liters, kilos, a choice, or done. */
 const answerWords = (
   line: FirstDayLine,
   language: Language,

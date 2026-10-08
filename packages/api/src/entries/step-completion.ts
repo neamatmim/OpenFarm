@@ -89,7 +89,7 @@ export const stepCompletionInput = z.object({
   outOfRange: z.string().trim().max(120).optional(),
   skipReason: z.string().trim().max(120).optional(),
   /** The Evidence slots this Step has photos for. Each photo follows as a Step photo of its own, so a megabyte of
-   *  photograph cannot hold up a morning's litres — with signal or without. */
+   *  photograph cannot hold up a morning's liters — with signal or without. */
   photoSlots: z.array(z.number().int().min(0)).max(8).optional(),
 });
 
@@ -142,7 +142,7 @@ interface WorkForEffect {
 }
 
 /**
- * What a Step writes into the farm's records beyond its Evidence — the litres, the tank reading, the dose — in the
+ * What a Step writes into the farm's records beyond its Evidence — the liters, the tank reading, the dose — in the
  * Step's own transaction and keyed on its Completion, so a Correction replaces what it wrote rather than adding to it. The
  * one place what an Effect is told is put together, whether the Step is recorded or put right.
  */
@@ -412,7 +412,7 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
   };
 
 /**
- * Puts a Step Completion's answer right, and its Effect with it — keyed on the same Completion, so a corrected litres
+ * Puts a Step Completion's answer right, and its Effect with it — keyed on the same Completion, so a corrected liters
  * figure replaces its Milk Record and the Session's reconciliation is worked out afresh. Only the applying: whether it
  * may be put right, and why, is the Correction's to settle before it gets here.
  */

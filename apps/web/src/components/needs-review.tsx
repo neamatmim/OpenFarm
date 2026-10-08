@@ -52,7 +52,7 @@ const HELD_KIND: Record<string, MessageKey> = {
   step_correction: "review.held.step_correction",
 };
 
-/** What a row can do: open the dialog that closes it with a judgement, or the one that takes held work in. */
+/** What a row can do: open the dialog that closes it with a judgment, or the one that takes held work in. */
 interface ReviewActions {
   busy: (id: string) => boolean;
   handleResolve: (row: OpenReview) => void;
@@ -256,8 +256,8 @@ const ReviewCard = ({ row }: { row: ReviewRow }) => {
 
 const reviewCard = (row: ReviewRow) => <ReviewCard row={row} />;
 
-/** What the system could not put right on its own. Closing one is a judgement, so it asks
- *  for the judgement rather than offering a tick. */
+/** What the system could not put right on its own. Closing one is a judgment, so it asks
+ *  for the judgment rather than offering a tick. */
 export const NeedsReview = ({
   queue,
   waiting,

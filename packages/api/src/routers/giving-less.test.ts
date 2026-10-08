@@ -7,7 +7,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-// A cow giving well under her own week is named to the Manager: her litres a milking over the last two days against the
+// A cow giving well under her own week is named to the Manager: her liters a milking over the last two days against the
 // week before, whatever became of the milk.
 
 const suffix = `giving-less-${Date.now()}`;
@@ -46,10 +46,10 @@ const aCowInMilk = async (name: string) => {
 const theMilking = <Row extends { definitionId: string }>(rows: Row[]) =>
   rows.find((row) => row.definitionId === milkingId);
 
-/** Her morning milking on each of nine days from the 1st of February, giving what `litres` says for the day. */
+/** Her morning milking on each of nine days from the 1st of February, giving what `liters` says for the day. */
 const milkNineDays = async (
   cow: { penId: string; tag: string },
-  litres: (day: number) => number
+  liters: (day: number) => number
 ) => {
   for (let day = 1; day <= 9; day += 1) {
     const at = `2064-02-0${day}T00:00:00.000Z`;
@@ -68,7 +68,7 @@ const milkNineDays = async (
       instanceId: work?.id ?? "",
       stepId: "milk",
       animalTag: cow.tag,
-      evidence: [litres(day)],
+      evidence: [liters(day)],
     });
   }
 };
@@ -102,8 +102,8 @@ describe("a cow giving less", () => {
   });
 
   it("reads her whole oldest day, its morning milking too", async () => {
-    // Four litres on the 1st, ten on the 2nd to the 7th, eight on the 8th and 9th. Her week is the 1st to the 7th: 64
-    // litres over seven mornings, 9.14 a morning, and eight is 12% under it — not a fifth. Leave the 1st's morning out
+    // Four liters on the 1st, ten on the 2nd to the 7th, eight on the 8th and 9th. Her week is the 1st to the 7th: 64
+    // liters over seven mornings, 9.14 a morning, and eight is 12% under it — not a fifth. Leave the 1st's morning out
     // and her week is ten, and eight reads as a fifth under.
     const cow = await aCowInMilk(`কম পেন ঘ ${suffix}`);
     await milkNineDays(cow, (day) => {

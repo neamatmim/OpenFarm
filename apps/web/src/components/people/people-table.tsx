@@ -40,7 +40,7 @@ interface PersonRow extends Listed {
   actions: PeopleActions;
 }
 
-/** What somebody's standing is called, in its colour: a visit says the last day it lasts. */
+/** What somebody's standing is called, in its color: a visit says the last day it lasts. */
 export const StandingBadge = ({ standing }: { standing: Standing }) => {
   const { t, language } = useLanguage();
   const lapsed = standing.kind === "waitingToSignUp" && standing.lapsed;

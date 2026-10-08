@@ -194,7 +194,7 @@ describe("a Venture still gathering capital", () => {
 
     expect(projection?.kgAtSale).toBeCloseTo(1773.6, 6);
     expect(projection).toMatchObject({
-      realisedMoney: 0,
+      realizedMoney: 0,
       // Six at ৳1,25,000 is ৳7,50,000 of cattle, and the ৳2,00,000 running budget taken as spent.
       chargedMoney: 950_000,
       investorsPercent: 60,

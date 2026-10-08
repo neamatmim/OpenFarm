@@ -15,7 +15,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 
 /** What the lines below come to, as a statement opens with its totals: what they paid in, what came back to them —
- *  Settlement payouts, and apart from them any capital refunded when a Venture was cancelled, so each figure says what
+ *  Settlement payouts, and apart from them any capital refunded when a Venture was canceled, so each figure says what
  *  it counts and together they are the ledger's "back to you" — and what the farm holds of theirs now, the same sums
  *  their portfolio shows. */
 const useTotals = (theirs: TheirAgreements): Figure[] => {
@@ -39,7 +39,7 @@ const useTotals = (theirs: TheirAgreements): Figure[] => {
       value: asMoney(sums.paidOutMoney),
       icon: Wallet,
     },
-    // Only for somebody a Venture was cancelled on: everybody else would read a line of nothing.
+    // Only for somebody a Venture was canceled on: everybody else would read a line of nothing.
     ...(sums.returnedMoney > 0 ? [refunded] : []),
     {
       label: t("portal.heldNow"),

@@ -12,7 +12,7 @@ import {
 import { user } from "./auth";
 import { numericMoney } from "./numeric-columns";
 
-/** The single operating unit the system serves. Modelled so a second could exist later. */
+/** The single operating unit the system serves. Modeled so a second could exist later. */
 export const farm = pgTable("farm", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -139,7 +139,7 @@ export const farm = pgTable("farm", {
   /** How many days after calving a cow's milk is her calf's and never goes to Bulk: the days a milk wait has to be past
    *  before the days her keep is read over begin. A week unless the Owner says otherwise. */
   cullCalfMilkDays: integer("cull_calf_milk_days").notNull().default(7),
-  /** How many days back the farm's own Dispatches are read for what a litre of its milk fetches, when a cow's milk is
+  /** How many days back the farm's own Dispatches are read for what a liter of its milk fetches, when a cow's milk is
    *  set against her keep: two months of a milk buyer unless the Owner says otherwise. */
   cullMilkPriceDays: integer("cull_milk_price_days").notNull().default(60),
   /** The fewest days money must have been tied up in a Season, a Venture or a dairy Animal, on average, before what
@@ -161,7 +161,7 @@ export const farm = pgTable("farm", {
   ventureRunningPercent: integer("venture_running_percent")
     .notNull()
     .default(25),
-  /** How many Investors the Farm may have across every Venture that is not settled or cancelled, the
+  /** How many Investors the Farm may have across every Venture that is not settled or canceled, the
    *  Owner among them. More than twenty people in one business for gain must be a company (Companies Act
    *  1994 s.4), so the farm stops at what the lawyer confirms rather than at what anybody remembers. */
   investorCap: integer("investor_cap").notNull().default(20),

@@ -25,7 +25,7 @@ export const COMMON_DISEASES = [
   { bn: "জরায়ু প্রদাহ", en: "Metritis" },
   { bn: "ফুল আটকে যাওয়া", en: "Retained afterbirth" },
   { bn: "পেট ফাঁপা", en: "Bloat" },
-  { bn: "পাতলা পায়খানা", en: "Diarrhoea" },
+  { bn: "পাতলা পায়খানা", en: "Diarrhea" },
   { bn: "নিউমোনিয়া", en: "Pneumonia" },
   { bn: "খোঁড়া রোগ", en: "Lameness" },
   { bn: "রক্ত প্রস্রাব (বাবেসিয়া)", en: "Tick fever (babesiosis)" },

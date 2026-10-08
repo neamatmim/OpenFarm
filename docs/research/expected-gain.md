@@ -14,7 +14,7 @@ Read in **abstract only:** Mustafa et al. 2020 (L×HF bulls), Rashid et al. 2015
 
 **Not read, and why:**
 
-- **NASEM (2016) itself.** The National Academies' online reader serves only the front matter and summary to an automated reader. Every NASEM equation below comes from a source that quotes it, and is labelled with that source.
+- **NASEM (2016) itself.** The National Academies' online reader serves only the front matter and summary to an automated reader. Every NASEM equation below comes from a source that quotes it, and is labeled with that source.
 - **ICAR (2013)** is sold, not online. No ICAR figure is given here.
 - **CSIRO (2007)** is sold, not online. Its equations come from the Cabezas-Garcia review.
 - **Kearl (1982).** No copy was reached from a source that could be trusted.
@@ -332,11 +332,11 @@ Straw-only figures (0.16–0.29 kg/d) are left out of "low" on purpose: a farm f
 
 **Notes to the table:**
 
-1. **No direct source.** Interpolated from Joya 2026 (78 kg, 0.36–0.53) and Mustafa 2020/2021 (169–213 kg, 0.31–0.35). Low is the lower of the two neighbours; typical is carried from Joya.
+1. **No direct source.** Interpolated from Joya 2026 (78 kg, 0.36–0.53) and Mustafa 2020/2021 (169–213 kg, 0.31–0.35). Low is the lower of the two neighbors; typical is carried from Joya.
 2. **Low confidence.** Siddque's L×HF bulls (5 per group) gained 1.01–1.17. Mustafa's L×HF and L×Sahiwal bulls gained 0.31–0.35 on similar or richer rations (§1.2). If the Owner's crossbreds sit near 0.35, the typical should be lowered to the farm's own figure.
 3. Quang 2015 is a Vietnamese Brahman-cross trial: 190–200 kg, concentrate at 0.6% LW. **No Bangladeshi L×Brahman low for this band was found.** Rashid 2015a's lowest group gained 0.958 on a 55% concentrate ration.
 4. Siddque's conventional-ration L×HF group started at 287 kg. The "low" figure is on straw + local grass + a bran-only concentrate at 1.5% LW, the poorest supplemented ration found.
-5. **No direct source by weight.** Low is [SECONDARY] Roy et al. 2013 (L×B F1 on Napier : concentrate 1:1, 0.518–0.624, weight not given), quoted by Siddque 2015. Typical is the lower of its two neighbours: Rashid 2015a (171 kg, 0.96) and Rashid 2015b (343 kg, 0.87 on concentrate + UMS).
+5. **No direct source by weight.** Low is [SECONDARY] Roy et al. 2013 (L×B F1 on Napier : concentrate 1:1, 0.518–0.624, weight not given), quoted by Siddque 2015. Typical is the lower of its two neighbors: Rashid 2015a (171 kg, 0.96) and Rashid 2015b (343 kg, 0.87 on concentrate + UMS).
 6. **No direct source.** No deshi bull above about 330 kg was fattened in any trial read. The figures are carried over from 250–350 kg (Sid15, Sul17). Red Chittagong mature males average about 342 kg (Frontiers review), so few deshi bulls reach this band.
 7. **No direct source.** No Bangladeshi dairy-cross trial above about 405 kg (Siddque's final weights). Carried over from 250–350 kg. Temperate Holstein-Friesian bulls on 70% concentrate gained 1.3–1.9 kg/d at 400–670 kg (Keogh 2016), which is not transferable.
 8. Not applicable: deshi bulls are not expected to reach 500 kg. No source.

@@ -63,7 +63,7 @@ export const CourseLine = ({ course }: { course: Course }) => {
   );
 };
 
-/** A dose of a course: due when, and given by whom — or still owed — as a word with its colour. */
+/** A dose of a course: due when, and given by whom — or still owed — as a word with its color. */
 export const DoseLine = ({ dose }: { dose: Dose }) => {
   const t = useT();
   const { language } = useLanguage();

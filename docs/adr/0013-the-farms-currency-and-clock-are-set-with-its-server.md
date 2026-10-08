@@ -18,7 +18,7 @@ OpenFarm was built for one farm in Bangladesh, and on 2026-10-03 the Owner decid
 
 **The browser reads what the server wrote.** The server writes both on the page's root (`data-currency`, `data-time-zone`), the way it already writes which address the page is on. Before the page draws anything, the browser reads them back and sets the same farm locale. A phone that opens the page it kept, with no signal, reads its sums and days just as the server would. A page kept from before this was written is read as a farm in Bangladesh, which is what it was.
 
-**Names carry the unit, not the currency.** A sum's field is named `…Money` (`priceMoney`, `sale.baki_money`), beside `…Kg`, `…Litres` and `…Days`. The unit stays in the name because money so often sits next to the same thing in another unit: `milkMoney` beside `milkLitres`, `shortMoney` beside `shortKg`. Dropping the suffix would have made 152 of the 223 names collide with existing ones. A bare sum (`bdt`) is `amount`.
+**Names carry the unit, not the currency.** A sum's field is named `…Money` (`priceMoney`, `sale.baki_money`), beside `…Kg`, `…Liters` and `…Days`. The unit stays in the name because money so often sits next to the same thing in another unit: `milkMoney` beside `milkLiters`, `shortMoney` beside `shortKg`. Dropping the suffix would have made 152 of the 223 names collide with existing ones. A bare sum (`bdt`) is `amount`.
 
 **Consequences:**
 

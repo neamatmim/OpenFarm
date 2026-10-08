@@ -188,7 +188,7 @@ const AVERAGE_BOX = "bg-muted/50 flex flex-col gap-0.5 rounded-lg p-3";
 
 type HerAnimal = Today["herd"]["animals"][number];
 
-/** One animal's photograph, captioned with her tag and the day it was taken; grey while it comes. */
+/** One animal's photograph, captioned with her tag and the day it was taken; gray while it comes. */
 const HerPhoto = ({
   agreementId,
   one,

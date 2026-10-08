@@ -12,8 +12,8 @@
    - The investor provides all of the capital for animals and running costs. The farm or platform manages.
    - The profit is split. The investor's share is **30–50% of profit** wherever a figure is published.
    - A loss falls on the investors unless the manager was negligent.
-2. **Fixed-return or cost-plus deals.** Examples: iFarmer's 2020 per-cow offers, biniyog.io/Ahlan Agro (Murabaha), DanaHub/Digiternak (murabahah), Investify's post-dated cheques.
-   - The farm owes the investor a fixed amount, often secured by collateral or cheques.
+2. **Fixed-return or cost-plus deals.** Examples: iFarmer's 2020 per-cow offers, biniyog.io/Ahlan Agro (Murabaha), DanaHub/Digiternak (murabahah), Investify's post-dated checks.
+   - The farm owes the investor a fixed amount, often secured by collateral or checks.
    - This is debt, not a shared venture.
 3. **Fixed monthly-return "agro" schemes.** Examples: Nazran in Bangladesh, Ponorogo in Indonesia, FURT in Pakistan.
    - Every one found **collapsed or ended in arrests**.
@@ -97,7 +97,7 @@ Source: [archived 30 Nov 2022](https://web.archive.org/web/20221130100236/https:
 
 - **iFarmer's own [MIT Solve submission](https://solve.mit.edu/challenges/tiger-challenge-bangladesh/solutions/14638), 18 Sep 2019:** an "upfront service charge of BDT 3K for every cattle been sponsored", plus a share of profit after the sale. That is **a fee first, then a split**. By 2021 the published terms show only a profit split.
 - **[Future Startup, 15 Nov 2020](https://futurestartup.com/2020/11/15/ifarmer-enabling-investment-and-creating-wealth-through-farming-and-agriculture/) [SECONDARY]:**
-  - Bangladesh has no P2P or crowdfunding regulation. iFarmer had sent Bangladesh Bank a concept note and treated the model as traditional share-cropping needing no licence.
+  - Bangladesh has no P2P or crowdfunding regulation. iFarmer had sent Bangladesh Bank a concept note and treated the model as traditional share-cropping needing no license.
   - One farm's underperformance could be "cover[ed] … from other farms" in the portfolio.
   - Insurance (Green Delta, Pragati) was optional, typically taken by investors putting in BDT 200,000 or more.
 - **[TBS, 17 Jan 2020](https://www.tbsnews.net/economy/agriculture/ifarmer-bridge-between-farmers-and-capital-37129) [SECONDARY]:** minimum hold 4 months; monthly dashboard updates with photos; the insurance premium was described as high.
@@ -133,12 +133,12 @@ Source: [archived 30 Nov 2022](https://web.archive.org/web/20221130100236/https:
 - **Documents:**
   - A "Project Financing Certificate" and invoice by email.
   - A stamped agreement on request: free up to BDT 300,000, a BDT 360 stamp charge above that.
-  - A money receipt for cheques.
+  - A money receipt for checks.
 - **Updates:** on request, through the app ("My Farm" → "Get Updates").
   - Other WeGro project pages promise weekly field-officer visits, photos and geotagging. The cattle project page does not.
-- **Money in:** account-payee cheque or pay order, BEFTN/RTGS, or bank deposit.
+- **Money in:** account-payee check or pay order, BEFTN/RTGS, or bank deposit.
 - **Money out:** to a Bangladeshi bank account "within 3 to 6 business days after the project is completed" (the "settlement period").
-  - No monthly profit except on instalment projects.
+  - No monthly profit except on installment projects.
   - A bank account is mandatory. Non-resident Bangladeshis may invest but are paid only into a Bangladeshi account.
   - A non-cattle WeGro project page also mentions payout to a "mobile financial account".
 - **Regulator action or default:** none found.
@@ -153,7 +153,7 @@ Source: [archived 30 Nov 2022](https://web.archive.org/web/20221130100236/https:
 - **Not published:** the profit split, the cost split, death handling, unsold cattle, early exit, reporting.
 - **Warning signs on the [legal page](https://www.investify.fund/legal-compliance/):**
   - The registration fields read "Trade License No: TRAD/DSCC/000000/2025" and "TIN/BIN: 1234567890", which look like placeholders.
-  - Contracts define "security checks (like post-dated cheques or personal guarantees)". That is a debt-style guarantee sitting inside something labelled Mudaraba.
+  - Contracts define "security checks (like post-dated cheques or personal guarantees)". That is a debt-style guarantee sitting inside something labeled Mudaraba.
 
 **biniyog.io / Ahlan Agro** ([Ahlan Agro 3](https://biniyog.io/campaign/ahlan-agro-3/), [Ahlan Agro 2](https://biniyog.io/campaign/ahlan-agro-2/), both [SNIPPET]):
 
@@ -162,7 +162,7 @@ Source: [archived 30 Nov 2022](https://web.archive.org/web/20221130100236/https:
 - **Platform:** minimum Tk 5,000.
 - **[Future Startup, 7 May 2026](https://futurestartup.com/2026/05/07/the-biniyog-io-story/) [SECONDARY]:**
   - About 80% of campaigns are Murabaha. Contracts are on stamp paper. The non-performing rate is 3.75%.
-  - One borrower repaid "nearly two years after the original schedule". Cases were filed under the Negotiable Instruments Act, i.e. over bounced cheques.
+  - One borrower repaid "nearly two years after the original schedule". Cases were filed under the Negotiable Instruments Act, i.e. over bounced checks.
   - The founders say they operate "without a formal crowdfunding or marketplace lending framework in Bangladesh".
 
 **Shohoz Fintech** ([sfl.com.bd/invest](https://sfl.com.bd/invest), [SNIPPET]): cattle, fish and goat Shariah projects "with up to 25% returns"; "50-50 profit sharing model between investors and farmers"; money locked until the project ends.
@@ -193,7 +193,7 @@ Source: [freshie.farm/project-borga](https://www.freshie.farm/project-borga/), i
 - **Deposit:** by bank; investors upload payment proof in the app ([how-to page](https://www.freshie.farm/how-to-invest-in-project-borga-as-a-new-investor/)).
 - **Track record:** the Batch 11 summary shows "5170 টাকা লাভ", "10.5 কোটি+" and "৬০০ গরু". The page does not say what the 5,170 is per; if it is per Tk 50,000 share, that would be about 10% over the batch, but this is not stated.
 - **Not published:** the farm's own share of profit or any management fee; how a loss (selling below cost) is handled; unsold cattle; early exit; an under-filled batch; audited accounts.
-- **Legal:** only a trade licence (TRAD/DNCC/001842/2024) is shown. The site's terms cover the e-commerce shop, not the investment.
+- **Legal:** only a trade license (TRAD/DNCC/001842/2024) is shown. The site's terms cover the e-commerce shop, not the investment.
 
 ### 2.2 DeenAgro (Shibganj, Bogura; founded 2024): a published Mudarabah contract summary
 
@@ -204,13 +204,13 @@ Source: [deenagro.com](https://deenagro.com/), the section "মুদারা�
 | 1 Parties | 1st party = mudarib (manages the business); 2nd party = sahib-ul-maal (investor). |
 | 3 Term | A fixed period "e.g. 1 year, 6 months"; can be extended in writing by mutual consent. |
 | 5 Management | "Full control of the business rests with the 1st party", who "shall regularly report income and expenditure to the 2nd party." |
-| 6 Collateral (optional) | By agreement the mudarib may give a cheque or asset as security. The investor may recover a loss from it; it is returned at the end of the term. |
+| 6 Collateral (optional) | By agreement the mudarib may give a check or asset as security. The investor may recover a loss from it; it is returned at the end of the term. |
 | 7 Profit | "In an agreed ratio (e.g. 60% : 40%)". An "estimated monthly profit (optional) may be given, but is not final". The final account is at year end on actual income and expenditure. |
 | 8 Loss | "In a normal business loss, the 2nd party bears the loss in proportion to capital. If fault or negligence of the 1st party is proven, he must compensate." |
 | 9 Termination | Not before the term ends. Earlier only by mutual written notice. Profit or loss is shared at the end. |
 | 11 Fraud | If fraud or breach of trust is proven, the investor may cash the collateral and take legal action. |
 | 14 Disputes | Arbitrators nominated by both parties; Arbitration Act 2001 if needed. |
-| 15 Death | The contract is not cancelled by a party's death. If the investor dies, the nominee or heirs step in. |
+| 15 Death | The contract is not canceled by a party's death. If the investor dies, the nominee or heirs step in. |
 | 16 Zakat | Paid by the investor. |
 
 The home page also claims "12%+ annual return", "500+ active investors", a quarterly Shariah audit and monthly profit distribution. These are unverified. The contract says nothing about animal death, insurance, unsold cattle or the payout channel.
@@ -268,11 +268,11 @@ These are statute texts, read on bdlaws unless noted. They are here so the contr
   - **This bears directly on a pool of more than 20 investors** if it is structured as a partnership (Musharakah) rather than as investors contracting individually with the farm.
 - **Bank Company Act 1991** ([bdlaws](http://bdlaws.minlaw.gov.bd/act-print-751.html)):
   - **s.5:** "banking business" includes taking deposits from the public "repayable on demand or otherwise".
-  - **s.31(1):** no one may do banking business without a Bangladesh Bank licence.
+  - **s.31(1):** no one may do banking business without a Bangladesh Bank license.
   - **ss.51–53:** Bangladesh Bank can investigate, publicly declare an entity an illegal banking business, and order it to stop.
   - A **guaranteed principal or fixed return** makes a scheme look far more like a deposit.
 - **Multi-Level Marketing Activities (Control) Act 2013** ([bdlaws](http://bdlaws.minlaw.gov.bd/act-print-1128.html)):
-  - MLM (commission or profit promised through two or more levels of a network) needs a government licence.
+  - MLM (commission or profit promised through two or more levels of a network) needs a government license.
   - s.15 bans pyramid-style selling.
   - Penalty: 5–10 years' imprisonment and up to Tk 50 lakh fine (ss.24, 26).
   - **Relevance: never pay investors a referral commission.**
@@ -293,7 +293,7 @@ Bangladesh already gave a usable spread, so this section adds only what Banglade
 - **Split:** "Bagi hasil 70:30 (Manajemen:Mitra)", i.e. management 70, investor 30.
   - The prospectus breaks the 70 into "40% operasional" and "30% nusaQu".
   - A reseller fee (Rp 500k, 750k or 1.5m per head by weight band; also on the Q&A page) is deducted before profit.
-- **Farm side:** vets, pen team and marketing. Feed and medicine are not itemised.
+- **Farm side:** vets, pen team and marketing. Feed and medicine are not itemized.
 - **Death:** "Asuransi Gotong Royong", a self-run mutual pool, not a licensed insurer: "Setiap hewan terjamin oleh sistem asuransi mandiri nusaQu".
   - The investor pays a per-head premium when choosing the animal: Rp 150k, 200k or 250k by weight band (prospectus).
   - A dead, lost or stolen animal is replaced. A sick animal that must be slaughtered is topped up to its value. Any money left in the pool after Eid goes to the company's school.
@@ -314,7 +314,7 @@ Source: [mylembu.com/our-model](https://mylembu.com/our-model/), read.
 - **Farm covers:** "We will nourish and take care of your calf at our own expenses including rising, feeding, sheltering in our cowshed, provide medical care with 24/7 security".
   - **This is the structure where the farm bears feed and medicine and takes the larger share.**
 - **Exit in kind:** the investor can take the meat instead of a cash sale.
-- **Not published:** death, unsold cattle, early exit, reporting, payout channel, company or licence.
+- **Not published:** death, unsold cattle, early exit, reporting, payout channel, company or license.
 - **Regulator lists:** not found on the Bank Negara Malaysia consumer alert list or the Securities Commission investor alert list (research agent, 17 Sep 2026).
 
 ### 5.3 Vestifarm (Indonesia): slot-based, now defunct; a documented loss
@@ -343,7 +343,7 @@ Source: [project page](https://www.danahub.id/business/pendanaan-digiternak-bag-
 ### 5.5 Regulator actions and collapses outside Bangladesh
 
 - **Indonesia, OJK Investment Alert Task Force, Jan 2021:** listed PT Pasture Indonesia, "Penawaran investasi peternakan sapi dan mengaku diawasi OJK" (a cattle investment offer falsely claiming OJK supervision) ([CNBC Indonesia](https://www.cnbcindonesia.com/tech/20210129121923-37-219639/ini-daftar-investasi-bodong-terbaru-yang-harus-kamu-hindari) [SECONDARY]; the OJK attachment was unreachable).
-- **Indonesia, OJK, May 2024:** revoked the licence of TaniFund, an agriculture P2P lender (KEP-19/D.06/2024), after defaults ([Kompas](https://money.kompas.com/read/2024/05/09/070900426/duduk-perkara-gagal-bayar-tanifund-sampai-pencabutan-izin-usaha?page=all) [SECONDARY]).
+- **Indonesia, OJK, May 2024:** revoked the license of TaniFund, an agriculture P2P lender (KEP-19/D.06/2024), after defaults ([Kompas](https://money.kompas.com/read/2024/05/09/070900426/duduk-perkara-gagal-bayar-tanifund-sampai-pencabutan-izin-usaha?page=all) [SECONDARY]).
 - **Indonesia, CV Tri Manunggal Jaya, Ponorogo (dairy cattle):**
   - Packages of Rp 16–19 juta paying "Rp 2,3 juta per bulan" (a month); about 2,000 victims.
   - Stopped paying in Jan 2020; arrests on fraud and money-laundering charges ([finansialku](https://www.finansialku.com/investasi/sapi-perah-ponorogo/) [SECONDARY]).
@@ -397,9 +397,9 @@ If our contract is called Mudarabah or Musharakah, investors who care about the 
 | WeGro (B) | Unit per project; from BDT 5k; cattle project BDT 200k, 4 months | 40% of total profit (45-45-10 in 2022 press) | Investor bears; no guarantee | n/p for cattle | Only farmer-death insurance | n/p / no profit; full refund before 20% of tenure, then 2% or BDT 2,500; 30 working days / n/p | Project Financing Certificate; stamped agreement on request; updates on request | Bank, 3–6 business days after completion |
 | Freshie Farm Project Borga (B) | Share Tk 50k; batch of 600 cattle; 7 months | "Averaged and shared equally"; farm's share n/p | n/p | **Pool:** feed, staff salaries, treatment, electricity. **Farm:** shed, permanent structures | **Pool bears** ("across the whole batch") | n/p / n/p / batch closes at target | Web app: profile, weight gain, nominee and payment documents | Bank; ~2 weeks after batch end |
 | DeenAgro contract (B) | n/p | Agreed ratio, "e.g. 60:40"; estimated monthly profit optional, trued up at year end | Investor pro rata to capital; mudarib pays if negligent; optional collateral | n/p | n/p | n/p / only by mutual written notice / n/p | Regular income-expense reporting; nominee clause | n/p |
-| Investify Qurbani 2026 (B) | Share BDT 20k; 4 months | Projected 8%; split n/p | n/p (post-dated cheques as "security") | n/p | "Insured" (insurer n/p) | n/p | n/p | Wallet → bank, at maturity |
-| biniyog.io / Ahlan Agro (B) | From Tk 5k | Fixed markup (5% / 4 months) | Debtor owes the markup; cheque cases on default | n/a (sale on credit) | n/a | n/a | n/p | n/p |
-| nusaQu (Indonesia) | 1 animal, cattle ~Rp 15 juta | 30% of net profit (70 to management); reseller fee first | n/p | Farm: vet, pen team, marketing; itemisation n/p | Mutual pool, investor pays premium; farm replaces animal | **Farm buys at Eid price** / not allowed / n/a (per animal) | Contract, ownership certificate, "policy"; app with monthly weight, photos, health | Within 2 weeks of Eid; channel n/p |
+| Investify Qurbani 2026 (B) | Share BDT 20k; 4 months | Projected 8%; split n/p | n/p (post-dated checks as "security") | n/p | "Insured" (insurer n/p) | n/p | n/p | Wallet → bank, at maturity |
+| biniyog.io / Ahlan Agro (B) | From Tk 5k | Fixed markup (5% / 4 months) | Debtor owes the markup; check cases on default | n/a (sale on credit) | n/a | n/a | n/p | n/p |
+| nusaQu (Indonesia) | 1 animal, cattle ~Rp 15 juta | 30% of net profit (70 to management); reseller fee first | n/p | Farm: vet, pen team, marketing; itemization n/p | Mutual pool, investor pays premium; farm replaces animal | **Farm buys at Eid price** / not allowed / n/a (per animal) | Contract, ownership certificate, "policy"; app with monthly weight, photos, health | Within 2 weeks of Eid; channel n/p |
 | MyLembu (Malaysia) | 1 calf, RM2,500; 12 months | 30% of gain (farm 50, platform 20) | n/p | **Farm pays** feed, shelter, medical, security | n/p | n/p (meat in kind option) | n/p | n/p |
 | Vestifarm (Indonesia, defunct) | 1/6 of a cow | 50% (farmer on fixed fee) | Investor bore 38% loss; paid in vouchers | n/p | Jasindo, 85% of sale value | n/p | Monthly weight and photos promised, not delivered | Stopped 2020 |
 | DanaHub / Digiternak (Indonesia) | From Rp 100k | Fixed 10% margin / 3 months | Debtor owes margin; land collateral | n/a | n/p | n/a | n/p | n/p |
@@ -557,7 +557,7 @@ Secondary (used only where marked):
 - Sadeeq Agro: https://www.tbsnews.net/bangladesh/crime/cid-investigate-sadeeq-agro-owner-illegal-cattle-import-and-money-laundering ; Alesha Mart: https://www.newagebd.net/article/163028/alesha-mart-customers-start-getting-refund
 - Vestifarm: https://industri.kontan.co.id/news/membiakkan-dana-di-peternakan-sapi-vestifarm ; https://vannashara.wordpress.com/2017/12/26/rugi-investasi-di-vestifarm/ ; https://www.tulisandokter.com/post/pengalaman-investasi-vestifarm ; https://wisatadidunia.com/vestifarm/
 - OJK alert list (Pasture Indonesia), CNBC Indonesia: https://www.cnbcindonesia.com/tech/20210129121923-37-219639/ini-daftar-investasi-bodong-terbaru-yang-harus-kamu-hindari
-- TaniFund licence revocation, Kompas: https://money.kompas.com/read/2024/05/09/070900426/duduk-perkara-gagal-bayar-tanifund-sampai-pencabutan-izin-usaha?page=all
+- TaniFund license revocation, Kompas: https://money.kompas.com/read/2024/05/09/070900426/duduk-perkara-gagal-bayar-tanifund-sampai-pencabutan-izin-usaha?page=all
 - Ponorogo dairy scheme: https://www.finansialku.com/investasi/sapi-perah-ponorogo/
 - Green Farm Estate, Radar Bandung, 4 Aug 2026: https://www.radarbandung.id/2026/08/04/diduga-tertipu-investasi-bodong-modus-titip-domba-di-green-farm-estate-garut-korban-merugi-jutaan-hingga-miliaran/
 - Prestige Dairy, The Edge: https://theedgemalaysia.com/article/prestige-dairy-raided-over-cattle-investment-scheme

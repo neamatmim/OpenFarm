@@ -2,7 +2,7 @@ import type { Database } from "@OpenFarm/db";
 import type { MoneySource } from "@OpenFarm/db/schema/money";
 import type {
   MoneyApproval,
-  MoneyToSummarise,
+  MoneyToSummarize,
   PaymentMethod,
   Side,
   SideShare,
@@ -15,7 +15,7 @@ import { receivableOfBuyers } from "./receivable-store";
 type Db = Pick<Database, "query">;
 
 /** One Money Event as the accountant's CSV lists it and the summary adds it up. */
-export interface ExportedMoney extends MoneyToSummarise {
+export interface ExportedMoney extends MoneyToSummarize {
   id: string;
   occurredAt: Date;
   paymentMethod: PaymentMethod;

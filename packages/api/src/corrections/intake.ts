@@ -161,7 +161,7 @@ export const intakeCorrectionInput = correctionInput({
   paymentMethod: paymentMethodChange,
   /** Which Farm Account mobile money or bank money names, and its transaction ID. */
   farmAccount: farmAccountChange,
-  /** For a Venture's bull with no outing, paid from its account by bank: the transfer or cheque. Asked when a
+  /** For a Venture's bull with no outing, paid from its account by bank: the transfer or check. Asked when a
    *  Correction makes her one, and put right like any other slip. */
   reference: changeOf(z.string().trim().min(1).max(120), z.string().nullable()),
   /** What she weighed off the lorry: the first point every gain of hers is measured from, so a figure typed wrong is put

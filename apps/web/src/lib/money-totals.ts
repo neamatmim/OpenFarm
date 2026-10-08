@@ -29,6 +29,6 @@ export const moneyTotals = (list: ListedMoney): MoneyTotals =>
     awaiting: list.events.filter((row) => row.approval === "awaiting").length,
   };
 
-/** Whether the totals shown are only the rows' sum: an answer kept from before the farm totalled it, cut short. */
+/** Whether the totals shown are only the rows' sum: an answer kept from before the farm totaled it, cut short. */
 export const totalsPartial = (list: { more: boolean; totals?: MoneyTotals }) =>
   list.totals === undefined && list.more;

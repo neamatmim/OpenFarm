@@ -1,6 +1,6 @@
 import type { Kept } from "./animal-price";
 import { inTheKeepWindow } from "./animal-price";
-import { roundLitres } from "./milk";
+import { roundLiters } from "./milk";
 import { roundMoney } from "./money";
 
 /**
@@ -31,38 +31,38 @@ export const fewestDaysBeforeMilkIsWeighed = (
 ): number => calfMilkDays + keepReadDays;
 
 /**
- * What a litre fetched across some of the farm's Dispatches: everything they fetched over every litre they took, so a
- * big tanker counts for its litres, not as one vote beside a can at the gate — and what all of it came to. Nothing
+ * What a liter fetched across some of the farm's Dispatches: everything they fetched over every liter they took, so a
+ * big tanker counts for its liters, not as one vote beside a can at the gate — and what all of it came to. Nothing
  * where no milk left.
  */
 export const milkPriceOf = (
-  dispatches: readonly { litres: number; pricePerLitreMoney: number }[]
-): { moneyPerLitre: number; litres: number; amount: number } | null => {
-  const litres = dispatches.reduce((sum, one) => sum + one.litres, 0);
-  if (litres <= 0) {
+  dispatches: readonly { liters: number; pricePerLiterMoney: number }[]
+): { moneyPerLiter: number; liters: number; amount: number } | null => {
+  const liters = dispatches.reduce((sum, one) => sum + one.liters, 0);
+  if (liters <= 0) {
     return null;
   }
   const amount = dispatches.reduce(
-    (sum, one) => sum + one.litres * one.pricePerLitreMoney,
+    (sum, one) => sum + one.liters * one.pricePerLiterMoney,
     0
   );
   return {
-    moneyPerLitre: roundMoney(amount / litres),
-    litres: roundLitres(litres),
+    moneyPerLiter: roundMoney(amount / liters),
+    liters: roundLiters(liters),
     amount: roundMoney(amount),
   };
 };
 
-/** The litres she sent to Bulk inside the days her keep is read over, so the two are the same days. */
-export const litresOver = (
-  milked: readonly { at: Date; litres: number }[],
+/** The liters she sent to Bulk inside the days her keep is read over, so the two are the same days. */
+export const litersOver = (
+  milked: readonly { at: Date; liters: number }[],
   now: Date,
   readDays: number
 ): number =>
-  roundLitres(
+  roundLiters(
     milked
       .filter((one) => inTheKeepWindow(one.at, now, readDays))
-      .reduce((sum, one) => sum + one.litres, 0)
+      .reduce((sum, one) => sum + one.liters, 0)
   );
 
 /** Why the farm cannot weigh her milk against her keep yet. */
@@ -74,40 +74,40 @@ export type MilkAgainstKeep =
       known: true;
       /** How many of the days her keep is read over she was here: what both sums are over. */
       days: number;
-      litres: number;
-      litresPerDay: number;
-      /** What a litre fetched in the farm's Dispatches over its milk price window (a Farm Parameter, 60 days unless the
+      liters: number;
+      litersPerDay: number;
+      /** What a liter fetched in the farm's Dispatches over its milk price window (a Farm Parameter, 60 days unless the
        *  Owner says otherwise). */
-      moneyPerLitre: number;
-      /** What her litres fetch at that. */
+      moneyPerLiter: number;
+      /** What her liters fetch at that. */
       worthMoney: number;
       keepMoney: number;
       /** What her milk leaves over her keep; negative where it falls short. */
       overKeepMoney: number;
-      /** What a litre of hers costs to make lately; nothing while she sent none to Bulk. */
-      costPerLitreMoney: number | null;
+      /** What a liter of hers costs to make lately; nothing while she sent none to Bulk. */
+      costPerLiterMoney: number | null;
       /** False when some feed or a dose in her keep had no price: it is short by that, and so kinder to her. */
       whole: boolean;
     };
 
 /**
- * Her milk against her keep over the days her keep is read back over: what the litres she sent to Bulk fetch at what
- * the farm's own Dispatches got a litre, set beside what keeping her cost. Milk to her calf or poured away under
+ * Her milk against her keep over the days her keep is read back over: what the liters she sent to Bulk fetch at what
+ * the farm's own Dispatches got a liter, set beside what keeping her cost. Milk to her calf or poured away under
  * Withdrawal fetched nothing, so it counts for nothing — a treatment costs the milk it spoils as well as the dose.
  *
  * Not weighed, and said why, until she is as many days into her Lactation as the farm says, while no Feeding was
- * charged to her in those days, or while the farm sold no milk in its price window to put a price on a litre.
+ * charged to her in those days, or while the farm sold no milk in its price window to put a price on a liter.
  */
 export const milkAgainstKeep = ({
   kept,
-  litres,
+  liters,
   daysInMilk,
   weighedAfterDays,
   needsDays,
   price,
 }: {
   kept: Kept;
-  litres: number;
+  liters: number;
   daysInMilk: number | null;
   /** The Farm Parameter: how many days into her Lactation before her milk is weighed. Never fewer than
    *  `fewestDaysBeforeMilkIsWeighed`, which the Parameter itself refuses. */
@@ -115,7 +115,7 @@ export const milkAgainstKeep = ({
   /** The Farm Parameter: how many days she must have been on this farm before her keep is judged — a cow bought in
    *  long in milk is weighed only once she has. */
   needsDays: number;
-  price: { moneyPerLitre: number } | null;
+  price: { moneyPerLiter: number } | null;
 }): MilkAgainstKeep => {
   const tooSoon =
     daysInMilk === null ||
@@ -130,19 +130,19 @@ export const milkAgainstKeep = ({
   if (price === null) {
     return { known: false, because: "no_price" };
   }
-  const worthMoney = roundMoney(litres * price.moneyPerLitre);
+  const worthMoney = roundMoney(liters * price.moneyPerLiter);
   const keepMoney = roundMoney(kept.amount);
   return {
     known: true,
     days: Math.round(kept.days),
-    litres,
-    litresPerDay: roundLitres(litres / kept.days),
-    moneyPerLitre: price.moneyPerLitre,
+    liters,
+    litersPerDay: roundLiters(liters / kept.days),
+    moneyPerLiter: price.moneyPerLiter,
     worthMoney,
     keepMoney,
     // From the figures as they are shown, so what is left over is what the two lines come to.
     overKeepMoney: roundMoney(worthMoney - keepMoney),
-    costPerLitreMoney: litres > 0 ? roundMoney(kept.amount / litres) : null,
+    costPerLiterMoney: liters > 0 ? roundMoney(kept.amount / liters) : null,
     whole: kept.whole,
   };
 };

@@ -122,7 +122,7 @@ const RecordLink = ({
   return name;
 };
 
-/** What was done, as a word with its colour. */
+/** What was done, as a word with its color. */
 const ActionBadge = ({ event }: { event: AuditEvent }) => {
   const t = useT();
   return (

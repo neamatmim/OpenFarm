@@ -1028,7 +1028,7 @@ const depositSaleCash = async (
   }
   if (!input.reference) {
     throw new ORPCError("BAD_REQUEST", {
-      message: "The bank's end of a Handover needs its slip or cheque",
+      message: "The bank's end of a Handover needs its slip or check",
       data: { refusal: "bank_needs_a_slip" },
     });
   }
@@ -1154,7 +1154,7 @@ export const recordHandover = async (
   const bankIsAnEnd = fromUserId === null || toUserId === null;
   if (bankIsAnEnd && !input.reference) {
     throw new ORPCError("BAD_REQUEST", {
-      message: "The bank's end of a Handover needs its slip or cheque",
+      message: "The bank's end of a Handover needs its slip or check",
       data: { refusal: "bank_needs_a_slip" },
     });
   }

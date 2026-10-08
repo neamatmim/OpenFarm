@@ -20,7 +20,7 @@ import { Outbox } from "./outbox";
 import { proveHeldSwitches } from "./shed-phone";
 
 /** The farm, as the Outbox speaks to it. Typed against the farm's own entry shapes rather than cast at them: this is
- *  the one seam where a field the server does not recognise would quietly lose a morning's work. It sends what it is
+ *  the one seam where a field the server does not recognize would quietly lose a morning's work. It sends what it is
  *  given: a Batch is frozen before it gets here, so every attempt under one key carries the same entries. */
 const farm: Transport = {
   send: (batch) => {

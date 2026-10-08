@@ -38,7 +38,7 @@ ASVS 6.3.1 (L1): "controls to prevent attacks such as credential stuffing and pa
 
 **What it lacks.**
 
-- **No per-address limit.** `portal.join` is a public procedure under `/api/rpc` (`routers/portal.ts:74-82`), and better-auth's rate limiter only covers `/api/auth`. Nothing limits how many join requests one address sends. Shed Phone enrolment already counts by caller address (`routers/devices.ts:109`); `join` does not.
+- **No per-address limit.** `portal.join` is a public procedure under `/api/rpc` (`routers/portal.ts:74-82`), and better-auth's rate limiter only covers `/api/auth`. Nothing limits how many join requests one address sends. Shed Phone enrollment already counts by caller address (`routers/devices.ts:109`); `join` does not.
 - **The count is not bounded.** The wrong-guess counter is a `Map` in process memory (`attempts.ts:7`). It is only pruned for the key being asked about (`attempts.ts:17-26`). The key is built from whatever the caller typed as the phone, raw when it is not a mobile number (`portal-store.ts:264`). A script that sends a different phone on every request therefore grows the map without limit, until the process dies and systemd restarts it (`deploy/openfarm.service:16`). That takes the whole farm app down with it, and the restart forgets every count.
 - **Malicious lockout.** Anybody who knows an Investor's phone can keep that Investor's code locked by sending 10 wrong codes every 15 minutes. It is a nuisance, not a breach, but 6.1.1 asks for it to be addressed in writing.
 
@@ -372,7 +372,7 @@ better-auth's `/update-user` is open to any session. The name an Investor sets b
 
 ## 7. Staff and Investors on one address
 
-**The observed behaviour.** On 2026-09-25, a browser signed in as an Investor sent the Owner's pages to `/portal`. That is the app doing what it was written to do with the one session a browser holds:
+**The observed behavior.** On 2026-09-25, a browser signed in as an Investor sent the Owner's pages to `/portal`. That is the app doing what it was written to do with the one session a browser holds:
 
 - the farm's layout sends a signed-in Investor to `/portal` (`routes/_auth/route.tsx:108-111`);
 - the portal sends anybody who is not an Investor to `/dashboard` (`routes/portal/_in.tsx:31-33`);

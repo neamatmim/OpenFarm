@@ -55,7 +55,7 @@ const NameCell = ({ row }: { row: { original: ItemRow } }) => (
   <TwoNames className={nameTone(row.original)} named={row.original} />
 );
 
-/** In use or retired, as a word with its colour. */
+/** In use or retired, as a word with its color. */
 const ItemStanding = ({ retired }: { retired: boolean }) => {
   const { t } = useLanguage();
   return retired ? (
@@ -314,7 +314,7 @@ const AddItemDialog = ({
             ))}
           </NativeSelect>
         </FormField>
-        {/* A bag is kilos: feed counted in litres or bundles is not bought by it. */}
+        {/* A bag is kilos: feed counted in liters or bundles is not bought by it. */}
         {unit === "kg" ? (
           <FormField id="feed-bag" label={t("feed.bagSize")}>
             <Input

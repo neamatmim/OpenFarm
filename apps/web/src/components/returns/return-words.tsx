@@ -39,7 +39,7 @@ export const useSeasonName = () => {
         });
 };
 
-/** What every hundred taka made, said as made or lost, a loss in the loss's colour: a return line's first words. */
+/** What every hundred taka made, said as made or lost, a loss in the loss's color: a return line's first words. */
 export const ShareSaid = ({
   per100,
   on,
@@ -133,7 +133,7 @@ export const Result = ({ amount }: { amount: number }) => {
   );
 };
 
-/** What every hundred taka of cost made, small under a closed row's result: the loss's colour for a loss. */
+/** What every hundred taka of cost made, small under a closed row's result: the loss's color for a loss. */
 export const ShareUnder = ({ per100 }: { per100: number }) => {
   const { t } = useLanguage();
   return (
@@ -200,7 +200,7 @@ export const TodayRange = ({ running }: { running: Running }) => {
 };
 
 /**
- * A Season or a Venture still going, at today's price: the range, labelled an estimate, then the part gone and the part
+ * A Season or a Venture still going, at today's price: the range, labeled an estimate, then the part gone and the part
  * standing apart, and the days so far — never a year.
  */
 export const RunningLines = ({ running }: { running: Running }) => {

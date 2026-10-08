@@ -123,7 +123,7 @@ describe("an Investor's Requests, on the Owner's page of them", () => {
         ventureName: `প্রথম অনুরোধের ভেঞ্চার ${suffix}`,
         state: "closed",
         units: 3,
-        closedBecause: "venture_cancelled",
+        closedBecause: "venture_canceled",
       },
     ]);
   });

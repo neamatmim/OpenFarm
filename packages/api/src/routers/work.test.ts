@@ -17,7 +17,7 @@ import { correctStepAsShown } from "../test/correct-step";
 import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
-/** The milking SOP: twice a day, a per-cow block with litres, a bulk total at the end. */
+/** The milking SOP: twice a day, a per-cow block with liters, a bulk total at the end. */
 const milkingSop = (): SopContent => ({
   name: { bn: "দোহন", en: "Milking" },
   purpose: { bn: "প্রতিটি গাভীর দুধ সংগ্রহ", en: "Milk each cow" },
@@ -788,7 +788,7 @@ describe("review findings", () => {
     });
   });
 
-  it("an explicit pen filter is honoured for Staff rather than widened to all their pens", async () => {
+  it("an explicit pen filter is honored for Staff rather than widened to all their pens", async () => {
     const clock = new FakeClock("2026-09-29T05:30:00.000Z");
     await instanceForPen(clock);
     const staff = await createTestClient(appRouter, { as: "staff", clock });

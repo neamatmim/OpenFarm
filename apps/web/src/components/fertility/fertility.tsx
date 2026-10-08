@@ -36,7 +36,7 @@ type Month = Fertility["months"][number];
 /** A cow open this long after calving has passed DLS's 85 days open: the cows to go and see. */
 const OPEN_TOO_LONG_DAYS = FERTILITY_TARGETS.daysOpen.high;
 
-/** Over the top of its target: said in the warning colour. */
+/** Over the top of its target: said in the warning color. */
 const overTarget = (value: number | null, target: { high: number }): boolean =>
   value !== null && value > target.high;
 
@@ -126,7 +126,7 @@ export const FertilityFigures = ({ year }: { year: HerdFertility }) => {
   );
 };
 
-/** Outside its aim, either way: said in the warning colour. */
+/** Outside its aim, either way: said in the warning color. */
 const outsideAim = (
   value: number | null,
   aim: { low: number; high: number }
@@ -373,7 +373,7 @@ const CalvedCell = ({ row }: CowCell) => {
   );
 };
 
-/** Settled, and how many days she was open; or open still, in the warning colour once past DLS's days. */
+/** Settled, and how many days she was open; or open still, in the warning color once past DLS's days. */
 const SettledCell = ({ row }: CowCell) => {
   const { t, language } = useLanguage();
   const { daysOpen, daysSinceCalving } = row.original;

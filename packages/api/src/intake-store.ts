@@ -271,7 +271,7 @@ export const assertSheBelongsWithTheFloat = async (
   }
 };
 
-/** The transfer or cheque a Venture's bull bought with no outing was paid by, or nothing where none was. */
+/** The transfer or check a Venture's bull bought with no outing was paid by, or nothing where none was. */
 export const boughtByBankReference = async (
   tx: Pick<Tx, "query">,
   farmId: string,
@@ -306,7 +306,7 @@ const assertTheCattleBudgetHolds = async (
 };
 
 /**
- * A Venture's bull bought with no outing — at the farm gate, from a neighbour — is paid straight from its account by
+ * A Venture's bull bought with no outing — at the farm gate, from a neighbor — is paid straight from its account by
  * bank, and that payment is one `intake_out` Venture Movement written from her Intake, as a Sale's money is from the
  * Sale. Decided after every Intake and every Intake Correction, from the Intake as it now stands: written where she is
  * a Venture's with no outing, its amount moved with her price and Market toll, and taken away where she is the Farm's or on
@@ -316,7 +316,7 @@ export const bookBoughtByBank = async (
   tx: Tx,
   intakeId: string,
   paid: {
-    /** The transfer or cheque, for a payment not written yet; left out, the one already written stands. */
+    /** The transfer or check, for a payment not written yet; left out, the one already written stands. */
     reference?: string;
     /** The day the bank moved it; left out, the day she came. */
     movedOn?: string;

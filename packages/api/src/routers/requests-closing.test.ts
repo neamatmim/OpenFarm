@@ -220,13 +220,10 @@ describe("a Venture called off", () => {
     await owner.ventures.cancel({ id: ventureId, reason: "টাকা ওঠেনি" });
 
     const now = await standings(ventureId);
-    expect(now.get(waiting.requestId)).toEqual(["closed", "venture_cancelled"]);
-    expect(now.get(promised.requestId)).toEqual([
-      "closed",
-      "venture_cancelled",
-    ]);
+    expect(now.get(waiting.requestId)).toEqual(["closed", "venture_canceled"]);
+    expect(now.get(promised.requestId)).toEqual(["closed", "venture_canceled"]);
     expect(await closedTrace(ventureId, waiting.requestId)).toEqual({
-      because: "venture_cancelled",
+      because: "venture_canceled",
       by: thePerson("owner").id,
       stillTold: false,
     });

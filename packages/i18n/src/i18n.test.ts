@@ -24,7 +24,7 @@ describe("language resolution", () => {
     expect(resolveLanguage({})).toBe("bn");
   });
 
-  it("honours a setting we speak and ignores one we don't", () => {
+  it("honors a setting we speak and ignores one we don't", () => {
     expect(resolveLanguage({ language: "en" })).toBe("en");
     expect(resolveLanguage({ language: "fr" })).toBe("bn");
   });

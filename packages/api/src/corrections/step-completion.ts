@@ -132,7 +132,7 @@ interface StepCorrected {
 }
 
 /**
- * A Step Completion put right, and its Effect with it — keyed on the same Completion, so a corrected litres figure
+ * A Step Completion put right, and its Effect with it — keyed on the same Completion, so a corrected liters figure
  * replaces its Milk Record and the Session's reconciliation is worked out afresh. The Completion holds the current
  * truth; every answer it has held is in its history.
  */

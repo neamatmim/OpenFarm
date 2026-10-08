@@ -84,7 +84,7 @@ export const handOver = async (
       "no_code_to_hand_over"
     );
   }
-  // The letter is handed over once; a lost or spoilt one means a new code, which goes out with the slip.
+  // The letter is handed over once; a lost or spoiled one means a new code, which goes out with the slip.
   if (
     paper === "welcome_letter" &&
     (await codePaperFor(context.db, farmId, investorId)) === "code_slip"

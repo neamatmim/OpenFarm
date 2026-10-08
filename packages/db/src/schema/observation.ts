@@ -17,7 +17,7 @@ import { stepCompletion } from "./instance";
  * What somebody saw of one animal on the round: off her feed, limping, bulling. The farm's
  * **Observation** — a note that starts the health chain — written by the Step that recorded
  * it rather than typed somewhere afterwards. Health (increment 3) turns one into a Diagnosis
- * and Breeding (increment 5) reads the ones that say oestrus as Heats, so what is recorded
+ * and Breeding (increment 5) reads the ones that say estrus as Heats, so what is recorded
  * today has to still mean the same thing then.
  *
  * A Correction never rewrites one. It withdraws it and writes the new one beside it: what

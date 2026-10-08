@@ -267,7 +267,7 @@ const PerKg = ({ answers }: { answers: SaleAnswers }) => {
   );
 };
 
-/** One text box of the sheet, labelled. */
+/** One text box of the sheet, labeled. */
 const TextField = ({
   id,
   label,

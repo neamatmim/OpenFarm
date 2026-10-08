@@ -13,7 +13,7 @@ export interface Cow {
   breed: string;
   pen: PenKey;
   state: "calf" | "heifer" | "pregnant_heifer" | "milking" | "dry";
-  /** Peak litres a day this cow reaches in a lactation. */
+  /** Peak liters a day this cow reaches in a lactation. */
   peak: number;
   calvedOn: string | null;
   expectedCalving: string | null;
@@ -379,7 +379,7 @@ export const takeInBulls = async (
   return arrived;
 };
 
-/** Litres a cow gives in a whole day, `daysInMilk` into her lactation: up to her peak by the seventh week and
+/** Liters a cow gives in a whole day, `daysInMilk` into her lactation: up to her peak by the seventh week and
  *  falling away after. */
 export const dailyYield = (cow: Cow, day: string): number => {
   if (cow.state !== "milking" || !cow.calvedOn) {

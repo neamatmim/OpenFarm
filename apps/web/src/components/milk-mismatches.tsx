@@ -33,7 +33,7 @@ type Flagged = NonNullable<
 /** How many sessions the queue shows before the next page. */
 const QUEUE_PAGE = 20;
 
-const litresOf = (value: string | null) => (value === null ? 0 : Number(value));
+const litersOf = (value: string | null) => (value === null ? 0 : Number(value));
 
 const penOf = (session: Flagged) =>
   `${session.pen.shed.name} / ${session.pen.name}`;
@@ -59,8 +59,8 @@ const CowsInSession = ({ instanceId }: { instanceId: string }) => {
             {t(`milk.${record.destination}` as "milk.bulk")}
           </span>
           <span className="font-medium tabular-nums">
-            {formatNumber(litresOf(record.litres), language)}{" "}
-            {t("dispatch.litres")}
+            {formatNumber(litersOf(record.liters), language)}{" "}
+            {t("dispatch.liters")}
           </span>
         </li>
       ))}
@@ -68,23 +68,23 @@ const CowsInSession = ({ instanceId }: { instanceId: string }) => {
   );
 };
 
-/** A reading in litres, with the word beside it: the column's heading says what was read, not in what. */
-const Litres = ({ value }: { value: string | null }) => {
+/** A reading in liters, with the word beside it: the column's heading says what was read, not in what. */
+const Liters = ({ value }: { value: string | null }) => {
   const { t, language } = useLanguage();
   return (
     <span className="whitespace-nowrap">
-      {formatNumber(litresOf(value), language)} {t("dispatch.litres")}
+      {formatNumber(litersOf(value), language)} {t("dispatch.liters")}
     </span>
   );
 };
 
-/** How far the tank is from its cows, as a word with its colour. */
+/** How far the tank is from its cows, as a word with its color. */
 const Difference = ({ session }: { session: Flagged }) => {
   const { t, language } = useLanguage();
   return (
     <StatusBadge icon={Scale} tone="warning">
-      {formatNumber(Math.abs(litresOf(session.differenceLitres)), language)}{" "}
-      {t("dispatch.litres")}
+      {formatNumber(Math.abs(litersOf(session.differenceLiters)), language)}{" "}
+      {t("dispatch.liters")}
     </StatusBadge>
   );
 };
@@ -144,7 +144,7 @@ const SessionDialog = ({
                   {t("mismatch.tank")}
                 </dt>
                 <dd className="font-semibold tabular-nums">
-                  <Litres value={session.bulkLitres} />
+                  <Liters value={session.bulkLiters} />
                 </dd>
               </div>
               <div className="bg-muted/50 rounded-md px-3 py-2">
@@ -152,7 +152,7 @@ const SessionDialog = ({
                   {t("mismatch.cows")}
                 </dt>
                 <dd className="font-semibold tabular-nums">
-                  <Litres value={session.sumBulkLitres} />
+                  <Liters value={session.sumBulkLiters} />
                 </dd>
               </div>
             </dl>
@@ -205,11 +205,11 @@ const WhenCell = ({ row }: { row: { original: MismatchRow } }) => (
 );
 
 const TankCell = ({ row }: { row: { original: MismatchRow } }) => (
-  <Litres value={row.original.bulkLitres} />
+  <Liters value={row.original.bulkLiters} />
 );
 
 const CowsCell = ({ row }: { row: { original: MismatchRow } }) => (
-  <Litres value={row.original.sumBulkLitres} />
+  <Liters value={row.original.sumBulkLiters} />
 );
 
 const DifferenceCell = ({ row }: { row: { original: MismatchRow } }) => (
@@ -231,19 +231,19 @@ const mismatchColumns = column.columns([
     header: listHeader("audit.when"),
     cell: WhenCell,
   }),
-  column.accessor((session) => litresOf(session.bulkLitres), {
+  column.accessor((session) => litersOf(session.bulkLiters), {
     id: "tank",
     header: listHeader("mismatch.tank"),
     cell: TankCell,
     meta: { align: "end" },
   }),
-  column.accessor((session) => litresOf(session.sumBulkLitres), {
+  column.accessor((session) => litersOf(session.sumBulkLiters), {
     id: "cows",
     header: listHeader("mismatch.cows"),
     cell: CowsCell,
     meta: { align: "end" },
   }),
-  column.accessor((session) => Math.abs(litresOf(session.differenceLitres)), {
+  column.accessor((session) => Math.abs(litersOf(session.differenceLiters)), {
     id: "difference",
     header: listHeader("mismatch.col.difference"),
     cell: DifferenceCell,
@@ -272,7 +272,7 @@ const MismatchCard = ({ row }: { row: MismatchRow }) => {
             {t("mismatch.tank")}
           </dt>
           <dd className="font-semibold tabular-nums">
-            <Litres value={row.bulkLitres} />
+            <Liters value={row.bulkLiters} />
           </dd>
         </div>
         <div className="flex flex-col">
@@ -280,7 +280,7 @@ const MismatchCard = ({ row }: { row: MismatchRow }) => {
             {t("mismatch.cows")}
           </dt>
           <dd className="font-semibold tabular-nums">
-            <Litres value={row.sumBulkLitres} />
+            <Liters value={row.sumBulkLiters} />
           </dd>
         </div>
       </dl>

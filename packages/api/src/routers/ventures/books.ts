@@ -270,7 +270,7 @@ export const booksProcedures = {
             ),
         },
         async (tx) => {
-          // Inside the write, behind the lock its neighbours take: the figure the farm believes is only
+          // Inside the write, behind the lock its neighbors take: the figure the farm believes is only
           // true until the next movement commits, and two readings of one month must not race into two
           // rows.
           await lockTheFarm(tx, context.farm.id);

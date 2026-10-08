@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 import { FormDialog, FormField } from "@/components/page-kit";
 
 /**
- * A judgement written down before it is made: why work goes back, why it was never done, what was decided about an
+ * A judgment written down before it is made: why work goes back, why it was never done, what was decided about an
  * entry. The act waits until something has been written, and the dialog closes only when the farm has taken it.
  */
 export const ReasonDialog = ({
@@ -28,7 +28,7 @@ export const ReasonDialog = ({
   submitLabel: string;
   pending: boolean;
   handleSubmit: (reason: string) => void;
-  /** Anything else the judgement asks, under the reason. */
+  /** Anything else the judgment asks, under the reason. */
   children?: ReactNode;
 }) => {
   const id = useId();

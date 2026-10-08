@@ -10,9 +10,9 @@
 - Nielsen Norman Group articles;
 - the W3C text of WCAG 2.2;
 - Unicode CLDR data (release 48);
-- each investor product's own help centre or product pages.
+- each investor product's own help center or product pages.
 
-Anything else is marked **[SECONDARY]**. Some pages refused automated fetching (carta.com, livestockwealth.com, schwab.com) and were read in a browser. Where only a search result's summary was seen, it says **[snippet only]**. NN/g quotes came through a summarising fetch; the two NN/g quotes this note leans on hardest (skeleton screens) were fetched again and checked. The users this is weighed for are the Investors CONTEXT.md describes: at most twenty, all in Bangladesh, many on phones, some reading Bangla, and not finance professionals. They are not institutional LPs.
+Anything else is marked **[SECONDARY]**. Some pages refused automated fetching (carta.com, livestockwealth.com, schwab.com) and were read in a browser. Where only a search result's summary was seen, it says **[snippet only]**. NN/g quotes came through a summarizing fetch; the two NN/g quotes this note leans on hardest (skeleton screens) were fetched again and checked. The users this is weighed for are the Investors CONTEXT.md describes: at most twenty, all in Bangladesh, many on phones, some reading Bangla, and not finance professionals. They are not institutional LPs.
 
 **Out of scope, because they are not design calls.** Three things are left to others:
 
@@ -30,7 +30,7 @@ Anything else is marked **[SECONDARY]**. Some pages refused automated fetching (
 2. **Say when a figure is from.** A metric should show "the time when the metric was actually measured" ([SLDS metric display](https://v1.lightningdesignsystem.com/guidelines/data-visualization/metric-display/)). Material asks charts to "supply information on data recency" ([M3 blog](https://m3.material.io/blog/data-visualization-accessibility)). AngelList states its valuation lag outright.
 3. **Money plain and whole.** Use digits, never abbreviations, a real minus sign, tabular figures, right-aligned columns and no ".00" ([GOV.UK style](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/); [GOV.UK table](https://design-system.service.gov.uk/components/table/); [Polaris grammar](https://shopify.dev/docs/apps/design/content/grammar-and-mechanics)).
 4. **On a phone a table becomes a list.** Polaris tables render "as lists on small screens" ([Polaris table](https://shopify.dev/docs/api/app-home/latest/web-components/layout-and-structure/table)). SLDS tables "collapse into tile lists" ([SLDS displaying data](https://v1.lightningdesignsystem.com/guidelines/displaying-data/)).
-5. **Charts only when they say something a number cannot.** When one is used, prefer bars and lines, never colour alone, and pair it with a text summary ([Apple HIG charting data](https://developer.apple.com/design/human-interface-guidelines/charting-data); [NN/g chart types](https://www.nngroup.com/articles/choosing-chart-types/)).
+5. **Charts only when they say something a number cannot.** When one is used, prefer bars and lines, never color alone, and pair it with a text summary ([Apple HIG charting data](https://developer.apple.com/design/human-interface-guidelines/charting-data); [NN/g chart types](https://www.nngroup.com/articles/choosing-chart-types/)).
 6. **Trust comes from care, disclosure and current content** ([NN/g credibility](https://www.nngroup.com/articles/trustworthy-design/)). Farm-investment apps show the animals through the operator's own photos and updates (iharvst, Fundrise, CrowdFarming).
 
 **Verdict.** The portal already does most of what the sources ask, at desktop width:
@@ -38,7 +38,7 @@ Anything else is marked **[SECONDARY]**. Some pages refused automated fetching (
 - the capital held is the first and largest figure;
 - paid in, paid out and held now are the headline set, as fund portals have them;
 - money is whole taka, tabular, right-aligned, and has its minus in front;
-- colour is never alone;
+- color is never alone;
 - empty states say why;
 - failures offer to try again;
 - whom to call is on every page;
@@ -112,7 +112,7 @@ The top three changes fix those. The rest is polish, plus a few questions that a
 - **Right-align** columns of numbers: [GOV.UK table](https://design-system.service.gov.uk/components/table/), [Polaris table](https://shopify.dev/docs/api/app-home/latest/web-components/layout-and-structure/table) and [shadcn data table](https://ui.shadcn.com/docs/data-table).
 - **Atlassian:** use "'of' rather than a forward slash" ([Atlassian](https://atlassian.design/foundations/content/language-and-grammar)).
 - **NN/g:** digits, not words, and for very large numbers "numerals for the significant digits and … the magnitude as a word" ([NN/g](https://www.nngroup.com/articles/web-writing-show-numbers-as-numerals/)).
-- **Colour:** tone only where the figure carries a status (Polaris). Atlassian notes red/amber/green "may be hard for users with color deficiencies to tell apart" ([Atlassian dataviz colour](https://atlassian.design/foundations/color/data-visualization-color)).
+- **Color:** tone only where the figure carries a status (Polaris). Atlassian notes red/amber/green "may be hard for users with color deficiencies to tell apart" ([Atlassian dataviz color](https://atlassian.design/foundations/color/data-visualization-color)).
 
 **What OpenFarm does.**
 
@@ -131,9 +131,9 @@ The top three changes fix those. The rest is polish, plus a few questions that a
 - **Most data does not need a chart.** "Not every collection of data needs to be displayed in a chart … consider … a list or table" ([Apple HIG](https://developer.apple.com/design/human-interface-guidelines/charting-data)).
 - **Keep to the basics.** NN/g recommends "bar charts, line charts, or scatter plots", and says pie and donut charts "should be avoided most of the time" ([chart types](https://www.nngroup.com/articles/choosing-chart-types/); [dashboards](https://www.nngroup.com/articles/dashboards-preattentive/)).
 - **Axes and gaps.** Carbon: bars start at zero, and "Never interpolate between periods when data is unavailable" ([Carbon axes](https://carbondesignsystem.com/data-visualization/axes-and-labels/)).
-- **Colour.** Atlassian: "Use a single color as the default … Avoid using more than 5-6 colors" ([Atlassian](https://atlassian.design/foundations/color/data-visualization-color)).
+- **Color.** Atlassian: "Use a single color as the default … Avoid using more than 5-6 colors" ([Atlassian](https://atlassian.design/foundations/color/data-visualization-color)).
 - **A text alternative.** SLDS: an inline chart "will need an accessible alternative like a text-based summary or a table" ([SLDS](https://v1.lightningdesignsystem.com/guidelines/data-visualization/metric-display/)). Apple: a headline sentence over the chart.
-- **shadcn/ui's chart** is Recharts, coloured by the same `--chart-1…5` variables this repo already defines. Its `accessibilityLayer` adds keyboard and screen-reader support ([shadcn chart](https://ui.shadcn.com/docs/components/chart)).
+- **shadcn/ui's chart** is Recharts, colored by the same `--chart-1…5` variables this repo already defines. Its `accessibilityLayer` adds keyboard and screen-reader support ([shadcn chart](https://ui.shadcn.com/docs/components/chart)).
 
 **What OpenFarm does.** Its only graphics are three bars, all drawn by length (the attribute NN/g says is read fastest), all hidden from screen readers, and each said in words beside it:
 
@@ -193,7 +193,7 @@ There is no chart library in the repo.
   - Juniper Square offers it ([Juniper Square](https://www.junipersquare.com/security-compliance)).
   - Addepar lets a firm make it mandatory ([Addepar](https://addepar.com/blog/inside-addepar-may-2023)).
 - **Preview before publishing.** Juniper Square lets the GP "preview the portal as any investor" before publishing ([Juniper Square](https://www.junipersquare.com/platform/portal)).
-- **Accessible authentication.** WCAG 3.3.8 recognises "support for password entry by password managers … and copy and paste" ([WCAG 2.2](https://www.w3.org/TR/WCAG22/#accessible-authentication-minimum)).
+- **Accessible authentication.** WCAG 3.3.8 recognizes "support for password entry by password managers … and copy and paste" ([WCAG 2.2](https://www.w3.org/TR/WCAG22/#accessible-authentication-minimum)).
 
 **What OpenFarm does.**
 
@@ -221,7 +221,7 @@ There is no chart library in the repo.
 - **Offline, the page says so** rather than show old figures (`portal-shell.tsx:402-414`).
 - **Refusals are in the Investor's words** (`portal-papers.tsx:41-47`).
 
-**Gap.** Each page's skeleton is one grey block (`pages/home.tsx:152`, `pages/venture.tsx:508`, `pages/money.tsx:72`, `pages/papers.tsx:20`, `pages/open-ventures.tsx:21`). The page then jumps into a different shape.
+**Gap.** Each page's skeleton is one gray block (`pages/home.tsx:152`, `pages/venture.tsx:508`, `pages/money.tsx:72`, `pages/papers.tsx:20`, `pages/open-ventures.tsx:21`). The page then jumps into a different shape.
 
 ## 9. Phones
 
@@ -287,7 +287,7 @@ WCAG 2.2 AA, as the portal stands. Contrasts were computed from the `oklch` toke
 | Criterion                       | Portal                                                                                                                                                                                                                                                                                                                                                   |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.4.3 Contrast                  | Muted text is 7.1:1 on the card and 6.6:1 on the ground, and primary is 9.7:1. Passes.                                                                                                                                                                                                                                                                   |
-| 1.4.1 Use of colour             | Passes. Stages, allocation, badges and losses all carry words and icons as well as colour (`globals.css:76`, `page.tsx` `StatusBadge`).                                                                                                                                                                                                                  |
+| 1.4.1 Use of color             | Passes. Stages, allocation, badges and losses all carry words and icons as well as color (`globals.css:76`, `page.tsx` `StatusBadge`).                                                                                                                                                                                                                  |
 | 1.4.11 Non-text contrast        | `--chart-3` is 2.5:1 on white (`globals.css:110`), and `--chart-2` is 3.5:1. The allocation bar is `aria-hidden`, and its names, sums and percentages are in text, so nothing fails today. A real chart would need 3:1.                                                                                                                                  |
 | 2.5.8 Target size               | Passes. The smallest portal buttons are 32 px on a desk and 36 px on a phone, against a 24 px minimum.                                                                                                                                                                                                                                                   |
 | 2.4.11 Focus not obscured       | **Not verified.** The top bar is sticky, 56 px tall (`portal-shell.tsx:377-396`), and the phone's bottom bar is fixed. No `scroll-padding` is set anywhere in `apps/web/src`. W3C names this very case (F110) and gives scroll padding as the fix ([Understanding 2.4.11](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html)). |
@@ -357,7 +357,7 @@ Each item names its source and the files it would touch. None is something the p
    - **Why:** [iharvst](https://www.ifarmer.asia/product-iharvst) ("text, photos"); [Fundrise](https://fundrise.com/investor-update/679/view); [NN/g credibility](https://www.nngroup.com/articles/trustworthy-design/).
    - **Files:** `packages/api/src/portal-reads.ts` (add photo references to `theirVentureToday`, or a separate read, so the page's answer stays small); `packages/api/src/investor-statement-store.ts:339` (reuse its query); `pages/venture.tsx` (the Animals tab).
    - **Owner's call:** whether every animal's photograph shows, or only chosen ones.
-6. **Make skeletons the shape of the page.** Each portal page's skeleton should be its own grid in grey: the hero and four lines on Home, the tiles and a tab on a Venture, and so on.
+6. **Make skeletons the shape of the page.** Each portal page's skeleton should be its own grid in gray: the hero and four lines on Home, the tiles and a tab on a Venture, and so on.
    - **Why:** [NN/g skeleton screens](https://www.nngroup.com/articles/skeleton-screens/); [Atlassian skeleton](https://atlassian.design/components/skeleton/usage); [Carbon loading](https://carbondesignsystem.com/patterns/loading-pattern/).
    - **Files:** `pages/home.tsx:152`, `pages/venture.tsx:508`, `pages/money.tsx:72`, `pages/papers.tsx:20`, `pages/open-ventures.tsx:21`, `pages/open-venture.tsx:108`, `pages/account.tsx:351`.
 7. **Keep a focused control out from under the bars.** Set `scroll-padding-top` to the header's height, plus the Preview band's where it shows, and `scroll-padding-bottom` to the bottom bar's on a phone. Check it with Tab in the browser before and after.
@@ -417,12 +417,12 @@ Each item names its source and the files it would touch. None is something the p
 
 **Design systems**
 
-- IBM Carbon: [Dashboards](https://carbondesignsystem.com/data-visualization/dashboards/) · [Axes and labels](https://carbondesignsystem.com/data-visualization/axes-and-labels/) · [Colour palettes](https://carbondesignsystem.com/data-visualization/color-palettes/) · [Empty states](https://carbondesignsystem.com/patterns/empty-states-pattern/) · [Loading](https://carbondesignsystem.com/patterns/loading-pattern/) · [Data table usage](https://carbondesignsystem.com/components/data-table/usage/) · [Writing style](https://carbondesignsystem.com/guidelines/content/writing-style/)
-- Atlassian: [Applying typography](https://atlassian.design/foundations/typography/applying-typography) · [Language and grammar](https://atlassian.design/foundations/content/language-and-grammar) · [Date and time](https://atlassian.design/foundations/content/date-time) · [Data visualisation colour](https://atlassian.design/foundations/color/data-visualization-color) · [Empty state](https://atlassian.design/components/empty-state/usage) · [Skeleton](https://atlassian.design/components/skeleton/usage) · [Spinner](https://atlassian.design/components/spinner/usage)
+- IBM Carbon: [Dashboards](https://carbondesignsystem.com/data-visualization/dashboards/) · [Axes and labels](https://carbondesignsystem.com/data-visualization/axes-and-labels/) · [Color palettes](https://carbondesignsystem.com/data-visualization/color-palettes/) · [Empty states](https://carbondesignsystem.com/patterns/empty-states-pattern/) · [Loading](https://carbondesignsystem.com/patterns/loading-pattern/) · [Data table usage](https://carbondesignsystem.com/components/data-table/usage/) · [Writing style](https://carbondesignsystem.com/guidelines/content/writing-style/)
+- Atlassian: [Applying typography](https://atlassian.design/foundations/typography/applying-typography) · [Language and grammar](https://atlassian.design/foundations/content/language-and-grammar) · [Date and time](https://atlassian.design/foundations/content/date-time) · [Data visualization color](https://atlassian.design/foundations/color/data-visualization-color) · [Empty state](https://atlassian.design/components/empty-state/usage) · [Skeleton](https://atlassian.design/components/skeleton/usage) · [Spinner](https://atlassian.design/components/spinner/usage)
 - Shopify Polaris (shopify.dev): [Table](https://shopify.dev/docs/api/app-home/latest/web-components/layout-and-structure/table) · [Number](https://shopify.dev/docs/api/app-home/latest/web-components/typography-and-content/number) · [Grammar and mechanics](https://shopify.dev/docs/apps/design/content/grammar-and-mechanics) · [Empty state](https://shopify.dev/docs/api/app-home/latest/web-components/feedback-and-status-indicators/empty-state) · [Spinner](https://shopify.dev/docs/api/app-home/latest/web-components/feedback-and-status-indicators/spinner) · [App home page](https://shopify.dev/docs/apps/design/user-experience/app-home-page)
 - GOV.UK: [Table](https://design-system.service.gov.uk/components/table/) · [Summary list](https://design-system.service.gov.uk/components/summary-list/) · [Font override classes](https://design-system.service.gov.uk/styles/font-override-classes/) · [Panel](https://design-system.service.gov.uk/components/panel/) · [Problem with the service pages](https://design-system.service.gov.uk/patterns/problem-with-the-service-pages/) · [A to Z style guide](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/)
 - Apple HIG: [Charting data](https://developer.apple.com/design/human-interface-guidelines/charting-data) · [Charts](https://developer.apple.com/design/human-interface-guidelines/charts) · [Loading](https://developer.apple.com/design/human-interface-guidelines/loading)
-- Material: [M3 data visualisation accessibility (blog, 2022)](https://m3.material.io/blog/data-visualization-accessibility) · [M2 data visualisation](https://m2.material.io/design/communication/data-visualization.html)
+- Material: [M3 data visualization accessibility (blog, 2022)](https://m3.material.io/blog/data-visualization-accessibility) · [M2 data visualization](https://m2.material.io/design/communication/data-visualization.html)
 - Fluent 2: [Skeleton](https://fluent2.microsoft.design/components/web/react/core/skeleton/usage) · [Spinner](https://fluent2.microsoft.design/components/web/react/core/spinner/usage) · [Content design](https://fluent2.microsoft.design/content-design)
 - Salesforce SLDS v1: [Metric display](https://v1.lightningdesignsystem.com/guidelines/data-visualization/metric-display/) · [Charts](https://v1.lightningdesignsystem.com/guidelines/data-visualization/charts/) · [Displaying data](https://v1.lightningdesignsystem.com/guidelines/displaying-data/) · [Loading](https://v1.lightningdesignsystem.com/guidelines/loading/) · [Empty state](https://v1.lightningdesignsystem.com/guidelines/empty-state/)
 - shadcn/ui: [Chart](https://ui.shadcn.com/docs/components/chart) · [Empty](https://ui.shadcn.com/docs/components/empty) · [Skeleton](https://ui.shadcn.com/docs/components/skeleton) · [Data table](https://ui.shadcn.com/docs/data-table)

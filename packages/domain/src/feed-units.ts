@@ -1,20 +1,20 @@
 /**
- * What a Feed Item is counted in: kilos, litres, or bundles — a closed list, because the farm's arithmetic depends on
+ * What a Feed Item is counted in: kilos, liters, or bundles — a closed list, because the farm's arithmetic depends on
  * which it is. A kilo is weighed to ten grams under a kilo and a hundred above; a bundle of napier is counted whole; a
- * line "for every hundred kilos of body weight" means something in kilos or litres and nothing in bundles; and a maund
+ * line "for every hundred kilos of body weight" means something in kilos or liters and nothing in bundles; and a maund
  * is thirty-seven kilos, not thirty-seven of anything else.
  */
 
 /** A maund — the mon a Bangladeshi feed trader weighs in — in kilograms. */
 export const MAUND_KG = 37.324;
 
-export const FEED_UNITS = ["kg", "litre", "bundle"] as const;
+export const FEED_UNITS = ["kg", "liter", "bundle"] as const;
 export type FeedUnit = (typeof FEED_UNITS)[number];
 
 /** The unit's name in both languages, as a figure is read aloud: "৪ কেজি", "২ আঁটি". */
 export const FEED_UNIT_WORDS = {
   kg: { bn: "কেজি", en: "kg" },
-  litre: { bn: "লিটার", en: "litres" },
+  liter: { bn: "লিটার", en: "liters" },
   bundle: { bn: "আঁটি", en: "bundles" },
 } as const satisfies Record<FeedUnit, { bn: string; en: string }>;
 
@@ -26,10 +26,10 @@ export const feedUnitOf = (unit: string): FeedUnit =>
 export const feedUnitWord = (unit: string, language: "bn" | "en"): string =>
   FEED_UNIT_WORDS[feedUnitOf(unit)][language];
 
-/** The unit as one of it is said, for a price or a rate: "৳৫০ প্রতি লিটার", "৳50 per litre". */
+/** The unit as one of it is said, for a price or a rate: "৳৫০ প্রতি লিটার", "৳50 per liter". */
 export const FEED_UNIT_EACH = {
   kg: { bn: "কেজি", en: "kg" },
-  litre: { bn: "লিটার", en: "litre" },
+  liter: { bn: "লিটার", en: "liter" },
   bundle: { bn: "আঁটি", en: "bundle" },
 } as const satisfies Record<FeedUnit, { bn: string; en: string }>;
 

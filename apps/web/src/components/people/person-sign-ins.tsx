@@ -215,7 +215,7 @@ const SignInTable = ({
 };
 
 /** Where they are signed in as themselves, and the way to turn one of them out — a phone left in a yard, a
- *  browser in a shop. Not Shed Phones, which the farm enrols and revokes as devices. */
+ *  browser in a shop. Not Shed Phones, which the farm enrolls and revokes as devices. */
 export const SignInsTab = ({ userId }: { userId: string }) => {
   const t = useT();
   const refused = useRefused();

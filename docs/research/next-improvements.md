@@ -4,7 +4,7 @@
 
 **Researched:** 4 October 2026. Code read at `760112f3` on main. The production build of `apps/web` was run (`pnpm run build`, which is `vp build`). It finished in about 8 s with one warning: "Some chunks are larger than 500 kB after minification". Its output is in `apps/web/.output`, which is git-ignored.
 
-**Sources.** Primary sources only. Every quote was read from the page's own HTML. None came through a summarising fetch.
+**Sources.** Primary sources only. Every quote was read from the page's own HTML. None came through a summarizing fetch.
 
 - W3C WCAG 2.2 and its Understanding documents.
 - WAI-ARIA APG.
@@ -27,7 +27,7 @@
 
 - every token pair used for text is above 4.5:1, light and dark;
 - the skip link, `<main tabIndex=-1>` and scroll padding are in place;
-- `prefers-reduced-motion` is honoured app-wide;
+- `prefers-reduced-motion` is honored app-wide;
 - `lang` follows the reader's language;
 - sign-in and the Shed Phone PIN both pass Accessible Authentication;
 - routes are code-split;
@@ -42,7 +42,7 @@
 3. **Every route ships about 495 KB of gzipped JavaScript before its own code.** That is three times web.dev's 170 KB example budget. About a third of it is both message catalogs, though a reader uses only one.
 4. **The device cache rewrites itself on every query event, with no throttle.** It also holds every animal photo as base64. A 36px thumbnail fetches the full photo, up to 1280px.
 5. **Forms hide what is wrong:**
-   - about 80 of 87 forms grey out their button until they are ready;
+   - about 80 of 87 forms gray out their button until they are ready;
    - 244 server refusals arrive as a toast instead of beside the form;
    - `FormField` links neither its hint nor an error to its control;
    - closing a sheet throws typed work away without asking.
@@ -69,7 +69,7 @@
 | **Sonner `richColors` toast text on its background**        | **success 4.29, error 4.36, info 4.35, warning 3.07** | 6.6–12.3                      |
 
 - **Tabs.** `TabsTrigger` is `text-foreground/60` in light mode (`packages/ui/src/components/tabs.tsx:61`). That applies to every `PageTabs` (`apps/web/src/components/page-kit.tsx:251`) and `SideTabs`. The text is 14px (15px in Bangla) at medium weight, which is not "large", so 4.5:1 applies.
-- **Toasts.** `<Toaster … richColors>` (`apps/web/src/routes/__root.tsx:92-96`) swaps the app's popover colours for Sonner's own. These are `--success-text: hsl(140,100%,27%)` on `hsl(143,85%,96%)` and so on (sonner 2.0.8, `dist/styles.css`). The app's own `success` on `success-surface` is 7.67:1.
+- **Toasts.** `<Toaster … richColors>` (`apps/web/src/routes/__root.tsx:92-96`) swaps the app's popover colors for Sonner's own. These are `--success-text: hsl(140,100%,27%)` on `hsl(143,85%,96%)` and so on (sonner 2.0.8, `dist/styles.css`). The app's own `success` on `success-surface` is 7.67:1.
 - **Exempt cases:**
   - disabled buttons, at 2.58:1, are exempt as inactive components;
   - the Step's empty "০" placeholder at `muted-foreground/50`, 2.28:1, is `aria-hidden` (`components/work/evidence-sheet.tsx:747`).
@@ -189,7 +189,7 @@
 - heading levels: `PageHeader` h1 and `Section` h2 (`page.tsx:140,200`);
 - `aria-sort` on tables;
 - `aria-current` in the bottom bar;
-- `Notice` carries its word and icon, not colour alone;
+- `Notice` carries its word and icon, not color alone;
 - the 3:1 input borders.
 
 ---
@@ -297,7 +297,7 @@
 **What OpenFarm does.**
 
 - **Three form shells.** There are 43 `FormSheet`s, 44 `FormDialog`s and 13 `ConfirmDialog`s.
-- **Most forms grey their button until they are ready.**
+- **Most forms gray their button until they are ready.**
   - `FormDialog` always does (`page-kit.tsx:649`).
   - `FormSheet` does unless it is given `missing` (`:602`), and only 4 of the 43 are: sale, internal sale, sign agreement and buy-what-is-left.
   - So about 80 of the 87 forms do it, and nothing next to them says why.
@@ -310,7 +310,7 @@
 - **Required and optional are not marked consistently.**
   - No field anywhere carries a required mark, though `required` appears 84 times.
   - "(optional)" appears in eight labels.
-  - A `FormDialog` has no `noValidate`, so its `required` boxes would give the browser's own bubble, in the phone's language. The greyed button means it is never reached.
+  - A `FormDialog` has no `noValidate`, so its `required` boxes would give the browser's own bubble, in the phone's language. The grayed button means it is never reached.
 - **Nothing guards unsaved changes.** Cancel, ✕, Escape and a tap outside all call `onOpenChange(false)` (`page-kit.tsx:596-601`).
   - Some sheets keep their state in a parent that stays mounted, so the draft survives (`components/people/invite-sheet.tsx:117-122`).
   - Others reset on close (`components/drugs/drug-products.tsx:774-778`).
@@ -346,11 +346,11 @@ Paths are under `apps/web/src/` unless they start `packages/`. "§" points to wh
 | 4   | `lib/query-cache.ts:105-117,166-172`                                                                         | Whole cache stringified and written on every query event                      | web.dev INP ≤200 ms (§2)                                     | **must** | A throttled persister (1–2 s, trailing); measure write time on a mid phone                                  |
 | 5   | `packages/api/src/routers/animals.ts:1534-1550`; `components/animal-photo.tsx:18-35`; `herd-list.tsx:67,140` | 36–64px thumbnails fetch the full ≤1280px photo as base64; kept on the device | web.dev budgets (§2)                                         | **must** | Store and serve a ~160px thumbnail for lists; `shouldDehydrateQuery` skips `animals.photo`                  |
 | 6   | `packages/i18n/src/translate.ts:4-5`                                                                         | Both catalogs (~171 KB gzip) in every page's root chunk                       | "only send the code needed" (§2)                             | should   | Per-language chunks (`import()` by language, the default one inlined for SSR)                               |
-| 7   | Entry `__root__.preloads` (62 files, 495 KB gzip)                                                            | data-table, page-kit, Venture words, etc. on `/sign-in`                       | 170 KB critical path (§2)                                    | should   | Trace with a bundle visualiser; cut the static path from `router.tsx` / `not-found.tsx`                     |
+| 7   | Entry `__root__.preloads` (62 files, 495 KB gzip)                                                            | data-table, page-kit, Venture words, etc. on `/sign-in`                       | 170 KB critical path (§2)                                    | should   | Trace with a bundle visualizer; cut the static path from `router.tsx` / `not-found.tsx`                     |
 | 8   | `routes/__root.tsx:67`; `i18n/language-provider.tsx:65-77`                                                   | SSR always Bangla; English readers re-render after hydration                  | CLS ≤0.1, LCP (§2); 3.1.1                                    | should   | Language cookie read in SSR; `lang` written by the server                                                   |
 | 9   | `components/page-kit.tsx:738-757`                                                                            | `FormField` hint not linked; no error slot                                    | WCAG 3.3.1, 4.1.3; GOV.UK error message (§1.6, §3)           | should   | `error` and `optional` props; `aria-describedby` for hint and error                                         |
 | 10  | `lib/refused.ts:14-19` (244 uses)                                                                            | Server refusals as a toast outside the open sheet                             | Polaris "avoid toast for errors"; GOV.UK summary at top (§3) | should   | A `refused` slot at the top of `FormSheet`/`FormDialog`, filled while open                                  |
-| 11  | `page-kit.tsx:602,649`                                                                                       | ~80 of 87 forms grey out the act                                              | GOV.UK, Carbon (long forms), Atlassian (§3)                  | should   | `missing` on every form, with field errors                                                                  |
+| 11  | `page-kit.tsx:602,649`                                                                                       | ~80 of 87 forms gray out the act                                              | GOV.UK, Carbon (long forms), Atlassian (§3)                  | should   | `missing` on every form, with field errors                                                                  |
 | 12  | `page-kit.tsx:596-601`, `FormDialog`                                                                         | Dismissing drops typed work, with no question                                 | Fluent alert dialog; Polaris "Discard unsaved changes?" (§3) | should   | A dirty flag on the form shell, plus `AlertDialog` "Discard?" with Keep editing focused                     |
 | 13  | `__root.tsx:92-96`; `lib/toast.ts:11-16`                                                                     | Persistent error toasts over the header actions (desk) or the top bar (phone) | WCAG 2.4.11 (§1.3)                                           | should   | Bottom right on a desk; check in a browser at 1280/375                                                      |
 | 14  | `components/page.tsx:604-608` with `focusedWork`                                                             | No scroll padding for `StickyAction`                                          | WCAG 2.4.11, C43 (§1.3)                                      | should   | `data-slot="sticky-action"` and `html:has(...) { scroll-padding-bottom }`                                   |
@@ -388,7 +388,7 @@ Paths are under `apps/web/src/` unless they start `packages/`. "§" points to wh
 
 **Must**
 
-1. **Text contrast.** Fix the inactive tabs and the toast colours (audit 1–2). These are two small changes in `packages/ui`. Check `/money` tabs and one success, error and warning toast, light and dark.
+1. **Text contrast.** Fix the inactive tabs and the toast colors (audit 1–2). These are two small changes in `packages/ui`. Check `/money` tabs and one success, error and warning toast, light and dark.
 2. **The language button's name and `lang`** (audit 3).
 3. **Throttle the device cache, and keep photos out of it** (audit 4).
    - Before: time `persistClient` on `/animals` with Chrome's 4× CPU throttle.
@@ -421,5 +421,5 @@ Paths are under `apps/web/src/` unless they start `packages/`. "§" points to wh
 - **Why each of the ~60 chunks is in the entry's static graph** was not traced. The `not-found.tsx` → `page.tsx` path is a guess.
 - **That TanStack's packaged storage persisters throttle their writes by default** was not re-read for this note.
 - **WCAG 2.5.3's criterion text** was not fetched for this note; the claim rests on its well-known wording.
-- **Contrast for Sonner's colours** used sonner 2.0.8's CSS values. Whether `cn-toast` or the `shadcn/tailwind.css` import overrides them was checked only by grep; no override was found.
+- **Contrast for Sonner's colors** used sonner 2.0.8's CSS values. Whether `cn-toast` or the `shadcn/tailwind.css` import overrides them was checked only by grep; no override was found.
 - **Which sheets keep a draft after closing** (audit 12) was sampled, not mapped.

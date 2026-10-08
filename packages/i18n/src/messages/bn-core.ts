@@ -115,7 +115,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "cull.col.calving": "বাছুর দেওয়া",
   "cull.milk": "দুধ {worth} · রাখার খরচ {keep}",
   "cull.over": "{days} দিনে রাখার খরচের ওপর {over}",
-  "cull.rate": "দিনে {litres} লিটার · প্রতি লিটারে খরচ {cost}",
+  "cull.rate": "দিনে {liters} লিটার · প্রতি লিটারে খরচ {cost}",
   "cull.noneToBulk": "বাল্কে কোনো দুধ যায়নি",
   "cull.dry": "দুধ বন্ধ",
   "cull.tooSoon": "বাছুর দেওয়ার পর এখনো মাপার সময় হয়নি",
@@ -161,7 +161,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "projection.kgAtSale": "বিক্রয়ের সময় ওজন",
   "projection.prices": "কেজি প্রতি বিক্রয়মূল্য",
   "projection.charged": "যে খরচ ধরা হয়েছে",
-  "projection.realised": "ইতিমধ্যে বিক্রি হয়েছে",
+  "projection.realized": "ইতিমধ্যে বিক্রি হয়েছে",
   "projection.fromPlan": "পরিকল্পনার সংস্করণ {version} থেকে, সংরক্ষণ {day}",
   "projection.lossAtLow":
     "কম দামে এটি লোকসান, আর লোকসান বিনিয়োগকারীদের মূলধন থেকে কাটা যায়।",
@@ -821,7 +821,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.sayWhatYouFoundOut": "যে মাসে মেলেনি, সে বিষয়ে কী জেনেছেন লিখুন",
   "refusal.ventureIsSettled":
     "এই ভেঞ্চারের হিসাব শেষ — যে হিসাবে {currencySum} দেওয়া হয়েছে তা বদলানোর বদলে বণ্টন সমন্বয় করুন",
-  "refusal.ventureIsCancelled":
+  "refusal.ventureIsCanceled":
     "এই ভেঞ্চার বাতিল হয়েছে, {currencySum}ও ফেরত গেছে; যা এসেছিল তা এখন আর বদলানো যাবে না",
   "refusal.oneSideOfASale":
     "এটি ভেতরের বেচাকেনার এক পাশ: সারির বেচাকেনাটি ঠিক করুন, দুই পাশই সাথে ঠিক হবে",
@@ -1267,7 +1267,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "device.setup": "এই ফোনটি সেট করুন",
   "device.setupHelp":
     "ম্যানেজারের স্ক্রিনে দেখানো কোডটি লিখুন — অক্ষর আর সংখ্যা মিলিয়ে ১০টি।",
-  "device.enrol": "সেট করুন",
+  "device.enroll": "সেট করুন",
   "device.enrolled": "এই ফোন প্রস্তুত",
   "device.whoAreYou": "কে কাজ করছেন?",
   "device.enterPin": "আপনার পিন দিন",
@@ -1995,10 +1995,10 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "dispatch.handedOver": "দেওয়া হয়েছে",
   "dispatch.noneThatDay": "সেদিন কোনো দুধ দেওয়া হয়নি",
   "dispatch.day": "দিন",
-  "dispatch.litres": "লিটার",
+  "dispatch.liters": "লিটার",
   "dispatch.whenLeft": "কখন গেল",
   "dispatch.when": "কখন গেল (খালি রাখলে: এখন)",
-  "dispatch.litresField": "লিটার",
+  "dispatch.litersField": "লিটার",
   "dispatch.buyer": "ক্রেতা",
   "dispatch.buyerAddress": "ক্রেতার ঠিকানা",
   "dispatch.buyerPhone": "ক্রেতার ফোন",
@@ -2019,7 +2019,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "dispatch.sheetDescription":
     "ট্যাংকের দুধ ক্রেতাকে দেওয়া। দাম {currencyOf} হিসাবে যায়।",
   "dispatch.worth":
-    "{litres} লিটার × {currencySign}{price} = {currencySign}{amount}",
+    "{liters} লিটার × {currencySign}{price} = {currencySign}{amount}",
   "dispatch.dayBefore": "আগের দিন",
   "dispatch.dayAfter": "পরের দিন",
   "dispatch.tab.mismatches": "ট্যাংকের হিসাব মেলেনি",
@@ -2275,8 +2275,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "costs.sold": "বিক্রি দাম",
   "costs.margin": "মার্জিন",
   "costs.notSold": "এখনো বিক্রি হয়নি",
-  "costs.litres": "বাল্কে দুধ (লিটার)",
-  "costs.perLitre": "লিটার প্রতি খরচ",
+  "costs.liters": "বাল্কে দুধ (লিটার)",
+  "costs.perLiter": "লিটার প্রতি খরচ",
   "costs.bySide": "দিক অনুযায়ী খরচ",
   "costs.unpricedNote":
     "{amount} কেজি নিজের জমির ঘাস দাম ছাড়া খাওয়ানো হয়েছে, এখানে এর খরচ নেই",
@@ -2441,7 +2441,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "owner.approvals": "আপনার অনুমোদনের অপেক্ষায়",
   "owner.escalated": "মালিক পর্যন্ত পৌঁছেছে",
   "owner.discardToday": "আজ ফেলে দেওয়া",
-  "owner.average": "সাত দিনের গড় {litres} লিটার",
+  "owner.average": "সাত দিনের গড় {liters} লিটার",
   "owner.noNote": "কারণ লেখা হয়নি",
   "owner.subtitle": "যা শুধু আপনিই ঠিক করতে পারেন, তারপর আজ খামার কেমন চলছে।",
   "owner.waitingCount": "{count}টি আপনার অপেক্ষায়",
@@ -2452,7 +2452,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "owner.proposals": "কার্যপ্রণালীর প্রস্তাব",
   "owner.endingWithdrawal": "উইথড্রয়াল শেষ হচ্ছে",
   "owner.bulkToday": "আজ ট্যাংকে",
-  "owner.litres": "{litres} লিটার",
+  "owner.liters": "{liters} লিটার",
   "owner.noRecord": "কিছু লেখা হয়নি",
   "owner.weekTitle": "গত ৭ দিনে ট্যাংকে দুধ",
   "owner.milkHint": "গতকাল {yesterday} লিটার · গড় {average} লিটার",
@@ -2774,10 +2774,10 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "পরিষ্কার মানে: সময়মতো শেষ, কোনো সতর্কতা নেই, সুস্থ লেখা ছাড়া কিছু বাদ নেই।",
   "signOff.line.passedWell": "{count}টি সুস্থ",
   "signOff.line.tankOver":
-    "ট্যাংকে {litres} লি, গাভীর হিসাবের চেয়ে {difference} লি বেশি",
+    "ট্যাংকে {liters} লি, গাভীর হিসাবের চেয়ে {difference} লি বেশি",
   "signOff.line.tankUnder":
-    "ট্যাংকে {litres} লি, গাভীর হিসাবের চেয়ে {difference} লি কম",
-  "signOff.line.tankEven": "ট্যাংকে {litres} লি, গাভীর হিসাবের সমান",
+    "ট্যাংকে {liters} লি, গাভীর হিসাবের চেয়ে {difference} লি কম",
+  "signOff.line.tankEven": "ট্যাংকে {liters} লি, গাভীর হিসাবের সমান",
   "signOff.line.shortFed": "{percent}% কম খাবার",
   "signOff.line.outOfRange": "{count}টি সংখ্যা সীমার বাইরে",
   "signOff.line.flagged": "দেখার মতো",
@@ -2847,7 +2847,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "milk.withdrawal": "উইথড্রয়াল চলছে — এই দুধ ট্যাংকে যাবে না",
   "milk.withdrawalShort": "উইথড্রয়াল",
   "milk.forced": "উইথড্রয়াল চলছে — ট্যাংকে নয়, ফেলে দেওয়া হিসেবে লেখা হলো",
-  "milk.difference": "ট্যাংক গাভীর হিসাব থেকে {litres} লিটার দূরে",
+  "milk.difference": "ট্যাংক গাভীর হিসাব থেকে {liters} লিটার দূরে",
   "milk.matched": "ট্যাংক ও গাভীর হিসাব মিলেছে",
   "mismatch.hint":
     "যে দোহনে বাল্ক ট্যাংক আর গাভীদের হিসাবের পার্থক্য খামারের অনুমোদিত সীমার বেশি। কাজের পাতায় ভুল সংখ্যাটি ঠিক করলে এটি তালিকা থেকে সরে যাবে।",
@@ -3442,9 +3442,9 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.financialYearSoFar": "{year} অর্থবছর, এ পর্যন্ত",
   "months.yearNotBegun": "সেই অর্থবছর এখনও শুরু হয়নি। ওপর থেকে অন্য একটি বেছে নিন।",
   "months.milkSold": "বছরে দুধ বিক্রি",
-  "months.milkSoldHint": "{litres} লিটার · লিটারে পাওয়া গেছে {fetched}",
+  "months.milkSoldHint": "{liters} লিটার · লিটারে পাওয়া গেছে {fetched}",
   "months.dairyCost": "দুগ্ধ গাভীর খরচ",
-  "months.dairyCostHint": "বাল্কে যাওয়া লিটারে {perLitre}",
+  "months.dairyCostHint": "বাল্কে যাওয়া লিটারে {perLiter}",
   "months.margins": "বিক্রি হওয়া মোটাতাজা পশুর মার্জিন",
   "months.marginsHint": "{count}টি পশু বিক্রি",
   "months.nothingYet": "এখনো কিছু নেই",
@@ -3463,7 +3463,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.col.now": "এখন: লাভ বা আনুমানিক",
   "months.col.milk": "দুধ বিক্রি",
   "months.col.dairyCost": "দুগ্ধ গাভীর খরচ",
-  "months.col.litre": "লিটারে পাওয়া · খরচ",
+  "months.col.liter": "লিটারে পাওয়া · খরচ",
   "months.col.perCow": "গাভীপ্রতি দিনে",
   "months.col.sold": "মোটাতাজা বিক্রি · মার্জিন",
   "months.col.fatteningCost": "মোটাতাজাকরণের খরচ",
@@ -3474,7 +3474,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.soFar": "এখন পর্যন্ত",
   "months.pair": "{first} · {second}",
   "months.cardMilk": "দুধ বিক্রি {sold} · দুগ্ধ গাভীর খরচ {cost}",
-  "months.cardLitre": "লিটারে পাওয়া গেছে {fetched}, খরচ {cost}",
+  "months.cardLiter": "লিটারে পাওয়া গেছে {fetched}, খরচ {cost}",
   "months.cardSold":
     "{count}টি মোটাতাজা পশু বিক্রি, মার্জিন {margin} · মোটাতাজা পশুর খরচ {cost}",
   "months.cardNoneSold": "কোনো মোটাতাজা পশু বিক্রি হয়নি · মোটাতাজা পশুর খরচ {cost}",
@@ -3599,7 +3599,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "receivable.itemOwes":
     "{currencySign}{receivable}-এর মধ্যে {currencySign}{owing} বাকি",
   "receivable.itemPaidOff": "শোধ হয়েছে",
-  "receivable.litres": "{litres} লিটার দুধ",
+  "receivable.liters": "{liters} লিটার দুধ",
   "receivable.paymentLine": "{day}-এ {currencySign}{amount} দিয়েছেন",
   "receivable.writeOffLine": "{day}-এ {currencySign}{amount} বাদ দেওয়া হয়েছে",
   "receivable.record": "{currencySum} পাওয়া লিখুন",
@@ -3713,7 +3713,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "money.refundedHint": "ভেঞ্চার বাতিল হওয়ায়",
   "units.kg": "{kg} কেজি",
   "units.kgADay": "দিনে {kg} কেজি",
-  "units.litres": "{litres} লিটার",
+  "units.liters": "{liters} লিটার",
   "alerts.animalMissing": "{since}: রাউন্ডে {pen}-এ {tag} পাওয়া যায়নি",
   "home.missing": "পাওয়া যাচ্ছে না",
   "home.missingWhere": "{pen}, {day} থেকে",
@@ -3821,7 +3821,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "params.milkDropPercent": "সপ্তাহের চেয়ে কম",
   "params.milkDropDays": "শেষ এত দিনে",
   "alerts.milkUnaccounted":
-    "{since} থেকে {litres} লিটার দুধ গেটের বাইরেও যায়নি, ট্যাংকেও নেই ({percent}%)",
+    "{since} থেকে {liters} লিটার দুধ গেটের বাইরেও যায়নি, ট্যাংকেও নেই ({percent}%)",
   "params.milkUnaccounted": "দুধের হিসাব না মেলা",
   "params.milkUnaccountedHint":
     "সপ্তাহে ট্যাংকে যাওয়া দুধের এতটা যদি গেটের বাইরেও না যায়, ট্যাংকেও না থাকে, তবে সন্ধ্যার খবরে আপনাকে আর ম্যানেজারকে জানানো হবে।",
@@ -3867,7 +3867,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "milkAccount.stillInTank": "এখনো ট্যাংকে",
   "milkAccount.notAccounted": "হিসাব মেলেনি",
   "milkAccount.calves":
-    "বাছুরকে: দিনে {litres} লিটার, {calves}টি বাছুর — প্রতিটি {perCalf} লিটার",
+    "বাছুরকে: দিনে {liters} লিটার, {calves}টি বাছুর — প্রতিটি {perCalf} লিটার",
   "params.firstServiceMonths": "সংকর বকনাকে পাল দিতে হবে",
   "params.deshiFirstServiceMonths": "দেশি বকনাকে পাল দিতে হবে",
   "params.months": "মাসের মধ্যে",

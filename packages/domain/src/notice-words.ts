@@ -61,7 +61,7 @@ const floorBasis = (
  *  screens, as the farm calls it (ADR 0014). */
 const WAY_WORDS = {
   bank_transfer: { bn: "ব্যাংক ট্রান্সফারে", en: "by bank transfer" },
-  cheque: { bn: "চেকে", en: "by cheque" },
+  check: { bn: "চেকে", en: "by check" },
   deposit_slip: { bn: "জমার স্লিপে", en: "by deposit slip" },
   mobile_money: { bn: "বিকাশে", en: "by mobile money" },
 } as const;
@@ -166,7 +166,7 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
   withdrawal_changed: (facts) => ({ tag: facts.tag }),
   notifiable_diagnosis: (facts) => ({ tag: facts.tag, disease: facts.disease }),
   milk_unaccounted: (facts, language) => ({
-    litres: Number(facts.litres),
+    liters: Number(facts.liters),
     percent: Number(facts.percent),
     since: saidDate(facts.since, language),
   }),

@@ -52,7 +52,7 @@ const signatorySaid = (
   });
 };
 
-/** Who they are, and where they live under it — what the Owner recognises somebody by; for an Organization, the
+/** Who they are, and where they live under it — what the Owner recognizes somebody by; for an Organization, the
  *  Signatory she deals with first. The name leads to their own page, as a Tag Number leads to an animal's: a link, so
  *  it opens in a tab of its own as well. */
 const NameCell = ({ row }: Cell) => {

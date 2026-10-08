@@ -63,7 +63,7 @@ const TAB_PATHS = {
 
 /**
  * The four figures one Investor is read by: the capital the Farm holds of theirs now, the Units they hold in the
- * Ventures still running, their Settlement payouts — with any capital refunded from a cancelled Venture said apart,
+ * Ventures still running, their Settlement payouts — with any capital refunded from a canceled Venture said apart,
  * as their own portal says it — and what their share of the profit has come to. Money still in a Venture and money
  * already home are counted apart, so neither passes for the other.
  */

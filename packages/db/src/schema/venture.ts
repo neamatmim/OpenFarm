@@ -21,7 +21,7 @@ import { paperTemplateVersion } from "./paper-template";
 /**
  * Where a Venture is in its life. Open while the Agreements are signed and the capital arrives; Buying once
  * the Owner says the Floor is met; Fattening when they are all bought; Selling from its first Sale; Settled
- * when the last payout is made. Cancelled is where an under-funded one ends, with every taka refunded.
+ * when the last payout is made. Canceled is where an under-funded one ends, with every taka refunded.
  */
 export const VENTURE_STATES = [
   "open",
@@ -29,7 +29,7 @@ export const VENTURE_STATES = [
   "fattening",
   "selling",
   "settled",
-  "cancelled",
+  "canceled",
 ] as const;
 export type VentureState = (typeof VENTURE_STATES)[number];
 
@@ -84,7 +84,7 @@ export const venture = pgTable(
     monthlySums: integer("monthly_sums"),
     firstSumDueOn: text("first_sum_due_on"),
     /** Why a Venture was called off, in the Owner's words. */
-    cancelledReason: text("cancelled_reason"),
+    canceledReason: text("canceled_reason"),
     /** When the Owner showed it to invited Investors in the portal; empty while it is not shown (ADR 0008). */
     shownInPortalAt: timestamp("shown_in_portal_at", { withTimezone: true }),
     /** The Owner's few words on it for the portal, beside its terms. */
@@ -381,7 +381,7 @@ export const REQUEST_TO_JOIN_STATES = [
  *  it out of the portal, or the Investor was retired. Mirrored in the domain, for the screens. */
 export const REQUEST_CLOSE_REASONS = [
   "venture_buying",
-  "venture_cancelled",
+  "venture_canceled",
   "taken_out_of_portal",
   "investor_retired",
 ] as const;

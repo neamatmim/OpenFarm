@@ -112,10 +112,10 @@ export const HerLactation = ({ detail }: { detail: AnimalDetail }) => {
   if (!summary || summary.daysMilked === 0) {
     return <HerLactations lactations={lactations} />;
   }
-  const litres = (value: number | null) =>
+  const liters = (value: number | null) =>
     value === null
       ? "—"
-      : t("owner.litres", { litres: formatNumber(value, language) });
+      : t("owner.liters", { liters: formatNumber(value, language) });
   return (
     <>
       <Section
@@ -130,25 +130,25 @@ export const HerLactation = ({ detail }: { detail: AnimalDetail }) => {
           figures={[
             {
               label: t("milk.inAll"),
-              value: litres(summary.litres),
+              value: liters(summary.liters),
               icon: Milk,
               tone: "neutral",
             },
             {
               label: t("milk.perDay"),
-              value: litres(summary.perDay),
+              value: liters(summary.perDay),
               icon: Droplets,
               tone: "neutral",
             },
             {
               label: t("milk.lately"),
-              value: litres(summary.latelyPerDay),
+              value: liters(summary.latelyPerDay),
               icon: TrendingUp,
               tone: "neutral",
             },
             {
               label: t("milk.bestDay"),
-              value: litres(summary.peak?.litres ?? null),
+              value: liters(summary.peak?.liters ?? null),
               hint: summary.peak
                 ? formatDate(
                     new Date(`${summary.peak.day}T12:00:00Z`),

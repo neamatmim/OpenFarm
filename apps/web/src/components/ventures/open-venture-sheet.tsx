@@ -26,7 +26,7 @@ interface Plan {
   capitalPaid: CapitalPaid;
 }
 
-/** What the farm would work out, shown greyed in the box the Owner may type over. */
+/** What the farm would work out, shown grayed in the box the Owner may type over. */
 const wouldBe = (amount: number, each: number) =>
   amount > 0 && each > 0 ? String(Math.round(amount / each)) : "";
 

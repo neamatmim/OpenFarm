@@ -174,7 +174,7 @@ const DOSES_SHOWN = 40;
 const WEIGH_INS_SHOWN = 52;
 
 /** How she left, for a page that has to say where a cow went. Money in numeric columns comes
- *  back as strings, and is converted here at the edge like the litres. */
+ *  back as strings, and is converted here at the edge like the liters. */
 const saleView = (
   row:
     | {
@@ -293,7 +293,7 @@ const HEATS_SHOWN = 60;
  * Read on their own rather than picked out of her recent Observations: a twice-daily heat-watch
  * round writes one for every cow, so her last twenty Observations are about a week — and the heat
  * that matters after a failed service is three weeks old. Read off the round's own record rather
- * than kept twice, because a Heat *is* an Observation of oestrus.
+ * than kept twice, because a Heat *is* an Observation of estrus.
  */
 const heatsOf = async (db: Database, animalId: string) => {
   const sightings = await db.query.observation.findMany({
@@ -1133,7 +1133,7 @@ export const animalsRouter = {
               )
             : null,
         /** Kilogrammes live in a numeric column and come back as strings; converted here at
-         *  the edge, like the litres, rather than left to drift as floats. */
+         *  the edge, like the liters, rather than left to drift as floats. */
         weighIns: weighIns.map(({ weigher, ...reading }) => ({
           id: reading.id,
           weightKg: Number(reading.weightKg),
@@ -1179,7 +1179,7 @@ export const animalsRouter = {
    * from that moment she is off the pen boards, out of the day's work and out of the
    * headcounts — everywhere at once, because everywhere reads the same State.
    *
-   * Nothing of hers is removed. Her litres, her Treatments, her Moves and her Observations stay
+   * Nothing of hers is removed. Her liters, her Treatments, her Moves and her Observations stay
    * exactly where they are: the farm's mortality register is read from this row, and the
    * six-month disease history an inspector asks for is read from the ones beside it.
    */
@@ -1413,7 +1413,7 @@ export const animalsRouter = {
               data: { refusal: "exit_needs_a_record", state: input.state },
             });
           }
-          // Readiness is a judgement with a gate behind it: an animal inside her meat
+          // Readiness is a judgment with a gate behind it: an animal inside her meat
           // Withdrawal may not be made ready at all. A gate on one door and not the other is
           // no gate, so this door sends the caller to the one that checks.
           if (input.state === "ready_for_sale") {

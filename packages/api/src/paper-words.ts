@@ -76,7 +76,7 @@ export const leftWords = (
 };
 
 /** Her age as the farm can say it: from her birth date if it knows one, and otherwise from what
- *  the seller said at Intake, which is a judgement and is labelled as one. */
+ *  the seller said at Intake, which is a judgment and is labeled as one. */
 export const ageWords = (
   her: {
     birthDate: Date | null;

@@ -7,7 +7,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 /**
- * Money waiting for the Owner's word, counted and totalled on the farm: her home lists the oldest fifty, and a count
+ * Money waiting for the Owner's word, counted and totaled on the farm: her home lists the oldest fifty, and a count
  * or a total made from those fifty would say less than is waiting.
  */
 const suffix = `awaiting-all-${Date.now()}`;

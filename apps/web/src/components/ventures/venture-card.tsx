@@ -42,7 +42,7 @@ const TONES = {
   fattening: "info",
   selling: "info",
   settled: "success",
-  cancelled: "neutral",
+  canceled: "neutral",
 } as const;
 
 export const StateBadge = ({ state }: { state: Venture["state"] }) => {
@@ -160,7 +160,7 @@ const settlementApproved = (venture: Venture) =>
  * after it has settled. A run that was called off has refunded every taka and owes nobody a paper.
  */
 const hasPapersToGive = (venture: Venture) =>
-  moneyOf(venture).signedFor.people !== 0 && venture.state !== "cancelled";
+  moneyOf(venture).signedFor.people !== 0 && venture.state !== "canceled";
 
 /**
  * Whether the terms can still move.
@@ -577,7 +577,7 @@ export const actsInTheMenu = (
   }
   // A settled run is read against the bank too: a month that goes out after it closed means the figures
   // everybody was paid on no longer read the same, and the badge saying so needs the act that answers it.
-  if (venture.state !== "cancelled") {
+  if (venture.state !== "canceled") {
     inTheMenu.push({
       label: t("ventures.checkTheBank"),
       icon: Landmark,
@@ -652,8 +652,8 @@ export const VentureCard = ({
     </div>
     <MoneyLines venture={venture} />
     <CardBadges lastMonthOver={lastMonthOver} venture={venture} />
-    {venture.cancelledReason ? (
-      <p className="text-muted-foreground text-xs">{venture.cancelledReason}</p>
+    {venture.canceledReason ? (
+      <p className="text-muted-foreground text-xs">{venture.canceledReason}</p>
     ) : null}
     <Terms venture={venture} />
     <WhatStopsHer venture={venture} />

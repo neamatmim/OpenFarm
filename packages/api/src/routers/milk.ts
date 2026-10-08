@@ -7,7 +7,7 @@ import {
   lactationSummary,
   lactationsOf,
   lactationView,
-  roundLitres,
+  roundLiters,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -25,8 +25,8 @@ import {
   buyerOnTheDay,
   dispatchFields,
   dispatchesBetween,
-  litresDispatched,
-  litresToBulkBetween,
+  litersDispatched,
+  litersToBulkBetween,
   milkAccountOn,
   readDispatch,
   twoPlaces,
@@ -34,7 +34,7 @@ import {
 } from "../dispatch-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { litresOf, milkDropsOn } from "../milk-store";
+import { litersOf, milkDropsOn } from "../milk-store";
 import {
   farmAccountIdInput,
   paymentMethodInput,
@@ -61,9 +61,9 @@ const sessionShape = {
     instanceId: true,
     penId: true,
     dueAt: true,
-    bulkLitres: true,
-    sumBulkLitres: true,
-    differenceLitres: true,
+    bulkLiters: true,
+    sumBulkLiters: true,
+    differenceLiters: true,
     tolerancePercent: true,
     flaggedAt: true,
   },
@@ -77,7 +77,7 @@ const sessionShape = {
 
 export const milkRouter = {
   /**
-   * Milk handed over to a buyer: when, how many litres, to whom, the delivery note, the price, and the fat
+   * Milk handed over to a buyer: when, how many liters, to whom, the delivery note, the price, and the fat
    * and SNF if the processor measured them.
    *
    * The Manager's to record, or the Owner's, who may do anything the Manager does (the Owner,
@@ -97,7 +97,7 @@ export const milkRouter = {
         paymentMethod: paymentMethodInput,
         /** Which Farm Account mobile money or bank money went into or came out of. */
         farmAccountId: farmAccountIdInput,
-        /** Its transaction ID, or the cheque's or slip's number. */
+        /** Its transaction ID, or the check's or slip's number. */
         reference: referenceInput,
         /** What the buyer paid there and then; left out, all of it. Less than the milk came to, and the rest is his
          *  Receivable. */
@@ -142,10 +142,10 @@ export const milkRouter = {
             id,
             farmId: context.farm.id,
             dispatchedAt: input.dispatchedAt,
-            litres: input.litres.toFixed(2),
+            liters: input.liters.toFixed(2),
             ...buyer,
             deliveryNote: input.deliveryNote ?? null,
-            pricePerLitreMoney: input.pricePerLitreMoney.toFixed(2),
+            pricePerLiterMoney: input.pricePerLiterMoney.toFixed(2),
             fatPercent: twoPlaces(input.fatPercent),
             snfPercent: twoPlaces(input.snfPercent),
             ...receivable,
@@ -181,7 +181,7 @@ export const milkRouter = {
     }),
 
   /**
-   * Puts a Dispatch right: the litres, the time, the buyer, the delivery note, the price, the fat or SNF. A
+   * Puts a Dispatch right: the liters, the time, the buyer, the delivery note, the price, the fat or SNF. A
    * Correction like any other — a reason, the Role's Correction Window, the trail holding what it said.
    * A delivery note, a note, a fat or an SNF sent as nothing is cleared: a figure written against the wrong
    * lorry is put right by taking it away.
@@ -209,8 +209,8 @@ export const milkRouter = {
     .input(z.object({ day: farmDay }))
     .handler(async ({ context, input }) => {
       const range = farmDaysBetween(input.day, input.day);
-      const [toBulkLitres, dispatches] = await Promise.all([
-        litresToBulkBetween(context.db, context.farm.id, range),
+      const [toBulkLiters, dispatches] = await Promise.all([
+        litersToBulkBetween(context.db, context.farm.id, range),
         dispatchesBetween(context.db, context.farm.id, range),
       ]);
       // What each buyer still owes on it today, as his payments have left it.
@@ -221,8 +221,8 @@ export const milkRouter = {
       );
       return {
         day: input.day,
-        toBulkLitres,
-        dispatchedLitres: litresDispatched(dispatches),
+        toBulkLiters,
+        dispatchedLiters: litersDispatched(dispatches),
         dispatches: dispatches.map((one) => ({
           ...one,
           owingMoney: owing.get(one.id) ?? 0,
@@ -231,7 +231,7 @@ export const milkRouter = {
     }),
 
   /** One Milking Session as the Manager reads it: the tank reading, what the cows account
-   *  for, and every cow's litres with where they went. */
+   *  for, and every cow's liters with where they went. */
   session: protectedProcedure
     .use(requireRole("owner", "manager", "staff"))
     .input(z.object({ instanceId: z.string() }))
@@ -311,7 +311,7 @@ export const milkRouter = {
         with: {
           milkRecords: {
             columns: {
-              litres: true,
+              liters: true,
               destination: true,
               forced: true,
               lactationNumber: true,
@@ -342,7 +342,7 @@ export const milkRouter = {
         (record) => record.lactationNumber === beast.lactationNumber
       );
       // The total is the whole Lactation, not the recent milkings the page lists: three hundred days of
-      // two milkings a day is a few hundred small rows, read as litres alone.
+      // two milkings a day is a few hundred small rows, read as liters alone.
       const wholeLactation = await context.db.query.milkRecord.findMany({
         where: {
           farmId: context.farm.id,
@@ -352,7 +352,7 @@ export const milkRouter = {
               ? { isNull: true }
               : beast.lactationNumber,
         },
-        columns: { litres: true, recordedAt: true },
+        columns: { liters: true, recordedAt: true },
       });
       return {
         tagNumber: beast.tagNumber,
@@ -361,9 +361,9 @@ export const milkRouter = {
         summary: lactationSummary(wholeLactation),
         /** Every Lactation the farm knows of hers, latest first: how long she milked, and how long she stood dry. */
         lactations: lactationsOf(beast, context.clock.now()),
-        lactationLitres: roundLitres(
+        lactationLiters: roundLiters(
           wholeLactation.reduce(
-            (total, record) => total + litresOf(record.litres),
+            (total, record) => total + litersOf(record.liters),
             0
           )
         ),

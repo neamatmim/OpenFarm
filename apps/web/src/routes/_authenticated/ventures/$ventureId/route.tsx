@@ -106,7 +106,7 @@ const useFiguresOf = (venture: Venture): Figure[] => {
       },
     ];
   }
-  if (venture.state === "settled" || venture.state === "cancelled") {
+  if (venture.state === "settled" || venture.state === "canceled") {
     return [
       {
         label: t("ventures.held"),

@@ -11,18 +11,18 @@ const tankSaid = (
   count: (n: number) => string,
   t: ReturnType<typeof useLanguage>["t"]
 ): string | null => {
-  if (!milk || milk.bulkLitres === null) {
+  if (!milk || milk.bulkLiters === null) {
     return null;
   }
-  const litres = count(milk.bulkLitres);
-  const difference = milk.differenceLitres ?? 0;
+  const liters = count(milk.bulkLiters);
+  const difference = milk.differenceLiters ?? 0;
   if (difference === 0) {
-    return t("signOff.line.tankEven", { litres });
+    return t("signOff.line.tankEven", { liters });
   }
   return t(
     difference > 0 ? "signOff.line.tankOver" : "signOff.line.tankUnder",
     {
-      litres,
+      liters,
       difference: count(Math.abs(difference)),
     }
   );
@@ -30,7 +30,7 @@ const tankSaid = (
 
 /**
  * What a piece of work came to, in a line under its name: done and passed as well, skipped, the tank against the cows, a
- * short feed, figures out of range — and in words with a mark, never colour alone, that it is late or the farm flagged it.
+ * short feed, figures out of range — and in words with a mark, never color alone, that it is late or the farm flagged it.
  * Nothing for a phone's copy of the queue from before it said.
  */
 export const CheckLine = ({ check }: { check: CheckSummary | undefined }) => {

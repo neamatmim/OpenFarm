@@ -65,7 +65,7 @@ const REFUSALS = {
   letter_handed_over: "portal.refused.letterHandedOver",
 } as const;
 
-/** Where an Investor stands with the portal, as a word with its colour, in the order the list sorts them. */
+/** Where an Investor stands with the portal, as a word with its color, in the order the list sorts them. */
 export const STANDING = {
   in: { word: "portal.standing.in", tone: "success" },
   invited: { word: "portal.standing.invited", tone: "info" },

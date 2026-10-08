@@ -20,7 +20,7 @@ import { sopDefinition } from "./sop";
  * One product on the farm's Drug List, with the days its milk and its meat must be withheld.
  *
  * There is no national withdrawal table for cattle in Bangladesh: the days come off the
- * product's own label and the prescribing Vet's judgement, so this list is the only place
+ * product's own label and the prescribing Vet's judgment, so this list is the only place
  * they exist — and it is the farm's evidence at slaughter, where the vet may ask for the
  * prescription and the withdrawal period of anything given in the last thirty days.
  *
@@ -246,10 +246,10 @@ export const treatment = pgTable(
      *  to the doses already given, which is the safe side (the Owner, 2026-10-06). Null for a dose not yet given. */
     milkWithdrawalDays: integer("milk_withdrawal_days"),
     meatWithdrawalDays: integer("meat_withdrawal_days"),
-    /** When the farm learnt this dose was given — when the entry saying so was applied, however long before it went
-     *  in. A shortening covers the doses the Vet could have known of; one learnt afterwards is new, and holds her on
+    /** When the farm learned this dose was given — when the entry saying so was applied, however long before it went
+     *  in. A shortening covers the doses the Vet could have known of; one learned afterwards is new, and holds her on
      *  its own days. Null for a dose not yet given. */
-    learntAt: timestamp("learnt_at", { withTimezone: true }),
+    learnedAt: timestamp("learned_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [

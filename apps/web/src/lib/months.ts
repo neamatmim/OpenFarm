@@ -71,7 +71,7 @@ export const financialYearNamed = (value: unknown): string | undefined =>
 /** What a month holds, as far as whether it holds anything. */
 interface MonthFigures {
   money: { inMoney: number; outMoney: number };
-  dairy: { milkSoldMoney: number; chargedMoney: number; litresToBulk: number };
+  dairy: { milkSoldMoney: number; chargedMoney: number; litersToBulk: number };
   fattening: { chargedMoney: number; sold: number };
 }
 
@@ -81,7 +81,7 @@ const holdsAnything = ({ money, dairy, fattening }: MonthFigures): boolean =>
   money.outMoney !== 0 ||
   dairy.milkSoldMoney !== 0 ||
   dairy.chargedMoney !== 0 ||
-  dairy.litresToBulk !== 0 ||
+  dairy.litersToBulk !== 0 ||
   fattening.chargedMoney !== 0 ||
   fattening.sold !== 0;
 

@@ -115,7 +115,7 @@ const PersonPage = () => {
                 ) : null
               }
               // A person's record leads with their initials, as an animal's leads with her photo: whose page it is,
-              // at a glance, in the user menu's own mark (greyed for one whose access is off).
+              // at a glance, in the user menu's own mark (grayed for one whose access is off).
               leading={
                 <span
                   aria-hidden

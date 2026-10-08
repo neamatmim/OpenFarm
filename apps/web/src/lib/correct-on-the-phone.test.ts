@@ -36,12 +36,12 @@ vi.mock("./outbox-client", () => ({ phoneOutbox: () => outbox }));
 const { correctOnThePhone, recordStep } = await import("./record-offline");
 
 const instanceKey = ["work", "instance-1"];
-const milked = (litres: number) => ({
+const milked = (liters: number) => ({
   instanceId: "instance-1",
   stepId: "milk",
   animalTag: "D-0001",
   animalId: "cow-1",
-  evidence: [litres],
+  evidence: [liters],
 });
 const fixOf = (id: string) => ({
   id,

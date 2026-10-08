@@ -170,9 +170,9 @@ const TheTerms = ({ venture }: { venture: Venture }) => {
           </FigureTerm>
         ) : null}
       </dl>
-      {venture.cancelledReason ? (
+      {venture.canceledReason ? (
         <p className="text-muted-foreground border-t pt-3 text-sm">
-          {venture.cancelledReason}
+          {venture.canceledReason}
         </p>
       ) : null}
     </Section>

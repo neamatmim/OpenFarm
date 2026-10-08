@@ -82,7 +82,7 @@ const WhatWasSpent = ({
 /**
  * What one animal has cost and earned: her share of the Pens' feed, her doses and the Vet's visits over
  * her time on the farm, and — for a fattening animal — what she was bought and sold for, her Margin and
- * what each kilogram she put on cost; for a cow in milk, what this Lactation has cost a litre. Every figure
+ * what each kilogram she put on cost; for a cow in milk, what this Lactation has cost a liter. Every figure
  * worked out from the records, none typed. The Owner's and the Manager's alone.
  */
 export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
@@ -100,7 +100,7 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
   const her = costs.data;
   const orDash = (amount: number | null) =>
     amount === null ? "—" : asMoney(amount);
-  // A cost of gain and a cost per litre are rates, not sums: rounded to the taka, two different ones
+  // A cost of gain and a cost per liter are rates, not sums: rounded to the taka, two different ones
   // print the same.
   const rateOrDash = (amount: number | null) =>
     amount === null ? "—" : rate(amount);
@@ -130,11 +130,11 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
             {t("costs.thisLactation")}
           </h3>
           <WhatWasSpent costs={her.lactation} />
-          <Line label={t("costs.litres")}>
-            {formatNumber(her.lactation.litresToBulk, language)}
+          <Line label={t("costs.liters")}>
+            {formatNumber(her.lactation.litersToBulk, language)}
           </Line>
-          <Line label={t("costs.perLitre")}>
-            {rateOrDash(her.lactation.costPerLitreMoney)}
+          <Line label={t("costs.perLiter")}>
+            {rateOrDash(her.lactation.costPerLiterMoney)}
           </Line>
         </>
       ) : null}
@@ -231,7 +231,7 @@ const StoreShortfallCard = ({ shortfall }: { shortfall: StoreShortfall }) => {
 };
 
 /**
- * A period by Side: what each Side's animals were fed, dosed and visited for in it, what a litre of the
+ * A period by Side: what each Side's animals were fed, dosed and visited for in it, what a liter of the
  * Dairy side's milk cost — and, apart, the fattening animals sold in it with each one's whole-life Margin.
  */
 export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
@@ -261,13 +261,13 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
       <div className="grid items-start gap-4 lg:grid-cols-3">
         <CostCard title={t("animals.side.dairy")}>
           <WhatWasSpent costs={dairy} />
-          <Line label={t("costs.litres")}>
-            {formatNumber(dairy.litresToBulk, language)}
+          <Line label={t("costs.liters")}>
+            {formatNumber(dairy.litersToBulk, language)}
           </Line>
-          <Line label={t("costs.perLitre")}>
-            {dairy.costPerLitreMoney === null
+          <Line label={t("costs.perLiter")}>
+            {dairy.costPerLiterMoney === null
               ? "—"
-              : rate(dairy.costPerLitreMoney)}
+              : rate(dairy.costPerLiterMoney)}
           </Line>
         </CostCard>
         <CostCard title={t("animals.side.fattening")}>

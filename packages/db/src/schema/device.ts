@@ -24,8 +24,8 @@ export const shedPhone = pgTable(
     /** Hash of the device token; the token itself is shown once and lives on the phone. */
     tokenHash: text("token_hash").notNull(),
     /** One-time code the Manager reads out to the phone; cleared once it is claimed. */
-    enrolmentCode: text("enrolment_code"),
-    enrolmentExpiresAt: timestamp("enrolment_expires_at", {
+    enrollmentCode: text("enrollment_code"),
+    enrollmentExpiresAt: timestamp("enrollment_expires_at", {
       withTimezone: true,
     }),
     enrolledBy: text("enrolled_by").references(() => user.id),
@@ -39,7 +39,7 @@ export const shedPhone = pgTable(
   },
   (table) => [
     uniqueIndex("shed_phone_token_uidx").on(table.tokenHash),
-    uniqueIndex("shed_phone_code_uidx").on(table.enrolmentCode),
+    uniqueIndex("shed_phone_code_uidx").on(table.enrollmentCode),
     index("shed_phone_farm_idx").on(table.farmId),
   ]
 );

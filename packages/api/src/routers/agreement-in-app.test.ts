@@ -578,7 +578,7 @@ describe("an Agreement offered in the app, as things move on after it was offere
     );
   });
 
-  it("is gone from the portal, and cannot be agreed, once its Venture is cancelled", async () => {
+  it("is gone from the portal, and cannot be agreed, once its Venture is canceled", async () => {
     const ventureId = await aVenture("বাতিল");
     const them = await invited("বাতিল");
     const owner = await as("owner");

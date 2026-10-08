@@ -305,7 +305,7 @@ describe("hearing that a paper is due", () => {
     await april.client.alerts.sweep();
     // April comes round and brings it nothing: a Venture that is over owes nobody anything.
     expect(await papersDue(april, doomed.id)).toEqual([]);
-    // And the one still running is still told, so the silence is about the cancelled run and not
+    // And the one still running is still told, so the silence is about the canceled run and not
     // about the sweep having stopped.
     expect(await papersDue(april, ventureId)).toContain("এপ্রিল ২০৫৪");
   });

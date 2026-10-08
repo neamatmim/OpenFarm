@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   costOfGainOf,
-  costPerLitreOf,
+  costPerLiterOf,
   dosePriceOf,
   feedShares,
   herdShares,
@@ -313,9 +313,9 @@ describe("what she came to, once she is sold", () => {
     expect(costOfGainOf(costs, null)).toBe(null);
   });
 
-  it("costs a cow's litres over what she sent to Bulk, and says nothing for none sent", () => {
-    expect(costPerLitreOf(costs, 1500)).toBe(2);
-    expect(costPerLitreOf(costs, 0)).toBe(null);
+  it("costs a cow's liters over what she sent to Bulk, and says nothing for none sent", () => {
+    expect(costPerLiterOf(costs, 1500)).toBe(2);
+    expect(costPerLiterOf(costs, 0)).toBe(null);
   });
 
   it("reads her costs to the poisha, and leaves the uncosted doses as the count they are", () => {

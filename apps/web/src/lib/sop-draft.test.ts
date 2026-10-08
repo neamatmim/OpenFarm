@@ -135,7 +135,7 @@ describe("a Step given an effect in the editor", () => {
     expect(refused).toEqual([]);
   });
 
-  it("asks nothing its old effect asked: a service turned milk record asks for litres alone", () => {
+  it("asks nothing its old effect asked: a service turned milk record asks for liters alone", () => {
     const served = withEffect(emptyStep("s"), "service", PENS);
     expect(served.evidence.length).toBeGreaterThan(1);
     const milked = withEffect(served, "milk_record", PENS);
@@ -217,23 +217,23 @@ describe("a Step added after one is taken out", () => {
 });
 
 describe("the answers a Step asks besides its first", () => {
-  it("are added unrequired, labelled or not, and taken out again — never the first", () => {
+  it("are added unrequired, labeled or not, and taken out again — never the first", () => {
     const step = withAnswerAdded(
       { ...emptyStep("s"), text: { bn: "গুনুন" } },
       "photo"
     );
     expect(step.evidence.at(1)).toEqual({ type: "photo", required: false });
-    const labelled = withAnswerAt(
+    const labeled = withAnswerAt(
       step,
       1,
       withLabel(step.evidence[1] ?? { type: "photo", required: false }, "ছবি")
     );
-    expect(labelled.evidence.at(1)?.label).toEqual({ bn: "ছবি" });
+    expect(labeled.evidence.at(1)?.label).toEqual({ bn: "ছবি" });
     expect(
-      withLabel(labelled.evidence[1] ?? { type: "photo", required: false }, "")
+      withLabel(labeled.evidence[1] ?? { type: "photo", required: false }, "")
     ).toEqual({ type: "photo", required: false });
-    expect(withoutAnswer(labelled, 1).evidence).toHaveLength(1);
-    expect(withoutAnswer(labelled, 0)).toBe(labelled);
+    expect(withoutAnswer(labeled, 1).evidence).toHaveLength(1);
+    expect(withoutAnswer(labeled, 0)).toBe(labeled);
   });
 
   it("are fixed for a Step whose effect asks its own, and free for the rest", () => {

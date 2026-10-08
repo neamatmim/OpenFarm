@@ -21,7 +21,7 @@ import { paidBy } from "./standing";
  * the farm's own.
  *
  * Two of them, because one is not enough to look at. **কোরবানি ২০২৬** has run its course — bought, fed,
- * sold, reconciled, settled and paid out — so that the Settlement, the payouts, the Acknowledgements and
+ * sold, reconciled, settled and paid out — so that the Settlement, the payouts, the Acknowledgments and
  * the হিসাব নিকাশ have something to draw. **ঈদ ২০২৭** is still fattening, with its Target Window next
  * year, so that the Venture card, the অগ্রগতি and the monthly Reimbursement have something to draw too.
  *
@@ -35,7 +35,7 @@ import { paidBy } from "./standing";
 const A_STAMPED_PAPER =
   "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==";
 
-/** The people whose money is in. A known circle, as the law requires — neighbours, a brother-in-law, the
+/** The people whose money is in. A known circle, as the law requires — neighbors, a brother-in-law, the
  *  pharmacy man in the bazaar — and every one of them with a nominee, named on the Agreement they sign. */
 const INVESTORS = [
   {
@@ -180,7 +180,7 @@ export const closingDays = (today: string) => {
 export interface SeededVenture {
   id: string;
   name: string;
-  /** Each Agreement, so a payout and an Acknowledgement can name one. */
+  /** Each Agreement, so a payout and an Acknowledgment can name one. */
   agreements: { id: string; units: number; investor: string }[];
   /** Its animals' tags, so the Sales and the selling trip know whose they are. */
   tags: string[];
@@ -611,7 +611,7 @@ const sellTheVenture = async (
  * The end of it: the Owner approves what the Settlement says, sends each man his money by bank, takes
  * the Farm's own share out, and writes down who has said he had his.
  *
- * One Investor is left without an Acknowledgement on purpose. The screen exists to show the Owner who
+ * One Investor is left without an Acknowledgment on purpose. The screen exists to show the Owner who
  * has confirmed and who has not, and a list where everybody has confirmed never shows the half of it
  * she actually looks for.
  */

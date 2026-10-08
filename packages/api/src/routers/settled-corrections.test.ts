@@ -161,7 +161,7 @@ beforeAll(async () => {
     reference: `DEP-${suffix}`,
   });
 
-  // Somebody walks the pen and finds one of them off colour; the Vet says what it is; she dies of it.
+  // Somebody walks the pen and finds one of them off color; the Vet says what it is; she dies of it.
   // A dead Animal is gone, so the Venture may still settle.
   const sop = await owner.client.sops.create({ content: healthWalkSop() });
   const walking = await as("manager", "2048-01-10T07:30:00.000Z");

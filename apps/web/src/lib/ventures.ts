@@ -174,7 +174,7 @@ export const troubleWith = (venture: Venture): VentureTrouble[] => {
   // that disagrees is history rather than something she can act on. A **settled** one is different: its
   // Settlement could not have closed while a month was out, so a month that has gone out since means
   // the figures everybody was paid on no longer read the same, and she is owed that news.
-  if (venture.state !== "cancelled") {
+  if (venture.state !== "canceled") {
     const { stale, disagreed } = monthsStillOut(venture.bank);
     if (stale.length > 0) {
       troubles.push({ word: "bank_stale", months: stale });

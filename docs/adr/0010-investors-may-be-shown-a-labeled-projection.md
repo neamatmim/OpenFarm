@@ -3,7 +3,7 @@ status: accepted
 date: 2026-09-26
 ---
 
-# Investors may be shown a labelled Projection of profit, behind the Owner's switch
+# Investors may be shown a labeled Projection of profit, behind the Owner's switch
 
 > Amended by ADR 0011: the sale prices and the buying a Projection is worked from now come from the Venture Plan, not from figures typed for the Projection. A Venture still to buy is charged what its plan's animals cost rather than its whole cattle budget, so an offer is charged its running budget and its plan's cattle, not its whole capital.
 
@@ -21,7 +21,7 @@ So a Projection is built to stay inside that opening:
 
   A Venture still gathering capital is worked from the Owner's plan: the buying price a kilo, the weight bought at and the gain a day. Its whole cattle budget is spent on animals, and its whole capital is charged. Either way, the profit divides through the Settlement's own `splitOfProfit`.
 
-- **Said as an estimate, with its working.** It is labelled "an estimate, not a promise". The prices and the day they were set are beside it. A loss at the low price is called a loss that comes off capital. On an offer it sits before the rules, so "nothing is guaranteed" is read after it.
+- **Said as an estimate, with its working.** It is labeled "an estimate, not a promise". The prices and the day they were set are beside it. A loss at the low price is called a loss that comes off capital. On an offer it sits before the rules, so "nothing is guaranteed" is read after it.
 - **Never on a paper.** The **Investor Statement** rule stands: no projection is printed on one. The Settlement pays what the herd actually fetched.
 - **Behind the Owner's switch.** `farm.investorProjections` is off until the Owner turns it on. The Owner reads every Projection in the Portal Preview meanwhile, and turning it on asks first.
 

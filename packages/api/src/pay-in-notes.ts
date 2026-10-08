@@ -54,7 +54,7 @@ const said = {
   /** The day it went, on the farm's own clock. */
   sentOn: farmDay,
   way: z.enum(PAY_IN_WAYS),
-  /** The transfer's reference, the cheque's number, the slip's, or the TrxID. */
+  /** The transfer's reference, the check's number, the slip's, or the TrxID. */
   reference: z.string().trim().min(1).max(PAY_IN_REFERENCE_MOST),
 };
 

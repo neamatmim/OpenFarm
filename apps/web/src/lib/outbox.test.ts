@@ -134,11 +134,11 @@ beforeEach(() => {
   keys = 0;
 });
 
-const milk = (litres: number) => ({
+const milk = (liters: number) => ({
   instanceId: "instance-1",
   stepId: "milk",
   animalTag: "D-0001",
-  evidence: [litres],
+  evidence: [liters],
 });
 
 describe("recording with no signal", () => {
@@ -572,9 +572,9 @@ describe("what a crash must not cost", () => {
 
   it("keeps trying through hours of no signal and a restarting farm, and never hands the work back for it", async () => {
     const outbox = outboxOn();
-    for (const [i, litres] of [11, 9, 7].entries()) {
+    for (const [i, liters] of [11, 9, 7].entries()) {
       // oxlint-disable-next-line no-await-in-loop
-      await outbox.add("step_completion", milk(litres), `weak-${i}`);
+      await outbox.add("step_completion", milk(liters), `weak-${i}`);
     }
     const failures = [
       new TypeError("Failed to fetch"),
@@ -636,7 +636,7 @@ describe("what a crash must not cost", () => {
     await outbox.add("step_completion", milk(11), "a");
     farm.refuses({
       code: "FORBIDDEN",
-      message: "This phone is no longer one of the farm's: enrol it again",
+      message: "This phone is no longer one of the farm's: enroll it again",
       data: { refusal: "phone_revoked" },
     });
 

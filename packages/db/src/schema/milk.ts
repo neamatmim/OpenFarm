@@ -34,11 +34,11 @@ export const milkingSession = pgTable(
       .references(() => pen.id),
     dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
     /** What the tank read; null until the closing Step is done. */
-    bulkLitres: numeric("bulk_litres", { precision: 10, scale: 2 }),
+    bulkLiters: numeric("bulk_liters", { precision: 10, scale: 2 }),
     /** The sum of the per-cow records destined for Bulk, at the moment the total was taken. */
-    sumBulkLitres: numeric("sum_bulk_litres", { precision: 10, scale: 2 }),
+    sumBulkLiters: numeric("sum_bulk_liters", { precision: 10, scale: 2 }),
     /** bulk − sum. Positive means the tank held more than the cows account for. */
-    differenceLitres: numeric("difference_litres", { precision: 10, scale: 2 }),
+    differenceLiters: numeric("difference_liters", { precision: 10, scale: 2 }),
     /** The farm's tolerance as it stood when the total was taken, so the flag stays
      *  explicable after the parameter is changed. */
     tolerancePercent: integer("tolerance_percent"),
@@ -52,7 +52,7 @@ export const milkingSession = pgTable(
   ]
 );
 
-/** The litres one cow gave in one Milking Session, and where they went. */
+/** The liters one cow gave in one Milking Session, and where they went. */
 export const milkRecord = pgTable(
   "milk_record",
   {
@@ -70,11 +70,11 @@ export const milkRecord = pgTable(
     completionId: text("completion_id")
       .notNull()
       .references(() => stepCompletion.id),
-    litres: numeric("litres", { precision: 6, scale: 2 }).notNull(),
+    liters: numeric("liters", { precision: 6, scale: 2 }).notNull(),
     destination: text("destination", { enum: MILK_DESTINATIONS }).notNull(),
     /** The Destination was taken out of the person's hands by a Withdrawal, rather than
      *  chosen — so milk poured away under a gate reads apart from milk poured away by
-     *  judgement. */
+     *  judgment. */
     forced: boolean("forced").notNull().default(false),
     /** She was under a milk Withdrawal when she was milked, as the gate judged it: the milk is withheld milk whether
      *  the phone sent it to Discard itself or the gate had to. What the production report shows apart. */
@@ -98,7 +98,7 @@ export const milkRecord = pgTable(
 );
 
 /**
- * Bulk milk handed over to a buyer: when, how many litres, to whom, the delivery note the buyer's collector
+ * Bulk milk handed over to a buyer: when, how many liters, to whom, the delivery note the buyer's collector
  * wrote, the price, and the fat and SNF if the processor measured them.
  *
  * The farm's milk-buyer record under the Safe Food Act (s.38) — the buyer's name and address come from
@@ -112,7 +112,7 @@ export const dispatch = pgTable(
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
     dispatchedAt: timestamp("dispatched_at", { withTimezone: true }).notNull(),
-    litres: numeric("litres", { precision: 10, scale: 2 }).notNull(),
+    liters: numeric("liters", { precision: 10, scale: 2 }).notNull(),
     buyerId: text("buyer_id")
       .notNull()
       .references(() => counterparty.id),
@@ -122,7 +122,7 @@ export const dispatch = pgTable(
     buyerAddress: text("buyer_address"),
     /** The collector's slip number, when the buyer gives one. A buyer at the gate may not. */
     deliveryNote: text("delivery_note"),
-    pricePerLitreMoney: numeric("price_per_litre_money", {
+    pricePerLiterMoney: numeric("price_per_liter_money", {
       precision: 8,
       scale: 2,
     }).notNull(),

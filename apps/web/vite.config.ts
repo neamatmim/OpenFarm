@@ -41,7 +41,7 @@ const refuseAnOldDatabase = (): Plugin => ({
 /**
  * A request the browser gave up on is not an error, in development as the RPC route already says it is not. Nitro's
  * dev middleware hands on whatever reading the request threw, and a browser that closes a request mid-body — a page
- * refreshing its list once the day is raised, cancelling the answer it no longer wants — makes Node throw `aborted`.
+ * refreshing its list once the day is raised, canceling the answer it no longer wants — makes Node throw `aborted`.
  * Vite then paints that over every open page as though the page had broken. Registered after Vite's own middleware
  * and before its error handler, so any other error still reaches it.
  */

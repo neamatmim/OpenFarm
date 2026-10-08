@@ -366,14 +366,14 @@ describe("a note while it waits", () => {
       noteId: sent.id,
       amountMoney: 50_000,
       sentOn: TODAY,
-      way: "cheque",
-      reference: "Cheque 004512",
+      way: "check",
+      reference: "Check 004512",
     });
 
     expect(await theirNote(them, sent.id)).toMatchObject({
       amountMoney: 50_000,
-      way: "cheque",
-      reference: "Cheque 004512",
+      way: "check",
+      reference: "Check 004512",
       state: "waiting",
       hasPhoto: false,
     });
@@ -389,7 +389,7 @@ describe("a note while it waits", () => {
     expect(owners).toHaveLength(1);
     expect(owners[0]?.params).toMatchObject({
       amountMoney: 50_000,
-      way: "cheque",
+      way: "check",
     });
   });
 

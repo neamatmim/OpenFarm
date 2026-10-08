@@ -5,7 +5,7 @@ import type { ReceivableTyped } from "./receivable";
 import { somethingPaid } from "./receivable";
 
 // What a Sale still needs before the farm will take it, in the order the sheet asks for it — so a Save pressed too
-// soon names the first thing missing and goes to its box, rather than standing grey with its reason out of sight.
+// soon names the first thing missing and goes to its box, rather than standing gray with its reason out of sight.
 
 /** What the sheet holds of a Sale, as far as whether it can be sent is concerned. */
 export interface SaleTyped {

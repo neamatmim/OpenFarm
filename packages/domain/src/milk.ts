@@ -6,17 +6,17 @@ export const MILK_DESTINATIONS = ["bulk", "calves", "discard"] as const;
 export type MilkDestination = (typeof MILK_DESTINATIONS)[number];
 
 const PERCENT = 100;
-/** Litres are kept to two decimals, and the column they live in keeps the same. One scale,
+/** Liters are kept to two decimals, and the column they live in keeps the same. One scale,
  *  used for both the arithmetic and the value written, so the two cannot drift apart. */
-export const LITRE_DECIMALS = 2;
-const LITRE_SCALE = 10 ** LITRE_DECIMALS;
+export const LITER_DECIMALS = 2;
+const LITER_SCALE = 10 ** LITER_DECIMALS;
 
 const toScale = (value: number): number =>
-  Math.round(value * LITRE_SCALE) / LITRE_SCALE;
+  Math.round(value * LITER_SCALE) / LITER_SCALE;
 
-/** Litres as the record keeps them — the one rounding, shared by the arithmetic here and by
+/** Liters as the record keeps them — the one rounding, shared by the arithmetic here and by
  *  the value written to the column, so the two cannot drift apart. */
-export const roundLitres = toScale;
+export const roundLiters = toScale;
 /** Percentages are reported to the same two decimals. */
 const roundPercent = toScale;
 
@@ -62,7 +62,7 @@ export const milkHeldAt = (
  * The Destination a Milk Record actually gets. A cow under Withdrawal goes to Discard
  * whatever the phone asked for — the phone evaluates the gate from its last sync and may be
  * stale, and this is one of the two mistakes the farm cannot afford. `forced` records that
- * the answer was taken out of the person's hands, so the litres can be told apart from milk
+ * the answer was taken out of the person's hands, so the liters can be told apart from milk
  * someone chose to pour away.
  */
 export const destinationFor = (
@@ -77,9 +77,9 @@ export const destinationFor = (
 
 export interface Reconciliation {
   /** What the per-cow records destined for Bulk add up to. */
-  sumBulkLitres: number;
+  sumBulkLiters: number;
   /** Tank minus cows. Positive means the tank held more than the cows account for. */
-  differenceLitres: number;
+  differenceLiters: number;
   /** The difference as a percentage of what the cows account for. */
   differencePercent: number;
   flagged: boolean;
@@ -91,24 +91,24 @@ export interface Reconciliation {
  * and all three are worth the same day's attention. Exactly at the tolerance is not flagged.
  */
 export const reconcile = (
-  bulkLitres: number,
-  sumBulkLitres: number,
+  bulkLiters: number,
+  sumBulkLiters: number,
   tolerancePercent: number
 ): Reconciliation => {
-  const differenceLitres = roundLitres(bulkLitres - sumBulkLitres);
+  const differenceLiters = roundLiters(bulkLiters - sumBulkLiters);
   // With nothing recorded for the tank there is no percentage to take: milk in it at all is
   // entirely unaccounted for, and none at all is nothing to flag.
   let differencePercent = PERCENT;
-  if (sumBulkLitres > 0) {
+  if (sumBulkLiters > 0) {
     differencePercent = roundPercent(
-      (Math.abs(differenceLitres) / sumBulkLitres) * PERCENT
+      (Math.abs(differenceLiters) / sumBulkLiters) * PERCENT
     );
-  } else if (differenceLitres === 0) {
+  } else if (differenceLiters === 0) {
     differencePercent = 0;
   }
   return {
-    sumBulkLitres: roundLitres(sumBulkLitres),
-    differenceLitres,
+    sumBulkLiters: roundLiters(sumBulkLiters),
+    differenceLiters,
     differencePercent,
     flagged: differencePercent > tolerancePercent,
   };
@@ -154,20 +154,20 @@ export const lactationView = (
 });
 
 /**
- * What a set of Milk Records sent to one Destination, in the litres the record keeps.
+ * What a set of Milk Records sent to one Destination, in the liters the record keeps.
  *
  * Summed here rather than at each screen, so the Owner's tile and the Manager's report
  * cannot disagree about what reached the tank — and so "to Bulk" means the same thing
  * everywhere it is asked.
  */
-export const litresTo = (
+export const litersTo = (
   destination: MilkDestination,
-  records: readonly { litres: string | number; destination: string }[]
+  records: readonly { liters: string | number; destination: string }[]
 ): number =>
-  roundLitres(
+  roundLiters(
     records
       .filter((record) => record.destination === destination)
-      .reduce((total, record) => total + Number(record.litres), 0)
+      .reduce((total, record) => total + Number(record.liters), 0)
   );
 
 /** The days a cow's usual milk is read over, before the days her drop is read over. A week of her own. */
@@ -175,15 +175,15 @@ export const MILK_USUAL_DAYS = 7;
 
 /** A cow giving less than her own usual, as the list names her: per milking, lately and usually. */
 export interface MilkDrop {
-  /** Litres per recorded milking in the last few days. */
+  /** Liters per recorded milking in the last few days. */
   lately: number;
-  /** Litres per recorded milking over the week before. */
+  /** Liters per recorded milking over the week before. */
   usually: number;
   /** How far under her usual, as a whole percent. */
   dropPercent: number;
 }
 
-/** The mean of some litres. */
+/** The mean of some liters. */
 const mean = (values: readonly number[]): number => {
   let sum = 0;
   for (const value of values) {
@@ -193,7 +193,7 @@ const mean = (values: readonly number[]): number => {
 };
 
 /**
- * Whether a cow is giving well under her own recent milk: her litres per recorded milking over the last few farm days
+ * Whether a cow is giving well under her own recent milk: her liters per recorded milking over the last few farm days
  * before today, every destination — milk thrown away under a Withdrawal is still what she gave — against the week of
  * farm days before those. By farm day, so a morning milking is the day it is milked on whatever the clock says. Per
  * milking, so a milking nobody recorded is not a milking of nothing. A convention, not a measured line
@@ -202,7 +202,7 @@ const mean = (values: readonly number[]): number => {
  * does. Today is left out: it is not over.
  */
 export const milkDropOf = (
-  records: readonly { at: Date; litres: number }[],
+  records: readonly { at: Date; liters: number }[],
   now: Date,
   farm: { milkDropPercent: number; milkDropDays: number }
 ): MilkDrop | null => {
@@ -212,12 +212,12 @@ export const milkDropOf = (
   for (const one of records) {
     const back = farmDaysApart(farmDayOf(one.at), today);
     if (back >= 1 && back <= farm.milkDropDays) {
-      recent.push(one.litres);
+      recent.push(one.liters);
     } else if (
       back > farm.milkDropDays &&
       back <= farm.milkDropDays + MILK_USUAL_DAYS
     ) {
-      usual.push(one.litres);
+      usual.push(one.liters);
     }
   }
   if (recent.length === 0 || usual.length === 0) {
@@ -281,11 +281,11 @@ export interface MilkAccount {
  * The week's milk: what the cows sent to Bulk, against what Dispatches took out of the gate, allowing for what was in
  * the tank when the week began and is in it now — an evening's milk collected the next morning is in the tank one day
  * and out of the gate the next. Whatever is left is milk nobody can account for. Pure: the caller hands it the Sessions'
- * to-Bulk litres and the Dispatches from a little before the week, so the tank at its start can be read.
+ * to-Bulk liters and the Dispatches from a little before the week, so the tank at its start can be read.
  */
 export const milkAccountOf = (
   sessions: readonly { at: Date; toBulk: number }[],
-  dispatches: readonly { at: Date; litres: number }[],
+  dispatches: readonly { at: Date; liters: number }[],
   weekFrom: Date,
   now: Date
 ): MilkAccount => {
@@ -318,7 +318,7 @@ export const milkAccountOf = (
   let dispatched = 0;
   for (const one of dispatches) {
     if (one.at >= weekFrom && one.at < now) {
-      dispatched += one.litres;
+      dispatched += one.liters;
     }
   }
   const lastOut = lastDispatchBefore(now);
@@ -329,11 +329,11 @@ export const milkAccountOf = (
   const notAccounted = carriedIn + toBulk - dispatched - stillInTank;
   const wentIn = carriedIn + toBulk;
   return {
-    carriedIn: roundLitres(carriedIn),
-    toBulk: roundLitres(toBulk),
-    dispatched: roundLitres(dispatched),
-    stillInTank: roundLitres(stillInTank),
-    notAccounted: roundLitres(notAccounted),
+    carriedIn: roundLiters(carriedIn),
+    toBulk: roundLiters(toBulk),
+    dispatched: roundLiters(dispatched),
+    stillInTank: roundLiters(stillInTank),
+    notAccounted: roundLiters(notAccounted),
     // To the two decimals the farm keeps a percentage to: a whole percent rounds 3.4% back onto a 3% line, and the
     // milk past it is never told.
     notAccountedPercent:
@@ -341,7 +341,7 @@ export const milkAccountOf = (
   };
 };
 
-/** To a tenth of a litre, as the farm says milk. */
+/** To a tenth of a liter, as the farm says milk. */
 const round1 = (value: number) => Math.round(value * 10) / 10;
 
 /** How many of her latest farm days the week's figure reads: what she is giving now, against the Lactation's mean. */
@@ -349,14 +349,14 @@ const LATELY_DAYS = 7;
 
 /** One cow's current Lactation, from what she gave: in all, a day on average, at her best day, and lately. */
 export interface LactationSummary {
-  litres: number;
+  liters: number;
   /** Farm days she gave milk on. */
   daysMilked: number;
-  /** Litres a day over the days she gave milk on. */
+  /** Liters a day over the days she gave milk on. */
   perDay: number | null;
   /** Her best farm day: what she gave on it, and when. */
-  peak: { day: string; litres: number } | null;
-  /** Litres a day over her latest week of milkings. */
+  peak: { day: string; liters: number } | null;
+  /** Liters a day over her latest week of milkings. */
   latelyPerDay: number | null;
 }
 
@@ -366,15 +366,15 @@ export interface LactationSummary {
  * last week is not read against days nobody milked her here.
  */
 export const lactationSummary = (
-  records: readonly { litres: string | number; recordedAt: Date }[]
+  records: readonly { liters: string | number; recordedAt: Date }[]
 ): LactationSummary => {
   const byDay = new Map<string, number>();
   for (const record of records) {
     const day = farmDayOf(record.recordedAt);
-    byDay.set(day, (byDay.get(day) ?? 0) + Number(record.litres));
+    byDay.set(day, (byDay.get(day) ?? 0) + Number(record.liters));
   }
   const days = [...byDay].toSorted(([a], [b]) => a.localeCompare(b));
-  const litres = days.reduce((sum, [, given]) => sum + given, 0);
+  const liters = days.reduce((sum, [, given]) => sum + given, 0);
   let peak: [string, number] | null = null;
   for (const one of days) {
     if (peak === null || one[1] > peak[1]) {
@@ -383,10 +383,10 @@ export const lactationSummary = (
   }
   const lately = days.slice(-LATELY_DAYS);
   return {
-    litres: round1(litres),
+    liters: round1(liters),
     daysMilked: days.length,
-    perDay: days.length === 0 ? null : round1(litres / days.length),
-    peak: peak ? { day: peak[0], litres: round1(peak[1]) } : null,
+    perDay: days.length === 0 ? null : round1(liters / days.length),
+    peak: peak ? { day: peak[0], liters: round1(peak[1]) } : null,
     latelyPerDay:
       lately.length === 0
         ? null
@@ -397,28 +397,28 @@ export const lactationSummary = (
 };
 
 /**
- * Litres to Bulk for each cow milked, a day: a stretch's Bulk litres from the Dairy side over the cow-days they came
+ * Liters to Bulk for each cow milked, a day: a stretch's Bulk liters from the Dairy side over the cow-days they came
  * from — each cow on each farm day she sent any. What the herd gives a cow, apart from how many cows it has; the tank's
  * total alone rises with every heifer that calves.
  */
-export const litresPerCowMilked = (
+export const litersPerCowMilked = (
   shares: readonly {
     animalId: string;
     side: string;
     at: Date;
-    litres: number;
+    liters: number;
   }[],
   { from, until }: { from: Date; until: Date }
 ): number | null => {
   const cowDays = new Set<string>();
-  let litres = 0;
+  let liters = 0;
   for (const share of shares) {
     if (share.side === "dairy" && share.at >= from && share.at < until) {
       cowDays.add(`${share.animalId}:${farmDayOf(share.at)}`);
-      litres += share.litres;
+      liters += share.liters;
     }
   }
   return cowDays.size === 0
     ? null
-    : Math.round((litres / cowDays.size) * 10) / 10;
+    : Math.round((liters / cowDays.size) * 10) / 10;
 };

@@ -5,7 +5,7 @@
 /** How the money went: by bank, or by Mobile Money sent into the Venture Account, which lands there as a bank credit. */
 export const PAY_IN_WAYS = [
   "bank_transfer",
-  "cheque",
+  "check",
   "deposit_slip",
   "mobile_money",
 ] as const;

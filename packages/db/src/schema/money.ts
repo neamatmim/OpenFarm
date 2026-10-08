@@ -291,7 +291,7 @@ export const moneyEvent = pgTable(
     //
     // The Purse is deliberately not in here. Postgres counts NULLs as distinct, and the Farm's purse is
     // NULL, so adding it would stop the Farm's own wages colliding at all — the one thing this index is
-    // for. A wage is the Farm's anyway: the Farm provides the labour, which is the whole of what it
+    // for. A wage is the Farm's anyway: the Farm provides the labor, which is the whole of what it
     // brings to a Venture.
     uniqueIndex("money_event_wage_uidx").on(
       table.farmId,
@@ -320,7 +320,7 @@ export const handover = pgTable(
     toUserId: text("to_user_id").references(() => user.id),
     amountMoney: numericMoney("amount_money").notNull(),
     handedAt: timestamp("handed_at", { withTimezone: true }).notNull(),
-    /** The deposit slip or the cheque, where the bank is one end. */
+    /** The deposit slip or the check, where the bank is one end. */
     reference: text("reference"),
     note: text("note"),
     /** The Farm's own Buying Trip this cash was for: its **Buying Float** handed out before the livestock market, or the cash

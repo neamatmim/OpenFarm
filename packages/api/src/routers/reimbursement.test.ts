@@ -14,7 +14,7 @@ import { appRouter } from "./index";
 
 /**
  * The monthly Reimbursement: the Farm buys feed for the whole herd, and once a month what a Venture's
- * Animals ate of it moves from the Venture Account to the Farm's — itemised enough to read to an
+ * Animals ate of it moves from the Venture Account to the Farm's — itemized enough to read to an
  * Investor.
  */
 const suffix = `reimb-${Date.now()}`;

@@ -49,7 +49,7 @@ export interface NavItem {
   audience: Audience;
   /** How many wait there, in the reader's own digits, drawn on the phone's bar; nothing for none. */
   count?: string;
-  /** Whether any of them is new to the reader, which sets the count in the brand's colour. */
+  /** Whether any of them is new to the reader, which sets the count in the brand's color. */
   fresh?: boolean;
 }
 

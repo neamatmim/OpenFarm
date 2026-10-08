@@ -44,7 +44,7 @@ export const useCullList = () => {
   return useQuery({ ...orpc.cullList.list.queryOptions(), enabled: owner });
 };
 
-/** Each reason as it is drawn: its colour, its mark. */
+/** Each reason as it is drawn: its color, its mark. */
 const REASON_LOOK: Record<CullReason, { tone: Tone; icon: LucideIcon }> = {
   milk_short: { tone: "danger", icon: Milk },
   open_long: { tone: "warning", icon: CalendarX },
@@ -85,7 +85,7 @@ export const ReasonBadges = ({
 
 /**
  * Her milk against her keep over the days the farm reads a keep over: what the two came to, what that leaves over her
- * keep, and what a litre of hers costs to make — or why it is not weighed yet, or that she is dry.
+ * keep, and what a liter of hers costs to make — or why it is not weighed yet, or that she is dry.
  */
 const MilkLines = ({
   milk,
@@ -98,7 +98,7 @@ const MilkLines = ({
 }) => {
   const { t } = useLanguage();
   const asMoney = useMoney();
-  const perLitre = useMoneyRate();
+  const perLiter = useMoneyRate();
   const box = cn(
     "flex flex-col gap-0.5",
     align === "end" ? "items-end text-end" : "items-start"
@@ -135,11 +135,11 @@ const MilkLines = ({
         {t("cull.over", { over: asMoney(milk.overKeepMoney), days: milk.days })}
       </span>
       <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
-        {milk.costPerLitreMoney === null
+        {milk.costPerLiterMoney === null
           ? t("cull.noneToBulk")
           : t("cull.rate", {
-              litres: milk.litresPerDay,
-              cost: perLitre(milk.costPerLitreMoney),
+              liters: milk.litersPerDay,
+              cost: perLiter(milk.costPerLiterMoney),
             })}
       </span>
       {milk.whole ? null : (
@@ -207,7 +207,7 @@ const MilkCell = ({ row }: CullCell) => (
 const CalvingCell = ({ row }: CullCell) => <CalvingLines cow={row.original} />;
 
 const ReturnCell = ({ row }: CullCell) => (
-  <CullListReturn labelled={false} tagNumber={row.original.tagNumber} />
+  <CullListReturn labeled={false} tagNumber={row.original.tagNumber} />
 );
 
 const column = createListColumns<CullCow>();
@@ -258,7 +258,7 @@ const CullCard = ({ cow }: { cow: CullCow }) => (
       <span className="text-muted-foreground text-xs">{cow.penName}</span>
     </div>
     <ReasonBadges reasons={cow.reasons} />
-    <CullListReturn labelled tagNumber={cow.tagNumber} />
+    <CullListReturn labeled tagNumber={cow.tagNumber} />
     <MilkLines align="start" milk={cow.milk} state={cow.state} />
     <CalvingLines cow={cow} />
   </div>

@@ -21,7 +21,7 @@ export const paymentMethodInput = z.enum(PAYMENT_METHODS).default("cash");
 /** Which of the Farm's own mobile money numbers or bank accounts mobile money or bank money went into or came out of. */
 export const farmAccountIdInput = z.string().min(1).optional();
 
-/** Its transaction ID, or the cheque's or the slip's number. */
+/** Its transaction ID, or the check's or the slip's number. */
 export const referenceInput = z.string().trim().min(1).max(80).optional();
 
 /** Which Farm Account, and its transaction ID, as a Correction puts them right. */

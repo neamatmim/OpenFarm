@@ -43,20 +43,20 @@ const figureOf = (value: string | null) =>
   value === null ? null : Number(value);
 
 /**
- * What a Dispatch's Correction may change: the litres, the time, the buyer, the delivery note, the price, the fat or SNF, the
+ * What a Dispatch's Correction may change: the liters, the time, the buyer, the delivery note, the price, the fat or SNF, the
  * note, how it was paid, what the buyer paid there and then, and the day he promised to pay the rest by. A delivery note, a
  * note, a fat, an SNF or a promise set to nothing is cleared: a figure written against the wrong lorry is put right by
  * taking it away.
  */
 export const dispatchCorrectionInput = correctionInput({
   dispatchedAt: changeOf(dispatchFields.dispatchedAt, z.coerce.date()),
-  litres: changeOf(dispatchFields.litres, z.number()),
+  liters: changeOf(dispatchFields.liters, z.number()),
   buyer: changeOf(buyerInput, z.string()),
   deliveryNote: changeOf(
     dispatchFields.deliveryNote.nullable(),
     z.string().nullable()
   ),
-  pricePerLitreMoney: changeOf(dispatchFields.pricePerLitreMoney, z.number()),
+  pricePerLiterMoney: changeOf(dispatchFields.pricePerLiterMoney, z.number()),
   fatPercent: changeOf(
     dispatchFields.fatPercent.nullable(),
     z.number().nullable()
@@ -113,7 +113,7 @@ const putTheDispatchRight = async (
   if (to.dispatchedAt !== undefined) {
     assertNotLater(to.dispatchedAt, now);
   }
-  // What he paid stands unless the Correction says otherwise: litres or a price mistyped is not cash handed back.
+  // What he paid stands unless the Correction says otherwise: liters or a price mistyped is not cash handed back.
   const receivable = receivableOrRefuse(
     receivablePutRight({
       before: {
@@ -122,8 +122,8 @@ const putTheDispatchRight = async (
         promisedBy: row.promisedBy,
       },
       worthMoney: worthOfDispatch({
-        litres: to.litres ?? row.litres,
-        pricePerLitreMoney: to.pricePerLitreMoney ?? row.pricePerLitreMoney,
+        liters: to.liters ?? row.liters,
+        pricePerLiterMoney: to.pricePerLiterMoney ?? row.pricePerLiterMoney,
       }),
       paidNowMoney: to.paidNowMoney,
       promisedBy: to.promisedBy,
@@ -159,11 +159,11 @@ const putTheDispatchRight = async (
   const putRight = {
     ...(receivableMoved ? receivable : {}),
     ...(to.dispatchedAt === undefined ? {} : { dispatchedAt: to.dispatchedAt }),
-    ...(to.litres === undefined ? {} : { litres: to.litres.toFixed(2) }),
+    ...(to.liters === undefined ? {} : { liters: to.liters.toFixed(2) }),
     ...(to.deliveryNote === undefined ? {} : { deliveryNote: to.deliveryNote }),
-    ...(to.pricePerLitreMoney === undefined
+    ...(to.pricePerLiterMoney === undefined
       ? {}
-      : { pricePerLitreMoney: to.pricePerLitreMoney.toFixed(2) }),
+      : { pricePerLiterMoney: to.pricePerLiterMoney.toFixed(2) }),
     ...(to.fatPercent === undefined
       ? {}
       : { fatPercent: twoPlaces(to.fatPercent) }),
@@ -205,10 +205,10 @@ export const dispatchCorrection: CorrectionKind<
   shown: async (tx, row) => ({
     farmAccount: await farmAccountShownOf(tx, row.farmId, "dispatch", row.id),
     dispatchedAt: row.dispatchedAt,
-    litres: Number(row.litres),
+    liters: Number(row.liters),
     buyer: row.buyerName,
     deliveryNote: row.deliveryNote,
-    pricePerLitreMoney: Number(row.pricePerLitreMoney),
+    pricePerLiterMoney: Number(row.pricePerLiterMoney),
     fatPercent: figureOf(row.fatPercent),
     snfPercent: figureOf(row.snfPercent),
     note: row.note,

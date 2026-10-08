@@ -110,9 +110,9 @@ describe("a Venture", () => {
     });
     const mine = await owner.client.ventures.list();
     expect(mine.find((one) => one.id === called.id)).toMatchObject({
-      state: "cancelled",
+      state: "canceled",
     });
-    // Nothing moves out of Cancelled.
+    // Nothing moves out of Canceled.
     await expect(
       owner.client.ventures.startBuying({ id: called.id })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });

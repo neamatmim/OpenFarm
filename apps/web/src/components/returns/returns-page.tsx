@@ -291,7 +291,7 @@ const oldestFirst = (
 /**
  * Each finished Season's and settled Venture's rate a year as a bar, oldest first, so whether the farm is doing
  * better reads down the page: one hue for a gain and the danger hue for a loss, the figure beside it, so the sign is
- * said in words as well as colour. One with no rate a year — out fewer days than the floor, or not finished — is not
+ * said in words as well as color. One with no rate a year — out fewer days than the floor, or not finished — is not
  * drawn.
  */
 export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {

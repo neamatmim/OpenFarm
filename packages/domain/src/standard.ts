@@ -63,7 +63,7 @@ export const rationLineOf = (
  *   trials formulate (12.5–14.5%; Joya et al. 2026 find tropical calves need more than NRC 1996).
  * - Mustard cake stays under 1–1.5 kg a day even for a 1000 kg bull (NDDB 2012); minerals 50 g a head for growing
  *   stock (NDDB), salt about 25–60 g.
- * - Feeds as analysed in the region: napier 17% dry matter and 10.5% protein, rice straw 92% and 4%, crushed maize
+ * - Feeds as analyzed in the region: napier 17% dry matter and 10.5% protein, rice straw 92% and 4%, crushed maize
  *   89% and 9.5%, wheat bran 89% and 15.5%, mustard cake 92% and 36%, pulse husk 89% and 16.7% (Feedipedia, NDDB
  *   2012, Siddque et al. 2015).
  *
@@ -310,7 +310,7 @@ export const STANDARD_DRUGS = {
     bn: "অক্সিক্লোজানাইড (কলিজা কৃমির ওষুধ)",
     en: "Oxyclozanide (liver fluke drench)",
   },
-  hs: { bn: "গলাফোলা রোগের টিকা", en: "Haemorrhagic septicaemia (HS) vaccine" },
+  hs: { bn: "গলাফোলা রোগের টিকা", en: "Hemorrhagic septicemia (HS) vaccine" },
   bq: { bn: "বাদলা রোগের টিকা", en: "Black quarter (BQ) vaccine" },
   anthrax: { bn: "তড়কা রোগের টিকা", en: "Anthrax vaccine" },
   // For the calf's roundworm, Toxocara vitulorum: 97% in trials, where piperazine cleared 42–57%
@@ -364,7 +364,7 @@ export const STANDARD_NOTIFIABLE_DISEASES = [
   },
   {
     bn: "গলাফোলা",
-    en: "Haemorrhagic septicaemia",
+    en: "Hemorrhagic septicemia",
     otherNames: [
       "গলা ফোলা",
       "গলাফোলা রোগ",
@@ -387,7 +387,7 @@ export const STANDARD_NOTIFIABLE_DISEASES = [
 
 /**
  * The breeds a Bangladeshi dairy and fattening farm meets: the local cattle and the four local breeds BLRI
- * recognises, and the imported breeds and their crosses. Spelled as the farm writes them — ক্রস, not সংকর. Every farm
+ * recognizes, and the imported breeds and their crosses. Spelled as the farm writes them — ক্রস, not সংকর. Every farm
  * is given these the first time it opens its list, and keeps any it already wrote under the same name.
  */
 export const STANDARD_BREEDS = {
@@ -414,7 +414,7 @@ export const STANDARD_BREED_KEYS = Object.keys(
   STANDARD_BREEDS
 ) as StandardBreedKey[];
 
-/** The standard breeds that are deshi, the country's own cattle: local cattle and the local breeds BLRI recognises. The
+/** The standard breeds that are deshi, the country's own cattle: local cattle and the local breeds BLRI recognizes. The
  *  crosses and the pure imported breeds are not — no trial found them gaining less than a cross on the same Ration
  *  (docs/research/expected-daily-gain.md §4). */
 export const DESHI_BREEDS: readonly StandardBreedKey[] = [

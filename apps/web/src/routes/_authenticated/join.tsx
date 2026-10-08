@@ -51,7 +51,7 @@ const JoinPage = () => {
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
-            // Always pressable, as every door's button is: an empty code is said rather than greyed out.
+            // Always pressable, as every door's button is: an empty code is said rather than grayed out.
             if (code.trim().length < 4) {
               setMissing(true);
               return;

@@ -134,8 +134,8 @@ describe("who hears a Notice", () => {
     expect(heard).not.toContain(world.staff);
   });
 
-  it("writes the judgement owed in the same act as the notice about it", async () => {
-    const id = `judgement-${suffix}`;
+  it("writes the judgment owed in the same act as the notice about it", async () => {
+    const id = `judgment-${suffix}`;
     const eventId = `event-${suffix}`;
     await db().transaction(async (tx) => {
       await tx.insert(auditEvent).values({
@@ -182,7 +182,7 @@ describe("who hears a Notice", () => {
     });
   });
 
-  it("tells the Manager again of a second judgement owed on the same record, the first notice dismissed", async () => {
+  it("tells the Manager again of a second judgment owed on the same record, the first notice dismissed", async () => {
     const id = `judged-twice-${suffix}`;
     const owe = (eventId: string, at: string) =>
       db().transaction(async (tx) => {
@@ -214,7 +214,7 @@ describe("who hears a Notice", () => {
       .update(alert)
       .set({ dismissedAt: new Date(AT) })
       .where(eq(alert.entityId, id));
-    // A day on, the same record is corrected again, and a second judgement is owed.
+    // A day on, the same record is corrected again, and a second judgment is owed.
     await owe(`second-${suffix}`, "2044-03-03T04:00:00.000Z");
     const showing = await db().query.alert.findMany({
       where: {

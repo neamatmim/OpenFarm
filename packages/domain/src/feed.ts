@@ -38,7 +38,7 @@ export const roundFeedKg = (value: number): number => {
   return value > 0 && grams === 0 ? 1 / SMALL_SCALE : grams;
 };
 
-/** How much of a Feed Item a feeding calls for, as it can be given: weighed for kilos and litres, counted for
+/** How much of a Feed Item a feeding calls for, as it can be given: weighed for kilos and liters, counted for
  *  bundles — and never rounded from something to nothing. */
 export const roundFeedTarget = (value: number, unit: FeedUnit): number => {
   if (unit !== "bundle") {
@@ -276,7 +276,7 @@ export interface FeedingLine {
  * How far under its Feeding Target a session came: the Feed Item that fell shortest.
  *
  * Item by item rather than in total, because a Feed Item is measured in its own unit — straw
- * in bales, molasses in litres — and a total that adds bales to litres is arithmetic that
+ * in bales, molasses in liters — and a total that adds bales to liters is arithmetic that
  * means nothing. It is also the answer the farm wants: a Pen that got its silage and none of
  * its concentrate has a problem, and a total would average it away.
  *

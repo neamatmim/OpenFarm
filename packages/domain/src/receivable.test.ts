@@ -78,7 +78,7 @@ describe("Receivable at the gate", () => {
   });
 
   it("works milk's worth to the poisha", () => {
-    // 45.5 litres at 68.3 comes to 3107.65; a float would carry it a hair off.
+    // 45.5 liters at 68.3 comes to 3107.65; a float would carry it a hair off.
     expect(
       atTheGate({
         worthMoney: 45.5 * 68.3,

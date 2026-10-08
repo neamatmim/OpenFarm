@@ -40,7 +40,7 @@ beforeAll(async () => {
   });
   pen = { id: made.id, tag: imported.imported[0]?.tagNumber ?? "" };
 
-  // Ten litres into the tank each morning from the 1st to the 9th, and a litre short of it out of the gate at eight.
+  // Ten liters into the tank each morning from the 1st to the 9th, and a liter short of it out of the gate at eight.
   for (let day = 1; day <= 9; day += 1) {
     const morning = `2065-02-0${day}`;
     // Day after day, as the farm lives them.
@@ -65,10 +65,10 @@ beforeAll(async () => {
     // oxlint-disable-next-line no-await-in-loop
     await atTheGate.client.milk.dispatch({
       dispatchedAt: new Date(`${morning}T02:00:00.000Z`),
-      litres: 9,
+      liters: 9,
       buyer: { name: `মিষ্টির দোকান ${suffix}` },
       deliveryNote: `CH-${day}`,
-      pricePerLitreMoney: 60,
+      pricePerLiterMoney: 60,
       fatPercent: 4,
       snfPercent: 8.5,
     });
@@ -90,8 +90,8 @@ describe("the week's milk", () => {
   it("sets what went into the tank against what left the gate and what is in it", async () => {
     const manager = await as("manager", NEXT_MORNING);
     const week = await manager.client.milk.account();
-    // The last seven farm days are the 4th to the 10th (UTC+6): six mornings milked, ten litres each, and six
-    // Dispatches of nine. The short litres of the 1st to the 3rd are before the week, and not in it.
+    // The last seven farm days are the 4th to the 10th (UTC+6): six mornings milked, ten liters each, and six
+    // Dispatches of nine. The short liters of the 1st to the 3rd are before the week, and not in it.
     expect(week).toMatchObject({
       carriedIn: 0,
       toBulk: 60,

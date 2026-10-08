@@ -8,7 +8,7 @@ const nothingToWatch = () => () => {
 /**
  * False while the page the server sent is being taken over, true from then on. What only the browser knows — who
  * is signed in, what this phone has kept — is drawn once this is true: drawn on the first pass, it makes the page
- * the server sent and the page the browser draws disagree, and React throws the whole page away, cancelling every
+ * the server sent and the page the browser draws disagree, and React throws the whole page away, canceling every
  * request it had started.
  */
 export const useInTheBrowser = (): boolean =>

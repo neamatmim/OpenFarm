@@ -32,7 +32,7 @@ import { accountSaid, bookingOf } from "../money-store";
 import { OWNER_ONLY, requireOnly, requireRole } from "../roles";
 import { lockTheFarm, ventureWindowOf } from "../venture-store";
 
-/** Enough that the Manager recognises the man; not so many that a shed phone fetches a ledger. */
+/** Enough that the Manager recognizes the man; not so many that a shed phone fetches a ledger. */
 const SELLERS_SHOWN = 100;
 
 /** Kilogrammes, to the hundred grammes: what a crush scale reads. */
@@ -71,7 +71,7 @@ const recordInput = z
     farmAccountId: farmAccountIdInput,
     /** Whose hand paid the cash, where it was not the writer's: the Owner writing up the Manager's lorry. */
     heldBy: z.string().optional(),
-    /** A Venture's bull with no outing is paid from its account by bank: the transfer or cheque, and what it is
+    /** A Venture's bull with no outing is paid from its account by bank: the transfer or check, and what it is
      *  numbered. */
     reference: z.string().trim().min(1).max(120).optional(),
     /** The day the bank moved it; left out, the day she came. */

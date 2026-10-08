@@ -52,7 +52,7 @@ interface StockRow extends StockLine {
   actions: StockActions;
 }
 
-/** A Feed Item's standing, as a word with its colour. */
+/** A Feed Item's standing, as a word with its color. */
 const Standing = ({ line }: { line: StockLine }) => {
   const { t } = useLanguage();
   const standing = standingOf(line);

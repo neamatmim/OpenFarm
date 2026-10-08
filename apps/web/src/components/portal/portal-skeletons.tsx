@@ -2,8 +2,8 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
 
 /**
- * What each portal page looks like before the farm has answered: its own layout in grey, so the page does not jump
- * when the figures arrive and the reader can see what is coming rather than one grey block.
+ * What each portal page looks like before the farm has answered: its own layout in gray, so the page does not jump
+ * when the figures arrive and the reader can see what is coming rather than one gray block.
  */
 
 /** A card with a heading and a few lines, as a Section draws one. */

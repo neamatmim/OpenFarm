@@ -52,7 +52,7 @@ import type { RefusalWay } from "@/lib/open-form";
 import { holdOpenForm } from "@/lib/open-form";
 
 /**
- * The pieces every working page is built from, so a Manager who has learnt one page has learnt them all: the figures a
+ * The pieces every working page is built from, so a Manager who has learned one page has learned them all: the figures a
  * page is judged by, tabs by what somebody came to do, a bar of filters over a list, a menu at the end of a row, and the
  * sheet or dialog a form is written in.
  */
@@ -472,14 +472,14 @@ export interface RowAction {
   label: string;
   icon?: LucideIcon;
   handleSelect: () => void;
-  /** Drawn in the danger colour, after a line: an act that takes something away. */
+  /** Drawn in the danger color, after a line: an act that takes something away. */
   destructive?: boolean;
   disabled?: boolean;
-  /** Why a dim act is dim, said under it: a greyed-out line with no reason reads as broken. */
+  /** Why a dim act is dim, said under it: a grayed-out line with no reason reads as broken. */
   hint?: string;
 }
 
-/** One act in a row's menu, with its icon; an act that takes something away in the danger colour. */
+/** One act in a row's menu, with its icon; an act that takes something away in the danger color. */
 const RowActionItem = ({ action }: { action: RowAction }) => {
   const Icon = action.icon;
   const { handleSelect } = action;
@@ -685,7 +685,7 @@ const firstWrong = (form: HTMLFormElement | null) =>
  *
  * - **A refusal is said at its top**, where the person is, not in a toast beside it (GOV.UK: errors stay with what
  *   they are about); `useRefused` finds the open form through `lib/open-form.ts`.
- * - **Its act is never grey for want of something.** Pressed too soon it says what is missing — the form's own
+ * - **Its act is never gray for want of something.** Pressed too soon it says what is missing — the form's own
  *   words where it gives them, the kit's otherwise — and goes to the field, or to the first one its checks find wrong.
  * - **Typed work is not closed on unasked.** Closed with changes in it, by Cancel, Escape, the cross or a tap
  *   beside it, it asks first — "close without saving?", since some forms keep what was typed for next time and some
@@ -826,7 +826,7 @@ const useFormKeeping = ({
 
 /**
  * A form that is a piece of work of its own — feed in, a sale, milk handed over — in a sheet beside the page, so the
- * page it came from stays in sight. A title and a line of what it does above; the fields, labelled, in a body that
+ * page it came from stays in sight. A title and a line of what it does above; the fields, labeled, in a body that
  * scrolls; cancel and the act itself pinned at the foot.
  *
  * `wide` is for a record with more to it than a handful of fields — a person, written down in sections — where two
@@ -1031,7 +1031,7 @@ export const FormSection = ({
 );
 
 /**
- * A labelled field: its label, the control, and a line of help or of what is wrong beneath. The help and the error
+ * A labeled field: its label, the control, and a line of help or of what is wrong beneath. The help and the error
  * are tied to the control with the field's `id` (`aria-describedby`, and `aria-invalid` with an error), so a screen
  * reader says them with it (WCAG 1.3.1, 3.3.1).
  */

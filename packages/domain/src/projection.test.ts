@@ -9,7 +9,7 @@ describe("a Projection", () => {
     // herd fetches 13.5 lakh and makes 1.5 lakh; at ৳550 it fetches 16.5 lakh and makes 4.5 lakh.
     const projected = projectedSettlement({
       kgAtSale: 3000,
-      realisedMoney: 0,
+      realizedMoney: 0,
       chargedMoney: 1_200_000,
       investorsPercent: 60,
       units: 20,
@@ -32,7 +32,7 @@ describe("a Projection", () => {
   it("is the Settlement's own split of the profit it comes to, not a sum of its own", () => {
     const projected = projectedSettlement({
       kgAtSale: 2999.7,
-      realisedMoney: 12_345,
+      realizedMoney: 12_345,
       chargedMoney: 1_200_000,
       investorsPercent: 55,
       units: 17,
@@ -54,7 +54,7 @@ describe("a Projection", () => {
     // Half a lakh from animals already on a buyer's lorry comes in at both ends, whatever the price to come.
     const projected = projectedSettlement({
       kgAtSale: 1000,
-      realisedMoney: 50_000,
+      realizedMoney: 50_000,
       chargedMoney: 400_000,
       investorsPercent: 60,
       units: 10,
@@ -70,7 +70,7 @@ describe("a Projection", () => {
     // Investors' sixty per cent comes off their capital at ৳4,500 a Unit.
     const projected = projectedSettlement({
       kgAtSale: 3000,
-      realisedMoney: 0,
+      realizedMoney: 0,
       chargedMoney: 1_200_000,
       investorsPercent: 60,
       units: 20,
@@ -88,7 +88,7 @@ describe("a Projection that allows for deaths", () => {
     // same twelve lakh charged — a profit of ৳82,500. The high end is every animal living: 3,000 kilos at ৳550.
     const projected = projectedSettlement({
       kgAtSale: 3000,
-      realisedMoney: 0,
+      realizedMoney: 0,
       chargedMoney: 1_200_000,
       investorsPercent: 60,
       units: 20,
@@ -112,7 +112,7 @@ describe("a Projection that allows for deaths", () => {
     // Half a lakh already fetched; ten per cent of the 1,000 kilos still to sell does not live: 900 at ৳400.
     const projected = projectedSettlement({
       kgAtSale: 1000,
-      realisedMoney: 50_000,
+      realizedMoney: 50_000,
       chargedMoney: 400_000,
       investorsPercent: 60,
       units: 10,
