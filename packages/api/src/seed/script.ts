@@ -62,7 +62,11 @@ const keepTheStore = ({ farm, days, on }: Script) => {
       });
     }
   });
-  on(start, "08:00", "opening stock", async (f) => {
+  // Before the first morning's Feedings, and it used to be after. A delivery written down on its own day comes into the
+  // store at the moment it was written down (`cameInAt`, 2026-10-06), so a store opened at 08:00 was empty, with no
+  // price, for the Feedings at seven — and that first morning's feed, unpriced for good, stopped the Venture's July
+  // from ever being repaid.
+  on(start, "05:45", "opening stock", async (f) => {
     const opening: [
       FeedKey,
       "purchase" | "harvest",

@@ -132,6 +132,24 @@ const INVESTORS = [
   },
 ] as const;
 
+/** A company that joins a Venture through its Managing Director (ADR 0020): written down with its own papers and its
+ *  Signatory, whose mobile it is reached on and who signs in to the portal for it. Names no Nominee. */
+const AN_ORGANISATION = {
+  kind: "organisation" as const,
+  name: "মেঘনা ডেইরি ট্রেডার্স লিমিটেড",
+  phone: "01833-445566",
+  address: "৪২ মতিঝিল বাণিজ্যিক এলাকা, ঢাকা",
+  bankAccount:
+    "মেঘনা ডেইরি ট্রেডার্স লিমিটেড\nসোনালী ব্যাংক · 0002 3344 5566\nমতিঝিল কর্পোরেট শাখা",
+  tradeLicence: "TRAD/DNCC/045219/2025",
+  rjscNumber: "C-177412/2021",
+  tin: "554433221100",
+  authority: "পরিচালনা পর্ষদের সিদ্ধান্ত, সভা নং ১৪",
+  signatoryName: "মোঃ রফিকুল ইসলাম",
+  signatoryNid: "1990 2611 487523",
+  signatoryRole: "ব্যবস্থাপনা পরিচালক",
+};
+
 /** The farm's own share of the profit, and so the Investors' — one split per Venture, frozen at signing. */
 const INVESTORS_PERCENT = 60;
 
@@ -745,7 +763,7 @@ export const openTheVentures = async (
  */
 const letIntoThePortal = async (
   f: Farm,
-  who: (typeof INVESTORS)[number]
+  who: { name: string; phone: string }
 ): Promise<string> => {
   const them = await f.db.query.investor.findFirst({
     where: { farmId: f.farmId, name: who.name, phone: who.phone },
@@ -1054,6 +1072,44 @@ export const runTheVentures = (
         routingNumber: "090264718",
       });
       nextId = next.id;
+    }
+  );
+
+  // A company joins it through its Managing Director: written down, signed for by him on its behalf, its Cattle money in
+  // by bank, and he let into the portal to read it — so an Organisation's page, papers and portal have one to show.
+  on(
+    addDays(today, -2),
+    "11:00",
+    "a company signs on the next Venture",
+    async (f) => {
+      const signedOn = addDays(today, -2);
+      const company = await f.as.owner.investors.record({
+        ...AN_ORGANISATION,
+        authorityOn: addDays(today, -12),
+      });
+      const agreement = await f.as.owner.ventures.agreements.sign({
+        ventureId: nextId,
+        investorId: company.id,
+        units: 4,
+        investorsPercent: INVESTORS_PERCENT,
+        arbitrator: ARBITRATOR,
+        stampValueMoney: 300,
+        stampedOn: signedOn,
+        stampSerial: `AA-${f.random.int(100_000, 999_999)}`,
+      });
+      await f.as.owner.ventures.agreements.keepPaper({
+        agreementId: agreement.id,
+        contentType: "image/jpeg",
+        data: A_STAMPED_PAPER,
+      });
+      await f.as.owner.ventures.takeCapital({
+        agreementId: agreement.id,
+        amountMoney: 4 * 50_000,
+        movedOn: signedOn,
+        paymentMethod: "bank",
+        reference: `BEFTN ${agreement.payInCode} TRF-${f.random.int(100_000, 999_999)}`,
+      });
+      await letIntoThePortal(f, AN_ORGANISATION);
     }
   );
 

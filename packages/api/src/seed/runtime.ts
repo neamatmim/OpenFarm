@@ -1,7 +1,9 @@
 import { auth } from "@OpenFarm/auth";
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
+import { eq } from "@OpenFarm/db/operators";
 import { session as sessionTable } from "@OpenFarm/db/schema/auth";
+import { invite } from "@OpenFarm/db/schema/farm";
 import { atFarmTime } from "@OpenFarm/domain";
 import type { RouterClient } from "@orpc/server";
 import { createRouterClient } from "@orpc/server";
@@ -75,14 +77,48 @@ export interface Account {
   session: Session;
 }
 
+/**
+ * Signs up while the invitation for this address reads as given now. Sign-up lets an invitation in only for a fortnight
+ * after its code was given, by the real clock (auth's hook); the seed gives its codes on the farm's own days, weeks
+ * behind the real one. So the invitation is dated now for the moment of signing up and its own days put back after,
+ * the rule left as it is and the farm's record as the seed wrote it.
+ */
+const signUpAsInvitedNow = async (
+  db: Database,
+  person: { name: string; email: string }
+) => {
+  const email = person.email.toLowerCase();
+  const asked = await db.query.invite.findFirst({
+    where: { email, acceptedAt: { isNull: true } },
+    columns: { id: true, codeIssuedAt: true, createdAt: true },
+  });
+  if (asked) {
+    const now = new Date();
+    await db
+      .update(invite)
+      .set({ codeIssuedAt: now, createdAt: now })
+      .where(eq(invite.id, asked.id));
+  }
+  try {
+    return await auth.api.signUpEmail({
+      body: { name: person.name, email: person.email, password: SEED_PASSWORD },
+    });
+  } finally {
+    if (asked) {
+      await db
+        .update(invite)
+        .set({ codeIssuedAt: asked.codeIssuedAt, createdAt: asked.createdAt })
+        .where(eq(invite.id, asked.id));
+    }
+  }
+};
+
 /** Opens an account the way the sign-up form does, and keeps the session it signs in with. */
 export const openAccount = async (
   db: Database,
   person: { role: string; name: string; email: string }
 ): Promise<Account> => {
-  const { user } = await auth.api.signUpEmail({
-    body: { name: person.name, email: person.email, password: SEED_PASSWORD },
-  });
+  const { user } = await signUpAsInvitedNow(db, person);
   const session = await db.query.session.findFirst({
     where: { userId: user.id },
   });
