@@ -14,8 +14,9 @@ import { useState } from "react";
 
 import type { PaperId } from "@/components/paper";
 import {
+  PaperDesk,
   PaperDialog,
-  PaperLanguageSwitch,
+  PaperToolbar,
 } from "@/components/ventures/paper-dialog";
 import { PaperDocumentView } from "@/components/ventures/paper-document";
 import { useLanguage } from "@/i18n/language-provider";
@@ -163,35 +164,22 @@ export const ProducedPaper = ({ produced }: { produced: Produced }) => {
   const [language, setLanguage] = useState<Language>(reads);
   const id = PAPER_ID[produced.kind];
   return (
-    <div className="flex flex-col gap-3">
-      <div className="no-print flex flex-wrap items-center justify-between gap-2">
-        <PaperLanguageSwitch language={language} onChange={setLanguage} />
-        <Button
-          onClick={() => {
-            const shown = document.querySelector<HTMLElement>(`#${id}`);
-            if (shown) {
-              void printAlone(shown);
-            }
-          }}
-          size="sm"
-          type="button"
-        >
-          <Printer aria-hidden data-icon="inline-start" />
-          {t("common.print")}
-        </Button>
-      </div>
-      <PaperDocumentView
-        document={produced.document}
-        id={id}
-        language={language}
-        photographs={produced.photos.map((one) => ({
-          alt: t("statements.photoOf", { tag: one.tagNumber }),
-          caption: one.tagNumber,
-          contentType: one.contentType,
-          data: one.data,
-          id: one.tagNumber,
-        }))}
-      />
+    <div className="flex flex-col gap-4">
+      <PaperToolbar language={language} onLanguage={setLanguage} printId={id} />
+      <PaperDesk>
+        <PaperDocumentView
+          document={produced.document}
+          id={id}
+          language={language}
+          photographs={produced.photos.map((one) => ({
+            alt: t("statements.photoOf", { tag: one.tagNumber }),
+            caption: one.tagNumber,
+            contentType: one.contentType,
+            data: one.data,
+            id: one.tagNumber,
+          }))}
+        />
+      </PaperDesk>
     </div>
   );
 };
