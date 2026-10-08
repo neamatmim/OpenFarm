@@ -943,7 +943,7 @@ export const enCore = {
     "Written down before Nominations were kept. It counts once they sign a মনোনয়নপত্র or an Agreement naming them.",
   "nominees.offerInApp": "Offer in the app",
   "nominees.offerInAppHint":
-    "Instead of printing it, you may offer it in the app: the Investor reads it in the portal and agrees with a code, and once you approve it, it is their list.",
+    "They read it in the portal and agree with a code; once you approve it, it is their list.",
   "nominees.offerMinor":
     "A Nominee is a minor: this মনোনয়নপত্র is signed on paper, with their Receiver.",
   "nominees.offerStanding":
@@ -991,7 +991,16 @@ export const enCore = {
   "nominees.new": "New মনোনয়নপত্র",
   "nominees.newTitle": "A new মনোনয়নপত্র for {name}",
   "nominees.newHint":
-    "Write down every Nominee they want, print the মনোনয়নপত্র, and have them sign it in front of you. Once recorded, it replaces the list in force for all their Agreements.",
+    "Write down every Nominee they want, then have them sign. It becomes the list in force for all their Agreements.",
+  "nominees.section.who": "Nominees",
+  "nominees.section.whoHint":
+    "Everyone they name, each with a share; the shares must add up to 100%.",
+  "nominees.section.how": "How they sign",
+  "nominees.section.onPaper": "Signed on paper",
+  "nominees.way.paper": "On paper, in front of you",
+  "nominees.way.paperHint":
+    "Print it and have them sign, then record the day and a photo of the paper.",
+  "nominees.way.app": "In the app, with a code",
   "nominees.add": "Add a Nominee",
   "nominees.remove": "Take this one off",
   "nominees.place": "Nominee {place}",
