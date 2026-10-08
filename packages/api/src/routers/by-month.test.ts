@@ -459,3 +459,107 @@ describe("the farm month by month", () => {
     expect(ventures[0]?.planned?.lowMoney).toBeDefined();
   });
 });
+
+describe("one month of the farm", () => {
+  it("is the Owner's alone", async () => {
+    const { client: manager } = await as("manager");
+    await expect(
+      manager.monthlyReport.month({ month: "2044-03" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("reads March beside February as the year's months say them, so far", async () => {
+    const { client: owner } = await as("owner");
+    const { months } = await owner.monthlyReport.get();
+
+    const one = await owner.monthlyReport.month({ month: "2044-03" });
+
+    expect(one.month).toBe("2044-03");
+    expect(one.before).toBe("2044-02");
+    expect(one.soFar).toBe(true);
+    const { money, dairy, fattening, overheads } = months.at(-1) ?? {};
+    expect(one.figures).toEqual({ money, dairy, fattening, overheads });
+    const february = months.at(-2);
+    expect(one.figuresBefore).toEqual({
+      money: february?.money,
+      dairy: february?.dairy,
+      fattening: february?.fattening,
+      overheads: february?.overheads,
+    });
+  });
+
+  it("says its money by Category and by Side as the accountant's summary of the same days", async () => {
+    const { client: owner } = await as("owner");
+    const { summary } = await owner.reports.accountantExport({
+      ...MARCH,
+      format: "paper",
+    });
+
+    const one = await owner.monthlyReport.month({ month: "2044-03" });
+
+    expect(one.moneyBy.category).toEqual(summary?.byCategory);
+    expect(one.moneyBy.side).toEqual(summary?.bySide);
+    expect(one.moneyBy.category.length).toBeGreaterThan(0);
+  });
+
+  it("names the months there are to read, back to the first taka, and the Ventures running in it", async () => {
+    const { client: owner } = await as("owner");
+
+    const one = await owner.monthlyReport.month({ month: "2044-03" });
+
+    expect(one.monthsKept.at(0)).toBe("2044-03");
+    expect(one.monthsKept.at(-1)).toBe("2044-03");
+    expect(one.ventures.map((venture) => venture.id)).toEqual([
+      plannedId,
+      fundedId,
+    ]);
+    // February: before either Venture was opened.
+    const before = await owner.monthlyReport.month({ month: "2044-02" });
+    expect(before.ventures).toEqual([]);
+  });
+
+  it("reads a month before the farm kept anything as nothing, not as a refusal", async () => {
+    const { client: owner } = await as("owner");
+
+    const one = await owner.monthlyReport.month({ month: "2043-01" });
+
+    expect(one.soFar).toBe(false);
+    expect(one.figures.money).toMatchObject({ inMoney: 0, outMoney: 0 });
+    expect(one.moneyBy.category).toEqual([]);
+  });
+
+  it("refuses a month still to come", async () => {
+    const { client: owner } = await as("owner");
+    await expect(
+      owner.monthlyReport.month({ month: "2044-04" })
+    ).rejects.toMatchObject({ data: { refusal: "month_not_begun" } });
+  });
+});
+
+describe("one month of the farm, worked by hand", () => {
+  it("says March's own money as worked by hand: the milk and the Farm's bull in, its bull and the spray out", async () => {
+    const { client: owner } = await as("owner");
+
+    const one = await owner.monthlyReport.month({ month: "2044-03" });
+
+    expect(one.figures.money).toMatchObject({
+      inMoney: 89_300,
+      outMoney: 56_000,
+      netMoney: 33_300,
+    });
+    expect(one.figures.dairy).toMatchObject({
+      milkSoldMoney: 9300,
+      litersSold: 150,
+      fetchedPerLiterMoney: 62,
+    });
+    expect(one.figures.fattening.sold).toBe(1);
+  });
+
+  it("sets January beside December of the year before", async () => {
+    const { client: owner } = await as("owner");
+
+    const one = await owner.monthlyReport.month({ month: "2044-01" });
+
+    expect(one.before).toBe("2043-12");
+  });
+});

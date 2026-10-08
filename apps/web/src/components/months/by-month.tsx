@@ -2,7 +2,7 @@ import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useSearch } from "@tanstack/react-router";
 import { Beef, Briefcase, Milk, Receipt, Scale } from "lucide-react";
 
 import {
@@ -264,11 +264,21 @@ interface MonthCell {
   row: { original: Month };
 }
 
+/** The month by name, leading to the month on its own: the table's row and the phone's card alike. */
 const MonthName = ({ month }: { month: Month }) => {
   const { t, language } = useLanguage();
+  // The financial year being read, carried to the month so going back finds it again.
+  const { year } = useSearch({ strict: false });
   return (
     <span className="flex flex-wrap items-center gap-2 font-medium">
-      {saidMonth(month.month, language)}
+      <Link
+        className="underline-offset-4 hover:underline"
+        params={{ month: month.month }}
+        search={year === undefined ? {} : { year }}
+        to="/monthly-report/$month"
+      >
+        {saidMonth(month.month, language)}
+      </Link>
       {month.soFar ? (
         <StatusBadge tone="info">{t("months.soFar")}</StatusBadge>
       ) : null}

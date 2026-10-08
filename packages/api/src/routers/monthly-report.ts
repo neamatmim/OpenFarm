@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { farmMonth } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { monthByMonth } from "../month-store";
+import { aMonth, monthByMonth } from "../month-store";
 import { OWNER_ONLY, requireOnly } from "../roles";
 
 /** The monthly report: how the farm did each month over the last year, or over a financial year it asks for. */
@@ -29,5 +29,17 @@ export const monthlyReportRouter = {
         context.clock.now(),
         input?.financialYear
       )
+    ),
+
+  /**
+   * One month of the farm (`aMonth`), named "YYYY-MM": its figures beside the month before's, its money by Category and
+   * by Side, the months there are to read and the Ventures that ran in it. A month still to come is refused. The
+   * Owner's alone, as the monthly report is.
+   */
+  month: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .input(z.object({ month: farmMonth }))
+    .handler(({ context, input }) =>
+      aMonth(context.db, context.farm, context.clock.now(), input.month)
     ),
 };

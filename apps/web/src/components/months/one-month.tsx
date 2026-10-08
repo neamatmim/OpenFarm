@@ -1,0 +1,303 @@
+import { formatNumber } from "@OpenFarm/i18n";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@OpenFarm/ui/components/table";
+import { cn } from "@OpenFarm/ui/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
+
+import { Nothing } from "@/components/list-cells";
+import { NativeSelect } from "@/components/page-kit";
+import { useLanguage } from "@/i18n/language-provider";
+import { usePerHeadPerDay, useMoney, useMoneyRate } from "@/lib/money";
+import { saidMonth } from "@/lib/months";
+import type { client } from "@/utils/orpc";
+import { orpc } from "@/utils/orpc";
+
+export type OneMonth = Awaited<ReturnType<typeof client.monthlyReport.month>>;
+type Figures = OneMonth["figures"];
+
+/** One month of the farm, the Owner's alone, beside the month before. */
+export const useOneMonth = (month: string, asked = true) =>
+  useQuery({
+    ...orpc.monthlyReport.month.queryOptions({ input: { month } }),
+    enabled: asked,
+  });
+
+/** One line of a part: what it is, and its figure this month and the month before — either may be nothing. */
+interface Line {
+  label: string;
+  now: ReactNode;
+  before: ReactNode;
+  /** A total, drawn heavier than the lines it adds. */
+  total?: boolean;
+}
+
+/** A figure in a column, lined up with the ones above it; the dash where there is none. */
+const Figure = ({ children }: { children: ReactNode }) =>
+  children === null ? (
+    <Nothing />
+  ) : (
+    <span className="tabular-nums">{children}</span>
+  );
+
+/** One part of the month as a table: its lines, the month and the month before side by side. */
+export const MonthPart = ({
+  lines,
+  month,
+  before,
+  firstHeading,
+}: {
+  lines: readonly Line[];
+  month: string;
+  before: string;
+  /** What the first column names: a line, a Category, a Side. */
+  firstHeading?: string;
+}) => {
+  const { t, language } = useLanguage();
+  // The same columns in every part, so the month's figures line up from one part to the next.
+  return (
+    <Table className="max-w-3xl table-fixed">
+      <colgroup>
+        <col />
+        <col className="w-28 sm:w-44" />
+        <col className="w-28 sm:w-44" />
+      </colgroup>
+      <TableHeader>
+        <TableRow>
+          <TableHead>{firstHeading ?? t("months.one.line")}</TableHead>
+          <TableHead className="text-right">
+            {saidMonth(month, language)}
+          </TableHead>
+          <TableHead className="text-muted-foreground text-right">
+            {saidMonth(before, language)}
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {lines.map((line) => (
+          <TableRow key={line.label}>
+            <TableCell className={cn(line.total && "font-medium")}>
+              {line.label}
+            </TableCell>
+            <TableCell
+              className={cn("text-right", line.total && "font-medium")}
+            >
+              <Figure>{line.now}</Figure>
+            </TableCell>
+            <TableCell className="text-muted-foreground text-right">
+              <Figure>{line.before}</Figure>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+};
+
+/** Each part's lines, worded and formatted for the reader, from the month's figures and the month before's. */
+export const useMonthLines = (now: Figures, before: Figures) => {
+  const { t, language } = useLanguage();
+  const asMoney = useMoney();
+  const perLiter = useMoneyRate();
+  const perHead = usePerHeadPerDay();
+  const liters = (amount: number | null | undefined) =>
+    amount === null || amount === undefined
+      ? null
+      : t("owner.liters", { liters: formatNumber(amount, language) });
+  const both = (
+    label: string,
+    say: (figures: Figures) => ReactNode,
+    total = false
+  ): Line => ({ label, now: say(now), before: say(before), total });
+  return {
+    money: [
+      both(t("money.totalIn"), (one) => asMoney(one.money.inMoney)),
+      both(t("money.totalOut"), (one) => asMoney(one.money.outMoney)),
+      both(t("money.net"), (one) => asMoney(one.money.netMoney), true),
+    ],
+    dairy: [
+      both(t("months.col.milk"), (one) => asMoney(one.dairy.milkSoldMoney)),
+      both(t("months.one.litersSold"), (one) => liters(one.dairy.litersSold)),
+      both(t("months.one.fetchedPerLiter"), (one) =>
+        one.dairy.fetchedPerLiterMoney === null
+          ? null
+          : perLiter(one.dairy.fetchedPerLiterMoney)
+      ),
+      both(t("months.col.dairyCost"), (one) => asMoney(one.dairy.chargedMoney)),
+      both(t("months.one.litersToBulk"), (one) =>
+        liters(one.dairy.litersToBulk)
+      ),
+      both(t("months.col.perCow"), (one) =>
+        liters(one.dairy.litersPerCowMilked)
+      ),
+      both(t("months.one.costPerLiter"), (one) =>
+        one.dairy.costPerLiterMoney === null
+          ? null
+          : perLiter(one.dairy.costPerLiterMoney)
+      ),
+    ],
+    fattening: [
+      both(t("months.col.fatteningCost"), (one) =>
+        asMoney(one.fattening.chargedMoney)
+      ),
+      both(t("months.one.sold"), (one) =>
+        formatNumber(one.fattening.sold, language)
+      ),
+      both(t("months.one.margins"), (one) =>
+        one.fattening.marginMoney === null
+          ? null
+          : asMoney(one.fattening.marginMoney)
+      ),
+    ],
+    overheads: [
+      both(t("months.one.overheadsAmount"), (one) =>
+        asMoney(one.overheads.amount)
+      ),
+      both(t("months.one.perHeadPerDay"), (one) =>
+        perHead(one.overheads.perHeadPerDayMoney)
+      ),
+    ],
+  };
+};
+
+/** The month's money in and out, by Category or by Side: this month only, as the accountant's summary adds it. */
+export const MoneyBy = ({
+  rows,
+  heading,
+}: {
+  rows: readonly {
+    key: string;
+    name: string;
+    inMoney: number;
+    outMoney: number;
+  }[];
+  heading: string;
+}) => {
+  const { t } = useLanguage();
+  const asMoney = useMoney();
+  if (rows.length === 0) {
+    return (
+      <p className="text-muted-foreground text-sm">{t("months.one.noMoney")}</p>
+    );
+  }
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>{heading}</TableHead>
+          <TableHead className="text-right">{t("money.totalIn")}</TableHead>
+          <TableHead className="text-right">{t("money.totalOut")}</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row) => (
+          <TableRow key={row.key}>
+            <TableCell>{row.name}</TableCell>
+            <TableCell className="text-right tabular-nums">
+              {row.inMoney === 0 ? <Nothing /> : asMoney(row.inMoney)}
+            </TableCell>
+            <TableCell className="text-right tabular-nums">
+              {row.outMoney === 0 ? <Nothing /> : asMoney(row.outMoney)}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+};
+
+/** The months there are to read, newest first, the one shown among them. */
+export const MonthPicker = ({
+  months,
+  chosen,
+  onChoose,
+}: {
+  months: readonly string[];
+  chosen: string;
+  onChoose: (month: string) => void;
+}) => {
+  const { t, language } = useLanguage();
+  const listed = months.includes(chosen);
+  return (
+    <NativeSelect
+      aria-label={t("months.one.whichMonth")}
+      className="sm:w-56"
+      onChange={(event) => onChoose(event.target.value)}
+      value={chosen}
+    >
+      {listed ? null : (
+        <option value={chosen}>{saidMonth(chosen, language)}</option>
+      )}
+      {months.map((month) => (
+        <option key={month} value={month}>
+          {saidMonth(month, language)}
+        </option>
+      ))}
+    </NativeSelect>
+  );
+};
+
+/** What the month's figures leave out, and the money still waiting, in the words the monthly report says them with. */
+export const LeftOut = ({ figures }: { figures: Figures }) => {
+  const { t } = useLanguage();
+  const unpricedKg = figures.dairy.unpricedKg + figures.fattening.unpricedKg;
+  const uncostedDoses =
+    figures.dairy.uncostedDoses + figures.fattening.uncostedDoses;
+  const said = [
+    figures.money.awaitingCount > 0 ? t("months.awaiting") : null,
+    unpricedKg > 0 ? t("costs.unpricedNote", { amount: unpricedKg }) : null,
+    uncostedDoses > 0
+      ? t("costs.uncostedNote", { amount: uncostedDoses })
+      : null,
+  ].filter((line) => line !== null);
+  if (said.length === 0) {
+    return null;
+  }
+  return (
+    <ul className="text-muted-foreground flex list-disc flex-col gap-1 ps-5 text-sm">
+      {said.map((line) => (
+        <li key={line}>{line}</li>
+      ))}
+    </ul>
+  );
+};
+
+/** That each Venture keeps its own accounts, said whether or not any ran; and the ones that ran in the month, a link
+ *  to each. */
+export const VenturesThatRan = ({
+  ventures,
+}: {
+  ventures: OneMonth["ventures"];
+}) => {
+  const { t } = useLanguage();
+  return (
+    <div className="flex flex-col gap-2 text-sm">
+      <p className="text-muted-foreground">
+        {t("months.one.ventures")}{" "}
+        {ventures.length === 0 ? t("months.one.noVentures") : null}
+      </p>
+      {ventures.length === 0 ? null : (
+        <ul className="flex flex-wrap gap-x-4 gap-y-1">
+          {ventures.map((venture) => (
+            <li key={venture.id}>
+              <Link
+                className="underline-offset-4 hover:underline"
+                params={{ ventureId: venture.id }}
+                to="/ventures/$ventureId"
+              >
+                {venture.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
