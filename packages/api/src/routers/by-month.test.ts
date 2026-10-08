@@ -1,4 +1,7 @@
-import { FakeClock } from "@OpenFarm/test-harness";
+import { eq } from "@OpenFarm/db/operators";
+import { farm } from "@OpenFarm/db/schema/farm";
+import { paperText } from "@OpenFarm/domain";
+import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -561,5 +564,88 @@ describe("one month of the farm, worked by hand", () => {
     const one = await owner.monthlyReport.month({ month: "2044-01" });
 
     expect(one.before).toBe("2043-12");
+  });
+});
+
+describe("one month of the farm on paper", () => {
+  it("lays March out on the letterhead in both languages, so far, to the day it was printed", async () => {
+    const { client: owner } = await as("owner");
+
+    const { document } = await owner.monthlyReport.monthPaper({
+      month: "2044-03",
+    });
+
+    const bn = paperText(document, "bn");
+    expect(bn).toContain("মাসিক প্রতিবেদন — মার্চ ২০৪৪");
+    expect(bn).toContain("২০ মার্চ, ২০৪৪ পর্যন্ত");
+    expect(bn).toContain("৮৯,৩০০");
+    expect(bn).toContain(`DLS/SAV/2044/${suffix}`);
+    const en = paperText(document, "en");
+    expect(en).toContain("Monthly report — March 2044");
+    expect(en).toContain("Money in · 89,300 taka · 0 taka");
+    expect(en).toContain("each has its own monthly report");
+  });
+
+  it("is an Export on the trail, naming the month, the days it covers and the format", async () => {
+    const { client: owner } = await as("owner");
+
+    await owner.monthlyReport.monthPaper({ month: "2044-03" });
+
+    const exports = await scratchDb().query.auditEvent.findMany({
+      where: { entity: "report", action: "export" },
+    });
+    const ours = exports
+      .map((one) => one.after as Record<string, unknown> | null)
+      .filter(
+        (after) =>
+          after?.report === "monthly_report" &&
+          after.registrationNumber === `DLS/SAV/2044/${suffix}`
+      );
+    expect(ours).toContainEqual(
+      expect.objectContaining({
+        format: "paper",
+        month: "2044-03",
+        from: "2044-03-01",
+        // Still going: to the day it was printed, not the month's end.
+        to: "2044-03-20",
+      })
+    );
+  });
+
+  it("is the Owner's alone", async () => {
+    const { client: manager } = await as("manager");
+    await expect(
+      manager.monthlyReport.monthPaper({ month: "2044-03" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("refuses a month still to come", async () => {
+    const { client: owner } = await as("owner");
+    await expect(
+      owner.monthlyReport.monthPaper({ month: "2044-04" })
+    ).rejects.toMatchObject({ data: { refusal: "month_not_begun" } });
+  });
+
+  it("is refused while the farm's DLS registration number is not written down, as every Export is", async () => {
+    const db = scratchDb();
+    const { id } = theFarm();
+    await db
+      .update(farm)
+      .set({ registrationNumber: null })
+      .where(eq(farm.id, id));
+    try {
+      // Signed in after, so the farm it reads is the one without the number.
+      const { client: owner } = await as("owner");
+      await expect(
+        owner.monthlyReport.monthPaper({ month: "2044-03" })
+      ).rejects.toMatchObject({
+        data: { refusal: "farm_identity_incomplete" },
+      });
+    } finally {
+      await db
+        .update(farm)
+        .set({ registrationNumber: `DLS/SAV/2044/${suffix}` })
+        .where(eq(farm.id, id));
+    }
   });
 });

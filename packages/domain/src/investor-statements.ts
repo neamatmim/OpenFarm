@@ -44,7 +44,7 @@ const INVESTOR: Said = { bn: "বিনিয়োগকারী", en: "Invest
 const VENTURE: Said = { bn: "ভেঞ্চার", en: "Venture" };
 
 /** What a paper was made on and by whom, in each language. */
-const producedSaid = (producedAt: Said, producedBy: string): Said => ({
+export const producedSaid = (producedAt: Said, producedBy: string): Said => ({
   bn: `${producedAt.bn} · ${producedBy}`,
   en: `${producedAt.en} · ${producedBy}`,
 });

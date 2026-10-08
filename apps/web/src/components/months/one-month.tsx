@@ -1,4 +1,6 @@
+import type { PaperDocument } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
 import {
   Table,
   TableBody,
@@ -8,15 +10,19 @@ import {
   TableRow,
 } from "@OpenFarm/ui/components/table";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { Printer } from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 
 import { Nothing } from "@/components/list-cells";
 import { NativeSelect } from "@/components/page-kit";
+import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { usePerHeadPerDay, useMoney, useMoneyRate } from "@/lib/money";
 import { saidMonth } from "@/lib/months";
+import { useRefused } from "@/lib/refused";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -299,5 +305,46 @@ export const VenturesThatRan = ({
         </ul>
       )}
     </div>
+  );
+};
+
+/** Why the farm would not lay the month out on paper, in the Owner's words. */
+const PAPER_REFUSALS = {
+  farm_identity_incomplete: "statements.farmNotRegistered",
+  month_not_begun: "months.one.notBegun",
+} as const;
+
+/**
+ * The month on paper, to print or save as a PDF, and to hand the accountant: laid out by the farm on its letterhead and
+ * recorded as an Export, then shown to read in Bangla or English before it is printed.
+ */
+export const PrintTheMonth = ({ month }: { month: string }) => {
+  const { t, language } = useLanguage();
+  const refused = useRefused(PAPER_REFUSALS);
+  const [paper, setPaper] = useState<PaperDocument | null>(null);
+  const laying = useMutation(
+    orpc.monthlyReport.monthPaper.mutationOptions({
+      onError: refused,
+      onSuccess: ({ document }) => setPaper(document),
+    })
+  );
+  return (
+    <>
+      <Button
+        disabled={laying.isPending}
+        onClick={() => laying.mutate({ month })}
+        type="button"
+        variant="outline"
+      >
+        <Printer aria-hidden data-icon="inline-start" />
+        {t("months.one.print")}
+      </Button>
+      <PaperDialog
+        onClose={() => setPaper(null)}
+        paper={paper}
+        title={t("months.one.title", { month: saidMonth(month, language) })}
+        wording={null}
+      />
+    </>
   );
 };

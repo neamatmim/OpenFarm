@@ -392,6 +392,7 @@ export const aMonth = async (
 
   return {
     month,
+
     /** The month before it, which it is set beside. */
     before,
     /** This month, still going: its figures are what it has come to so far. */

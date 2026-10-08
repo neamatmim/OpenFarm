@@ -1,9 +1,23 @@
+import {
+  farmDayOf,
+  monthOf,
+  monthlyReportPaper,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 import { z } from "zod";
 
+import { assertRegistered, recordExport } from "../export-store";
 import { farmMonth } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { aMonth, monthByMonth } from "../month-store";
-import { OWNER_ONLY, requireOnly } from "../roles";
+import { madeOn } from "../paper-values";
+import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
+
+/** A "YYYY-MM" month's last farm day. */
+const lastDayOf = (month: string) =>
+  farmDayOf(
+    new Date(monthOf(startOfFarmDay(`${month}-01`)).until.getTime() - 1)
+  );
 
 /** The monthly report: how the farm did each month over the last year, or over a financial year it asks for. */
 export const monthlyReportRouter = {
@@ -42,4 +56,41 @@ export const monthlyReportRouter = {
     .handler(({ context, input }) =>
       aMonth(context.db, context.farm, context.clock.now(), input.month)
     ),
+
+  /**
+   * One month of the farm laid out on paper (`monthlyReportPaper`), for the Owner to print or save, and to hand the
+   * accountant: on the Farm Identity letterhead, read in Bangla or English. An **Export**, with the month, its days and
+   * the format on the trail, and refused without the farm's DLS registration number, as every Export is. A month still
+   * to come is refused. The Owner's alone, from their own phone.
+   */
+  monthPaper: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ month: farmMonth }))
+    .handler(async ({ context, input }) => {
+      assertRegistered(context.farm, "the monthly report");
+      const now = context.clock.now();
+      const one = await aMonth(context.db, context.farm, now, input.month);
+      const document = monthlyReportPaper({
+        farm: context.farm,
+        month: one.month,
+        before: one.before,
+        soFarTo: one.soFar ? farmDayOf(now) : null,
+        figures: one.figures,
+        figuresBefore: one.figuresBefore,
+        moneyBy: one.moneyBy,
+        producedAt: madeOn(now),
+        producedBy: context.actor.name,
+      });
+      // The days it covers: the month, or — still going — to the day it was printed.
+      const days = {
+        from: `${one.month}-01`,
+        to: one.soFar ? farmDayOf(now) : lastDayOf(one.month),
+      };
+      await recordExport(context, "monthly_report", days, {
+        format: "paper",
+        month: one.month,
+      });
+      return { document };
+    }),
 };

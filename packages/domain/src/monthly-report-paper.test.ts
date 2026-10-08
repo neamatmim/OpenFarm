@@ -1,0 +1,184 @@
+import { describe, expect, it } from "vitest";
+
+import type { MonthlyReportFacts } from "./monthly-report-paper";
+import { monthlyReportPaper } from "./monthly-report-paper";
+import { paperText } from "./paper-text";
+
+const FIGURES = {
+  money: {
+    inMoney: 89_300,
+    outMoney: 56_000,
+    netMoney: 33_300,
+    awaitingCount: 2,
+  },
+  dairy: {
+    milkSoldMoney: 9300,
+    litersSold: 150,
+    fetchedPerLiterMoney: 62,
+    chargedMoney: 4100,
+    litersToBulk: 140,
+    litersPerCowMilked: 8.5,
+    costPerLiterMoney: 29.29,
+    unpricedKg: 120,
+    uncostedDoses: 3,
+  },
+  fattening: {
+    chargedMoney: 2800,
+    sold: 1,
+    marginMoney: 24_500,
+    unpricedKg: 0,
+    uncostedDoses: 0,
+  },
+  overheads: { amount: 6000, perHeadPerDayMoney: 12.5 },
+};
+
+const NOTHING = {
+  money: { inMoney: 0, outMoney: 0, netMoney: 0, awaitingCount: 0 },
+  dairy: {
+    milkSoldMoney: 0,
+    litersSold: 0,
+    fetchedPerLiterMoney: null,
+    chargedMoney: 0,
+    litersToBulk: 0,
+    litersPerCowMilked: null,
+    costPerLiterMoney: null,
+    unpricedKg: 0,
+    uncostedDoses: 0,
+  },
+  fattening: {
+    chargedMoney: 0,
+    sold: 0,
+    marginMoney: null,
+    unpricedKg: 0,
+    uncostedDoses: 0,
+  },
+  overheads: { amount: 0, perHeadPerDayMoney: null },
+};
+
+const FACTS: MonthlyReportFacts = {
+  farm: {
+    name: "সবুজ ছায়া ডেইরি",
+    address: "সাভার, ঢাকা",
+    phone: "+8801711000098",
+    registrationNumber: "DLS/SAV/2044/1",
+    registrationOffice: null,
+    registrationIssuedOn: null,
+    registrationExpiresOn: null,
+  },
+  month: "2044-03",
+  before: "2044-02",
+  soFarTo: "2044-03-20",
+  figures: FIGURES,
+  figuresBefore: NOTHING,
+  moneyBy: {
+    category: [
+      { nameBn: "দুধ বিক্রি", nameEn: "Milk sales", inMoney: 9300, outMoney: 0 },
+      { nameBn: "গরু কেনা", nameEn: null, inMoney: 0, outMoney: 50_000 },
+    ],
+    side: [
+      { side: "dairy", inMoney: 9300, outMoney: 0 },
+      { side: null, inMoney: 0, outMoney: 6000 },
+    ],
+  },
+
+  producedAt: { bn: "২০ মার্চ, ২০৪৪", en: "20 March 2044" },
+  producedBy: "মোঃ আব্দুল করিম",
+};
+
+describe("the Monthly Report of one month, on paper", () => {
+  it("is headed with the month, so far to the day, and says every part in Bangla, in Bangla numerals", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "bn");
+
+    expect(text).toContain("মাসিক প্রতিবেদন — মার্চ ২০৪৪");
+    expect(text).toContain("২০ মার্চ, ২০৪৪ পর্যন্ত");
+    for (const part of [
+      "খামারের টাকা",
+      "খাত অনুযায়ী",
+      "বিভাগ অনুযায়ী",
+      "দুগ্ধ",
+      "মোটাতাজাকরণ",
+      "পরিচালন খরচ",
+    ]) {
+      expect(text).toContain(part);
+    }
+    expect(text).toContain("৮৯,৩০০");
+    expect(text).toContain("ফেব্রুয়ারি ২০৪৪");
+    // The figures in the paper's own numerals; the letterhead's phone and registration print as they were written.
+    expect(text).not.toContain("89,300");
+    expect(text).toContain("১৫০ লিটার");
+  });
+
+  it("says the same in English, the category's English name where it has one", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("Monthly report — March 2044");
+    expect(text).toContain("so far, to 20 March 2044");
+    expect(text).toContain("Milk sales");
+    expect(text).toContain("গরু কেনা");
+    expect(text).toContain("Whole farm");
+    expect(text).toContain("89,300");
+    expect(text).toContain("150 liters");
+    for (const part of [
+      "The farm's money",
+      "By category, this month",
+      "By side, this month",
+      "Dairy",
+      "Fattening",
+      "Overheads",
+    ]) {
+      expect(text).toContain(part);
+    }
+  });
+
+  it("says what the month leaves out, the money still waiting, and that each Venture keeps its own accounts", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("120 kg");
+    expect(text).toContain("3 doses");
+    expect(text).toContain("2 entries of money");
+    expect(text).toContain("keeps its own accounts");
+    expect(text).toContain("each has its own monthly report");
+    const bn = paperText(monthlyReportPaper(FACTS), "bn");
+    expect(bn).toContain("১২০ কেজি");
+    expect(bn).toContain("৩টি ডোজ");
+    expect(bn).toContain("২টি টাকার হিসাব");
+  });
+
+  it("says a figure nobody made as nothing, never a price of nought", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    // February sold no milk and no animal: its price a liter and its Margins are a dash, not ৳0.
+    expect(text).toMatch(/Fetched a liter[^\n]*—/u);
+    expect(text).toMatch(/Their margins[^\n]*—/u);
+    expect(text).toMatch(/A head a day[^\n]*—/u);
+  });
+
+  it("says one liter as a liter, and a rate to the paisa", () => {
+    const text = paperText(
+      monthlyReportPaper({
+        ...FACTS,
+        figures: {
+          ...FIGURES,
+          dairy: {
+            ...FIGURES.dairy,
+            litersSold: 1,
+            costPerLiterMoney: 29.2857,
+          },
+        },
+      }),
+      "en"
+    );
+
+    expect(text).toContain("Liters sold · 1 liter ·");
+    expect(text).toContain("29.29 taka");
+  });
+
+  it("reads a whole month gone by with no 'so far'", () => {
+    const text = paperText(
+      monthlyReportPaper({ ...FACTS, soFarTo: null }),
+      "en"
+    );
+
+    expect(text).not.toContain("so far");
+  });
+});

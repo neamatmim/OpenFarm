@@ -3552,6 +3552,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.title": "মাসিক প্রতিবেদন — {month}",
   "months.one.subtitle":
     "এক মাসে খামার কেমন চলল, আগের মাসের পাশে: খামারের নিজের টাকা, দুধ, মোটাতাজাকরণ আর পরিচালন খরচ।",
+  "months.one.print": "ছাপুন",
   "months.one.whichMonth": "কোন মাস",
   "months.one.line": "হিসাব",
   "months.one.money": "খামারের টাকা",
