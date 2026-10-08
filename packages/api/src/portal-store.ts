@@ -1,4 +1,5 @@
 import { auth, openInvestorAccount, setPasswordFor } from "@OpenFarm/auth";
+import { originOf } from "@OpenFarm/auth/hosts";
 import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull, lt, or } from "@OpenFarm/db/operators";
@@ -13,7 +14,10 @@ import {
   PORTAL_SIGN_IN_HOURS,
   farmDayOf,
   investorLoginOf,
+  maskedDigits,
+  mobileNumberOf,
 } from "@OpenFarm/domain";
+import { resolveLanguage, translate } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -28,6 +32,7 @@ import { audited } from "./audit";
 import { refuseCommonPassword } from "./chosen-password";
 import type { Context } from "./context";
 import { farmDay } from "./farm-clock";
+import { ONE_SEND_EVERY_MS, maskedEmail } from "./investor-email";
 import { hashOfCodeAsTyped, newInviteCode, signedInOn } from "./membership";
 import {
   consentInForce,
@@ -44,6 +49,10 @@ import { seenWhenDone } from "./writes-seen";
 
 /** How long an invitation's code stands before the Owner has to give a new one. */
 const A_WEEK = 7 * 24 * 60 * 60 * 1000;
+
+/** Where a code is taken up, as a message says it for somebody to type: the portal's join page, no `https://`. */
+const portalAddressTyped = () =>
+  `${originOf("portal")}/portal/join`.replace(/^https?:\/\//u, "");
 
 /**
  * Where an Investor stands with the portal, as the Owner's list shows it. Somebody who has taken a code up is in
@@ -64,6 +73,8 @@ export interface PortalSaid {
   codeUntil: Date | null;
   /** When they were last in the portal, to the hour; null for somebody never seen there. */
   lastSeenAt: Date | null;
+  /** The open code sent to them rather than handed over: when, and where each way went, mostly hidden. */
+  codeSent: { at: Date; bySms: string | null; byEmail: string | null } | null;
   /** Why their access was taken away; null while it stands, or where it was taken away before the farm asked why. */
   takenAwayWhy: (typeof PORTAL_TAKEN_AWAY_WHY)[number] | null;
 }
@@ -80,6 +91,9 @@ export const readAccess = async (
       userId: true,
       loginEmail: true,
       codeExpiresAt: true,
+      codeSentAt: true,
+      codeSentBySms: true,
+      codeSentByEmail: true,
       invitedAt: true,
       acceptedAt: true,
       revokedAt: true,
@@ -113,6 +127,9 @@ export const portalStandings = async (
       revokedAt: true,
       revokedWhy: true,
       lastSeenAt: true,
+      codeSentAt: true,
+      codeSentBySms: true,
+      codeSentByEmail: true,
     },
   });
   return new Map(
@@ -133,6 +150,14 @@ export const portalStandings = async (
           standing: standingOf(),
           codeUntil: codeOpen ? row.codeExpiresAt : null,
           lastSeenAt: row.lastSeenAt,
+          codeSent:
+            codeOpen && row.codeSentAt
+              ? {
+                  at: row.codeSentAt,
+                  bySms: row.codeSentBySms,
+                  byEmail: row.codeSentByEmail,
+                }
+              : null,
           takenAwayWhy: row.revokedAt ? row.revokedWhy : null,
         },
       ];
@@ -200,11 +225,15 @@ export const inviteToPortal = async (
         })
         .onConflictDoUpdate({
           target: investorAccess.investorId,
-          // The phone may have changed since the first invitation: the account signs in as what it is now.
+          // The phone may have changed since the first invitation: the account signs in as what it is now. Handed over,
+          // the code was sent nowhere.
           set: {
             loginEmail,
             codeHash,
             codeExpiresAt: expiresAt,
+            codeSentAt: null,
+            codeSentBySms: null,
+            codeSentByEmail: null,
             invitedBy: context.actor.id,
             invitedAt: now,
           },
@@ -212,6 +241,191 @@ export const inviteToPortal = async (
     }
   );
   return { code, expiresAt };
+};
+
+/**
+ * Whether a new code may be sent to them now, refused by name otherwise: the portal open, an invitation handed over in
+ * person before, their access standing, their consent in force, and none sent in the last minute. Their access as it
+ * stands.
+ */
+const mayBeSentACode = async (
+  context: Owned,
+  investorId: string,
+  now: Date
+) => {
+  const farmId = context.farm.id;
+  const standing = await context.db.query.farm.findFirst({
+    where: { id: farmId },
+    columns: { investorPortal: true },
+  });
+  if (!standing?.investorPortal) {
+    throw portalClosed();
+  }
+  const access = await context.db.query.investorAccess.findFirst({
+    where: { farmId, investorId },
+    columns: { userId: true, revokedAt: true, codeSentAt: true },
+  });
+  if (!access) {
+    throw refused(
+      "The first code is handed over in person, with the Welcome Letter",
+      "first_code_in_person"
+    );
+  }
+  if (access.revokedAt) {
+    throw refused(
+      "Their access was taken away: give it back in person",
+      "access_taken_away"
+    );
+  }
+  if (!(await consentInForce(context.db, farmId, investorId))) {
+    throw refused(
+      "They sign the Portal Consent in front of you before any code is given",
+      "no_consent"
+    );
+  }
+  const sentLately =
+    access.codeSentAt !== null &&
+    now.getTime() - access.codeSentAt.getTime() < ONE_SEND_EVERY_MS;
+  if (sentLately) {
+    throw new ORPCError("TOO_MANY_REQUESTS", {
+      message: "A code was sent just now — wait a minute",
+      data: { refusal: "code_sent_just_now" },
+    });
+  }
+  return access;
+};
+
+/**
+ * The ways a code can reach them, refused when there is none: by text to their mobile while the farm texts, and by
+ * email to an address they confirmed while the farm mails. In the language they read the portal in, or the farm's own
+ * before they have chosen one.
+ */
+const waysToReach = async (
+  context: Owned,
+  investorId: string,
+  userId: string | null
+) => {
+  const [them, account] = await Promise.all([
+    context.db.query.investor.findFirst({
+      where: { id: investorId, farmId: context.farm.id },
+      columns: { phone: true, email: true, emailConfirmedAt: true },
+    }),
+    userId
+      ? context.db.query.user.findFirst({
+          where: { id: userId },
+          columns: { language: true },
+        })
+      : undefined,
+  ]);
+  const mobile = them ? mobileNumberOf(them.phone) : null;
+  const sms = context.sms.sends ? mobile : null;
+  const confirmed = them?.emailConfirmedAt ? them.email : null;
+  const email = context.email.sends ? confirmed : null;
+  if (!(sms || email)) {
+    throw refused(
+      "The farm has no way to send them a code",
+      "no_way_to_send_a_code"
+    );
+  }
+  return {
+    sms,
+    email,
+    /** The number as the farm wrote it down, which is how it is shown back, mostly hidden. */
+    phone: them?.phone ?? "",
+    language: resolveLanguage(account),
+  };
+};
+
+/**
+ * A new code sent to an Investor rather than handed over, for somebody already invited in person who has forgotten their
+ * password or let their code run out: by text to their phone — the number they sign in with — and by email only to an
+ * address they confirmed, never one the farm merely wrote down, where a mistyped letter would hand somebody else their
+ * portal. The Owner never sees it. Never the first code, which is handed over with the Welcome Letter once they have
+ * signed the Portal Consent in front of the Owner, and never to somebody whose access was taken away, who is given it
+ * back in person. One a minute. The code they hold stays good until one has gone: one that went nowhere replaces
+ * nothing.
+ */
+export const sendNewCode = async (
+  context: Owned,
+  investorId: string
+): Promise<{ bySms: string | null; byEmail: string | null; days: number }> => {
+  const farmId = context.farm.id;
+  const now = context.clock.now();
+  const { loginEmail } = await invitable(context, investorId);
+  const access = await mayBeSentACode(context, investorId, now);
+  const { sms, email, phone, language } = await waysToReach(
+    context,
+    investorId,
+    access.userId
+  );
+
+  const { code, codeHash } = await newInviteCode();
+  const days = A_WEEK / (24 * 60 * 60 * 1000);
+  const at = portalAddressTyped();
+  const farm = context.farm.name;
+  const [texted, emailed] = await Promise.all([
+    sms
+      ? context.sms.send(sms, {
+          text: translate(language, "portal.sentCode.sms", {
+            farm,
+            code,
+            at,
+            days,
+          }),
+          lang: language,
+        })
+      : { delivered: false },
+    email
+      ? context.email.send(email, {
+          subject: `${farm}: ${translate("bn", "portal.sentCode.subject")} · ${translate("en", "portal.sentCode.subject")}`,
+          text: (["bn", "en"] as const)
+            .map((one) =>
+              translate(one, "portal.sentCode.email", { farm, code, at, days })
+            )
+            .join("\n\n—\n\n"),
+        })
+      : { delivered: false },
+  ]);
+  if (!(texted.delivered || emailed.delivered)) {
+    throw refused(
+      "The code did not go — try again in a minute",
+      "code_not_sent"
+    );
+  }
+  const sent = {
+    bySms: texted.delivered && sms ? maskedDigits(phone) : null,
+    byEmail: emailed.delivered && email ? maskedEmail(email) : null,
+  };
+  await audited(context).write(
+    {
+      entity: "investor_access",
+      entityId: investorId,
+      action: "update",
+      before: (tx) => readAccess(tx, farmId, investorId),
+      after: (tx) => readAccess(tx, farmId, investorId),
+    },
+    async (tx) => {
+      await tx
+        .update(investorAccess)
+        .set({
+          loginEmail,
+          codeHash,
+          codeExpiresAt: new Date(now.getTime() + A_WEEK),
+          codeSentAt: now,
+          codeSentBySms: sent.bySms,
+          codeSentByEmail: sent.byEmail,
+          invitedBy: context.actor.id,
+          invitedAt: now,
+        })
+        .where(
+          and(
+            eq(investorAccess.farmId, farmId),
+            eq(investorAccess.investorId, investorId)
+          )
+        );
+    }
+  );
+  return { ...sent, days };
 };
 
 /** Why the Owner takes somebody's access away: for a withdrawn consent, with the day they asked and how. */

@@ -56,6 +56,7 @@ import {
 } from "../portal-consent";
 import {
   inviteToPortal,
+  sendNewCode,
   portalActivity,
   portalStandings,
   signatoryLeaves,
@@ -406,6 +407,8 @@ export const investorsRouter = {
           portalCodeUntil: portal.get(one.id)?.codeUntil ?? null,
           /** When they were last in the portal, to the hour; null for somebody never seen there. */
           portalLastSeenAt: portal.get(one.id)?.lastSeenAt ?? null,
+          /** Their open code sent to them rather than handed over: when, and where each way went, mostly hidden. */
+          portalCodeSent: portal.get(one.id)?.codeSent ?? null,
           /** Their Portal Consent in force — the day signed and the Version — or null before they sign one. */
           portalConsent: consents.get(one.id) ?? null,
           /** Why their access was taken away, and for a withdrawn consent the day they asked and how; null while it
@@ -1011,6 +1014,17 @@ export const investorsRouter = {
         portalOrigin: portalOrigin(),
       };
     }),
+
+  /**
+   * Sends somebody already invited in person a new code, for a forgotten password or a code run out: by text to their
+   * phone and by email to an address they confirmed, the Owner never seeing it (`sendNewCode`). Says where each way
+   * went, mostly hidden. The Owner's alone.
+   */
+  sendNewCode: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string().min(1) }))
+    .handler(({ context, input }) => sendNewCode(context, input.id)),
 
   /**
    * Lays out the Welcome Letter or the Code Slip for the code on the Owner's screen, and records it as an Export: all

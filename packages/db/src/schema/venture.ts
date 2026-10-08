@@ -303,6 +303,11 @@ export const investorAccess = pgTable(
     /** The open invitation's code, hashed; cleared once it is used. */
     codeHash: text("code_hash"),
     codeExpiresAt: timestamp("code_expires_at", { withTimezone: true }),
+    /** When the open code was sent to them rather than handed over, and where each way went, mostly hidden: by text
+     *  to their phone, and by email to an address they confirmed. Null for a code the Owner handed over in person. */
+    codeSentAt: timestamp("code_sent_at", { withTimezone: true }),
+    codeSentBySms: text("code_sent_by_sms"),
+    codeSentByEmail: text("code_sent_by_email"),
     invitedBy: text("invited_by").references(() => user.id),
     invitedAt: timestamp("invited_at", { withTimezone: true }).notNull(),
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
