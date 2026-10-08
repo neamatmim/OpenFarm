@@ -1,9 +1,15 @@
 import type { PaperDocument } from "@OpenFarm/domain";
-import { FIRST_PRINTED_AGREEMENT } from "@OpenFarm/domain";
+import {
+  FIRST_PRINTED_AGREEMENT,
+  NOMINATION_BEFORE_NOMINEE_NUMBERS,
+  PRIVACY_NOTICE_BEFORE_NOMINEE_NUMBERS,
+  STANDARD_AGREEMENT_BEFORE_NOMINEE_NUMBERS,
+} from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { caughtUpFrom } from "../test/standard-wording";
 import { appRouter } from "./index";
 
 // The standard wording for several Nominees: a farm given its wording now starts from it, and a farm on an earlier
@@ -30,6 +36,7 @@ const NOMINEES = [
     relation: "স্ত্রী",
     phone: null,
     bornOn: "1980-01-01",
+    nid: "1980 0101 4417",
     sharePercent: 80,
     receiver: null,
   },
@@ -38,8 +45,14 @@ const NOMINEES = [
     relation: "মেয়ে",
     phone: null,
     bornOn: "2055-01-01",
+    birthRegistration: "20552691507114382",
     sharePercent: 20,
-    receiver: { name: `স্ত্রী ${suffix}`, relation: "মা", phone: null },
+    receiver: {
+      name: `স্ত্রী ${suffix}`,
+      relation: "মা",
+      phone: null,
+      nid: "1980 0101 4417",
+    },
   },
 ];
 
@@ -99,15 +112,53 @@ beforeAll(async () => {
   investorId = him.id;
 });
 
+describe("a farm on the standard wording before Nominees gave their numbers", () => {
+  it("is caught up on each paper that names what a Nominee gives, with a note saying the lawyer has not read it", async () => {
+    for (const [kind, content, said] of [
+      [
+        "investment_agreement",
+        STANDARD_AGREEMENT_BEFORE_NOMINEE_NUMBERS,
+        "নাবালক হলে জন্ম নিবন্ধন নম্বর",
+      ],
+      [
+        "nomination",
+        NOMINATION_BEFORE_NOMINEE_NUMBERS,
+        "নাবালক হলে জন্ম নিবন্ধন নম্বর",
+      ],
+      [
+        "privacy_notice",
+        PRIVACY_NOTICE_BEFORE_NOMINEE_NUMBERS,
+        "গ্রহণকারীর নাম, সম্পর্ক, ফোন ও এনআইডি নম্বর",
+      ],
+    ] as const) {
+      // oxlint-disable-next-line no-await-in-loop
+      const { before, caughtUp } = await caughtUpFrom(
+        // oxlint-disable-next-line no-await-in-loop
+        await owner(),
+        kind,
+        content
+      );
+      expect(caughtUp?.currentVersionId).not.toBe(before);
+      expect(JSON.stringify(caughtUp?.currentVersion?.content)).toContain(said);
+      expect(caughtUp?.currentVersion?.note).toContain(
+        "not yet read by the lawyer"
+      );
+    }
+  });
+});
+
 describe("the standard Agreement for several Nominees", () => {
   it("is what a farm given its wording now prints: the rules in the terms, a Receiver's line for the minor alone", async () => {
     const document = await toSign();
 
     const [, him] = partiesOf(document);
     expect(him?.lines.map((line) => line.bn)).toEqual([
-      expect.stringContaining("প্রত্যেক নমিনি জানেন"),
+      expect.stringContaining(
+        "প্রত্যেক নমিনি জানেন, খামার তাঁদের নাম, সম্পর্ক, জন্মতারিখ, ফোন আর এনআইডি নম্বর — নাবালক হলে জন্ম নিবন্ধন নম্বর — রাখছে"
+      ),
       expect.stringContaining(`নমিনি মেয়ে ${suffix}-এর বয়স আঠারো বছরের কম`),
     ]);
+    expect(him?.lines[1]?.bn).toContain("আমার এনআইডি নম্বর রাখায় সম্মতি");
     const clauses = everyClause(document);
     expect(clauses).toContain("নমিনি থাকলে তাঁদের মাধ্যমে");
     expect(clauses).toContain("সেই অংশের দায় থেকে খামার মুক্ত");
@@ -126,10 +177,10 @@ describe("the standard Agreement for several Nominees", () => {
 
     const [, him] = partiesOf(document);
     expect(
-      him?.nominees.map((one) => [one.name, one.share, one.minor])
+      him?.nominees.map((one) => [one.name, one.share, one.minor, one.idNumber])
     ).toEqual([
-      [`স্ত্রী ${suffix}`, "৮০%", false],
-      [`মেয়ে ${suffix}`, "২০%", true],
+      [`স্ত্রী ${suffix}`, "৮০%", false, "1980 0101 4417"],
+      [`মেয়ে ${suffix}`, "২০%", true, "20552691507114382"],
     ]);
     // Its own words: no lines under the Investor, and none of the rules it was never worded with.
     expect(him?.lines).toEqual([]);

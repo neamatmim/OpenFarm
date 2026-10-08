@@ -855,10 +855,14 @@ export const stampLines = (stamp: StampLine): string[] => {
       ];
 };
 
-/** One Nominee on a letter's line: name, relation, phone and share, and who collects for a minor. */
+/** One Nominee on a letter's line: name, relation, their NID or a minor's birth registration, phone and share, and who
+ *  collects for a minor. */
 const nomineeLineOf = (one: PaperNominee) => {
   const row = nomineeRowOf(one);
-  const parts = [row.name, row.relation, row.phone, row.share].filter(
+  const number = row.idNumber
+    ? `${row.minor ? "জন্ম নিবন্ধন" : "এনআইডি"} ${row.idNumber}`
+    : null;
+  const parts = [row.name, row.relation, number, row.phone, row.share].filter(
     (part): part is string => part !== null
   );
   const line = parts.join(" · ");

@@ -138,6 +138,7 @@ const NomineeTable = ({ nominees }: { nominees: NomineeRow[] }) => {
           </th>
           <th className="pr-2 font-normal">{head.relation.bn}</th>
           <th className="pr-2 font-normal">{head.born.bn}</th>
+          <th className="pr-2 font-normal">{head.idNumber.bn}</th>
           <th className="pr-2 font-normal">{head.phone.bn}</th>
           <th className="text-right font-normal">{head.share.bn}</th>
         </tr>
@@ -156,12 +157,13 @@ const NomineeTable = ({ nominees }: { nominees: NomineeRow[] }) => {
                   </span>
                 ) : null}
               </td>
+              <td className="pr-2 tabular-nums">{one.idNumber ?? "—"}</td>
               <td className="pr-2 tabular-nums">{one.phone ?? "—"}</td>
               <td className="text-right font-semibold">{one.share}</td>
             </tr>
             {one.receiver ? (
               <tr className="text-muted-foreground border-b">
-                <td className="py-1.5 pl-3" colSpan={5}>
+                <td className="py-1.5 pl-3" colSpan={6}>
                   ↳ <Inline said={head.receiver} />: {one.receiver}
                 </td>
               </tr>

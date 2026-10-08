@@ -25,8 +25,16 @@ const as = async (role: "owner" | "manager", at = JANUARY) => {
 const HIM = `আব্দুর রহিম ${suffix}`;
 const ARBITRATOR = `মাওলানা সালিস ${suffix}`;
 const SERIAL = `ST-${suffix}`;
-const WIFE = { ...theWhole(`স্ত্রী ${suffix}`), bornOn: "1980-01-01" };
-const SON = { ...theWhole(`ছেলে ${suffix}`, "ছেলে"), bornOn: "2000-01-01" };
+const WIFE = {
+  ...theWhole(`স্ত্রী ${suffix}`),
+  bornOn: "1980-01-01",
+  nid: "1980 0101 4417",
+};
+const SON = {
+  ...theWhole(`ছেলে ${suffix}`, "ছেলে"),
+  bornOn: "2000-01-01",
+  nid: "2000 0101 3346",
+};
 
 /** The standard Investment Agreement with the second of its terms said differently. */
 const withSecondClause = (bn: string): TemplateContent => ({

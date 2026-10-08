@@ -49,6 +49,7 @@ const INVESTORS = [
       phone: "01911-223344",
       relation: "স্ত্রী",
       bornOn: "1979-04-12",
+      nid: "1979 2694 118207",
     },
   },
   {
@@ -62,6 +63,7 @@ const INVESTORS = [
       phone: "01715-889013",
       relation: "স্ত্রী",
       bornOn: "1986-07-21",
+      nid: "1986 2693 440512",
     },
   },
   {
@@ -75,6 +77,7 @@ const INVESTORS = [
       phone: "01819-445567",
       relation: "ছেলে",
       bornOn: "2005-03-09",
+      nid: "2005 2694 771930",
     },
   },
   {
@@ -88,6 +91,7 @@ const INVESTORS = [
       phone: "01818-771204",
       relation: "স্ত্রী",
       bornOn: "1974-11-30",
+      nid: "1974 3311 902615",
     },
   },
   {
@@ -101,6 +105,7 @@ const INVESTORS = [
       phone: "01712-330098",
       relation: "স্ত্রী",
       bornOn: "1988-01-15",
+      nid: "1988 2690 335071",
     },
   },
   // The two who pay by the month: the cattle money first, the rest on each 10th out of a salary.
@@ -115,6 +120,7 @@ const INVESTORS = [
       phone: "01716-554434",
       relation: "স্ত্রী",
       bornOn: "1993-06-21",
+      nid: "1993 2694 618842",
     },
   },
   {
@@ -128,6 +134,7 @@ const INVESTORS = [
       phone: "01819-772212",
       relation: "ছেলে",
       bornOn: "2001-02-14",
+      nid: "2001 2692 157380",
     },
   },
 ] as const;
@@ -215,6 +222,7 @@ const hashemNamesHisFamily = async (farm: Farm, on: string) => {
         relation: "স্ত্রী",
         phone: "01911-223344",
         bornOn: "1979-04-12",
+        nid: "1979 2694 118207",
         sharePercent: 50,
         receiver: null,
       },
@@ -223,6 +231,7 @@ const hashemNamesHisFamily = async (farm: Farm, on: string) => {
         relation: "ছেলে",
         phone: "01911-223355",
         bornOn: "2001-10-03",
+        nid: "2001 2694 503318",
         sharePercent: 30,
         receiver: null,
       },
@@ -231,8 +240,14 @@ const hashemNamesHisFamily = async (farm: Farm, on: string) => {
         relation: "মেয়ে",
         phone: null,
         bornOn: "2013-02-18",
+        birthRegistration: "20132694507118264",
         sharePercent: 20,
-        receiver: { name: "রোকেয়া বেগম", relation: "মা", phone: "01911-223344" },
+        receiver: {
+          name: "রোকেয়া বেগম",
+          relation: "মা",
+          phone: "01911-223344",
+          nid: "1979 2694 118207",
+        },
       },
     ],
     contentType: "image/jpeg",

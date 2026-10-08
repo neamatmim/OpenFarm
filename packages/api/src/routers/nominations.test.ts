@@ -1,3 +1,4 @@
+import type { Nominee } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -85,7 +86,12 @@ describe("an Investor's Nominees", () => {
           ...theWhole(`নাতি ${suffix}`, "নাতি"),
           bornOn: "2055-01-01",
           sharePercent: 50,
-          receiver: { name: `দ্বিতীয় ${suffix}`, relation: "মা", phone: null },
+          receiver: {
+            name: `দ্বিতীয় ${suffix}`,
+            relation: "মা",
+            phone: null,
+            nid: null,
+          },
         },
       ],
       signedOn: "2063-01-01",
@@ -139,17 +145,29 @@ const PHOTO = { contentType: "image/jpeg" as const, data: "aGVsbG8=" };
 
 /** Three Nominees, the last a minor on the first of January 2063 with her mother to collect for her. */
 const THREE = [
-  { ...theWhole(`রহিমা ${suffix}`), bornOn: "1982-03-14", sharePercent: 50 },
+  {
+    ...theWhole(`রহিমা ${suffix}`),
+    bornOn: "1982-03-14",
+    nid: "1982 4417 2093",
+    sharePercent: 50,
+  },
   {
     ...theWhole(`তানভীর ${suffix}`, "ছেলে"),
     bornOn: "2004-08-02",
+    nid: "2004 1190 3346",
     sharePercent: 30,
   },
   {
     ...theWhole(`সাদিয়া ${suffix}`, "মেয়ে"),
     bornOn: "2052-11-20",
+    birthRegistration: "20522691507114382",
     sharePercent: 20,
-    receiver: { name: `রহিমা ${suffix}`, relation: "মা", phone: null },
+    receiver: {
+      name: `রহিমা ${suffix}`,
+      relation: "মা",
+      phone: null,
+      nid: "1982 4417 2093",
+    },
   },
 ];
 
@@ -228,7 +246,13 @@ describe("a মনোনয়নপত্র", () => {
     const owner = await as("owner");
     await owner.investors.recordNomination({
       id: hasanId,
-      nominees: [{ ...theWhole(`আগে ${suffix}`), bornOn: "1970-01-01" }],
+      nominees: [
+        {
+          ...theWhole(`আগে ${suffix}`),
+          bornOn: "1970-01-01",
+          nid: "1970 0021 5518",
+        },
+      ],
       signedOn: "2062-12-31",
       ...PHOTO,
     });
@@ -271,6 +295,92 @@ describe("a মনোনয়নপত্র", () => {
         `সাদিয়া ${suffix} ২০% গ্রহণকারী রহিমা ${suffix}`
       ),
     });
+  });
+
+  it("asks an adult Nominee for their NID, a minor for their birth registration, and a minor's Receiver for their NID, saying which", async () => {
+    const owner = await as("owner");
+    const [adult, , minor] = THREE;
+    if (!(adult && minor?.receiver)) {
+      throw new Error("expected an adult and a minor");
+    }
+    const refusalOf = (nominees: Nominee[]) =>
+      owner.investors.recordNomination({
+        id: hasanId,
+        nominees,
+        signedOn: "2063-01-01",
+        ...PHOTO,
+      });
+
+    await expect(
+      refusalOf([{ ...adult, sharePercent: 100, nid: null }])
+    ).rejects.toMatchObject({
+      data: { refusal: "nominees_nid_missing", at: 1 },
+    });
+    await expect(
+      refusalOf([
+        { ...adult, sharePercent: 80 },
+        { ...minor, birthRegistration: " " },
+      ])
+    ).rejects.toMatchObject({
+      data: { refusal: "nominees_birth_registration_missing", at: 2 },
+    });
+    await expect(
+      refusalOf([
+        { ...adult, sharePercent: 80 },
+        { ...minor, receiver: { ...minor.receiver, nid: null } },
+      ])
+    ).rejects.toMatchObject({
+      data: { refusal: "nominees_receiver_nid_missing", at: 2 },
+    });
+  });
+
+  it("keeps each Nominee by the one number that fits their age on the day, and prints it beside them", async () => {
+    const owner = await as("owner");
+    const { id } = await owner.investors.record({
+      name: `নম্বর ${suffix}`,
+      phone: `0176${suffix}`,
+    });
+    const [adult, , minor] = THREE;
+    if (!(adult && minor)) {
+      throw new Error("expected an adult and a minor");
+    }
+    // Each sent with the other number too, as a form might after a date of birth was put right.
+    const nominees = [
+      { ...adult, sharePercent: 80, birthRegistration: "19822691507114382" },
+      { ...minor, nid: "2052 0000 1111" },
+    ];
+
+    const { document } = await owner.investors.nominationToSign({
+      id,
+      nominees,
+    });
+    await owner.investors.recordNomination({
+      id,
+      nominees,
+      signedOn: "2063-01-01",
+      ...PHOTO,
+    });
+
+    const parties = document.sections.find((one) => one.kind === "parties");
+    if (parties?.kind !== "parties") {
+      throw new Error("expected the parties");
+    }
+    expect(parties.parties[1]?.nominees).toMatchObject([
+      { idNumber: "1982 4417 2093" },
+      {
+        idNumber: "20522691507114382",
+        receiver: expect.stringContaining("এনআইডি 1982 4417 2093"),
+      },
+    ]);
+    const [inForce] = await owner.investors.nominations({ id });
+    expect(inForce?.nominees).toMatchObject([
+      { nid: "1982 4417 2093", birthRegistration: null },
+      {
+        nid: null,
+        birthRegistration: "20522691507114382",
+        receiver: { nid: "1982 4417 2093" },
+      },
+    ]);
   });
 
   it("may name nobody, and then says so", async () => {

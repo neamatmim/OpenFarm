@@ -117,6 +117,9 @@ const NOMINEE_FIELD: Record<NomineesProblem["code"], string> = {
   shares_not_hundred: "share",
   receiver_missing: "receiver-name",
   receiver_not_needed: "receiver-name",
+  nid_missing: "number",
+  birth_registration_missing: "number",
+  receiver_nid_missing: "receiver-nid",
 };
 
 /** The first of the stamp's three boxes still empty, and the box. */

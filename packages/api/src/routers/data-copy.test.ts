@@ -70,13 +70,20 @@ const withAHistory = async () => {
       {
         ...theWhole(`রাশেদের ছেলে ${suffix}`, "ছেলে"),
         bornOn: "1990-02-03",
+        nid: "1990 0203 5546",
         sharePercent: 60,
       },
       {
         ...theWhole(`রাশেদের মেয়ে ${suffix}`, "মেয়ে"),
         bornOn: "2050-04-05",
+        birthRegistration: "20502691507114382",
         sharePercent: 40,
-        receiver: { name: `রাশেদের স্ত্রী ${suffix}`, relation: "মা", phone: null },
+        receiver: {
+          name: `রাশেদের স্ত্রী ${suffix}`,
+          relation: "মা",
+          phone: null,
+          nid: "1965 0712 3390",
+        },
       },
     ],
     signedOn: "2061-01-01",
@@ -208,8 +215,11 @@ describe("«খামারে আপনার তথ্য»", () => {
     expect(nominees.rows[0]?.value).toContain(`রাশেদের মেয়ে ${suffix}`);
     expect(nominees.rows[0]?.value).toContain("অংশ ৪০%");
     expect(nominees.rows[0]?.value).toContain(
-      `গ্রহণকারী রাশেদের স্ত্রী ${suffix} (মা)`
+      `গ্রহণকারী রাশেদের স্ত্রী ${suffix} (মা), এনআইডি 1965 0712 3390`
     );
+    // Their Nominees' numbers in full: the copy is theirs.
+    expect(nominees.rows[0]?.value).toContain("এনআইডি 1990 0203 5546");
+    expect(nominees.rows[0]?.value).toContain("জন্ম নিবন্ধন 20502691507114382");
     expect(nominees.rows[1]?.value).toContain(`রাশেদের মেয়ে ${suffix}`);
     expect(nominees.rows[2]?.value).toContain("অংশ ১০০%");
     // Their Agreement, and the money it moved.

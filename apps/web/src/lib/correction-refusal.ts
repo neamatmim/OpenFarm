@@ -75,6 +75,10 @@ const SAID_OTHERWISE = {
   nominees_shares_not_hundred: "nominees.problem.shares_not_hundred",
   nominees_receiver_missing: "nominees.problem.receiver_missing",
   nominees_receiver_not_needed: "nominees.problem.receiver_not_needed",
+  nominees_nid_missing: "nominees.problem.nid_missing",
+  nominees_birth_registration_missing:
+    "nominees.problem.birth_registration_missing",
+  nominees_receiver_nid_missing: "nominees.problem.receiver_nid_missing",
 } as const satisfies Record<string, MessageKey>;
 
 const UNDERSCORE_THEN = /_(?<next>[a-z0-9])/gu;

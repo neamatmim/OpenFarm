@@ -46,6 +46,7 @@ Grilled with the Owner, 2026-09-26. CONTEXT.md's **Nominee** entry is widened, a
    - The Receiver is not a Nominee: no share, and not counted in the three.
 5. **What is recorded:**
    - **Nominee:** name, relation to the Investor, phone, date of birth and share. No NID and no address, because the farm needs only to find and pay them, and identity is checked in person at collection.
+     - **Reversed 2026-10-08 by the Owner:** a Nominee also gives their NID number, a minor their birth registration number, and a minor's Receiver their NID. Required on every new paper; one named before shows none until a new Nomination. Still no address.
    - **Receiver:** name, relation to the Nominee, and phone.
    - Phone stays optional for both.
 6. **Per Investor**, settled by 04. **Today's single nominee** becomes the only Nominee at 100%, with the date of birth blank until a Nomination is signed. No real Investor has signed yet, so this touches only the seed.

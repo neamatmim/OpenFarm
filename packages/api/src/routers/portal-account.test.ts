@@ -18,6 +18,9 @@ const JANUARY = "2054-01-01T04:00:00.000Z";
 const HOUR = 60 * 60 * 1000;
 const PASSWORD = "gorur-khamar-2026";
 const NID = "1985220788993";
+const ROKEYA_BIRTH = "20402691507114382";
+const RAHIM_NID = "1975 3302 4471";
+const KARIM_NID = "1980 5512 7720";
 const BANK = `Rahim Uddin\n0123-4567-${suffix.slice(-4)}\nSonali Bank, Savar`;
 const at = (hours: number) => new Date(Date.parse(JANUARY) + hours * HOUR);
 const clockAt = (when: Date | string) =>
@@ -95,10 +98,21 @@ const signAndPay = async (
       {
         ...theWhole("রোকেয়া"),
         bornOn: "2040-01-01",
+        birthRegistration: ROKEYA_BIRTH,
         sharePercent: 60,
-        receiver: { name: "রহিম", relation: "বাবা", phone: null },
+        receiver: {
+          name: "রহিম",
+          relation: "বাবা",
+          phone: null,
+          nid: RAHIM_NID,
+        },
       },
-      { ...theWhole("করিম", "ভাই"), bornOn: "1980-01-01", sharePercent: 40 },
+      {
+        ...theWhole("করিম", "ভাই"),
+        bornOn: "1980-01-01",
+        nid: KARIM_NID,
+        sharePercent: 40,
+      },
     ],
     signedOn: "2054-01-01",
     recordedAt: new Date(JANUARY),
@@ -187,10 +201,21 @@ describe("an Investor's own record", () => {
         name: "রোকেয়া",
         sharePercent: 60,
         minor: true,
-        receiver: { name: "রহিম" },
+        birthRegistration: "•••••••••••••4382",
+        receiver: { name: "রহিম", nid: "•••• •••• 4471" },
       },
-      { name: "করিম", sharePercent: 40, minor: false, receiver: null },
+      {
+        name: "করিম",
+        sharePercent: 40,
+        minor: false,
+        nid: "•••• •••• 7720",
+        receiver: null,
+      },
     ]);
+    // Their Nominees' numbers hidden as their own NID is.
+    for (const number of [ROKEYA_BIRTH, RAHIM_NID, KARIM_NID]) {
+      expect(JSON.stringify(me)).not.toContain(number);
+    }
     expect(me.farm).toMatchObject({
       phone: "+8801711000097",
       address: `সাভার, ঢাকা ${suffix}`,

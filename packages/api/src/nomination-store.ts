@@ -49,10 +49,13 @@ const onFile = (row: {
     relation: string | null;
     phone: string | null;
     bornOn: string | null;
+    nid: string | null;
+    birthRegistration: string | null;
     sharePercent: number;
     receiverName: string | null;
     receiverRelation: string | null;
     receiverPhone: string | null;
+    receiverNid: string | null;
   }[];
 }): NominationOnFile => ({
   id: row.id,
@@ -69,12 +72,15 @@ const onFile = (row: {
     relation: one.relation,
     phone: one.phone,
     bornOn: one.bornOn,
+    nid: one.nid,
+    birthRegistration: one.birthRegistration,
     sharePercent: one.sharePercent,
     receiver: one.receiverName
       ? {
           name: one.receiverName,
           relation: one.receiverRelation,
           phone: one.receiverPhone,
+          nid: one.receiverNid,
         }
       : null,
   })),

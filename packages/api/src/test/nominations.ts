@@ -11,6 +11,8 @@ export const theWhole = (name: string, relation = "স্ত্রী"): Nominee
   relation,
   phone: null,
   bornOn: null,
+  nid: null,
+  birthRegistration: null,
   sharePercent: 100,
   receiver: null,
 });
@@ -52,10 +54,13 @@ export const nominationOnFile = async ({
         relation: one.relation,
         phone: one.phone,
         bornOn: one.bornOn,
+        nid: one.nid,
+        birthRegistration: one.birthRegistration,
         sharePercent: one.sharePercent,
         receiverName: one.receiver?.name ?? null,
         receiverRelation: one.receiver?.relation ?? null,
         receiverPhone: one.receiver?.phone ?? null,
+        receiverNid: one.receiver?.nid ?? null,
       }))
     );
   }

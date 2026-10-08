@@ -21,6 +21,7 @@ const row = (some: Partial<NomineeDraft>): NomineeDraft => ({
   name: "রহিমা বেগম",
   relation: "wife",
   bornOn: "1982-03-14",
+  idNumber: "1982 4417 2093",
   share: "100",
   ...some,
 });
@@ -49,6 +50,65 @@ describe("the Nominees the Owner writes down", () => {
     });
   });
 
+  it("send the number typed as an adult's NID, or a minor's birth registration, and the Receiver's NID with them", () => {
+    const [wife, daughter] = nomineesOf(
+      [
+        row({ share: "80" }),
+        row({
+          name: "সাদিয়া",
+          bornOn: "2012-11-20",
+          idNumber: "20122691507114382",
+          share: "20",
+          receiverName: "রহিমা বেগম",
+          receiverNid: "1982 4417 2093",
+        }),
+      ],
+      DAY
+    );
+
+    expect(wife).toMatchObject({
+      nid: "1982 4417 2093",
+      birthRegistration: null,
+    });
+    expect(daughter).toMatchObject({
+      nid: null,
+      birthRegistration: "20122691507114382",
+      receiver: { nid: "1982 4417 2093" },
+    });
+  });
+
+  it("come back with the number they were kept by, in the one box", () => {
+    const [minor] = draftsOf([
+      {
+        name: "সাদিয়া",
+        relation: "মেয়ে",
+        phone: null,
+        bornOn: "2012-11-20",
+        nid: null,
+        birthRegistration: "20122691507114382",
+        sharePercent: 100,
+        receiver: {
+          name: "রহিমা বেগম",
+          relation: "মা",
+          phone: null,
+          nid: "1982 4417 2093",
+        },
+      },
+    ]);
+
+    expect(minor).toMatchObject({
+      idNumber: "20122691507114382",
+      receiverNid: "1982 4417 2093",
+    });
+  });
+
+  it("warn of a missing number as the farm would refuse it", () => {
+    expect(draftsProblem([row({ idNumber: "" })], DAY)).toEqual({
+      code: "nid_missing",
+      at: 1,
+    });
+  });
+
   it("are checked by the domain's rule: an empty share is not a share", () => {
     expect(draftsProblem([row({ share: "" })], DAY)).toEqual({
       code: "shares_not_whole",
@@ -65,6 +125,8 @@ describe("the Nominees the Owner writes down", () => {
         relation: "খালা",
         phone: null,
         bornOn: null,
+        nid: null,
+        birthRegistration: null,
         sharePercent: 100,
         receiver: null,
       },
@@ -74,6 +136,7 @@ describe("the Nominees the Owner writes down", () => {
       relation: "other",
       relationInWords: "খালা",
       bornOn: "",
+      idNumber: "",
       share: "100",
     });
   });
