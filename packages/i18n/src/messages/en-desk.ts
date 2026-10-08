@@ -768,6 +768,28 @@ export const enDesk = {
   "portal.standing.takenAway": "Access taken away",
   "portal.invite": "Invite to the portal",
   "portal.newCode": "Give a new code",
+  "portal.sentCode.sms":
+    "{farm}: your new portal code is {code}. At {at}, enter your phone number and this code, then choose a new password. It works for {days, plural, one {# day} other {# days}}. Tell nobody.",
+  "portal.sentCode.subject": "Your new portal code",
+  "portal.sentCode.email":
+    "Your new code for the {farm} Investor Portal: {code}\n\nAt {at}, enter your phone number and this code, then choose a new password. It works for {days, plural, one {# day} other {# days}}. Tell nobody; if you did not ask for it, tell the farm.",
+  "portal.sendCode": "Send a new code",
+  "portal.sendCodeHint":
+    "By text to their phone, and to an email they confirmed; you never see the code",
+  "portal.codeSent": "A new code was sent: {ways}",
+  "portal.codeSentLine": "Code sent {when}: {ways}",
+  "portal.codeSentBySms": "by text to {to}",
+  "portal.codeSentByEmail": "by email to {to}",
+  "portal.refused.firstCodeInPerson":
+    "Hand the first code over in person, with the Welcome Letter.",
+  "portal.refused.accessTakenAway":
+    "Their access was taken away: give it back in person.",
+  "portal.refused.noWayToSend":
+    "There is no way to send them a code: their phone is not a mobile or texts are off, and they have no confirmed email. Give a new code in person.",
+  "portal.refused.codeNotSent":
+    "The code did not go — try again in a minute. Their old code still works.",
+  "portal.refused.codeSentJustNow":
+    "A code was sent just now — you can send another in a minute.",
   "portal.codeTitle": "Their code",
   "portal.codeHint":
     "Shown once. Hand it to them in person; they set their own password with it and their phone number.",

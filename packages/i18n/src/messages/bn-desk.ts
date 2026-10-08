@@ -717,6 +717,27 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "portal.standing.takenAway": "প্রবেশাধিকার তুলে নেওয়া",
   "portal.invite": "পোর্টালে আমন্ত্রণ",
   "portal.newCode": "নতুন কোড দিন",
+  "portal.sentCode.sms":
+    "{farm}: পোর্টালের নতুন কোড {code}। {at}-এ আপনার ফোন নম্বর আর এই কোড দিয়ে নতুন পাসওয়ার্ড বেছে নিন। {days} দিন কাজ করবে। কাউকে বলবেন না।",
+  "portal.sentCode.subject": "পোর্টালের নতুন কোড",
+  "portal.sentCode.email":
+    "{farm}-এর বিনিয়োগকারী পোর্টালের নতুন কোড: {code}\n\n{at}-এ আপনার ফোন নম্বর আর এই কোড দিয়ে নতুন পাসওয়ার্ড বেছে নিন। কোডটি {days} দিন কাজ করবে। কাউকে বলবেন না; আপনি না চাইলে খামারকে জানান।",
+  "portal.sendCode": "নতুন কোড পাঠান",
+  "portal.sendCodeHint":
+    "এসএমএসে তাঁর ফোনে, আর তাঁর নিশ্চিত করা ইমেইলে; কোডটি আপনি দেখবেন না",
+  "portal.codeSent": "নতুন কোড পাঠানো হয়েছে: {ways}",
+  "portal.codeSentLine": "কোড পাঠানো হয়েছে {when}: {ways}",
+  "portal.codeSentBySms": "এসএমএসে {to}",
+  "portal.codeSentByEmail": "ইমেইলে {to}",
+  "portal.refused.firstCodeInPerson": "প্রথম কোড স্বাগত চিঠির সাথে নিজ হাতে দিন।",
+  "portal.refused.accessTakenAway":
+    "তাঁর প্রবেশাধিকার তুলে নেওয়া হয়েছে: ফিরিয়ে দিতে হলে নিজ হাতে কোড দিন।",
+  "portal.refused.noWayToSend":
+    "তাঁকে কোড পাঠানোর উপায় নেই: ফোনটি মোবাইল নয় বা এসএমএস চালু নেই, আর নিশ্চিত করা ইমেইলও নেই। নিজ হাতে নতুন কোড দিন।",
+  "portal.refused.codeNotSent":
+    "কোড যায়নি — এক মিনিট পরে আবার চেষ্টা করুন। তাঁর আগের কোড এখনো চলবে।",
+  "portal.refused.codeSentJustNow":
+    "এইমাত্র কোড পাঠানো হয়েছে — এক মিনিট পরে আবার পাঠাতে পারবেন।",
   "portal.codeTitle": "তাঁর কোড",
   "portal.codeHint":
     "একবারই দেখানো হবে। সরাসরি তাঁর হাতে দিন; এই কোড আর তাঁর মোবাইল নম্বর দিয়ে তিনি নিজের পাসওয়ার্ড ঠিক করবেন।",

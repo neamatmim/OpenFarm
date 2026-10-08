@@ -23,6 +23,7 @@ import {
   FileSignature,
   KeyRound,
   Printer,
+  Send,
   TrendingUp,
   UserX,
 } from "lucide-react";
@@ -70,6 +71,11 @@ const REFUSALS = {
   withdrawn_before_signed: "portal.refused.withdrawnBeforeSigned",
   letter_handed_over: "portal.refused.letterHandedOver",
   portal_closed: "portal.refused.inviteWhileShut",
+  first_code_in_person: "portal.refused.firstCodeInPerson",
+  access_taken_away: "portal.refused.accessTakenAway",
+  no_way_to_send_a_code: "portal.refused.noWayToSend",
+  code_not_sent: "portal.refused.codeNotSent",
+  code_sent_just_now: "portal.refused.codeSentJustNow",
 } as const;
 
 /** Where an Investor stands with the portal, as a word with its color, in the order the list sorts them. */
@@ -117,6 +123,41 @@ const takenAwayLine = (
     how: t(`portal.howLine.${withdrawnHow}`),
   });
 };
+
+/** Where a sent code went, each way in a word, as the Owner is told it. */
+const sentWays = (
+  sent: { bySms: string | null; byEmail: string | null },
+  t: ReturnType<typeof useLanguage>["t"]
+) =>
+  [
+    sent.bySms ? t("portal.codeSentBySms", { to: sent.bySms }) : null,
+    sent.byEmail ? t("portal.codeSentByEmail", { to: sent.byEmail }) : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+/** When their open code was sent rather than handed over, and where it went; nothing for one handed over. */
+const sentLine = (
+  investor: Investor,
+  {
+    t,
+    language,
+  }: { t: ReturnType<typeof useLanguage>["t"]; language: Language }
+) => {
+  // Cached before it was answered, it is missing rather than null.
+  const sent = investor.portalCodeSent ?? null;
+  if (!sent || standingOf(investor) === "taken_away") {
+    return null;
+  }
+  return t("portal.codeSentLine", {
+    when: formatDate(new Date(sent.at), language, "dateTime"),
+    ways: sentWays(sent, t),
+  });
+};
+
+/** Whether a new code may be sent rather than handed over: to somebody invited in person before, whose access stands. */
+const maySendCode = (standing: PortalStanding) =>
+  standing === "in" || standing === "invited" || standing === "code_ran_out";
 
 /**
  * What goes with where they stand: until when their code can be taken up, that it ran out and wants another, or when
@@ -171,6 +212,10 @@ export const PortalStandingLine = ({
         when: formatDate(new Date(codeUntil), language),
       })
     );
+  }
+  const sent = brief ? null : sentLine(investor, { t, language });
+  if (sent) {
+    said.push(sent);
   }
   if (said.length === 0) {
     return null;
@@ -765,6 +810,13 @@ export const PortalAccess = ({
       onSuccess: setGiven,
     })
   );
+  const sending = useMutation(
+    orpc.investors.sendNewCode.mutationOptions({
+      onError: refused,
+      onSuccess: (sent) =>
+        toast.success(t("portal.codeSent", { ways: sentWays(sent, t) })),
+    })
+  );
   const printing = useMutation(
     orpc.investors.consentSheet.mutationOptions({
       onError: refused,
@@ -797,6 +849,9 @@ export const PortalAccess = ({
   const standing = standingOf(investor);
   const inviteWord = standing === "none" ? "portal.invite" : "portal.newCode";
   const whyNot = whyNoInvite(investor, portalOpen);
+  // A code that could reach them by no way at all is handed over in person: said beside the button, not pressed into.
+  const noWayToSend =
+    investor.codesBy !== undefined && waysOf(investor.codesBy) === "none";
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -822,6 +877,20 @@ export const PortalAccess = ({
           <KeyRound aria-hidden data-icon="inline-start" />
           {t(inviteWord)}
         </Button>
+        {maySendCode(standing) ? (
+          <Button
+            className="justify-start"
+            disabled={whyNot !== null || noWayToSend || sending.isPending}
+            onClick={() => sending.mutate({ id: investor.id })}
+            size="sm"
+            title={t("portal.sendCodeHint")}
+            type="button"
+            variant="outline"
+          >
+            <Send aria-hidden data-icon="inline-start" />
+            {t("portal.sendCode")}
+          </Button>
+        ) : null}
         <Link
           className={cn(
             buttonVariants({ size: "sm", variant: "outline" }),
@@ -865,6 +934,11 @@ export const PortalAccess = ({
       </div>
       {whyNot ? (
         <p className="text-muted-foreground text-sm">{t(whyNot)}</p>
+      ) : null}
+      {whyNot === null && noWayToSend && maySendCode(standing) ? (
+        <p className="text-muted-foreground text-sm">
+          {t(REFUSALS.no_way_to_send_a_code)}
+        </p>
       ) : null}
       <PaperDialog
         action={
