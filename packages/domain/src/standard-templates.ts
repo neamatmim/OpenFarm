@@ -175,6 +175,12 @@ const HEIRS_CLAUSE: Said = {
   en: "If the Investor dies, their capital and share are paid to their lawful heirs — through their Nominees where they named any, as follows; otherwise directly, usually against a succession certificate.",
 };
 
+/** What the Farm holds of the Investor to keep the Agreement: the Data part's first clause. */
+const DATA_HOLDS: Said = {
+  bn: "এই চুক্তি পালন করতে, বিনিয়োগকারীকে টাকা দিতে এবং আইন যে হিসাব রাখতে বলে তা রাখতে খামার বিনিয়োগকারীর নাম, ফোন, ঠিকানা, এনআইডি নম্বর, ব্যাংক হিসাব, আর তাঁর নমিনি ও গ্রহণকারীর তথ্য, আর এই চুক্তির সব টাকার হিসাব রাখবে।",
+  en: "To keep this Agreement, pay the Investor and keep the books the law requires, the Farm holds the Investor's name, phone, address, NID number, bank account, the details of their Nominees and Receivers, and every money record under this Agreement.",
+};
+
 /**
  * তথ্য / Data: what the farm holds of the Investor to keep the Agreement, where, who sees it, for how long, and what he
  * may ask — resting the record on the Agreement itself, and keeping the portal apart from it. From the investor-portal
@@ -184,10 +190,7 @@ const DATA: TemplateSection = {
   kind: "clauses",
   heading: { bn: "তথ্য", en: "Data" },
   clauses: [
-    {
-      bn: "এই চুক্তি পালন করতে, বিনিয়োগকারীকে টাকা দিতে এবং আইন যে হিসাব রাখতে বলে তা রাখতে খামার বিনিয়োগকারীর নাম, ফোন, ঠিকানা, এনআইডি নম্বর, ব্যাংক হিসাব, আর তাঁর নমিনি ও গ্রহণকারীর তথ্য, আর এই চুক্তির সব টাকার হিসাব রাখবে।",
-      en: "To keep this Agreement, pay the Investor and keep the books the law requires, the Farm holds the Investor's name, phone, address, NID number, bank account, the details of their Nominees and Receivers, and every money record under this Agreement.",
-    },
+    DATA_HOLDS,
     {
       bn: "এই তথ্য সিঙ্গাপুরে খামারের পক্ষে চালানো একটি সার্ভারে রাখা হয়, আর প্রতি রাতে এর একটি তালাবদ্ধ (এনক্রিপ্ট করা) কপি অন্য জায়গায় রাখা হয়।",
       en: "This data is kept on a server in Singapore run for the Farm, and an encrypted copy is kept elsewhere each night.",
@@ -364,8 +367,12 @@ const FARM_CAPITAL_CLAUSE = {
   only: "farm_capital" as const,
 };
 
-/** The standard Investment Agreement today: the paid-by-the-month standard, with the two clauses after the death clause. */
-const investmentAgreement: TemplateContent = {
+/**
+ * The standard Investment Agreement from 2026-10-05 until an Organisation could be an Investor (2026-10-08): the
+ * paid-by-the-month standard, with the two clauses after the death clause. Kept whole, so a farm still on exactly these
+ * words is caught up to the standard that followed.
+ */
+export const STANDARD_AGREEMENT_WITH_FARM_CAPITAL: TemplateContent = {
   ...STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
   sections: STANDARD_AGREEMENT_PAID_BY_THE_MONTH.sections.map((section) => {
     if (section.kind !== "clauses" || section.heading.en !== "Terms") {
@@ -382,6 +389,56 @@ const investmentAgreement: TemplateContent = {
         FARM_CAPITAL_CLAUSE,
         ...section.clauses.slice(death + 1),
       ],
+    };
+  }),
+};
+
+/** An Organisation's share outlives its Signatory, and a winding-up is the law's to settle (ADR 0020, 2026-10-08). */
+const ORGANISATION_CLAUSE = {
+  bn: "বিনিয়োগকারী একটি প্রতিষ্ঠান, যার পক্ষে তার স্বাক্ষরকারী সই করছেন। মূলধন ও প্রাপ্য প্রতিষ্ঠানেরই; স্বাক্ষরকারী বদলালে এই চুক্তির কিছুই বদলায় না, আর খামার নতুন স্বাক্ষরকারীর সঙ্গে কাজ করবে। প্রতিষ্ঠান বিলুপ্ত হলে তার মূলধন ও প্রাপ্য তাঁকেই দেওয়া হবে, যে আইনে প্রতিষ্ঠানটি গঠিত সেই আইন যাঁকে তার পক্ষে কাজ করার অধিকার দেয়।",
+  en: "The Investor is an organisation, signing through its Signatory. Its capital and share are its own; a change of Signatory changes nothing in this Agreement, and the Farm deals with the new Signatory. If the organisation is wound up, its capital and share are paid to whoever the law it was formed under entitles to act for it.",
+  only: "an_organisation" as const,
+};
+
+/** What the Farm holds of an Organisation to keep its Agreement: the Data part's first clause, said of one. */
+const ORGANISATION_DATA = {
+  bn: "এই চুক্তি পালন করতে, বিনিয়োগকারী প্রতিষ্ঠানকে টাকা দিতে এবং আইন যে হিসাব রাখতে বলে তা রাখতে খামার প্রতিষ্ঠানের নাম, ঠিকানা, ট্রেড লাইসেন্স, নিবন্ধন ও টিআইএন, ব্যাংক হিসাব, তার স্বাক্ষরকারীর নাম, ফোন ও এনআইডি নম্বর, আর এই চুক্তির সব টাকার হিসাব রাখবে।",
+  en: "To keep this Agreement, pay the Investor and keep the books the law requires, the Farm holds the organisation's name, address, trade licence, registration and TIN, its bank account, its Signatory's name, phone and NID number, and every money record under this Agreement.",
+  only: "an_organisation" as const,
+};
+
+/** The clauses about an Investor's death and Nominees, which an Organisation has neither of: printed for a person only. */
+const A_PERSONS = new Set<Said>([HEIRS_CLAUSE, ...NOMINEE_RULES, DATA_HOLDS]);
+
+/**
+ * The standard Investment Agreement today (2026-10-08): the one before it, with the death, Nominee and data clauses
+ * printed for a person only, and in their place for an Organisation the clause that its share is its own and what the
+ * Farm holds of it. A person's Agreement reads exactly as it did.
+ */
+const investmentAgreement: TemplateContent = {
+  ...STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
+  sections: STANDARD_AGREEMENT_WITH_FARM_CAPITAL.sections.map((section) => {
+    if (section.kind !== "clauses") {
+      return section;
+    }
+    return {
+      ...section,
+      clauses: section.clauses.flatMap((clause) => {
+        if (clause === SUMS_AFTER_DEATH) {
+          return [{ ...clause, only: ["by_the_month", "a_person"] as const }];
+        }
+        if (!A_PERSONS.has(clause)) {
+          return [clause];
+        }
+        const forAPerson = { ...clause, only: "a_person" as const };
+        if (clause === NOMINEE_RULES.at(-1)) {
+          return [forAPerson, ORGANISATION_CLAUSE];
+        }
+        if (clause === DATA_HOLDS) {
+          return [forAPerson, ORGANISATION_DATA];
+        }
+        return [forAPerson];
+      }),
     };
   }),
 };
@@ -552,9 +609,10 @@ const agreementAmendment: TemplateContent = {
 /**
  * The Portal Consent: signed on paper in front of the Owner before any code is given, and kept by the farm. What the
  * portal adds, and only that — holding the record to keep an Agreement rests on the Agreement itself. From the
- * investor-portal map's draft, for the lawyer.
+ * investor-portal map's draft, for the lawyer. Kept whole as it stood until an Organisation could be an Investor
+ * (2026-10-08), so a farm still on exactly these words is caught up to the standard that followed.
  */
-const portalConsent: TemplateContent = {
+export const PORTAL_CONSENT_BEFORE_ORGANISATIONS: TemplateContent = {
   title: {
     bn: "বিনিয়োগকারী পোর্টাল — সম্মতিপত্র",
     en: "Investor Portal — Consent",
@@ -818,6 +876,61 @@ const nomination: TemplateContent = {
       witnesses: 0,
     },
   ],
+};
+
+/** What the portal shows an Organisation's Signatory, and what it holds of them — the consent's first and third
+ *  clauses, said by a Signatory for the Organisation (ADR 0020). */
+const ORGANISATION_CONSENTS = {
+  shows: {
+    bn: "খামারের অনলাইন বিনিয়োগকারী পোর্টালে প্রতিষ্ঠানের চুক্তি, ভেঞ্চার, টাকার হিসাব ও কাগজ আমাকে দেখানো হবে। শুধু আমি, প্রতিষ্ঠানের স্বাক্ষরকারী হিসেবে, আমার নিজের ফোন নম্বর ও পাসওয়ার্ড দিয়ে, তা দেখব।",
+    en: "The farm's online Investor Portal will show me the organisation's Agreements, Ventures, money and papers. Only I, as its Signatory, will see them, with my own phone number and password.",
+    only: "an_organisation" as const,
+  },
+  holds: {
+    bn: "এর জন্য খামার প্রতিষ্ঠানের ব্যাংক হিসাব আর তার স্বাক্ষরকারী হিসেবে আমার এনআইডি নম্বর রাখবে। পোর্টালে এনআইডি আর ব্যাংক হিসাবের শুধু শেষ চারটি অঙ্ক দেখা যাবে।",
+    en: "For this, the farm will hold the organisation's bank account and my NID number as its Signatory. The portal shows only the last four digits of my NID and the bank account.",
+    only: "an_organisation" as const,
+  },
+};
+
+/**
+ * The Portal Consent today (2026-10-08): the one before it, opening with whoever signs — a person, or a Signatory for
+ * their Organisation — and with what the portal shows and holds said for each kind. A person's reads exactly as it did.
+ */
+const portalConsent: TemplateContent = {
+  ...PORTAL_CONSENT_BEFORE_ORGANISATIONS,
+  preamble: {
+    bn: PORTAL_CONSENT_BEFORE_ORGANISATIONS.preamble.bn.replace(
+      "{investorName}",
+      "{signerName}"
+    ),
+    en: PORTAL_CONSENT_BEFORE_ORGANISATIONS.preamble.en.replace(
+      "{investorName}",
+      "{signerName}"
+    ),
+  },
+  sections: PORTAL_CONSENT_BEFORE_ORGANISATIONS.sections.map(
+    (section, place) => {
+      if (section.kind !== "clauses" || place !== 0) {
+        return section;
+      }
+      const [shows, keeps, holds, ...rest] = section.clauses;
+      if (!(shows && keeps && holds)) {
+        return section;
+      }
+      return {
+        ...section,
+        clauses: [
+          { ...shows, only: "a_person" as const },
+          ORGANISATION_CONSENTS.shows,
+          keeps,
+          { ...holds, only: "a_person" as const },
+          ORGANISATION_CONSENTS.holds,
+          ...rest,
+        ],
+      };
+    }
+  ),
 };
 
 /** The wording each kind of paper starts from. */

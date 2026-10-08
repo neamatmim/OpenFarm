@@ -754,6 +754,18 @@ export interface CapitalLine {
   reference: string;
 }
 
+/** What a paper writes of an Organisation beyond its name, address and phone (ADR 0020): its own papers, the paper
+ *  that names its Signatory, and the Signatory. */
+export interface PaperOrganisation {
+  tradeLicence: string | null;
+  rjscNumber: string | null;
+  tin: string | null;
+  authority: string;
+  /** The authority's date, as the paper writes a day. */
+  authorityOn: string | null;
+  signatory: { name: string; role: string | null; nid: string | null };
+}
+
 /**
  * যোগদানপত্র — what one Investor is handed when his money lands.
  *
@@ -770,7 +782,9 @@ export interface JoiningLetter {
     phone: string;
     address: string | null;
     nid: string | null;
-    /** The Nominees in force: the letter describes him as he is today. */
+    /** An Organisation's papers and its Signatory; null or left out for a person (ADR 0020). */
+    organisation?: PaperOrganisation | null;
+    /** The Nominees in force: the letter describes him as he is today. None for an Organisation. */
     nominees: PaperNominee[];
   };
   ventureName: string;
@@ -869,6 +883,50 @@ const monthlySumLines = (
     : [];
 
 /**
+ * Who the joining letter is for, as its head writes them: a person with their Nominees in force, or an Organisation with
+ * its own papers and the Signatory who signs for it, and no Nominee (ADR 0020).
+ */
+const whoJoined = (him: JoiningLetter["him"]): (string | null)[] => {
+  const { organisation } = him;
+  if (!organisation) {
+    return [
+      field("বিনিয়োগকারী", "Investor", him.name),
+      him.address?.trim() ? field("ঠিকানা", "Address", him.address) : null,
+      field("মোবাইল", "Phone", him.phone),
+      him.nid?.trim() ? field("জাতীয় পরিচয়পত্র", "NID", him.nid) : null,
+      ...him.nominees.map((one, index) =>
+        field(
+          `নমিনি ${formatDigits(index + 1, "bn")}`,
+          `Nominee ${index + 1}`,
+          nomineeLineOf(one)
+        )
+      ),
+    ];
+  }
+  const { signatory } = organisation;
+  return [
+    field("বিনিয়োগকারী প্রতিষ্ঠান", "Investor", him.name),
+    him.address?.trim() ? field("ঠিকানা", "Address", him.address) : null,
+    organisation.tradeLicence?.trim()
+      ? field("ট্রেড লাইসেন্স", "Trade licence", organisation.tradeLicence)
+      : null,
+    organisation.rjscNumber?.trim()
+      ? field("আরজেএসসি নিবন্ধন", "RJSC registration", organisation.rjscNumber)
+      : null,
+    organisation.tin?.trim() ? field("টিআইএন", "TIN", organisation.tin) : null,
+    field(
+      "পক্ষে স্বাক্ষরকারী",
+      "Signatory",
+      signatory.role ? `${signatory.name}, ${signatory.role}` : signatory.name
+    ),
+    field("মোবাইল", "Phone", him.phone),
+    signatory.nid?.trim()
+      ? field("স্বাক্ষরকারীর জাতীয় পরিচয়পত্র", "Signatory's NID", signatory.nid)
+      : null,
+  ];
+};
+
+/**
  * The paper an Investor gets when he joins: that the Farm has his money, and what he has agreed to.
  *
  * Every arrival is printed with its own day and bank reference rather than summed into one figure,
@@ -887,21 +945,7 @@ export const joiningLetter = (letter: JoiningLetter): string => {
     producedBy: letter.producedBy,
     producedAt: letter.producedAt,
     body: [
-      field("বিনিয়োগকারী", "Investor", letter.him.name),
-      letter.him.address?.trim()
-        ? field("ঠিকানা", "Address", letter.him.address)
-        : null,
-      field("মোবাইল", "Phone", letter.him.phone),
-      letter.him.nid?.trim()
-        ? field("জাতীয় পরিচয়পত্র", "NID", letter.him.nid)
-        : null,
-      ...letter.him.nominees.map((one, index) =>
-        field(
-          `নমিনি ${formatDigits(index + 1, "bn")}`,
-          `Nominee ${index + 1}`,
-          nomineeLineOf(one)
-        )
-      ),
+      ...whoJoined(letter.him),
       "",
       field("ভেঞ্চার", "Venture", letter.ventureName),
       field("প্রতি ইউনিট", "Unit price", `${letter.unitPrice} টাকা`),
@@ -923,7 +967,9 @@ export const joiningLetter = (letter: JoiningLetter): string => {
       "",
       ...stampLines(letter.stamp),
       "",
-      "বিনিয়োগকারীর স্বাক্ষর / Investor: ____________________",
+      letter.him.organisation
+        ? `বিনিয়োগকারী প্রতিষ্ঠানের পক্ষে স্বাক্ষর / For the Investor: ____________________ (${letter.him.organisation.signatory.name})`
+        : "বিনিয়োগকারীর স্বাক্ষর / Investor: ____________________",
       "খামারির স্বাক্ষর / For the Farm: ____________________",
     ],
   });

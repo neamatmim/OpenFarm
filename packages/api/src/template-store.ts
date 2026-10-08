@@ -9,7 +9,9 @@ import type { TemplateContent, TemplateKind } from "@OpenFarm/domain";
 import {
   FIRST_PRINTED_AGREEMENT,
   STANDARD_AGREEMENT_BEFORE_MONTHLY,
+  PORTAL_CONSENT_BEFORE_ORGANISATIONS,
   STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
+  STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
   STANDARD_TEMPLATES,
   TEMPLATE_KINDS,
 } from "@OpenFarm/domain";
@@ -161,25 +163,54 @@ const canonical = (value: unknown): string =>
 const LOST_AND_FARM_CAPITAL =
   "A lost or stolen animal is made good by the Farm, and the Farm's own capital in a Venture is told to its Investors (2026-10-05, not yet seen by the advisers).";
 
-/** Why the farm's Investment Agreement moved on without the Owner publishing it, as its Version's note says — by the
- *  standard it was still on. */
-const CAUGHT_UP_NOTES = {
-  before_monthly: `OpenFarm's standard wording: the clauses for capital paid by the month, approved by the lawyer and the Shariah scholar on 2026-10-02, printed only on a Venture paid by the month. ${LOST_AND_FARM_CAPITAL}`,
-  paid_by_the_month: `OpenFarm's standard wording. ${LOST_AND_FARM_CAPITAL}`,
-} as const;
+/** What the 2026-10-08 standard adds: the lines for an Organisation and its Signatory (ADR 0020), agreed by the
+ *  advisers before it was built, the Owner said. A person's paper reads as it did. */
+const ORGANISATIONS =
+  "An Organisation may be an Investor through its Signatory: its papers print the Organisation's lines in place of a person's death and Nominee lines; a person's read as before (2026-10-08, ADR 0020).";
 
 /**
- * Catches a farm's Investment Agreement up to the standard wording, when the wording in force is still exactly the
- * standard it was given — the clauses for capital paid by the month added after it (2026-10-02). A wording the Owner
- * changed is hers, and is left alone: she adds the clauses herself if she wants them. Published by nobody, as the
- * standard first was, with a note saying why; every Agreement already signed keeps the Version it was signed in.
+ * The standard wordings a farm may still be on exactly, kind by kind, oldest first, each with the note its catch-up
+ * Version says why with. A wording the Owner changed or published herself is hers, and is never caught up.
  */
-const catchUpTheStandardAgreement = async (
-  context: Context & { farm: { id: string } }
+const EARLIER_STANDARDS: Partial<
+  Record<TemplateKind, readonly { content: TemplateContent; note: string }[]>
+> = {
+  investment_agreement: [
+    {
+      content: STANDARD_AGREEMENT_BEFORE_MONTHLY,
+      note: `OpenFarm's standard wording: the clauses for capital paid by the month, approved by the lawyer and the Shariah scholar on 2026-10-02, printed only on a Venture paid by the month. ${LOST_AND_FARM_CAPITAL} ${ORGANISATIONS}`,
+    },
+    {
+      content: STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
+      note: `OpenFarm's standard wording. ${LOST_AND_FARM_CAPITAL} ${ORGANISATIONS}`,
+    },
+    {
+      content: STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
+      note: `OpenFarm's standard wording. ${ORGANISATIONS}`,
+    },
+  ],
+  portal_consent: [
+    {
+      content: PORTAL_CONSENT_BEFORE_ORGANISATIONS,
+      note: `OpenFarm's standard wording. ${ORGANISATIONS}`,
+    },
+  ],
+};
+
+/**
+ * Catches a farm's paper of one kind up to the standard wording, when the wording in force is still exactly a standard
+ * it was given before — the clauses for capital paid by the month added after it (2026-10-02), a lost animal and the
+ * Farm's own capital (2026-10-05), an Organisation's lines (2026-10-08). A wording the Owner changed is hers, and is
+ * left alone: she adds the clauses herself if she wants them. Published by nobody, as the standard first was, with a
+ * note saying why; every paper already signed keeps the Version it was signed in.
+ */
+const catchUpTheStandard = async (
+  context: Context & { farm: { id: string } },
+  kind: TemplateKind
 ): Promise<void> => {
   const farmId = context.farm.id;
   const template = await context.db.query.paperTemplate.findFirst({
-    where: { farmId, kind: "investment_agreement" },
+    where: { farmId, kind },
     with: { currentVersion: true },
   });
   const current = template?.currentVersion;
@@ -189,17 +220,16 @@ const catchUpTheStandardAgreement = async (
       return null;
     }
     const words = canonical(current.content);
-    if (words === canonical(STANDARD_AGREEMENT_BEFORE_MONTHLY)) {
-      return "before_monthly" as const;
-    }
-    return words === canonical(STANDARD_AGREEMENT_PAID_BY_THE_MONTH)
-      ? ("paid_by_the_month" as const)
-      : null;
+    return (
+      EARLIER_STANDARDS[kind]?.find(
+        (earlier) => canonical(earlier.content) === words
+      ) ?? null
+    );
   })();
   if (!(template && current && onStandard)) {
     return;
   }
-  const note = CAUGHT_UP_NOTES[onStandard];
+  const { note } = onStandard;
   const now = context.clock.now();
   const versionId = uuidv7(now);
   await audited(context)
@@ -209,7 +239,7 @@ const catchUpTheStandardAgreement = async (
         entityId: template.id,
         action: "update",
         after: () =>
-          Promise.resolve({ caughtUpTo: "lost_and_farm_capital", versionId }),
+          Promise.resolve({ caughtUpTo: "organisations", versionId }),
         reason: note,
       },
       async (tx) => {
@@ -227,7 +257,7 @@ const catchUpTheStandardAgreement = async (
           farmId,
           templateId: template.id,
           number: current.number + 1,
-          content: STANDARD_TEMPLATES.investment_agreement,
+          content: STANDARD_TEMPLATES[kind],
           note,
           publishedAt: now,
         });
@@ -254,7 +284,8 @@ export const giveStandardTemplates = async (
     give: (tx, kinds, now) =>
       addStandardTemplates(tx, context.farm.id, kinds, now),
   });
-  await catchUpTheStandardAgreement(context);
+  await catchUpTheStandard(context, "investment_agreement");
+  await catchUpTheStandard(context, "portal_consent");
 };
 
 /** The Version a kind of paper is in now on this farm, or nothing for a farm not yet given its wording. */

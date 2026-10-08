@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { investmentAgreement, investor } from "@OpenFarm/db/schema/venture";
 import type { TemplateContent } from "@OpenFarm/domain";
-import { farmDayOf } from "@OpenFarm/domain";
+import { conditionsOf, farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -65,7 +65,9 @@ const tellsOfFarmCapital = (content: TemplateContent): boolean =>
   content.sections.some(
     (section) =>
       section.kind === "clauses" &&
-      section.clauses.some((clause) => clause.only === "farm_capital")
+      section.clauses.some((clause) =>
+        conditionsOf(clause.only).includes("farm_capital")
+      )
   );
 
 /** Whether an Agreement is the Farm's own Units. */

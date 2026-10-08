@@ -2110,8 +2110,11 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "templates.partiesHint":
     "ড্যাশের আগের অংশ দিয়ে প্রতিটি পক্ষ সই করে, যেমন প্রথম পক্ষ — মুদারিব।",
   "templates.factLabel": "কী",
-  "templates.onlyByTheMonth":
+  "templates.only.by_the_month":
     "শুধু মাসে মাসে {currencySum} দেওয়া ভেঞ্চারের কাগজে ছাপা হয়",
+  "templates.only.farm_capital": "শুধু খামার নিজের {currencySum}য় ইউনিট নিলে ছাপা হয়",
+  "templates.only.a_person": "শুধু ব্যক্তি বিনিয়োগকারীর কাগজে ছাপা হয়",
+  "templates.only.an_organisation": "শুধু প্রতিষ্ঠানের কাগজে ছাপা হয়",
   "templates.factValue": "কী বলে (বাংলায়, তথ্য বন্ধনীতে)",
   "templates.lineNumber": "লাইন {number}",
   "templates.addLine": "লাইন যোগ করুন",

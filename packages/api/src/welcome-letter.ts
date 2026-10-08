@@ -62,7 +62,13 @@ export const handOver = async (
   const who = await context.db.query.investor.findFirst({
     // The Farm's own partner record is no person and is never asked into the portal.
     where: { id: investorId, farmId, isFarm: false },
-    columns: { id: true, name: true, phone: true },
+    columns: {
+      id: true,
+      name: true,
+      phone: true,
+      kind: true,
+      signatoryName: true,
+    },
   });
   if (!who) {
     throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
@@ -111,7 +117,14 @@ export const handOver = async (
   );
   return {
     letterhead: letterheadOf(context.farm),
-    investor: { name: who.name, phone: mobileNumberOf(who.phone) ?? who.phone },
+    investor: {
+      // Handed to the person who signs in: an Organisation's Signatory, by their name and their Organisation's.
+      name:
+        who.kind === "organisation" && who.signatoryName
+          ? `${who.signatoryName} (${who.name})`
+          : who.name,
+      phone: mobileNumberOf(who.phone) ?? who.phone,
+    },
     farm: farmToCall(context.farm),
     issuedOn: farmDayOf(now),
     // A Bangla paper throughout, whatever the Owner reads the app in.

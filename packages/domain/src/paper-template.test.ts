@@ -539,14 +539,15 @@ describe("the Portal Consent and the privacy notice", () => {
       farmName: { bn: "সবুজ খামার", en: "Sobuj Farm" },
       dataHost: { bn: "হোস্ট", en: "Host" },
     });
-    const theInvestors = factsMissing(consent, {}, ["investorName"]);
+    // The consent opens with whoever signs it: a person, or an Organisation's Signatory for it.
+    const theInvestors = factsMissing(consent, {}, ["signerName"]);
 
     expect(missing).toContain("backupStore");
     expect(missing).toContain("backupCountry");
     expect(missing).not.toContain("farmName");
     expect(missing).not.toContain("dataHost");
     expect(new Set(missing).size).toBe(missing.length);
-    expect(theInvestors).toEqual(["investorName"]);
+    expect(theInvestors).toEqual(["signerName"]);
   });
 });
 

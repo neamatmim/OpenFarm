@@ -185,6 +185,7 @@ export type {
   PenSpellLine,
   CapitalLine,
   JoiningLetter,
+  PaperOrganisation,
   ProgressAnimal,
   ProgressStatement,
   SettlementStatement,
@@ -874,6 +875,7 @@ export type {
   PaperFor,
   PaperInvestor,
   PaperParties,
+  PrintedOnly,
   ReadPart,
   PaperSection,
   TemplateContent,
@@ -891,6 +893,7 @@ export {
   RECEIVER_FIELDS,
   TEMPLATE_FIELDS,
   TEMPLATE_KINDS,
+  conditionsOf,
   factsMissing,
   fieldsIn,
   isTemplateField,
@@ -906,8 +909,10 @@ export {
 } from "./paper-template";
 export {
   FIRST_PRINTED_AGREEMENT,
+  PORTAL_CONSENT_BEFORE_ORGANISATIONS,
   STANDARD_AGREEMENT_BEFORE_MONTHLY,
   STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
+  STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
   STANDARD_TEMPLATES,
 } from "./standard-templates";
 export {

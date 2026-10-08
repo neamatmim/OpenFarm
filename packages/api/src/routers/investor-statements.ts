@@ -276,6 +276,7 @@ export const investorStatementsRouter = {
         wordingFor(wording.content, {
           paidByTheMonth: monthly !== null,
           farmCapital: farmCapital !== null,
+          organisation: Boolean(investor.organisation),
         }),
         {
           kind: "investment_agreement",

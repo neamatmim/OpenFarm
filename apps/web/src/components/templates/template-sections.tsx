@@ -1,5 +1,9 @@
-import type { Clause, FactLine } from "@OpenFarm/domain";
-import { MOST_WITNESSES, RECEIVER_FIELDS } from "@OpenFarm/domain";
+import type { Clause, FactLine, PrintedOnly } from "@OpenFarm/domain";
+import {
+  MOST_WITNESSES,
+  RECEIVER_FIELDS,
+  conditionsOf,
+} from "@OpenFarm/domain";
 import { formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
@@ -14,6 +18,15 @@ import type { DraftSection, Keyed } from "@/lib/template-draft";
 import { moved, newClause, newFactLine } from "@/lib/template-draft";
 
 import { SaidField } from "./said-field";
+
+/** Which papers a line is printed on, in the Owner's words: each condition it waits on. */
+const onlySaid = (
+  only: PrintedOnly,
+  t: ReturnType<typeof useLanguage>["t"]
+): string =>
+  conditionsOf(only)
+    .map((condition) => t(`templates.only.${condition}`))
+    .join(" · ");
 
 /** Up, down and out: the three buttons beside anything in a list the Owner orders. */
 const ListControls = ({
@@ -85,9 +98,9 @@ const SaidList = ({
       <ol className="flex flex-col gap-3">
         {items.map((item, index) => {
           const numbered = nameOf(formatDigits(index + 1, language));
-          // A clause for capital paid by the month says so, or she would wonder why other papers leave it out.
+          // A clause printed only on some papers says which, or she would wonder why other papers leave it out.
           const name = item.only
-            ? `${numbered} · ${t("templates.onlyByTheMonth")}`
+            ? `${numbered} · ${onlySaid(item.only, t)}`
             : numbered;
           return (
             <li
@@ -241,7 +254,7 @@ const FactLineFields = ({
       </FormField>
       {line.only ? (
         <p className="text-muted-foreground text-xs">
-          {t("templates.onlyByTheMonth")}
+          {onlySaid(line.only, t)}
         </p>
       ) : null}
     </div>
