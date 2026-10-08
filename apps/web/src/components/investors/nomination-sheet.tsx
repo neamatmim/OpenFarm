@@ -76,8 +76,8 @@ const PrintToSign = ({
 
 /**
  * A new মনোনয়নপত্র for one Investor: every Nominee they want written down, starting from the list in force, printed
- * for them to sign in front of the Owner, and recorded with the day they signed and a photo of it. From then on it is
- * the list in force for all their Agreements.
+ * for them to sign in front of the Owner, and recorded with the day they signed and — now or later — a photo of it.
+ * From then on it is the list in force for all their Agreements.
  */
 export const NominationSheet = ({
   investor,
@@ -111,16 +111,13 @@ export const NominationSheet = ({
   );
   // Judged on the day it was signed, as the farm judges it: a Nominee who turned eighteen since is of age on the paper.
   const onDay = signedOn === "" ? today : signedOn;
-  const ready =
-    signedOn !== "" && photo !== null && draftsProblem(drafts, onDay) === null;
+  // The photo may follow: the paper is in force from its signature, and the Investor's page asks for the photo.
+  const ready = signedOn !== "" && draftsProblem(drafts, onDay) === null;
   return (
     <FormSheet
       description={t("nominees.newHint")}
       onOpenChange={onOpenChange}
       onSubmit={() => {
-        if (!photo) {
-          return;
-        }
         recording.mutate({
           id: investor.id,
           nominees: nomineesOf(drafts, onDay),

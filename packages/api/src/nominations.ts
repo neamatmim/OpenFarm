@@ -227,10 +227,11 @@ export const nomineeRows = (
   });
 
 /**
- * Records a মনোনয়নপত্র signed on `signedOn` in front of the Owner, with its photo: the Nominees it names, each judged
- * a minor or not on that day, pinned to the wording in force. From then on it is the list in force for all the
- * Investor's Agreements. A day in the future, or one before the list in force was signed, is refused — the newest
- * paper on file must be the newest signed.
+ * Records a মনোনয়নপত্র signed on `signedOn` in front of the Owner: the Nominees it names, each judged a minor or not on
+ * that day, pinned to the wording in force. From then on it is the list in force for all the Investor's Agreements —
+ * the signature, not the photo, is what makes it so. Its photo comes with it, or later by `keepNominationPaper`. A day
+ * in the future, or one before the list in force was signed, is refused — the newest paper on file must be the newest
+ * signed.
  */
 export const recordNomination = async (
   context: Owned,
@@ -238,7 +239,7 @@ export const recordNomination = async (
     investorId: string;
     nominees: readonly Nominee[];
     signedOn: string;
-    photo: PhotoInput;
+    photo: PhotoInput | null;
   }
 ): Promise<{ id: string }> => {
   const farmId = context.farm.id;
@@ -284,16 +285,84 @@ export const recordNomination = async (
       if (rows.length > 0) {
         await tx.insert(nominee).values(rows);
       }
-      await tx.insert(nominationPaper).values({
-        nominationId: id,
-        farmId,
-        contentType: input.photo.contentType,
-        data: input.photo.data,
-        updatedAt: now,
-      });
+      if (input.photo) {
+        await tx.insert(nominationPaper).values({
+          nominationId: id,
+          farmId,
+          contentType: input.photo.contentType,
+          data: input.photo.data,
+          updatedAt: now,
+        });
+      }
     }
   );
   return { id };
+};
+
+/** Whether one Nomination has its photo kept, as the trail snapshots it either side of keeping one. */
+const readPaperKept = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  nominationId: string
+) => {
+  const kept = await tx.query.nominationPaper.findFirst({
+    where: { nominationId, farmId },
+    columns: { updatedAt: true },
+  });
+  return { nominationId, photoKeptAt: kept?.updatedAt ?? null };
+};
+
+/**
+ * Keeps the photo of a মনোনয়নপত্র already recorded — one the Owner had no photo of on the day, or a better one in place
+ * of the first. Only a মনোনয়নপত্র has a paper of its own: an Agreement's Nomination is proved by the Agreement's photo,
+ * and a list carried over was never signed for.
+ */
+export const keepNominationPaper = async (
+  context: Owned,
+  input: { nominationId: string; photo: PhotoInput }
+): Promise<void> => {
+  const farmId = context.farm.id;
+  const paper = await context.db.query.nomination.findFirst({
+    where: { id: input.nominationId, farmId },
+    columns: { id: true, investorId: true, how: true },
+  });
+  if (!paper) {
+    throw new ORPCError("NOT_FOUND", { message: "No such Nomination" });
+  }
+  if (paper.how !== "nomination") {
+    throw refused(
+      "Only a মনোনয়নপত্র has a paper of its own to keep",
+      "nomination_has_no_paper"
+    );
+  }
+  const now = context.clock.now();
+  await audited(context).write(
+    {
+      entity: "nomination",
+      entityId: paper.investorId,
+      action: "update",
+      before: (tx) => readPaperKept(tx, farmId, paper.id),
+      after: (tx) => readPaperKept(tx, farmId, paper.id),
+    },
+    (tx) =>
+      tx
+        .insert(nominationPaper)
+        .values({
+          nominationId: paper.id,
+          farmId,
+          contentType: input.photo.contentType,
+          data: input.photo.data,
+          updatedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: nominationPaper.nominationId,
+          set: {
+            contentType: input.photo.contentType,
+            data: input.photo.data,
+            updatedAt: now,
+          },
+        })
+  );
 };
 
 /**

@@ -258,6 +258,7 @@ export const fieldChanges = (
 const NAMED_FIELDS = new Set<string>([
   "nominationHow",
   "nominees",
+  "photoKeptAt",
   "perYear",
   "fromDay",
   "phone",

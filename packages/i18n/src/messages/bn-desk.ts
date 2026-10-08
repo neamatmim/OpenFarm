@@ -1575,6 +1575,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "auditField.signedOn": "সইয়ের দিন",
   "auditField.nominationHow": "কোন কাগজে",
   "auditField.nominees": "নমিনি",
+  "auditField.photoKeptAt": "সই করা কাগজের ছবি",
   "auditField.withdrawnOn": "তুলে নেওয়ার দিন",
   "auditField.withdrawnHow": "কীভাবে তুলে নিয়েছেন",
   "auditField.visitedOn": "ভিজিটের দিন",
