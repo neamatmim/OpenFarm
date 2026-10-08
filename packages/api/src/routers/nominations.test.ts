@@ -420,8 +420,12 @@ describe("a মনোনয়নপত্র", () => {
       nominees: [{ ...adult, sharePercent: 100 }],
       signedOn: "2063-01-01",
     });
-
     const [unphotographed] = await owner.investors.nominations({ id });
+    expect(
+      await owner.investors.nominationPhoto({
+        nominationId: unphotographed?.id ?? "",
+      })
+    ).toBeNull();
     expect(unphotographed).toMatchObject({
       how: "nomination",
       hasPhoto: false,
@@ -441,6 +445,12 @@ describe("a মনোনয়নপত্র", () => {
 
     const [kept] = await owner.investors.nominations({ id });
     expect(kept).toMatchObject({ id: unphotographed?.id, hasPhoto: true });
+    // The better one is what the farm now shows.
+    expect(
+      await owner.investors.nominationPhoto({
+        nominationId: unphotographed?.id ?? "",
+      })
+    ).toMatchObject({ contentType: "image/png", data: "d29ybGQ=" });
     const trail = await owner.audit.list({
       entity: "nomination",
       entityId: id,
@@ -469,6 +479,9 @@ describe("a মনোনয়নপত্র", () => {
     ).rejects.toMatchObject({ data: { refusal: "nomination_has_no_paper" } });
     await expect(
       manager.investors.keepNominationPaper({ nominationId: carried, ...PHOTO })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      manager.investors.nominationPhoto({ nominationId: carried })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 

@@ -10,7 +10,10 @@ import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
-import { NominationPaperButton } from "./nomination-paper";
+import {
+  NominationPaperButton,
+  NominationPhotoButton,
+} from "./nomination-paper";
 import { NominationSheet } from "./nomination-sheet";
 import { phoneLink } from "./phone-link";
 
@@ -129,16 +132,20 @@ const FromWhere = ({
   );
 };
 
-/** A মনোনয়নপত্র recorded before its photo was kept: said so, with the camera to keep it. It is in force all the same —
- *  the signature makes it so, not the photo. Nothing for an Agreement's Nominees, whose proof is the Agreement's. */
-const PaperMissing = ({
+/** A মনোনয়নপত্র's photo: with the camera to keep it when it was recorded without one — in force all the same, since the
+ *  signature makes it so — or to open the one kept, and replace it there. Nothing for an Agreement's Nominees, whose
+ *  proof is the Agreement's, or a list carried over, which was never signed for. */
+const NominationPhoto = ({
   nomination,
 }: {
   nomination: Pick<Nomination, "id" | "how" | "hasPhoto">;
 }) => {
   const { t } = useLanguage();
-  if (nomination.how !== "nomination" || nomination.hasPhoto) {
+  if (nomination.how !== "nomination") {
     return null;
+  }
+  if (nomination.hasPhoto) {
+    return <NominationPhotoButton nominationId={nomination.id} />;
   }
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -195,7 +202,7 @@ const Earlier = ({ investorId }: { investorId: string }) => {
             <span className="text-muted-foreground text-xs">
               <FromWhere nomination={one} />
             </span>
-            <PaperMissing nomination={one} />
+            <NominationPhoto nomination={one} />
             <NomineeList nominees={one.nominees} />
           </li>
         ))}
@@ -248,7 +255,7 @@ export const Nominees = ({ investor }: { investor: Investor }) => {
           {notSignedFor ? <> · {t("nominees.notSignedForHint")}</> : null}
         </p>
       ) : null}
-      {nomination ? <PaperMissing nomination={nomination} /> : null}
+      {nomination ? <NominationPhoto nomination={nomination} /> : null}
       <NomineeList nominees={nomination?.nominees ?? []} />
       <Earlier investorId={investor.id} />
       <NominationSheet
