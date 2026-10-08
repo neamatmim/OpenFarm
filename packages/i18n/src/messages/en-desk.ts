@@ -519,10 +519,10 @@ export const enDesk = {
   "agreeInApp.switch.shownHint":
     "Agreements and Amendments may be agreed in the app, with no stamp or e-challan: you offer, the Investor agrees in the portal, you approve.",
   "agreeInApp.switch.hiddenHint":
-    "Off. Turn it on only once the lawyer and the Shariah scholar have confirmed it — their approval was of stamped Agreements.",
+    "Off. New Agreements and Amendments are signed on stamped paper.",
   "agreeInApp.switch.confirmTitle": "Turn on agreeing in the app?",
   "agreeInApp.switch.confirmWhy":
-    "Have the lawyer and the Shariah scholar confirmed the farm may rely on an Agreement with no stamp on it? Once on, new Agreements and Amendments may be agreed in the app.",
+    "An Agreement or Amendment agreed in the app carries no stamp: before a court or the Arbitrator it counts only once the duty and a penalty of ten times it are paid. You chose to accept that risk. Once on, you may offer new Agreements and Amendments in the app, and Investors agree to them with a code the farm sends them. Stamped paper stays available for every paper.",
   "agreeInApp.switch.shownDone": "Agreeing in the app is on",
   "agreeInApp.switch.hiddenDone": "Agreeing in the app is off",
   "agreeInApp.route": "Agreed in the app",
@@ -572,7 +572,48 @@ export const enDesk = {
   "agreeInApp.portal.readAgain": "Read it again",
   "agreeInApp.portal.paperTitle": "Mudaraba Investment Agreement",
   "agreeInApp.portal.agreeHint":
-    "Read it all. Pressing “I agree” records your agreement to this paper, as it is.",
+    "Read it all, then ask for a code: the farm sends one to your mobile (and your confirmed email). Entering it and pressing “I agree” records your agreement to this paper, as it is — as your signature would.",
+  "agreeInApp.portal.sendCode": "Send me a code",
+  "agreeInApp.portal.sendAgain": "Send again",
+  "agreeInApp.portal.code": "Code",
+  "agreeInApp.portal.codeSentSms":
+    "The code went by text to {phone}. Enter it within {minutes, plural, one {# minute} other {# minutes}} and press “I agree”.",
+  "agreeInApp.portal.codeSentEmail":
+    "The code went by email to {email}. Enter it within {minutes, plural, one {# minute} other {# minutes}} and press “I agree”.",
+  "agreeInApp.portal.codeSentBoth":
+    "Codes went by text to {phone} and by email to {email}; either will do. Enter one within {minutes, plural, one {# minute} other {# minutes}} and press “I agree”.",
+  "agreeInApp.refusal.wrong_code": "That is not the code we sent.",
+  "agreeInApp.refusal.code_expired": "That code has run out — ask for another.",
+  "agreeInApp.refusal.code_used":
+    "That code was used already — ask for another.",
+  "agreeInApp.refusal.too_many_codes":
+    "Too many wrong codes — try again in fifteen minutes.",
+  "agreeInApp.refusal.code_sent_just_now":
+    "A code was sent just now — you can ask again shortly.",
+  "agreeInApp.refusal.code_not_sent":
+    "The code did not go — try again in a minute.",
+  "agreeInApp.refusal.no_signing_clause":
+    "Your consent has no signing clause: sign the new one at your next visit to the farm. Until then, you sign on paper.",
+  "agreeInApp.refusal.no_way_to_send_a_code":
+    "The farm cannot send you a code yet; tell the farm.",
+  "agreeInApp.refusal.already_agreed": "You have agreed to it already.",
+  "agreeInApp.proof": "Code by {way} to {to} · agreed {on} · from {from}",
+  "agreeInApp.proofBySms": "text",
+  "agreeInApp.proofByEmail": "email",
+  "agreeInApp.ways.both": "Signing codes go by text and by email.",
+  "agreeInApp.ways.smsOnly":
+    "Signing codes go by text; no email sender is set up.",
+  "agreeInApp.ways.emailOnly":
+    "Signing codes go by email only: there is no text gateway, so nobody without a confirmed email can agree in the app.",
+  "agreeInApp.ways.none":
+    "There is no way to send signing codes yet: until a text gateway or an email sender is set up, nobody can agree in the app.",
+  "agreeInApp.ready.noClause":
+    "Cannot agree in the app: their consent has no signing clause.",
+  "agreeInApp.ready.noWay":
+    "Cannot agree in the app: there is no way to send them a code.",
+  "agreeInApp.ready.both": "Can agree in the app: codes go by text and email.",
+  "agreeInApp.ready.sms": "Can agree in the app: codes go by text.",
+  "agreeInApp.ready.email": "Can agree in the app: codes go by email.",
   "agreeInApp.portal.agree": "I agree",
   "agreeInApp.portal.agreedDone": "Your agreement has reached the farm",
   "agreeInApp.how": "How it is agreed",

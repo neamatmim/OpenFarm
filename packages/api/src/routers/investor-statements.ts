@@ -5,7 +5,7 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { agreedPaperOf } from "../agreement-offer-store";
+import { agreedPaperOf, sealOfAgreement } from "../agreement-offer-store";
 import { agreementLaidOut, amendmentLaidOut } from "../agreement-paper";
 import { audited } from "../audit";
 import { assertRegistered, exportedPaper } from "../export-store";
@@ -36,15 +36,27 @@ import { windUpDaysOf, paidForBy, withWindowsInForce } from "../venture-store";
  * not the original: the stamp it was signed on, or, agreed in the app, that it carries none, the day it was approved
  * and the agreed paper's number.
  */
-const copyMarksOf = (agreement: {
-  stampKind: StampKind;
-  stampSerial: string;
-  stampValueMoney: number;
-  stampedOn: string;
-}): { filled: Said[]; copyOf: Said } => {
+const copyMarksOf = (
+  agreement: {
+    stampKind: StampKind;
+    stampSerial: string;
+    stampValueMoney: number;
+    stampedOn: string;
+  },
+  sealed: { agreedAt: Date; channel: "sms" | "email" } | null
+): { filled: Said[]; copyOf: Said } => {
   const day = daySaid(agreement.stampedOn);
   const serial = { bn: agreement.stampSerial, en: agreement.stampSerial };
   if (agreement.stampKind === "in_app") {
+    // The day they entered the code and the way it came, where a code sealed it (ADR 0022).
+    const agreedOn = sealed ? daySaid(farmDayOf(sealed.agreedAt)) : null;
+    const byCode =
+      sealed && agreedOn
+        ? {
+            bn: ` · সম্মতি ${agreedOn.bn}, ${sealed.channel === "sms" ? "এসএমএসে" : "ইমেইলে"} পাঠানো কোডে`,
+            en: ` · Agreed ${agreedOn.en} with a code sent by ${sealed.channel === "sms" ? "text" : "email"}`,
+          }
+        : { bn: "", en: "" };
     return {
       filled: [
         serial,
@@ -52,8 +64,8 @@ const copyMarksOf = (agreement: {
         day,
       ],
       copyOf: {
-        bn: `অনুলিপি — মূল নয় · অ্যাপে সম্মত · অনুমোদন ${day.bn} · সম্মত কাগজ নম্বর ${agreement.stampSerial}`,
-        en: `Copy — not the original · Agreed in the app · Approved ${day.en} · Agreed paper no. ${agreement.stampSerial}`,
+        bn: `অনুলিপি — মূল নয় · অ্যাপে সম্মত${byCode.bn} · অনুমোদন ${day.bn} · সম্মত কাগজ নম্বর ${agreement.stampSerial}`,
+        en: `Copy — not the original · Agreed in the app${byCode.en} · Approved ${day.en} · Agreed paper no. ${agreement.stampSerial}`,
       },
     };
   }
@@ -330,7 +342,12 @@ export const investorStatementsRouter = {
         (agreement.stampKind === "in_app"
           ? await agreedPaperOf(context.db, context.farm.id, agreement.id)
           : null) ?? document;
-      const { filled, copyOf } = copyMarksOf(agreement);
+      const { filled, copyOf } = copyMarksOf(
+        agreement,
+        agreement.stampKind === "in_app"
+          ? await sealOfAgreement(context.db, context.farm.id, agreement.id)
+          : null
+      );
       return {
         document: {
           ...original,

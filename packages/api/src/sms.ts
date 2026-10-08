@@ -17,6 +17,8 @@ export interface SmsMessage {
  * which is also what lets the path be built and tested before the account exists.
  */
 export interface SmsTransport {
+  /** Whether the farm has a gateway to send through at all: without one, nothing offers to text. */
+  sends: boolean;
   send: (
     /** A number as the farm wrote it down. */
     to: string,
@@ -27,6 +29,7 @@ export interface SmsTransport {
 /** A farm with no gateway configured is a farm that does not text. The in-app Alert is the
  *  record either way, so there is nothing to fail and nobody to tell. */
 export const silentSms: SmsTransport = {
+  sends: false,
   send: () => Promise.resolve({ delivered: false }),
 };
 

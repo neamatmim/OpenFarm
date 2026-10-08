@@ -36,6 +36,7 @@ export const smsGateway = (): SmsTransport => {
     return silentSms;
   }
   return {
+    sends: true,
     send: async (to: string, message: SmsMessage) => {
       try {
         const response = await fetch(url, {

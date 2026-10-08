@@ -279,8 +279,8 @@ export const farm = pgTable("farm", {
    *  either way, so it can be read before anybody else does. */
   investorProjections: boolean("investor_projections").notNull().default(false),
   /** Whether an Investment Agreement or an Amendment may be agreed within the app — the Investor agreeing in the
-   *  portal, the Owner approving — instead of on stamped paper. Off until the Owner turns it on, once the lawyer and
-   *  the Shariah scholar have confirmed it. The Owner's alone. */
+   *  portal with a Signing Code, the Owner approving — instead of on stamped paper. Off until the Owner turns it on,
+   *  accepting that such an Agreement carries no stamp (ADR 0022). The Owner's alone. */
   agreementsInApp: boolean("agreements_in_app").notNull().default(false),
   /** Whether an Investor may send a **Pay-in Note** from the portal — their word that they sent money towards an
    *  Agreement, which the Owner checks against the Venture Account and records, or answers not found (ADR 0018). It

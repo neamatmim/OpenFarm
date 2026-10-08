@@ -701,6 +701,98 @@ export const amendmentOfferAnswer = pgTable(
   ]
 );
 
+/** What a Signing Code seals: an Agreement Offer, or an Amendment offered in the app. */
+export const SIGNED_OFFER_KINDS = [
+  "agreement_offer",
+  "amendment_offer",
+] as const;
+
+/** The way a Signing Code came that an Investor entered: by text to their phone, or to their confirmed email. */
+export const SIGNING_CHANNELS = ["sms", "email"] as const;
+
+/**
+ * The one-time codes the farm last sent an Investor to agree to one paper offered in the app (ADR 0022): a code by text
+ * and another by email, so the code entered says which way it came. Hashed, short-lived, and replaced by the next ones
+ * sent; marked used once one seals the paper. A way that did not go keeps no code.
+ */
+export const signingCode = pgTable(
+  "signing_code",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    investorId: text("investor_id")
+      .notNull()
+      .references(() => investor.id),
+    offerKind: text("offer_kind", { enum: SIGNED_OFFER_KINDS }).notNull(),
+    offerId: text("offer_id").notNull(),
+    /** The code sent by text, and the number it went to, mostly hidden; null where no text went. */
+    smsCodeHash: text("sms_code_hash"),
+    smsTo: text("sms_to"),
+    /** The code sent by email, and the address it went to, mostly hidden; null where no email went. */
+    emailCodeHash: text("email_code_hash"),
+    emailTo: text("email_to"),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("signing_code_offer_uidx").on(
+      table.investorId,
+      table.offerKind,
+      table.offerId
+    ),
+    check(
+      "signing_code_sent_somewhere",
+      sql`${table.smsCodeHash} is not null or ${table.emailCodeHash} is not null`
+    ),
+  ]
+);
+
+/**
+ * The farm's proof that an Investor agreed to a paper in the app (ADR 0022): who, when, by which way the code they
+ * entered came and where it went, mostly hidden, from what address and browser, and the fingerprint of the paper they
+ * agreed to — and, once the Owner approved it, that the farm told them so. The Evidence Act presumes nothing about who
+ * sent a message, so this is the farm's whole case; kept as written, never changed but for the confirmation.
+ */
+export const signingProof = pgTable(
+  "signing_proof",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    investorId: text("investor_id")
+      .notNull()
+      .references(() => investor.id),
+    offerKind: text("offer_kind", { enum: SIGNED_OFFER_KINDS }).notNull(),
+    offerId: text("offer_id").notNull(),
+    /** Their portal account, which entered the code. */
+    agreedBy: text("agreed_by")
+      .notNull()
+      .references(() => user.id),
+    agreedAt: timestamp("agreed_at", { withTimezone: true }).notNull(),
+    paperHash: text("paper_hash").notNull(),
+    channel: text("channel", { enum: SIGNING_CHANNELS }).notNull(),
+    sentTo: text("sent_to").notNull(),
+    codeSentAt: timestamp("code_sent_at", { withTimezone: true }).notNull(),
+    callerAddress: text("caller_address"),
+    callerAgent: text("caller_agent"),
+    /** When the farm told them the Owner had approved it, and which ways that went. */
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    confirmedBySms: boolean("confirmed_by_sms").notNull().default(false),
+    confirmedByEmail: boolean("confirmed_by_email").notNull().default(false),
+  },
+  (table) => [
+    uniqueIndex("signing_proof_offer_uidx").on(
+      table.offerKind,
+      table.offerId,
+      table.investorId
+    ),
+  ]
+);
+
 /** What an Investor did to their own Request. */
 export const REQUEST_CHANGE_KINDS = ["made", "changed", "withdrawn"] as const;
 

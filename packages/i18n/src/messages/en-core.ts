@@ -2812,6 +2812,18 @@ export const enCore = {
   "email.confirmCode.subject": "The code to confirm your email",
   "email.confirmCode.body":
     "The code to confirm your email in the {farm} Investor Portal: {code}\n\nEnter it on the portal's “Account” page. It works for {minutes, plural, one {# minute} other {# minutes}}. If you did not ask for it, ignore this email and tell the farm.",
+  "signing.paper.agreement_offer": "investment agreement",
+  "signing.paper.amendment_offer": "amendment",
+  "signing.code.sms":
+    "{farm}: your code to agree to the {paper} is {code}. It works for {minutes, plural, one {# minute} other {# minutes}}. Tell nobody.",
+  "signing.code.subject": "Your code to agree to a paper",
+  "signing.code.email":
+    "The code to agree to the {paper} in the {farm} Investor Portal: {code}\n\nEntering it on the paper's page is your agreement, as your signature would be. It works for {minutes, plural, one {# minute} other {# minutes}}. Tell nobody; if you did not ask for it, tell the farm.",
+  "signing.approved.sms":
+    "{farm}: your {paper} no. {number} for {venture} is approved by the farm.",
+  "signing.approved.subject": "Your paper is approved",
+  "signing.approved.email":
+    "{farm} has approved your {paper} no. {number} for {venture}, which you agreed to in the portal with a code. Its copy is on the portal's “Papers” page.",
   "sms.myNumber": "Your mobile number",
   "sms.title": "Text messages",
   "sms.why":

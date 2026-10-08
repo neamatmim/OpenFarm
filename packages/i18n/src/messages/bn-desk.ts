@@ -481,11 +481,10 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "agreeInApp.switch.hide": "বন্ধ করুন",
   "agreeInApp.switch.shownHint":
     "স্ট্যাম্প বা ই-চালান ছাড়াই চুক্তি ও সংশোধনী অ্যাপে করা যাচ্ছে: আপনি প্রস্তাব দেন, বিনিয়োগকারী পোর্টালে সম্মতি দেন, আপনি অনুমোদন দেন।",
-  "agreeInApp.switch.hiddenHint":
-    "বন্ধ। আইনজীবী ও শরিয়াহ বিশেষজ্ঞ নিশ্চিত করলে তবেই চালু করুন — তাঁদের আগের অনুমোদন স্ট্যাম্প করা চুক্তির জন্য।",
+  "agreeInApp.switch.hiddenHint": "বন্ধ। নতুন চুক্তি ও সংশোধনী স্ট্যাম্প কাগজে সই হয়।",
   "agreeInApp.switch.confirmTitle": "অ্যাপেই চুক্তিতে সম্মতি চালু করবেন?",
   "agreeInApp.switch.confirmWhy":
-    "স্ট্যাম্প ছাড়া চুক্তির উপর খামার নির্ভর করতে পারবে কি না, তা আইনজীবী ও শরিয়াহ বিশেষজ্ঞ নিশ্চিত করেছেন তো? চালু করলে নতুন চুক্তি ও সংশোধনী অ্যাপে সম্মতি দিয়েই হবে।",
+    "অ্যাপে সম্মত চুক্তি বা সংশোধনীতে স্ট্যাম্প থাকে না: আদালত বা সালিসের সামনে শুল্ক আর তার দশ গুণ জরিমানা দিলে তবেই তা গণ্য হয়। এই ঝুঁকি আপনি মেনে নিয়েছেন। চালু করলে নতুন চুক্তি ও সংশোধনী অ্যাপে প্রস্তাব দিতে পারবেন, আর বিনিয়োগকারী খামারের পাঠানো কোড দিয়ে সম্মতি দেবেন। প্রতিটি কাগজের জন্য স্ট্যাম্প কাগজও থাকছে।",
   "agreeInApp.switch.shownDone": "অ্যাপেই চুক্তিতে সম্মতি চালু হয়েছে",
   "agreeInApp.switch.hiddenDone": "অ্যাপেই চুক্তিতে সম্মতি বন্ধ হয়েছে",
   "agreeInApp.route": "অ্যাপে সম্মতি",
@@ -533,7 +532,44 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "agreeInApp.portal.readAgain": "আবার পড়ুন",
   "agreeInApp.portal.paperTitle": "মুদারাবা বিনিয়োগ চুক্তি",
   "agreeInApp.portal.agreeHint":
-    "পুরোটা পড়ুন। «আমি সম্মত» চাপলে এই কাগজেই আপনার সম্মতি লেখা থাকবে।",
+    "পুরোটা পড়ুন, তারপর কোড চান: খামার আপনার মোবাইলে (আর নিশ্চিত ইমেইলে) একটি কোড পাঠাবে। কোডটি লিখে «আমি সম্মত» চাপলে এই কাগজেই আপনার সম্মতি লেখা থাকবে, সইয়ের মতোই।",
+  "agreeInApp.portal.sendCode": "কোড পাঠান",
+  "agreeInApp.portal.sendAgain": "আবার পাঠান",
+  "agreeInApp.portal.code": "কোড",
+  "agreeInApp.portal.codeSentSms":
+    "কোড গেছে এসএমএসে {phone}-এ। {minutes} মিনিটের মধ্যে লিখে «আমি সম্মত» চাপুন।",
+  "agreeInApp.portal.codeSentEmail":
+    "কোড গেছে ইমেইলে {email}-এ। {minutes} মিনিটের মধ্যে লিখে «আমি সম্মত» চাপুন।",
+  "agreeInApp.portal.codeSentBoth":
+    "কোড গেছে এসএমএসে {phone}-এ আর ইমেইলে {email}-এ; যেকোনোটি লিখুন। {minutes} মিনিটের মধ্যে লিখে «আমি সম্মত» চাপুন।",
+  "agreeInApp.refusal.wrong_code": "এটি পাঠানো কোড নয়।",
+  "agreeInApp.refusal.code_expired": "কোডের সময় পেরিয়ে গেছে — নতুন কোড চান।",
+  "agreeInApp.refusal.code_used": "এই কোড আগেই ব্যবহার হয়েছে — নতুন কোড চান।",
+  "agreeInApp.refusal.too_many_codes":
+    "ভুল কোড অনেকবার হয়েছে — পনেরো মিনিট পরে আবার চেষ্টা করুন।",
+  "agreeInApp.refusal.code_sent_just_now":
+    "এইমাত্র কোড পাঠানো হয়েছে — একটু পরে আবার চাইতে পারবেন।",
+  "agreeInApp.refusal.code_not_sent": "কোড যায়নি — এক মিনিট পরে আবার চেষ্টা করুন।",
+  "agreeInApp.refusal.no_signing_clause":
+    "আপনার সম্মতিপত্রে অ্যাপে সম্মতির ধারা নেই: পরের বার খামারে এসে নতুনটিতে সই করুন। ততদিন কাগজে সই করবেন।",
+  "agreeInApp.refusal.no_way_to_send_a_code":
+    "খামার এখনো আপনাকে কোড পাঠাতে পারে না; খামারকে জানান।",
+  "agreeInApp.refusal.already_agreed": "আপনি আগেই সম্মতি দিয়েছেন।",
+  "agreeInApp.proof": "কোড এসেছিল {way} {to}-এ · সম্মতি {on} · ঠিকানা {from}",
+  "agreeInApp.proofBySms": "এসএমএসে",
+  "agreeInApp.proofByEmail": "ইমেইলে",
+  "agreeInApp.ways.both": "সম্মতির কোড যায় এসএমএস আর ইমেইলে।",
+  "agreeInApp.ways.smsOnly": "সম্মতির কোড যায় এসএমএসে; ইমেইল পাঠানোর ব্যবস্থা নেই।",
+  "agreeInApp.ways.emailOnly":
+    "সম্মতির কোড যায় শুধু ইমেইলে; এসএমএস গেটওয়ে নেই, তাই নিশ্চিত ইমেইল ছাড়া কেউ অ্যাপে সম্মতি দিতে পারবেন না।",
+  "agreeInApp.ways.none":
+    "সম্মতির কোড পাঠানোর ব্যবস্থা এখনো নেই: এসএমএস গেটওয়ে বা ইমেইল চালু না হওয়া পর্যন্ত কেউ অ্যাপে সম্মতি দিতে পারবেন না।",
+  "agreeInApp.ready.noClause":
+    "অ্যাপে সম্মতি দিতে পারবেন না: সম্মতিপত্রে অ্যাপে সম্মতির ধারা নেই।",
+  "agreeInApp.ready.noWay": "অ্যাপে সম্মতি দিতে পারবেন না: কোড পাঠানোর কোনো পথ নেই।",
+  "agreeInApp.ready.both": "অ্যাপে সম্মতি দিতে পারবেন: কোড যাবে এসএমএস আর ইমেইলে।",
+  "agreeInApp.ready.sms": "অ্যাপে সম্মতি দিতে পারবেন: কোড যাবে এসএমএসে।",
+  "agreeInApp.ready.email": "অ্যাপে সম্মতি দিতে পারবেন: কোড যাবে ইমেইলে।",
   "agreeInApp.portal.agree": "আমি সম্মত",
   "agreeInApp.portal.agreedDone": "আপনার সম্মতি খামারে পৌঁছেছে",
   "agreeInApp.how": "কীভাবে সম্মতি",

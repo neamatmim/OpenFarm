@@ -2,7 +2,11 @@ import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
-import { invitingInvestors, signedInAs } from "../test/portal-client";
+import {
+  aSigningCode,
+  invitingInvestors,
+  signedInAs,
+} from "../test/portal-client";
 import { appRouter } from "./index";
 
 // An Amendment agreed within the app instead of on a signed paper: the Owner offers it, every Investor on the Venture
@@ -24,6 +28,9 @@ const as = async (role: "owner" | "manager", at = JANUARY) => {
 const invited = invitingInvestors({ prefix: "019", run: suffix }, JANUARY);
 
 type Them = Awaited<ReturnType<typeof invited>>;
+
+/** A code for an agreement refused before any code is looked at. */
+const NO_CODE = "000000";
 
 /** What an act was refused with, as the screen reads it. */
 const refusalOf = async (act: Promise<unknown>) => {
@@ -89,6 +96,7 @@ const agrees = async (them: Them, offerId: string) => {
   await them.client.portal.agreeToAmendment({
     offerId,
     paperHash: offer?.paperHash ?? "",
+    code: await aSigningCode(them, "amendment_offer", offerId),
   });
   return offer;
 };
@@ -217,7 +225,11 @@ describe("an Amendment agreed in the app", () => {
     await signs(ventureId, late, LATER);
     expect(await late.client.portal.amendmentOffers()).toEqual([]);
     await expect(
-      late.client.portal.agreeToAmendment({ offerId: id, paperHash })
+      late.client.portal.agreeToAmendment({
+        offerId: id,
+        paperHash,
+        code: NO_CODE,
+      })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(
       await refusalOf(
@@ -234,7 +246,11 @@ describe("an Amendment agreed in the app", () => {
       await owner.ventures.agreements.amendments.propose(terms(ventureId));
     expect(await stranger.client.portal.amendmentOffers()).toEqual([]);
     await expect(
-      stranger.client.portal.agreeToAmendment({ offerId: id, paperHash })
+      stranger.client.portal.agreeToAmendment({
+        offerId: id,
+        paperHash,
+        code: NO_CODE,
+      })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
@@ -249,6 +265,7 @@ describe("an Amendment agreed in the app", () => {
         first.client.portal.agreeToAmendment({
           offerId: id,
           paperHash: "0".repeat(64),
+          code: NO_CODE,
         })
       )
     ).toBe("paper_changed_since");
@@ -268,7 +285,11 @@ describe("an Amendment agreed in the app", () => {
     expect(await first.client.portal.amendmentOffers()).toEqual([]);
     expect(
       await refusalOf(
-        first.client.portal.agreeToAmendment({ offerId: id, paperHash })
+        first.client.portal.agreeToAmendment({
+          offerId: id,
+          paperHash,
+          code: NO_CODE,
+        })
       )
     ).toBe("offer_withdrawn");
     expect(
@@ -329,6 +350,7 @@ describe("an Amendment agreed in the app", () => {
           portal.portal.agreeToAmendment({
             offerId: pending.id,
             paperHash: pending.paperHash,
+            code: NO_CODE,
           })
         )
       ).toBe("agreements_in_app_off");

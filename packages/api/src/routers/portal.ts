@@ -1,9 +1,16 @@
+import { SIGNED_OFFER_KINDS } from "@OpenFarm/db/schema/venture";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { agreeToOffer, theirOffers } from "../agreement-offer-store";
+import { refused } from "../agreeing-in-app";
+import {
+  agreeToOffer,
+  offerToAgree,
+  theirOffers,
+} from "../agreement-offer-store";
 import {
   agreeToAmendment,
+  amendmentToAgree,
   theirAmendmentOffers,
 } from "../amendment-offer-store";
 import { protectedProcedure, publicProcedure } from "../index";
@@ -43,6 +50,7 @@ import {
   unitsAsked,
   withdrawRequest,
 } from "../requests-to-join";
+import { sendSigningCode } from "../signing-code";
 
 /** Anybody who is not an Investor the farm has let in, however they came. */
 const refuse = () =>
@@ -218,9 +226,46 @@ export const portalRouter = {
     theirOffers(context, context.investor.id)
   ),
 
-  /** Agreeing, from their own sign-in, to the paper offered them — the one they read (`agreeToOffer`). */
+  /**
+   * The Signing Codes for one paper offered them, by text and to their confirmed email (`sendSigningCode`): for an
+   * Agreement Offer or an Amendment they may agree to now, and have not.
+   */
+  sendSigningCode: investorProcedure
+    .input(z.object({ kind: z.enum(SIGNED_OFFER_KINDS), offerId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const investorId = context.investor.id;
+      // Agreed already, or not theirs to agree to now: either refuses before anything is sent.
+      let agreed: boolean;
+      if (input.kind === "agreement_offer") {
+        const offer = await offerToAgree(context, investorId, input.offerId);
+        agreed = offer.agreedAt !== null;
+      } else {
+        const amendment = await amendmentToAgree(
+          context,
+          investorId,
+          input.offerId
+        );
+        ({ agreed } = amendment);
+      }
+      if (agreed) {
+        throw refused("You have agreed to it already", "already_agreed");
+      }
+      return sendSigningCode(context, investorId, {
+        kind: input.kind,
+        id: input.offerId,
+      });
+    }),
+
+  /** Agreeing, from their own sign-in, to the paper offered them — the one they read — with a Signing Code
+   *  (`agreeToOffer`). */
   agreeToOffer: investorProcedure
-    .input(z.object({ offerId: z.string(), paperHash: z.string() }))
+    .input(
+      z.object({
+        offerId: z.string(),
+        paperHash: z.string(),
+        code: z.string().trim().min(1).max(20),
+      })
+    )
     .handler(async ({ context, input }) => {
       await agreeToOffer(context, context.investor.id, input);
       return { id: input.offerId };
@@ -232,9 +277,16 @@ export const portalRouter = {
     theirAmendmentOffers(context, context.investor.id)
   ),
 
-  /** Agreeing, from their own sign-in, to the Amendment paper offered them — the one they read (`agreeToAmendment`). */
+  /** Agreeing, from their own sign-in, to the Amendment paper offered them — the one they read — with a Signing Code
+   *  (`agreeToAmendment`). */
   agreeToAmendment: investorProcedure
-    .input(z.object({ offerId: z.string(), paperHash: z.string() }))
+    .input(
+      z.object({
+        offerId: z.string(),
+        paperHash: z.string(),
+        code: z.string().trim().min(1).max(20),
+      })
+    )
     .handler(async ({ context, input }) => {
       await agreeToAmendment(context, context.investor.id, input);
       return { id: input.offerId };

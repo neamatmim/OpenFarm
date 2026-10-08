@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   PortalSwitch,
   ShownToInvestorsSwitch,
+  SigningCodeWays,
 } from "@/components/investors/portal-access";
 import { Loaded, Page, PageHeader, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
@@ -46,6 +47,7 @@ const PortalSettingsPage = () => {
                 shown={standing.agreementsInApp ?? false}
                 what="agreements"
               />
+              <SigningCodeWays codesBy={standing.codesBy} />
               {/* Missing from an answer kept from before Pay-in Notes: off. */}
               <ShownToInvestorsSwitch
                 shown={standing.payInNotes ?? false}

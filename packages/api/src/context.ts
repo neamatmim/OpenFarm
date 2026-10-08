@@ -66,6 +66,9 @@ export interface Context {
   /** Where the request came from, as the proxy in front of the app tells it — so a stranger's wrong guesses are
    *  counted against the stranger, not the farm. Null when nothing says. */
   callerAddress: string | null;
+  /** The browser the request came from, as it names itself: kept with an agreement sealed by a code, as part of the
+   *  farm's proof of who agreed (ADR 0022). Null for a caller that says nothing. */
+  callerAgent: string | null;
   /** Who this write is attributed to, whichever principal it arrived by. */
   actor: Actor | null;
   clock: Clock;
@@ -308,6 +311,7 @@ export const buildContext = async ({
   pushKey = null,
   farmId = null,
   callerAddress = null,
+  callerAgent = null,
   evenIfLeft = false,
   personId = null,
 }: {
@@ -315,6 +319,7 @@ export const buildContext = async ({
   device?: DeviceSession | null;
   deviceStatus?: DeviceStatus;
   callerAddress?: string | null;
+  callerAgent?: string | null;
   clock: Clock;
   db: Database;
   push?: PushTransport;
@@ -343,6 +348,7 @@ export const buildContext = async ({
     scope: { kind: "nothing" },
     deviceStatus,
     callerAddress,
+    callerAgent,
   } as const;
   const actingUserId = actingUserOf(session, device, personId);
   const deviceInfo = device
@@ -419,6 +425,8 @@ export const createContext = async ({
   pushKey?: string | null;
 }): Promise<Context> => {
   const callerAddress = callerAddressOf(req);
+  // Cut short: it is the browser's own say, and a farm record is no place for an unbounded string anybody can send.
+  const callerAgent = req.headers.get("user-agent")?.slice(0, 300) || null;
   const token = req.headers.get(DEVICE_TOKEN_HEADER);
   if (token) {
     const resolved = await resolveDeviceSession(
@@ -433,6 +441,7 @@ export const createContext = async ({
       // Carried, not dropped: a phone the Manager took off the farm's list is told so, rather than read as no phone.
       ...(resolved ? { deviceStatus: resolved.status } : {}),
       callerAddress,
+      callerAgent,
       clock,
       db,
       push,
@@ -444,6 +453,7 @@ export const createContext = async ({
   return buildContext({
     session: await auth.api.getSession({ headers: req.headers }),
     callerAddress,
+    callerAgent,
     clock,
     db,
     push,

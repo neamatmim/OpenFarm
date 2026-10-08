@@ -2607,6 +2607,18 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "email.confirmCode.subject": "আপনার ইমেইল নিশ্চিত করার কোড",
   "email.confirmCode.body":
     "{farm}-এর বিনিয়োগকারী পোর্টালে আপনার ইমেইল নিশ্চিত করার কোড: {code}\n\nপোর্টালের “অ্যাকাউন্ট” পাতায় কোডটি লিখুন। এটি {minutes} মিনিট কাজ করবে। আপনি না চাইলে এই ইমেইলটি উপেক্ষা করুন, আর খামারকে জানান।",
+  "signing.paper.agreement_offer": "বিনিয়োগ চুক্তি",
+  "signing.paper.amendment_offer": "সংশোধনী",
+  "signing.code.sms":
+    "{farm}: {paper}তে সম্মতির কোড {code}। {minutes} মিনিট কাজ করবে। কাউকে বলবেন না।",
+  "signing.code.subject": "কাগজে সম্মতির কোড",
+  "signing.code.email":
+    "{farm}-এর বিনিয়োগকারী পোর্টালে {paper}তে সম্মতি দেওয়ার কোড: {code}\n\nকাগজের পাতায় কোডটি লিখলে আপনার সম্মতি হবে, সই করার মতোই। এটি {minutes} মিনিট কাজ করবে। কাউকে বলবেন না; আপনি না চাইলে খামারকে জানান।",
+  "signing.approved.sms":
+    "{farm}: আপনার {paper} নং {number} ({venture}) খামার অনুমোদন করেছে।",
+  "signing.approved.subject": "আপনার কাগজ অনুমোদিত হয়েছে",
+  "signing.approved.email":
+    "{farm} আপনার {paper} নং {number} ({venture}) অনুমোদন করেছে, যাতে আপনি পোর্টালে কোড দিয়ে সম্মতি দিয়েছিলেন। এর কপি পোর্টালের “কাগজ” পাতায় আছে।",
   "sms.myNumber": "আপনার মোবাইল নম্বর",
   "sms.title": "এসএমএস",
   "sms.why":

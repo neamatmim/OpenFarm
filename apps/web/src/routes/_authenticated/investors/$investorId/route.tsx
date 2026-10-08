@@ -115,10 +115,12 @@ const useFiguresOf = (
 const TheInvestor = ({
   investor,
   portalOpen,
+  agreementsInApp,
   tab,
 }: {
   investor: Investor;
   portalOpen: boolean;
+  agreementsInApp: boolean;
   tab: Tab;
 }) => {
   const { t, language } = useLanguage();
@@ -187,7 +189,11 @@ const TheInvestor = ({
             label: t("investors.page.tab.overview"),
             icon: LayoutDashboard,
             content: (
-              <InvestorProfile investor={investor} portalOpen={portalOpen} />
+              <InvestorProfile
+                agreementsInApp={agreementsInApp}
+                investor={investor}
+                portalOpen={portalOpen}
+              />
             ),
           },
           {
@@ -276,6 +282,7 @@ const InvestorPage = () => {
   }
   return (
     <TheInvestor
+      agreementsInApp={investors.data?.agreementsInApp ?? false}
       investor={investor}
       portalOpen={investors.data?.portalOpen ?? false}
       tab={tab}

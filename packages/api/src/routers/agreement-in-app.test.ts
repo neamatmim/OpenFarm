@@ -8,7 +8,11 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { stillAsKept } from "../kept-paper";
 import { createTestClient } from "../test/client";
 import { theWhole } from "../test/nominations";
-import { invitingInvestors, signedInAs } from "../test/portal-client";
+import {
+  aSigningCode,
+  invitingInvestors,
+  signedInAs,
+} from "../test/portal-client";
 import { appRouter } from "./index";
 
 // An Investment Agreement agreed within the app instead of on stamped paper: the Owner offers it, the Investor agrees to
@@ -26,6 +30,9 @@ const as = async (role: "owner" | "manager", at = JANUARY) => {
   });
   return client;
 };
+
+/** A code for an agreement refused before any code is looked at. */
+const NO_CODE = "000000";
 
 const invited = invitingInvestors({ prefix: "018", run: suffix }, JANUARY);
 
@@ -79,6 +86,7 @@ const offeredAndAgreed = async (
   await them.client.portal.agreeToOffer({
     offerId: id,
     paperHash: offer?.paperHash ?? "",
+    code: await aSigningCode(them, "agreement_offer", id),
   });
   return { id, offer };
 };
@@ -210,7 +218,11 @@ describe("an Agreement agreed in the app", () => {
     );
     expect(await stranger.client.portal.agreementOffers()).toEqual([]);
     await expect(
-      stranger.client.portal.agreeToOffer({ offerId: id, paperHash })
+      stranger.client.portal.agreeToOffer({
+        offerId: id,
+        paperHash,
+        code: NO_CODE,
+      })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
@@ -226,6 +238,7 @@ describe("an Agreement agreed in the app", () => {
         them.client.portal.agreeToOffer({
           offerId: id,
           paperHash: "0".repeat(64),
+          code: NO_CODE,
         })
       )
     ).toBe("paper_changed_since");
@@ -244,7 +257,11 @@ describe("an Agreement agreed in the app", () => {
     expect(await them.client.portal.agreementOffers()).toEqual([]);
     expect(
       await refusalOf(
-        them.client.portal.agreeToOffer({ offerId: id, paperHash })
+        them.client.portal.agreeToOffer({
+          offerId: id,
+          paperHash,
+          code: NO_CODE,
+        })
       )
     ).toBe("offer_withdrawn");
     expect(
@@ -309,6 +326,7 @@ describe("an Agreement agreed in the app", () => {
           portal.portal.agreeToOffer({
             offerId: pending.id,
             paperHash: pending.paperHash,
+            code: NO_CODE,
           })
         )
       ).toBe("agreements_in_app_off");
@@ -517,6 +535,7 @@ describe("an Agreement offered in the app, as things move on after it was offere
     await them.client.portal.agreeToOffer({
       offerId: id,
       paperHash: offered?.paperHash ?? "",
+      code: await aSigningCode(them, "agreement_offer", id),
     });
     // On the 3rd he signs a new paper in front of the Owner, naming his son.
     const third = await as("owner", "2093-01-03T04:00:00.000Z");
@@ -561,6 +580,7 @@ describe("an Agreement offered in the app, as things move on after it was offere
     await first.client.portal.agreeToAmendment({
       offerId: moved.id,
       paperHash: amendment?.paperHash ?? "",
+      code: await aSigningCode(first, "amendment_offer", moved.id),
     });
     const approver = await as("owner", "2093-01-03T04:00:00.000Z");
     await approver.ventures.agreements.amendments.approve({
@@ -603,6 +623,7 @@ describe("an Agreement offered in the app, as things move on after it was offere
         them.client.portal.agreeToOffer({
           offerId: offered.id,
           paperHash: offered.paperHash,
+          code: NO_CODE,
         })
       )
     ).toBe("venture_wrong_state");

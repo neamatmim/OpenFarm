@@ -27,6 +27,33 @@ const OFFER_REFUSALS = {
 /** Long enough to read a code out to somebody and have them write it down. */
 const CODE_SHOWN_FOR_MS = 20_000;
 
+/** How one Investor sealed a paper with a code: the way it came and where, when, and from what address — the farm's
+ *  proof, said in a line (ADR 0022). */
+const ProofLine = ({
+  proof,
+  name,
+}: {
+  proof: NonNullable<Offer["proof"]>;
+  name?: string;
+}) => {
+  const { t, language } = useLanguage();
+  const said = t("agreeInApp.proof", {
+    way: t(
+      proof.channel === "sms"
+        ? "agreeInApp.proofBySms"
+        : "agreeInApp.proofByEmail"
+    ),
+    to: proof.sentTo,
+    on: formatDate(new Date(proof.agreedAt), language, "dateTime"),
+    from: proof.callerAddress ?? "—",
+  });
+  return (
+    <span className="text-muted-foreground text-xs">
+      {name ? `${name}: ${said}` : said}
+    </span>
+  );
+};
+
 /** One offer still waiting: on the Investor to agree, or on the Owner to approve. */
 const OfferLine = ({ offer }: { offer: Offer }) => {
   const { t, language } = useLanguage();
@@ -68,6 +95,8 @@ const OfferLine = ({ offer }: { offer: Offer }) => {
                 on: formatDate(offer.offeredAt, language, "dateTime"),
               })}
         </span>
+        {/* An answer cached before the farm kept proofs has none. */}
+        {offer.proof ? <ProofLine proof={offer.proof} /> : null}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge tone={agreed ? "success" : "info"}>
@@ -148,6 +177,7 @@ const AMENDMENT_REFUSALS = {
 const AmendmentLine = ({ offer }: { offer: AmendmentOffer }) => {
   const { t, language } = useLanguage();
   const refused = useRefused(AMENDMENT_REFUSALS);
+  const nameOf = useInvestorNames();
   const approving = useMutation(
     orpc.ventures.agreements.amendments.approve.mutationOptions({
       onError: refused,
@@ -173,6 +203,13 @@ const AmendmentLine = ({ offer }: { offer: AmendmentOffer }) => {
           })}
         </span>
         <span className="text-muted-foreground text-sm">{offer.reason}</span>
+        {(offer.proofs ?? []).map((proof) => (
+          <ProofLine
+            key={proof.investorId}
+            name={nameOf(proof.investorId)}
+            proof={proof}
+          />
+        ))}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge tone={everyone ? "success" : "info"}>
