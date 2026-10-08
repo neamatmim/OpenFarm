@@ -556,23 +556,6 @@ export const recordCashCount = async (
   return { differs: input.counted !== expected };
 };
 
-/** A count taken back — the Step put right to a skip — is no count, and a shortfall it was told of is no shortfall. */
-export const removeCashCount = async (
-  tx: Tx,
-  completionId: string,
-  now: Date
-): Promise<void> => {
-  const [removed] = await tx
-    .delete(cashCount)
-    .where(eq(cashCount.completionId, completionId))
-    .returning({ farmId: cashCount.farmId });
-  if (removed) {
-    await clearNoticesAbout(tx, removed.farmId, [completionId], now, [
-      "cash_short",
-    ]);
-  }
-};
-
 /** One way cash came into a hand or left it, as that hand's own list shows it. */
 export interface CashMovement {
   id: string;

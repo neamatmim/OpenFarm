@@ -9,20 +9,13 @@ import type { EffectInput, EffectResult, EffectKind } from "./effect";
 
 type StockCountFacts = Pick<
   EffectInput,
-  | "instance"
-  | "completionId"
-  | "counts"
-  | "skipped"
-  | "recordedBy"
-  | "recordedAt"
-  | "now"
+  "instance" | "completionId" | "counts" | "recordedBy" | "recordedAt" | "now"
 >;
 
 /**
  * Tells the Owner and the Manager of a count that found more feed missing than the Owner's line, in taka at what the
  * feed cost — told once for the count, in the evening's post. A count put right later is not told again: the Notice is
- * about the count, and the feed page shows what it says now. One put right to no shortfall, or to a skip, takes its
- * Notice down.
+ * about the count, and the feed page shows what it says now. One put right to no shortfall takes its Notice down.
  */
 const tellIfTheStoreCameUpShort = async (
   tx: Tx,
@@ -35,7 +28,8 @@ const tellIfTheStoreCameUpShort = async (
     columns: { storeShortfallTellMoney: true },
   });
   if (!farm || shortMoney <= farm.storeShortfallTellMoney) {
-    // Put right to no shortfall, or skipped: the notice of one goes, in the post and in the app.
+    // Put right to no shortfall: the notice of one goes, in the post and in the app. (A count is never skipped:
+    // `maySkip` allows no count Step.)
     await clearNoticesAbout(
       tx,
       input.instance.farmId,
@@ -74,7 +68,6 @@ const countTheStore = async (
     farmId: input.instance.farmId,
     completionId: input.completionId,
     counts: input.counts,
-    skipped: input.skipped,
     countedAt: input.recordedAt,
     countedBy: input.recordedBy,
     now: input.now,

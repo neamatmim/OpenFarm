@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Step } from "./sop";
+import type { SopContent, Step } from "./sop";
 import {
   describeChanges,
   findStructuralProblems,
@@ -53,6 +53,46 @@ describe("which Steps may be skipped", () => {
     expect(maySkip(doneOnce({ kind: "milk_record" }))).toBe(false);
     expect(maySkip(doneOnce({ kind: "bulk_total" }))).toBe(false);
     expect(maySkip(doneOnce({ kind: "weigh_in" }))).toBe(false);
+  });
+});
+
+/** The Step of a count that does the counting. */
+const countingStep = (content: SopContent) => {
+  const step = content.steps.find((one) =>
+    ["stock_count", "medicine_count", "cash_count"].includes(
+      one.effect?.kind ?? ""
+    )
+  );
+  if (!step) {
+    throw new Error("a count has its counting Step");
+  }
+  return step;
+};
+
+describe("a count of the store, the medicine or the cash", () => {
+  const playbook = standardPlaybook();
+  const counts = [
+    playbook.stockCount,
+    playbook.medicineCount,
+    playbook.cashCount,
+  ];
+  it("is never skipped: what is there is counted, or the work is missed", () => {
+    for (const content of counts) {
+      expect(maySkip(countingStep(content))).toBe(false);
+    }
+  });
+
+  it("is never counted once per animal, so no Version can make one that may be skipped", () => {
+    for (const content of counts) {
+      const step = countingStep(content);
+      const problems = findStructuralProblems({
+        ...content,
+        steps: content.steps.map((one) =>
+          one === step ? { ...one, repeatPerAnimal: true } : one
+        ),
+      });
+      expect(problems.join(" ")).toContain("once, not once per animal");
+    }
   });
 });
 

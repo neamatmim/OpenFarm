@@ -36,20 +36,12 @@ export const recordMedicineCount = async (
   entry: {
     farmId: string;
     completionId: string;
-    /** Empty when the Step was skipped: nothing was counted. */
     counts: MedicineCountLine[];
-    skipped: boolean;
     countedAt: Date;
     countedBy: string;
     now: Date;
   }
 ): Promise<MedicineAdjustment[]> => {
-  if (entry.skipped) {
-    await tx
-      .delete(medicineCount)
-      .where(eq(medicineCount.completionId, entry.completionId));
-    return [];
-  }
   const products = await tx.query.drugProduct.findMany({
     where: { farmId: entry.farmId },
     columns: { id: true, retiredAt: true },
