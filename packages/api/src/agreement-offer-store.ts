@@ -22,14 +22,21 @@ import { assertTheVenturesSplit, farmUnitsOf } from "./farm-capital-store";
 import { readAgreement, unitsTaken } from "./investor-store";
 import { assertReadAsKept, keepPaper, stillAsKept } from "./kept-paper";
 import { assertNamable, nomineesToSign } from "./nominations";
+import type { OfferWords } from "./offer-lifecycle";
+import {
+  approvedAlready,
+  sealAgreement,
+  standingOf,
+  stillAgreed,
+  withdrawTheAgreement,
+  withdrawTheOffer,
+  withdrawnAlready,
+} from "./offer-lifecycle";
 import { madeOn } from "./paper-values";
 import {
-  checkSigningCode,
   confirmApproval,
-  keepProof,
   paperNumberOf,
   proofSaid,
-  proofWithdrawn,
   proofsOf,
 } from "./signing-code";
 import { currentWording, giveStandardTemplates } from "./template-store";
@@ -40,19 +47,12 @@ import { lockTheFarm, withWindowsInForce } from "./venture-store";
 // the farm's switch, the Owner's to turn on: an Agreement agreed in the app carries no stamp, a risk the Owner accepted
 // without asking the advisers (ADR 0022).
 
-/** Where an offer stands. */
-export type OfferStanding = "offered" | "agreed" | "approved" | "withdrawn";
-
 type OfferRow = typeof agreementOffer.$inferSelect;
 
-const standingOf = (offer: OfferRow): OfferStanding => {
-  if (offer.approvedAt) {
-    return "approved";
-  }
-  if (offer.withdrawnAt) {
-    return "withdrawn";
-  }
-  return offer.agreedAt ? "agreed" : "offered";
+/** An Agreement Offer's refusals, in its own words. */
+const WORDS: OfferWords = {
+  approved: approvedAlready("This offer is approved: it is an Agreement now"),
+  withdrawn: withdrawnAlready("This offer was withdrawn"),
 };
 
 /** The offer as the trail records it either side of a change. */
@@ -248,34 +248,39 @@ export const withdrawOffer = async (
 ): Promise<void> => {
   const offer = await theOffer(context.db, context.farm.id, offerId);
   if (offer.approvedAt) {
-    throw refused(
-      "This offer is approved: it is an Agreement now",
-      "offer_already_approved"
-    );
+    throw WORDS.approved();
   }
   if (offer.withdrawnAt) {
     return;
   }
-  await audited(context).write(
-    {
+  await withdrawTheOffer(context, {
+    trail: () => ({
       entity: "agreement_offer",
       entityId: offer.id,
       action: "update",
       before: (tx) => readOffer(tx, context.farm.id, offer.id),
       after: (tx) => readOffer(tx, context.farm.id, offer.id),
-    },
-    async (tx) => {
-      await tx
+    }),
+    words: WORDS,
+    withdraw: async (tx, now) => {
+      const [withdrawing] = await tx
         .update(agreementOffer)
-        .set({ withdrawnAt: context.clock.now() })
+        .set({ withdrawnAt: now })
         .where(
           and(
             eq(agreementOffer.id, offer.id),
-            isNull(agreementOffer.approvedAt)
+            isNull(agreementOffer.approvedAt),
+            isNull(agreementOffer.withdrawnAt)
           )
-        );
-    }
-  );
+        )
+        .returning({ id: agreementOffer.id });
+      if (withdrawing) {
+        return "withdrawn_now";
+      }
+      const meanwhile = await readOffer(tx, context.farm.id, offer.id);
+      return meanwhile?.approvedAt ? "approved" : "withdrawn";
+    },
+  });
 };
 
 /** Refuses approving an offer that is not waiting on the Owner: withdrawn, approved already, or not yet agreed. */
@@ -325,13 +330,7 @@ export const approveOffer = async (
       // Agreement is written from — dated by it — or, withdrawn meanwhile, none is.
       await lockTheFarm(tx, context.farm.id);
       const before = await readOffer(tx, context.farm.id, offer.id);
-      if (!before?.agreedAt) {
-        throw refused(
-          "The Investor withdrew their agreement meanwhile",
-          "offer_not_agreed"
-        );
-      }
-      const { agreedAt } = before;
+      const agreedAt = stillAgreed(before, WORDS);
       const given = await writeAgreement(
         tx,
         auditing.recordEvent,
@@ -528,43 +527,33 @@ export const agreeToOffer = async (
   if (offer.agreedAt) {
     return;
   }
-  const signed = { kind: "agreement_offer", id: offer.id } as const;
-  const sealed = await checkSigningCode(
+  await sealAgreement(
     context,
     investorId,
-    signed,
-    input.code
-  );
-  await audited(context).write(
+    { kind: "agreement_offer", id: offer.id, paperHash: offer.paperHash },
+    input.code,
     {
-      entity: "agreement_offer",
-      entityId: offer.id,
-      action: "update",
-      before: (tx) => readOffer(tx, context.farm.id, offer.id),
-      after: (tx) => readOffer(tx, context.farm.id, offer.id),
-    },
-    async (tx) => {
-      const [agreeing] = await tx
-        .update(agreementOffer)
-        .set({ agreedAt: context.clock.now(), agreedBy: context.actor.id })
-        .where(
-          and(
-            eq(agreementOffer.id, offer.id),
-            isNull(agreementOffer.withdrawnAt),
-            isNull(agreementOffer.agreedAt)
+      trail: () => ({
+        entity: "agreement_offer",
+        entityId: offer.id,
+        action: "update",
+        before: (tx) => readOffer(tx, context.farm.id, offer.id),
+        after: (tx) => readOffer(tx, context.farm.id, offer.id),
+      }),
+      mark: async (tx, now) => {
+        const [agreeing] = await tx
+          .update(agreementOffer)
+          .set({ agreedAt: now, agreedBy: context.actor.id })
+          .where(
+            and(
+              eq(agreementOffer.id, offer.id),
+              isNull(agreementOffer.withdrawnAt),
+              isNull(agreementOffer.agreedAt)
+            )
           )
-        )
-        .returning({ id: agreementOffer.id });
-      // Withdrawn or agreed meanwhile: the code stays unused, and nothing is kept as proof of nothing.
-      if (agreeing) {
-        await keepProof(
-          tx,
-          context,
-          investorId,
-          { ...signed, paperHash: offer.paperHash },
-          sealed
-        );
-      }
+          .returning({ id: agreementOffer.id });
+        return agreeing !== undefined;
+      },
     }
   );
 };
@@ -606,60 +595,51 @@ export const withdrawAgreementToOffer = async (
     throw new ORPCError("NOT_FOUND", { message: "No such offer" });
   }
   if (offer.approvedAt) {
-    throw refused(
-      "This offer is approved: it is an Agreement now",
-      "offer_already_approved"
-    );
+    throw WORDS.approved();
   }
-  // Taken back by the Owner: a closed offer's history stays as it was.
+  // Withdrawn by the Owner: a closed offer's history stays as it was.
   if (offer.withdrawnAt) {
-    throw refused("This offer was withdrawn", "offer_withdrawn");
+    throw WORDS.withdrawn();
   }
   if (!offer.agreedAt) {
     return;
   }
-  const now = context.clock.now();
-  await audited(context).write(
+  await withdrawTheAgreement(
+    context,
+    investorId,
+    { kind: "agreement_offer", id: offer.id },
     {
-      entity: "agreement_offer",
-      entityId: offer.id,
-      action: "update",
-      reason: "The Investor withdrew their agreement before it was approved",
-      before: (tx) => readOffer(tx, context.farm.id, offer.id),
-      after: (tx) => readOffer(tx, context.farm.id, offer.id),
-    },
-    async (tx) => {
-      // Behind the Farm lock, as approving is: the two queue rather than each holding what the other waits for, and the
-      // one second finds the offer as the first left it — approved, so this is refused, or withdrawn, so approving is.
-      await lockTheFarm(tx, context.farm.id);
-      const [withdrawing] = await tx
-        .update(agreementOffer)
-        .set({ agreedAt: null, agreedBy: null, agreementWithdrawnAt: now })
-        .where(
-          and(
-            eq(agreementOffer.id, offer.id),
-            isNull(agreementOffer.approvedAt),
-            isNull(agreementOffer.withdrawnAt),
-            isNotNull(agreementOffer.agreedAt)
+      trail: () => ({
+        entity: "agreement_offer",
+        entityId: offer.id,
+        action: "update",
+        before: (tx) => readOffer(tx, context.farm.id, offer.id),
+        after: (tx) => readOffer(tx, context.farm.id, offer.id),
+      }),
+      words: WORDS,
+      withdraw: async (tx, now) => {
+        // Only while it is still agreed, and neither approved nor withdrawn, in one statement.
+        const [withdrawing] = await tx
+          .update(agreementOffer)
+          .set({ agreedAt: null, agreedBy: null, agreementWithdrawnAt: now })
+          .where(
+            and(
+              eq(agreementOffer.id, offer.id),
+              isNull(agreementOffer.approvedAt),
+              isNull(agreementOffer.withdrawnAt),
+              isNotNull(agreementOffer.agreedAt)
+            )
           )
-        )
-        .returning({ id: agreementOffer.id });
-      if (!withdrawing) {
+          .returning({ id: agreementOffer.id });
+        if (withdrawing) {
+          return "withdrawn_now";
+        }
         const meanwhile = await readOffer(tx, context.farm.id, offer.id);
         if (meanwhile?.approvedAt) {
-          throw refused(
-            "This offer was approved meanwhile: it is an Agreement now",
-            "offer_already_approved"
-          );
+          return "approved";
         }
-        throw meanwhile?.withdrawnAt
-          ? refused("This offer was withdrawn", "offer_withdrawn")
-          : refused("Your agreement is withdrawn already", "not_agreed");
-      }
-      await proofWithdrawn(tx, now, investorId, {
-        kind: "agreement_offer",
-        id: offer.id,
-      });
+        return meanwhile?.withdrawnAt ? "withdrawn" : "not_agreed";
+      },
     }
   );
 };

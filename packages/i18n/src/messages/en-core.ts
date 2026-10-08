@@ -2837,10 +2837,10 @@ export const enCore = {
   "signing.paperIn.amendment_offer": "amendment",
   "signing.paperIn.nomination_offer": "মনোনয়নপত্র",
   "signing.code.sms":
-    "{farm}: your code to agree to the {paper} is {code}. It works for {minutes, plural, one {# minute} other {# minutes}}. Tell nobody.",
+    "{farm}: your code to agree to the {paperIn} is {code}. It works for {minutes, plural, one {# minute} other {# minutes}}. Tell nobody.",
   "signing.code.subject": "Your code to agree to a paper",
   "signing.code.email":
-    "The code to agree to the {paper} in the {farm} Investor Portal: {code}\n\nEntering it on the paper's page is your agreement, as your signature would be. It works for {minutes, plural, one {# minute} other {# minutes}}. Tell nobody; if you did not ask for it, tell the farm.",
+    "The code to agree to the {paperIn} in the {farm} Investor Portal: {code}\n\nEntering it on the paper's page is your agreement, as your signature would be. It works for {minutes, plural, one {# minute} other {# minutes}}. Tell nobody; if you did not ask for it, tell the farm.",
   "signing.approved.sms":
     "{farm}: your {paper} no. {number} for {venture} is approved by the farm.",
   "signing.approvedNomination.sms":

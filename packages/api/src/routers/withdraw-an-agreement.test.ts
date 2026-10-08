@@ -259,6 +259,68 @@ describe("an agreement withdrawn before it is approved", () => {
     }
   });
 
+  it("keeps one withdrawal in the trail when the Owner withdraws an offer twice at once", async () => {
+    const them = await invited("দুবার মালিক");
+    const { id } = await agreedOffer(them, "দুবার মালিক");
+    const owner = await as("owner", LATER);
+    await Promise.all([
+      owner.ventures.agreements.offers.withdraw({ offerId: id }),
+      owner.ventures.agreements.offers.withdraw({ offerId: id }),
+    ]);
+
+    const trail = await owner.audit.list({
+      entity: "agreement_offer",
+      limit: 100,
+    });
+    const withdrawals = trail.filter(
+      (one) =>
+        one.entityId === id &&
+        (one.after as { withdrawnAt?: unknown } | null)?.withdrawnAt
+    );
+    expect(withdrawals).toHaveLength(1);
+  });
+
+  it("settles the Owner taking an offer back and approving it at once in one way or the other, never an error", async () => {
+    const owner = await as("owner", LATER);
+    const outcomes = [];
+    for (const [n, gap] of [0, 5, -5].entries()) {
+      // oxlint-disable-next-line no-await-in-loop
+      const them = await invited(`মালিক একসাথে ${n}`);
+      // oxlint-disable-next-line no-await-in-loop
+      const { ventureId, id } = await agreedOffer(them, `মালিক একসাথে ${n}`);
+      // oxlint-disable-next-line no-await-in-loop
+      const [approved, withdrawn] = await Promise.allSettled([
+        after(-gap).then(() =>
+          owner.ventures.agreements.offers.approve({ offerId: id })
+        ),
+        after(gap).then(() =>
+          owner.ventures.agreements.offers.withdraw({ offerId: id })
+        ),
+      ]);
+      // oxlint-disable-next-line no-await-in-loop
+      const offer = await ownersOffer(ventureId, id);
+      outcomes.push({
+        approved: wordOf(approved),
+        withdrawn: wordOf(withdrawn),
+        standing: offer?.standing,
+      });
+    }
+    for (const outcome of outcomes) {
+      expect([
+        {
+          approved: "done",
+          withdrawn: "offer_already_approved",
+          standing: "approved",
+        },
+        {
+          approved: "offer_withdrawn",
+          withdrawn: "done",
+          standing: "withdrawn",
+        },
+      ]).toContainEqual(outcome);
+    }
+  });
+
   it("settles a withdrawal and an approval sent at once in one way or the other, never both", async () => {
     const owner = await as("owner", LATER);
     const outcomes = [];
@@ -417,7 +479,7 @@ describe("an agreement to an Amendment withdrawn before it is approved", () => {
           offerId: id,
         })
       )
-    ).toBe("already_approved");
+    ).toBe("offer_already_approved");
   });
 
   it("settles a withdrawal and an approval sent at once in one way or the other, never both", async () => {
@@ -453,7 +515,7 @@ describe("an agreement to an Amendment withdrawn before it is approved", () => {
       expect([
         {
           approved: "done",
-          withdrawn: "already_approved",
+          withdrawn: "offer_already_approved",
           standing: "approved",
           agreed: 2,
         },
@@ -506,5 +568,44 @@ describe("an agreement to an Amendment withdrawn before it is approved", () => {
         (one.reason ?? "").includes("withdrew")
     );
     expect(withdrawals).toHaveLength(1);
+  });
+
+  it("settles the Owner withdrawing the Amendment and approving it at once in one way or the other, never an error", async () => {
+    const owner = await as("owner", LATER);
+    const outcomes = [];
+    for (const [n, gap] of [0, 5, -5].entries()) {
+      // oxlint-disable-next-line no-await-in-loop
+      const { ventureId, id } = await anAgreedAmendment(`সংশোধন মালিক ${n}`);
+      // oxlint-disable-next-line no-await-in-loop
+      const [approved, withdrawn] = await Promise.allSettled([
+        after(-gap).then(() =>
+          owner.ventures.agreements.amendments.approve({ offerId: id })
+        ),
+        after(gap).then(() =>
+          owner.ventures.agreements.amendments.withdraw({ offerId: id })
+        ),
+      ]);
+      // oxlint-disable-next-line no-await-in-loop
+      const amendment = await ownersAmendment(ventureId, id);
+      outcomes.push({
+        approved: wordOf(approved),
+        withdrawn: wordOf(withdrawn),
+        standing: amendment?.standing,
+      });
+    }
+    for (const outcome of outcomes) {
+      expect([
+        {
+          approved: "done",
+          withdrawn: "offer_already_approved",
+          standing: "approved",
+        },
+        {
+          approved: "offer_withdrawn",
+          withdrawn: "done",
+          standing: "withdrawn",
+        },
+      ]).toContainEqual(outcome);
+    }
   });
 });

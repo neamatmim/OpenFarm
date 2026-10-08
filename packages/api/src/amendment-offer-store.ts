@@ -22,14 +22,17 @@ import { audited } from "./audit";
 import type { Context } from "./context";
 import { assertRegistered } from "./export-store";
 import { assertReadAsKept, keepPaper } from "./kept-paper";
-import { madeOn } from "./paper-values";
+import type { OfferWords } from "./offer-lifecycle";
 import {
-  checkSigningCode,
-  confirmApproval,
-  keepProof,
-  proofSaid,
-  proofWithdrawn,
-} from "./signing-code";
+  approvedAlready,
+  sealAgreement,
+  standingOf,
+  withdrawTheAgreement,
+  withdrawTheOffer,
+  withdrawnAlready,
+} from "./offer-lifecycle";
+import { madeOn } from "./paper-values";
+import { confirmApproval, proofSaid } from "./signing-code";
 import { currentWording, giveStandardTemplates } from "./template-store";
 import { lockTheFarm, termsAcrossOn } from "./venture-store";
 
@@ -38,16 +41,6 @@ import { lockTheFarm, termsAcrossOn } from "./venture-store";
 // signed on the day approved. Behind the same switch as an Agreement agreed in the app.
 
 type OfferRow = typeof amendmentOffer.$inferSelect;
-
-/** Where an Amendment offer stands. */
-export type AmendmentStanding = "offered" | "approved" | "withdrawn";
-
-const standingOf = (offer: OfferRow): AmendmentStanding => {
-  if (offer.approvedAt) {
-    return "approved";
-  }
-  return offer.withdrawnAt ? "withdrawn" : "offered";
-};
 
 /** The offer as the trail records it either side of a change. */
 const readOffer = async (tx: Pick<Tx, "query">, farmId: string, id: string) =>
@@ -186,41 +179,54 @@ export const proposeAmendmentInApp = async (
   return { id, paperHash: kept.paperHash };
 };
 
-/** The Owner takes an Amendment offer back, agreed by some or all, until it is approved. */
+/** An Amendment's refusals, in its own words. */
+const WORDS: OfferWords = {
+  approved: approvedAlready(
+    "This Amendment is approved: the Venture is amended"
+  ),
+  withdrawn: withdrawnAlready("This Amendment was withdrawn"),
+};
+
+/** The Owner withdraws an Amendment offer, agreed by some or all, until it is approved. */
 export const withdrawAmendment = async (
   context: Acting,
   offerId: string
 ): Promise<void> => {
   const offer = await theOffer(context.db, context.farm.id, offerId);
   if (offer.approvedAt) {
-    throw refused(
-      "This Amendment is approved: the Venture is amended",
-      "offer_already_approved"
-    );
+    throw WORDS.approved();
   }
   if (offer.withdrawnAt) {
     return;
   }
-  await audited(context).write(
-    {
+  await withdrawTheOffer(context, {
+    trail: () => ({
       entity: "amendment_offer",
       entityId: offer.id,
       action: "update",
       before: (tx) => readOffer(tx, context.farm.id, offer.id),
       after: (tx) => readOffer(tx, context.farm.id, offer.id),
-    },
-    async (tx) => {
-      await tx
+    }),
+    words: WORDS,
+    withdraw: async (tx, now) => {
+      const [withdrawing] = await tx
         .update(amendmentOffer)
-        .set({ withdrawnAt: context.clock.now() })
+        .set({ withdrawnAt: now })
         .where(
           and(
             eq(amendmentOffer.id, offer.id),
-            isNull(amendmentOffer.approvedAt)
+            isNull(amendmentOffer.approvedAt),
+            isNull(amendmentOffer.withdrawnAt)
           )
-        );
-    }
-  );
+        )
+        .returning({ id: amendmentOffer.id });
+      if (withdrawing) {
+        return "withdrawn_now";
+      }
+      const meanwhile = await readOffer(tx, context.farm.id, offer.id);
+      return meanwhile?.approvedAt ? "approved" : "withdrawn";
+    },
+  });
 };
 
 /** Refuses approving an offer withdrawn or approved already. */
@@ -389,7 +395,7 @@ export const amendmentOffersOn = async (context: Acting, ventureId: string) => {
     targetWindowStart: one.targetWindowStart,
     targetWindowEnd: one.targetWindowEnd,
     reason: one.reason,
-    standing: standingOf({ ...one, paper: null }),
+    standing: standingOf(one),
     offeredAt: one.offeredAt,
     approvedAt: one.approvedAt,
     /** Of the Agreements on the Venture now, how many have agreed. */
@@ -566,55 +572,37 @@ export const agreeToAmendment = async (
   if (agreed) {
     return;
   }
-  const signed = { kind: "amendment_offer", id: offer.id } as const;
-  const sealed = await checkSigningCode(
+  await sealAgreement(
     context,
     investorId,
-    signed,
-    input.code
-  );
-  const now = context.clock.now();
-  const id = uuidv7(now);
-  await audited(context).write(
+    { kind: "amendment_offer", id: offer.id, paperHash: offer.paperHash },
+    input.code,
     {
-      entity: "amendment_offer",
-      entityId: offer.id,
-      action: "update",
-      after: { agreementId: theirs.id, agreedAt: now.toISOString() },
-    },
-    async (tx) => {
-      const [answered] = await tx
-        .insert(amendmentOfferAnswer)
-        .values({
-          id,
-          farmId: context.farm.id,
-          offerId: offer.id,
-          agreementId: theirs.id,
-          agreedBy: context.actor.id,
-          agreedAt: now,
-        })
-        .onConflictDoNothing()
-        .returning({ id: amendmentOfferAnswer.id });
-      // Agreed meanwhile: the code stays unused, and nothing is kept as proof of nothing.
-      if (answered) {
-        await keepProof(
-          tx,
-          context,
-          investorId,
-          { ...signed, paperHash: offer.paperHash },
-          sealed
-        );
-      }
+      trail: (now) => ({
+        entity: "amendment_offer",
+        entityId: offer.id,
+        action: "update",
+        after: { agreementId: theirs.id, agreedAt: now.toISOString() },
+      }),
+      // Their answer, for the Agreement it names: none written when they had answered already.
+      mark: async (tx, now) => {
+        const [answered] = await tx
+          .insert(amendmentOfferAnswer)
+          .values({
+            id: uuidv7(now),
+            farmId: context.farm.id,
+            offerId: offer.id,
+            agreementId: theirs.id,
+            agreedBy: context.actor.id,
+            agreedAt: now,
+          })
+          .onConflictDoNothing()
+          .returning({ id: amendmentOfferAnswer.id });
+        return answered !== undefined;
+      },
     }
   );
 };
-
-/** An Amendment approved already, which an Investor's agreement is part of now and can no longer be taken back. */
-const approvedAlready = () =>
-  refused(
-    "This Amendment is approved: it is part of the Agreement now",
-    "already_approved"
-  );
 
 /**
  * An Investor withdraws their agreement to an Amendment before the Owner approves it — with the Owner's approval last,
@@ -633,10 +621,10 @@ export const withdrawAgreementToAmendment = async (
     throw new ORPCError("NOT_FOUND", { message: "No such offer" });
   }
   if (offer.approvedAt) {
-    throw approvedAlready();
+    throw WORDS.approved();
   }
   if (offer.withdrawnAt) {
-    throw refused("This Amendment was taken back", "offer_withdrawn");
+    throw WORDS.withdrawn();
   }
   const answered = await context.db.query.amendmentOfferAnswer.findFirst({
     where: {
@@ -649,48 +637,44 @@ export const withdrawAgreementToAmendment = async (
   if (!answered) {
     return;
   }
-  const now = context.clock.now();
-  await audited(context).write(
+  await withdrawTheAgreement(
+    context,
+    investorId,
+    { kind: "amendment_offer", id: offer.id },
     {
-      entity: "amendment_offer",
-      entityId: offer.id,
-      action: "update",
-      reason: "The Investor withdrew their agreement before it was approved",
-      after: {
-        agreementId: theirs.id,
-        agreementWithdrawnAt: now.toISOString(),
-      },
-    },
-    async (tx) => {
-      // Behind the Farm lock, as approving is: whichever comes second finds the Amendment as the first left it.
-      await lockTheFarm(tx, context.farm.id);
-      const standing = await tx.query.amendmentOffer.findFirst({
-        where: { id: offer.id, farmId: context.farm.id },
-        columns: { approvedAt: true, withdrawnAt: true },
-      });
-      if (standing?.approvedAt) {
-        throw approvedAlready();
-      }
-      if (standing?.withdrawnAt) {
-        throw refused("This Amendment was taken back", "offer_withdrawn");
-      }
-      const [taken] = await tx
-        .delete(amendmentOfferAnswer)
-        .where(
-          and(
-            eq(amendmentOfferAnswer.offerId, offer.id),
-            eq(amendmentOfferAnswer.agreementId, theirs.id)
+      trail: (now) => ({
+        entity: "amendment_offer",
+        entityId: offer.id,
+        action: "update",
+        after: {
+          agreementId: theirs.id,
+          agreementWithdrawnAt: now.toISOString(),
+        },
+      }),
+      words: WORDS,
+      // Their answer goes, so the Amendment waits on them again — read as it stands now, behind the Farm lock.
+      withdraw: async (tx) => {
+        const standing = await tx.query.amendmentOffer.findFirst({
+          where: { id: offer.id, farmId: context.farm.id },
+          columns: { approvedAt: true, withdrawnAt: true },
+        });
+        if (standing?.approvedAt) {
+          return "approved";
+        }
+        if (standing?.withdrawnAt) {
+          return "withdrawn";
+        }
+        const [taken] = await tx
+          .delete(amendmentOfferAnswer)
+          .where(
+            and(
+              eq(amendmentOfferAnswer.offerId, offer.id),
+              eq(amendmentOfferAnswer.agreementId, theirs.id)
+            )
           )
-        )
-        .returning({ id: amendmentOfferAnswer.id });
-      // Withdrawn by another try a moment before: refused, so the trail keeps one withdrawal and not two.
-      if (!taken) {
-        throw refused("Your agreement is withdrawn already", "not_agreed");
-      }
-      await proofWithdrawn(tx, now, investorId, {
-        kind: "amendment_offer",
-        id: offer.id,
-      });
+          .returning({ id: amendmentOfferAnswer.id });
+        return taken ? "withdrawn_now" : "not_agreed";
+      },
     }
   );
 };
