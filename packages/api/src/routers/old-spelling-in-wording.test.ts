@@ -1,5 +1,6 @@
 import type { TemplateContent } from "@OpenFarm/domain";
 import {
+  PORTAL_CONSENT_BEFORE_SIGNING_CLAUSE,
   STANDARD_AGREEMENT_BEFORE_ENGLISH_FACTS,
   STANDARD_TEMPLATES,
 } from "@OpenFarm/domain";
@@ -24,10 +25,14 @@ const asOwner = async () => {
   return client;
 };
 
-/** Wording as a Version saved before 2026-10-08 holds it: every condition in the old spelling. */
+/** Wording as a Version saved before 2026-10-08 holds it: its conditions and its words in the old spelling. */
 const savedInTheOldSpelling = (content: TemplateContent) =>
   JSON.parse(
-    JSON.stringify(content).replaceAll('"an_organization"', '"an_organisation"')
+    JSON.stringify(content)
+      .replaceAll('"an_organization"', '"an_organisation"')
+      .replaceAll("organization", "organisation")
+      .replaceAll("Organization", "Organisation")
+      .replaceAll("license", "licence")
   ) as TemplateContent;
 
 describe("a Version saved in the old spelling", () => {
@@ -53,6 +58,23 @@ describe("a Version saved in the old spelling", () => {
         content: listed?.current.content ?? old,
       })
     ).resolves.toBeDefined();
+  });
+
+  it("is caught up when its words, too, are in the old spelling — the Portal Consent to the one with the signing clause", async () => {
+    const owner = await asOwner();
+    const old = savedInTheOldSpelling(PORTAL_CONSENT_BEFORE_SIGNING_CLAUSE);
+    expect(JSON.stringify(old)).toContain("organisation's");
+
+    const { before, caughtUp } = await caughtUpFrom(
+      owner,
+      "portal_consent",
+      old
+    );
+
+    expect(caughtUp?.currentVersionId).not.toBe(before);
+    expect(JSON.stringify(caughtUp?.currentVersion?.content)).toContain(
+      "signingClause"
+    );
   });
 
   it("is caught up to the standard after it, as the same words in today's spelling are", async () => {

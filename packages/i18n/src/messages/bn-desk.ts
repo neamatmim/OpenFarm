@@ -629,6 +629,15 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "portal.lastIn": "শেষ এসেছেন {when}",
   "portal.notInYet": "এখনো পোর্টালে দেখা যায়নি",
   "portal.codeRanOut": "নতুন কোড দিন",
+  "portal.consent.noSigningClause":
+    "এই সম্মতিপত্রে অ্যাপে সম্মতির ধারা নেই: নতুনটিতে সই না করা পর্যন্ত কাগজ কাগজেই সই হবে",
+  "portal.consent.signNew": "নতুন সম্মতিপত্র ছাপুন",
+  "portal.consent.replaced":
+    "নতুন সম্মতিপত্র লেখা হলো: এখন থেকে পোর্টালে কোড দিয়ে সম্মতি দিতে পারবেন",
+  "portal.account.signsInApp":
+    "আপনার সম্মতিপত্রে অ্যাপে সম্মতির ধারা আছে: খামার পোর্টালে যে কাগজ পাঠাবে, কোড দিয়ে তাতে সম্মতি দিতে পারবেন।",
+  "portal.account.signsOnPaper":
+    "আপনার সম্মতিপত্রে অ্যাপে সম্মতির ধারা নেই: পরের বার খামারে এসে নতুনটিতে সই করলে পোর্টালে সম্মতি দিতে পারবেন; ততদিন কাগজে সই করবেন।",
   "portal.consent.signed": "সম্মতি সই {when} · ভাষার সংস্করণ {version}",
   "portal.consent.sheetTitle": "পোর্টাল সম্মতিপত্র",
   "portal.consent.sheetHint":
@@ -686,6 +695,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "portal.howLine.letter": "সই করা চিঠিতে",
   "portal.howLine.message": "নিজের নম্বর থেকে মেসেজে",
   "portal.howLine.signatory_changed": "স্বাক্ষরকারী বদলানোয়",
+  "portal.howLine.replaced": "নতুন সম্মতিপত্রে সই করায়",
   "portal.takenAwayLine.withdrew_consent": "সম্মতি তুলে নিয়েছেন {day}, {how}",
   "portal.takenAwayLine.withdrewUndated": "সম্মতি তুলে নিয়েছেন",
   "portal.takenAwayLine.lost_phone": "ফোন হারানোয় তুলে নেওয়া",
@@ -2021,6 +2031,8 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "years.refused.endedYear":
     "এতে শেষ হয়ে যাওয়া একটি বছর বদলে যাবে। শেষ হওয়া বছরের দৈর্ঘ্য বদলায় না।",
   "years.refused.notTheLast": "শুধু শেষ পরিবর্তনটি প্রত্যাহার করা যায়।",
+  "templates.signingClause":
+    "অ্যাপে সম্মতির ধারা: এটি না থাকলে এই ভাষায় সই করা সম্মতিতে কেউ পোর্টালে সম্মতি দিতে পারবেন না",
   "templates.pageTitle": "চুক্তির নমুনা",
   "templates.open": "চুক্তির নমুনা খুলুন",
   "templates.pageHint":

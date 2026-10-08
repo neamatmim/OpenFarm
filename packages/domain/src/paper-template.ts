@@ -353,7 +353,24 @@ export interface FactLine {
 }
 
 /** One clause of a clauses part: its words, and — for a clause printed only on some papers — when it is printed. */
-export type Clause = Said & { only?: PrintedOnly };
+export type Clause = Said & {
+  only?: PrintedOnly;
+  /**
+   * The Portal Consent's clause that a one-time code the farm sends, entered by the Investor in the portal, is their
+   * signature on the paper they agree to there (ADR 0022). A consent signed on a Version carrying it lets the Investor
+   * agree in the app; one without it does not, however its other words were changed.
+   */
+  signingClause?: true;
+};
+
+/** Whether a wording carries the signing clause: what decides if a consent signed on it lets the Investor agree in the
+ *  app. */
+export const carriesSigningClause = (content: TemplateContent): boolean =>
+  content.sections.some(
+    (section) =>
+      section.kind === "clauses" &&
+      section.clauses.some((clause) => clause.signingClause === true)
+  );
 
 /**
  * A part of the paper, in the order it is printed. The Owner words each; the farm fills in what is its own. The

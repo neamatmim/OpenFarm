@@ -12,6 +12,7 @@ import { paperText } from "./paper-text";
 import type { PaperOrganization } from "./papers";
 import {
   PORTAL_CONSENT_BEFORE_ORGANIZATIONS,
+  PORTAL_CONSENT_BEFORE_SIGNING_CLAUSE,
   STANDARD_AGREEMENT_BEFORE_NOMINEE_NUMBERS,
   STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
   STANDARD_TEMPLATES,
@@ -112,7 +113,7 @@ describe("the standard wording of 2026-10-08", () => {
 
   it("lays a person's Portal Consent out to the letter as the one before it did", () => {
     expect(
-      laidOut("portal_consent", STANDARD_TEMPLATES.portal_consent, false)
+      laidOut("portal_consent", PORTAL_CONSENT_BEFORE_SIGNING_CLAUSE, false)
     ).toEqual(
       laidOut("portal_consent", PORTAL_CONSENT_BEFORE_ORGANIZATIONS, false)
     );

@@ -317,11 +317,13 @@ export const investorAccess = pgTable(
 );
 
 /** How an Investor's Portal Consent stopped being in force: they asked by a signed letter, or by a message from their
- *  own number; or, for an Organization, the Signatory who signed it was changed for another (ADR 0020). */
+ *  own number; or, for an Organization, the Signatory who signed it was changed for another (ADR 0020); or they signed
+ *  a newer one in its place, carrying the signing clause (ADR 0022). */
 export const CONSENT_WITHDRAWN_HOW = [
   "letter",
   "message",
   "signatory_changed",
+  "replaced",
 ] as const;
 
 /**

@@ -58,7 +58,9 @@ const section = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("clauses"),
     heading: said,
-    clauses: z.array(said.extend({ only })).max(MOST_LINES),
+    clauses: z
+      .array(said.extend({ only, signingClause: z.literal(true).optional() }))
+      .max(MOST_LINES),
   }),
   z.object({ kind: z.literal("stamp"), heading: said }),
   z.object({
