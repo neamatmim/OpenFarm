@@ -292,6 +292,48 @@ export type PaperCondition = (typeof PAPER_CONDITIONS)[number];
 /** When a line is printed: one condition, or several that must all hold. */
 export type PrintedOnly = PaperCondition | readonly PaperCondition[];
 
+/**
+ * A condition as a Version saved before the code moved to American English may hold it (007bcab3, 2026-10-08): saved
+ * Versions are never rewritten, so their words are read as today's.
+ */
+const SPELLED_TODAY: Readonly<Record<string, PaperCondition>> = {
+  an_organisation: "an_organization",
+};
+
+const conditionToday = (condition: string): string =>
+  SPELLED_TODAY[condition] ?? condition;
+
+const onlyToday = (only: unknown): unknown => {
+  if (typeof only === "string") {
+    return conditionToday(only);
+  }
+  return Array.isArray(only) ? only.map(conditionToday) : only;
+};
+
+/** A line's conditions as today's code spells them, where it has any. */
+const lineToday = <T extends { only?: unknown }>(line: T): T =>
+  line.only === undefined ? line : { ...line, only: onlyToday(line.only) };
+
+/**
+ * A saved Version's wording as today's code reads it: its conditions spelled as they are now. Everything a farm prints
+ * or shows from a Version it saved reads it through here.
+ */
+export const wordingAsSavedToday = (content: unknown): TemplateContent => {
+  const saved = content as TemplateContent;
+  return {
+    ...saved,
+    sections: saved.sections.map((section) => {
+      if (section.kind === "facts") {
+        return { ...section, rows: section.rows.map(lineToday) };
+      }
+      if (section.kind === "clauses") {
+        return { ...section, clauses: section.clauses.map(lineToday) };
+      }
+      return section;
+    }),
+  };
+};
+
 /** Each condition a line is printed on, however its wording keeps them. */
 export const conditionsOf = (only: PrintedOnly | undefined) => {
   if (only === undefined) {

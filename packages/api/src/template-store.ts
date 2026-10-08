@@ -20,6 +20,7 @@ import {
   STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
   STANDARD_TEMPLATES,
   TEMPLATE_KINDS,
+  wordingAsSavedToday,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -52,7 +53,7 @@ const asWording = (row: {
 }): Wording => ({
   versionId: row.id,
   number: row.number,
-  content: row.content as TemplateContent,
+  content: wordingAsSavedToday(row.content),
   reviewedBy: row.reviewedBy,
   reviewedOn: row.reviewedOn,
 });
@@ -270,7 +271,7 @@ const catchUpTheStandard = async (
     if (!current || current.publishedBy !== null) {
       return null;
     }
-    const words = canonical(current.content);
+    const words = canonical(wordingAsSavedToday(current.content));
     return (
       EARLIER_STANDARDS[kind]?.find(
         (earlier) => canonical(earlier.content) === words

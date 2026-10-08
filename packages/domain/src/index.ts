@@ -896,6 +896,7 @@ export {
   termsOf,
   termsSaid,
   investorRows,
+  wordingAsSavedToday,
   wordingFor,
 } from "./paper-template";
 export {
