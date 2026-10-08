@@ -909,6 +909,11 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "nominees.photoKept": "ছবি রাখা আছে",
   "nominees.photoMissing": "ছবি এখনো রাখা হয়নি",
   "nominees.keepPhoto": "ছবি রাখুন",
+  "nominees.seePhoto": "ছবি দেখুন",
+  "nominees.replacePhoto": "ছবি বদলান",
+  "nominees.photoTitle": "সই করা মনোনয়নপত্র",
+  "nominees.photoDialogHint":
+    "খামারে যেমন রাখা আছে। আরও পরিষ্কার ছবি থাকলে বদলে দিন: আগেরটির জায়গা নেবে।",
   "nominees.photoKeptNow": "মনোনয়নপত্রের ছবি রাখা হলো",
   "refusal.nominationHasNoPaper":
     "শুধু মনোনয়নপত্রেরই নিজের কাগজ থাকে: চুক্তিতে দেওয়া নমিনির প্রমাণ চুক্তির ছবি।",

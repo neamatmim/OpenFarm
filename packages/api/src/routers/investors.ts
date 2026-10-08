@@ -34,6 +34,7 @@ import {
   nominationToSign,
   nomineesInput,
   keepNominationPaper,
+  nominationPhoto,
   recordNomination,
 } from "../nominations";
 import { assertPasswordGiven, requirePasswordGiven } from "../password-again";
@@ -496,6 +497,18 @@ export const investorsRouter = {
             ? { contentType: input.contentType, data: input.data }
             : null,
       })
+    ),
+
+  /**
+   * The photo of a signed মনোনয়নপত্র as the farm kept it, to look at, save or replace; nothing before one is kept. The
+   * Owner's alone, as keeping it is.
+   */
+  nominationPhoto: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ nominationId: z.string() }))
+    .handler(({ context, input }) =>
+      nominationPhoto(context, input.nominationId)
     ),
 
   /**

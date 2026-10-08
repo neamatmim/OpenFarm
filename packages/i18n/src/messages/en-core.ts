@@ -1010,6 +1010,11 @@ export const enCore = {
   "nominees.photoKept": "Photo kept",
   "nominees.photoMissing": "No photo kept yet",
   "nominees.keepPhoto": "Add the photo",
+  "nominees.seePhoto": "See the photo",
+  "nominees.replacePhoto": "Replace the photo",
+  "nominees.photoTitle": "The signed মনোনয়নপত্র",
+  "nominees.photoDialogHint":
+    "As the farm keeps it. Have a clearer photo? Replace it: the new one takes this one's place.",
   "nominees.photoKeptNow": "Photo of the মনোনয়নপত্র kept",
   "refusal.nominationHasNoPaper":
     "Only a মনোনয়নপত্র has a paper of its own. Nominees named in an agreement are proved by the agreement's photo.",

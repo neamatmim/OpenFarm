@@ -312,6 +312,22 @@ const readPaperKept = async (
   return { nominationId, photoKeptAt: kept?.updatedAt ?? null };
 };
 
+/** The photo of a মনোনয়নপত্র as the farm kept it, to look at before keeping a better one; nothing before one is kept. */
+export const nominationPhoto = async (context: Owned, nominationId: string) => {
+  const paper = await context.db.query.nomination.findFirst({
+    where: { id: nominationId, farmId: context.farm.id },
+    columns: { id: true },
+  });
+  if (!paper) {
+    throw new ORPCError("NOT_FOUND", { message: "No such Nomination" });
+  }
+  const kept = await context.db.query.nominationPaper.findFirst({
+    where: { nominationId: paper.id, farmId: context.farm.id },
+    columns: { contentType: true, data: true, updatedAt: true },
+  });
+  return kept ?? null;
+};
+
 /**
  * Keeps the photo of a মনোনয়নপত্র already recorded — one the Owner had no photo of on the day, or a better one in place
  * of the first. Only a মনোনয়নপত্র has a paper of its own: an Agreement's Nomination is proved by the Agreement's photo,
