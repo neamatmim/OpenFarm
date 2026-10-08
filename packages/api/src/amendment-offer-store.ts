@@ -25,9 +25,11 @@ import { assertReadAsKept, keepPaper } from "./kept-paper";
 import type { OfferWords } from "./offer-lifecycle";
 import {
   approvedAlready,
-  sealAgreement,
+  closedMeanwhile,
+  offerForSteps,
+  sealAgreementBy,
   standingOf,
-  withdrawTheAgreement,
+  withdrawTheAgreementBy,
   withdrawTheOffer,
   withdrawnAlready,
 } from "./offer-lifecycle";
@@ -48,6 +50,10 @@ const readOffer = async (tx: Pick<Tx, "query">, farmId: string, id: string) =>
     where: { id, farmId },
     columns: { paper: false },
   })) ?? null;
+
+/** This offer as the shared steps act on it (`offer-lifecycle.ts`). */
+const inApp = (context: { farm: { id: string } }, id: string) =>
+  offerForSteps("amendment_offer", context.farm.id, id, readOffer);
 
 /** This Farm's Amendment offer, or nothing anybody may act on. */
 const theOffer = async (
@@ -199,34 +205,7 @@ export const withdrawAmendment = async (
   if (offer.withdrawnAt) {
     return;
   }
-  await withdrawTheOffer(context, {
-    trail: () => ({
-      entity: "amendment_offer",
-      entityId: offer.id,
-      action: "update",
-      before: (tx) => readOffer(tx, context.farm.id, offer.id),
-      after: (tx) => readOffer(tx, context.farm.id, offer.id),
-    }),
-    words: WORDS,
-    withdraw: async (tx, now) => {
-      const [withdrawing] = await tx
-        .update(amendmentOffer)
-        .set({ withdrawnAt: now })
-        .where(
-          and(
-            eq(amendmentOffer.id, offer.id),
-            isNull(amendmentOffer.approvedAt),
-            isNull(amendmentOffer.withdrawnAt)
-          )
-        )
-        .returning({ id: amendmentOffer.id });
-      if (withdrawing) {
-        return "withdrawn_now";
-      }
-      const meanwhile = await readOffer(tx, context.farm.id, offer.id);
-      return meanwhile?.approvedAt ? "approved" : "withdrawn";
-    },
-  });
+  await withdrawTheOffer(context, inApp(context, offer.id), WORDS);
 };
 
 /** Refuses approving an offer withdrawn or approved already. */
@@ -572,10 +551,10 @@ export const agreeToAmendment = async (
   if (agreed) {
     return;
   }
-  await sealAgreement(
+  await sealAgreementBy(
     context,
     investorId,
-    { kind: "amendment_offer", id: offer.id, paperHash: offer.paperHash },
+    { ...inApp(context, offer.id), paperHash: offer.paperHash },
     input.code,
     {
       trail: (now) => ({
@@ -637,10 +616,11 @@ export const withdrawAgreementToAmendment = async (
   if (!answered) {
     return;
   }
-  await withdrawTheAgreement(
+  await withdrawTheAgreementBy(
     context,
     investorId,
-    { kind: "amendment_offer", id: offer.id },
+    inApp(context, offer.id),
+    WORDS,
     {
       trail: (now) => ({
         entity: "amendment_offer",
@@ -651,18 +631,11 @@ export const withdrawAgreementToAmendment = async (
           agreementWithdrawnAt: now.toISOString(),
         },
       }),
-      words: WORDS,
       // Their answer goes, so the Amendment waits on them again — read as it stands now, behind the Farm lock.
       withdraw: async (tx) => {
-        const standing = await tx.query.amendmentOffer.findFirst({
-          where: { id: offer.id, farmId: context.farm.id },
-          columns: { approvedAt: true, withdrawnAt: true },
-        });
-        if (standing?.approvedAt) {
-          return "approved";
-        }
-        if (standing?.withdrawnAt) {
-          return "withdrawn";
+        const closed = await closedMeanwhile(tx, inApp(context, offer.id));
+        if (closed) {
+          return closed;
         }
         const [taken] = await tx
           .delete(amendmentOfferAnswer)

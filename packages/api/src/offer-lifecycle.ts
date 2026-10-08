@@ -1,8 +1,14 @@
+import { and, eq, isNotNull, isNull } from "@OpenFarm/db/operators";
+import {
+  agreementOffer,
+  amendmentOffer,
+  nominationOffer,
+} from "@OpenFarm/db/schema/venture";
 import type { ORPCError } from "@orpc/server";
 
 import type { Acting } from "./agreeing-in-app";
 import { refused } from "./agreeing-in-app";
-import type { AuditedWrite, Tx } from "./audit";
+import type { AuditedWrite, SnapshotValue, Tx } from "./audit";
 import { audited, readSnapshot } from "./audit";
 import type { Context } from "./context";
 import type { SignedOfferKind } from "./signing-code";
@@ -12,8 +18,77 @@ import { seenWhenDone } from "./writes-seen";
 
 // The one life every paper offered in the app leads — an Agreement Offer, an Amendment, a মনোনয়নপত্র (ADR 0022): the
 // Owner offers it, the Investor agrees with a Signing Code and may withdraw that, the Owner may withdraw the offer, and
-// the Owner approves it. Each store says what its paper is and how its agreement is kept; the steps, their locks, their
-// proofs and their refusals are said here once, so the three cannot drift apart.
+// the Owner approves it. The steps, their locks, their proofs, their refusals and the table work on each paper's own row
+// are said here once, so the three cannot drift apart; each store says only what its paper is, and an Amendment — whose
+// agreement is each Investor's answer — how that is kept. A new kind of paper is added to `OFFER_TABLES` here.
+
+/** The table each kind of paper offered in the app is kept in. */
+const OFFER_TABLES = {
+  agreement_offer: agreementOffer,
+  amendment_offer: amendmentOffer,
+  nomination_offer: nominationOffer,
+} as const;
+
+/** The tables of the papers one Investor agrees to alone, whose own row says whether they have: not an Amendment's,
+ *  whose agreement is each Investor's answer. */
+const AGREED_ALONE_TABLES = {
+  agreement_offer: agreementOffer,
+  nomination_offer: nominationOffer,
+} as const;
+
+/** A paper one Investor agrees to alone. */
+export type AgreedAlone = keyof typeof AGREED_ALONE_TABLES;
+
+/** One paper offered in the app, as a step acts on it: its kind — which is its name in the trail — the Farm's id and
+ *  its own, and how the trail reads it either side of the step. */
+export interface OfferInApp<Kind extends SignedOfferKind = SignedOfferKind> {
+  kind: Kind;
+  farmId: string;
+  id: string;
+  read: (tx: Tx) => Promise<SnapshotValue>;
+}
+
+/** One of this Farm's papers offered in the app, for the shared steps, read for the trail by its store's own reader. */
+export const offerForSteps = <Kind extends SignedOfferKind>(
+  kind: Kind,
+  farmId: string,
+  id: string,
+  read: (
+    tx: Pick<Tx, "query">,
+    farmId: string,
+    id: string
+  ) => Promise<SnapshotValue>
+): OfferInApp<Kind> => ({
+  kind,
+  farmId,
+  id,
+  read: (tx) => read(tx, farmId, id),
+});
+
+/** The trail of one step on an offer: its row as it stood either side. */
+export const offerTrail = (offer: OfferInApp): AuditedWrite => ({
+  entity: offer.kind,
+  entityId: offer.id,
+  action: "update",
+  before: offer.read,
+  after: offer.read,
+});
+
+/** Where this Farm's offer stands, read again inside a step: approved or withdrawn meanwhile, or neither. */
+export const closedMeanwhile = async (
+  tx: Tx,
+  offer: OfferInApp
+): Promise<"approved" | "withdrawn" | null> => {
+  const table = OFFER_TABLES[offer.kind];
+  const [row] = await tx
+    .select({ approvedAt: table.approvedAt, withdrawnAt: table.withdrawnAt })
+    .from(table)
+    .where(and(eq(table.id, offer.id), eq(table.farmId, offer.farmId)));
+  if (row?.approvedAt) {
+    return "approved";
+  }
+  return row?.withdrawnAt ? "withdrawn" : null;
+};
 
 /** Where an offer stands. An Amendment's agreement is its answers, so it has no `agreedAt` of its own. */
 export type OfferStanding = "offered" | "agreed" | "approved" | "withdrawn";
@@ -76,35 +151,75 @@ const lockedStep = async (
   );
 };
 
+/** How an agreement is kept: the trail of it, and the mark that records it, saying whether it did. */
+export interface SealedHow {
+  trail: (now: Date) => AuditedWrite;
+  mark: (tx: Tx, now: Date) => Promise<boolean>;
+}
+
+/** How an agreement to a paper agreed alone is kept: its own row marked agreed, while neither withdrawn nor agreed. */
+const agreedAloneHow = (
+  offer: OfferInApp<AgreedAlone>,
+  by: string
+): SealedHow => {
+  const table = AGREED_ALONE_TABLES[offer.kind];
+  return {
+    trail: () => offerTrail(offer),
+    mark: async (tx, now) => {
+      const [agreeing] = await tx
+        .update(table)
+        .set({ agreedAt: now, agreedBy: by })
+        .where(
+          and(
+            eq(table.id, offer.id),
+            isNull(table.withdrawnAt),
+            isNull(table.agreedAt)
+          )
+        )
+        .returning({ id: table.id });
+      return agreeing !== undefined;
+    },
+  };
+};
+
 /**
  * An Investor's agreement to a paper offered in the app, sealed by a Signing Code (ADR 0022): the code checked first —
- * counted against them, refused by name — and then, in one locked step, the agreement marked by the store (`mark`, which
- * says whether it marked anything) and its proof kept with the code marked used. Withdrawn or agreed meanwhile, nothing
- * is marked, no proof is kept of nothing, and the trail says nothing.
+ * counted against them, refused by name — and then, in one locked step, the agreement marked (`how.mark`, which says
+ * whether it marked anything: by default the paper's own row, an Amendment its answer) and its proof kept with the code
+ * marked used. Withdrawn or agreed meanwhile, nothing is marked, no proof is kept of nothing, and the trail says nothing.
  */
-export const sealAgreement = async (
+export const sealAgreementBy = async (
   context: Acting & Pick<Context, "callerAddress" | "callerAgent">,
   investorId: string,
-  offer: { kind: SignedOfferKind; id: string; paperHash: string },
+  offer: OfferInApp & { paperHash: string },
   code: string,
-  {
-    trail,
-    mark,
-  }: {
-    trail: (now: Date) => AuditedWrite;
-    mark: (tx: Tx, now: Date) => Promise<boolean>;
-  }
+  how: SealedHow
 ): Promise<void> => {
   const signed = { kind: offer.kind, id: offer.id } as const;
   const sealed = await checkSigningCode(context, investorId, signed, code);
-  await lockedStep(context, trail, async (tx, now) => {
-    if (!(await mark(tx, now))) {
+  await lockedStep(context, how.trail, async (tx, now) => {
+    if (!(await how.mark(tx, now))) {
       return false;
     }
     await keepProof(tx, context, investorId, offer, sealed);
     return true;
   });
 };
+
+/** An Investor's agreement to a paper they agree to alone, sealed by a Signing Code: its own row marked agreed. */
+export const sealAgreement = (
+  context: Acting & Pick<Context, "callerAddress" | "callerAgent">,
+  investorId: string,
+  offer: OfferInApp<AgreedAlone> & { paperHash: string },
+  code: string
+): Promise<void> =>
+  sealAgreementBy(
+    context,
+    investorId,
+    offer,
+    code,
+    agreedAloneHow(offer, context.actor.id)
+  );
 
 /** How a paper stood when the Investor came to withdraw their agreement, as the store found it. */
 export type AgreementFound =
@@ -113,35 +228,61 @@ export type AgreementFound =
   | "withdrawn"
   | "not_agreed";
 
+/** How an agreement is withdrawn: the trail of it, and the step that takes it back, saying how it found the paper. */
+export interface WithdrawnHow {
+  trail: (now: Date) => AuditedWrite;
+  withdraw: (tx: Tx, now: Date) => Promise<AgreementFound>;
+}
+
+/** How an agreement to a paper agreed alone is withdrawn: its own row marked not agreed, and when, while it is still
+ *  agreed and neither approved nor withdrawn — or, finding it otherwise, how it stood. */
+const withdrawnAloneHow = (offer: OfferInApp<AgreedAlone>): WithdrawnHow => {
+  const table = AGREED_ALONE_TABLES[offer.kind];
+  return {
+    trail: () => offerTrail(offer),
+    withdraw: async (tx, now) => {
+      const [withdrawing] = await tx
+        .update(table)
+        .set({ agreedAt: null, agreedBy: null, agreementWithdrawnAt: now })
+        .where(
+          and(
+            eq(table.id, offer.id),
+            isNull(table.approvedAt),
+            isNull(table.withdrawnAt),
+            isNotNull(table.agreedAt)
+          )
+        )
+        .returning({ id: table.id });
+      if (withdrawing) {
+        return "withdrawn_now";
+      }
+      return (await closedMeanwhile(tx, offer)) ?? "not_agreed";
+    },
+  };
+};
+
 /**
  * An Investor withdraws their agreement to a paper before the Owner approves it — with the Owner's approval last,
- * their agreement is their offer (AAOIFI SS 38 5/3; ADR 0022). In one locked step the store withdraws it (`withdraw`)
- * and says how it found the paper: approved or withdrawn by the Owner meanwhile, refused in the paper's words; withdrawn
- * by another try a moment before, refused, so the trail keeps one withdrawal. The proof of their agreement is kept,
- * marked withdrawn at the same moment the trail says.
+ * their agreement is their offer (AAOIFI SS 38 5/3; ADR 0022). In one locked step it is withdrawn (`how.withdraw`: by
+ * default the paper's own row, an Amendment its answer), saying how it found the paper: approved or withdrawn by the
+ * Owner meanwhile, refused in the paper's words; withdrawn by another try a moment before, refused, so the trail keeps
+ * one withdrawal. The proof of their agreement is kept, marked withdrawn at the same moment the trail says.
  */
-export const withdrawTheAgreement = async (
+export const withdrawTheAgreementBy = async (
   context: Acting,
   investorId: string,
-  offer: { kind: SignedOfferKind; id: string },
-  {
-    trail,
-    withdraw,
-    words,
-  }: {
-    trail: (now: Date) => AuditedWrite;
-    withdraw: (tx: Tx, now: Date) => Promise<AgreementFound>;
-    words: OfferWords;
-  }
+  offer: OfferInApp,
+  words: OfferWords,
+  how: WithdrawnHow
 ): Promise<void> => {
   await lockedStep(
     context,
     (now) => ({
-      ...trail(now),
+      ...how.trail(now),
       reason: "The Investor withdrew their agreement before it was approved",
     }),
     async (tx, now) => {
-      const found = await withdraw(tx, now);
+      const found = await how.withdraw(tx, now);
       if (found === "approved") {
         throw words.approved();
       }
@@ -157,33 +298,56 @@ export const withdrawTheAgreement = async (
   );
 };
 
-/** How an offer stood when the Owner came to withdraw it, as the store found it. */
-export type OfferFound = "withdrawn_now" | "approved" | "withdrawn";
+/** An Investor withdraws their agreement to a paper they agree to alone: its own row marked not agreed. */
+export const withdrawTheAgreement = (
+  context: Acting,
+  investorId: string,
+  offer: OfferInApp<AgreedAlone>,
+  words: OfferWords
+): Promise<void> =>
+  withdrawTheAgreementBy(
+    context,
+    investorId,
+    offer,
+    words,
+    withdrawnAloneHow(offer)
+  );
 
 /**
- * The Owner withdraws an offer, agreed or not, until it is approved: in one locked step the store marks it withdrawn
- * (`withdraw`) while it is neither approved nor withdrawn, and says how it found it. Approved meanwhile, it is refused in
- * the paper's words rather than said to be withdrawn; withdrawn already, nothing changes and the trail says nothing.
+ * The Owner withdraws an offer, agreed or not, until it is approved: in one locked step its row is marked withdrawn
+ * while it is neither approved nor withdrawn — every paper's the same. Approved meanwhile, it is refused in the paper's
+ * words rather than said to be withdrawn; withdrawn already, nothing changes and the trail says nothing.
  */
 export const withdrawTheOffer = async (
   context: Acting,
-  {
-    trail,
-    withdraw,
-    words,
-  }: {
-    trail: (now: Date) => AuditedWrite;
-    withdraw: (tx: Tx, now: Date) => Promise<OfferFound>;
-    words: OfferWords;
-  }
+  offer: OfferInApp,
+  words: OfferWords
 ): Promise<void> => {
-  await lockedStep(context, trail, async (tx, now) => {
-    const found = await withdraw(tx, now);
-    if (found === "approved") {
-      throw words.approved();
+  const table = OFFER_TABLES[offer.kind];
+  await lockedStep(
+    context,
+    () => offerTrail(offer),
+    async (tx, now) => {
+      const [withdrawing] = await tx
+        .update(table)
+        .set({ withdrawnAt: now })
+        .where(
+          and(
+            eq(table.id, offer.id),
+            isNull(table.approvedAt),
+            isNull(table.withdrawnAt)
+          )
+        )
+        .returning({ id: table.id });
+      if (withdrawing) {
+        return true;
+      }
+      if ((await closedMeanwhile(tx, offer)) === "approved") {
+        throw words.approved();
+      }
+      return false;
     }
-    return found === "withdrawn_now";
-  });
+  );
 };
 
 /**
