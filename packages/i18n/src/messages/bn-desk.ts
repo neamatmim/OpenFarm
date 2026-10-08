@@ -579,6 +579,15 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
     "খামার এরই মধ্যে অনুমোদন দিয়েছে; এটি এখন আপনার চুক্তির অংশ।",
   "agreeInApp.agreementWithdrawn": "বিনিয়োগকারী সম্মতি ফিরিয়ে নিয়েছেন {on}",
   "agreeInApp.agreementWithdrawnBy": "{name} সম্মতি ফিরিয়ে নিয়েছেন {on}",
+  "agreeInApp.portal.nominationTitle": "আপনার নতুন মনোনয়নপত্র",
+  "agreeInApp.portal.nominationHint":
+    "খামার আপনার নমিনির নতুন তালিকা পাঠিয়েছে। পুরো কাগজ পড়ে কোড দিয়ে সম্মতি দিন; খামার অনুমোদন দিলে এটিই আপনার তালিকা হবে।",
+  "agreeInApp.portal.nominationAgreedHint":
+    "আপনি সম্মতি দিয়েছেন। খামার অনুমোদন দিলে এটিই আপনার নমিনির তালিকা হবে।",
+  "agreeInApp.portal.readNomination": "মনোনয়নপত্র পড়ুন",
+  "agreeInApp.portal.nominationPaperTitle": "মনোনয়নপত্র",
+  "agreeInApp.portal.nominationApproved":
+    "খামার এরই মধ্যে অনুমোদন দিয়েছে; এটিই এখন আপনার নমিনির তালিকা।",
   "agreeInApp.portal.agree": "আমি সম্মত",
   "agreeInApp.portal.agreedDone": "আপনার সম্মতি খামারে পৌঁছেছে",
   "agreeInApp.how": "কীভাবে সম্মতি",
@@ -1698,6 +1707,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "audit.entity.agreement_offer": "অ্যাপে পাঠানো চুক্তি",
   "audit.entity.investment_agreement": "বিনিয়োগ চুক্তি",
   "audit.entity.amendment_offer": "অ্যাপে পাঠানো সংশোধনী",
+  "audit.entity.nomination_offer": "অ্যাপে পাঠানো মনোনয়নপত্র",
   "audit.entity.venture": "ভেঞ্চার",
   "audit.entity.receivable_payment": "বাকি পরিশোধ",
   "audit.entity.receivable_write_off": "বাকি বাদ দেওয়া",

@@ -64,6 +64,7 @@ export const ENTITIES = [
   "agreement_offer",
   "investment_agreement",
   "amendment_offer",
+  "nomination_offer",
   "venture",
   "receivable_payment",
   "receivable_write_off",

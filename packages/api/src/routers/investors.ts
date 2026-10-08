@@ -25,6 +25,12 @@ import {
   readInvestor,
   theSamePerson,
 } from "../investor-store";
+import {
+  approveNominationOffer,
+  nominationOffersOf,
+  offerNomination,
+  withdrawNominationOffer,
+} from "../nomination-offer-store";
 import type { NominationOnFile } from "../nomination-store";
 import {
   nominationsInForceFor,
@@ -523,6 +529,47 @@ export const investorsRouter = {
             : null,
       })
     ),
+
+  /**
+   * A মনোনয়নপত্র offered to one Investor to agree to in the app instead of signing it here (`offerNomination`): the
+   * Nominees written down as for paper, laid out and kept. Refused for a list naming a minor, which stays on paper.
+   */
+  offerNomination: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string(), nominees: nomineesInput }))
+    .handler(({ context, input }) =>
+      offerNomination(context, {
+        investorId: input.id,
+        nominees: input.nominees,
+      })
+    ),
+
+  /** Every মনোনয়নপত্র offered to one Investor in the app, and where each stands (`nominationOffersOf`). */
+  nominationOffers: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(({ context, input }) => nominationOffersOf(context, input.id)),
+
+  /** A মনোনয়নপত্র agreed in the app, approved: the list in force from then on (`approveNominationOffer`). */
+  approveNominationOffer: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ offerId: z.string() }))
+    .handler(({ context, input }) =>
+      approveNominationOffer(context, input.offerId)
+    ),
+
+  /** A মনোনয়নপত্র offered in the app, taken back before it is approved (`withdrawNominationOffer`). */
+  withdrawNominationOffer: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ offerId: z.string() }))
+    .handler(async ({ context, input }) => {
+      await withdrawNominationOffer(context, input.offerId);
+      return { id: input.offerId };
+    }),
 
   /**
    * The photo of a signed মনোনয়নপত্র as the farm kept it, to look at, save or replace; nothing before one is kept. The

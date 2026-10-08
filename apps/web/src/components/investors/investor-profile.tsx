@@ -495,7 +495,13 @@ export const InvestorProfile = ({
           </Detail>
         </DetailCard>
         {/* An Organization names no Nominee: its share is its own (ADR 0020). */}
-        {investor.organization ? null : <Nominees investor={investor} />}
+        {investor.organization ? null : (
+          <Nominees
+            agreementsInApp={agreementsInApp}
+            investor={investor}
+            portalOpen={portalOpen}
+          />
+        )}
       </div>
       <div className="flex flex-col gap-4">
         <Section description={t("portal.recordHint")} title={t("portal.title")}>

@@ -939,6 +939,7 @@ export {
   dayInBangla,
   daySaid,
   isMinorOn,
+  namesAMinor,
   knownBy,
   nomineeRowOf,
   nomineesProblem,

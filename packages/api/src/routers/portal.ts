@@ -18,6 +18,12 @@ import {
 import { protectedProcedure, publicProcedure } from "../index";
 import { confirmEmail, sendEmailCode } from "../investor-email";
 import {
+  agreeToNomination,
+  nominationToAgree,
+  theirNominationOffers,
+  withdrawAgreementToNomination,
+} from "../nomination-offer-store";
+import {
   changePayInNote,
   payInNoteChangeInput,
   payInNoteInput,
@@ -241,13 +247,20 @@ export const portalRouter = {
       if (input.kind === "agreement_offer") {
         const offer = await offerToAgree(context, investorId, input.offerId);
         agreed = offer.agreedAt !== null;
-      } else {
+      } else if (input.kind === "amendment_offer") {
         const amendment = await amendmentToAgree(
           context,
           investorId,
           input.offerId
         );
         ({ agreed } = amendment);
+      } else {
+        const offer = await nominationToAgree(
+          context,
+          investorId,
+          input.offerId
+        );
+        agreed = offer.agreedAt !== null;
       }
       if (agreed) {
         throw refused("You have agreed to it already", "already_agreed");
@@ -274,14 +287,15 @@ export const portalRouter = {
     }),
 
   /** Taking back their agreement to a paper before the Owner approves it (`withdrawAgreementToOffer`,
-   *  `withdrawAgreementToAmendment`). */
+   *  `withdrawAgreementToAmendment`, `withdrawAgreementToNomination`). */
   withdrawAgreement: investorProcedure
     .input(z.object({ kind: z.enum(SIGNED_OFFER_KINDS), offerId: z.string() }))
     .handler(async ({ context, input }) => {
-      const withdraw =
-        input.kind === "agreement_offer"
-          ? withdrawAgreementToOffer
-          : withdrawAgreementToAmendment;
+      const withdraw = {
+        agreement_offer: withdrawAgreementToOffer,
+        amendment_offer: withdrawAgreementToAmendment,
+        nomination_offer: withdrawAgreementToNomination,
+      }[input.kind];
       await withdraw(context, context.investor.id, input.offerId);
       return { id: input.offerId };
     }),
@@ -304,6 +318,26 @@ export const portalRouter = {
     )
     .handler(async ({ context, input }) => {
       await agreeToAmendment(context, context.investor.id, input);
+      return { id: input.offerId };
+    }),
+
+  /** The মনোনয়নপত্র offered them to agree to in the app, with its paper (`theirNominationOffers`). */
+  nominationOffers: investorProcedure.handler(({ context }) =>
+    theirNominationOffers(context, context.investor.id)
+  ),
+
+  /** Agreeing, from their own sign-in, to the মনোনয়নপত্র offered them — the one they read — with a Signing Code
+   *  (`agreeToNomination`). */
+  agreeToNomination: investorProcedure
+    .input(
+      z.object({
+        offerId: z.string(),
+        paperHash: z.string(),
+        code: z.string().trim().min(1).max(20),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      await agreeToNomination(context, context.investor.id, input);
       return { id: input.offerId };
     }),
 

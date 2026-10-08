@@ -840,9 +840,26 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "nominees.notSignedFor": "এখনো সই হয়নি",
   "nominees.notSignedForHint":
     "মনোনয়ন রাখা শুরুর আগে লেখা। তিনি মনোনয়নপত্রে বা এঁদের নাম থাকা চুক্তিতে সই করলে তবেই গণ্য হবে।",
+  "nominees.offerInApp": "অ্যাপে পাঠান",
+  "nominees.offerInAppHint":
+    "ছাপানোর বদলে অ্যাপে পাঠাতে পারেন: বিনিয়োগকারী পোর্টালে পড়ে কোড দিয়ে সম্মতি দেবেন, আপনি অনুমোদন দিলে এটিই তালিকা হবে।",
+  "nominees.offerMinor":
+    "একজন নমিনি নাবালক: এই মনোনয়নপত্র কাগজে, গ্রহণকারীসহ সই করাতে হবে।",
+  "nominees.offerStanding":
+    "তাঁকে একটি মনোনয়নপত্র অ্যাপে পাঠানো আছে; নতুনটির আগে সেটি ফিরিয়ে নিন।",
+  "nominees.offered": "মনোনয়নপত্র অ্যাপে পাঠানো হয়েছে",
+  "nominees.offerWaiting": "মনোনয়নপত্র অ্যাপে পাঠানো হয়েছে {on} — তাঁর সম্মতির অপেক্ষায়",
+  "nominees.offerAgreed":
+    "অ্যাপে পাঠানো মনোনয়নপত্রে সম্মতি দিয়েছেন {on} — আপনার অনুমোদনের অপেক্ষায়",
+  "nominees.offerApproved": "নমিনির তালিকা হালনাগাদ হয়েছে",
+  "nominees.offerApprovedAlready":
+    "এটি এরই মধ্যে অনুমোদিত; এটিই এখন তাঁর নমিনির তালিকা।",
+  "nominees.offerRetired":
+    "অবসরপ্রাপ্ত বিনিয়োগকারী নতুন কিছুতে সই করেন না; আগে তাঁকে ফিরিয়ে আনুন।",
   "nominees.from.nomination": "{day}-এ সই হওয়া মনোনয়নপত্র",
   "nominees.from.agreement": "{day}-এ সই হওয়া {venture}-এর চুক্তিতে",
   "nominees.from.carried_over": "{day}-এ আগের রেকর্ড থেকে",
+  "nominees.from.in_app": "{day}-এ অ্যাপে কোড দিয়ে সম্মত মনোনয়নপত্র",
   "nominees.born": "জন্ম {day}",
   "nominees.minor": "নাবালক",
   "nominees.share": "{share}%",
@@ -2609,13 +2626,21 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "{farm}-এর বিনিয়োগকারী পোর্টালে আপনার ইমেইল নিশ্চিত করার কোড: {code}\n\nপোর্টালের “অ্যাকাউন্ট” পাতায় কোডটি লিখুন। এটি {minutes} মিনিট কাজ করবে। আপনি না চাইলে এই ইমেইলটি উপেক্ষা করুন, আর খামারকে জানান।",
   "signing.paper.agreement_offer": "বিনিয়োগ চুক্তি",
   "signing.paper.amendment_offer": "সংশোধনী",
+  "signing.paper.nomination_offer": "মনোনয়নপত্র",
+  "signing.paperIn.agreement_offer": "বিনিয়োগ চুক্তিতে",
+  "signing.paperIn.amendment_offer": "সংশোধনীতে",
+  "signing.paperIn.nomination_offer": "মনোনয়নপত্রে",
   "signing.code.sms":
-    "{farm}: {paper}তে সম্মতির কোড {code}। {minutes} মিনিট কাজ করবে। কাউকে বলবেন না।",
+    "{farm}: {paperIn} সম্মতির কোড {code}। {minutes} মিনিট কাজ করবে। কাউকে বলবেন না।",
   "signing.code.subject": "কাগজে সম্মতির কোড",
   "signing.code.email":
-    "{farm}-এর বিনিয়োগকারী পোর্টালে {paper}তে সম্মতি দেওয়ার কোড: {code}\n\nকাগজের পাতায় কোডটি লিখলে আপনার সম্মতি হবে, সই করার মতোই। এটি {minutes} মিনিট কাজ করবে। কাউকে বলবেন না; আপনি না চাইলে খামারকে জানান।",
+    "{farm}-এর বিনিয়োগকারী পোর্টালে {paperIn} সম্মতি দেওয়ার কোড: {code}\n\nকাগজের পাতায় কোডটি লিখলে আপনার সম্মতি হবে, সই করার মতোই। এটি {minutes} মিনিট কাজ করবে। কাউকে বলবেন না; আপনি না চাইলে খামারকে জানান।",
   "signing.approved.sms":
     "{farm}: আপনার {paper} নং {number} ({venture}) খামার অনুমোদন করেছে।",
+  "signing.approvedNomination.sms":
+    "{farm}: আপনার {paper} নং {number} খামার অনুমোদন করেছে।",
+  "signing.approvedNomination.email":
+    "{farm} আপনার {paper} নং {number} অনুমোদন করেছে, যাতে আপনি পোর্টালে কোড দিয়ে সম্মতি দিয়েছিলেন। এখন থেকে এটিই আপনার নমিনির তালিকা।",
   "signing.approved.subject": "আপনার কাগজ অনুমোদিত হয়েছে",
   "signing.approved.email":
     "{farm} আপনার {paper} নং {number} ({venture}) অনুমোদন করেছে, যাতে আপনি পোর্টালে কোড দিয়ে সম্মতি দিয়েছিলেন। এর কপি পোর্টালের “কাগজ” পাতায় আছে।",

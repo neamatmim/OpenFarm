@@ -7,6 +7,7 @@ import { createRouterClient } from "@orpc/server";
 import { buildContext } from "../context";
 import type { EmailTransport } from "../email";
 import { appRouter } from "../routers";
+import type { SignedOfferKind } from "../signing-code";
 import type { SmsMessage, SmsTransport } from "../sms";
 import { createTestClient } from "./client";
 
@@ -51,7 +52,7 @@ export const codeTextedTo = (phone: string): string => {
 /** The Signing Code an Investor asks for to agree to one paper, as the farm texts it to them. */
 export const aSigningCode = async (
   them: { client: Client; phone: string },
-  kind: "agreement_offer" | "amendment_offer",
+  kind: SignedOfferKind,
   offerId: string
 ): Promise<string> => {
   await them.client.portal.sendSigningCode({ kind, offerId });

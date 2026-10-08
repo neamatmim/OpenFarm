@@ -83,6 +83,7 @@ export const WHOSE_TRAIL = {
   nomination: "owner",
   agreement_offer: "owner",
   amendment_offer: "owner",
+  nomination_offer: "owner",
   portal_consent: "owner",
   request_to_join: "owner",
   pay_in_note: "owner",
