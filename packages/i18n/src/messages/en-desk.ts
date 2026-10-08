@@ -675,6 +675,15 @@ export const enDesk = {
   "portal.lastIn": "Last in {when}",
   "portal.notInYet": "Not seen in the portal yet",
   "portal.codeRanOut": "Give them a new code",
+  "portal.consent.noSigningClause":
+    "This consent has no signing clause: papers are signed on paper until they sign the new one",
+  "portal.consent.signNew": "Print the new consent",
+  "portal.consent.replaced":
+    "New consent recorded: they may now agree in the portal with a code",
+  "portal.account.signsInApp":
+    "Your consent carries the signing clause: you may agree, with a code, to the papers the farm offers you in the portal.",
+  "portal.account.signsOnPaper":
+    "Your consent has no signing clause: sign the new one at your next visit to the farm to agree in the portal; until then you sign on paper.",
   "portal.consent.signed": "Consent signed {when} · wording Version {version}",
   "portal.consent.sheetTitle": "Portal Consent",
   "portal.consent.sheetHint":
@@ -732,6 +741,7 @@ export const enDesk = {
   "portal.howLine.letter": "by a signed letter",
   "portal.howLine.message": "by a message from their own number",
   "portal.howLine.signatory_changed": "when its signatory changed",
+  "portal.howLine.replaced": "when a newer consent took its place",
   "portal.takenAwayLine.withdrew_consent": "Withdrew consent {day}, {how}",
   "portal.takenAwayLine.withdrewUndated": "Withdrew consent",
   "portal.takenAwayLine.lost_phone": "Taken away: a lost phone",
@@ -2160,6 +2170,8 @@ export const enDesk = {
   "years.refused.endedYear":
     "That would change a year that has ended. Years that have ended keep their length.",
   "years.refused.notTheLast": "Only the latest change can be withdrawn.",
+  "templates.signingClause":
+    "The signing clause: without it, a consent signed on this wording lets nobody agree in the portal",
   "templates.pageTitle": "Agreement templates",
   "templates.open": "Open the Agreement templates",
   "templates.pageHint":

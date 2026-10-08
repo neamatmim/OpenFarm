@@ -30,6 +30,7 @@ import {
 import { signedInOn } from "./membership";
 import { nominationInForce, paperNominees } from "./nomination-store";
 import { theirPayInNotes, whatANoteMaySay } from "./pay-in-notes";
+import { consentInForce } from "./portal-consent";
 import { ownerNameOf, requireTheirs } from "./portal-store";
 import { hisProjection, projectionOf } from "./projection-store";
 import { theirRequests } from "./requests-to-join";
@@ -96,11 +97,12 @@ export const theirRecord = async ({
   farm,
   investor,
 }: PortalReader) => {
-  const [theirs, inForce] = await Promise.all([
+  const [theirs, inForce, consent] = await Promise.all([
     db.query.investor.findFirst({
       where: { id: investor.id, farmId: farm.id },
     }),
     nominationInForce(db, farm.id, investor.id),
+    consentInForce(db, farm.id, investor.id),
   ]);
   return {
     investorId: investor.id,
@@ -110,6 +112,9 @@ export const theirRecord = async ({
       phone: theirs?.phone ?? investor.phone,
       address: theirs?.address ?? null,
       nid: theirs?.nid ? maskedDigits(theirs.nid) : null,
+      /** Whether their consent in force carries the signing clause, so they may agree to papers in the portal (ADR
+       *  0022); null with no consent in force. */
+      signsInApp: consent?.signsInApp ?? null,
       bankAccount: theirs?.bankAccount
         ? maskedDigits(theirs.bankAccount)
         : null,

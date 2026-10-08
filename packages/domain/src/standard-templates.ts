@@ -1,5 +1,6 @@
 import { factSaid } from "./fact-english";
 import type {
+  Clause,
   TemplateContent,
   TemplateKind,
   TemplateSection,
@@ -425,7 +426,7 @@ export const STANDARD_AGREEMENT_BEFORE_NOMINEE_NUMBERS: TemplateContent = {
     }
     return {
       ...section,
-      clauses: section.clauses.flatMap((clause) => {
+      clauses: section.clauses.flatMap((clause): Clause[] => {
         if (clause === SUMS_AFTER_DEATH) {
           return [{ ...clause, only: ["by_the_month", "a_person"] as const }];
         }
@@ -901,10 +902,11 @@ const ORGANIZATION_CONSENTS = {
 };
 
 /**
- * The Portal Consent today (2026-10-08): the one before it, opening with whoever signs — a person, or a Signatory for
- * their Organization — and with what the portal shows and holds said for each kind. A person's reads exactly as it did.
+ * The Portal Consent from an Organization being an Investor until the signing clause (2026-10-08): the one before it,
+ * opening with whoever signs — a person, or a Signatory for their Organization — and with what the portal shows and
+ * holds said for each kind. A person's reads exactly as it did. Kept whole for the catch-up.
  */
-const portalConsent: TemplateContent = {
+export const PORTAL_CONSENT_BEFORE_SIGNING_CLAUSE: TemplateContent = {
   ...PORTAL_CONSENT_BEFORE_ORGANIZATIONS,
   preamble: {
     bn: PORTAL_CONSENT_BEFORE_ORGANIZATIONS.preamble.bn.replace(
@@ -1030,6 +1032,69 @@ const privacyNotice: TemplateContent = {
           ),
         }
       : section
+  ),
+};
+
+/** The signing clause, as a person agrees to it and as an Organization's Signatory does (ADR 0022). */
+const SIGNING_CLAUSES = [
+  {
+    bn: "পোর্টালে কোনো কাগজে সম্মতি দিতে খামার আমার মোবাইলে ও ইমেইলে যে এককালীন কোড পাঠায়, পোর্টালে আমি তা দিলে সেটিই ওই কাগজে আমার স্বাক্ষর।",
+    en: "When I agree to a paper in the portal, entering the one-time code the farm sends to my mobile and email is my signature on that paper.",
+    only: "a_person" as const,
+    signingClause: true as const,
+  },
+  {
+    bn: "পোর্টালে প্রতিষ্ঠানের পক্ষে কোনো কাগজে সম্মতি দিতে খামার আমার মোবাইলে ও ইমেইলে যে এককালীন কোড পাঠায়, পোর্টালে আমি তা দিলে সেটিই ওই কাগজে প্রতিষ্ঠানের পক্ষে আমার স্বাক্ষর।",
+    en: "When I agree to a paper in the portal for the organization, entering the one-time code the farm sends to my mobile and email is my signature for it on that paper.",
+    only: "an_organization" as const,
+    signingClause: true as const,
+  },
+];
+
+/** What the consent says the portal is, once papers may be agreed there: nothing paid, no public offer, and a paper
+ *  agreed with the code as binding as one signed. */
+const NOTHING_PAID_THROUGH_IT = {
+  bn: "পোর্টালে টাকা দেওয়া-নেওয়া হয় না, আর পোর্টাল কোনো প্রকাশ্য প্রস্তাব নয়। পোর্টালে কোড দিয়ে যে কাগজে আমি সম্মতি দিই, তা কাগজে সই করার মতোই আমাকে বাঁধে।",
+  en: "Nothing is paid through the portal, and the portal is not a public offer. A paper I agree to there with the code binds me as one I sign on paper does.",
+};
+
+/**
+ * The Portal Consent today (2026-10-08): the one before it, with the signing clause among what the Investor consents to
+ * and the line that nothing is signed through the portal said as it now is (ADR 0022). Its opening no longer counts
+ * what follows.
+ */
+const portalConsent: TemplateContent = {
+  ...PORTAL_CONSENT_BEFORE_SIGNING_CLAUSE,
+  preamble: {
+    bn: PORTAL_CONSENT_BEFORE_SIGNING_CLAUSE.preamble.bn.replace(
+      "নিচের তিনটিতে সম্মতি দিচ্ছি",
+      "নিচের কথাগুলোতে সম্মতি দিচ্ছি"
+    ),
+    en: PORTAL_CONSENT_BEFORE_SIGNING_CLAUSE.preamble.en.replace(
+      "I consent to these three things",
+      "I consent to the following"
+    ),
+  },
+  sections: PORTAL_CONSENT_BEFORE_SIGNING_CLAUSE.sections.map(
+    (section, place) => {
+      if (section.kind !== "clauses") {
+        return section;
+      }
+      if (place === 0) {
+        return {
+          ...section,
+          clauses: [...section.clauses, ...SIGNING_CLAUSES],
+        };
+      }
+      return {
+        ...section,
+        clauses: section.clauses.map((clause) =>
+          clause.en.startsWith("Nothing is signed or paid through the portal")
+            ? NOTHING_PAID_THROUGH_IT
+            : clause
+        ),
+      };
+    }
   ),
 };
 

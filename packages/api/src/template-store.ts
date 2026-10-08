@@ -16,6 +16,7 @@ import {
   SCHEDULE_BEFORE_ENGLISH_FACTS,
   AMENDMENT_BEFORE_ENGLISH_FACTS,
   PORTAL_CONSENT_BEFORE_ORGANIZATIONS,
+  PORTAL_CONSENT_BEFORE_SIGNING_CLAUSE,
   STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
   STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
   STANDARD_TEMPLATES,
@@ -155,6 +156,25 @@ const addStandardTemplates = async (
   return given;
 };
 
+/**
+ * The words the American English rename changed in the standard wording (e52e36cc, 2026-10-08), as a Version saved
+ * before it spells them. Only for telling whether a farm is on a standard: the saved Version prints as it was saved.
+ */
+const RESPELLED: readonly [RegExp, string][] = [
+  [/organisation/gu, "organization"],
+  [/Organisation/gu, "Organization"],
+  [/licence/gu, "license"],
+];
+
+/** Wording with the words the rename changed spelled as the standards now are, to compare one with the other. */
+const spelledAsToday = (content: unknown): unknown => {
+  let text = JSON.stringify(content);
+  for (const [old, today] of RESPELLED) {
+    text = text.replace(old, today);
+  }
+  return JSON.parse(text);
+};
+
 /** A wording as the database keeps it: the same words in whatever order its keys come back. */
 const canonical = (value: unknown): string =>
   JSON.stringify(value, (_key, inner: unknown) =>
@@ -185,8 +205,12 @@ const NOMINEE_NUMBERS =
 const ENGLISH_FACTS =
   "Each fact on the paper is said in English too, for a paper read in English; the Bangla is unchanged (2026-10-08, ADR 0021).";
 
+/** What the fourth 2026-10-08 standard adds: the Portal Consent's signing clause (ADR 0022). */
+const SIGNING_CLAUSE =
+  "The Portal Consent gains the clause that a one-time code the farm sends, entered by the Investor in the portal, is their signature on the paper they agree to there; a person's consent otherwise reads as before (2026-10-08, ADR 0022).";
+
 /** The standard a farm is caught up to, as the trail names it. */
-const CAUGHT_UP_TO = "english_facts";
+const CAUGHT_UP_TO = "signing_clause";
 
 /**
  * The standard wordings a farm may still be on exactly, kind by kind, oldest first, each with the note its catch-up
@@ -232,7 +256,11 @@ const EARLIER_STANDARDS: Partial<
   portal_consent: [
     {
       content: PORTAL_CONSENT_BEFORE_ORGANIZATIONS,
-      note: `OpenFarm's standard wording. ${ORGANIZATIONS}`,
+      note: `OpenFarm's standard wording. ${ORGANIZATIONS} ${SIGNING_CLAUSE}`,
+    },
+    {
+      content: PORTAL_CONSENT_BEFORE_SIGNING_CLAUSE,
+      note: `OpenFarm's standard wording. ${SIGNING_CLAUSE}`,
     },
   ],
   nomination: [
@@ -271,7 +299,9 @@ const catchUpTheStandard = async (
     if (!current || current.publishedBy !== null) {
       return null;
     }
-    const words = canonical(wordingAsSavedToday(current.content));
+    const words = canonical(
+      spelledAsToday(wordingAsSavedToday(current.content))
+    );
     return (
       EARLIER_STANDARDS[kind]?.find(
         (earlier) => canonical(earlier.content) === words

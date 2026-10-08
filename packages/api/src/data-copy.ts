@@ -340,7 +340,10 @@ const valueWords = (
   }
   if (
     field === "withdrawnHow" &&
-    (text === "letter" || text === "message" || text === "signatory_changed")
+    (text === "letter" ||
+      text === "message" ||
+      text === "signatory_changed" ||
+      text === "replaced")
   ) {
     return translate(language, `portal.howLine.${text}`);
   }

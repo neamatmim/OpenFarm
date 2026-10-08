@@ -98,9 +98,13 @@ const SaidList = ({
         {items.map((item, index) => {
           const numbered = nameOf(formatDigits(index + 1, language));
           // A clause printed only on some papers says which, or she would wonder why other papers leave it out.
-          const name = item.only
+          const printedOn = item.only
             ? `${numbered} · ${onlySaid(item.only, t)}`
             : numbered;
+          // The signing clause says so: taken out, a consent signed on this wording lets nobody agree in the app.
+          const name = item.signingClause
+            ? `${printedOn} · ${t("templates.signingClause")}`
+            : printedOn;
           return (
             <li
               className="flex items-start gap-2 rounded-md border p-3"

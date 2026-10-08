@@ -1,10 +1,23 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, inArray, isNotNull, isNull } from "@OpenFarm/db/operators";
+import {
+  and,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+} from "@OpenFarm/db/operators";
 import { paperTemplateVersion } from "@OpenFarm/db/schema/paper-template";
 import type { CONSENT_WITHDRAWN_HOW } from "@OpenFarm/db/schema/venture";
 import { portalConsent } from "@OpenFarm/db/schema/venture";
 import type { PaperDocument } from "@OpenFarm/domain";
-import { farmDayOf, paperFrom, startOfFarmDay } from "@OpenFarm/domain";
+import {
+  carriesSigningClause,
+  farmDayOf,
+  paperFrom,
+  startOfFarmDay,
+  wordingAsSavedToday,
+} from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import { audited } from "./audit";
@@ -21,11 +34,13 @@ import { currentWording, giveStandardTemplates } from "./template-store";
 // recorded here with the day, the wording signed and who recorded it. The paper is filed; this is how the farm proves
 // it (Personal Data Protection Act 2026 s.5(4)).
 
-/** A consent in force, as the Owner's screens say it: the day it was signed and the Version of the wording. */
+/** A consent in force, as the Owner's screens say it: the day it was signed, the Version of the wording, and whether
+ *  that wording carries the signing clause that lets them agree in the app (ADR 0022). */
 export interface ConsentSaid {
   signedOn: string;
   version: number;
   versionId: string;
+  signsInApp: boolean;
 }
 
 /** Each Investor's consent in force on this farm, by their id: none for somebody who has not signed one, or withdrew it. */
@@ -40,6 +55,7 @@ export const consentsInForce = async (
       signedOn: portalConsent.signedOn,
       version: paperTemplateVersion.number,
       versionId: portalConsent.versionId,
+      content: paperTemplateVersion.content,
     })
     .from(portalConsent)
     .innerJoin(
@@ -62,6 +78,7 @@ export const consentsInForce = async (
         signedOn: farmDayOf(row.signedOn),
         version: row.version,
         versionId: row.versionId,
+        signsInApp: carriesSigningClause(wordingAsSavedToday(row.content)),
       },
     ])
   );
@@ -95,7 +112,8 @@ const alreadySigned = () =>
 
 /**
  * Records that an Investor signed the Portal Consent today, in front of the Owner, on the wording in force. Refused
- * while one is already in force: a new consent follows only a withdrawn one.
+ * while one is already in force — unless theirs lacks the signing clause and today's wording carries it: then the new
+ * one replaces it, the old one ending as "replaced", and their portal access standing as it was (ADR 0022).
  */
 export const recordConsent = async (
   context: Owned,
@@ -103,11 +121,16 @@ export const recordConsent = async (
 ): Promise<ConsentSaid> => {
   const farmId = context.farm.id;
   await invitable(context, investorId);
-  if (await consentInForce(context.db, farmId, investorId)) {
-    throw alreadySigned();
-  }
   await giveStandardTemplates(context);
   const wording = await currentWording(context.db, farmId, "portal_consent");
+  const inForce = await consentInForce(context.db, farmId, investorId);
+  const replaces =
+    inForce !== null &&
+    !inForce.signsInApp &&
+    carriesSigningClause(wording.content);
+  if (inForce && !replaces) {
+    throw alreadySigned();
+  }
   const now = context.clock.now();
   await audited(context).write(
     {
@@ -118,6 +141,22 @@ export const recordConsent = async (
       after: (tx) => readConsent(tx, farmId, investorId),
     },
     async (tx) => {
+      if (replaces) {
+        // Ended as replaced, never as withdrawn: nothing about their portal access changes.
+        await tx
+          .update(portalConsent)
+          .set({
+            withdrawnOn: startOfFarmDay(farmDayOf(now)),
+            withdrawnHow: "replaced",
+          })
+          .where(
+            and(
+              eq(portalConsent.farmId, farmId),
+              eq(portalConsent.investorId, investorId),
+              isNull(portalConsent.withdrawnOn)
+            )
+          );
+      }
       // One in force at a time, held by the table: a second press of the same button meets the first one's consent.
       const [kept] = await tx
         .insert(portalConsent)
@@ -141,6 +180,7 @@ export const recordConsent = async (
     signedOn: farmDayOf(now),
     version: wording.number,
     versionId: wording.versionId,
+    signsInApp: carriesSigningClause(wording.content),
   };
 };
 
@@ -325,7 +365,9 @@ export const lastConsentsWithdrawn = async (
     .where(
       and(
         eq(portalConsent.farmId, farmId),
-        isNotNull(portalConsent.withdrawnOn)
+        isNotNull(portalConsent.withdrawnOn),
+        // One replaced by a newer consent was never withdrawn.
+        ne(portalConsent.withdrawnHow, "replaced")
       )
     )
     // The oldest first, so the latest of each is the one the map keeps.

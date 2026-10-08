@@ -220,7 +220,10 @@ export const takenAwayWhy = z.discriminatedUnion("reason", [
     reason: z.literal("withdrew_consent"),
     on: farmDay,
     // A change of Signatory ends a consent by `signatoryLeaves`, never by the Owner saying so here.
-    how: z.enum(CONSENT_WITHDRAWN_HOW).exclude(["signatory_changed"]),
+    // A newer consent replaces one when it is recorded, never by the Owner saying so here.
+    how: z
+      .enum(CONSENT_WITHDRAWN_HOW)
+      .exclude(["signatory_changed", "replaced"]),
   }),
   z.object({
     reason: z

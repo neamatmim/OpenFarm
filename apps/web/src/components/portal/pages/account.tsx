@@ -81,6 +81,20 @@ const TheirNominees = ({ nominees }: { nominees: PaperNominee[] }) => {
   );
 };
 
+/** Whether they may agree to papers in the portal, as their consent says; nothing with none in force, or on an answer
+ *  cached before it was said. */
+const SigningInApp = ({ signs }: { signs: boolean | null }) => {
+  const { t } = useLanguage();
+  if (signs === null) {
+    return null;
+  }
+  return (
+    <p className="text-muted-foreground border-t pt-4 text-sm">
+      {t(signs ? "portal.account.signsInApp" : "portal.account.signsOnPaper")}
+    </p>
+  );
+};
+
 /**
  * Their record as the farm holds it, to check against their own papers — the NID and the bank account with all but
  * their last digits hidden, enough to know them by. An Organization's is its own, with its Signatory's beside it and no
@@ -135,6 +149,7 @@ const TheirDetails = ({ me }: { me: Me }) => {
           <TheirNominees nominees={record.nominees ?? []} />
         </>
       )}
+      <SigningInApp signs={record.signsInApp ?? null} />
     </Section>
   );
 };

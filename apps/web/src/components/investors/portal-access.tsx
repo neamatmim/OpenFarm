@@ -18,11 +18,12 @@ import { Link } from "@tanstack/react-router";
 import {
   DoorClosed,
   DoorOpen,
-  EyeOff,
-  TrendingUp,
   Eye,
+  EyeOff,
+  FileSignature,
   KeyRound,
   Printer,
+  TrendingUp,
   UserX,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -147,6 +148,10 @@ export const PortalStandingLine = ({
         version: formatDigits(consent.version, language),
       })
     );
+    // An answer cached before consents said it has no such field, and is said nothing of.
+    if (consent.signsInApp === false) {
+      said.push(t("portal.consent.noSigningClause"));
+    }
   }
   if (standing === "in") {
     said.push(
@@ -703,17 +708,25 @@ export const PortalAccess = ({
       onSuccess: ({ document }) => setSheet(document),
     })
   );
+  // Signing the new consent in place of one without the signing clause gives no code: their access stands as it was.
+  const [replacing, setReplacing] = useState(false);
   const consenting = useMutation(
     orpc.investors.recordConsent.mutationOptions({
       onError: refused,
       onSuccess: () => {
         setSheet(null);
+        if (replacing) {
+          setReplacing(false);
+          toast.success(t("portal.consent.replaced"));
+          return;
+        }
         inviting.mutate({ id: investor.id });
       },
     })
   );
   // No code before consent: somebody who has not signed one is handed the sheet first.
   const hasConsent = (investor.portalConsent ?? null) !== null;
+  const lacksSigningClause = investor.portalConsent?.signsInApp === false;
   const invite = () =>
     hasConsent
       ? inviting.mutate({ id: investor.id })
@@ -758,6 +771,22 @@ export const PortalAccess = ({
           <Eye aria-hidden data-icon="inline-start" />
           {t("portal.preview.seeAsTheyDo")}
         </Link>
+        {lacksSigningClause ? (
+          <Button
+            className="justify-start"
+            disabled={printing.isPending}
+            onClick={() => {
+              setReplacing(true);
+              printing.mutate({ id: investor.id });
+            }}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <FileSignature aria-hidden data-icon="inline-start" />
+            {t("portal.consent.signNew")}
+          </Button>
+        ) : null}
         {hasAccessToTake(standing) || canWithdraw(investor) ? (
           <Button
             className="text-danger hover:text-danger justify-start"
