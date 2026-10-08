@@ -56,44 +56,66 @@ describe("which Steps may be skipped", () => {
   });
 });
 
+/** Each count the Playbook keeps, the Effect its counting Step carries, and what a Version is told that counts it once
+ *  per animal. */
+const COUNTS = [
+  {
+    of: "the store",
+    procedure: standardPlaybook().stockCount,
+    effect: "stock_count",
+    refused: "the store is counted once, not once per animal",
+  },
+  {
+    of: "the medicine",
+    procedure: standardPlaybook().medicineCount,
+    effect: "medicine_count",
+    refused: "the medicine is counted once, not once per animal",
+  },
+  {
+    of: "the cash",
+    procedure: standardPlaybook().cashCount,
+    effect: "cash_count",
+    refused: "the cash is counted once, not once per animal",
+  },
+  {
+    of: "a Pen's head",
+    procedure: standardPlaybook().headCount,
+    effect: "head_count",
+    refused: "a Pen is counted once, not once per animal",
+  },
+] as const satisfies readonly {
+  of: string;
+  procedure: SopContent;
+  effect: NonNullable<Step["effect"]>["kind"];
+  refused: string;
+}[];
+
 /** The Step of a count that does the counting. */
-const countingStep = (content: SopContent) => {
-  const step = content.steps.find((one) =>
-    ["stock_count", "medicine_count", "cash_count"].includes(
-      one.effect?.kind ?? ""
-    )
-  );
+const countingStep = ({ procedure, effect }: (typeof COUNTS)[number]) => {
+  const step = procedure.steps.find((one) => one.effect?.kind === effect);
   if (!step) {
     throw new Error("a count has its counting Step");
   }
   return step;
 };
 
-describe("a count of the store, the medicine or the cash", () => {
-  const playbook = standardPlaybook();
-  const counts = [
-    playbook.stockCount,
-    playbook.medicineCount,
-    playbook.cashCount,
-  ];
-  it("is never skipped: what is there is counted, or the work is missed", () => {
-    for (const content of counts) {
-      expect(maySkip(countingStep(content))).toBe(false);
-    }
-  });
+describe("a count of the store, the medicine, the cash or a Pen's head", () => {
+  for (const count of COUNTS) {
+    it(`is never skipped: ${count.of} is counted, or the work is missed`, () => {
+      expect(maySkip(countingStep(count))).toBe(false);
+    });
 
-  it("is never counted once per animal, so no Version can make one that may be skipped", () => {
-    for (const content of counts) {
-      const step = countingStep(content);
+    it(`is never counted once per animal, so no Version makes ${count.of} a count that may be skipped`, () => {
+      const step = countingStep(count);
       const problems = findStructuralProblems({
-        ...content,
-        steps: content.steps.map((one) =>
+        ...count.procedure,
+        steps: count.procedure.steps.map((one) =>
           one === step ? { ...one, repeatPerAnimal: true } : one
         ),
       });
-      expect(problems.join(" ")).toContain("once, not once per animal");
-    }
-  });
+      expect(problems.some((one) => one.endsWith(count.refused))).toBe(true);
+    });
+  }
 });
 
 /** A Step asking for exactly the slots named, in that order. */

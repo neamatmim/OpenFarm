@@ -36,8 +36,7 @@ const tellIfTheMedicineCameUpShort = async (
     columns: { medicineShortTellMoney: true },
   });
   if (!farm || shortMoney <= farm.medicineShortTellMoney) {
-    // Put right to no shortfall: the notice of one goes, in the post and in the app. (A count is never skipped:
-    // `maySkip` allows no count Step.)
+    // Put right to no shortfall: the notice of one goes, in the post and in the app.
     await clearNoticesAbout(
       tx,
       input.instance.farmId,
