@@ -153,6 +153,8 @@ const BANGLA = {
     `ঠিকানা ${address}, ব্রাউজার ${agent}`,
   toldApproved: (ways: string, at: string) => `অনুমোদনের খবর ${ways} ${at}`,
   notToldApproved: "অনুমোদনের খবর যায়নি",
+  youWithdrew: (agreed: string, withdrawn: string) =>
+    `${agreed}-এর সম্মতি আপনি ফিরিয়ে নিয়েছেন ${withdrawn}`,
   bySmsAndEmail: (sms: boolean, email: boolean) =>
     [sms ? "এসএমএসে" : null, email ? "ইমেইলে" : null]
       .filter(Boolean)
@@ -204,6 +206,8 @@ const ENGLISH: typeof BANGLA = {
   toldApproved: (ways: string, at: string) =>
     `told of the approval by ${ways} ${at}`,
   notToldApproved: "the approval was not told",
+  youWithdrew: (agreed: string, withdrawn: string) =>
+    `you withdrew your agreement of ${agreed} on ${withdrawn}`,
   bySmsAndEmail: (sms: boolean, email: boolean) =>
     [sms ? "text" : null, email ? "email" : null].filter(Boolean).join(" and "),
   amendment: (venture: string) => `Amendment: ${venture}`,
@@ -583,6 +587,77 @@ const sealWords = (
   );
 };
 
+/** Each agreement they withdrew before it was approved, by the paper it was to: `offerKind:offerId`. */
+const withdrawalsByPaper = (
+  proofs: {
+    offerKind: string;
+    offerId: string;
+    agreedAt: Date;
+    withdrawnAt: Date | null;
+  }[]
+) => {
+  const withdrawals = new Map<
+    string,
+    { agreedAt: Date; withdrawnAt: Date }[]
+  >();
+  for (const one of proofs) {
+    if (one.withdrawnAt) {
+      const key = `${one.offerKind}:${one.offerId}`;
+      withdrawals.set(key, [
+        ...(withdrawals.get(key) ?? []),
+        { agreedAt: one.agreedAt, withdrawnAt: one.withdrawnAt },
+      ]);
+    }
+  }
+  return withdrawals;
+};
+
+/**
+ * The Amendments whose agreement they withdrew and did not give again: no answer of theirs is left to name one by, so
+ * each is named from its offer — by its Venture, which they have an Agreement on, or the Amendment would not name them.
+ */
+const amendmentsTakenBack = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  {
+    proofs,
+    answered,
+    agreements,
+  }: {
+    proofs: { offerKind: string; offerId: string; withdrawnAt: Date | null }[];
+    answered: string[];
+    agreements: { venture: { id: string; name: string } }[];
+  }
+) => {
+  const stillAnswered = new Set(answered);
+  const ids = [
+    ...new Set(
+      proofs
+        .filter(
+          (one) =>
+            one.offerKind === "amendment_offer" &&
+            one.withdrawnAt !== null &&
+            !stillAnswered.has(one.offerId)
+        )
+        .map((one) => one.offerId)
+    ),
+  ];
+  if (ids.length === 0) {
+    return [];
+  }
+  const ventureNameOf = new Map(
+    agreements.map((one) => [one.venture.id, one.venture.name] as const)
+  );
+  const offers = await db.query.amendmentOffer.findMany({
+    where: { farmId, id: { in: ids } },
+    columns: { id: true, ventureId: true },
+  });
+  return offers.map((one) => ({
+    id: one.id,
+    ventureName: ventureNameOf.get(one.ventureId) ?? "",
+  }));
+};
+
 /**
  * The Data Copy of one Investor, laid out to print and hand over: the notice's points first, then their record
  * unmasked, their Agreements with any Settlement, the money they moved, the papers made for them, their Requests to
@@ -654,12 +729,28 @@ export const dataCopyOf = async (
           },
           orderBy: { agreedAt: "asc", id: "asc" },
         }),
-    db.query.signingProof.findMany({ where: { farmId: farm.id, investorId } }),
+    db.query.signingProof.findMany({
+      where: { farmId: farm.id, investorId },
+      orderBy: { agreedAt: "asc", id: "asc" },
+    }),
   ]);
-  // How each paper they agreed to in the app was sealed, by what it was offered as (ADR 0022).
+  // How each paper they agreed to in the app was sealed, by what it was offered as (ADR 0022) — the agreement standing,
+  // and each they withdrew before it was approved.
   const proofOf = new Map(
-    proofs.map((one) => [`${one.offerKind}:${one.offerId}`, one])
+    proofs
+      .filter((one) => one.withdrawnAt === null)
+      .map((one) => [`${one.offerKind}:${one.offerId}`, one])
   );
+  const withdrawals = withdrawalsByPaper(proofs);
+  const withdrawnOf = (key: string, language: Language) =>
+    (withdrawals.get(key) ?? [])
+      .map((one) =>
+        WORDS[language].youWithdrew(
+          when(one.agreedAt, language),
+          when(one.withdrawnAt, language)
+        )
+      )
+      .join(" · ");
   const portalVentureIds = [
     ...new Set([...payInNotes, ...offers].map((one) => one.ventureId)),
   ];
@@ -677,6 +768,11 @@ export const dataCopyOf = async (
   const ventureOf = new Map(
     money.agreements.map((one) => [one.id, one.venture.name] as const)
   );
+  const takenBack = await amendmentsTakenBack(db, farm.id, {
+    proofs,
+    answered: amendmentsAgreed.map((one) => one.offerId),
+    agreements: money.agreements,
+  });
 
   const sections: PaperSection[] = [
     // The notice's points first, as the portal's page reads them, each with its English beside it.
@@ -846,6 +942,7 @@ export const dataCopyOf = async (
               ? say.offerWithdrawn(when(one.withdrawnAt, language))
               : null,
             say.paperMark(one.paperHash.slice(0, 12)),
+            withdrawnOf(`agreement_offer:${one.id}`, language),
             sealWords(proofOf.get(`agreement_offer:${one.id}`), language)
           );
         }),
@@ -857,8 +954,15 @@ export const dataCopyOf = async (
         value: each((language) =>
           joined(
             WORDS[language].youAgreed(when(one.agreedAt, language)),
+            withdrawnOf(`amendment_offer:${one.offerId}`, language),
             sealWords(proofOf.get(`amendment_offer:${one.offerId}`), language)
           )
+        ),
+      })),
+      ...takenBack.map((one) => ({
+        label: each((language) => WORDS[language].amendment(one.ventureName)),
+        value: each((language) =>
+          withdrawnOf(`amendment_offer:${one.id}`, language)
         ),
       })),
     ]),

@@ -2,10 +2,11 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Eye, Handshake, MessageSquareLock } from "lucide-react";
+import { Eye, Handshake, MessageSquareLock, Undo2 } from "lucide-react";
 import { useState } from "react";
 
 import { Notice } from "@/components/page";
+import { ConfirmDialog } from "@/components/page-kit";
 import { usePreviewing } from "@/components/portal/portal-source";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
@@ -157,6 +158,62 @@ const ReadAndAgree = ({
   );
 };
 
+/** Why the farm would not take back their agreement, in their words: approved already, it is theirs to keep. */
+const WITHDRAW_REFUSALS = {
+  offer_already_approved: "agreeInApp.portal.withdrawTooLate",
+  already_approved: "agreeInApp.portal.withdrawTooLate",
+  not_an_investor: "portal.refused.notAnInvestor",
+  signed_in_too_long: "portal.endedHint",
+} as const;
+
+/**
+ * Taking back their agreement to a paper before the farm approves it: with the farm's approval last, their agreement is
+ * their offer, theirs to withdraw (ADR 0022). Asked about first; withdrawn, the paper waits on them again.
+ */
+const WithdrawAgreement = ({
+  kind,
+  offerId,
+}: {
+  kind: "agreement_offer" | "amendment_offer";
+  offerId: string;
+}) => {
+  const { t } = useLanguage();
+  const refused = useRefused(WITHDRAW_REFUSALS);
+  const [asking, setAsking] = useState(false);
+  const withdrawing = useMutation(
+    orpc.portal.withdrawAgreement.mutationOptions({
+      onError: refused,
+      onSuccess: () => {
+        setAsking(false);
+        toast.success(t("agreeInApp.portal.withdrawn"));
+      },
+    })
+  );
+  return (
+    <>
+      <Button
+        className="self-start"
+        onClick={() => setAsking(true)}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        <Undo2 aria-hidden data-icon="inline-start" />
+        {t("agreeInApp.portal.withdraw")}
+      </Button>
+      <ConfirmDialog
+        confirmLabel={t("agreeInApp.portal.withdraw")}
+        description={t("agreeInApp.portal.withdrawWhy")}
+        onConfirm={() => withdrawing.mutate({ kind, offerId })}
+        onOpenChange={setAsking}
+        open={asking}
+        pending={withdrawing.isPending}
+        title={t("agreeInApp.portal.withdrawTitle")}
+      />
+    </>
+  );
+};
+
 /** One Agreement offered to them: what it is, and the paper to read and agree to — or, agreed, that the farm will
  *  approve it. */
 const OfferNotice = ({ offer }: { offer: Offer }) => {
@@ -200,6 +257,9 @@ const OfferNotice = ({ offer }: { offer: Offer }) => {
             ? t("agreeInApp.portal.readAgain")
             : t("agreeInApp.portal.read")}
         </Button>
+        {agreed ? (
+          <WithdrawAgreement kind="agreement_offer" offerId={offer.id} />
+        ) : null}
       </div>
       <ReadAndAgree
         agreed={agreed}
@@ -267,6 +327,9 @@ const AmendmentNotice = ({ offer }: { offer: AmendmentOffer }) => {
             ? t("agreeInApp.portal.readAgain")
             : t("agreeInApp.portal.readAmendment")}
         </Button>
+        {agreed ? (
+          <WithdrawAgreement kind="amendment_offer" offerId={offer.id} />
+        ) : null}
       </div>
       <ReadAndAgree
         agreed={agreed}

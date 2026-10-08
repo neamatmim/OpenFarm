@@ -610,6 +610,11 @@ export const agreementOffer = pgTable(
     /** The Investor agreeing, from their own portal sign-in. */
     agreedBy: text("agreed_by").references(() => user.id),
     agreedAt: timestamp("agreed_at", { withTimezone: true }),
+    /** When the Investor last withdrew their agreement before the Owner approved it, which put it back to waiting on
+     *  them (ADR 0022). Not `withdrawnAt`, which is the Owner taking the offer back. */
+    agreementWithdrawnAt: timestamp("agreement_withdrawn_at", {
+      withTimezone: true,
+    }),
     withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
     approvedBy: text("approved_by").references(() => user.id),
     approvedAt: timestamp("approved_at", { withTimezone: true }),
@@ -783,13 +788,14 @@ export const signingProof = pgTable(
     confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
     confirmedBySms: boolean("confirmed_by_sms").notNull().default(false),
     confirmedByEmail: boolean("confirmed_by_email").notNull().default(false),
+    /** When they withdrew this agreement before the Owner approved it: the proof is kept, and stands for nothing now. */
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
   },
   (table) => [
-    uniqueIndex("signing_proof_offer_uidx").on(
-      table.offerKind,
-      table.offerId,
-      table.investorId
-    ),
+    // One agreement standing per paper and Investor; each one withdrawn before it is kept beside it.
+    uniqueIndex("signing_proof_offer_uidx")
+      .on(table.offerKind, table.offerId, table.investorId)
+      .where(sql`${table.withdrawnAt} is null`),
   ]
 );
 

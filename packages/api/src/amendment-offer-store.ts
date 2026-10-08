@@ -28,6 +28,7 @@ import {
   confirmApproval,
   keepProof,
   proofSaid,
+  proofWithdrawn,
 } from "./signing-code";
 import { currentWording, giveStandardTemplates } from "./template-store";
 import { lockTheFarm, termsAcrossOn } from "./venture-store";
@@ -398,7 +399,15 @@ export const amendmentOffersOn = async (context: Acting, ventureId: string) => {
     ).length,
     of: signed.length,
     /** How each Investor who agreed sealed it with a code (ADR 0022). */
-    proofs: proofs.filter((proof) => proof.offerId === one.id).map(proofSaid),
+    proofs: proofs
+      .filter((proof) => proof.offerId === one.id && proof.withdrawnAt === null)
+      .map(proofSaid),
+    /** Each agreement to it an Investor withdrew before it was approved, and when. */
+    withdrawals: proofs.flatMap((proof) =>
+      proof.offerId === one.id && proof.withdrawnAt
+        ? [{ investorId: proof.investorId, withdrawnAt: proof.withdrawnAt }]
+        : []
+    ),
   }));
 };
 
@@ -428,10 +437,6 @@ export const theirAmendmentOffers = async (
   context: Acting,
   investorId: string
 ) => {
-  // Nothing is agreed in the app while the farm's switch is off.
-  if (!context.farm.agreementsInApp) {
-    return [];
-  }
   const theirs = await context.db.query.investmentAgreement.findMany({
     where: { farmId: context.farm.id, investorId },
     columns: { id: true, ventureId: true, createdAt: true },
@@ -485,7 +490,14 @@ export const theirAmendmentOffers = async (
     where: { id: investorId, farmId: context.farm.id },
     columns: { name: true, phone: true },
   });
-  return named.map((one) => ({
+  const agreedAtOf = (offerId: string) =>
+    answers.find((answer) => answer.offerId === offerId)?.agreedAt ?? null;
+  // Nothing is agreed in the app while the farm's switch is off — but one they agreed to before it was turned off may
+  // still be approved, so it stays, for them to withdraw.
+  const shown = context.farm.agreementsInApp
+    ? named
+    : named.filter((one) => agreedAtOf(one.id) !== null);
+  return shown.map((one) => ({
     id: one.id,
     ventureName: nameOf.get(one.ventureId) ?? "",
     investorsPercent: one.investorsPercent,
@@ -493,8 +505,7 @@ export const theirAmendmentOffers = async (
     targetWindowEnd: one.targetWindowEnd,
     reason: one.reason,
     offeredAt: one.offeredAt,
-    agreedAt:
-      answers.find((answer) => answer.offerId === one.id)?.agreedAt ?? null,
+    agreedAt: agreedAtOf(one.id),
     // The other Investors by name alone. What they agree to is the paper kept, by its fingerprint, all the same.
     paper: othersNamedOnly(
       one.paper as PaperDocument,
@@ -594,6 +605,92 @@ export const agreeToAmendment = async (
           sealed
         );
       }
+    }
+  );
+};
+
+/** An Amendment approved already, which an Investor's agreement is part of now and can no longer be taken back. */
+const approvedAlready = () =>
+  refused(
+    "This Amendment is approved: it is part of the Agreement now",
+    "already_approved"
+  );
+
+/**
+ * An Investor withdraws their agreement to an Amendment before the Owner approves it — with the Owner's approval last,
+ * their agreement is their offer, theirs to take back (AAOIFI SS 38 5/3; ADR 0022). Their answer goes, so the Amendment
+ * waits on them again; the proof of it is kept, marked withdrawn. Refused once approved; withdrawing what they have not
+ * agreed to changes nothing.
+ */
+export const withdrawAgreementToAmendment = async (
+  context: Acting,
+  investorId: string,
+  offerId: string
+): Promise<void> => {
+  const offer = await theOffer(context.db, context.farm.id, offerId);
+  const theirs = await theirAgreementOn(context.db, offer, investorId);
+  if (!theirs) {
+    throw new ORPCError("NOT_FOUND", { message: "No such offer" });
+  }
+  if (offer.approvedAt) {
+    throw approvedAlready();
+  }
+  if (offer.withdrawnAt) {
+    throw refused("This Amendment was taken back", "offer_withdrawn");
+  }
+  const answered = await context.db.query.amendmentOfferAnswer.findFirst({
+    where: {
+      farmId: context.farm.id,
+      offerId: offer.id,
+      agreementId: theirs.id,
+    },
+    columns: { id: true },
+  });
+  if (!answered) {
+    return;
+  }
+  const now = context.clock.now();
+  await audited(context).write(
+    {
+      entity: "amendment_offer",
+      entityId: offer.id,
+      action: "update",
+      reason: "The Investor withdrew their agreement before it was approved",
+      after: {
+        agreementId: theirs.id,
+        agreementWithdrawnAt: now.toISOString(),
+      },
+    },
+    async (tx) => {
+      // Behind the Farm lock, as approving is: whichever comes second finds the Amendment as the first left it.
+      await lockTheFarm(tx, context.farm.id);
+      const standing = await tx.query.amendmentOffer.findFirst({
+        where: { id: offer.id, farmId: context.farm.id },
+        columns: { approvedAt: true, withdrawnAt: true },
+      });
+      if (standing?.approvedAt) {
+        throw approvedAlready();
+      }
+      if (standing?.withdrawnAt) {
+        throw refused("This Amendment was taken back", "offer_withdrawn");
+      }
+      const [taken] = await tx
+        .delete(amendmentOfferAnswer)
+        .where(
+          and(
+            eq(amendmentOfferAnswer.offerId, offer.id),
+            eq(amendmentOfferAnswer.agreementId, theirs.id)
+          )
+        )
+        .returning({ id: amendmentOfferAnswer.id });
+      // Withdrawn by another try a moment before: refused, so the trail keeps one withdrawal and not two.
+      if (!taken) {
+        throw refused("Your agreement is withdrawn already", "not_agreed");
+      }
+      await proofWithdrawn(tx, now, investorId, {
+        kind: "amendment_offer",
+        id: offer.id,
+      });
     }
   );
 };
