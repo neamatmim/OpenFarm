@@ -1,5 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNotNull, isNull } from "@OpenFarm/db/operators";
+import { eq } from "@OpenFarm/db/operators";
 import {
   nomination,
   nominationOffer,
@@ -31,6 +31,7 @@ import {
 import type { OfferWords } from "./offer-lifecycle";
 import {
   approvedAlready,
+  offerForSteps,
   sealAgreement,
   standingOf,
   stillAgreed,
@@ -53,6 +54,10 @@ const readOffer = async (tx: Pick<Tx, "query">, farmId: string, id: string) =>
     where: { id, farmId },
     columns: { paper: false },
   })) ?? null;
+
+/** This offer as the shared steps act on it (`offer-lifecycle.ts`). */
+const inApp = (context: { farm: { id: string } }, id: string) =>
+  offerForSteps("nomination_offer", context.farm.id, id, readOffer);
 
 /** This Farm's offer, or nothing anybody may act on. */
 const theOffer = async (
@@ -208,34 +213,7 @@ export const withdrawNominationOffer = async (
   if (offer.withdrawnAt) {
     return;
   }
-  await withdrawTheOffer(context, {
-    trail: () => ({
-      entity: "nomination_offer",
-      entityId: offer.id,
-      action: "update",
-      before: (tx) => readOffer(tx, context.farm.id, offer.id),
-      after: (tx) => readOffer(tx, context.farm.id, offer.id),
-    }),
-    words: WORDS,
-    withdraw: async (tx, now) => {
-      const [withdrawing] = await tx
-        .update(nominationOffer)
-        .set({ withdrawnAt: now })
-        .where(
-          and(
-            eq(nominationOffer.id, offer.id),
-            isNull(nominationOffer.approvedAt),
-            isNull(nominationOffer.withdrawnAt)
-          )
-        )
-        .returning({ id: nominationOffer.id });
-      if (withdrawing) {
-        return "withdrawn_now";
-      }
-      const meanwhile = await readOffer(tx, context.farm.id, offer.id);
-      return meanwhile?.approvedAt ? "approved" : "withdrawn";
-    },
-  });
+  await withdrawTheOffer(context, inApp(context, offer.id), WORDS);
 };
 
 /**
@@ -385,31 +363,8 @@ export const agreeToNomination = async (
   await sealAgreement(
     context,
     investorId,
-    { kind: "nomination_offer", id: offer.id, paperHash: offer.paperHash },
-    input.code,
-    {
-      trail: () => ({
-        entity: "nomination_offer",
-        entityId: offer.id,
-        action: "update",
-        before: (tx) => readOffer(tx, context.farm.id, offer.id),
-        after: (tx) => readOffer(tx, context.farm.id, offer.id),
-      }),
-      mark: async (tx, now) => {
-        const [agreeing] = await tx
-          .update(nominationOffer)
-          .set({ agreedAt: now, agreedBy: context.actor.id })
-          .where(
-            and(
-              eq(nominationOffer.id, offer.id),
-              isNull(nominationOffer.withdrawnAt),
-              isNull(nominationOffer.agreedAt)
-            )
-          )
-          .returning({ id: nominationOffer.id });
-        return agreeing !== undefined;
-      },
-    }
+    { ...inApp(context, offer.id), paperHash: offer.paperHash },
+    input.code
   );
 };
 
@@ -438,38 +393,7 @@ export const withdrawAgreementToNomination = async (
   await withdrawTheAgreement(
     context,
     investorId,
-    { kind: "nomination_offer", id: offer.id },
-    {
-      trail: () => ({
-        entity: "nomination_offer",
-        entityId: offer.id,
-        action: "update",
-        before: (tx) => readOffer(tx, context.farm.id, offer.id),
-        after: (tx) => readOffer(tx, context.farm.id, offer.id),
-      }),
-      words: WORDS,
-      withdraw: async (tx, now) => {
-        const [withdrawing] = await tx
-          .update(nominationOffer)
-          .set({ agreedAt: null, agreedBy: null, agreementWithdrawnAt: now })
-          .where(
-            and(
-              eq(nominationOffer.id, offer.id),
-              isNull(nominationOffer.approvedAt),
-              isNull(nominationOffer.withdrawnAt),
-              isNotNull(nominationOffer.agreedAt)
-            )
-          )
-          .returning({ id: nominationOffer.id });
-        if (withdrawing) {
-          return "withdrawn_now";
-        }
-        const meanwhile = await readOffer(tx, context.farm.id, offer.id);
-        if (meanwhile?.approvedAt) {
-          return "approved";
-        }
-        return meanwhile?.withdrawnAt ? "withdrawn" : "not_agreed";
-      },
-    }
+    inApp(context, offer.id),
+    WORDS
   );
 };
