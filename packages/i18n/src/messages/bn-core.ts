@@ -2604,6 +2604,9 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "nav.notifiable": "যে রোগ জানাতে হয়",
   "sop.trigger.notifiable": "জানানোর মতো রোগ শনাক্ত",
   "sop.effect.dls_report": "চিঠি পৌঁছানো লেখে",
+  "email.confirmCode.subject": "আপনার ইমেইল নিশ্চিত করার কোড",
+  "email.confirmCode.body":
+    "{farm}-এর বিনিয়োগকারী পোর্টালে আপনার ইমেইল নিশ্চিত করার কোড: {code}\n\nপোর্টালের “অ্যাকাউন্ট” পাতায় কোডটি লিখুন। এটি {minutes} মিনিট কাজ করবে। আপনি না চাইলে এই ইমেইলটি উপেক্ষা করুন, আর খামারকে জানান।",
   "sms.myNumber": "আপনার মোবাইল নম্বর",
   "sms.title": "এসএমএস",
   "sms.why":

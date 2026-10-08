@@ -47,6 +47,8 @@ export const readInvestor = async (tx: Tx, farmId: string, id: string) => {
   const said = {
     name: row.name,
     phone: row.phone,
+    email: row.email,
+    emailConfirmedAt: row.emailConfirmedAt,
     address: row.address,
     nid: row.nid,
     bankAccount: row.bankAccount,

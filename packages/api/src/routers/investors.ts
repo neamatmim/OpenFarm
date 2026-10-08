@@ -18,6 +18,7 @@ import { farmDay } from "../farm-clock";
 import type { FarmList } from "../farm-list";
 import { bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
+import { emailChanged, forgetEmailCode } from "../investor-email";
 import {
   countedInvestors,
   organizationOf,
@@ -77,6 +78,9 @@ const takenAwaySaid = (
   return { why, ...said };
 };
 
+/** An email as the Owner types it: kept lowercased, so the same address is never two. */
+const emailInput = z.string().trim().toLowerCase().max(254).pipe(z.email());
+
 const personInput = z.object({
   /** Left out by every caller written before an Investor could be an Organization: a person. */
   kind: z.literal("person").optional(),
@@ -88,6 +92,8 @@ const personInput = z.object({
   /** Bank channels only, so the account is how they are paid. Written out as the bank would want it — the
    *  name on the account, its number, the bank and the branch — often on a line each. */
   bankAccount: z.string().trim().max(300).optional(),
+  /** Their own email, optional: the farm sends a signing code there beside the phone once they confirm it (ADR 0022). */
+  email: emailInput.optional(),
 });
 
 /** An Organization (ADR 0020): its own name, address, papers and bank account, and the one Signatory it acts through,
@@ -108,6 +114,8 @@ const organizationInput = z.object({
   signatoryName: z.string().trim().min(1).max(120),
   signatoryNid: z.string().trim().max(40).optional(),
   signatoryRole: z.string().trim().max(80).optional(),
+  /** The Signatory's own email, optional, as a person's is. */
+  email: emailInput.optional(),
 });
 
 /** A person or an Organization, as the Owner writes them down. */
@@ -155,6 +163,7 @@ const theRecord = (input: z.infer<typeof investorInput>) =>
         kind: input.kind,
         name: input.name,
         phone: input.phone,
+        email: input.email ?? null,
         address: input.address ?? null,
         nid: null,
         bankAccount: input.bankAccount ?? null,
@@ -171,6 +180,7 @@ const theRecord = (input: z.infer<typeof investorInput>) =>
         kind: "person" as const,
         name: input.name,
         phone: input.phone,
+        email: input.email ?? null,
         address: input.address ?? null,
         nid: input.nid ?? null,
         bankAccount: input.bankAccount ?? null,
@@ -355,6 +365,10 @@ export const investorsRouter = {
           kind: one.kind,
           name: one.name,
           phone: one.phone,
+          /** Their email (an Organization's Signatory's), and when they confirmed it in the portal; null for none and
+           *  for one not confirmed yet. */
+          email: one.email,
+          emailConfirmedAt: one.emailConfirmedAt,
           address: one.address,
           nid: one.nid,
           bankAccount: one.bankAccount,
@@ -585,10 +599,20 @@ export const investorsRouter = {
       if (already && already.id !== input.id) {
         throw alreadyHere(already.retiredAt !== null);
       }
-      await changeInvestor(context, input.id, (tx) =>
+      const record = theRecord(input);
+      await changeInvestor(context, input.id, async (tx) =>
         tx
           .update(investor)
-          .set(theRecord(input))
+          .set({
+            ...record,
+            // A new address is theirs to confirm again; the same one stays as it was.
+            ...(await emailChanged(
+              tx,
+              context.farm.id,
+              input.id,
+              record.email
+            )),
+          })
           .where(
             and(eq(investor.id, input.id), eq(investor.farmId, context.farm.id))
           )
@@ -616,6 +640,7 @@ export const investorsRouter = {
           signatoryName: true,
           signatoryNid: true,
           signatoryRole: true,
+          email: true,
         })
         .extend({ id: z.string().min(1) })
     )
@@ -658,11 +683,15 @@ export const investorsRouter = {
             signatoryName: input.signatoryName,
             signatoryNid: input.signatoryNid ?? null,
             signatoryRole: input.signatoryRole ?? null,
+            // The new Signatory's own, which they confirm for themselves.
+            email: input.email ?? null,
+            emailConfirmedAt: null,
           })
           .where(
             and(eq(investor.id, input.id), eq(investor.farmId, context.farm.id))
           )
           .returning({ id: investor.id });
+        await forgetEmailCode(tx, input.id);
         await signatoryLeaves(tx, context, input.id);
         return changed;
       });

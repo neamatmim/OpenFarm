@@ -5,11 +5,19 @@ import {
 import type { PaperNominee } from "@OpenFarm/domain";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Input } from "@OpenFarm/ui/components/input";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { IdCard, LogOut, Monitor, ShieldCheck, Smartphone } from "lucide-react";
+import {
+  IdCard,
+  LogOut,
+  Mail,
+  Monitor,
+  ShieldCheck,
+  Smartphone,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -38,6 +46,8 @@ import {
 } from "@/components/portal/portal-source";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
+import type { OwnWords } from "@/lib/saying";
+import { sayWhy } from "@/lib/saying";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
@@ -95,6 +105,26 @@ const SigningInApp = ({ signs }: { signs: boolean | null }) => {
   );
 };
 
+/** Their email as the farm holds it, most of its name hidden, and whether they have confirmed it here. */
+const EmailHeld = ({ email }: { email: Me["record"]["email"] | null }) => {
+  const { t } = useLanguage();
+  if (!email) {
+    return null;
+  }
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span>{email.shown}</span>
+      <span className="text-muted-foreground text-xs">
+        {t(
+          email.confirmed
+            ? "portal.email.confirmed"
+            : "portal.email.notConfirmed"
+        )}
+      </span>
+    </span>
+  );
+};
+
 /**
  * Their record as the farm holds it, to check against their own papers — the NID and the bank account with all but
  * their last digits hidden, enough to know them by. An Organization's is its own, with its Signatory's beside it and no
@@ -133,6 +163,9 @@ const TheirDetails = ({ me }: { me: Me }) => {
             {record.organization.signatory.role}
           </Held>
           <Held label={t("investors.signatoryPhone")}>{record.phone}</Held>
+          <Held label={t("investors.signatoryEmail")}>
+            <EmailHeld email={record.email ?? null} />
+          </Held>
           <Held label={t("investors.signatoryNid")}>
             {record.organization.signatory.nid}
           </Held>
@@ -142,6 +175,9 @@ const TheirDetails = ({ me }: { me: Me }) => {
           <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
             <Held label={t("investors.name")}>{me.name}</Held>
             <Held label={t("investors.phone")}>{record.phone}</Held>
+            <Held label={t("investors.email")}>
+              <EmailHeld email={record.email ?? null} />
+            </Held>
             <Held label={t("investors.address")}>{record.address}</Held>
             <Held label={t("investors.nid")}>{record.nid}</Held>
             <Held label={t("investors.bank")}>{record.bankAccount}</Held>
@@ -150,6 +186,142 @@ const TheirDetails = ({ me }: { me: Me }) => {
         </>
       )}
       <SigningInApp signs={record.signsInApp ?? null} />
+    </Section>
+  );
+};
+
+/** The farm's refusals of an email or its code, in the reader's words. */
+const EMAIL_REFUSALS = {
+  wrong_code: "portal.email.wrongCode",
+  too_many_codes: "portal.email.tooMany",
+  email_sent_just_now: "portal.email.justNow",
+  email_not_sent: "portal.email.notSent",
+  farm_sends_no_email: "portal.email.farmSendsNone",
+  no_email: "portal.email.none",
+  email_confirmed: "portal.email.done",
+} as const satisfies OwnWords;
+
+/** How long the code in the email works, as the farm keeps it. */
+const CODE_MINUTES = 30;
+
+/**
+ * Confirming the email the Owner wrote down for them (ADR 0022): the farm sends a code there, and they enter it here.
+ * From then on the codes for agreeing to papers go to it as well as to their phone. Shown only while there is an
+ * email to confirm; on a farm that sends no email yet, it says so instead.
+ */
+const ConfirmTheirEmail = ({ me }: { me: Me }) => {
+  const { t } = useLanguage();
+  const acting = useCanAct();
+  const queryClient = useQueryClient();
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [refused, setRefused] = useState<string | null>(null);
+  const said = (error: unknown) => setRefused(sayWhy(error, t, EMAIL_REFUSALS));
+  const sending = useMutation(
+    orpc.portal.sendEmailCode.mutationOptions({
+      onMutate: () => setRefused(null),
+      onError: said,
+      onSuccess: (answer) => setSentTo(answer.sentTo),
+    })
+  );
+  const confirming = useMutation(
+    orpc.portal.confirmEmail.mutationOptions({
+      onMutate: () => setRefused(null),
+      onError: said,
+      onSuccess: () => {
+        toast.success(t("portal.email.done"));
+        void queryClient.invalidateQueries({ queryKey: orpc.portal.me.key() });
+      },
+    })
+  );
+  const { email } = me.record;
+  if (!email || email.confirmed) {
+    return null;
+  }
+  if (!me.record.farmSendsEmail) {
+    return (
+      <Section title={t("portal.email.confirmTitle")}>
+        <p className="text-muted-foreground text-sm">
+          {t("portal.email.farmSendsNone")}
+        </p>
+      </Section>
+    );
+  }
+  return (
+    <Section
+      description={t("portal.email.confirmHint", { email: email.shown })}
+      title={t("portal.email.confirmTitle")}
+    >
+      <form
+        className="flex max-w-md flex-col gap-4"
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!acting.can) {
+            return;
+          }
+          if (code.trim() === "") {
+            setRefused(t("auth.formIncomplete"));
+            return;
+          }
+          confirming.mutate({ code });
+        }}
+      >
+        <fieldset className="contents" disabled={!acting.can}>
+          {refused ? (
+            <Notice title={t("portal.email.notDone")} tone="danger">
+              {refused}
+            </Notice>
+          ) : null}
+          {sentTo ? (
+            <>
+              <p className="text-sm">
+                {t("portal.email.sent", {
+                  email: sentTo,
+                  minutes: CODE_MINUTES,
+                })}
+              </p>
+              <FormField id="account-email-code" label={t("portal.email.code")}>
+                <Input
+                  autoComplete="one-time-code"
+                  className="max-w-40 tracking-widest tabular-nums"
+                  id="account-email-code"
+                  inputMode="numeric"
+                  maxLength={12}
+                  onChange={(event) => setCode(event.target.value)}
+                  value={code}
+                />
+              </FormField>
+            </>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {sentTo ? (
+              <Button disabled={confirming.isPending} type="submit">
+                {confirming.isPending ? <Spinner /> : null}
+                {t("portal.email.confirm")}
+              </Button>
+            ) : null}
+            <Button
+              disabled={sending.isPending}
+              onClick={() => {
+                if (acting.can) {
+                  sending.mutate();
+                }
+              }}
+              type="button"
+              variant={sentTo ? "outline" : "default"}
+            >
+              {sending.isPending ? (
+                <Spinner />
+              ) : (
+                <Mail aria-hidden data-icon="inline-start" />
+              )}
+              {t(sentTo ? "portal.email.sendAgain" : "portal.email.send")}
+            </Button>
+          </div>
+        </fieldset>
+        <WhyNot acting={acting} />
+      </form>
     </Section>
   );
 };
@@ -413,6 +585,7 @@ export const PortalAccount = ({ tab = "details" }: { tab?: Tab }) => {
                 content: (
                   <div className="flex flex-col gap-4">
                     <TheirDetails me={me.data} />
+                    <ConfirmTheirEmail me={me.data} />
                     <TheFarm me={me.data} />
                   </div>
                 ),

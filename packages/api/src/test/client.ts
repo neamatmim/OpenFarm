@@ -15,6 +15,7 @@ import { createRouterClient } from "@orpc/server";
 
 import type { Context } from "../context";
 import { buildContext } from "../context";
+import type { EmailTransport } from "../email";
 import type { PushTransport } from "../push";
 import type { SmsTransport } from "../sms";
 
@@ -27,6 +28,8 @@ interface Options {
   push?: PushTransport;
   /** Where a text message goes. Omitted, nowhere: the farm has no gateway until go-live. */
   sms?: SmsTransport;
+  /** Where an email goes. Omitted, nowhere: the farm has no mail account until go-live. */
+  email?: EmailTransport;
   /** Call as this Role PIN-switched in on a Shed Phone, rather than from their own phone. */
   onShedPhone?: boolean;
   /** An enrolled phone with nobody PIN-switched in yet. */
@@ -62,6 +65,7 @@ export const createTestClient = async <T extends Router<Context>>(
     from,
     push,
     sms,
+    email,
   }: Options
 ): Promise<{ client: RouterClient<T>; clock: FakeClock; context: Context }> => {
   const principal =
@@ -84,6 +88,7 @@ export const createTestClient = async <T extends Router<Context>>(
     db: scratchDb(),
     push,
     sms,
+    email,
     // This test file's own farm: the farm is single on a real install, and one per file here.
     farmId: theFarm().id,
   });

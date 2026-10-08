@@ -4,6 +4,7 @@ import type { RouterClient } from "@orpc/server";
 import { createRouterClient } from "@orpc/server";
 
 import { buildContext } from "../context";
+import type { EmailTransport } from "../email";
 import { appRouter } from "../routers";
 import { createTestClient } from "./client";
 
@@ -21,7 +22,9 @@ const A_DAY_MS = 24 * 60 * 60 * 1000;
 /** The API as the account an invitation opened reaches it, signed in at the moment given. */
 export const signedInAs = async (
   loginEmail: string,
-  at: string
+  at: string,
+  /** Where an email goes. Omitted, nowhere, as on a farm with no mail account. */
+  email?: EmailTransport
 ): Promise<Client> => {
   const db = scratchDb();
   const person = await db.query.user.findFirst({
@@ -55,6 +58,7 @@ export const signedInAs = async (
     callerAddress: null,
     clock,
     db,
+    email,
     farmId: theFarm().id,
   });
   return createRouterClient(appRouter, { context });

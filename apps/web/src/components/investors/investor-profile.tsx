@@ -61,6 +61,27 @@ const Detail = ({
   );
 };
 
+/** Their email, and whether they have confirmed it in the portal — until they do, no signing code goes there (ADR
+ *  0022). Nothing, for none given or an answer cached before the farm kept one. */
+const TheirEmail = ({ investor }: { investor: Investor }) => {
+  const { t, language } = useLanguage();
+  if (!investor.email) {
+    return null;
+  }
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span>{investor.email}</span>
+      <span className="text-muted-foreground text-xs">
+        {investor.emailConfirmedAt
+          ? t("investors.emailConfirmed", {
+              day: formatDate(new Date(investor.emailConfirmedAt), language),
+            })
+          : t("investors.emailNotConfirmed")}
+      </span>
+    </span>
+  );
+};
+
 /** A part of the record under the same heading it was written under, so the paper and the form read alike. */
 const DetailCard = ({
   title,
@@ -393,6 +414,9 @@ const OrganizationCards = ({
         <Detail label={t("investors.signatoryPhone")}>
           {phoneLink(investor.phone)}
         </Detail>
+        <Detail label={t("investors.signatoryEmail")}>
+          <TheirEmail investor={investor} />
+        </Detail>
         <Detail label={t("investors.signatoryNid")}>
           {organization.signatory.nid}
         </Detail>
@@ -448,6 +472,9 @@ export const InvestorProfile = ({
             <Detail label={t("investors.name")}>{investor.name}</Detail>
             <Detail label={t("investors.phone")}>
               {phoneLink(investor.phone)}
+            </Detail>
+            <Detail label={t("investors.email")}>
+              <TheirEmail investor={investor} />
             </Detail>
             <Detail label={t("investors.nid")}>{investor.nid}</Detail>
             <Detail label={t("investors.address")}>{investor.address}</Detail>

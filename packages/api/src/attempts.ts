@@ -18,6 +18,9 @@ export interface AttemptRule {
 
 export const PIN_ATTEMPTS: AttemptRule = { limit: 5, windowMs: 15 * 60_000 };
 export const CODE_ATTEMPTS: AttemptRule = { limit: 10, windowMs: 15 * 60_000 };
+/** Codes the farm sends to confirm an email: not a guess but an email, which costs the farm and fills an inbox. Five in
+ *  an hour is somebody whose mail is slow; more is somebody pressing the button for no reason. */
+export const EMAIL_SENDS: AttemptRule = { limit: 5, windowMs: 60 * 60_000 };
 
 const recent = (key: string, now: Date, rule: AttemptRule): number[] => {
   const since = now.getTime() - rule.windowMs;
@@ -39,10 +42,16 @@ export const lockedOut = (key: string, now: Date, rule: AttemptRule): boolean =>
 const SWEEP_WHEN_HOLDING = 1000;
 
 /** Every rule a guess is counted by. A rule left off this list would have its keys swept before their window ends. */
-const RULES: readonly AttemptRule[] = [PIN_ATTEMPTS, CODE_ATTEMPTS];
+const RULES: readonly AttemptRule[] = [
+  PIN_ATTEMPTS,
+  CODE_ATTEMPTS,
+  EMAIL_SENDS,
+];
 
 /** The longest any rule remembers a guess: a key whose newest guess is older is remembered by nothing. */
-const LONGEST_WINDOW_MS = Math.max(...RULES.map((rule) => rule.windowMs));
+export const LONGEST_WINDOW_MS = Math.max(
+  ...RULES.map((rule) => rule.windowMs)
+);
 
 /** Forgets every key nothing remembers any more. A key is pruned when it is asked about; one never asked about again
  *  — a phone a script named once — would otherwise stay until the process ends. */

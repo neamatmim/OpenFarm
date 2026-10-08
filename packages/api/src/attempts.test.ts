@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { CODE_ATTEMPTS, countFailure, keysHeld, lockedOut } from "./attempts";
+import {
+  CODE_ATTEMPTS,
+  LONGEST_WINDOW_MS,
+  countFailure,
+  keysHeld,
+  lockedOut,
+} from "./attempts";
 
 /** Far more keys than the farm's own mistakes ever make, as a script naming a new phone every time would. */
 const A_SCRIPTS_WORTH = 6000;
@@ -15,7 +21,8 @@ describe("wrong guesses kept in memory", () => {
     }
     expect(keysHeld()).toBeGreaterThanOrEqual(A_SCRIPTS_WORTH);
 
-    const later = new Date(at.getTime() + CODE_ATTEMPTS.windowMs + 60_000);
+    // Old by every rule: a key does not say which rule counted it, so none is forgotten before the longest ends.
+    const later = new Date(at.getTime() + LONGEST_WINDOW_MS + 60_000);
     countFailure("sweep-test:now", later, CODE_ATTEMPTS);
 
     expect(keysHeld()).toBeLessThan(HARDLY_ANY);

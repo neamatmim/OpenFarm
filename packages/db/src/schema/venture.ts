@@ -223,6 +223,12 @@ export const investor = pgTable(
     signatoryName: text("signatory_name"),
     signatoryNid: text("signatory_nid"),
     signatoryRole: text("signatory_role"),
+    /** The email the farm sends a signing code to beside the phone (ADR 0022): a person's own, an Organization's
+     *  Signatory's. Optional, written by the Owner, kept as typed but lowercased. */
+    email: text("email"),
+    /** When they entered the code the farm sent to `email`, in the portal: until then no signing code goes to it.
+     *  Cleared whenever the email changes. */
+    emailConfirmedAt: timestamp("email_confirmed_at", { withTimezone: true }),
     recordedBy: text("recorded_by").references(() => user.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
     /** Retired, never removed: their Agreements, payouts and statements are kept for twelve years and every
@@ -363,6 +369,29 @@ export const portalConsent = pgTable(
       .on(table.investorId)
       .where(sql`${table.withdrawnOn} is null`),
   ]
+);
+
+/**
+ * The code the farm last sent an Investor to confirm their email, hashed: one at a time, replaced by the next one sent,
+ * and gone once it is entered. Kept with the address it went to, so a code sent before the Owner changed the email
+ * confirms nothing.
+ */
+export const emailCode = pgTable(
+  "email_code",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    investorId: text("investor_id")
+      .notNull()
+      .references(() => investor.id),
+    email: text("email").notNull(),
+    codeHash: text("code_hash").notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [uniqueIndex("email_code_investor_uidx").on(table.investorId)]
 );
 
 /**

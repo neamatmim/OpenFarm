@@ -373,6 +373,9 @@ importers:
       dotenv:
         specifier: 'catalog:'
         version: 17.4.2
+      nodemailer:
+        specifier: ^10.0.10
+        version: 10.0.10
       web-push:
         specifier: ^3.6.7
         version: 3.6.7
@@ -5079,6 +5082,10 @@ packages:
   node-releases@2.0.54:
     resolution: {integrity: sha512-YHs7BmmcsdAI5Ozuf8JZo6PT0mv2GIWC9vMfvUC3dp65M8hn7Ux8CPL+2oBI7juNuj9d0ndhTcznq2ODBps9cQ==}
     engines: {node: '>=18'}
+
+  nodemailer@10.0.10:
+    resolution: {integrity: sha512-He9XskOFms62SyAKkLu8CcGcYHAo+BSHSsORI8s4PJH8qZgZY4L4lDfvyN0twvmbpyG+eGrxpyBlskj9d9rJ8A==}
+    engines: {node: '>=20.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -9975,6 +9982,8 @@ snapshots:
       unstorage: 2.0.0-alpha.10
 
   node-releases@2.0.54: {}
+
+  nodemailer@10.0.10: {}
 
   normalize-path@3.0.0: {}
 

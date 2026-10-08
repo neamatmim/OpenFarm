@@ -109,9 +109,9 @@ Once a quarter, and after any change to the database provider.
 1. **The Owner** runs the restore above into the scratch environment and points a copy of the
    app at it — the Owner, because only the Owner has a login on the server. The copy's
    environment is **not** `app.env` as it stands: set `OPENFARM_SCHEDULER=off`, and leave out
-   `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `SMS_GATEWAY_URL` and
+   `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `SMS_GATEWAY_URL`, `EMAIL_SMTP_URL` and
    `OPENFARM_WATCH_URL`. Otherwise the copy turns the day on itself, pushes yesterday's work to
-   the real staff's phones and the Owner's, and pings the outside watch — which then cannot see
+   the real staff's phones and the Owner's, mails Investors from the farm's own account, and pings the outside watch — which then cannot see
    that the real server has died.
 2. **The Manager** looks at four screens in it:
    - **Animals** — the herd is there, with the right count on each Side;

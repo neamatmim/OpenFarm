@@ -262,6 +262,7 @@ const NAMED_FIELDS = new Set<string>([
   "perYear",
   "fromDay",
   "phone",
+  "emailConfirmedAt",
   "address",
   "nid",
   "bankAccount",

@@ -323,6 +323,13 @@ export const enDesk = {
   "portal.closed":
     "The investor portal is not open to you. Ask the farm's Owner.",
   "portal.title": "Investor portal",
+  "investors.emailNotConfirmed": "Not confirmed in the portal yet",
+  "investors.emailConfirmed": "Confirmed in the portal {day}",
+  "investors.emailWrong": "That does not look like an email address",
+  "investors.emailHint":
+    "Optional. Once they confirm it in the portal, the codes for agreeing to papers go here as well as to their phone; changed, they confirm it again.",
+  "investors.signatoryEmail": "Signatory's email",
+  "investors.email": "Email",
   "investors.whatTheySee": "What invited investors see",
   "portal.signInTitle": "Investor sign-in",
   "portal.signInHint":
@@ -1384,6 +1391,29 @@ export const enDesk = {
   "investors.name": "Name",
   "investors.phone": "Phone",
   "investors.address": "Address",
+  "portal.email.notSent": "The email did not go — try again in a minute.",
+  "portal.email.justNow":
+    "A code was sent just now — you can ask again shortly.",
+  "portal.email.tooMany":
+    "Too many wrong codes — try again in fifteen minutes.",
+  "portal.email.wrongCode": "That is not the code we sent, or it has run out.",
+  "portal.email.farmSendsNone":
+    "The farm does not send email yet; until it does, codes go to your phone only.",
+  "portal.email.none":
+    "The farm has no email for you; tell the farm if you want to give one.",
+  "portal.email.notDone": "Your email is not confirmed yet",
+  "portal.email.done": "Your email is confirmed",
+  "portal.email.confirm": "Confirm",
+  "portal.email.code": "The code in the email",
+  "portal.email.sent":
+    "The code went to {email}. Enter it within {minutes, plural, one {# minute} other {# minutes}}; if it has not come, look in the spam folder.",
+  "portal.email.sendAgain": "Send again",
+  "portal.email.send": "Send the code",
+  "portal.email.confirmHint":
+    "The farm sends a code to {email}. Once you enter it here, the codes for agreeing to papers in the portal go to this email as well as to your phone.",
+  "portal.email.confirmTitle": "Confirm your email",
+  "portal.email.notConfirmed": "Not confirmed yet",
+  "portal.email.confirmed": "Confirmed",
   "investors.nid": "NID number",
   "investors.bank": "Bank account",
   "investors.bankHint":
@@ -1666,6 +1696,7 @@ export const enDesk = {
   "auditField.vetId": "Vet",
   "auditField.vaccine": "Vaccine",
   "auditField.retiredAt": "Retired on",
+  "auditField.emailConfirmedAt": "Email confirmed",
   "auditField.phone": "Phone",
   "auditField.address": "Address",
   "auditField.nid": "NID number",

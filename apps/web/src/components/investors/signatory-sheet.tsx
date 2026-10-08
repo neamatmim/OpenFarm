@@ -2,6 +2,7 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { emailLooksRight } from "@/components/investors/investor-sheet";
 import type { Investor } from "@/components/investors/investor-types";
 import { FormField, FormSection, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -14,6 +15,7 @@ interface NewSignatory {
   name: string;
   role: string;
   phone: string;
+  email: string;
   nid: string;
   authority: string;
   authorityOn: string;
@@ -23,6 +25,7 @@ const NOBODY_YET: NewSignatory = {
   name: "",
   role: "",
   phone: "",
+  email: "",
   nid: "",
   authority: "",
   authorityOn: "",
@@ -74,6 +77,7 @@ export const SignatorySheet = ({
   const ready =
     next.name.trim() !== "" &&
     next.phone.trim() !== "" &&
+    emailLooksRight(next.email) &&
     next.authority.trim() !== "";
   return (
     <FormSheet
@@ -85,6 +89,7 @@ export const SignatorySheet = ({
         changing.mutate({
           id: investor.id,
           phone: next.phone,
+          email: orNothing(next.email),
           authority: next.authority,
           authorityOn: orNothing(next.authorityOn),
           signatoryName: next.name,
@@ -129,6 +134,23 @@ export const SignatorySheet = ({
             maxLength={20}
             required
             {...field("phone")}
+          />
+        </FormField>
+        <FormField
+          error={
+            emailLooksRight(next.email) ? undefined : t("investors.emailWrong")
+          }
+          hint={t("investors.emailHint")}
+          id="signatory-email"
+          label={t("investors.signatoryEmail")}
+        >
+          <Input
+            autoComplete="off"
+            id="signatory-email"
+            inputMode="email"
+            maxLength={254}
+            type="email"
+            {...field("email")}
           />
         </FormField>
         <FormField id="signatory-nid" label={t("investors.signatoryNid")}>
