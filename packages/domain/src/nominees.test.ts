@@ -1,7 +1,15 @@
+import { translate } from "@OpenFarm/i18n";
 import { describe, expect, it } from "vitest";
 
-import type { Nominee } from "./nominees";
-import { isMinorOn, knownBy, nomineeRowOf, nomineesProblem } from "./nominees";
+import type { Nominee, Relation } from "./nominees";
+import {
+  RELATION_WORDS,
+  isMinorOn,
+  knownBy,
+  nomineeRowOf,
+  nomineesProblem,
+  relationSaid,
+} from "./nominees";
 
 const DAY = "2026-09-26";
 
@@ -174,5 +182,24 @@ describe("the number a Nominee is known by", () => {
     expect(
       nomineeRowOf({ ...adult(100), nid: null, minor: false }).idNumber
     ).toBeNull();
+  });
+});
+
+describe("the usual relations", () => {
+  it("are the words the form's choices are named by, in both languages", () => {
+    for (const [relation, said] of Object.entries(RELATION_WORDS)) {
+      expect(said.bn).toBe(
+        translate("bn", `investors.relation.${relation as Relation}`)
+      );
+      expect(said.en).toBe(
+        translate("en", `investors.relation.${relation as Relation}`)
+      );
+    }
+  });
+
+  it("read a relation kept in English by a form in English as the same relation, said in each language", () => {
+    expect(relationSaid("Wife")).toEqual({ bn: "স্ত্রী", en: "Wife" });
+    expect(relationSaid("স্ত্রী")).toEqual({ bn: "স্ত্রী", en: "Wife" });
+    expect(relationSaid("খালা")).toEqual({ bn: "খালা", en: "খালা" });
   });
 });

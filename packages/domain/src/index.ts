@@ -940,7 +940,10 @@ export {
   knownBy,
   nomineeRowOf,
   nomineesProblem,
+  RELATION_WORDS,
   receiverLine,
+  relationOf,
+  relationSaid,
   shareInBangla,
 } from "./nominees";
 export type {
@@ -949,6 +952,7 @@ export type {
   NomineesProblem,
   PaperNominee,
   Receiver,
+  Relation,
 } from "./nominees";
 export type { CalfCause, CalfLosses, CalfRecord } from "./calf-losses";
 export {

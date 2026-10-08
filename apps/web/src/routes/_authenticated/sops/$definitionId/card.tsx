@@ -28,6 +28,7 @@ import {
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { whenWords } from "@/components/playbook/playbook-types";
 import { useLanguage } from "@/i18n/language-provider";
+import { useWordsIn } from "@/i18n/words-in";
 import { printAlone } from "@/lib/print-alone";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -150,7 +151,9 @@ const EvidenceMarks = ({
  */
 const WallCard = ({ card }: { card: Card }) => {
   // The card goes on a shed wall, so it is Bangla whoever printed it — including a Manager
-  // whose own app is in English. The people who read it off the wall read Bangla.
+  // whose own app is in English. The people who read it off the wall read Bangla, and an English screen holds no
+  // Bangla words until they are fetched: until then the card is not drawn, rather than drawn in English.
+  const banglaHeld = useWordsIn(CARD_LANGUAGE);
   const t = onTheWall;
   const { name, purpose, steps, number, publishedAt, triggers } = card;
   // When the work comes up, as the Playbook says it: the clock's times and days, or what happens that raises it.
@@ -158,6 +161,9 @@ const WallCard = ({ card }: { card: Card }) => {
   const tight = steps.length > STEPS_BEFORE_TIGHTENING;
   // A card cached before the farm said who checks the work, or whether it is the whole farm's, says neither.
   const checker = card.checkerRole ?? null;
+  if (!banglaHeld) {
+    return null;
+  }
 
   return (
     <article

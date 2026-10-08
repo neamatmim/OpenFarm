@@ -43,6 +43,7 @@ import {
   PaperLanguageSwitch,
 } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
+import { useWordsIn } from "@/i18n/words-in";
 import { portalAddress } from "@/lib/portal-address";
 import { printAlone } from "@/lib/print-alone";
 import { useRefused } from "@/lib/refused";
@@ -429,6 +430,8 @@ const CodeDialog = ({
   // The paper laid out round the code, set off the screen to print alone.
   const [laidOut, setLaidOut] = useState<HandedOverPaper | null>(null);
   const [paperLanguage, setPaperLanguage] = useState<Language>(language);
+  // The letter names the portal's own buttons in the language it is printed in: those words fetched before it is.
+  const wordsHeld = useWordsIn(paperLanguage);
   const handing = useMutation(
     orpc.investors.handOver.mutationOptions({
       onError: refused,
@@ -484,7 +487,7 @@ const CodeDialog = ({
             onChange={setPaperLanguage}
           />
           <Button
-            disabled={handing.isPending}
+            disabled={handing.isPending || !wordsHeld}
             onClick={() =>
               given && handing.mutate({ id: investorId, paper: given.paper })
             }

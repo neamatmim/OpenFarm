@@ -18,7 +18,7 @@ import { usePortalPlaces } from "@/components/portal/portal-source";
 import {
   AgreementAgain,
   useInvestorPapers,
-  ProducedPaper,
+  StatementDialog,
 } from "@/components/ventures/investor-papers";
 import { Line, StateBadge } from "@/components/ventures/venture-card";
 import { PapersMenu } from "@/components/ventures/venture-investors";
@@ -373,7 +373,7 @@ export const InvestorAgreements = ({
           }))}
         />
       )}
-      {papers.produced ? <ProducedPaper produced={papers.produced} /> : null}
+      <StatementDialog papers={papers} />
       <AgreementAgain papers={papers} />
     </Section>
   );
