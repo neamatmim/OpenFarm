@@ -754,10 +754,10 @@ export interface CapitalLine {
   reference: string;
 }
 
-/** What a paper writes of an Organisation beyond its name, address and phone (ADR 0020): its own papers, the paper
+/** What a paper writes of an Organization beyond its name, address and phone (ADR 0020): its own papers, the paper
  *  that names its Signatory, and the Signatory. */
-export interface PaperOrganisation {
-  tradeLicence: string | null;
+export interface PaperOrganization {
+  tradeLicense: string | null;
   rjscNumber: string | null;
   tin: string | null;
   authority: string;
@@ -782,9 +782,9 @@ export interface JoiningLetter {
     phone: string;
     address: string | null;
     nid: string | null;
-    /** An Organisation's papers and its Signatory; null or left out for a person (ADR 0020). */
-    organisation?: PaperOrganisation | null;
-    /** The Nominees in force: the letter describes him as he is today. None for an Organisation. */
+    /** An Organization's papers and its Signatory; null or left out for a person (ADR 0020). */
+    organization?: PaperOrganization | null;
+    /** The Nominees in force: the letter describes him as he is today. None for an Organization. */
     nominees: PaperNominee[];
   };
   ventureName: string;
@@ -883,12 +883,12 @@ const monthlySumLines = (
     : [];
 
 /**
- * Who the joining letter is for, as its head writes them: a person with their Nominees in force, or an Organisation with
+ * Who the joining letter is for, as its head writes them: a person with their Nominees in force, or an Organization with
  * its own papers and the Signatory who signs for it, and no Nominee (ADR 0020).
  */
 const whoJoined = (him: JoiningLetter["him"]): (string | null)[] => {
-  const { organisation } = him;
-  if (!organisation) {
+  const { organization } = him;
+  if (!organization) {
     return [
       field("বিনিয়োগকারী", "Investor", him.name),
       him.address?.trim() ? field("ঠিকানা", "Address", him.address) : null,
@@ -903,17 +903,17 @@ const whoJoined = (him: JoiningLetter["him"]): (string | null)[] => {
       ),
     ];
   }
-  const { signatory } = organisation;
+  const { signatory } = organization;
   return [
     field("বিনিয়োগকারী প্রতিষ্ঠান", "Investor", him.name),
     him.address?.trim() ? field("ঠিকানা", "Address", him.address) : null,
-    organisation.tradeLicence?.trim()
-      ? field("ট্রেড লাইসেন্স", "Trade licence", organisation.tradeLicence)
+    organization.tradeLicense?.trim()
+      ? field("ট্রেড লাইসেন্স", "Trade license", organization.tradeLicense)
       : null,
-    organisation.rjscNumber?.trim()
-      ? field("আরজেএসসি নিবন্ধন", "RJSC registration", organisation.rjscNumber)
+    organization.rjscNumber?.trim()
+      ? field("আরজেএসসি নিবন্ধন", "RJSC registration", organization.rjscNumber)
       : null,
-    organisation.tin?.trim() ? field("টিআইএন", "TIN", organisation.tin) : null,
+    organization.tin?.trim() ? field("টিআইএন", "TIN", organization.tin) : null,
     field(
       "পক্ষে স্বাক্ষরকারী",
       "Signatory",
@@ -967,8 +967,8 @@ export const joiningLetter = (letter: JoiningLetter): string => {
       "",
       ...stampLines(letter.stamp),
       "",
-      letter.him.organisation
-        ? `বিনিয়োগকারী প্রতিষ্ঠানের পক্ষে স্বাক্ষর / For the Investor: ____________________ (${letter.him.organisation.signatory.name})`
+      letter.him.organization
+        ? `বিনিয়োগকারী প্রতিষ্ঠানের পক্ষে স্বাক্ষর / For the Investor: ____________________ (${letter.him.organization.signatory.name})`
         : "বিনিয়োগকারীর স্বাক্ষর / Investor: ____________________",
       "খামারির স্বাক্ষর / For the Farm: ____________________",
     ],

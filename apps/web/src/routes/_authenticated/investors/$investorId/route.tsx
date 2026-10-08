@@ -157,10 +157,10 @@ const TheInvestor = ({
             {standingOf(investor) === "none" ? null : (
               <PortalStandingBadge investor={investor} />
             )}
-            {investor.organisation ? (
+            {investor.organization ? (
               <span>
                 {t("investors.signatoryIs", {
-                  name: investor.organisation.signatory.name,
+                  name: investor.organization.signatory.name,
                 })}
               </span>
             ) : null}

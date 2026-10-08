@@ -134,14 +134,14 @@ const INVESTORS = [
 
 /** A company that joins a Venture through its Managing Director (ADR 0020): written down with its own papers and its
  *  Signatory, whose mobile it is reached on and who signs in to the portal for it. Names no Nominee. */
-const AN_ORGANISATION = {
-  kind: "organisation" as const,
+const AN_ORGANIZATION = {
+  kind: "organization" as const,
   name: "মেঘনা ডেইরি ট্রেডার্স লিমিটেড",
   phone: "01833-445566",
   address: "৪২ মতিঝিল বাণিজ্যিক এলাকা, ঢাকা",
   bankAccount:
     "মেঘনা ডেইরি ট্রেডার্স লিমিটেড\nসোনালী ব্যাংক · 0002 3344 5566\nমতিঝিল কর্পোরেট শাখা",
-  tradeLicence: "TRAD/DNCC/045219/2025",
+  tradeLicense: "TRAD/DNCC/045219/2025",
   rjscNumber: "C-177412/2021",
   tin: "554433221100",
   authority: "পরিচালনা পর্ষদের সিদ্ধান্ত, সভা নং ১৪",
@@ -1076,7 +1076,7 @@ export const runTheVentures = (
   );
 
   // A company joins it through its Managing Director: written down, signed for by him on its behalf, its Cattle money in
-  // by bank, and he let into the portal to read it — so an Organisation's page, papers and portal have one to show.
+  // by bank, and he let into the portal to read it — so an Organization's page, papers and portal have one to show.
   on(
     addDays(today, -2),
     "11:00",
@@ -1084,7 +1084,7 @@ export const runTheVentures = (
     async (f) => {
       const signedOn = addDays(today, -2);
       const company = await f.as.owner.investors.record({
-        ...AN_ORGANISATION,
+        ...AN_ORGANIZATION,
         authorityOn: addDays(today, -12),
       });
       const agreement = await f.as.owner.ventures.agreements.sign({
@@ -1109,7 +1109,7 @@ export const runTheVentures = (
         paymentMethod: "bank",
         reference: `BEFTN ${agreement.payInCode} TRF-${f.random.int(100_000, 999_999)}`,
       });
-      await letIntoThePortal(f, AN_ORGANISATION);
+      await letIntoThePortal(f, AN_ORGANIZATION);
     }
   );
 

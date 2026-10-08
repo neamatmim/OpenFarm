@@ -32,7 +32,7 @@ const NOBODY_YET: NewSignatory = {
 const orNothing = (value: string) => (value.trim() === "" ? undefined : value);
 
 /**
- * An Organisation's Signatory changed for another person (ADR 0020). Not putting the record right — that is the edit
+ * An Organization's Signatory changed for another person (ADR 0020). Not putting the record right — that is the edit
  * sheet's, for the same person — so it says first what it ends: the old Signatory's portal sign-in and their Portal
  * Consent. The new one signs a consent of their own before they are invited.
  */
@@ -78,7 +78,7 @@ export const SignatorySheet = ({
   return (
     <FormSheet
       description={t("investors.changeSignatoryHint", {
-        name: investor.organisation?.signatory.name ?? "",
+        name: investor.organization?.signatory.name ?? "",
       })}
       onOpenChange={onOpenChange}
       onSubmit={() =>

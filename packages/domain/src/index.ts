@@ -185,7 +185,7 @@ export type {
   PenSpellLine,
   CapitalLine,
   JoiningLetter,
-  PaperOrganisation,
+  PaperOrganization,
   ProgressAnimal,
   ProgressStatement,
   SettlementStatement,
@@ -909,7 +909,7 @@ export {
 } from "./paper-template";
 export {
   FIRST_PRINTED_AGREEMENT,
-  PORTAL_CONSENT_BEFORE_ORGANISATIONS,
+  PORTAL_CONSENT_BEFORE_ORGANIZATIONS,
   STANDARD_AGREEMENT_BEFORE_MONTHLY,
   STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
   STANDARD_AGREEMENT_WITH_FARM_CAPITAL,

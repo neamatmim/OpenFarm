@@ -1,6 +1,6 @@
 import { paperTemplateVersion } from "@OpenFarm/db/schema/paper-template";
 import {
-  PORTAL_CONSENT_BEFORE_ORGANISATIONS,
+  PORTAL_CONSENT_BEFORE_ORGANIZATIONS,
   STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
 } from "@OpenFarm/domain";
 import type { PaperDocument, TemplateKind } from "@OpenFarm/domain";
@@ -16,7 +16,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-// An Organisation's papers (ADR 0020): its own details and its Signatory where a person's NID and Nominees would be, the
+// An Organization's papers (ADR 0020): its own details and its Signatory where a person's NID and Nominees would be, the
 // Signatory signing for and on its behalf, its own clause where a person's death and Nominee clauses are — and a
 // person's papers exactly as they were. A farm still on exactly the standard wording it was given is caught up to it.
 
@@ -32,12 +32,12 @@ const asOwner = async () => {
 };
 type Owner = Awaited<ReturnType<typeof asOwner>>;
 
-const ORGANISATION = {
-  kind: "organisation" as const,
+const ORGANIZATION = {
+  kind: "organization" as const,
   name: `যমুনা ডেইরি লিমিটেড ${suffix}`,
   phone: `0178${suffix}`,
   address: "বগুড়া",
-  tradeLicence: `TRAD/BCC/${suffix}`,
+  tradeLicense: `TRAD/BCC/${suffix}`,
   rjscNumber: `C-${suffix}`,
   tin: `77${suffix}`,
   authority: "পরিচালনা পর্ষদের সিদ্ধান্ত",
@@ -53,12 +53,12 @@ const HEIRS = "বিনিয়োগকারীর মৃত্যু হল
 const SUMS_AFTER_DEATH = "মাসের টাকা বাকি থাকা অবস্থায় বিনিয়োগকারীর মৃত্যু হলে";
 const NO_NOMINEE = "বিনিয়োগকারী কোনো নমিনি মনোনীত করেননি";
 const PERSONS_DATA = "আর তাঁর নমিনি ও গ্রহণকারীর তথ্য";
-const ORGANISATIONS_DATA = "তার স্বাক্ষরকারীর নাম, ফোন ও এনআইডি নম্বর";
+const ORGANIZATIONS_DATA = "তার স্বাক্ষরকারীর নাম, ফোন ও এনআইডি নম্বর";
 const CONSENT_NOMINEES = "আমার নমিনি ও গ্রহণকারীর তথ্য রাখবে";
 const CONSENT_AS_SIGNATORY = "প্রতিষ্ঠানের স্বাক্ষরকারী হিসেবে";
 
 let monthly = "";
-let organisationId = "";
+let organizationId = "";
 let personId = "";
 
 const toSign = async (owner: Owner, investorId: string) => {
@@ -110,8 +110,8 @@ beforeAll(async () => {
     capitalPaid: "by_the_month",
   });
   monthly = run.id;
-  const organisation = await owner.investors.record(ORGANISATION);
-  organisationId = organisation.id;
+  const organization = await owner.investors.record(ORGANIZATION);
+  organizationId = organization.id;
   const person = await owner.investors.record({
     name: `আব্দুল ${suffix}`,
     phone: `0177${suffix}`,
@@ -120,48 +120,48 @@ beforeAll(async () => {
   personId = person.id;
 });
 
-describe("an Organisation's Investment Agreement", () => {
-  it("names the Organisation and its Signatory, and no Nominee", async () => {
+describe("an Organization's Investment Agreement", () => {
+  it("names the Organization and its Signatory, and no Nominee", async () => {
     const owner = await asOwner();
-    const document = await toSign(owner, organisationId);
+    const document = await toSign(owner, organizationId);
     const [, them] = partiesOf(document);
     const said = Object.fromEntries(
       (them?.rows ?? []).map((row) => [row.label.en, row.value])
     );
     expect(said).toMatchObject({
-      Name: ORGANISATION.name,
-      "Trade licence": ORGANISATION.tradeLicence,
-      "RJSC registration": ORGANISATION.rjscNumber,
-      TIN: ORGANISATION.tin,
-      Signatory: ORGANISATION.signatoryName,
-      Role: ORGANISATION.signatoryRole,
-      Phone: ORGANISATION.phone,
-      "Signatory's NID": ORGANISATION.signatoryNid,
+      Name: ORGANIZATION.name,
+      "Trade license": ORGANIZATION.tradeLicense,
+      "RJSC registration": ORGANIZATION.rjscNumber,
+      TIN: ORGANIZATION.tin,
+      Signatory: ORGANIZATION.signatoryName,
+      Role: ORGANIZATION.signatoryRole,
+      Phone: ORGANIZATION.phone,
+      "Signatory's NID": ORGANIZATION.signatoryNid,
     });
     expect(said).not.toHaveProperty("NID");
     expect(them?.nominees).toEqual([]);
     expect(them?.lines).toEqual([]);
   });
 
-  it("is signed by the Signatory, for and on behalf of the Organisation", async () => {
+  it("is signed by the Signatory, for and on behalf of the Organization", async () => {
     const owner = await asOwner();
-    const signers = signersOf(await toSign(owner, organisationId));
+    const signers = signersOf(await toSign(owner, organizationId));
     expect(signers).toContainEqual({
       role: {
-        bn: expect.stringContaining(`${ORGANISATION.name}-এর পক্ষে`),
+        bn: expect.stringContaining(`${ORGANIZATION.name}-এর পক্ষে`),
         en: expect.stringContaining(
-          `for and on behalf of ${ORGANISATION.name}`
+          `for and on behalf of ${ORGANIZATION.name}`
         ),
       },
-      name: `${ORGANISATION.signatoryName}, ${ORGANISATION.signatoryRole}`,
+      name: `${ORGANIZATION.signatoryName}, ${ORGANIZATION.signatoryRole}`,
     });
   });
 
   it("says its share is its own, and nothing of a person's death or Nominees", async () => {
     const owner = await asOwner();
-    const said = JSON.stringify(await toSign(owner, organisationId));
+    const said = JSON.stringify(await toSign(owner, organizationId));
     expect(said).toContain(ITS_OWN);
-    expect(said).toContain(ORGANISATIONS_DATA);
+    expect(said).toContain(ORGANIZATIONS_DATA);
     expect(said).not.toContain(HEIRS);
     expect(said).not.toContain(SUMS_AFTER_DEATH);
     expect(said).not.toContain(NO_NOMINEE);
@@ -176,18 +176,18 @@ describe("an Organisation's Investment Agreement", () => {
     expect(said).toContain(NO_NOMINEE);
     expect(said).toContain(PERSONS_DATA);
     expect(said).not.toContain(ITS_OWN);
-    expect(said).not.toContain(ORGANISATIONS_DATA);
+    expect(said).not.toContain(ORGANIZATIONS_DATA);
   });
 });
 
-describe("an Organisation's Portal Consent", () => {
+describe("an Organization's Portal Consent", () => {
   it("is given by its Signatory for it, and holds no Nominee", async () => {
     const owner = await asOwner();
     const { document } = await owner.investors.consentSheet({
-      id: organisationId,
+      id: organizationId,
     });
     expect(document.preamble.bn).toContain(
-      `${ORGANISATION.signatoryName}, ${ORGANISATION.name}-এর পক্ষে`
+      `${ORGANIZATION.signatoryName}, ${ORGANIZATION.name}-এর পক্ষে`
     );
     const said = JSON.stringify(document);
     expect(said).toContain(CONSENT_AS_SIGNATORY);
@@ -234,8 +234,8 @@ const caughtUpFrom = async (
   return { before: currentVersionId, caughtUp };
 };
 
-describe("a farm on the standard wording before Organisations", () => {
-  it("is caught up to the Agreement that carries an Organisation's lines", async () => {
+describe("a farm on the standard wording before Organizations", () => {
+  it("is caught up to the Agreement that carries an Organization's lines", async () => {
     const { before, caughtUp } = await caughtUpFrom(
       "investment_agreement",
       STANDARD_AGREEMENT_WITH_FARM_CAPITAL
@@ -250,7 +250,7 @@ describe("a farm on the standard wording before Organisations", () => {
   it("is caught up to the Portal Consent a Signatory gives", async () => {
     const { before, caughtUp } = await caughtUpFrom(
       "portal_consent",
-      PORTAL_CONSENT_BEFORE_ORGANISATIONS
+      PORTAL_CONSENT_BEFORE_ORGANIZATIONS
     );
     expect(caughtUp?.currentVersionId).not.toBe(before);
     expect(JSON.stringify(caughtUp?.currentVersion?.content)).toContain(

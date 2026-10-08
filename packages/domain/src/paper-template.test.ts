@@ -539,7 +539,7 @@ describe("the Portal Consent and the privacy notice", () => {
       farmName: { bn: "সবুজ খামার", en: "Sobuj Farm" },
       dataHost: { bn: "হোস্ট", en: "Host" },
     });
-    // The consent opens with whoever signs it: a person, or an Organisation's Signatory for it.
+    // The consent opens with whoever signs it: a person, or an Organization's Signatory for it.
     const theInvestors = factsMissing(consent, {}, ["signerName"]);
 
     expect(missing).toContain("backupStore");

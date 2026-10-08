@@ -54,7 +54,7 @@ export const agreementLaidOut = ({
     | "firstSumDueOn"
     | "windUpDays"
   >;
-  /** The Investor's row as the farm holds it: a person, or an Organisation and its Signatory. */
+  /** The Investor's row as the farm holds it: a person, or an Organization and its Signatory. */
   him: InvestorOnPaper;
   nominees: readonly Nominee[];
   terms: AgreementTerms;
@@ -75,7 +75,7 @@ export const agreementLaidOut = ({
     wordingFor(wording, {
       paidByTheMonth: monthly !== null,
       farmCapital: farmCapital !== null,
-      organisation: Boolean(investor.organisation),
+      organization: Boolean(investor.organization),
     }),
     {
       kind: "investment_agreement",

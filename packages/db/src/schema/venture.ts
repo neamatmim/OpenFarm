@@ -181,13 +181,13 @@ export const venturePlanLine = pgTable(
   (table) => [index("venture_plan_line_plan_idx").on(table.planId)]
 );
 
-/** A person, or an Organisation acting through its one Signatory (ADR 0020). Chosen when written down, never changed. */
-export const INVESTOR_KINDS = ["person", "organisation"] as const;
+/** A person, or an Organization acting through its one Signatory (ADR 0020). Chosen when written down, never changed. */
+export const INVESTOR_KINDS = ["person", "organization"] as const;
 export type InvestorKind = (typeof INVESTOR_KINDS)[number];
 
 /**
  * Somebody whose money is in a Venture: known to the Owner personally or personally introduced, resident
- * here, and one of at most twenty at a time, the Owner among them. A person, or an Organisation — a company, a firm,
+ * here, and one of at most twenty at a time, the Owner among them. A person, or an Organization — a company, a firm,
  * a society — whose name, phone and bank account are its own and whose Signatory's are kept beside them.
  *
  * Not a **Counterparty**, who is paid for something. An Investor shares what the Farm makes, and so needs
@@ -203,23 +203,23 @@ export const investor = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     kind: text("kind", { enum: INVESTOR_KINDS }).notNull().default("person"),
     name: text("name").notNull(),
-    /** The mobile the farm reaches them on and they sign in to the portal with: an Organisation's Signatory's. */
+    /** The mobile the farm reaches them on and they sign in to the portal with: an Organization's Signatory's. */
     phone: text("phone").notNull(),
     address: text("address"),
-    /** The number on a person's National ID, as the agreement and the tax man ask for it. An Organisation has none;
+    /** The number on a person's National ID, as the agreement and the tax man ask for it. An Organization has none;
      *  its Signatory's is `signatoryNid`. */
     nid: text("nid"),
     /** Where their money goes: bank channels only, so the account is the way to pay them. */
     bankAccount: text("bank_account"),
-    /** An Organisation's own papers: its trade licence, its RJSC registration and its TIN. */
-    tradeLicence: text("trade_licence"),
+    /** An Organization's own papers: its trade license, its RJSC registration and its TIN. */
+    tradeLicense: text("trade_license"),
     rjscNumber: text("rjsc_number"),
     tin: text("tin"),
-    /** The paper that names an Organisation's Signatory — a board resolution, a letter — as the Owner describes it,
+    /** The paper that names an Organization's Signatory — a board resolution, a letter — as the Owner describes it,
      *  and the day it is dated. */
     authority: text("authority"),
     authorityOn: text("authority_on"),
-    /** The one person an Organisation acts through: they sign its papers and sign in to the portal for it on `phone`. */
+    /** The one person an Organization acts through: they sign its papers and sign in to the portal for it on `phone`. */
     signatoryName: text("signatory_name"),
     signatoryNid: text("signatory_nid"),
     signatoryRole: text("signatory_role"),
@@ -234,12 +234,12 @@ export const investor = pgTable(
   },
   (table) => [
     check(
-      "investor_organisation_has_a_signatory",
-      sql`${table.kind} <> 'organisation' or (${table.signatoryName} is not null and ${table.authority} is not null and ${table.nid} is null)`
+      "investor_organization_has_a_signatory",
+      sql`${table.kind} <> 'organization' or (${table.signatoryName} is not null and ${table.authority} is not null and ${table.nid} is null)`
     ),
     check(
       "investor_person_has_no_signatory",
-      sql`${table.kind} <> 'person' or num_nonnulls(${table.tradeLicence}, ${table.rjscNumber}, ${table.tin}, ${table.authority}, ${table.authorityOn}, ${table.signatoryName}, ${table.signatoryNid}, ${table.signatoryRole}) = 0`
+      sql`${table.kind} <> 'person' or num_nonnulls(${table.tradeLicense}, ${table.rjscNumber}, ${table.tin}, ${table.authority}, ${table.authorityOn}, ${table.signatoryName}, ${table.signatoryNid}, ${table.signatoryRole}) = 0`
     ),
     check(
       "investor_authority_on_day",
@@ -261,7 +261,7 @@ export const investor = pgTable(
 
 /**
  * Why the Owner took an Investor's portal access away: they withdrew their Portal Consent, their phone was lost, the
- * Owner's own decision, or an Organisation's Signatory changed — the sign-in was the old Signatory's (ADR 0020). Only a
+ * Owner's own decision, or an Organization's Signatory changed — the sign-in was the old Signatory's (ADR 0020). Only a
  * withdrawal and a change of Signatory touch the consent.
  */
 export const PORTAL_TAKEN_AWAY_WHY = [
@@ -317,7 +317,7 @@ export const investorAccess = pgTable(
 );
 
 /** How an Investor's Portal Consent stopped being in force: they asked by a signed letter, or by a message from their
- *  own number; or, for an Organisation, the Signatory who signed it was changed for another (ADR 0020). */
+ *  own number; or, for an Organization, the Signatory who signed it was changed for another (ADR 0020). */
 export const CONSENT_WITHDRAWN_HOW = [
   "letter",
   "message",

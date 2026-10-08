@@ -932,8 +932,8 @@ export const enCore = {
   "refusal.cashBackNeedsASlip":
     "Cash coming back needs the day it was deposited and the slip's number",
   "nominees.title": "Nominees",
-  "nominees.noneForAnOrganisation":
-    "An organisation names no nominee: its share is its own, whoever signs for it",
+  "nominees.noneForAnOrganization":
+    "An organization names no nominee: its share is its own, whoever signs for it",
   "nominees.hint":
     "Who collects their capital and share for their lawful heirs if they die before a Venture settles. Only a paper they sign changes them.",
   "nominees.none": "No Nominee",
@@ -2129,11 +2129,11 @@ export const enCore = {
     "The farm already has as many investors as it may have at a time",
   "refusal.investorExists":
     "An investor of this name is written down already, on that same phone number",
-  "refusal.organisationNamesNoNominee":
-    "An organisation names no nominee: its share is its own",
-  "refusal.investorIsAPerson": "Only an organisation has a signatory to change",
+  "refusal.organizationNamesNoNominee":
+    "An organization names no nominee: its share is its own",
+  "refusal.investorIsAPerson": "Only an organization has a signatory to change",
   "refusal.investorKindFixed":
-    "A person stays a person and an organisation an organisation. Retire this one and write them down again.",
+    "A person stays a person and an organization an organization. Retire this one and write them down again.",
   "refusal.investorAlreadySigned":
     "This investor has signed for this venture already",
   "refusal.expiredWhenBought": "That lot had expired before it came in",

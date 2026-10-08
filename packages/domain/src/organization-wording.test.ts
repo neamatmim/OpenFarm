@@ -7,16 +7,16 @@ import {
   termsOf,
   wordingFor,
 } from "./paper-template";
-import type { PaperOrganisation } from "./papers";
+import type { PaperOrganization } from "./papers";
 import { joiningLetter } from "./papers";
 import {
-  PORTAL_CONSENT_BEFORE_ORGANISATIONS,
+  PORTAL_CONSENT_BEFORE_ORGANIZATIONS,
   STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
   STANDARD_TEMPLATES,
 } from "./standard-templates";
 
-// The wording for an Organisation (ADR 0020) added to the standard Investment Agreement and Portal Consent on
-// 2026-10-08, printed for an Organisation only — so a person's paper, laid out from the new standard, is the paper the
+// The wording for an Organization (ADR 0020) added to the standard Investment Agreement and Portal Consent on
+// 2026-10-08, printed for an Organization only — so a person's paper, laid out from the new standard, is the paper the
 // standard before it laid out, to the letter.
 
 const FARM = {
@@ -34,8 +34,8 @@ const PERSON: PaperParties["investors"][0] = {
   nominees: [],
 };
 
-const ORGANISATION: PaperOrganisation = {
-  tradeLicence: "TRAD/DNCC/1",
+const ORGANIZATION: PaperOrganization = {
+  tradeLicense: "TRAD/DNCC/1",
   rjscNumber: "C-1",
   tin: "1234",
   authority: "পরিচালনা পর্ষদের সিদ্ধান্ত",
@@ -59,12 +59,12 @@ const laidOut = (
     producedAt: "৮ অক্টোবর ২০২৬",
   });
 
-/** The terms a joining letter repeats, from one wording, for a person or an Organisation. */
+/** The terms a joining letter repeats, from one wording, for a person or an Organization. */
 const termsFor = (
   content: typeof STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
-  organisation?: boolean
+  organization?: boolean
 ) =>
-  termsOf(wordingFor(content, { paidByTheMonth: true, organisation }), {}).join(
+  termsOf(wordingFor(content, { paidByTheMonth: true, organization }), {}).join(
     "\n"
   );
 
@@ -99,7 +99,7 @@ describe("the standard wording of 2026-10-08", () => {
     }
   });
 
-  it("gives a person's joining letter the terms the standard before it gave, and an Organisation its own", () => {
+  it("gives a person's joining letter the terms the standard before it gave, and an Organization its own", () => {
     expect(termsFor(STANDARD_TEMPLATES.investment_agreement)).toBe(
       termsFor(STANDARD_AGREEMENT_WITH_FARM_CAPITAL)
     );
@@ -112,13 +112,13 @@ describe("the standard wording of 2026-10-08", () => {
     expect(
       laidOut("portal_consent", STANDARD_TEMPLATES.portal_consent, false)
     ).toEqual(
-      laidOut("portal_consent", PORTAL_CONSENT_BEFORE_ORGANISATIONS, false)
+      laidOut("portal_consent", PORTAL_CONSENT_BEFORE_ORGANIZATIONS, false)
     );
   });
 });
 
-describe("an Organisation's joining letter", () => {
-  const letter = (organisation: PaperOrganisation | null) =>
+describe("an Organization's joining letter", () => {
+  const letter = (organization: PaperOrganization | null) =>
     joiningLetter({
       farm: FARM,
       him: {
@@ -126,7 +126,7 @@ describe("an Organisation's joining letter", () => {
         phone: "01833445566",
         address: "মতিঝিল",
         nid: null,
-        organisation,
+        organization,
         nominees: [],
       },
       ventureName: "ঈদ ২০২৭",
@@ -153,8 +153,8 @@ describe("an Organisation's joining letter", () => {
       producedAt: "৮ অক্টোবর ২০২৬",
     } as unknown as Parameters<typeof joiningLetter>[0]);
 
-  it("names the Organisation, its papers and its Signatory, who signs for it", () => {
-    const text = letter(ORGANISATION);
+  it("names the Organization, its papers and its Signatory, who signs for it", () => {
+    const text = letter(ORGANIZATION);
     expect(text).toContain("বিনিয়োগকারী প্রতিষ্ঠান");
     expect(text).toContain("TRAD/DNCC/1");
     expect(text).toContain("রফিক, পরিচালক");

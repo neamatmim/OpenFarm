@@ -6,7 +6,7 @@ import { invitedWithConsent, signedInAs } from "../test/portal-client";
 import { appRouter } from "./index";
 
 /**
- * An Organisation's Signatory (ADR 0020): the person who signs in to the portal for it, and who is changed for another
+ * An Organization's Signatory (ADR 0020): the person who signs in to the portal for it, and who is changed for another
  * by the Owner — taking the old one's sign-in and consent away with them, so the new one consents and is invited
  * afresh.
  */
@@ -26,12 +26,12 @@ const as = async (role: "owner" | null, at = AT) => {
   return client;
 };
 
-const organisation = (n: number) => ({
-  kind: "organisation" as const,
+const organization = (n: number) => ({
+  kind: "organization" as const,
   name: `পদ্মা এগ্রো লিমিটেড ${n} ${run}`,
   phone: mobileOf(n),
   address: "রাজশাহী",
-  tradeLicence: `TRAD/RCC/${n}${run}`,
+  tradeLicense: `TRAD/RCC/${n}${run}`,
   tin: `66${run}${n}`,
   authority: "পরিচালনা পর্ষদের সিদ্ধান্ত",
   authorityOn: "2046-08-20",
@@ -40,10 +40,10 @@ const organisation = (n: number) => ({
   signatoryRole: "ব্যবস্থাপনা পরিচালক",
 });
 
-/** An Organisation written down, its Signatory invited and joined: its id and the Signatory's login. */
-const anOrganisationInThePortal = async (n: number) => {
+/** An Organization written down, its Signatory invited and joined: its id and the Signatory's login. */
+const anOrganizationInThePortal = async (n: number) => {
   const owner = await as("owner");
-  const { id } = await owner.investors.record(organisation(n));
+  const { id } = await owner.investors.record(organization(n));
   const { code } = await invitedWithConsent(owner, id);
   const nobody = await as(null);
   const { loginEmail } = await nobody.portal.join({
@@ -59,32 +59,32 @@ beforeAll(async () => {
   await owner.investors.setPortalOpen({ open: true });
 });
 
-describe("an Organisation's Signatory in the portal", () => {
-  it("signs in for it, in their own name, and reads the Organisation's record with no Nominees", async () => {
-    const { loginEmail } = await anOrganisationInThePortal(1);
+describe("an Organization's Signatory in the portal", () => {
+  it("signs in for it, in their own name, and reads the Organization's record with no Nominees", async () => {
+    const { loginEmail } = await anOrganizationInThePortal(1);
     const account = await scratchDb().query.user.findFirst({
       where: { email: loginEmail },
       columns: { name: true },
     });
-    expect(account?.name).toBe(organisation(1).signatoryName);
+    expect(account?.name).toBe(organization(1).signatoryName);
     const signatory = await signedInAs(loginEmail, AT);
     const me = await signatory.portal.me();
-    expect(me.name).toBe(organisation(1).name);
+    expect(me.name).toBe(organization(1).name);
     expect(me.record.nominees).toEqual([]);
-    expect(me.record.organisation).toMatchObject({
-      tin: organisation(1).tin,
-      signatory: { name: organisation(1).signatoryName },
+    expect(me.record.organization).toMatchObject({
+      tin: organization(1).tin,
+      signatory: { name: organization(1).signatoryName },
     });
     // Their NID is hidden as a person's is: only its last digits.
-    expect(me.record.organisation?.signatory.nid).not.toBe(
-      organisation(1).signatoryNid
+    expect(me.record.organization?.signatory.nid).not.toBe(
+      organization(1).signatoryNid
     );
   });
 });
 
-describe("changing an Organisation's Signatory", () => {
+describe("changing an Organization's Signatory", () => {
   it("takes the old Signatory's sign-in and consent away, and the new one consents before a code", async () => {
-    const { id, loginEmail } = await anOrganisationInThePortal(2);
+    const { id, loginEmail } = await anOrganizationInThePortal(2);
     const owner = await as("owner", LATER);
     await owner.investors.changeSignatory({
       id,
@@ -108,7 +108,7 @@ describe("changing an Organisation's Signatory", () => {
       portal: "taken_away",
       portalConsent: null,
       portalTakenAway: { why: "signatory_changed" },
-      organisation: {
+      organization: {
         signatory: { name: `মোছা. শাহানা পারভীন ${run}` },
       },
     });
@@ -133,7 +133,7 @@ describe("changing an Organisation's Signatory", () => {
     expect(account?.name).toBe(`মোছা. শাহানা পারভীন ${run}`);
   });
 
-  it("keeps the Agreements the Organisation signed before", async () => {
+  it("keeps the Agreements the Organization signed before", async () => {
     const owner = await as("owner");
     const venture = await owner.ventures.open({
       name: `ঈদ ২০৪৭ ${run}`,
@@ -146,7 +146,7 @@ describe("changing an Organisation's Signatory", () => {
       units: 40,
       cattleBudgetMoney: 1_500_000,
     });
-    const { id } = await owner.investors.record(organisation(3));
+    const { id } = await owner.investors.record(organization(3));
     await owner.ventures.agreements.sign({
       ventureId: venture.id,
       investorId: id,
@@ -188,7 +188,7 @@ describe("changing an Organisation's Signatory", () => {
 
   it("is the Owner's alone", async () => {
     const owner = await as("owner");
-    const { id } = await owner.investors.record(organisation(5));
+    const { id } = await owner.investors.record(organization(5));
     const { client: manager } = await createTestClient(appRouter, {
       as: "manager",
       clock: new FakeClock(AT),
