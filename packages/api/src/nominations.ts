@@ -22,11 +22,10 @@ import { assertRegistered, exportedPaper } from "./export-store";
 import { farmDay } from "./farm-clock";
 import type { NominationOnFile } from "./nomination-store";
 import { nominationInForce, paperNominees } from "./nomination-store";
-import { paperInvestor, paperValues, producedAt } from "./paper-values";
+import { paperInvestor, paperValues, madeOn } from "./paper-values";
 import type { PhotoInput } from "./photo-input";
 import type { Owned } from "./portal-invitable";
 import { refused } from "./portal-invitable";
-import { languageOf } from "./reader-language";
 import { currentWording, giveStandardTemplates } from "./template-store";
 
 /** Somebody who collects a minor Nominee's share, as a form sends them. */
@@ -142,7 +141,7 @@ export const nominationToSign = async (
       him,
     }),
     producedBy: context.actor.name,
-    producedAt: producedAt(now, await languageOf(context.db, context.actor.id)),
+    producedAt: madeOn(now),
     version: wording.number,
   });
   await audited(context).write(
@@ -175,7 +174,7 @@ const nomineesLine = (nominees: readonly Nominee[]) =>
         .map((one) =>
           [
             one.name,
-            nomineeRowOf({ ...one, minor: false }).share,
+            nomineeRowOf({ ...one, minor: false }).share.bn,
             one.receiver ? `গ্রহণকারী ${one.receiver.name}` : null,
           ]
             .filter(Boolean)

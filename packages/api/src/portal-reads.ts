@@ -411,8 +411,8 @@ export const PORTAL_PAPER_KINDS = [
 export type PortalPaperKind = (typeof PORTAL_PAPER_KINDS)[number];
 
 /**
- * One of their own papers, as the Owner would print it: the joining letter, the progress statement, or — once the
- * Settlement is approved — the settlement statement. An Export in the trail, attributed to whoever `making` names:
+ * One of their own papers, as the Owner would print it — in both languages, for them to read in either (ADR 0021):
+ * the joining letter, the progress statement, or — once the Settlement is approved — the settlement statement. An Export in the trail, attributed to whoever `making` names:
  * the Investor in the portal, the Owner in the Preview.
  */
 export const theirPaper = async (
@@ -423,19 +423,22 @@ export const theirPaper = async (
 ) => {
   await requireTheirs(making.db, making.farm.id, investorId, agreementId);
   if (kind === "joining") {
-    const { text } = await joiningLetterFor(
+    const { document } = await joiningLetterFor(
       making,
       agreementId,
       await ownerNameOf(making.db, making.farm.id)
     );
-    return { text, photos: [] };
+    return { document, photos: [] };
   }
   if (kind === "progress") {
-    const { text, photos } = await progressStatementFor(making, agreementId);
-    return { text, photos };
+    const { document, photos } = await progressStatementFor(
+      making,
+      agreementId
+    );
+    return { document, photos };
   }
-  const { text } = await settlementStatementFor(making, agreementId);
-  return { text, photos: [] };
+  const { document } = await settlementStatementFor(making, agreementId);
+  return { document, photos: [] };
 };
 
 /**
@@ -456,8 +459,9 @@ export const noticeFilling = async (
 
 /**
  * «আপনার তথ্য», the privacy notice, as a page of the portal reads it: the Version in force with the farm's own facts
- * in it, in Bangla. Nothing while any fact it names is still unwritten (`noticeFilling`) — only the farm to ask, by
- * name and phone where it has one.
+ * in it, in Bangla, and the same notice read in English (ADR 0021) — both at once, so a reader who switches the
+ * portal's language is not kept waiting. The Bangla is `notice`, as the Welcome Letter's back prints it. Nothing while
+ * any fact it names is still unwritten (`noticeFilling`) — only the farm to ask, by name and phone where it has one.
  */
 export const theNoticeToRead = async (
   db: Context["db"],
@@ -466,7 +470,8 @@ export const theNoticeToRead = async (
   const content = await wordingInForce(db, farm.id, "privacy_notice");
   const { values, whole } = await noticeFilling(db, farm, content);
   return {
-    notice: whole ? readingOf(content, values) : null,
+    notice: whole ? readingOf(content, values, "bn") : null,
+    inEnglish: whole ? readingOf(content, values, "en") : null,
     farm: { name: farm.name, phone: farm.phone },
   };
 };

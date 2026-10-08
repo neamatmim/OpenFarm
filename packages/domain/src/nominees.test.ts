@@ -164,7 +164,10 @@ describe("the number a Nominee is known by", () => {
     );
     const row = nomineeRowOf({ ...minor(100, MOTHER), minor: true });
     expect(row.idNumber).toBe("20122691507114382");
-    expect(row.receiver).toBe("রহিমা বেগম (মা), এনআইডি 1982 4417 2093");
+    expect(row.receiver).toEqual({
+      bn: "রহিমা বেগম (মা), এনআইডি 1982 4417 2093",
+      en: "রহিমা বেগম (Mother), NID 1982 4417 2093",
+    });
   });
 
   it("prints nothing for a Nominee written down before the number was asked", () => {

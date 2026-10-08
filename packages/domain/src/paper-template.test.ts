@@ -129,7 +129,7 @@ describe("a paper filled from a Version", () => {
       arbitrator: { bn: "মাওলানা আব্দুল", en: "Maulana Abdul" },
     },
     producedBy: "করিম",
-    producedAt: "২৪ সেপ্টেম্বর ২০২৬",
+    producedAt: { bn: "২৪ সেপ্টেম্বর ২০২৬", en: "২৪ সেপ্টেম্বর ২০২৬" },
   });
   const terms = paper.sections.find((section) => section.kind === "clauses");
 
@@ -181,7 +181,7 @@ describe("an Amendment", () => {
       parties: everybody,
       values: {},
       producedBy: "",
-      producedAt: "",
+      producedAt: { bn: "", en: "" },
     });
     const parties = paper.sections.find(
       (section) => section.kind === "parties"
@@ -245,7 +245,7 @@ describe("the Investment Agreement's data section and nominee lines", () => {
       },
       values: {},
       producedBy: "করিম",
-      producedAt: "২৬ সেপ্টেম্বর ২০২৬",
+      producedAt: { bn: "২৬ সেপ্টেম্বর ২০২৬", en: "২৬ সেপ্টেম্বর ২০২৬" },
     }).sections;
 
   it("comes after the terms and before the stamp, headed তথ্য / Data, in the draft's six clauses", () => {
@@ -335,23 +335,26 @@ describe("the Investment Agreement's data section and nominee lines", () => {
     expect(him?.nominees).toEqual([
       {
         name: "সালমা",
-        relation: "মেয়ে",
-        born: expect.stringContaining("১৯৯০"),
+        relation: { bn: "মেয়ে", en: "Daughter" },
+        born: { bn: expect.stringContaining("১৯৯০"), en: "6 May 1990" },
         idNumber: "1990 2231 8804",
         minor: false,
         phone: "01911000000",
-        share: "৮০%",
+        share: { bn: "৮০%", en: "80%" },
         receiver: null,
       },
       {
         name: "তানিয়া",
-        relation: "নাতনি",
-        born: expect.stringContaining("২০১৫"),
+        relation: { bn: "নাতনি", en: "নাতনি" },
+        born: { bn: expect.stringContaining("২০১৫"), en: "2 January 2015" },
         idNumber: "20152691507114382",
         minor: true,
         phone: null,
-        share: "২০%",
-        receiver: "সালমা (মা), 01911000000, এনআইডি 1990 2231 8804",
+        share: { bn: "২০%", en: "20%" },
+        receiver: {
+          bn: "সালমা (মা), 01911000000, এনআইডি 1990 2231 8804",
+          en: "সালমা (Mother), 01911000000, NID 1990 2231 8804",
+        },
       },
     ]);
     expect(him?.rows.map((row) => row.label.en)).not.toContain("Nominee");
@@ -395,7 +398,7 @@ describe("the Investment Agreement's data section and nominee lines", () => {
         parties: PARTIES,
         values: {},
         producedBy: "",
-        producedAt: "",
+        producedAt: { bn: "", en: "" },
       }
     );
     const laid = paper.sections.find((section) => section.kind === "parties");
@@ -423,7 +426,7 @@ describe("a Version previewed before any paper is filled from it", () => {
       parties: PARTIES,
       values: namedFields("investment_agreement"),
       producedBy: "",
-      producedAt: "",
+      producedAt: { bn: "", en: "" },
     });
 
     expect(JSON.stringify(shown)).toContain("[সালিস]");
@@ -446,7 +449,7 @@ describe("the Portal Consent and the privacy notice", () => {
       parties: PARTIES,
       values: {},
       producedBy: "করিম",
-      producedAt: "২৬ সেপ্টেম্বর ২০২৬",
+      producedAt: { bn: "২৬ সেপ্টেম্বর ২০২৬", en: "২৬ সেপ্টেম্বর ২০২৬" },
     });
 
   it("asks a notice for no parties and no signatures, and a consent only for its signatures", () => {
@@ -469,7 +472,7 @@ describe("the Portal Consent and the privacy notice", () => {
       parties: PARTIES,
       values: {},
       producedBy: "করিম",
-      producedAt: "২৬ সেপ্টেম্বর ২০২৬",
+      producedAt: { bn: "২৬ সেপ্টেম্বর ২০২৬", en: "২৬ সেপ্টেম্বর ২০২৬" },
     });
 
     expect(anAgreement.closing.length).toBeGreaterThan(0);
@@ -477,17 +480,17 @@ describe("the Portal Consent and the privacy notice", () => {
     expect(madeAs("portal_consent").closing).toEqual([]);
   });
 
-  it("is handed over in Bangla: the English is printed on the title alone", () => {
+  it("carries its English with its Bangla, for its reader to read in either (ADR 0021)", () => {
     const paper = madeAs("privacy_notice");
-    const englishPrinted = paper.sections.flatMap((section) =>
+    const english = paper.sections.flatMap((section) =>
       section.kind === "clauses"
         ? [section.heading.en, ...section.clauses.map((one) => one.en)]
         : []
     );
 
     expect(paper.title.en).toBe("How the farm keeps your data");
-    expect(paper.preamble.en).toBe("");
-    expect(englishPrinted.every((line) => line === "")).toBe(true);
+    expect(paper.preamble.en).not.toBe("");
+    expect(english.every((line) => line.trim() !== "")).toBe(true);
   });
 
   it("says in its foot which Version of the wording it was printed from", () => {
@@ -496,13 +499,14 @@ describe("the Portal Consent and the privacy notice", () => {
       parties: PARTIES,
       values: {},
       producedBy: "করিম",
-      producedAt: "২৬ সেপ্টেম্বর ২০২৬",
+      producedAt: { bn: "২৬ সেপ্টেম্বর ২০২৬", en: "26 September 2026" },
       version: 2,
     });
 
-    expect(paper.produced).toBe(
-      "২৬ সেপ্টেম্বর ২০২৬ · করিম · সংস্করণ ২ / Version 2"
-    );
+    expect(paper.produced).toEqual({
+      bn: "২৬ সেপ্টেম্বর ২০২৬ · করিম · সংস্করণ ২",
+      en: "26 September 2026 · করিম · Version 2",
+    });
   });
 
   it("refuses a stamp on a consent or a notice, and parties or signatures on a notice", () => {
@@ -538,10 +542,16 @@ describe("the Portal Consent and the privacy notice", () => {
     }
 
     expect(signatures.signers).toEqual([
-      { role: { bn: "বিনিয়োগকারী", en: "" }, name: "রহিম" },
-      { role: { bn: "মালিক (সামনে সই হয়েছে)", en: "" }, name: "করিম" },
+      { role: { bn: "বিনিয়োগকারী", en: "Investor" }, name: "রহিম" },
+      {
+        role: {
+          bn: "মালিক (সামনে সই হয়েছে)",
+          en: "Owner (signed in my presence)",
+        },
+        name: "করিম",
+      },
     ]);
-    expect(signatures.dateBlank).toEqual({ bn: "তারিখ", en: "" });
+    expect(signatures.dateBlank).toEqual({ bn: "তারিখ", en: "Date" });
     expect(signatures.witnesses).toEqual([]);
   });
 
@@ -638,7 +648,7 @@ describe("the মনোনয়নপত্র", () => {
       },
       values: { investorName: { bn: "রহিম", en: "রহিম" } },
       producedBy: "করিম",
-      producedAt: "২৬ সেপ্টেম্বর ২০২৬",
+      producedAt: { bn: "২৬ সেপ্টেম্বর ২০২৬", en: "২৬ সেপ্টেম্বর ২০২৬" },
     });
 
   it("prints a Receiver's line for each minor Nominee and no other, after what every Nominee knows", () => {

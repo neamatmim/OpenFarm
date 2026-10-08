@@ -2,6 +2,7 @@ import { paperTemplateVersion } from "@OpenFarm/db/schema/paper-template";
 import {
   STANDARD_AGREEMENT_BEFORE_MONTHLY,
   STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
+  paperText,
 } from "@OpenFarm/domain";
 import {
   FakeClock,
@@ -157,11 +158,17 @@ describe("a signed Agreement paid by the month", () => {
   it("lists his Units' Monthly Sums on the joining letter, and what the letter acknowledges", async () => {
     const owner = await asOwner();
 
-    const { text } = await owner.investorStatements.joining({ agreementId });
+    const { document } = await owner.investorStatements.joining({
+      agreementId,
+    });
+    const text = paperText(document, "bn");
 
-    expect(text).toContain("মাসের টাকার তালিকা / Monthly Sums");
+    expect(text).toContain("মাসের টাকার তালিকা");
     // Four Units' 2,500.
     expect(text).toContain("১০ ফেব্রুয়ারি, ২০৭৭ · ১০,০০০ টাকা");
+    expect(paperText(document, "en")).toContain(
+      "10 February 2077 · 10,000 taka"
+    );
     expect(text).toContain("এই পত্র গরু কেনার অংশ প্রাপ্তির স্বীকৃতি");
     expect(text).toContain(M1);
   });
@@ -170,10 +177,16 @@ describe("a signed Agreement paid by the month", () => {
     const owner = await asOwner();
     await owner.ventures.startBuying({ id: monthly });
 
-    const { text } = await owner.investorStatements.progress({ agreementId });
+    const { document } = await owner.investorStatements.progress({
+      agreementId,
+    });
 
-    expect(text).toContain(
-      "মাসের টাকা / Monthly Sums: ৪ মাসের ০টি দেওয়া · পরেরটি ১০ ফেব্রুয়ারি, ২০৭৭, ১০,০০০ টাকা"
+    // In the words the advisers approved, and the same in English with its own numerals.
+    expect(paperText(document, "bn")).toContain(
+      "মাসের টাকা: ৪ মাসের ০টি দেওয়া · পরেরটি ১০ ফেব্রুয়ারি, ২০৭৭, ১০,০০০ টাকা"
+    );
+    expect(paperText(document, "en")).toContain(
+      "Monthly Sums: 0 of 4 paid · next due 10 February 2077, 10,000 taka"
     );
   });
 });

@@ -1,4 +1,5 @@
-import type { MessageKey } from "@OpenFarm/i18n";
+import type { PaperDocument } from "@OpenFarm/domain";
+import type { Language, MessageKey } from "@OpenFarm/i18n";
 import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import {
   Dialog,
@@ -12,8 +13,11 @@ import { Download, FileText, Printer, Scale } from "lucide-react";
 import { useState } from "react";
 
 import type { PaperId } from "@/components/paper";
-import { Paper } from "@/components/paper";
-import { PaperDialog } from "@/components/ventures/paper-dialog";
+import {
+  PaperDialog,
+  PaperLanguageSwitch,
+} from "@/components/ventures/paper-dialog";
+import { PaperDocumentView } from "@/components/ventures/paper-document";
 import { useLanguage } from "@/i18n/language-provider";
 import { printAlone } from "@/lib/print-alone";
 import { useRefused } from "@/lib/refused";
@@ -48,10 +52,10 @@ const WHY_NOT = {
 /** Which of the three a button asks for. */
 export type StatementKind = "joining" | "progress" | "settlement";
 
-/** One statement, produced and shown: the paper's text, and the photographs that travel with it. */
+/** One statement, produced and shown: the paper in both languages, and the photographs that travel with it. */
 export interface Produced {
   kind: StatementKind;
-  text: string;
+  document: PaperDocument;
   photos: { tagNumber: string; contentType: string; data: string }[];
 }
 
@@ -100,9 +104,10 @@ export const useInvestorPapers = () => {
       refused(error);
     },
     onSuccess: (made: {
-      text: string;
+      document: PaperDocument;
       photos?: { tagNumber: string; contentType: string; data: string }[];
-    }) => setProduced({ kind, text: made.text, photos: made.photos ?? [] }),
+    }) =>
+      setProduced({ kind, document: made.document, photos: made.photos ?? [] }),
   });
   const joining = useMutation(
     orpc.investorStatements.joining.mutationOptions(handling("joining"))
@@ -148,23 +153,45 @@ export const useInvestorPapers = () => {
   };
 };
 
-/** A paper made for one Investor, as it prints: its text, and the photographs that travel with it. */
+/**
+ * A paper made for one Investor, as it prints: read in Bangla or in English as its reader chooses, starting on their own
+ * language (ADR 0021), with the photographs that travel with it — and printed in the language on the screen.
+ */
 export const ProducedPaper = ({ produced }: { produced: Produced }) => {
-  const { t } = useLanguage();
+  const { t, language: reads } = useLanguage();
+  const [language, setLanguage] = useState<Language>(reads);
+  const id = PAPER_ID[produced.kind];
   return (
-    <Paper
-      id={PAPER_ID[produced.kind]}
-      // Inside the paper, not beneath it: the print rules hide everything outside the sheet's own element, so a
-      // face put below it would show on the screen and vanish off the page.
-      photographs={produced.photos.map((one) => ({
-        alt: t("statements.photoOf", { tag: one.tagNumber }),
-        caption: one.tagNumber,
-        contentType: one.contentType,
-        data: one.data,
-        id: one.tagNumber,
-      }))}
-      text={produced.text}
-    />
+    <div className="flex flex-col gap-3">
+      <div className="no-print flex flex-wrap items-center justify-between gap-2">
+        <PaperLanguageSwitch language={language} onChange={setLanguage} />
+        <Button
+          onClick={() => {
+            const shown = document.querySelector<HTMLElement>(`#${id}`);
+            if (shown) {
+              void printAlone(shown);
+            }
+          }}
+          size="sm"
+          type="button"
+        >
+          <Printer aria-hidden data-icon="inline-start" />
+          {t("common.print")}
+        </Button>
+      </div>
+      <PaperDocumentView
+        document={produced.document}
+        id={id}
+        language={language}
+        photographs={produced.photos.map((one) => ({
+          alt: t("statements.photoOf", { tag: one.tagNumber }),
+          caption: one.tagNumber,
+          contentType: one.contentType,
+          data: one.data,
+          id: one.tagNumber,
+        }))}
+      />
+    </div>
   );
 };
 

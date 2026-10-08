@@ -1,5 +1,5 @@
 import type { TemplateContent } from "@OpenFarm/domain";
-import { STANDARD_TEMPLATES } from "@OpenFarm/domain";
+import { STANDARD_TEMPLATES, inLanguage } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -112,15 +112,15 @@ describe("a copy of a signed Agreement", () => {
     expect(said).toContain("বিনিয়োগকারী ৬০% এবং খামার ৪০%");
     // Three Units at fifty thousand.
     expect(said).toContain("১,৫০,০০০ টাকা");
-    expect(document.copyOf).toContain("অনুলিপি");
-    expect(document.copyOf).toContain("COPY");
-    expect(document.copyOf).toContain(SERIAL);
+    expect(inLanguage(document.copyOf ?? "", "bn")).toContain("অনুলিপি");
+    expect(inLanguage(document.copyOf ?? "", "en")).toContain("Copy");
+    expect(inLanguage(document.copyOf ?? "", "en")).toContain(SERIAL);
     // The stamp it was signed on, written into the blanks the paper to sign left empty.
     const stamp = document.sections.find((section) => section.kind === "stamp");
     expect(stamp?.kind === "stamp" ? stamp.filled : null).toEqual([
-      SERIAL,
-      "৩০০ টাকা",
-      "১০ জানুয়ারি, ২০৬৬",
+      { bn: SERIAL, en: SERIAL },
+      { bn: "৩০০ টাকা", en: "300 taka" },
+      { bn: "১০ জানুয়ারি, ২০৬৬", en: "10 January 2066" },
     ]);
   });
 
@@ -158,7 +158,9 @@ describe("a copy of a signed Agreement", () => {
 
     expect(wording.number).toBe(signedIn);
     expect(JSON.stringify(document)).not.toContain(NEW_CLAUSE);
-    expect(document.produced).toContain(`Version ${signedIn}`);
+    expect(inLanguage(document.produced, "en")).toContain(
+      `Version ${signedIn}`
+    );
   });
 
   it("names the Nominees the Agreement named, not those of a later Nomination", async () => {

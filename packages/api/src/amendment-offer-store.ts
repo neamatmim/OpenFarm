@@ -21,8 +21,7 @@ import type { Tx } from "./audit";
 import { audited } from "./audit";
 import { assertRegistered } from "./export-store";
 import { assertReadAsKept, keepPaper } from "./kept-paper";
-import { producedAt } from "./paper-values";
-import { languageOf } from "./reader-language";
+import { madeOn } from "./paper-values";
 import { currentWording, giveStandardTemplates } from "./template-store";
 import { lockTheFarm, termsAcrossOn } from "./venture-store";
 
@@ -149,7 +148,7 @@ export const proposeAmendmentInApp = async (
     terms: input,
     wording: wording.content,
     today: farmDayOf(now),
-    producedAt: producedAt(now, await languageOf(context.db, context.actor.id)),
+    producedAt: madeOn(now),
   });
   const kept = keepPaper(paper);
   const id = uuidv7(now);

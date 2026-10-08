@@ -2,6 +2,7 @@ import type {
   FarmIdentity,
   Nominee,
   PaperDocument,
+  Said,
   TemplateContent,
 } from "@OpenFarm/domain";
 import { paperFrom, wordingFor } from "@OpenFarm/domain";
@@ -60,7 +61,7 @@ export const agreementLaidOut = ({
   terms: AgreementTerms;
   wording: TemplateContent;
   today: string;
-  producedAt: string;
+  producedAt: Said;
   /** The Farm's own Units in the Venture: told to every Investor before they sign, where it holds any. */
   farmUnits?: number;
 }): PaperDocument => {
@@ -135,7 +136,7 @@ export const amendmentLaidOut = async (
     amendedOn?: string;
     wording: TemplateContent;
     today: string;
-    producedAt: string;
+    producedAt: Said;
   }
 ): Promise<{ document: PaperDocument; run: { id: string; name: string } }> => {
   const run = await db.query.venture.findFirst({

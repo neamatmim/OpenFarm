@@ -1,3 +1,4 @@
+import { paperText } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -159,9 +160,10 @@ beforeAll(async () => {
 describe("the paper an Investor gets when he joins", () => {
   it("acknowledges what arrived, each transfer with its own day and reference", async () => {
     const owner = await as("owner", "2051-01-20T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.joining({
+    const { document } = await owner.client.investorStatements.joining({
       agreementId: hisFirst,
     });
+    const text = paperText(document, "bn");
     expect(text).toContain(HIM);
     expect(text).toContain(`TRF-A-${suffix}`);
     expect(text).toContain(`TRF-B-${suffix}`);
@@ -172,17 +174,24 @@ describe("the paper an Investor gets when he joins", () => {
 
   it("carries the letterhead, his Nominees, the stamp and the terms he signed", async () => {
     const owner = await as("owner", "2051-01-20T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.joining({
+    const { document } = await owner.client.investorStatements.joining({
       agreementId: hisFirst,
     });
-    expect(text).toContain("নিবন্ধন নম্বর");
-    // Each of his Nominees in force on its own line, with the share each collects and who collects for a minor.
-    expect(text).toContain(`নমিনি ১ / Nominee 1`);
-    expect(text).toContain(
-      `আমেনা বেগম ${suffix} · স্ত্রী · এনআইডি 1985 0505 2214 · ৭০%`
+    const text = paperText(document, "bn");
+    expect(text).toContain("ডিএলএস নিবন্ধন");
+    // Each of his Nominees in force on its own row, with their number, the share each collects and who collects for a
+    // minor.
+    expect(text).toMatch(
+      new RegExp(`আমেনা বেগম ${suffix} · স্ত্রী · .+ · 1985 0505 2214 · ৭০%`, "u")
     );
-    expect(text).toContain(
-      `সাকিব ${suffix} · ছেলে · জন্ম নিবন্ধন 20402691507119925 · ৩০% (গ্রহণকারী: আমেনা বেগম ${suffix} (মা), এনআইডি 1985 0505 2214)`
+    expect(text).toMatch(
+      new RegExp(
+        `সাকিব ${suffix} · ছেলে · .+ · 20402691507119925 · ৩০% · আমেনা বেগম ${suffix} \\(মা\\), এনআইডি 1985 0505 2214`,
+        "u"
+      )
+    );
+    expect(paperText(document, "en")).toContain(
+      `আমেনা বেগম ${suffix} (Mother), NID 1985 0505 2214`
     );
     expect(text).toContain(`AA 1 ${suffix}`);
     expect(text).toContain(`মাওলানা 1 ${suffix}`);
@@ -193,20 +202,22 @@ describe("the paper an Investor gets when he joins", () => {
 
   it("says on every sheet that no return is guaranteed", async () => {
     const owner = await as("owner", "2051-01-20T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.joining({
+    const { document } = await owner.client.investorStatements.joining({
       agreementId: hisFirst,
     });
+    const text = paperText(document, "bn");
     expect(text).toContain("কোনো মুনাফার নিশ্চয়তা নেই");
-    expect(text).toContain(
+    expect(paperText(document, "en")).toContain(
       "No return is guaranteed. A loss comes off capital."
     );
   });
 
   it("never carries the other man's name, money or reference", async () => {
     const owner = await as("owner", "2051-01-20T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.joining({
+    const { document } = await owner.client.investorStatements.joining({
       agreementId: hisFirst,
     });
+    const text = paperText(document, "bn");
     expect(text).not.toContain(THE_OTHER_MAN);
     expect(text).not.toContain(`TRF-C-${suffix}`);
     expect(text).not.toContain("৪,০০,০০০");
@@ -310,7 +321,7 @@ describe("the paper an Investor gets when he joins", () => {
     const held = await owner.client.investorStatements.joining({
       agreementId: agreement.id,
     });
-    expect(held.text).toContain(`TRF-E-${suffix}`);
+    expect(paperText(held.document, "bn")).toContain(`TRF-E-${suffix}`);
 
     // Calling a Venture off sends every taka back, and each capital movement needs its own refund named.
     const calling = await as("owner", "2051-02-16T04:00:00.000Z");
@@ -343,9 +354,10 @@ describe("the paper an Investor gets when he joins", () => {
 
   it("prints the Wind-up Period, not only the Target Window", async () => {
     const owner = await as("owner", "2051-01-20T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.joining({
+    const { document } = await owner.client.investorStatements.joining({
       agreementId: hisFirst,
     });
+    const text = paperText(document, "bn");
     // The days after the window in which it keeps selling before the Farm buys what is left — a man
     // reading only the window would think his money comes back on the 19th of March.
     expect(text).toContain("গুটিয়ে আনার সময়");

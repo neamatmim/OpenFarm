@@ -269,7 +269,7 @@ describe("an Agreement's Nominees", () => {
       throw new Error("expected the parties");
     }
     const [, him] = parties.parties;
-    expect(him?.nominees.map((one) => [one.name, one.share])).toEqual([
+    expect(him?.nominees.map((one) => [one.name, one.share.bn])).toEqual([
       [`স্ত্রী ${suffix}`, "৬০%"],
       [`ছেলে ${suffix}`, "৪০%"],
     ]);

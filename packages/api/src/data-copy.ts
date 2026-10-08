@@ -9,14 +9,16 @@ import type {
   PaperDocument,
   PaperSection,
   Said,
+  Worded,
 } from "@OpenFarm/domain";
 import {
   farmDayOf,
+  inLanguage,
   letterheadOf,
   nomineeRowOf,
   phoneOfInvestorLogin,
 } from "@OpenFarm/domain";
-import type { MessageKey } from "@OpenFarm/i18n";
+import type { Language, MessageKey } from "@OpenFarm/i18n";
 import {
   currencySign,
   currencyWords,
@@ -45,7 +47,9 @@ import { theirAgreements } from "./their-agreements";
 // come first, then the record as the farm keeps it — unmasked, since it is theirs — their Agreements and the money
 // they moved, the papers made for them, their Requests to Join, their portal access, consents and sign-ins, and every
 // change to their record, their access and their consent. Made by the Owner from the Investor's page and handed over
-// on paper; never offered in the portal. Everything is listed the latest first, as their money is.
+// on paper; never offered in the portal. Everything is listed the latest first, as their money is. Read in Bangla or in
+// English (ADR 0021): every line the farm words is said in both, each with its own numerals, days and money, and only
+// what somebody typed — a name, an address, a Venture's name, a note — reads as it was typed in either.
 
 /** The paper's title. */
 const TITLE: Said = {
@@ -53,34 +57,44 @@ const TITLE: Said = {
   en: "What the farm holds about you",
 };
 
-/** A moment on the farm's clock, as the Bangla paper writes it. */
-const when = (at: Date) => formatDate(at, "bn", "dateTime");
+/** Words said in both languages, each written by its own reader's numerals, days and words. */
+const each = (say: (language: Language) => string): Said => ({
+  bn: say("bn"),
+  en: say("en"),
+});
 
-/** A farm day, as the Bangla paper writes it. */
-const onDay = (day: string) => formatDate(new Date(`${day}T00:00:00Z`), "bn");
+/** What somebody typed — a name, a Venture's name — read as it was typed in either language. */
+const asTyped = (text: string): Said => ({ bn: text, en: text });
 
-/** Taka, in Bangla numerals. */
-const asMoney = (amount: number) =>
-  `${currencySign()}${formatNumber(amount, "bn")}`;
+/** A moment on the farm's clock, as the paper in `language` writes it. */
+const when = (at: Date, language: Language) =>
+  formatDate(at, language, "dateTime");
 
-/** A figure, in Bangla numerals. */
-const inBangla = (value: number) => formatNumber(value, "bn");
+/** A moment on the farm's clock, said in both languages. */
+const momentSaid = (at: Date): Said => each((language) => when(at, language));
 
-/** A message in Bangla. */
-const bn = (key: MessageKey, params?: Record<string, string | number>) =>
-  translate("bn", key, params);
+/** A farm day, as the paper in `language` writes it. */
+const onDay = (day: string, language: Language) =>
+  formatDate(new Date(`${day}T00:00:00Z`), language);
+
+/** Money, in the language's own numerals. */
+const asMoney = (amount: number, language: Language) =>
+  `${currencySign()}${formatNumber(amount, language)}`;
+
+/** A figure, in the language's own numerals. */
+const figure = (value: number, language: Language) =>
+  formatNumber(value, language);
 
 /** A message in both languages, for a label. */
-const both = (key: MessageKey): Said => ({
-  bn: translate("bn", key),
-  en: translate("en", key),
-});
+const both = (key: MessageKey): Said =>
+  each((language) => translate(language, key));
 
 /** The lines of the paper saying one fact: one line, or none where the farm holds nothing for it. */
 const linesFor = (
   label: Said,
-  value: string | null | undefined
-): DocumentRow[] => (value?.trim() ? [{ label, value }] : []);
+  value: Worded | null | undefined
+): DocumentRow[] =>
+  value && inLanguage(value, "bn").trim() ? [{ label, value }] : [];
 
 /** What a part of the paper says where the farm holds nothing for it. */
 const NONE: Said = { bn: "কিছু নেই", en: "None" };
@@ -96,6 +110,91 @@ const facts = (heading: Said, rows: DocumentRow[]): PaperSection => ({
 /** Several things said on one line: those the farm has, one after another. */
 const joined = (...values: (string | null | undefined)[]) =>
   values.filter((one) => one?.trim()).join(" · ");
+
+/**
+ * The paper's own words around the farm's figures, in Bangla: each takes its days, moments and money already written
+ * in Bangla, and a count of Units as a number.
+ */
+const BANGLA = {
+  preamble: (name: string, day: string) =>
+    `${name}, ${day} পর্যন্ত খামার আপনার সম্পর্কে যা রাখে তার সবকিছু। প্রথমে আছে খামার তা কেন ও কীভাবে রাখে।`,
+  inForce: "এখন বহাল",
+  noNominees: "কোনো নমিনি নেই",
+  born: (day: string) => `জন্ম ${day}`,
+  nid: (number: string) => `এনআইডি ${number}`,
+  birthRegistration: (number: string) => `জন্ম নিবন্ধন ${number}`,
+  share: (percent: string) => `অংশ ${percent}`,
+  receiver: (who: string) => `গ্রহণকারী ${who}`,
+  units: (count: number) => `${figure(count, "bn")} ইউনিট`,
+  yourShare: (percent: number) => `আপনার অংশ ${figure(percent, "bn")}%`,
+  window: (from: string, to: string) => `সময় ${from} – ${to}`,
+  amended: (day: string) => `সংশোধিত ${day}`,
+  signed: (at: string) => `সই ${at}`,
+  stamp: (serial: string, money: string, day: string) =>
+    `স্ট্যাম্প ${serial} (${money}, ${day})`,
+  arbitrator: (name: string) => `সালিস ${name}`,
+  photoKept: "সই করা চুক্তির ছবি খামারে রাখা আছে",
+  capitalHeld: (money: string) => `খামারে মূলধন ${money}`,
+  owed: (payout: string, capital: string, share: string) =>
+    `হিসাব নিকাশে পাওনা ${payout} (মূলধন ${capital}, মুনাফায় অংশ ${share})`,
+  paid: (day: string) => `পরিশোধ ${day}`,
+  notPaid: "এখনো পরিশোধ হয়নি",
+  acknowledged: (at: string) => `আপনি বুঝে পেয়েছেন ${at}`,
+  sent: (at: string) => `জানানো ${at}`,
+  offered: (at: string) => `প্রস্তাব ${at}`,
+  youAgreed: (at: string) => `আপনি রাজি ${at}`,
+  farmApproved: (at: string) => `খামারের অনুমোদন ${at}`,
+  offerWithdrawn: (at: string) => `প্রস্তাব তুলে নেওয়া ${at}`,
+  paperMark: (hash: string) => `কাগজের ছাপ ${hash}`,
+  amendment: (venture: string) => `সংশোধন: ${venture}`,
+  noConsent: "কোনো সম্মতি রেকর্ড নেই",
+  consentWithdrawn: (day: string) => `তুলে নেওয়া ${day}`,
+  consentInForce: "বহাল",
+  since: (at: string) => `${at} থেকে`,
+};
+
+/** The same words in English, each taking its figures written in English. */
+const ENGLISH: typeof BANGLA = {
+  preamble: (name: string, day: string) =>
+    `${name}, everything the farm holds about you up to ${day}. First comes why and how the farm keeps it.`,
+  inForce: "in force now",
+  noNominees: "No Nominees",
+  born: (day: string) => `born ${day}`,
+  nid: (number: string) => `NID ${number}`,
+  birthRegistration: (number: string) => `birth registration ${number}`,
+  share: (percent: string) => `share ${percent}`,
+  receiver: (who: string) => `Receiver ${who}`,
+  units: (count: number) =>
+    `${figure(count, "en")} ${count === 1 ? "Unit" : "Units"}`,
+  yourShare: (percent: number) => `your share ${figure(percent, "en")}%`,
+  window: (from: string, to: string) => `Target Window ${from} – ${to}`,
+  amended: (day: string) => `amended ${day}`,
+  signed: (at: string) => `signed ${at}`,
+  stamp: (serial: string, money: string, day: string) =>
+    `stamp ${serial} (${money}, ${day})`,
+  arbitrator: (name: string) => `arbitrator ${name}`,
+  photoKept: "a photo of the signed Agreement is kept on the farm",
+  capitalHeld: (money: string) => `capital on the farm ${money}`,
+  owed: (payout: string, capital: string, share: string) =>
+    `owed at the Settlement ${payout} (capital ${capital}, share of the profit ${share})`,
+  paid: (day: string) => `paid ${day}`,
+  notPaid: "not paid yet",
+  acknowledged: (at: string) => `you acknowledged it ${at}`,
+  sent: (at: string) => `sent ${at}`,
+  offered: (at: string) => `offered ${at}`,
+  youAgreed: (at: string) => `you agreed ${at}`,
+  farmApproved: (at: string) => `the farm approved ${at}`,
+  offerWithdrawn: (at: string) => `offer withdrawn ${at}`,
+  paperMark: (hash: string) => `paper fingerprint ${hash}`,
+  amendment: (venture: string) => `Amendment: ${venture}`,
+  noConsent: "No consent on record",
+  consentWithdrawn: (day: string) => `withdrawn ${day}`,
+  consentInForce: "in force",
+  since: (at: string) => `since ${at}`,
+};
+
+/** The paper's own words in each language. */
+const WORDS: Record<Language, typeof BANGLA> = { bn: BANGLA, en: ENGLISH };
 
 /** The papers the farm makes for an Investor, by the name the trail records them under. */
 const PAPER_NAMES = {
@@ -125,11 +224,17 @@ const MOVEMENT_NAMES = {
 } as const;
 
 /** Why their access was taken away, said to them — the Owner's screen says it of them, in the third person. */
-const TAKEN_AWAY_WHY: Record<string, string> = {
-  withdrew_consent: "আপনি সম্মতি তুলে নিয়েছেন",
-  lost_phone: "ফোন হারানো",
-  owner: "খামারের সিদ্ধান্ত",
-  signatory_changed: "প্রতিষ্ঠানের স্বাক্ষরকারী বদলেছে",
+const TAKEN_AWAY_WHY: Record<string, Said> = {
+  withdrew_consent: {
+    bn: "আপনি সম্মতি তুলে নিয়েছেন",
+    en: "You withdrew your consent",
+  },
+  lost_phone: { bn: "ফোন হারানো", en: "A lost phone" },
+  owner: { bn: "খামারের সিদ্ধান্ত", en: "The farm's decision" },
+  signatory_changed: {
+    bn: "প্রতিষ্ঠানের স্বাক্ষরকারী বদলেছে",
+    en: "Your Organization's Signatory changed",
+  },
 };
 
 /**
@@ -139,7 +244,7 @@ const TAKEN_AWAY_WHY: Record<string, string> = {
  */
 export const TRAILED = {
   investor: {
-    what: "আপনার রেকর্ড",
+    what: { bn: "আপনার রেকর্ড", en: "Your record" },
     fields: [
       "name",
       "phone",
@@ -159,7 +264,7 @@ export const TRAILED = {
     ],
   },
   investor_access: {
-    what: "পোর্টাল প্রবেশাধিকার",
+    what: { bn: "পোর্টাল প্রবেশাধিকার", en: "Portal access" },
     fields: [
       "invitedAt",
       "acceptedAt",
@@ -169,11 +274,11 @@ export const TRAILED = {
     ],
   },
   portal_consent: {
-    what: "পোর্টাল সম্মতি",
+    what: { bn: "পোর্টাল সম্মতি", en: "Portal Consent" },
     fields: ["signedOn", "version", "withdrawnOn", "withdrawnHow"],
   },
   nomination: {
-    what: "আপনার নমিনি",
+    what: { bn: "আপনার নমিনি", en: "Your Nominees" },
     fields: ["signedOn", "nominationHow", "nominees"],
   },
 } as const;
@@ -181,11 +286,14 @@ export const TRAILED = {
 type Trailed = keyof typeof TRAILED;
 type TrailedField = (typeof TRAILED)[Trailed]["fields"][number];
 
-/** How a Nomination came to be on file, as the Bangla paper says it. */
-const NOMINATION_HOW_WORDS: Record<NominationHow, string> = {
-  nomination: "মনোনয়নপত্র",
-  agreement: "বিনিয়োগ চুক্তিতে",
-  carried_over: "আগের রেকর্ড থেকে, এখনো সই হয়নি",
+/** How a Nomination came to be on file. */
+const NOMINATION_HOW_WORDS: Record<NominationHow, Said> = {
+  nomination: { bn: "মনোনয়নপত্র", en: "Nomination" },
+  agreement: { bn: "বিনিয়োগ চুক্তিতে", en: "In the Investment Agreement" },
+  carried_over: {
+    bn: "আগের রেকর্ড থেকে, এখনো সই হয়নি",
+    en: "From the earlier record, not yet signed",
+  },
 };
 
 const isNominationHow = (text: string): text is NominationHow =>
@@ -200,13 +308,18 @@ const fieldsOf = (snapshot: unknown): Record<string, unknown> =>
     ? Object.fromEntries(Object.entries(snapshot))
     : {};
 
-/** One field's value in a snapshot, as the Bangla paper writes it: a moment or a day in Bangla, a reason in words. */
-const valueWords = (field: TrailedField, value: unknown): string => {
+/** One field's value in a snapshot, as the paper in `language` writes it: a moment or a day in its own numerals, a
+ *  reason in words. */
+const valueWords = (
+  field: TrailedField,
+  value: unknown,
+  language: Language
+): string => {
   if (value === null || value === undefined || value === "") {
     return "—";
   }
   if (typeof value === "number") {
-    return inBangla(value);
+    return figure(value, language);
   }
   const text = String(value);
   if (
@@ -214,38 +327,43 @@ const valueWords = (field: TrailedField, value: unknown): string => {
     field === "withdrawnOn" ||
     field === "authorityOn"
   ) {
-    return onDay(text);
+    return onDay(text, language);
   }
   if (field.endsWith("At")) {
-    return when(new Date(text));
+    return when(new Date(text), language);
   }
   if (field === "nominationHow" && isNominationHow(text)) {
-    return NOMINATION_HOW_WORDS[text];
+    return NOMINATION_HOW_WORDS[text][language];
   }
   if (field === "revokedWhy") {
-    return TAKEN_AWAY_WHY[text] ?? text;
+    return TAKEN_AWAY_WHY[text]?.[language] ?? text;
   }
   if (
     field === "withdrawnHow" &&
     (text === "letter" || text === "message" || text === "signatory_changed")
   ) {
-    return bn(`portal.howLine.${text}`);
+    return translate(language, `portal.howLine.${text}`);
   }
   return text;
 };
 
 /** What one change did: each field it touched, what it was and what it became. */
-const whatChanged = (entity: Trailed, before: unknown, after: unknown) => {
+const whatChanged = (
+  entity: Trailed,
+  before: unknown,
+  after: unknown,
+  language: Language
+) => {
   const was = fieldsOf(before);
   const now = fieldsOf(after);
   const fields: readonly TrailedField[] = TRAILED[entity].fields;
+  const words = (field: TrailedField, snapshot: Record<string, unknown>) =>
+    valueWords(field, snapshot[field], language);
   return fields
-    .filter(
-      (field) => valueWords(field, was[field]) !== valueWords(field, now[field])
-    )
+    .filter((field) => words(field, was) !== words(field, now))
     .map(
       (field) =>
-        `${bn(`auditField.${field}`)}: ${valueWords(field, was[field])} → ${valueWords(field, now[field])}`
+        `${translate(language, `auditField.${field}`)}: ${words(field, was)} → ${words(field, now)}`
     )
     .join("; ");
 };
@@ -335,16 +453,29 @@ const settlementWords = (
     Awaited<
       ReturnType<typeof theirAgreements>
     >["agreements"][number]["settlement"]
-  >
-) =>
-  joined(
-    `হিসাব নিকাশে পাওনা ${asMoney(settlement.payoutMoney)} (মূলধন ${asMoney(settlement.capitalMoney)}, মুনাফায় অংশ ${asMoney(settlement.shareMoney)})`,
+  >,
+  language: Language
+) => {
+  const say = WORDS[language];
+  return joined(
+    say.owed(
+      asMoney(settlement.payoutMoney, language),
+      asMoney(settlement.capitalMoney, language),
+      asMoney(settlement.shareMoney, language)
+    ),
     settlement.paidOn
-      ? `পরিশোধ ${onDay(settlement.paidOn)}`
-      : "এখনো পরিশোধ হয়নি",
+      ? say.paid(onDay(settlement.paidOn, language))
+      : say.notPaid,
     settlement.acknowledgedAt
-      ? `আপনি বুঝে পেয়েছেন ${when(settlement.acknowledgedAt)}`
+      ? say.acknowledged(when(settlement.acknowledgedAt, language))
       : null
+  );
+};
+
+/** When their portal access was taken away, and why, said to them. */
+const takenAwayWords = (at: Date, why: string | null): Said =>
+  each((language) =>
+    joined(when(at, language), why ? TAKEN_AWAY_WHY[why]?.[language] : null)
   );
 
 /** An Organization's own papers and the Signatory it acts through, as "Your record" lists them; nothing for a person,
@@ -365,9 +496,11 @@ const organizationLines = (them: typeof investor.$inferSelect) => [
   ...linesFor(
     { bn: "ক্ষমতা অর্পণের কাগজ", en: "Authority" },
     them.authority
-      ? joined(
-          them.authority,
-          them.authorityOn ? onDay(them.authorityOn) : null
+      ? each((language) =>
+          joined(
+            them.authority,
+            them.authorityOn ? onDay(them.authorityOn, language) : null
+          )
         )
       : null
   ),
@@ -393,7 +526,7 @@ export const dataCopyOf = async (
     throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
   }
   assertRegistered(farm, "data_copy");
-  const { notice } = await theNoticeToRead(db, farm);
+  const { notice, inEnglish } = await theNoticeToRead(db, farm);
   if (!notice) {
     throw refused(
       "The privacy notice still names a fact the farm has not written down, and it is this paper's first page",
@@ -464,12 +597,18 @@ export const dataCopyOf = async (
   );
 
   const sections: PaperSection[] = [
-    // The notice's points first, as the portal's page reads them.
-    ...notice.parts.map((part): PaperSection => ({
-      kind: "clauses",
-      heading: { bn: part.heading, en: "" },
-      clauses: part.lines.map((line) => ({ bn: line, en: "" })),
-    })),
+    // The notice's points first, as the portal's page reads them, each with its English beside it.
+    ...notice.parts.map((part, at): PaperSection => {
+      const english = inEnglish?.parts[at];
+      return {
+        kind: "clauses",
+        heading: { bn: part.heading, en: english?.heading ?? "" },
+        clauses: part.lines.map((line, place) => ({
+          bn: line,
+          en: english?.lines[place] ?? "",
+        })),
+      };
+    }),
     facts({ bn: "আপনার রেকর্ড", en: "Your record" }, [
       ...linesFor({ bn: "নাম", en: "Name" }, them.name),
       ...linesFor({ bn: "ফোন", en: "Phone" }, them.phone),
@@ -477,10 +616,13 @@ export const dataCopyOf = async (
       ...linesFor({ bn: "এনআইডি নম্বর", en: "NID" }, them.nid),
       ...organizationLines(them),
       ...linesFor({ bn: "ব্যাংক হিসাব", en: "Bank account" }, them.bankAccount),
-      ...linesFor({ bn: "লেখা হয়েছে", en: "Recorded" }, when(them.createdAt)),
+      ...linesFor(
+        { bn: "লেখা হয়েছে", en: "Recorded" },
+        momentSaid(them.createdAt)
+      ),
       ...linesFor(
         { bn: "বাদ দেওয়ার দিন", en: "Retired" },
-        them.retiredAt ? when(them.retiredAt) : null
+        them.retiredAt ? momentSaid(them.retiredAt) : null
       ),
     ]),
     // Every Nomination on file, the list in force first: who they named, and on which paper. An Organization names
@@ -490,64 +632,84 @@ export const dataCopyOf = async (
       : [
           facts(
             { bn: "আপনার নমিনি", en: "Your Nominees" },
-            nominations.map((one, index) => ({
-              label: {
-                bn: joined(
-                  onDay(one.signedOn),
-                  NOMINATION_HOW_WORDS[one.how],
-                  index === 0 ? "এখন বহাল" : null
+            nominations.map((one, index) => {
+              const rows = paperNominees(one, one.signedOn).map(nomineeRowOf);
+              return {
+                label: each((language) =>
+                  joined(
+                    onDay(one.signedOn, language),
+                    NOMINATION_HOW_WORDS[one.how][language],
+                    index === 0 ? WORDS[language].inForce : null
+                  )
                 ),
-                en: "",
-              },
-              value:
-                one.nominees.length === 0
-                  ? "কোনো নমিনি নেই"
-                  : paperNominees(one, one.signedOn)
-                      .map((nominee) => {
-                        const row = nomineeRowOf(nominee);
-                        return joined(
-                          row.name,
-                          row.relation,
-                          row.born ? `জন্ম ${row.born}` : null,
-                          row.idNumber
-                            ? `${row.minor ? "জন্ম নিবন্ধন" : "এনআইডি"} ${row.idNumber}`
-                            : null,
-                          row.phone,
-                          `অংশ ${row.share}`,
-                          row.receiver ? `গ্রহণকারী ${row.receiver}` : null
-                        );
-                      })
-                      .join("; "),
-            }))
+                value: each((language) => {
+                  const say = WORDS[language];
+                  if (one.nominees.length === 0) {
+                    return say.noNominees;
+                  }
+                  return rows
+                    .map((row) =>
+                      joined(
+                        row.name,
+                        row.relation?.[language] ?? null,
+                        row.born ? say.born(row.born[language]) : null,
+                        row.idNumber
+                          ? (row.minor ? say.birthRegistration : say.nid)(
+                              row.idNumber
+                            )
+                          : null,
+                        row.phone,
+                        say.share(row.share[language]),
+                        row.receiver
+                          ? say.receiver(row.receiver[language])
+                          : null
+                      )
+                    )
+                    .join("; ");
+                }),
+              };
+            })
           ),
         ]),
     facts(
       { bn: "আপনার চুক্তি", en: "Your Agreements" },
       money.agreements.map((one) => ({
-        label: { bn: one.venture.name, en: "" },
-        value: joined(
-          `${inBangla(one.units)} ইউনিট, ${asMoney(one.promisedMoney)}`,
-          `আপনার অংশ ${inBangla(one.investorsPercent)}%`,
-          `সময় ${onDay(one.targetWindow.start)} – ${onDay(one.targetWindow.end)}`,
-          one.amendedOn ? `সংশোধিত ${onDay(one.amendedOn)}` : null,
-          `সই ${when(one.signedAt)}`,
-          `স্ট্যাম্প ${one.stamp.serial} (${asMoney(one.stamp.valueMoney)}, ${onDay(one.stamp.on)})`,
-          `সালিস ${one.arbitrator}`,
-          one.hasPaper ? "সই করা চুক্তির ছবি খামারে রাখা আছে" : null,
-          `খামারে মূলধন ${asMoney(one.capitalHeldMoney)}`,
-          one.settlement ? settlementWords(one.settlement) : null
-        ),
+        label: asTyped(one.venture.name),
+        value: each((language) => {
+          const say = WORDS[language];
+          return joined(
+            `${say.units(one.units)}, ${asMoney(one.promisedMoney, language)}`,
+            say.yourShare(one.investorsPercent),
+            say.window(
+              onDay(one.targetWindow.start, language),
+              onDay(one.targetWindow.end, language)
+            ),
+            one.amendedOn ? say.amended(onDay(one.amendedOn, language)) : null,
+            say.signed(when(one.signedAt, language)),
+            say.stamp(
+              one.stamp.serial,
+              asMoney(one.stamp.valueMoney, language),
+              onDay(one.stamp.on, language)
+            ),
+            say.arbitrator(one.arbitrator),
+            one.hasPaper ? say.photoKept : null,
+            say.capitalHeld(asMoney(one.capitalHeldMoney, language)),
+            one.settlement ? settlementWords(one.settlement, language) : null
+          );
+        }),
       }))
     ),
     facts(
       { bn: `আপনার ${currencyWords("bn").of} লেনদেন`, en: "Your money moved" },
       money.movements.map((one) => ({
-        label: { bn: onDay(one.movedOn), en: "" },
-        value: joined(
-          MOVEMENT_NAMES[one.kind].bn,
-          asMoney(one.amountMoney),
-          ventureOf.get(one.agreementId),
-          one.reference
+        label: each((language) => onDay(one.movedOn, language)),
+        value: each((language) =>
+          joined(
+            MOVEMENT_NAMES[one.kind][language],
+            asMoney(one.amountMoney, language),
+            ventureOf.get(one.agreementId),
+            one.reference
+          )
         ),
       }))
     ),
@@ -556,10 +718,14 @@ export const dataCopyOf = async (
       papers.map((one) => {
         const { paper } = fieldsOf(one.after);
         return {
-          label: { bn: when(one.at), en: "" },
-          value: joined(
-            isTheirPaper(paper) ? PAPER_NAMES[paper].bn : String(paper ?? ""),
-            one.by
+          label: momentSaid(one.at),
+          value: each((language) =>
+            joined(
+              isTheirPaper(paper)
+                ? PAPER_NAMES[paper][language]
+                : String(paper ?? ""),
+              one.by
+            )
           ),
         };
       })
@@ -567,55 +733,70 @@ export const dataCopyOf = async (
     facts(
       { bn: "আপনার জমার খবর", en: "Your Pay-in Notes" },
       payInNotes.map((one) => ({
-        label: { bn: onDay(one.sentOn), en: "" },
-        value: joined(
-          ventureNamed.get(one.ventureId) ?? null,
-          asMoney(one.amountMoney),
-          bn(`portal.payIn.way.${one.way}`),
-          one.reference,
-          bn(`portal.payIn.state.${one.state}`),
-          one.answerLine ? `“${one.answerLine}”` : null,
-          `জানানো ${when(one.createdAt)}`
+        label: each((language) => onDay(one.sentOn, language)),
+        value: each((language) =>
+          joined(
+            ventureNamed.get(one.ventureId) ?? null,
+            asMoney(one.amountMoney, language),
+            translate(language, `portal.payIn.way.${one.way}`),
+            one.reference,
+            translate(language, `portal.payIn.state.${one.state}`),
+            one.answerLine ? `“${one.answerLine}”` : null,
+            WORDS[language].sent(when(one.createdAt, language))
+          )
         ),
       }))
     ),
     facts({ bn: "পোর্টালে রাজি হওয়া চুক্তি ও সংশোধন", en: "Agreed in the portal" }, [
       ...offers.map((one) => ({
-        label: { bn: ventureNamed.get(one.ventureId) ?? "", en: "" },
-        value: joined(
-          `${inBangla(one.units)} ইউনিট, আপনার অংশ ${inBangla(one.investorsPercent)}%`,
-          `প্রস্তাব ${when(one.offeredAt)}`,
-          one.agreedAt ? `আপনি রাজি ${when(one.agreedAt)}` : null,
-          one.approvedAt ? `খামারের অনুমোদন ${when(one.approvedAt)}` : null,
-          one.withdrawnAt ? `প্রস্তাব তুলে নেওয়া ${when(one.withdrawnAt)}` : null,
-          `কাগজের ছাপ ${one.paperHash.slice(0, 12)}`
-        ),
+        label: asTyped(ventureNamed.get(one.ventureId) ?? ""),
+        value: each((language) => {
+          const say = WORDS[language];
+          return joined(
+            `${say.units(one.units)}, ${say.yourShare(one.investorsPercent)}`,
+            say.offered(when(one.offeredAt, language)),
+            one.agreedAt ? say.youAgreed(when(one.agreedAt, language)) : null,
+            one.approvedAt
+              ? say.farmApproved(when(one.approvedAt, language))
+              : null,
+            one.withdrawnAt
+              ? say.offerWithdrawn(when(one.withdrawnAt, language))
+              : null,
+            say.paperMark(one.paperHash.slice(0, 12))
+          );
+        }),
       })),
       ...amendmentsAgreed.map((one) => ({
-        label: {
-          bn: `সংশোধন: ${ventureOf.get(one.agreementId) ?? ""}`,
-          en: "",
-        },
-        value: `আপনি রাজি ${when(one.agreedAt)}`,
+        label: each((language) =>
+          WORDS[language].amendment(ventureOf.get(one.agreementId) ?? "")
+        ),
+        value: each((language) =>
+          WORDS[language].youAgreed(when(one.agreedAt, language))
+        ),
       })),
     ]),
     facts({ bn: "ভেঞ্চারে যোগ দেওয়ার অনুরোধ", en: "Your Requests to Join" }, [
       ...requests.map((one) => ({
-        label: { bn: one.ventureName, en: "" },
-        value: joined(
-          `${inBangla(one.units)} ইউনিট`,
-          bn(`ventures.requests.state.${one.state}`),
-          one.note ? `“${one.note}”` : null,
-          one.answerLine
+        label: asTyped(one.ventureName),
+        value: each((language) =>
+          joined(
+            WORDS[language].units(one.units),
+            translate(language, `ventures.requests.state.${one.state}`),
+            one.note ? `“${one.note}”` : null,
+            one.answerLine
+          )
         ),
       })),
       ...requestChanges.map((one) => ({
-        label: { bn: when(one.at), en: "" },
-        value: joined(
-          one.ventureName,
-          bn(`ventures.requests.kind.${one.kind}`, {
-            units: inBangla(one.units),
-          })
+        label: momentSaid(one.at),
+        value: each((language) =>
+          joined(
+            one.ventureName,
+            translate(language, `ventures.requests.kind.${one.kind}`, {
+              // The Bangla says the count as written; the English counts it, one Unit or many.
+              units: language === "bn" ? figure(one.units, "bn") : one.units,
+            })
+          )
         ),
       })),
     ]),
@@ -626,61 +807,77 @@ export const dataCopyOf = async (
       ),
       ...linesFor(
         { bn: "আমন্ত্রণ", en: "Invited" },
-        access ? when(access.invitedAt) : null
+        access ? momentSaid(access.invitedAt) : null
       ),
       ...linesFor(
         { bn: "প্রথম সাইন ইন", en: "First signed in" },
-        access?.acceptedAt ? when(access.acceptedAt) : null
+        access?.acceptedAt ? momentSaid(access.acceptedAt) : null
       ),
       ...linesFor(
         { bn: "শেষ এসেছেন", en: "Last in" },
-        access?.lastSeenAt ? when(access.lastSeenAt) : null
+        access?.lastSeenAt ? momentSaid(access.lastSeenAt) : null
       ),
       ...linesFor(
         { bn: "প্রবেশাধিকার তুলে নেওয়া", en: "Access taken away" },
         access?.revokedAt
-          ? joined(
-              when(access.revokedAt),
-              access.revokedWhy ? TAKEN_AWAY_WHY[access.revokedWhy] : null
-            )
+          ? takenAwayWords(access.revokedAt, access.revokedWhy)
           : null
       ),
       ...(consents.length === 0
-        ? linesFor({ bn: "সম্মতি", en: "Consent" }, "কোনো সম্মতি রেকর্ড নেই")
+        ? linesFor(
+            { bn: "সম্মতি", en: "Consent" },
+            each((language) => WORDS[language].noConsent)
+          )
         : consents.map((one) => ({
             label: { bn: "সম্মতি", en: "Consent" },
-            value: joined(
-              bn("portal.consent.signed", {
-                when: onDay(farmDayOf(one.signedOn)),
-                version: inBangla(one.version),
-              }),
-              one.withdrawnOn
-                ? joined(
-                    `তুলে নেওয়া ${onDay(farmDayOf(one.withdrawnOn))}`,
-                    one.withdrawnHow
-                      ? bn(`portal.howLine.${one.withdrawnHow}`)
-                      : null
-                  )
-                : "বহাল"
-            ),
+            value: each((language) => {
+              const say = WORDS[language];
+              return joined(
+                translate(language, "portal.consent.signed", {
+                  when: onDay(farmDayOf(one.signedOn), language),
+                  version: figure(one.version, language),
+                }),
+                one.withdrawnOn
+                  ? joined(
+                      say.consentWithdrawn(
+                        onDay(farmDayOf(one.withdrawnOn), language)
+                      ),
+                      one.withdrawnHow
+                        ? translate(
+                            language,
+                            `portal.howLine.${one.withdrawnHow}`
+                          )
+                        : null
+                    )
+                  : say.consentInForce
+              );
+            }),
           }))),
       ...places.map((one) => ({
         label: { bn: "এখন সাইন ইন", en: "Signed in now" },
-        value: joined(`${when(one.since)} থেকে`, one.browser, one.from),
+        value: each((language) =>
+          joined(
+            WORDS[language].since(when(one.since, language)),
+            one.browser,
+            one.from
+          )
+        ),
       })),
     ]),
     facts(
       { bn: "আপনার সম্পর্কে প্রতিটি বদল", en: "Every change about you" },
-      changes.flatMap((one) =>
-        isTrailed(one.entity)
+      changes.flatMap(({ entity, ...one }) =>
+        isTrailed(entity)
           ? [
               {
-                label: { bn: when(one.at), en: "" },
-                value: joined(
-                  TRAILED[one.entity].what,
-                  bn(`audit.action.${one.action}`),
-                  one.by,
-                  whatChanged(one.entity, one.before, one.after)
+                label: momentSaid(one.at),
+                value: each((language) =>
+                  joined(
+                    TRAILED[entity].what[language],
+                    translate(language, `audit.action.${one.action}`),
+                    one.by,
+                    whatChanged(entity, one.before, one.after, language)
+                  )
                 ),
               },
             ]
@@ -702,12 +899,13 @@ export const dataCopyOf = async (
   return {
     letterhead: letterheadOf(farm),
     title: TITLE,
-    preamble: {
-      bn: `${them.name}, ${onDay(farmDayOf(now))} পর্যন্ত খামার আপনার সম্পর্কে যা রাখে তার সবকিছু। প্রথমে আছে খামার তা কেন ও কীভাবে রাখে।`,
-      en: "",
-    },
+    preamble: each((language) =>
+      WORDS[language].preamble(them.name, onDay(farmDayOf(now), language))
+    ),
     sections,
     closing: [],
-    produced: `${producedAt(now, "bn")} · ${context.actor.name}`,
+    produced: each(
+      (language) => `${producedAt(now, language)} · ${context.actor.name}`
+    ),
   };
 };

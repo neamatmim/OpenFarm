@@ -1,3 +1,4 @@
+import { factSaid } from "./fact-english";
 import type {
   TemplateContent,
   TemplateKind,
@@ -508,7 +509,8 @@ const masterAgreement: TemplateContent = {
   ],
 };
 
-const ventureSchedule: TemplateContent = {
+/** The Venture Schedule as it stood until a fact said its English (2026-10-08): kept whole for the catch-up. */
+export const SCHEDULE_BEFORE_ENGLISH_FACTS: TemplateContent = {
   title: {
     bn: "তফসিল — ভেঞ্চারে যোগদান",
     en: "Schedule — joining a Venture",
@@ -554,7 +556,8 @@ const ventureSchedule: TemplateContent = {
   ],
 };
 
-const agreementAmendment: TemplateContent = {
+/** The Amendment as it stood until a fact said its English (2026-10-08): kept whole for the catch-up. */
+export const AMENDMENT_BEFORE_ENGLISH_FACTS: TemplateContent = {
   title: {
     bn: "বিনিয়োগ চুক্তির সংশোধনী",
     en: "Amendment to the Investment Agreement",
@@ -977,10 +980,38 @@ const withNomineeNumbers = (content: TemplateContent): TemplateContent => ({
   ),
 });
 
-/** The standard Investment Agreement today (2026-10-08): the one before it, with the Nominees' numbers held. */
-const investmentAgreement = withNomineeNumbers(
+/** The standard Investment Agreement from Nominees giving their NID until a fact said its English (2026-10-08): the
+ *  one before it, with the Nominees' numbers held. Kept whole for the catch-up. */
+export const STANDARD_AGREEMENT_BEFORE_ENGLISH_FACTS = withNomineeNumbers(
   STANDARD_AGREEMENT_BEFORE_NOMINEE_NUMBERS
 );
+
+/** A wording with every fact said in English beside its Bangla. */
+const withEnglishFacts = (content: TemplateContent): TemplateContent => ({
+  ...content,
+  sections: content.sections.map((section) =>
+    section.kind === "facts"
+      ? {
+          ...section,
+          rows: section.rows.map((row) => ({
+            ...row,
+            value: factSaid(row.value),
+          })),
+        }
+      : section
+  ),
+});
+
+/** The standard Investment Agreement today (2026-10-08): the one before it, with every fact said in English too. */
+const investmentAgreement = withEnglishFacts(
+  STANDARD_AGREEMENT_BEFORE_ENGLISH_FACTS
+);
+
+/** The Venture Schedule today: the one before it, with every fact said in English too. */
+const ventureSchedule = withEnglishFacts(SCHEDULE_BEFORE_ENGLISH_FACTS);
+
+/** The Amendment today: the one before it, with every fact said in English too. */
+const agreementAmendment = withEnglishFacts(AMENDMENT_BEFORE_ENGLISH_FACTS);
 
 /** The মনোনয়নপত্র today (2026-10-08): the one before it, with the Nominees' numbers held. */
 const nomination = withNomineeNumbers(NOMINATION_BEFORE_NOMINEE_NUMBERS);

@@ -12,10 +12,9 @@ import type { Context } from "./context";
 import { farmsOwnValues } from "./data-keepers";
 import { assertRegistered, exportedPaper } from "./export-store";
 import { nominationInForce, paperNominees } from "./nomination-store";
-import { paperInvestor, paperValues, producedAt } from "./paper-values";
+import { paperInvestor, paperValues, madeOn } from "./paper-values";
 import type { Owned } from "./portal-invitable";
 import { invitable, refused } from "./portal-invitable";
-import { languageOf } from "./reader-language";
 import { currentWording, giveStandardTemplates } from "./template-store";
 
 // The Portal Consent (the glossary's entry): signed on paper in front of the Owner before any code is given, and
@@ -179,10 +178,7 @@ export const consentSheet = async (
     },
     values,
     producedBy: context.actor.name,
-    producedAt: producedAt(
-      context.clock.now(),
-      await languageOf(context.db, context.actor.id)
-    ),
+    producedAt: madeOn(context.clock.now()),
     version: wording.number,
   });
   await audited(context).write(

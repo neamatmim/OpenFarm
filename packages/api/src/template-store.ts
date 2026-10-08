@@ -11,7 +11,10 @@ import {
   NOMINATION_BEFORE_NOMINEE_NUMBERS,
   PRIVACY_NOTICE_BEFORE_NOMINEE_NUMBERS,
   STANDARD_AGREEMENT_BEFORE_MONTHLY,
+  STANDARD_AGREEMENT_BEFORE_ENGLISH_FACTS,
   STANDARD_AGREEMENT_BEFORE_NOMINEE_NUMBERS,
+  SCHEDULE_BEFORE_ENGLISH_FACTS,
+  AMENDMENT_BEFORE_ENGLISH_FACTS,
   PORTAL_CONSENT_BEFORE_ORGANIZATIONS,
   STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
   STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
@@ -176,8 +179,13 @@ const ORGANIZATIONS =
 const NOMINEE_NUMBERS =
   "Each Nominee gives their NID, a minor their birth registration, and a minor's Receiver their NID: the papers say the Farm holds them (2026-10-08, the Owner's decision, not yet read by the lawyer).";
 
+/** What the third 2026-10-08 standard adds: each fact said in English beside its Bangla, for a paper read in English
+ *  (ADR 0021). The Bangla is as it was. */
+const ENGLISH_FACTS =
+  "Each fact on the paper is said in English too, for a paper read in English; the Bangla is unchanged (2026-10-08, ADR 0021).";
+
 /** The standard a farm is caught up to, as the trail names it. */
-const CAUGHT_UP_TO = "nominee_numbers";
+const CAUGHT_UP_TO = "english_facts";
 
 /**
  * The standard wordings a farm may still be on exactly, kind by kind, oldest first, each with the note its catch-up
@@ -189,19 +197,35 @@ const EARLIER_STANDARDS: Partial<
   investment_agreement: [
     {
       content: STANDARD_AGREEMENT_BEFORE_MONTHLY,
-      note: `OpenFarm's standard wording: the clauses for capital paid by the month, approved by the lawyer and the Shariah scholar on 2026-10-02, printed only on a Venture paid by the month. ${LOST_AND_FARM_CAPITAL} ${ORGANIZATIONS} ${NOMINEE_NUMBERS}`,
+      note: `OpenFarm's standard wording: the clauses for capital paid by the month, approved by the lawyer and the Shariah scholar on 2026-10-02, printed only on a Venture paid by the month. ${LOST_AND_FARM_CAPITAL} ${ORGANIZATIONS} ${NOMINEE_NUMBERS} ${ENGLISH_FACTS}`,
     },
     {
       content: STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
-      note: `OpenFarm's standard wording. ${LOST_AND_FARM_CAPITAL} ${ORGANIZATIONS} ${NOMINEE_NUMBERS}`,
+      note: `OpenFarm's standard wording. ${LOST_AND_FARM_CAPITAL} ${ORGANIZATIONS} ${NOMINEE_NUMBERS} ${ENGLISH_FACTS}`,
     },
     {
       content: STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
-      note: `OpenFarm's standard wording. ${ORGANIZATIONS} ${NOMINEE_NUMBERS}`,
+      note: `OpenFarm's standard wording. ${ORGANIZATIONS} ${NOMINEE_NUMBERS} ${ENGLISH_FACTS}`,
     },
     {
       content: STANDARD_AGREEMENT_BEFORE_NOMINEE_NUMBERS,
-      note: `OpenFarm's standard wording. ${NOMINEE_NUMBERS}`,
+      note: `OpenFarm's standard wording. ${NOMINEE_NUMBERS} ${ENGLISH_FACTS}`,
+    },
+    {
+      content: STANDARD_AGREEMENT_BEFORE_ENGLISH_FACTS,
+      note: `OpenFarm's standard wording. ${ENGLISH_FACTS}`,
+    },
+  ],
+  venture_schedule: [
+    {
+      content: SCHEDULE_BEFORE_ENGLISH_FACTS,
+      note: `OpenFarm's standard wording. ${ENGLISH_FACTS}`,
+    },
+  ],
+  agreement_amendment: [
+    {
+      content: AMENDMENT_BEFORE_ENGLISH_FACTS,
+      note: `OpenFarm's standard wording. ${ENGLISH_FACTS}`,
     },
   ],
   portal_consent: [

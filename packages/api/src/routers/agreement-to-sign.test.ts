@@ -1,4 +1,5 @@
 import type { PaperDocument, PaperSection } from "@OpenFarm/domain";
+import { paperText } from "@OpenFarm/domain";
 import { FakeClock, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -180,16 +181,19 @@ describe("the Investment Agreement, laid out to be signed", () => {
       {
         name: `রহিমা ${suffix}`,
         idNumber: "2000 0314 7781",
-        share: "৮০%",
+        share: { bn: "৮০%", en: "80%" },
         minor: false,
         receiver: null,
       },
       {
         name: `সাদিয়া ${suffix}`,
         idNumber: "20402691507114382",
-        share: "২০%",
+        share: { bn: "২০%", en: "20%" },
         minor: true,
-        receiver: `রহিমা ${suffix} (মা), এনআইডি 2000 0314 7781`,
+        receiver: {
+          bn: `রহিমা ${suffix} (মা), এনআইডি 2000 0314 7781`,
+          en: `রহিমা ${suffix} (Mother), NID 2000 0314 7781`,
+        },
       },
     ]);
   });
@@ -211,7 +215,7 @@ describe("«আপনার তথ্য», handed over with the Agreement", () 
     ).rejects.toMatchObject({ data: { refusal: "notice_unwritten" } });
   });
 
-  it("is the notice in force, in Bangla, with who keeps the farm's records named", async () => {
+  it("is the notice in force, in both languages for its reader to read in either, with who keeps the farm's records named", async () => {
     const { client: owner } = await as("owner");
     await owner.farm.setDataKeepers(KEEPERS);
 
@@ -225,7 +229,7 @@ describe("«আপনার তথ্য», handed over with the Agreement", () 
       en: "How the farm keeps your data",
     });
     expect(JSON.stringify(document)).toContain(KEEPERS.dataHost);
-    expect(document.preamble.en).toBe("");
+    expect(document.preamble.en).toContain("What");
     expect(wording.number).toBe(1);
   });
 
@@ -280,14 +284,17 @@ describe("stamp duty paid by e-challan", () => {
     });
 
     const agreements = await owner.ventures.agreements.list({ ventureId });
-    const { text } = await owner.investorStatements.joining({
+    const { document } = await owner.investorStatements.joining({
       agreementId: signed.id,
     });
 
     expect(agreements.find((one) => one.id === signed.id)?.stamp.kind).toBe(
       "e_challan"
     );
-    expect(text).toContain(`ই-চালান নম্বর / e-challan no.: 2324-${suffix}`);
-    expect(text).not.toContain("স্ট্যাম্প সিরিয়াল");
+    expect(paperText(document, "bn")).toContain(`ই-চালান নম্বর: 2324-${suffix}`);
+    expect(paperText(document, "en")).toContain(
+      `e-challan no.: 2324-${suffix}`
+    );
+    expect(paperText(document, "bn")).not.toContain("স্ট্যাম্প সিরিয়াল");
   });
 });

@@ -5,6 +5,7 @@ import { templateProblems } from "./paper-template";
 import {
   NOMINATION_BEFORE_NOMINEE_NUMBERS,
   PRIVACY_NOTICE_BEFORE_NOMINEE_NUMBERS,
+  STANDARD_AGREEMENT_BEFORE_ENGLISH_FACTS,
   STANDARD_AGREEMENT_BEFORE_NOMINEE_NUMBERS,
   STANDARD_TEMPLATES,
 } from "./standard-templates";
@@ -74,7 +75,7 @@ describe("the wording once Nominees give their numbers", () => {
 
   it("changes nothing else in them", () => {
     expect(
-      apartFromTheNomineeLines(STANDARD_TEMPLATES.investment_agreement)
+      apartFromTheNomineeLines(STANDARD_AGREEMENT_BEFORE_ENGLISH_FACTS)
     ).toEqual(
       apartFromTheNomineeLines(STANDARD_AGREEMENT_BEFORE_NOMINEE_NUMBERS)
     );

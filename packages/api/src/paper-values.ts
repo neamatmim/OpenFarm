@@ -217,3 +217,9 @@ export const paperInvestor = (
 /** When a paper was made, as its reader reads it. */
 export const producedAt = (now: Date, language: Language) =>
   formatDate(now, language, "dateTime");
+
+/** When a paper was laid out, in both languages: a paper is read in either (ADR 0021). */
+export const madeOn = (now: Date): Said => ({
+  bn: producedAt(now, "bn"),
+  en: producedAt(now, "en"),
+});

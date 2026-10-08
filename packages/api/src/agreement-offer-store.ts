@@ -21,8 +21,7 @@ import { assertTheVenturesSplit, farmUnitsOf } from "./farm-capital-store";
 import { readAgreement, unitsTaken } from "./investor-store";
 import { assertReadAsKept, keepPaper, stillAsKept } from "./kept-paper";
 import { assertNamable, nomineesToSign } from "./nominations";
-import { producedAt } from "./paper-values";
-import { languageOf } from "./reader-language";
+import { madeOn } from "./paper-values";
 import { currentWording, giveStandardTemplates } from "./template-store";
 import { withWindowsInForce } from "./venture-store";
 
@@ -201,7 +200,7 @@ export const offerInApp = async (
     terms: input,
     wording: wording.content,
     today,
-    producedAt: producedAt(now, await languageOf(context.db, context.actor.id)),
+    producedAt: madeOn(now),
     farmUnits: await farmUnitsOf(context.db, context.farm.id, run.id),
   });
   const kept = keepPaper(paper);

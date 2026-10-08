@@ -1,3 +1,4 @@
+import { paperText } from "@OpenFarm/domain";
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -242,13 +243,15 @@ describe("amending what everybody signed", () => {
     });
     const owner = await as("owner", "2047-02-20T05:00:00.000Z");
     const [his] = await owner.client.ventures.agreements.list({ ventureId });
-    const { text } = await owner.client.investorStatements.joining({
+    const { document } = await owner.client.investorStatements.joining({
       agreementId: his?.id ?? "",
     });
-    // Fifty-five and forty-five, in Bangla numerals, and not the sixty he put his name to.
+    // Fifty-five and forty-five, each in its own numerals, and not the sixty he put his name to.
+    const text = paperText(document, "bn");
     expect(text).toContain("৫৫%");
     expect(text).toContain("৪৫%");
     expect(text).not.toContain("৬০%");
+    expect(paperText(document, "en")).toContain("55%");
   });
 
   it("is the Owner's alone, and wants a reason", async () => {

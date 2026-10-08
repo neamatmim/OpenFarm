@@ -1,3 +1,4 @@
+import { paperText } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -25,6 +26,23 @@ const as = (role: "owner" | "manager", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 type Client = Awaited<ReturnType<typeof as>>;
+
+/** A Latin figure just before a Bangla unit: the one thing neither reader reads cleanly. */
+const LATIN_BESIDE_BANGLA = /[0-9][0-9,.]* (?:টাকা|দিন|কেজি)/gu;
+/** A Bangla numeral on a paper read in English. */
+const BANGLA_FIGURE = /[০-৯]/u;
+
+/** His হিসাব নিকাশ as it reads in Bangla, and in English. */
+const hisSheet = async (client: Client, agreementId: string) => {
+  const { document } = await client.client.investorStatements.settlement({
+    agreementId,
+  });
+  return {
+    document,
+    text: paperText(document, "bn"),
+    english: paperText(document, "en"),
+  };
+};
 
 /** The run that made money: twenty Units, two men, two bulls. */
 const WON = {
@@ -266,118 +284,119 @@ beforeAll(async () => {
 describe("the sheet an Investor checks the whole run against", () => {
   it("shows the run's figures and how they divide", async () => {
     const owner = await as("owner", "2053-03-03T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.settlement({
-      agreementId: hisWon,
-    });
+    const { text, english } = await hisSheet(owner, hisWon);
     // Four lakh five thousand and five in, two lakh out on the bulls.
-    expect(text).toContain("মোট বিক্রি / Proceeds: ৪,০৫,০০৫ টাকা");
-    expect(text).toContain("পশু কেনা / Cattle bought: ২,০০,০০০ টাকা");
-    expect(text).toContain("লাভ / Profit: ২,০৫,০০৫ টাকা");
+    expect(text).toContain("মোট বিক্রি: ৪,০৫,০০৫ টাকা");
+    expect(text).toContain("পশু কেনা · ২,০০,০০০ টাকা");
+    expect(text).toContain("লাভ: ২,০৫,০০৫ টাকা");
     // Sixty per cent of that is ১,২৩,০০৩, which will not divide twenty ways in whole taka: ৬,১৫০ a
     // Unit and three taka left over, and the three are the Farm's.
-    expect(text).toContain("প্রতি ইউনিট মুনাফা / Profit per Unit: ৬,১৫০ টাকা");
+    expect(text).toContain("প্রতি ইউনিট মুনাফা: ৬,১৫০ টাকা");
     // The line he reads first: fifty thousand a Unit in, fifty-six thousand one hundred and fifty back.
-    expect(text).toContain("প্রতি ইউনিট / Per Unit: ৫০,০০০ টাকা দিয়ে ৫৬,১৫০ টাকা");
-    expect(text).toContain("ভগ্নাংশ খামারে / Rounding to the Farm: ৩ টাকা");
-    expect(text).toContain("খামারের অংশ / The Farm's share: ৮২,০০৫ টাকা");
+    expect(text).toContain("প্রতি ইউনিট: ৫০,০০০ টাকা দিয়ে ৫৬,১৫০ টাকা");
+    expect(text).toContain("ভগ্নাংশ খামারে: ৩ টাকা");
+    expect(text).toContain("খামারের অংশ: ৮২,০০৫ টাকা");
+    // And the same figures read in English, in English numerals and the currency's English word.
+    expect(english).toContain("Proceeds: 405,005 taka");
+    expect(english).toContain("Cattle bought · 200,000 taka");
+    expect(english).toContain("Profit: 205,005 taka");
+    expect(english).toContain("Profit per Unit: 6,150 taka");
+    expect(english).toContain("Per Unit: 50,000 taka in, 56,150 taka back");
+    expect(english).toContain("Rounding to the Farm: 3 taka");
+    expect(english).toContain("The Farm's share: 82,005 taka");
   });
 
   it("follows the figures to his own payout, with the reference it went on", async () => {
     const owner = await as("owner", "2053-03-03T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.settlement({
-      agreementId: hisWon,
-    });
+    const { text, english } = await hisSheet(owner, hisWon);
     // Thirteen Units of the twenty: ৬,৫০,০০০ in, ৭৯,৯৫০ of profit, ৭,২৯,৯৫০ back.
-    expect(text).toContain("ইউনিট / Units held: ১৩");
-    expect(text).toContain("মূলধন ফেরত / Capital returned: ৬,৫০,০০০ টাকা");
-    expect(text).toContain("মুনাফার অংশ / Your share of the profit: ৭৯,৯৫০ টাকা");
-    expect(text).toContain("মোট প্রাপ্য / Your payout: ৭,২৯,৯৫০ টাকা");
+    expect(text).toContain("ইউনিট: ১৩");
+    expect(text).toContain("মূলধন ফেরত: ৬,৫০,০০০ টাকা");
+    expect(text).toContain("মুনাফার অংশ: ৭৯,৯৫০ টাকা");
+    expect(text).toContain("মোট প্রাপ্য: ৭,২৯,৯৫০ টাকা");
     expect(text).toContain(`PAY-${hisWon.slice(-6)}-${suffix}`);
+    expect(english).toContain("Units held: 13");
+    expect(english).toContain("Your payout: 729,950 taka");
   });
 
   it("says the Owner's Advance came back, and never as a charge", async () => {
     const owner = await as("owner", "2053-03-03T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.settlement({
-      agreementId: hisWon,
-    });
-    expect(text).toContain(
-      "মালিকের অগ্রিম ফেরত / Owner's Advance repaid: ৫০,০০০ টাকা"
-    );
+    const { text, english } = await hisSheet(owner, hisWon);
+    expect(text).toContain("মালিকের অগ্রিম ফেরত: ৫০,০০০ টাকা");
+    expect(english).toContain("Owner's Advance repaid: 50,000 taka");
     // The charges are the seven the Settlement froze, and an Advance is not one of them — the costs it
     // paid for are already in the list.
-    const charged = text.slice(
-      text.indexOf("যা খরচ হলো"),
-      text.indexOf("লাভ / Profit")
-    );
+    const charged = text.slice(text.indexOf("যা খরচ হলো"), text.indexOf("লাভ:"));
     expect(charged).not.toContain("অগ্রিম");
   });
 
   it("tells the herd's story, so the result has a reason", async () => {
     const owner = await as("owner", "2053-03-03T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.settlement({
-      agreementId: hisWon,
-    });
+    const { text, english } = await hisSheet(owner, hisWon);
     // Headed as the records rather than as frozen, because a Sale put right after settlement would
     // move this average and not a taka of the account above it.
     expect(text).toContain("পালের হিসাব (নথি অনুযায়ী)");
-    expect(text).toContain("কেনা হয়েছে / Bought: ২ · গড়ে ১,০০,০০০ টাকা");
+    expect(text).toContain("কেনা হয়েছে: ২ · গড়ে ১,০০,০০০ টাকা");
     // Four lakh five thousand and five between two of them averages ২,০২,৫০২.৫, and the half-taka
     // stays: it is an average, and rounding it would make the two prices above it not add up.
-    expect(text).toContain("বিক্রি হয়েছে / Sold: ২ · গড়ে ২,০২,৫০২.৫ টাকা");
-    expect(text).toContain("মারা গেছে / Died: ০");
+    expect(text).toContain("বিক্রি হয়েছে: ২ · গড়ে ২,০২,৫০২.৫ টাকা");
+    expect(text).toContain("মারা গেছে: ০");
+    expect(english).toContain("Bought: 2 · 100,000 taka on average");
+    expect(english).toContain("Sold: 2 · 202,502.5 taka on average");
   });
 
   it("reads a loss as a loss, off capital rather than onto it", async () => {
     const owner = await as("owner", "2053-03-03T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.settlement({
-      agreementId: hisLost,
-    });
+    const { text, english } = await hisSheet(owner, hisLost);
     // A lakh spent, fifty thousand back: fifty thousand lost, and the word says so with no sign on
     // the figure.
-    expect(text).toContain("ক্ষতি / Loss: ৫০,০০০ টাকা");
+    expect(text).toContain("ক্ষতি: ৫০,০০০ টাকা");
     expect(text).not.toContain("-৫০,০০০");
-    expect(text).not.toContain("লাভ / Profit");
+    expect(text).not.toContain("লাভ:");
+    expect(english).not.toContain("Profit");
     // His ten Units take sixty per cent of it — ৩০,০০০ — and it comes off his five lakh.
-    expect(text).toContain(
-      "ক্ষতির অংশ (মূলধন থেকে) / Your share of the loss, off capital: ৩০,০০০ টাকা"
-    );
-    expect(text).toContain("মোট প্রাপ্য / Your payout: ৪,৭০,০০০ টাকা");
+    expect(text).toContain("ক্ষতির অংশ (মূলধন থেকে): ৩০,০০০ টাকা");
+    expect(text).toContain("মোট প্রাপ্য: ৪,৭০,০০০ টাকা");
     // The Farm bears its forty per cent too — ২০,০০০ — and the line says so rather than reading as
     // the Farm taking money out of a run that lost it.
-    expect(text).toContain(
-      "খামারের ভাগের ক্ষতি / The Farm's share of the loss: ২০,০০০ টাকা"
-    );
+    expect(text).toContain("খামারের ভাগের ক্ষতি: ২০,০০০ টাকা");
     expect(text).not.toContain("খামারের অংশ");
     // And a Unit lost three thousand of the fifty thousand it put in, said as a loss rather than as a
     // gain of three thousand.
-    expect(text).toContain("প্রতি ইউনিট ক্ষতি / Loss per Unit: ৩,০০০ টাকা");
-    expect(text).not.toContain("মুনাফা / Profit per Unit");
-    expect(text).toContain("প্রতি ইউনিট / Per Unit: ৫০,০০০ টাকা দিয়ে ৪৭,০০০ টাকা");
+    expect(text).toContain("প্রতি ইউনিট ক্ষতি: ৩,০০০ টাকা");
+    expect(text).not.toContain("প্রতি ইউনিট মুনাফা");
+    expect(text).toContain("প্রতি ইউনিট: ৫০,০০০ টাকা দিয়ে ৪৭,০০০ টাকা");
+    expect(english).toContain("Loss: 50,000 taka");
+    expect(english).toContain(
+      "Your share of the loss, off capital: 30,000 taka"
+    );
+    expect(english).toContain("The Farm's share of the loss: 20,000 taka");
+    expect(english).not.toMatch(/(?<!\w)[-−]\d/u);
   });
 
   it("carries nothing of the other man who signed the same run", async () => {
     const owner = await as("owner", "2053-03-03T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.settlement({
-      agreementId: hisWon,
-    });
+    const { document, text, english } = await hisSheet(owner, hisWon);
     expect(text).toContain(HIM);
-    expect(text).not.toContain(THE_OTHER_MAN);
+    // Nothing of him in either language the paper carries.
+    const both = JSON.stringify(document);
+    expect(both).not.toContain(THE_OTHER_MAN);
     // Seven Units and ৩,৫০,০০০ are his neighbor's business.
     expect(text).not.toContain("৩,৯৩,০৫০");
-    expect(text).not.toContain(`PAY-${theOtherMansWon.slice(-6)}-${suffix}`);
+    expect(english).not.toContain("393,050");
+    expect(both).not.toContain(`PAY-${theOtherMansWon.slice(-6)}-${suffix}`);
   });
 
   it("says the figures were frozen, and that later news comes as an Adjustment", async () => {
     const owner = await as("owner", "2053-03-03T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.settlement({
-      agreementId: hisWon,
-    });
+    const { text, english } = await hisSheet(owner, hisWon);
     expect(text).toContain("বণ্টন সমন্বয় হিসেবে আসবে");
-    expect(text).toContain(
+    expect(english).toContain(
       "Anything arriving later comes as a Settlement Adjustment, not by this sheet being rewritten."
     );
-    // And the footer every statement carries.
-    expect(text).toContain(
+    // And the footer every statement carries, in each language.
+    expect(text).toContain("কোনো মুনাফার নিশ্চয়তা নেই");
+    expect(english).toContain(
       "No return is guaranteed. A loss comes off capital."
     );
   });
@@ -453,19 +472,19 @@ describe("the sheet an Investor checks the whole run against", () => {
       reason: `জানুয়ারির ওষুধের বিল দেরিতে এসেছে ${suffix}`,
     });
 
-    const { text } = await raising.client.investorStatements.settlement({
-      agreementId: hisWon,
-    });
+    const { text, english } = await hisSheet(raising, hisWon);
     // The frozen figures stand exactly as they were — the sheet is reissued, not restated.
-    expect(text).toContain("লাভ / Profit: ২,০৫,০০৫ টাকা");
-    expect(text).toContain("মোট প্রাপ্য / Your payout: ৭,২৯,৯৫০ টাকা");
+    expect(text).toContain("লাভ: ২,০৫,০০৫ টাকা");
+    expect(text).toContain("মোট প্রাপ্য: ৭,২৯,৯৫০ টাকা");
     // And the late news is at the foot of it, in his own money, marked as a fall. A share that fell is
     // never collected back, so nothing is owed either way.
-    expect(text).toContain("বণ্টন সমন্বয় / Settlement Adjustments");
+    expect(text).toContain("বণ্টন সমন্বয়");
     expect(text).toContain(`জানুয়ারির ওষুধের বিল দেরিতে এসেছে ${suffix}`);
-    expect(text).toContain("কমেছে / down");
+    expect(text).toContain("কমেছে");
+    expect(english).toContain("down");
+    expect(english).toContain("noted");
     // And what became of it, in words rather than as the word the database keeps.
-    expect(text).toContain("লেখা আছে / noted");
+    expect(text).toContain("লেখা আছে");
   });
 });
 
@@ -509,27 +528,28 @@ describe("an Investor's own page", () => {
   });
 });
 
-/** A Latin figure just before a Bangla unit: the one thing neither reader reads cleanly. */
-const LATIN_BESIDE_BANGLA = /[0-9][0-9,.]* (?:টাকা|দিন|কেজি)/gu;
-
 describe("the statement printed for an Owner who reads English", () => {
-  it("still says every figure in a Bangla phrase in Bangla numerals, and the English half in English ones", async () => {
+  it("is the same paper whoever asks: its Bangla in Bangla numerals, its English in English ones", async () => {
     const owner = await as("owner", "2053-03-03T04:00:00.000Z");
     await owner.client.language.set({ language: "en" });
     try {
       const reading = await as("owner", "2053-03-03T04:00:00.000Z");
-      const { text } = await reading.client.investorStatements.settlement({
-        agreementId: hisWon,
-      });
+      const { text, english } = await hisSheet(reading, hisWon);
       expect(text.match(LATIN_BESIDE_BANGLA) ?? []).toEqual([]);
-      expect(text).toContain(
-        "প্রতি ইউনিট / Per Unit: ৫০,০০০ টাকা দিয়ে ৫৬,১৫০ টাকা / 50,000 in, 56,150 back"
-      );
+      expect(text).toContain("প্রতি ইউনিট: ৫০,০০০ টাকা দিয়ে ৫৬,১৫০ টাকা");
+      expect(english).toContain("Per Unit: 50,000 taka in, 56,150 taka back");
+      // Its figures and days in English numerals: the names on it are as they were written.
+      expect(
+        english.replaceAll(HIM, "").replaceAll(THE_OTHER_MAN, "")
+      ).not.toMatch(BANGLA_FIGURE);
+      expect(english).not.toMatch(/টাকা|কেজি/u);
       // And his joining letter, its money beside টাকা as well.
       const letter = await reading.client.investorStatements.joining({
         agreementId: hisWon,
       });
-      expect(letter.text.match(LATIN_BESIDE_BANGLA) ?? []).toEqual([]);
+      expect(
+        paperText(letter.document, "bn").match(LATIN_BESIDE_BANGLA) ?? []
+      ).toEqual([]);
     } finally {
       await owner.client.language.set({ language: "bn" });
     }

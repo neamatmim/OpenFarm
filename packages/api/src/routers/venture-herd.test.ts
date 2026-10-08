@@ -5,6 +5,7 @@ import { animal } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
+import { paperText } from "@OpenFarm/domain";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -29,6 +30,11 @@ import { appRouter } from "./index";
  * the code does can never disagree with it.
  */
 const suffix = `herd-${Date.now()}`;
+
+/** A Latin figure just before a Bangla unit, on a paper read in Bangla: the one thing neither reader reads cleanly. */
+const LATIN_BESIDE_BANGLA = /[0-9][0-9,.]* (?:টাকা|দিন|কেজি)/u;
+/** A Bangla numeral on a paper read in English. */
+const BANGLA_FIGURE = /[০-৯]/u;
 
 const at = (instant: string) =>
   createTestClient(appRouter, { as: "owner", clock: new FakeClock(instant) });
@@ -777,23 +783,49 @@ describe("অগ্রগতি — the sheet while the run goes on", () => {
 
   it("says how his animals are doing and where his money has gone", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.progress({
+    const { document } = await owner.client.investorStatements.progress({
       agreementId: await hisAgreement(),
     });
-    expect(text).toContain("অগ্রগতি / Progress statement");
+    const text = paperText(document, "bn");
+    expect(text).toContain("অগ্রগতি");
     expect(text).toContain(`বিনিয়োগকারী 1-1 ${suffix}`);
     // Six Units of the ten this Venture has: sixty per cent, and not a word about who holds the four.
-    expect(text).toContain("৬ (৬০%)");
+    expect(text).toContain("ইউনিট: ৬ (৬০%)");
     // Three standing, one sold to a buyer, one lost.
-    expect(text).toContain("দাঁড়িয়ে আছে / Standing: ৩");
-    expect(text).toContain("মারা গেছে / Died: ১");
+    expect(text).toContain("দাঁড়িয়ে আছে: ৩");
+    expect(text).toContain("মারা গেছে: ১");
     // The bulls it has actually weighed, and what they average.
-    expect(text).toContain("ওজন নেওয়া হয়েছে / Weighed: ২");
-    expect(text).toContain("২২৪.৫");
+    expect(text).toContain("ওজন নেওয়া হয়েছে: ২");
+    expect(text).toContain("২২৪.৫ কেজি");
     // The herd's gain is over every bull it has had, not the two weighed above it, and says so.
+    expect(text).toContain("দৈনিক বৃদ্ধি (বিক্রি ও মৃতসহ সব পশুর): ০.৭৪ কেজি");
+    expect(text).not.toMatch(LATIN_BESIDE_BANGLA);
+  });
+
+  it("says the same in English, in English numerals and English units", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const { document } = await owner.client.investorStatements.progress({
+      agreementId: await hisAgreement(),
+    });
+    const text = paperText(document, "en");
+    expect(text).toContain("Progress statement");
+    expect(text).toContain("Units held: 6 (60%)");
+    expect(text).toContain("Standing: 3");
+    expect(text).toContain("Died: 1");
+    expect(text).toContain("Weighed: 2");
+    expect(text).toContain("224.5 kg");
     expect(text).toContain(
-      "দৈনিক বৃদ্ধি (বিক্রি ও মৃতসহ সব পশুর) / Daily gain (every animal so far, sold and dead included): ০.৭৪ কেজি"
+      "Daily gain (every animal so far, sold and dead included): 0.74 kg"
     );
+    expect(text).toContain("Days to the window: 41 days");
+    expect(text).toContain("Cattle bought · 360,000 taka");
+    expect(text).toContain("Cattle budget left: 154,000 taka");
+    expect(text).toContain("not weighed");
+    expect(text).toContain(
+      "No return is guaranteed. A loss comes off capital."
+    );
+    expect(text).not.toMatch(BANGLA_FIGURE);
+    expect(text).not.toMatch(/টাকা|কেজি|দিন/u);
   });
 
   it("says in words that a Venture has bought nothing yet", async () => {
@@ -805,77 +837,84 @@ describe("অগ্রগতি — the sheet while the run goes on", () => {
     const agreements = await owner.client.ventures.agreements.list({
       ventureId: empty,
     });
-    const { text } = await owner.client.investorStatements.progress({
+    const { document } = await owner.client.investorStatements.progress({
       agreementId: agreements[0]?.id ?? "",
     });
-    expect(text).toContain("এখনো কোনো পশু নেই / none yet");
+    const text = paperText(document, "bn");
+    expect(text).toContain("এখনো কোনো পশু নেই");
+    expect(paperText(document, "en")).toContain("None yet");
     // And no column header standing over nothing, which is what she was shown before.
     expect(text).not.toContain("ট্যাগ · শুরুর ওজন");
   });
 
   it("names a beast nobody has weighed rather than showing her as flat", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.progress({
+    const { document } = await owner.client.investorStatements.progress({
       agreementId: await hisAgreement(),
     });
-    expect(text).toContain("ওজন নেওয়া হয়নি / not weighed");
+    expect(paperText(document, "bn")).toContain("ওজন নেওয়া হয়নি");
+    expect(paperText(document, "en")).toContain("not weighed");
   });
 
   it("shows the spend by Category against both budgets, and no finer", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.progress({
+    const { document } = await owner.client.investorStatements.progress({
       agreementId: await hisAgreement(),
     });
+    const text = paperText(document, "bn");
     // The Settlement's own seven words, so the sheet he gets now adds up the way the sheet at the end
     // will. Six bulls at sixty thousand is three lakh sixty.
-    expect(text).toContain("পশু কেনা / Cattle bought: ৩,৬০,০০০");
-    expect(text).toContain("খাবার / Feed");
+    expect(text).toContain("পশু কেনা · ৩,৬০,০০০ টাকা");
+    expect(text).toContain("খাবার");
     // Four lakh came in for buying. Three lakh sixty went out on the Float and stayed out — six bulls
     // at sixty thousand — and then one of them was sold across to the other Venture for ১,১৪,০০০,
     // which comes back to the cattle side. Four lakh less ২,৪৬,০০০ drawn leaves ১,৫৪,০০০.
-    expect(text).toContain(
-      "পশু কেনার বাজেট / Cattle budget: ৪,০০,০০০ টাকা · বাকি ১,৫৪,০০০ টাকা"
-    );
+    expect(text).toContain("পশু কেনার বাজেট: ৪,০০,০০০ টাকা");
+    expect(text).toContain("পশু কেনার বাজেটের বাকি: ১,৫৪,০০০ টাকা");
     // And one lakh set aside for keeping them, of which nothing has gone yet — nobody has fed or
     // dosed these bulls. What the account *holds* against this budget is another figure entirely:
     // a quarter of a lakh of sale money is sitting in it, and printing that as "left" would tell a
     // man there is more of his running budget left than there ever was.
-    expect(text).toContain(
-      "পরিচালনার বাজেট / Running budget: ১,০০,০০০ টাকা · খরচ হয়েছে ০ টাকা"
-    );
-    // Never the Farm's buying: no seller, no price a kilo.
-    expect(text).not.toContain(`ব্যাপারী ${suffix}`);
+    expect(text).toContain("পরিচালনার বাজেট: ১,০০,০০০ টাকা");
+    expect(text).toContain("পরিচালনায় খরচ হয়েছে: ০ টাকা");
+    // Never the Farm's buying: no seller, no price a kilo — in either language.
+    expect(JSON.stringify(document)).not.toContain(`ব্যাপারী ${suffix}`);
     expect(text).not.toContain("প্রতি কেজি");
+    expect(paperText(document, "en")).not.toMatch(/per kg|a kilo/iu);
   });
 
   it("carries no projection, and never another Investor", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
-    const { text } = await owner.client.investorStatements.progress({
+    const { document } = await owner.client.investorStatements.progress({
       agreementId: await hisAgreement(),
     });
+    const text = paperText(document, "bn");
     // The man holding the other four Units of this very Venture is none of his business, and neither
-    // is the one on the second Venture.
-    expect(text).not.toContain(`বিনিয়োগকারী 1-2 ${suffix}`);
-    expect(text).not.toContain(`বিনিয়োগকারী 2-1 ${suffix}`);
-    expect(text).not.toContain(`TRF-1-2-${suffix}`);
+    // is the one on the second Venture — in neither language.
+    const both = JSON.stringify(document);
+    expect(both).not.toContain(`বিনিয়োগকারী 1-2 ${suffix}`);
+    expect(both).not.toContain(`বিনিয়োগকারী 2-1 ${suffix}`);
+    expect(both).not.toContain(`TRF-1-2-${suffix}`);
     expect(text).toContain("কোনো মুনাফার নিশ্চয়তা নেই");
     // Days to the window is a count; nothing says what a bull will weigh or fetch.
-    expect(text).toContain("লক্ষ্য সময় বাকি / Days to the window: ৪১ দিন");
+    expect(text).toContain("লক্ষ্য সময় বাকি: ৪১ দিন");
   });
 
   it("sends the photographs beside the sheet rather than inside it", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
-    const { text, photos } = await owner.client.investorStatements.progress({
-      agreementId: await hisAgreement(),
-    });
-    // One of the standing bulls has been photographed. The sheet itself stays a plain string — the
+    const { document, photos } = await owner.client.investorStatements.progress(
+      {
+        agreementId: await hisAgreement(),
+      }
+    );
+    // One of the standing bulls has been photographed. The paper itself carries no picture — the
     // face travels with it for whatever draws it.
     expect(photos).toHaveLength(1);
     expect(photos[0]).toMatchObject({
       tagNumber: tags[0],
       contentType: "image/jpeg",
     });
-    expect(text).not.toContain("aGVsbG8=");
+    expect(JSON.stringify(document)).not.toContain("aGVsbG8=");
   });
 
   it("records the Export, and is the Owner's alone", async () => {

@@ -44,7 +44,14 @@ const section = z.discriminatedUnion("kind", [
     kind: z.literal("facts"),
     heading: said,
     rows: z
-      .array(z.object({ label: said, value: z.string().max(LONGEST), only }))
+      .array(
+        z.object({
+          label: said,
+          // Both languages; or Bangla alone, as a Version worded before a fact said its English holds it.
+          value: z.union([said, z.string().max(LONGEST)]),
+          only,
+        })
+      )
       .max(MOST_LINES),
     note: said.nullable(),
   }),

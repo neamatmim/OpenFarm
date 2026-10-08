@@ -80,6 +80,23 @@ describe("«আপনার তথ্য» in the portal", () => {
     expect(said).not.toMatch(NAMED_FIELD);
   });
 
+  it("is read in English too, with the same facts in it, part for part", async () => {
+    const owner = await asOwner();
+    await owner.farm.setDataKeepers(KEEPERS);
+    const nobody = await asNobody();
+
+    const { notice, inEnglish } = await nobody.portal.yourData();
+
+    expect(inEnglish?.title).toBe("How the farm keeps your data");
+    expect(inEnglish?.parts.map((part) => part.lines.length)).toEqual(
+      notice?.parts.map((part) => part.lines.length)
+    );
+    const said = JSON.stringify(inEnglish);
+    expect(said).toContain(KEEPERS.dataHost);
+    expect(said).not.toContain("____");
+    expect(said).not.toMatch(NAMED_FIELD);
+  });
+
   it("is not shown while a fact of the farm's is still unwritten — never a blank in its place", async () => {
     const owner = await asOwner();
     await owner.farm.setDataKeepers({ ...KEEPERS, backupCountry: null });
@@ -89,6 +106,7 @@ describe("«আপনার তথ্য» in the portal", () => {
       const answer = await nobody.portal.yourData();
 
       expect(answer.notice).toBeNull();
+      expect(answer.inEnglish).toBeNull();
       // Whom to ask instead, by name, whatever is missing.
       expect(answer.farm.name.length).toBeGreaterThan(0);
     } finally {

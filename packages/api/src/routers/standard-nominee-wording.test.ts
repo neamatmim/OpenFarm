@@ -177,7 +177,12 @@ describe("the standard Agreement for several Nominees", () => {
 
     const [, him] = partiesOf(document);
     expect(
-      him?.nominees.map((one) => [one.name, one.share, one.minor, one.idNumber])
+      him?.nominees.map((one) => [
+        one.name,
+        one.share.bn,
+        one.minor,
+        one.idNumber,
+      ])
     ).toEqual([
       [`স্ত্রী ${suffix}`, "৮০%", false, "1980 0101 4417"],
       [`মেয়ে ${suffix}`, "২০%", true, "20552691507114382"],

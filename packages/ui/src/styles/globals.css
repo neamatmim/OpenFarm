@@ -293,6 +293,27 @@
     font-size: var(--text-base);
     letter-spacing: normal;
   }
+  /* A paper is read in its own language, whatever the app around it is in (ADR 0021): a Bangla paper in the English
+     app takes Bangla's type and sizes, and an English paper in the Bangla app Latin's — set on the sheet itself, which
+     carries its language, so the print frame reads it the same. */
+  .paper-sheet:lang(bn) {
+    font-family: var(--font-bangla);
+    --text-xs: 0.875rem;
+    --text-sm: 0.9375rem;
+    --text-base: 1.0625rem;
+    --text-lg: 1.1875rem;
+    --text-xl: 1.3125rem;
+    --text-2xl: 1.625rem;
+  }
+  .paper-sheet:lang(en) {
+    font-family: var(--font-sans);
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+  }
   body {
     line-height: var(--text-base--line-height);
   }
