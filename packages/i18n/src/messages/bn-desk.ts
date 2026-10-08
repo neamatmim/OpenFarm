@@ -294,6 +294,13 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "portal.closed":
     "বিনিয়োগকারী পোর্টাল আপনার জন্য খোলা নেই। খামারের মালিকের সঙ্গে কথা বলুন।",
   "portal.title": "বিনিয়োগকারী পোর্টাল",
+  "investors.emailNotConfirmed": "পোর্টালে এখনো নিশ্চিত করেননি",
+  "investors.emailConfirmed": "পোর্টালে নিশ্চিত করেছেন {day}",
+  "investors.emailWrong": "এটি ইমেইল ঠিকানা মনে হচ্ছে না",
+  "investors.emailHint":
+    "ঐচ্ছিক। তিনি পোর্টালে নিশ্চিত করলে কাগজে সম্মতির কোড ফোনের সঙ্গে এখানেও যাবে; বদলালে আবার নিশ্চিত করতে হবে।",
+  "investors.signatoryEmail": "স্বাক্ষরকারীর ইমেইল",
+  "investors.email": "ইমেইল",
   "investors.whatTheySee": "আমন্ত্রিত বিনিয়োগকারীরা কী দেখেন",
   "portal.signInTitle": "বিনিয়োগকারীর সাইন ইন",
   "portal.signInHint":
@@ -1291,6 +1298,26 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "investors.name": "নাম",
   "investors.phone": "ফোন",
   "investors.address": "ঠিকানা",
+  "portal.email.notSent": "ইমেইলটি যায়নি — এক মিনিট পরে আবার চেষ্টা করুন।",
+  "portal.email.justNow": "এইমাত্র একটি কোড পাঠানো হয়েছে — একটু পরে আবার চাইতে পারবেন।",
+  "portal.email.tooMany": "ভুল কোড অনেকবার হয়েছে — পনেরো মিনিট পরে আবার চেষ্টা করুন।",
+  "portal.email.wrongCode": "এটি পাঠানো কোড নয়, বা এর সময় পেরিয়ে গেছে।",
+  "portal.email.farmSendsNone":
+    "খামার এখনো ইমেইল পাঠায় না; ততদিন কোড শুধু আপনার ফোনে যাবে।",
+  "portal.email.none": "খামারের কাছে আপনার কোনো ইমেইল নেই; দিতে চাইলে খামারকে বলুন।",
+  "portal.email.notDone": "ইমেইল নিশ্চিত হয়নি",
+  "portal.email.done": "আপনার ইমেইল নিশ্চিত হয়েছে",
+  "portal.email.confirm": "নিশ্চিত করুন",
+  "portal.email.code": "ইমেইলে পাওয়া কোড",
+  "portal.email.sent":
+    "কোড {email}-এ গেছে। {minutes} মিনিটের মধ্যে লিখুন; না পেলে স্প্যাম ফোল্ডারটি দেখুন।",
+  "portal.email.sendAgain": "আবার পাঠান",
+  "portal.email.send": "কোড পাঠান",
+  "portal.email.confirmHint":
+    "খামার {email}-এ একটি কোড পাঠাবে। কোডটি এখানে লিখলে পোর্টালে কাগজে সম্মতি দেওয়ার কোড ফোনের সঙ্গে এই ইমেইলেও যাবে।",
+  "portal.email.confirmTitle": "আপনার ইমেইল নিশ্চিত করুন",
+  "portal.email.notConfirmed": "এখনো নিশ্চিত হয়নি",
+  "portal.email.confirmed": "নিশ্চিত",
   "investors.nid": "এনআইডি নম্বর",
   "investors.bank": "ব্যাংক হিসাব",
   "investors.bankHint":
@@ -1564,6 +1591,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "auditField.vetId": "ভেট",
   "auditField.vaccine": "টিকা",
   "auditField.retiredAt": "বাদ দেওয়ার দিন",
+  "auditField.emailConfirmedAt": "ইমেইল নিশ্চিত করেছেন",
   "auditField.phone": "ফোন",
   "auditField.address": "ঠিকানা",
   "auditField.nid": "এনআইডি নম্বর",

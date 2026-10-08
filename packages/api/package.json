@@ -25,6 +25,7 @@
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
     "dotenv": "catalog:",
+    "nodemailer": "^10.0.10",
     "web-push": "^3.6.7",
     "zod": "catalog:"
   },

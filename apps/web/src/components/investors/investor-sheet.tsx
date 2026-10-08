@@ -18,6 +18,7 @@ interface Draft {
   kind: Kind;
   name: string;
   phone: string;
+  email: string;
   address: string;
   nid: string;
   bankAccount: string;
@@ -35,6 +36,7 @@ const NOBODY_YET: Draft = {
   kind: "person",
   name: "",
   phone: "",
+  email: "",
   address: "",
   nid: "",
   bankAccount: "",
@@ -51,22 +53,28 @@ const NOBODY_YET: Draft = {
 /** A field left blank is a field the Owner did not answer, not an empty answer. */
 const orNothing = (value: string) => (value.trim() === "" ? undefined : value);
 
+/** An Organization's own fields as the form starts from them; a person's are all blank. */
+const organizationWritten = (organization: Investor["organization"]) => ({
+  tradeLicense: organization?.tradeLicense ?? "",
+  rjscNumber: organization?.rjscNumber ?? "",
+  tin: organization?.tin ?? "",
+  authority: organization?.authority ?? "",
+  authorityOn: organization?.authorityOn ?? "",
+  signatoryName: organization?.signatory.name ?? "",
+  signatoryNid: organization?.signatory.nid ?? "",
+  signatoryRole: organization?.signatory.role ?? "",
+});
+
 /** What the farm has written down about somebody, as the form starts from when it is put right. */
 const asWritten = (investor: Investor): Draft => ({
   kind: investor.kind,
   name: investor.name,
   phone: investor.phone,
+  email: investor.email ?? "",
   address: investor.address ?? "",
   nid: investor.nid ?? "",
   bankAccount: investor.bankAccount ?? "",
-  tradeLicense: investor.organization?.tradeLicense ?? "",
-  rjscNumber: investor.organization?.rjscNumber ?? "",
-  tin: investor.organization?.tin ?? "",
-  authority: investor.organization?.authority ?? "",
-  authorityOn: investor.organization?.authorityOn ?? "",
-  signatoryName: investor.organization?.signatory.name ?? "",
-  signatoryNid: investor.organization?.signatory.nid ?? "",
-  signatoryRole: investor.organization?.signatory.role ?? "",
+  ...organizationWritten(investor.organization),
 });
 
 /** The record as the form now has it, in the shape both writing somebody down and putting them right take: a
@@ -77,6 +85,7 @@ const theRecord = (draft: Draft) =>
         kind: "organization" as const,
         name: draft.name,
         phone: draft.phone,
+        email: orNothing(draft.email),
         address: orNothing(draft.address),
         bankAccount: orNothing(draft.bankAccount),
         tradeLicense: orNothing(draft.tradeLicense),
@@ -92,16 +101,26 @@ const theRecord = (draft: Draft) =>
         kind: "person" as const,
         name: draft.name,
         phone: draft.phone,
+        email: orNothing(draft.email),
         address: orNothing(draft.address),
         nid: orNothing(draft.nid),
         bankAccount: orNothing(draft.bankAccount),
       };
 
-/** Whether the form holds enough to write down: a name and a mobile, and for an Organization its Signatory and the
- *  paper that names them. */
+/** An address with a name, an @ and a domain with a dot in it: enough to tell a slip of the finger from an email. The
+ *  farm learns whether it reaches them when they confirm it. */
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
+
+/** Whether the email box holds an email, or nothing — it is optional. */
+export const emailLooksRight = (typed: string) =>
+  typed.trim() === "" || EMAIL.test(typed.trim());
+
+/** Whether the form holds enough to write down: a name and a mobile, an email that looks like one if any, and for an
+ *  Organization its Signatory and the paper that names them. */
 const isReady = (draft: Draft) =>
   draft.name.trim() !== "" &&
   draft.phone.trim() !== "" &&
+  emailLooksRight(draft.email) &&
   (draft.kind === "person" ||
     (draft.signatoryName.trim() !== "" && draft.authority.trim() !== ""));
 
@@ -157,6 +176,26 @@ export const InvestorSheet = ({
       setDraft({ ...draft, [key]: event.target.value }),
     value: draft[key],
   });
+  // A person's own email, or an Organization's Signatory's: optional, and theirs to confirm in the portal.
+  const emailField = (
+    <FormField
+      error={
+        emailLooksRight(draft.email) ? undefined : t("investors.emailWrong")
+      }
+      hint={t("investors.emailHint")}
+      id="investor-email"
+      label={t(organization ? "investors.signatoryEmail" : "investors.email")}
+    >
+      <Input
+        autoComplete="off"
+        id="investor-email"
+        inputMode="email"
+        maxLength={254}
+        type="email"
+        {...field("email")}
+      />
+    </FormField>
+  );
   return (
     <FormSheet
       description={
@@ -297,6 +336,7 @@ export const InvestorSheet = ({
                 {...field("phone")}
               />
             </FormField>
+            {emailField}
             <FormField
               id="investor-signatory-nid"
               label={t("investors.signatoryNid")}
@@ -355,6 +395,7 @@ export const InvestorSheet = ({
               {...field("phone")}
             />
           </FormField>
+          {emailField}
           <FormField id="investor-nid" label={t("investors.nid")}>
             <Input
               autoComplete="off"

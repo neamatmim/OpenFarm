@@ -7,6 +7,7 @@ import {
   theirAmendmentOffers,
 } from "../amendment-offer-store";
 import { protectedProcedure, publicProcedure } from "../index";
+import { confirmEmail, sendEmailCode } from "../investor-email";
 import {
   changePayInNote,
   payInNoteChangeInput,
@@ -238,6 +239,16 @@ export const portalRouter = {
       await agreeToAmendment(context, context.investor.id, input);
       return { id: input.offerId };
     }),
+
+  /** A code sent to the email the Owner wrote down for them, to confirm it (`sendEmailCode`). */
+  sendEmailCode: investorProcedure.handler(({ context }) =>
+    sendEmailCode(context)
+  ),
+
+  /** Their email confirmed by the code sent to it (`confirmEmail`): from then on, signing codes go there too. */
+  confirmEmail: investorProcedure
+    .input(z.object({ code: z.string().trim().min(1).max(20) }))
+    .handler(({ context, input }) => confirmEmail(context, input.code)),
 
   /** One of their own papers (`theirPaper`), an Export in the trail attributed to the Investor. */
   paper: investorProcedure

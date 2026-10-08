@@ -34,6 +34,14 @@ export const env = createEnv({
     /** What the provider's answer says when it took the message: many local gateways answer 200 with an error inside, and
      *  with this set a text counts as sent only when the answer says so. Absent, a 2xx is taken at its word. */
     SMS_GATEWAY_SUCCESS: z.string().optional(),
+    /** The farm's own email account, over SMTP, configured at go-live and silent until then: a connection URL such as
+     *  smtps://user:password@smtp.example.com:465, which every provider offers and a Gmail app password works with.
+     *  Absent, the farm sends no email, and an Investor's email cannot be confirmed — they agree with the code by text,
+     *  or on paper (ADR 0022). The credentials are the Owner's. */
+    EMAIL_SMTP_URL: z.string().optional(),
+    /** Who the farm's email says it is from: an address the account may send as, with the farm's name if wished —
+     *  "Shobuj Chhaya Dairy <farm@example.com>". */
+    EMAIL_FROM: z.string().optional(),
     /** The outside watch's check-in address, pinged after each whole turn of the farm's day: a server down or an app
      *  dead stops the pings, and the watch tells the Owner (deploy runbook, "The outside watch"). Absent, nothing. */
     OPENFARM_WATCH_URL: z.url().optional(),

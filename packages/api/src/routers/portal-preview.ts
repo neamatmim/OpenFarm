@@ -55,6 +55,7 @@ const readerFor = async (
     farm: theFarm,
     investor: them,
     previewing: true,
+    email: context.email,
   };
 };
 

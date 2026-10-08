@@ -2809,6 +2809,9 @@ export const enCore = {
   "nav.notifiable": "Notifiable diseases",
   "sop.trigger.notifiable": "A notifiable disease is found",
   "sop.effect.dls_report": "Records the letter delivered",
+  "email.confirmCode.subject": "The code to confirm your email",
+  "email.confirmCode.body":
+    "The code to confirm your email in the {farm} Investor Portal: {code}\n\nEnter it on the portal's “Account” page. It works for {minutes, plural, one {# minute} other {# minutes}}. If you did not ask for it, ignore this email and tell the farm.",
   "sms.myNumber": "Your mobile number",
   "sms.title": "Text messages",
   "sms.why":

@@ -248,6 +248,8 @@ export const TRAILED = {
     fields: [
       "name",
       "phone",
+      "email",
+      "emailConfirmedAt",
       "address",
       "nid",
       "bankAccount",
@@ -509,6 +511,24 @@ const organizationLines = (them: typeof investor.$inferSelect) => [
   ),
 ];
 
+/** Their email, and whether and when they confirmed it in the portal (ADR 0022); nothing with none. */
+const emailLines = (them: {
+  email: string | null;
+  emailConfirmedAt: Date | null;
+}): DocumentRow[] => {
+  if (!them.email) {
+    return [];
+  }
+  const confirmed = them.emailConfirmedAt;
+  return linesFor(
+    { bn: "ইমেইল", en: "Email" },
+    {
+      bn: `${them.email} · ${confirmed ? `নিশ্চিত করেছেন ${momentSaid(confirmed).bn}` : "এখনো নিশ্চিত করেননি"}`,
+      en: `${them.email} · ${confirmed ? `confirmed ${momentSaid(confirmed).en}` : "not confirmed yet"}`,
+    }
+  );
+};
+
 /**
  * The Data Copy of one Investor, laid out to print and hand over: the notice's points first, then their record
  * unmasked, their Agreements with any Settlement, the money they moved, the papers made for them, their Requests to
@@ -615,6 +635,7 @@ export const dataCopyOf = async (
     facts({ bn: "আপনার রেকর্ড", en: "Your record" }, [
       ...linesFor({ bn: "নাম", en: "Name" }, them.name),
       ...linesFor({ bn: "ফোন", en: "Phone" }, them.phone),
+      ...emailLines(them),
       ...linesFor({ bn: "ঠিকানা", en: "Address" }, them.address),
       ...linesFor({ bn: "এনআইডি নম্বর", en: "NID" }, them.nid),
       ...organizationLines(them),

@@ -15,6 +15,7 @@ import type { Context } from "./context";
 import { farmsOwnValues } from "./data-keepers";
 import { farmUnitsOf } from "./farm-capital-store";
 import { howToPay } from "./how-to-pay";
+import { maskedEmail } from "./investor-email";
 import type { PaperMaking } from "./investor-papers";
 import {
   joiningLetterFor,
@@ -52,6 +53,8 @@ export interface PortalReader {
   investor: { id: string; name: string; phone: string };
   /** The Owner reading it in the Portal Preview, who is shown what Investors will be before they are. */
   previewing?: boolean;
+  /** How the farm sends email, for whether an email can be confirmed at all. */
+  email?: { sends: boolean };
 }
 
 /** Whether this reader is shown Projections: every Investor once the Owner turns them on, and the Owner in the
@@ -86,6 +89,17 @@ const numbersHidden = (one: PaperNominee): PaperNominee => ({
     : null,
 });
 
+/** An email as its owner is shown it back: most of its name hidden, and whether they confirmed it. */
+const emailShown = (
+  theirs: { email: string | null; emailConfirmedAt: Date | null } | undefined
+) =>
+  theirs?.email
+    ? {
+        shown: maskedEmail(theirs.email),
+        confirmed: theirs.emailConfirmedAt !== null,
+      }
+    : null;
+
 /**
  * Who the portal is for, which farm's and how to reach it, and their own record as the farm holds it — the NID and
  * the bank account with all but their last digits hidden, enough to know them by on a screen somebody may be looking
@@ -96,6 +110,7 @@ export const theirRecord = async ({
   clock,
   farm,
   investor,
+  email,
 }: PortalReader) => {
   const [theirs, inForce, consent] = await Promise.all([
     db.query.investor.findFirst({
@@ -110,6 +125,10 @@ export const theirRecord = async ({
     farm: farmToCall(farm),
     record: {
       phone: theirs?.phone ?? investor.phone,
+      /** Their email with most of its name hidden, and whether they confirmed it here (ADR 0022); null with none. */
+      email: emailShown(theirs),
+      /** Whether the farm sends email at all, so an email can be confirmed. */
+      farmSendsEmail: email?.sends ?? false,
       address: theirs?.address ?? null,
       nid: theirs?.nid ? maskedDigits(theirs.nid) : null,
       /** Whether their consent in force carries the signing clause, so they may agree to papers in the portal (ADR

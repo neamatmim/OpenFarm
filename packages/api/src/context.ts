@@ -14,6 +14,9 @@ import {
   SWITCH_TOKEN_HEADER,
   resolveDeviceSession,
 } from "./device";
+import type { EmailTransport } from "./email";
+import { silentEmail } from "./email";
+import { emailGateway } from "./email-gateway";
 import { settleFarmLocale } from "./farm-locale";
 import type { PushTransport } from "./push";
 import { silentTransport } from "./push";
@@ -92,6 +95,8 @@ export interface Context {
   /** How a text message leaves the farm, for the two notices worth one. Injected the same way,
    *  so the path is built and tested before the farm has an account with a gateway. */
   sms: SmsTransport;
+  /** How an email leaves the farm: the codes an Investor confirms their email with. Injected the same way. */
+  email: EmailTransport;
   /** The public half of the farm's push keys — the part a browser needs and anyone may see.
    *  Carried here so no router has to reach into the server's secrets to find it. */
   pushKey: string | null;
@@ -102,6 +107,13 @@ let productionSms: SmsTransport | undefined;
 const defaultSms = (): SmsTransport => {
   productionSms ??= smsGateway();
   return productionSms;
+};
+
+let productionEmail: EmailTransport | undefined;
+/** Made once: the farm's mail account is read and connected to once. */
+const defaultEmail = (): EmailTransport => {
+  productionEmail ??= emailGateway();
+  return productionEmail;
 };
 
 let productionPush: PushTransport | undefined;
@@ -292,6 +304,7 @@ export const buildContext = async ({
   db,
   push = silentTransport,
   sms = silentSms,
+  email = silentEmail,
   pushKey = null,
   farmId = null,
   callerAddress = null,
@@ -306,6 +319,7 @@ export const buildContext = async ({
   db: Database;
   push?: PushTransport;
   sms?: SmsTransport;
+  email?: EmailTransport;
   pushKey?: string | null;
   /** Which Farm this request acts on, for a caller that knows. Nothing for a request on a farm's own install. */
   farmId?: string | null;
@@ -323,6 +337,7 @@ export const buildContext = async ({
     db,
     push,
     sms,
+    email,
     pushKey,
     roleUsed: null,
     scope: { kind: "nothing" },
@@ -392,6 +407,7 @@ export const createContext = async ({
   db = productionDatabase(),
   push = defaultPush(),
   sms = defaultSms(),
+  email = defaultEmail(),
   pushKey = env.VAPID_PUBLIC_KEY ?? null,
 }: {
   req: Request;
@@ -399,6 +415,7 @@ export const createContext = async ({
   db?: Database;
   push?: PushTransport;
   sms?: SmsTransport;
+  email?: EmailTransport;
   pushKey?: string | null;
 }): Promise<Context> => {
   const callerAddress = callerAddressOf(req);
@@ -420,6 +437,7 @@ export const createContext = async ({
       db,
       push,
       sms,
+      email,
       pushKey,
     });
   }
@@ -430,6 +448,7 @@ export const createContext = async ({
     db,
     push,
     sms,
+    email,
     pushKey,
   });
 };
