@@ -7,8 +7,13 @@ import {
   CONSENT_WITHDRAWN_HOW,
   PORTAL_TAKEN_AWAY_WHY,
   investorAccess,
+  portalConsent,
 } from "@OpenFarm/db/schema/venture";
-import { PORTAL_SIGN_IN_HOURS, investorLoginOf } from "@OpenFarm/domain";
+import {
+  PORTAL_SIGN_IN_HOURS,
+  farmDayOf,
+  investorLoginOf,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -205,10 +210,13 @@ export const takenAwayWhy = z.discriminatedUnion("reason", [
   z.object({
     reason: z.literal("withdrew_consent"),
     on: farmDay,
-    how: z.enum(CONSENT_WITHDRAWN_HOW),
+    // A change of Signatory ends a consent by `signatoryLeaves`, never by the Owner saying so here.
+    how: z.enum(CONSENT_WITHDRAWN_HOW).exclude(["signatory_changed"]),
   }),
   z.object({
-    reason: z.enum(PORTAL_TAKEN_AWAY_WHY).exclude(["withdrew_consent"]),
+    reason: z
+      .enum(PORTAL_TAKEN_AWAY_WHY)
+      .exclude(["withdrew_consent", "signatory_changed"]),
   }),
 ]);
 export type TakenAwayWhy = z.infer<typeof takenAwayWhy>;
@@ -295,6 +303,69 @@ export const takePortalAway = async (
       }
     })
   );
+};
+
+/**
+ * An Organisation's Signatory leaving it, on a transaction already held — the one that writes the new Signatory down
+ * (ADR 0020). The portal sign-in was the old Signatory's: it is taken away, every session it has ends, an open code
+ * dies, and the account is let go of, so the new Signatory opens one of their own rather than taking over the old
+ * one's. The Portal Consent in force was the old Signatory's to give, so it ends today, said to have ended with them. The
+ * new Signatory signs a consent of their own before any code is given. Each change is on the trail.
+ */
+export const signatoryLeaves = async (
+  tx: Tx,
+  context: Owned,
+  investorId: string
+): Promise<void> => {
+  const farmId = context.farm.id;
+  const now = context.clock.now();
+  const access = await tx.query.investorAccess.findFirst({
+    where: { farmId, investorId },
+    columns: { id: true, userId: true, revokedAt: true },
+  });
+  if (access) {
+    const before = await readAccess(tx, farmId, investorId);
+    await tx
+      .update(investorAccess)
+      .set({
+        revokedAt: access.revokedAt ?? now,
+        revokedWhy: "signatory_changed",
+        codeHash: null,
+        codeExpiresAt: null,
+        userId: null,
+      })
+      .where(eq(investorAccess.id, access.id));
+    if (access.userId) {
+      await tx
+        .update(user)
+        .set({ disabledAt: now })
+        .where(eq(user.id, access.userId));
+      await tx.delete(session).where(eq(session.userId, access.userId));
+    }
+    const after = await readAccess(tx, farmId, investorId);
+    await audited(context).recordEvent(
+      tx,
+      { entity: "investor_access", entityId: investorId, action: "update" },
+      { before, after }
+    );
+  }
+  const [inForce] = await tx
+    .select({ id: portalConsent.id })
+    .from(portalConsent)
+    .where(
+      and(
+        eq(portalConsent.farmId, farmId),
+        eq(portalConsent.investorId, investorId),
+        isNull(portalConsent.withdrawnOn)
+      )
+    );
+  if (inForce) {
+    await withdrawConsent(tx, context, investorId, {
+      consentId: inForce.id,
+      on: farmDayOf(now),
+      how: "signatory_changed",
+    });
+  }
 };
 
 /** A phone and code that open no invitation: said the same whichever of the two is wrong. */
@@ -411,13 +482,20 @@ export const takeUpInvitation = async (
   if (!access || !access.codeExpiresAt || access.codeExpiresAt <= now) {
     throw wrong();
   }
-  const who = await context.db.query.investor.findFirst({
+  const them = await context.db.query.investor.findFirst({
     where: { id: access.investorId, farmId: theFarm.id },
-    columns: { name: true },
+    columns: { name: true, kind: true, signatoryName: true },
   });
-  if (!who) {
+  if (!them) {
     throw wrong();
   }
+  // The account is the person's who signs in: an Organisation's Signatory, by their own name (ADR 0020).
+  const who = {
+    name:
+      them.kind === "organisation" && them.signatoryName
+        ? them.signatoryName
+        : them.name,
+  };
   const { already, signsInAs } = await theirAccount(
     context.db,
     access,

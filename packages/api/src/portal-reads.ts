@@ -74,7 +74,7 @@ export const farmToCall = (farm: PortalReader["farm"]) => ({
 /**
  * Who the portal is for, which farm's and how to reach it, and their own record as the farm holds it — the NID and
  * the bank account with all but their last digits hidden, enough to know them by on a screen somebody may be looking
- * over. They are put right by the Owner, not in the portal; their Nominees change only by a paper they sign.
+ * over. For an Organisation, its record, read by its Signatory. They are put right by the Owner, not in the portal; their Nominees change only by a paper they sign.
  */
 export const theirRecord = async ({
   db,
@@ -100,7 +100,28 @@ export const theirRecord = async ({
         ? maskedDigits(theirs.bankAccount)
         : null,
       // The list in force, each marked a minor or not today: theirs to read, and to ask the Owner in writing to change.
-      nominees: paperNominees(inForce, farmDayOf(clock.now())),
+      // None for an Organisation, which names none (ADR 0020).
+      nominees:
+        theirs?.kind === "organisation"
+          ? []
+          : paperNominees(inForce, farmDayOf(clock.now())),
+      /** An Organisation's own papers and the Signatory reading this, their NID hidden as a person's is; null for a
+       *  person. */
+      organisation:
+        theirs?.kind === "organisation"
+          ? {
+              tradeLicence: theirs.tradeLicence,
+              rjscNumber: theirs.rjscNumber,
+              tin: theirs.tin,
+              signatory: {
+                name: theirs.signatoryName ?? "",
+                role: theirs.signatoryRole,
+                nid: theirs.signatoryNid
+                  ? maskedDigits(theirs.signatoryNid)
+                  : null,
+              },
+            }
+          : null,
     },
   };
 };

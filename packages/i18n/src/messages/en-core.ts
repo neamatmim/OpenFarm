@@ -2131,6 +2131,7 @@ export const enCore = {
     "An investor of this name is written down already, on that same phone number",
   "refusal.organisationNamesNoNominee":
     "An organisation names no nominee: its share is its own",
+  "refusal.investorIsAPerson": "Only an organisation has a signatory to change",
   "refusal.investorKindFixed":
     "A person stays a person and an organisation an organisation. Retire this one and write them down again.",
   "refusal.investorAlreadySigned":

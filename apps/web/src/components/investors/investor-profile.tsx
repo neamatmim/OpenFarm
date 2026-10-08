@@ -2,7 +2,14 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Archive, ArchiveRestore, Check, Copy, Pencil } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  Check,
+  Copy,
+  Pencil,
+  UserRoundPen,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -19,6 +26,7 @@ import { orpc } from "@/utils/orpc";
 import { DataCopyAct } from "./data-copy";
 import { Nominees } from "./nominees";
 import { phoneLink } from "./phone-link";
+import { SignatorySheet } from "./signatory-sheet";
 
 /** How long "copied" stays on the button before it offers to copy again. */
 const COPIED_FOR_MS = 2000;
@@ -56,12 +64,15 @@ const Detail = ({
 /** A part of the record under the same heading it was written under, so the paper and the form read alike. */
 const DetailCard = ({
   title,
+  action,
   children,
 }: {
   title: string;
+  /** An act on this part of the record, beside its heading. */
+  action?: ReactNode;
   children: ReactNode;
 }) => (
-  <Section title={title}>
+  <Section action={action} title={title}>
     <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">{children}</dl>
   </Section>
 );
@@ -341,6 +352,7 @@ const OrganisationCards = ({
   organisation: NonNullable<Investor["organisation"]>;
 }) => {
   const { t, language } = useLanguage();
+  const [changing, setChanging] = useState(false);
   return (
     <>
       <DetailCard title={t("investors.section.organisation")}>
@@ -356,7 +368,22 @@ const OrganisationCards = ({
         <Detail label={t("investors.tin")}>{organisation.tin}</Detail>
         <Detail label={t("investors.address")}>{investor.address}</Detail>
       </DetailCard>
-      <DetailCard title={t("investors.section.signatory")}>
+      <DetailCard
+        action={
+          investor.retiredAt ? null : (
+            <Button
+              onClick={() => setChanging(true)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <UserRoundPen aria-hidden data-icon="inline-start" />
+              {t("investors.changeSignatory")}
+            </Button>
+          )
+        }
+        title={t("investors.section.signatory")}
+      >
         <Detail label={t("investors.signatoryName")}>
           {organisation.signatory.name}
         </Detail>
@@ -381,6 +408,11 @@ const OrganisationCards = ({
             : organisation.authority}
         </Detail>
       </DetailCard>
+      <SignatorySheet
+        investor={investor}
+        onOpenChange={setChanging}
+        open={changing}
+      />
     </>
   );
 };

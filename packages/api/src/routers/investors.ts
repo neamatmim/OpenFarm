@@ -1,7 +1,10 @@
 import { portalOrigin } from "@OpenFarm/auth/hosts";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { farm } from "@OpenFarm/db/schema/farm";
-import type { InvestorKind } from "@OpenFarm/db/schema/venture";
+import type {
+  InvestorKind,
+  PORTAL_TAKEN_AWAY_WHY,
+} from "@OpenFarm/db/schema/venture";
 import { investor } from "@OpenFarm/db/schema/venture";
 import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -42,11 +45,11 @@ import {
   lastConsentsWithdrawn,
   recordConsent,
 } from "../portal-consent";
-import type { TakenAwayWhy } from "../portal-store";
 import {
   inviteToPortal,
   portalActivity,
   portalStandings,
+  signatoryLeaves,
   takePortalAway,
   takenAwayWhy,
 } from "../portal-store";
@@ -59,7 +62,7 @@ import { CODE_PAPERS, codePaperFor, handOver } from "../welcome-letter";
 /** Why an Investor's access was taken away, as their record says it: the reason, and for a withdrawn consent the day
  *  they asked and how. */
 const takenAwaySaid = (
-  why: TakenAwayWhy["reason"] | null,
+  why: (typeof PORTAL_TAKEN_AWAY_WHY)[number] | null,
   withdrawn: ConsentWithdrawnSaid | null
 ) => {
   if (!why) {
@@ -559,6 +562,78 @@ export const investorsRouter = {
           )
           .returning({ id: investor.id })
       );
+      return { id: input.id };
+    }),
+
+  /**
+   * An Organisation's Signatory changed for another person (ADR 0020): who they are, their mobile — the record's phone
+   * from now — and the paper that names them. Not putting the record right, which `update` does for the same person:
+   * the portal sign-in and the Portal Consent were the old Signatory's, so both end in the same transaction, and the
+   * new Signatory signs a consent of their own before they are invited. What the Organisation signed before stands. The
+   * Owner's alone.
+   */
+  changeSignatory: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      organisationInput
+        .pick({
+          phone: true,
+          authority: true,
+          authorityOn: true,
+          signatoryName: true,
+          signatoryNid: true,
+          signatoryRole: true,
+        })
+        .extend({ id: z.string().min(1) })
+    )
+    .handler(async ({ context, input }) => {
+      await assertAPerson(context, input.id);
+      const them = await context.db.query.investor.findFirst({
+        where: { id: input.id, farmId: context.farm.id },
+        columns: { kind: true, name: true, retiredAt: true },
+      });
+      if (!them) {
+        throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
+      }
+      if (them.kind !== "organisation") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Only an Organisation has a Signatory to change",
+          data: { refusal: "investor_is_a_person" },
+        });
+      }
+      if (them.retiredAt) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "This Investor is retired; restore them before changing their Signatory",
+          data: { refusal: "investor_retired" },
+        });
+      }
+      const already = await theSamePerson(context.db, context.farm.id, {
+        name: them.name,
+        phone: input.phone,
+      });
+      if (already && already.id !== input.id) {
+        throw alreadyHere(already.retiredAt !== null);
+      }
+      await changeInvestor(context, input.id, async (tx) => {
+        const changed = await tx
+          .update(investor)
+          .set({
+            phone: input.phone,
+            authority: input.authority,
+            authorityOn: input.authorityOn ?? null,
+            signatoryName: input.signatoryName,
+            signatoryNid: input.signatoryNid ?? null,
+            signatoryRole: input.signatoryRole ?? null,
+          })
+          .where(
+            and(eq(investor.id, input.id), eq(investor.farmId, context.farm.id))
+          )
+          .returning({ id: investor.id });
+        await signatoryLeaves(tx, context, input.id);
+        return changed;
+      });
       return { id: input.id };
     }),
 

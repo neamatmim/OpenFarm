@@ -260,13 +260,15 @@ export const investor = pgTable(
 );
 
 /**
- * Why the Owner took an Investor's portal access away: they withdrew their Portal Consent, their phone was lost, or the
- * Owner's own decision. Only a withdrawal touches the consent.
+ * Why the Owner took an Investor's portal access away: they withdrew their Portal Consent, their phone was lost, the
+ * Owner's own decision, or an Organisation's Signatory changed — the sign-in was the old Signatory's (ADR 0020). Only a
+ * withdrawal and a change of Signatory touch the consent.
  */
 export const PORTAL_TAKEN_AWAY_WHY = [
   "withdrew_consent",
   "lost_phone",
   "owner",
+  "signatory_changed",
 ] as const;
 
 /**
@@ -314,8 +316,13 @@ export const investorAccess = pgTable(
   ]
 );
 
-/** How an Investor asked to withdraw their Portal Consent: a signed letter, or a message from their own number. */
-export const CONSENT_WITHDRAWN_HOW = ["letter", "message"] as const;
+/** How an Investor's Portal Consent stopped being in force: they asked by a signed letter, or by a message from their
+ *  own number; or, for an Organisation, the Signatory who signed it was changed for another (ADR 0020). */
+export const CONSENT_WITHDRAWN_HOW = [
+  "letter",
+  "message",
+  "signatory_changed",
+] as const;
 
 /**
  * An Investor's Portal Consent: signed on paper in front of the Owner, before any code is given, to the portal showing

@@ -1958,6 +1958,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.investorExists":
     "এই নাম আর এই ফোন নম্বরে একজন বিনিয়োগকারী আগেই লেখা আছে",
   "refusal.organisationNamesNoNominee": "প্রতিষ্ঠান কোনো নমিনি দেয় না: তার অংশ তারই",
+  "refusal.investorIsAPerson": "শুধু প্রতিষ্ঠানেরই স্বাক্ষরকারী বদলানো যায়",
   "refusal.investorKindFixed":
     "ব্যক্তি ব্যক্তিই থাকেন, প্রতিষ্ঠান প্রতিষ্ঠানই থাকে। এটিকে বাদ দিয়ে নতুন করে লিখুন।",
   "refusal.investorAlreadySigned": "এই বিনিয়োগকারী এই ভেঞ্চারে আগেই সই করেছেন",

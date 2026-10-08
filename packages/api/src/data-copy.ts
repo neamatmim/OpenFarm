@@ -128,6 +128,7 @@ const TAKEN_AWAY_WHY: Record<string, string> = {
   withdrew_consent: "আপনি সম্মতি তুলে নিয়েছেন",
   lost_phone: "ফোন হারানো",
   owner: "খামারের সিদ্ধান্ত",
+  signatory_changed: "প্রতিষ্ঠানের স্বাক্ষরকারী বদলেছে",
 };
 
 /**

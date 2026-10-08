@@ -729,10 +729,13 @@ export const enDesk = {
   "portal.how.message": "By a message from their own number",
   "portal.howLine.letter": "by a signed letter",
   "portal.howLine.message": "by a message from their own number",
+  "portal.howLine.signatory_changed": "when its signatory changed",
   "portal.takenAwayLine.withdrew_consent": "Withdrew consent {day}, {how}",
   "portal.takenAwayLine.withdrewUndated": "Withdrew consent",
   "portal.takenAwayLine.lost_phone": "Taken away: a lost phone",
   "portal.takenAwayLine.owner": "Taken away by your decision",
+  "portal.takenAwayLine.signatory_changed":
+    "Taken away: its signatory changed. Invite the new one once they sign a consent.",
   "portal.refused.noConsentToWithdraw":
     "They have no consent in force to withdraw. Take their access away for another reason.",
   "portal.refused.withdrawnInTheFuture":
@@ -1405,6 +1408,12 @@ export const enDesk = {
   "investors.authorityPlaceholder": "Board resolution, letter of authority",
   "investors.authorityOn": "Dated",
   "investors.signatoryIs": "Signed for by {name}",
+  "investors.changeSignatory": "Change signatory",
+  "investors.changeSignatoryTitle": "A new signatory for {name}",
+  "investors.changeSignatoryHint":
+    "For a different person. {name}'s portal sign-in and consent end now; the new signatory signs a consent before you invite them. What the organisation signed before stands. To correct the same person's details, use Edit.",
+  "investors.section.newSignatory": "The new signatory",
+  "investors.signatoryChanged": "The signatory is changed",
   "investors.authorityDated": "{paper}, dated {day}",
   "investors.section.money": "Where their money goes",
   "investors.noVentures": "Not in any venture yet.",

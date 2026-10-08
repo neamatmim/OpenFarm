@@ -683,10 +683,13 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "portal.how.message": "তাঁর নিজের নম্বর থেকে মেসেজে",
   "portal.howLine.letter": "সই করা চিঠিতে",
   "portal.howLine.message": "নিজের নম্বর থেকে মেসেজে",
+  "portal.howLine.signatory_changed": "স্বাক্ষরকারী বদলানোয়",
   "portal.takenAwayLine.withdrew_consent": "সম্মতি তুলে নিয়েছেন {day}, {how}",
   "portal.takenAwayLine.withdrewUndated": "সম্মতি তুলে নিয়েছেন",
   "portal.takenAwayLine.lost_phone": "ফোন হারানোয় তুলে নেওয়া",
   "portal.takenAwayLine.owner": "আপনার সিদ্ধান্তে তুলে নেওয়া",
+  "portal.takenAwayLine.signatory_changed":
+    "স্বাক্ষরকারী বদলানোয় তুলে নেওয়া। নতুনজন সম্মতিপত্রে সই করলে আমন্ত্রণ দিন।",
   "portal.refused.noConsentToWithdraw":
     "তাঁর কোনো বহাল সম্মতি নেই যা তুলে নেওয়া যায়। অন্য কোনো কারণে প্রবেশাধিকার তুলে নিন।",
   "portal.refused.withdrawnInTheFuture":
@@ -1311,6 +1314,12 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "investors.authorityPlaceholder": "পরিচালনা পর্ষদের সিদ্ধান্ত, ক্ষমতাপত্র",
   "investors.authorityOn": "কাগজের তারিখ",
   "investors.signatoryIs": "পক্ষে সই করেন {name}",
+  "investors.changeSignatory": "স্বাক্ষরকারী বদলান",
+  "investors.changeSignatoryTitle": "{name}-এর নতুন স্বাক্ষরকারী",
+  "investors.changeSignatoryHint":
+    "অন্য একজন মানুষের জন্য। {name}-এর পোর্টালে ঢোকা আর সম্মতি এখনই শেষ হবে; নতুন স্বাক্ষরকারী সম্মতিপত্রে সই করলে তবেই আমন্ত্রণ দিন। প্রতিষ্ঠান আগে যা সই করেছে তা বহাল থাকবে। একই মানুষের তথ্য ঠিক করতে সম্পাদনা ব্যবহার করুন।",
+  "investors.section.newSignatory": "নতুন স্বাক্ষরকারী",
+  "investors.signatoryChanged": "স্বাক্ষরকারী বদলানো হয়েছে",
   "investors.authorityDated": "{paper}, তারিখ {day}",
   "investors.section.money": "{currencySum} কোথায় যাবে",
   "investors.noVentures": "এখনো কোনো ভেঞ্চারে নেই।",
