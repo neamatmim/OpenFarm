@@ -793,8 +793,9 @@ export const othersNamedOnly = (
   ),
 });
 
-/** The blanks of the stamp box: the farm records all three when the paper comes back stamped. */
-const STAMP_BLANKS: Said[] = [
+/** The blanks of the stamp box: the farm records all three when the paper comes back stamped — on the Agreement, and on
+ *  every letter that points at it. */
+export const STAMP_BLANKS: Said[] = [
   { bn: "সিরিয়াল / চালান নম্বর", en: "Serial / challan no." },
   { bn: "মূল্য", en: "Value" },
   { bn: "তারিখ", en: "Date" },

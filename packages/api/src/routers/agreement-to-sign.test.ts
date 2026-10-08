@@ -291,9 +291,12 @@ describe("stamp duty paid by e-challan", () => {
     expect(agreements.find((one) => one.id === signed.id)?.stamp.kind).toBe(
       "e_challan"
     );
-    expect(paperText(document, "bn")).toContain(`ই-চালান নম্বর: 2324-${suffix}`);
+    // In the Agreement's own stamp box, its number under the blank that names the e-challan.
+    expect(paperText(document, "bn")).toContain(
+      `সিরিয়াল / চালান নম্বর: 2324-${suffix}`
+    );
     expect(paperText(document, "en")).toContain(
-      `e-challan no.: 2324-${suffix}`
+      `Serial / challan no.: 2324-${suffix}`
     );
     expect(paperText(document, "bn")).not.toContain("স্ট্যাম্প সিরিয়াল");
   });

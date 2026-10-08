@@ -8,7 +8,7 @@ import type {
   PaperInvestor,
   PaperSection,
 } from "./paper-template";
-import { investorRows, letterheadOf } from "./paper-template";
+import { STAMP_BLANKS, investorRows, letterheadOf } from "./paper-template";
 import type { DocumentRow, Said } from "./papers";
 import { NO_GUARANTEE } from "./papers";
 
@@ -75,15 +75,23 @@ const line = (label: Said, value: Said | string): DocumentRow => ({
   value,
 });
 
-/** How its Agreement was made, as the letter's last facts: the stamp, the e-challan, the app, or the Farm's own. */
-const stampRows = (
-  stamp: JoiningLetterFacts["stamp"]
-): { heading: Said; rows: DocumentRow[] } => {
+/** The stamp box as the Agreement draws it (`STAMP_BLANKS`), headed as the Agreement heads it. */
+const STAMP_HEADING: Said = {
+  bn: "স্ট্যাম্প বা ই-চালান",
+  en: "Stamp or e-challan",
+};
+
+/**
+ * How its Agreement was made, as the letter's last part: the stamp box the Agreement itself carries, its blanks filled
+ * as the copy of the Agreement fills them — the stamp, the e-challan, or, agreed in the app, none and the agreed paper's
+ * number. The Farm's own Units are no Agreement with anybody, so they have no stamp to show.
+ */
+const stampPart = (stamp: JoiningLetterFacts["stamp"]): PaperSection => {
   const day = daySaid(stamp.on);
   switch (stamp.kind) {
-    // The Farm's own Units are no Agreement with anybody: no stamp.
     case "farm_own": {
       return {
+        kind: "facts",
         heading: { bn: "চুক্তি", en: "Agreement" },
         rows: [
           line(
@@ -94,48 +102,28 @@ const stampRows = (
             }
           ),
         ],
+        note: null,
       };
     }
     case "in_app": {
       return {
-        heading: { bn: "চুক্তি সম্পাদন", en: "How it was made" },
-        rows: [
-          line(
-            { bn: "চুক্তি সম্পাদন", en: "Made" },
-            {
-              bn: "অ্যাপে সম্মতি ও অনুমোদনে — স্ট্যাম্প ছাড়া",
-              en: "Agreed and approved in the app — no stamp",
-            }
-          ),
-          line({ bn: "অনুমোদনের তারিখ", en: "Approved on" }, day),
-          line({ bn: "সম্মত কাগজের নম্বর", en: "Agreed paper no." }, stamp.serial),
-        ],
-      };
-    }
-    case "e_challan": {
-      return {
-        heading: { bn: "স্ট্যাম্প শুল্ক", en: "Stamp duty" },
-        rows: [
-          line(
-            { bn: "স্ট্যাম্প শুল্ক (ই-চালান)", en: "Stamp duty (e-challan)" },
-            moneySaid(stamp.valueMoney)
-          ),
-          line({ bn: "পরিশোধের তারিখ", en: "Paid on" }, day),
-          line({ bn: "ই-চালান নম্বর", en: "e-challan no." }, stamp.serial),
+        kind: "stamp",
+        heading: STAMP_HEADING,
+        blanks: STAMP_BLANKS,
+        filled: [
+          stamp.serial,
+          { bn: "নেই — অ্যাপে সম্মত", en: "None — agreed in the app" },
+          day,
         ],
       };
     }
     default: {
+      // A stamp and an e-challan alike: the number, what was paid, and the day.
       return {
-        heading: { bn: "স্ট্যাম্প", en: "Stamp" },
-        rows: [
-          line(
-            { bn: "স্ট্যাম্প মূল্য", en: "Stamp value" },
-            moneySaid(stamp.valueMoney)
-          ),
-          line({ bn: "স্ট্যাম্পের তারিখ", en: "Stamped on" }, day),
-          line({ bn: "স্ট্যাম্প সিরিয়াল", en: "Stamp serial" }, stamp.serial),
-        ],
+        kind: "stamp",
+        heading: STAMP_HEADING,
+        blanks: STAMP_BLANKS,
+        filled: [stamp.serial, moneySaid(stamp.valueMoney), day],
       };
     }
   }
@@ -229,7 +217,6 @@ export const joiningLetterPaper = (
     );
   }
   const { organization } = facts.him;
-  const stamp = stampRows(facts.stamp);
   const [first, ...later] = facts.terms;
   const terms: PaperSection[] = [
     ...(first
@@ -289,7 +276,7 @@ export const joiningLetterPaper = (
       capitalTable(facts),
       ...monthlySumsTable(facts.monthlySums),
       ...terms,
-      { kind: "facts", heading: stamp.heading, rows: stamp.rows, note: null },
+      stampPart(facts.stamp),
       {
         kind: "signatures",
         heading: { bn: "স্বাক্ষর", en: "Signatures" },

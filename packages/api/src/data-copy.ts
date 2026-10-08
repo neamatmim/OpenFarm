@@ -148,11 +148,9 @@ const BANGLA = {
   offerWithdrawn: (at: string) => `প্রস্তাব তুলে নেওয়া ${at}`,
   paperMark: (hash: string) => `কাগজের ছাপ ${hash}`,
   sealedBy: (channel: SigningChannel, to: string) =>
-    `কোড এসেছিল ${channel === "sms" ? "এসএমএসে" : "ইমেইলে"}, ${to}-এ`,
-  sealedFrom: (address: string, agent: string) =>
-    `ঠিকানা ${address}, ব্রাউজার ${agent}`,
-  toldApproved: (ways: string, at: string) => `অনুমোদনের খবর ${ways} ${at}`,
-  notToldApproved: "অনুমোদনের খবর যায়নি",
+    `${channel === "sms" ? "এসএমএসে" : "ইমেইলে"}, ${to}-এ`,
+  toldApproved: (ways: string, at: string) => `${ways}, ${at}`,
+  notToldApproved: "যায়নি",
   youWithdrew: (agreed: string, withdrawn: string) =>
     `${agreed}-এর সম্মতি আপনি ফিরিয়ে নিয়েছেন ${withdrawn}`,
   bySmsAndEmail: (sms: boolean, email: boolean) =>
@@ -200,12 +198,9 @@ const ENGLISH: typeof BANGLA = {
   offerWithdrawn: (at: string) => `offer withdrawn ${at}`,
   paperMark: (hash: string) => `paper fingerprint ${hash}`,
   sealedBy: (channel: SigningChannel, to: string) =>
-    `the code came by ${channel === "sms" ? "text" : "email"} to ${to}`,
-  sealedFrom: (address: string, agent: string) =>
-    `from address ${address}, browser ${agent}`,
-  toldApproved: (ways: string, at: string) =>
-    `told of the approval by ${ways} ${at}`,
-  notToldApproved: "the approval was not told",
+    `by ${channel === "sms" ? "text" : "email"} to ${to}`,
+  toldApproved: (ways: string, at: string) => `by ${ways}, ${at}`,
+  notToldApproved: "not sent",
   youWithdrew: (agreed: string, withdrawn: string) =>
     `you withdrew your agreement of ${agreed} on ${withdrawn}`,
   bySmsAndEmail: (sms: boolean, email: boolean) =>
@@ -480,30 +475,203 @@ const theirConsents = (db: Pick<Tx, "select">, farmId: string, id: string) =>
     )
     .orderBy(desc(portalConsent.signedOn), desc(portalConsent.id));
 
-/** A Settlement on one Agreement, in a line: what it owed them, and whether it was paid and acknowledged. */
-const settlementWords = (
+/** What a Settlement owes on an Agreement, a fact to a line: owed, paid, and acknowledged by them. */
+const settlementLines = (
   settlement: NonNullable<
     Awaited<
       ReturnType<typeof theirAgreements>
     >["agreements"][number]["settlement"]
-  >,
-  language: Language
-) => {
-  const say = WORDS[language];
-  return joined(
-    say.owed(
-      asMoney(settlement.payoutMoney, language),
-      asMoney(settlement.capitalMoney, language),
-      asMoney(settlement.shareMoney, language)
+  >
+): DocumentRow[] => [
+  {
+    label: { bn: "হিসাব নিকাশে পাওনা", en: "Owed at Settlement" },
+    value: each((language) => {
+      const share = language === "bn" ? "মুনাফায় অংশ" : "share of the profit";
+      const capital = language === "bn" ? "মূলধন" : "capital";
+      return `${asMoney(settlement.payoutMoney, language)} (${capital} ${asMoney(settlement.capitalMoney, language)}, ${share} ${asMoney(settlement.shareMoney, language)})`;
+    }),
+  },
+  {
+    label: { bn: "পরিশোধ", en: "Paid" },
+    value: each((language) =>
+      settlement.paidOn
+        ? onDay(settlement.paidOn, language)
+        : WORDS[language].notPaid
     ),
-    settlement.paidOn
-      ? say.paid(onDay(settlement.paidOn, language))
-      : say.notPaid,
-    settlement.acknowledgedAt
-      ? say.acknowledged(when(settlement.acknowledgedAt, language))
-      : null
-  );
+  },
+  ...linesFor(
+    { bn: "আপনি বুঝে পেয়েছেন", en: "You acknowledged it" },
+    settlement.acknowledgedAt ? momentSaid(settlement.acknowledgedAt) : null
+  ),
+];
+
+/** What each column of the paper's tables says it holds. */
+const COLUMN = {
+  day: { label: { bn: "তারিখ", en: "Date" } },
+  at: { label: { bn: "সময়", en: "When" } },
+  what: { label: { bn: "কী", en: "What" } },
+  venture: { label: { bn: "ভেঞ্চার", en: "Venture" } },
+  reference: { label: { bn: "রেফারেন্স", en: "Reference" } },
+  money: { label: { bn: "টাকা", en: "Amount" }, figures: true },
+  paper: { label: { bn: "কাগজ", en: "Paper" } },
+  by: { label: { bn: "যিনি করেছেন", en: "By" } },
+  way: { label: { bn: "যেভাবে", en: "How" } },
+  standing: { label: { bn: "অবস্থা", en: "Where it stands" } },
+  units: { label: { bn: "ইউনিট", en: "Units" }, figures: true },
+  saidAndAnswered: { label: { bn: "আপনার কথা ও উত্তর", en: "Said and answered" } },
+  changed: { label: { bn: "কী বদলাল", en: "What changed" } },
+  whenWhatBy: { label: { bn: "কখন, কী, কে", en: "When, what, by whom" } },
+  nominee: { label: { bn: "নমিনি", en: "Nominee" } },
+  born: { label: { bn: "জন্ম", en: "Born" } },
+  number: {
+    label: { bn: "এনআইডি / জন্ম নিবন্ধন", en: "NID / birth registration" },
+  },
+  share: { label: { bn: "অংশ", en: "Share" }, figures: true },
+} as const satisfies Record<string, { label: Said; figures?: boolean }>;
+
+/** A part of the paper that is a table — a line to a thing — or plainly nothing where it would have no lines. */
+const tableOf = (
+  heading: Said,
+  columns: readonly { label: Said; figures?: boolean }[],
+  rows: Worded[][]
+): PaperSection =>
+  rows.length === 0
+    ? facts(heading, [])
+    : {
+        kind: "table",
+        heading,
+        columns: [...columns],
+        rows,
+        foot: null,
+        note: null,
+      };
+
+/** The heading over the papers they agreed to in the portal, and the part that says there are none. */
+const IN_THE_PORTAL: Said = {
+  bn: "পোর্টালে রাজি হওয়া কাগজ",
+  en: "Agreed in the portal",
 };
+
+/** The heading over their Agreements, and the part that says they have none. */
+const AGREEMENTS: Said = { bn: "আপনার চুক্তি", en: "Your Agreements" };
+
+/**
+ * Every Nomination on file, the list in force first, one Nominee to a line: the paper and its day on its first line,
+ * each Nominee's relation, birth, number and share, and a minor's Receiver beneath their name.
+ */
+const nomineesTable = (
+  nominations: Awaited<ReturnType<typeof nominationsOf>>
+): PaperSection =>
+  tableOf(
+    { bn: "আপনার নমিনি", en: "Your Nominees" },
+    [COLUMN.paper, COLUMN.nominee, COLUMN.born, COLUMN.number, COLUMN.share],
+    nominations.flatMap((one, index) => {
+      const paper = each((language) =>
+        joined(
+          onDay(one.signedOn, language),
+          NOMINATION_HOW_WORDS[one.how][language],
+          index === 0 ? WORDS[language].inForce : null
+        )
+      );
+      if (one.nominees.length === 0) {
+        return [
+          [paper, each((language) => WORDS[language].noNominees), "", "", ""],
+        ];
+      }
+      return paperNominees(one, one.signedOn)
+        .map(nomineeRowOf)
+        .map((row, at): Worded[] => [
+          at === 0 ? paper : "",
+          each((language) =>
+            [
+              joined(row.name, row.relation?.[language] ?? null),
+              row.phone,
+              row.receiver
+                ? WORDS[language].receiver(row.receiver[language])
+                : null,
+            ]
+              .filter(Boolean)
+              .join("\n")
+          ),
+          row.born ?? "",
+          // An adult's NID as it is, the column naming it; a minor's birth registration said so.
+          row.idNumber && row.minor
+            ? each((language) =>
+                WORDS[language].birthRegistration(row.idNumber ?? "")
+              )
+            : (row.idNumber ?? ""),
+          row.share,
+        ]);
+    })
+  );
+
+/** One Agreement on its own, a fact to a line: what it holds, its terms, how it was signed and stamped, its money. */
+const agreementPart = (
+  one: Awaited<ReturnType<typeof theirAgreements>>["agreements"][number]
+): PaperSection =>
+  facts(
+    { bn: `চুক্তি — ${one.venture.name}`, en: `Agreement — ${one.venture.name}` },
+    [
+      {
+        label: { bn: "ইউনিট ও মূলধন", en: "Units and capital" },
+        value: each(
+          (language) =>
+            `${WORDS[language].units(one.units)}, ${asMoney(one.promisedMoney, language)}`
+        ),
+      },
+      {
+        label: { bn: "আপনার অংশ", en: "Your share" },
+        value: each((language) => `${figure(one.investorsPercent, language)}%`),
+      },
+      {
+        label: { bn: "বিক্রির সময়", en: "Target Window" },
+        value: each(
+          (language) =>
+            `${onDay(one.targetWindow.start, language)} – ${onDay(one.targetWindow.end, language)}`
+        ),
+      },
+      ...linesFor(
+        { bn: "সংশোধন", en: "Amended" },
+        one.amendedOn
+          ? each((language) => onDay(one.amendedOn ?? "", language))
+          : null
+      ),
+      {
+        label: { bn: "সই", en: "Signed" },
+        value: each((language) => when(one.signedAt, language)),
+      },
+      {
+        label: { bn: "স্ট্যাম্প", en: "Stamp" },
+        value: each((language) =>
+          // Agreed in the app, it carries none: the agreed paper's number instead, as the copy of it says.
+          one.stamp.kind === "in_app"
+            ? joined(
+                language === "bn"
+                  ? "নেই — অ্যাপে সম্মত"
+                  : "None — agreed in the app",
+                language === "bn"
+                  ? `সম্মত কাগজ নম্বর ${one.stamp.serial}`
+                  : `agreed paper no. ${one.stamp.serial}`
+              )
+            : joined(
+                one.stamp.serial,
+                asMoney(one.stamp.valueMoney, language),
+                onDay(one.stamp.on, language)
+              )
+        ),
+      },
+      { label: { bn: "সালিস", en: "Arbitrator" }, value: one.arbitrator },
+      ...linesFor(
+        { bn: "সই করা কাগজ", en: "Signed paper" },
+        one.hasPaper ? each((language) => WORDS[language].photoKept) : null
+      ),
+      {
+        label: { bn: "খামারে মূলধন", en: "Capital held" },
+        value: each((language) => asMoney(one.capitalHeldMoney, language)),
+      },
+      ...(one.settlement ? settlementLines(one.settlement) : []),
+    ]
+  );
 
 /** When their portal access was taken away, and why, said to them. */
 const takenAwayWords = (at: Date, why: string | null): Said =>
@@ -557,9 +725,9 @@ const emailLines = (them: {
   );
 };
 
-/** How a paper agreed in the app was sealed: the way the code came and where, from what address and browser, and
- *  whether the farm told them of the approval. Nothing where no code sealed it. */
-const sealWords = (
+/** How a paper agreed in the portal was sealed, a fact to a line: the way the code came and where, from what address and
+ *  browser, and whether the farm told them of the approval. Nothing where no code sealed it. */
+const sealLines = (
   proof:
     | {
         channel: SigningChannel;
@@ -570,25 +738,40 @@ const sealWords = (
         confirmedBySms: boolean;
         confirmedByEmail: boolean;
       }
-    | undefined,
-  language: Language
-): string | null => {
+    | undefined
+): DocumentRow[] => {
   if (!proof) {
-    return null;
+    return [];
   }
-  const say = WORDS[language];
   const told = proof.confirmedBySms || proof.confirmedByEmail;
-  return joined(
-    say.sealedBy(proof.channel, proof.sentTo),
-    say.sealedFrom(proof.callerAddress ?? "—", proof.callerAgent ?? "—"),
-    proof.confirmedAt && told
-      ? say.toldApproved(
-          say.bySmsAndEmail(proof.confirmedBySms, proof.confirmedByEmail),
-          when(proof.confirmedAt, language)
-        )
-      : null,
-    proof.confirmedAt && !told ? say.notToldApproved : null
-  );
+  const { confirmedAt } = proof;
+  return [
+    {
+      label: { bn: "কোড", en: "Code" },
+      value: each((language) =>
+        WORDS[language].sealedBy(proof.channel, proof.sentTo)
+      ),
+    },
+    { label: { bn: "ঠিকানা", en: "Address" }, value: proof.callerAddress ?? "—" },
+    { label: { bn: "ব্রাউজার", en: "Browser" }, value: proof.callerAgent ?? "—" },
+    ...linesFor(
+      { bn: "অনুমোদনের খবর", en: "Told of the approval" },
+      confirmedAt
+        ? each((language) => {
+            const say = WORDS[language];
+            return told
+              ? say.toldApproved(
+                  say.bySmsAndEmail(
+                    proof.confirmedBySms,
+                    proof.confirmedByEmail
+                  ),
+                  when(confirmedAt, language)
+                )
+              : say.notToldApproved;
+          })
+        : null
+    ),
+  ];
 };
 
 /** Each agreement they withdrew before it was approved, by the paper it was to: `offerKind:offerId`. */
@@ -784,6 +967,60 @@ export const dataCopyOf = async (
     agreements: money.agreements,
   });
 
+  // Each paper agreed in the portal on its own: offered, agreed, approved, and how the code that sealed it came.
+  const inThePortal = (
+    agreedThere: {
+      name: Said;
+      key: string;
+      offer: {
+        offeredAt?: Date;
+        agreedAt?: Date | null;
+        approvedAt?: Date | null;
+        withdrawnAt?: Date | null;
+        paperHash?: string;
+      };
+      terms: Said | null;
+    }[]
+  ): PaperSection[] =>
+    agreedThere.length === 0
+      ? [facts(IN_THE_PORTAL, [])]
+      : agreedThere.map(({ name, key, offer, terms }) =>
+          facts(
+            {
+              bn: `${IN_THE_PORTAL.bn} — ${name.bn}`,
+              en: `${IN_THE_PORTAL.en} — ${name.en}`,
+            },
+            [
+              ...linesFor({ bn: "শর্ত", en: "Terms" }, terms),
+              ...linesFor(
+                { bn: "প্রস্তাব", en: "Offered" },
+                offer.offeredAt ? momentSaid(offer.offeredAt) : null
+              ),
+              ...linesFor(
+                { bn: "আপনার সম্মতি", en: "You agreed" },
+                offer.agreedAt ? momentSaid(offer.agreedAt) : null
+              ),
+              ...linesFor(
+                { bn: "খামারের অনুমোদন", en: "Approved by the farm" },
+                offer.approvedAt ? momentSaid(offer.approvedAt) : null
+              ),
+              ...linesFor(
+                { bn: "প্রস্তাব তুলে নেওয়া", en: "Offer withdrawn" },
+                offer.withdrawnAt ? momentSaid(offer.withdrawnAt) : null
+              ),
+              ...linesFor(
+                { bn: "কাগজের ছাপ", en: "Paper fingerprint" },
+                offer.paperHash ? offer.paperHash.slice(0, 12) : null
+              ),
+              ...linesFor(
+                { bn: "ফিরিয়ে নেওয়া সম্মতি", en: "Agreement withdrawn" },
+                each((language) => withdrawnOf(key, language))
+              ),
+              ...sealLines(proofOf.get(key)),
+            ]
+          )
+        );
+
   const sections: PaperSection[] = [
     // The notice's points first, as the portal's page reads them, each with its English beside it.
     ...notice.parts.map((part, at): PaperSection => {
@@ -814,213 +1051,122 @@ export const dataCopyOf = async (
         them.retiredAt ? momentSaid(them.retiredAt) : null
       ),
     ]),
-    // Every Nomination on file, the list in force first: who they named, and on which paper. An Organization names
-    // none, and is not asked about them.
-    ...(them.kind === "organization"
-      ? []
-      : [
-          facts(
-            { bn: "আপনার নমিনি", en: "Your Nominees" },
-            nominations.map((one, index) => {
-              const rows = paperNominees(one, one.signedOn).map(nomineeRowOf);
-              return {
-                label: each((language) =>
-                  joined(
-                    onDay(one.signedOn, language),
-                    NOMINATION_HOW_WORDS[one.how][language],
-                    index === 0 ? WORDS[language].inForce : null
-                  )
-                ),
-                value: each((language) => {
-                  const say = WORDS[language];
-                  if (one.nominees.length === 0) {
-                    return say.noNominees;
-                  }
-                  return rows
-                    .map((row) =>
-                      joined(
-                        row.name,
-                        row.relation?.[language] ?? null,
-                        row.born ? say.born(row.born[language]) : null,
-                        row.idNumber
-                          ? (row.minor ? say.birthRegistration : say.nid)(
-                              row.idNumber
-                            )
-                          : null,
-                        row.phone,
-                        say.share(row.share[language]),
-                        row.receiver
-                          ? say.receiver(row.receiver[language])
-                          : null
-                      )
-                    )
-                    .join("; ");
-                }),
-              };
-            })
-          ),
-        ]),
-    facts(
-      { bn: "আপনার চুক্তি", en: "Your Agreements" },
-      money.agreements.map((one) => ({
-        label: asTyped(one.venture.name),
-        value: each((language) => {
-          const say = WORDS[language];
-          return joined(
-            `${say.units(one.units)}, ${asMoney(one.promisedMoney, language)}`,
-            say.yourShare(one.investorsPercent),
-            say.window(
-              onDay(one.targetWindow.start, language),
-              onDay(one.targetWindow.end, language)
-            ),
-            one.amendedOn ? say.amended(onDay(one.amendedOn, language)) : null,
-            say.signed(when(one.signedAt, language)),
-            say.stamp(
-              one.stamp.serial,
-              asMoney(one.stamp.valueMoney, language),
-              onDay(one.stamp.on, language)
-            ),
-            say.arbitrator(one.arbitrator),
-            one.hasPaper ? say.photoKept : null,
-            say.capitalHeld(asMoney(one.capitalHeldMoney, language)),
-            one.settlement ? settlementWords(one.settlement, language) : null
-          );
-        }),
-      }))
-    ),
-    facts(
+    // Every Nomination on file, the list in force first, one Nominee to a line: who they named, and on which paper. An
+    // Organization names none, and is not asked about them.
+    ...(them.kind === "organization" ? [] : [nomineesTable(nominations)]),
+    // Each Agreement on its own, a fact to a line.
+    ...(money.agreements.length === 0
+      ? [facts(AGREEMENTS, [])]
+      : money.agreements.map(agreementPart)),
+    tableOf(
       { bn: `আপনার ${currencyWords("bn").of} লেনদেন`, en: "Your money moved" },
-      money.movements.map((one) => ({
-        label: each((language) => onDay(one.movedOn, language)),
-        value: each((language) =>
-          joined(
-            MOVEMENT_NAMES[one.kind][language],
-            asMoney(one.amountMoney, language),
-            ventureOf.get(one.agreementId),
-            one.reference
-          )
-        ),
-      }))
+      [COLUMN.day, COLUMN.what, COLUMN.venture, COLUMN.reference, COLUMN.money],
+      money.movements.map((one) => [
+        each((language) => onDay(one.movedOn, language)),
+        each((language) => MOVEMENT_NAMES[one.kind][language]),
+        ventureOf.get(one.agreementId) ?? "",
+        one.reference ?? "",
+        each((language) => asMoney(one.amountMoney, language)),
+      ])
     ),
-    facts(
+    tableOf(
       { bn: "আপনার জন্য তৈরি কাগজ", en: "Papers made for you" },
+      [COLUMN.at, COLUMN.paper, COLUMN.by],
       papers.map((one) => {
         const { paper } = fieldsOf(one.after);
-        return {
-          label: momentSaid(one.at),
-          value: each((language) =>
-            joined(
-              isTheirPaper(paper)
-                ? PAPER_NAMES[paper][language]
-                : String(paper ?? ""),
-              one.by
-            )
-          ),
-        };
+        return [
+          momentSaid(one.at),
+          isTheirPaper(paper) ? PAPER_NAMES[paper] : String(paper ?? ""),
+          one.by ?? "",
+        ];
       })
     ),
-    facts(
+    tableOf(
       { bn: "আপনার জমার খবর", en: "Your Pay-in Notes" },
-      payInNotes.map((one) => ({
-        label: each((language) => onDay(one.sentOn, language)),
-        value: each((language) =>
+      [
+        COLUMN.day,
+        COLUMN.venture,
+        COLUMN.way,
+        COLUMN.reference,
+        COLUMN.standing,
+        COLUMN.money,
+      ],
+      payInNotes.map((one) => [
+        each((language) => onDay(one.sentOn, language)),
+        ventureNamed.get(one.ventureId) ?? "",
+        each((language) => translate(language, `portal.payIn.way.${one.way}`)),
+        one.reference ?? "",
+        each((language) =>
           joined(
-            ventureNamed.get(one.ventureId) ?? null,
-            asMoney(one.amountMoney, language),
-            translate(language, `portal.payIn.way.${one.way}`),
-            one.reference,
             translate(language, `portal.payIn.state.${one.state}`),
             one.answerLine ? `“${one.answerLine}”` : null,
             WORDS[language].sent(when(one.createdAt, language))
           )
         ),
-      }))
+        each((language) => asMoney(one.amountMoney, language)),
+      ])
     ),
-    facts({ bn: "পোর্টালে রাজি হওয়া কাগজ", en: "Agreed in the portal" }, [
+    // Each paper agreed in the portal on its own: offered, agreed, approved, and how the code that sealed it came.
+    ...inThePortal([
       ...offers.map((one) => ({
-        label: asTyped(ventureNamed.get(one.ventureId) ?? ""),
-        value: each((language) => {
-          const say = WORDS[language];
-          return joined(
-            `${say.units(one.units)}, ${say.yourShare(one.investorsPercent)}`,
-            say.offered(when(one.offeredAt, language)),
-            one.agreedAt ? say.youAgreed(when(one.agreedAt, language)) : null,
-            one.approvedAt
-              ? say.farmApproved(when(one.approvedAt, language))
-              : null,
-            one.withdrawnAt
-              ? say.offerWithdrawn(when(one.withdrawnAt, language))
-              : null,
-            say.paperMark(one.paperHash.slice(0, 12)),
-            withdrawnOf(`agreement_offer:${one.id}`, language),
-            sealWords(proofOf.get(`agreement_offer:${one.id}`), language)
-          );
-        }),
+        name: asTyped(ventureNamed.get(one.ventureId) ?? ""),
+        key: `agreement_offer:${one.id}`,
+        offer: one,
+        terms: each(
+          (language) =>
+            `${WORDS[language].units(one.units)}, ${WORDS[language].yourShare(one.investorsPercent)}`
+        ),
       })),
       ...amendmentsAgreed.map((one) => ({
-        label: each((language) =>
+        name: each((language) =>
           WORDS[language].amendment(ventureOf.get(one.agreementId) ?? "")
         ),
-        value: each((language) =>
-          joined(
-            WORDS[language].youAgreed(when(one.agreedAt, language)),
-            withdrawnOf(`amendment_offer:${one.offerId}`, language),
-            sealWords(proofOf.get(`amendment_offer:${one.offerId}`), language)
-          )
-        ),
+        key: `amendment_offer:${one.offerId}`,
+        offer: { agreedAt: one.agreedAt },
+        terms: null,
       })),
       ...takenBack.map((one) => ({
-        label: each((language) => WORDS[language].amendment(one.ventureName)),
-        value: each((language) =>
-          withdrawnOf(`amendment_offer:${one.id}`, language)
-        ),
+        name: each((language) => WORDS[language].amendment(one.ventureName)),
+        key: `amendment_offer:${one.id}`,
+        offer: {},
+        terms: null,
       })),
-      // Each মনোনয়নপত্র offered to them in the app, as an Agreement offered there is.
       ...nominationOffers.map((one) => ({
-        label: { bn: "মনোনয়নপত্র", en: "মনোনয়নপত্র" },
-        value: each((language) => {
-          const say = WORDS[language];
-          return joined(
-            say.offered(when(one.offeredAt, language)),
-            one.agreedAt ? say.youAgreed(when(one.agreedAt, language)) : null,
-            one.approvedAt
-              ? say.farmApproved(when(one.approvedAt, language))
-              : null,
-            one.withdrawnAt
-              ? say.offerWithdrawn(when(one.withdrawnAt, language))
-              : null,
-            say.paperMark(one.paperHash.slice(0, 12)),
-            withdrawnOf(`nomination_offer:${one.id}`, language),
-            sealWords(proofOf.get(`nomination_offer:${one.id}`), language)
-          );
-        }),
+        name: { bn: "মনোনয়নপত্র", en: "মনোনয়নপত্র" },
+        key: `nomination_offer:${one.id}`,
+        offer: one,
+        terms: null,
       })),
     ]),
-    facts({ bn: "ভেঞ্চারে যোগ দেওয়ার অনুরোধ", en: "Your Requests to Join" }, [
-      ...requests.map((one) => ({
-        label: asTyped(one.ventureName),
-        value: each((language) =>
-          joined(
-            WORDS[language].units(one.units),
-            translate(language, `ventures.requests.state.${one.state}`),
-            one.note ? `“${one.note}”` : null,
-            one.answerLine
-          )
+    tableOf(
+      { bn: "ভেঞ্চারে যোগ দেওয়ার অনুরোধ", en: "Your Requests to Join" },
+      [COLUMN.venture, COLUMN.units, COLUMN.standing, COLUMN.saidAndAnswered],
+      requests.map((one) => [
+        one.ventureName,
+        each((language) => WORDS[language].units(one.units)),
+        each((language) =>
+          translate(language, `ventures.requests.state.${one.state}`)
         ),
-      })),
-      ...requestChanges.map((one) => ({
-        label: momentSaid(one.at),
-        value: each((language) =>
-          joined(
-            one.ventureName,
-            translate(language, `ventures.requests.kind.${one.kind}`, {
-              // The Bangla says the count as written; the English counts it, one Unit or many.
-              units: language === "bn" ? figure(one.units, "bn") : one.units,
-            })
-          )
+        asTyped(joined(one.note ? `“${one.note}”` : null, one.answerLine)),
+      ])
+    ),
+    tableOf(
+      {
+        bn: "অনুরোধে আপনার প্রতিটি বদল",
+        en: "Each change you made to a Request",
+      },
+      [COLUMN.at, COLUMN.venture, COLUMN.what],
+      requestChanges.map((one) => [
+        momentSaid(one.at),
+        one.ventureName,
+        each((language) =>
+          translate(language, `ventures.requests.kind.${one.kind}`, {
+            // The Bangla says the count as written; the English counts it, one Unit or many.
+            units: language === "bn" ? figure(one.units, "bn") : one.units,
+          })
         ),
-      })),
-    ]),
+      ])
+    ),
     facts({ bn: "পোর্টাল", en: "The portal" }, [
       ...linesFor(
         { bn: "সাইন ইনের ফোন", en: "Signs in with" },
@@ -1085,22 +1231,30 @@ export const dataCopyOf = async (
         ),
       })),
     ]),
-    facts(
+    tableOf(
       { bn: "আপনার সম্পর্কে প্রতিটি বদল", en: "Every change about you" },
+      [COLUMN.whenWhatBy, COLUMN.changed],
       changes.flatMap(({ entity, ...one }) =>
         isTrailed(entity)
           ? [
-              {
-                label: momentSaid(one.at),
-                value: each((language) =>
-                  joined(
-                    TRAILED[entity].what[language],
-                    translate(language, `audit.action.${one.action}`),
+              [
+                // When, what and who, a line each, beside what changed.
+                each((language) =>
+                  [
+                    when(one.at, language),
+                    joined(
+                      TRAILED[entity].what[language],
+                      translate(language, `audit.action.${one.action}`)
+                    ),
                     one.by,
-                    whatChanged(entity, one.before, one.after, language)
-                  )
+                  ]
+                    .filter(Boolean)
+                    .join("\n")
                 ),
-              },
+                each((language) =>
+                  whatChanged(entity, one.before, one.after, language)
+                ),
+              ],
             ]
           : []
       )

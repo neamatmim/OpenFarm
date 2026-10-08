@@ -193,8 +193,8 @@ describe("a Signing Code", () => {
       id: them.id,
     });
     const said = paperText(theirData, "en");
-    expect(said).toContain(`the code came by text to ${sent.bySms}`);
-    expect(said).toContain("told of the approval by text");
+    expect(said).toContain(`Code: by text to ${sent.bySms}`);
+    expect(said).toContain("Told of the approval: by text");
   });
 
   it("seals it by the email code too, and the proof says the code came by email", async () => {

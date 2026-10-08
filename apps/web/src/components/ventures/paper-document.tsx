@@ -44,7 +44,7 @@ const LOOK = {
   table: "w-full border-collapse text-sm",
   tableHead: "bg-muted/50 text-muted-foreground text-xs",
   th: "px-3 py-2 align-bottom font-medium",
-  td: "px-3 py-2 align-top",
+  td: "px-3 py-2 align-top whitespace-pre-line",
   writeOn: "border-foreground/60 border-b",
 } as const;
 

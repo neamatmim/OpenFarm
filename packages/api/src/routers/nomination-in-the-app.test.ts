@@ -128,7 +128,7 @@ describe("a মনোনয়নপত্র offered in the app", () => {
     const { document } = await owner.investors.dataCopy({ id: them.id });
     const said = paperText(document, "en");
     expect(said).toContain("মনোনয়নপত্র agreed in the app");
-    expect(said).toContain("the code came by text");
+    expect(said).toContain("Code: by text");
   });
 
   it("is not offered naming a minor, whose Receiver signs on paper, nor to an Organization, which names none", async () => {
