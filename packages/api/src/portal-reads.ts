@@ -8,7 +8,7 @@ import {
   maskedDigits,
   readingOf,
 } from "@OpenFarm/domain";
-import type { TemplateContent } from "@OpenFarm/domain";
+import type { PaperNominee, TemplateContent } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Context } from "./context";
@@ -71,6 +71,20 @@ export const farmToCall = (farm: PortalReader["farm"]) => ({
   address: farm.address,
 });
 
+const hidden = (number: string | null) =>
+  number ? maskedDigits(number) : null;
+
+/** A Nominee as the portal shows them: their NID or birth registration, and their Receiver's NID, all but the last
+ *  digits hidden. */
+const numbersHidden = (one: PaperNominee): PaperNominee => ({
+  ...one,
+  nid: hidden(one.nid),
+  birthRegistration: hidden(one.birthRegistration),
+  receiver: one.receiver
+    ? { ...one.receiver, nid: hidden(one.receiver.nid) }
+    : null,
+});
+
 /**
  * Who the portal is for, which farm's and how to reach it, and their own record as the farm holds it — the NID and
  * the bank account with all but their last digits hidden, enough to know them by on a screen somebody may be looking
@@ -100,11 +114,11 @@ export const theirRecord = async ({
         ? maskedDigits(theirs.bankAccount)
         : null,
       // The list in force, each marked a minor or not today: theirs to read, and to ask the Owner in writing to change.
-      // None for an Organization, which names none (ADR 0020).
+      // Their numbers are hidden as the Investor's own NID is. None for an Organization, which names none (ADR 0020).
       nominees:
         theirs?.kind === "organization"
           ? []
-          : paperNominees(inForce, farmDayOf(clock.now())),
+          : paperNominees(inForce, farmDayOf(clock.now())).map(numbersHidden),
       /** An Organization's own papers and the Signatory reading this, their NID hidden as a person's is; null for a
        *  person. */
       organization:

@@ -837,18 +837,31 @@ export const nominee = pgTable(
     phone: text("phone"),
     /** Unknown only for a nominee carried over from before dates of birth were kept. */
     bornOn: text("born_on"),
+    /** Their NID number, for one eighteen or over on the day the paper was signed; unknown only for one written down
+     *  before Nominees gave it. */
+    nid: text("nid"),
+    /** Their birth registration number, for one under eighteen on that day, who has no NID yet; unknown only for one
+     *  written down before Nominees gave it. */
+    birthRegistration: text("birth_registration"),
     /** Whole percent of the collecting, never of the inheritance; a Nomination's add to a hundred. */
     sharePercent: integer("share_percent").notNull(),
     receiverName: text("receiver_name"),
     /** The Receiver's relation to the Nominee, in words. */
     receiverRelation: text("receiver_relation"),
     receiverPhone: text("receiver_phone"),
+    /** The Receiver's NID number: they are who collects. Unknown only for one written down before Receivers gave it. */
+    receiverNid: text("receiver_nid"),
   },
   (table) => [
     primaryKey({ columns: [table.nominationId, table.place] }),
     check(
       "nominee_percent_whole",
       sql`${table.sharePercent} between 0 and 100`
+    ),
+    // An adult is known by their NID and a minor by their birth registration, never both.
+    check(
+      "nominee_known_by_one_number",
+      sql`${table.nid} is null or ${table.birthRegistration} is null`
     ),
   ]
 );

@@ -151,13 +151,20 @@ describe("the Investment Agreement, laid out to be signed", () => {
         {
           ...theWhole(`রহিমা ${suffix}`),
           bornOn: "2000-03-14",
+          nid: "2000 0314 7781",
           sharePercent: 80,
         },
         {
           ...theWhole(`সাদিয়া ${suffix}`, "মেয়ে"),
           bornOn: "2040-11-20",
+          birthRegistration: "20402691507114382",
           sharePercent: 20,
-          receiver: { name: `রহিমা ${suffix}`, relation: "মা", phone: null },
+          receiver: {
+            name: `রহিমা ${suffix}`,
+            relation: "মা",
+            phone: null,
+            nid: "2000 0314 7781",
+          },
         },
       ],
       signedOn: "2052-01-01",
@@ -170,12 +177,19 @@ describe("the Investment Agreement, laid out to be signed", () => {
     const [farm, him] = partOf(document, "parties").parties;
     expect(farm?.nominees).toEqual([]);
     expect(him?.nominees).toMatchObject([
-      { name: `রহিমা ${suffix}`, share: "৮০%", minor: false, receiver: null },
+      {
+        name: `রহিমা ${suffix}`,
+        idNumber: "2000 0314 7781",
+        share: "৮০%",
+        minor: false,
+        receiver: null,
+      },
       {
         name: `সাদিয়া ${suffix}`,
+        idNumber: "20402691507114382",
         share: "২০%",
         minor: true,
-        receiver: `রহিমা ${suffix} (মা)`,
+        receiver: `রহিমা ${suffix} (মা), এনআইডি 2000 0314 7781`,
       },
     ]);
   });

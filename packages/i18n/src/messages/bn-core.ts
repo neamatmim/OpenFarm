@@ -863,6 +863,12 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "আঠারো বছরের কম বয়সী নমিনির হয়ে সংগ্রহ করবেন এমন একজন গ্রহণকারী লাগবে।",
   "nominees.problem.receiver_not_needed":
     "শুধু আঠারো বছরের কম বয়সী নমিনিরই গ্রহণকারী থাকে।",
+  "nominees.problem.nid_missing":
+    "আঠারো বা তার বেশি বয়সী প্রত্যেক নমিনির এনআইডি নম্বর লাগবে।",
+  "nominees.problem.birth_registration_missing":
+    "আঠারো বছরের কম বয়সী নমিনির জন্ম নিবন্ধন নম্বর লাগবে।",
+  "nominees.problem.receiver_nid_missing":
+    "গ্রহণকারীর এনআইডি নম্বর লাগবে: টাকা তিনিই সংগ্রহ করবেন।",
   "nominees.new": "নতুন মনোনয়নপত্র",
   "nominees.newTitle": "{name}-এর নতুন মনোনয়নপত্র",
   "nominees.newHint":
@@ -873,12 +879,19 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "nominees.name": "নাম",
   "nominees.relation": "তাঁর সঙ্গে সম্পর্ক",
   "nominees.bornOn": "জন্মতারিখ",
+  "nominees.nid": "এনআইডি নম্বর",
+  "nominees.birthRegistration": "জন্ম নিবন্ধন নম্বর",
   "nominees.phone": "ফোন",
   "nominees.sharePercent": "অংশ (%)",
   "nominees.receiverHeading": "আঠারোর কম: তাঁর হয়ে কে সংগ্রহ করবেন",
   "nominees.receiverName": "গ্রহণকারীর নাম",
   "nominees.receiverRelation": "নমিনির সঙ্গে সম্পর্ক",
   "nominees.receiverPhone": "গ্রহণকারীর ফোন",
+  "nominees.receiverNid": "গ্রহণকারীর এনআইডি নম্বর",
+  "nominees.nidIs": "এনআইডি {number}",
+  "nominees.birthRegistrationIs": "জন্ম নিবন্ধন {number}",
+  "nominees.numberNotGiven": "এনআইডি দেওয়া হয়নি",
+  "nominees.birthRegistrationNotGiven": "জন্ম নিবন্ধন দেওয়া হয়নি",
   "nominees.total": "এ পর্যন্ত অংশ: {total}%",
   "nominees.noneYet":
     "কোনো নমিনি নেই: {currencySum} সরাসরি তাঁর উত্তরাধিকারীদের কাছে যাবে।",

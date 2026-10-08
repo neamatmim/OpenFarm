@@ -8,6 +8,7 @@ import type { Nominee, PaperDocument } from "@OpenFarm/domain";
 import {
   MOST_NOMINEES,
   farmDayOf,
+  knownBy,
   nomineeRowOf,
   nomineesProblem,
   paperFrom,
@@ -33,6 +34,8 @@ const receiverInput = z.object({
   name: z.string().trim().min(1).max(120),
   relation: z.string().trim().max(60).nullable(),
   phone: z.string().trim().max(20).nullable(),
+  // Absent from a form older than the field: the domain then refuses the missing number by name.
+  nid: z.string().trim().max(40).nullable().default(null),
 });
 
 /** The Nominees a paper names, as a form sends them: whether they may be named is the domain's rule, not the wire's. */
@@ -43,6 +46,8 @@ export const nomineesInput = z
       relation: z.string().trim().max(60).nullable(),
       phone: z.string().trim().max(20).nullable(),
       bornOn: farmDay.nullable(),
+      nid: z.string().trim().max(40).nullable().default(null),
+      birthRegistration: z.string().trim().max(40).nullable().default(null),
       sharePercent: z.number(),
       receiver: receiverInput.nullable(),
     })
@@ -195,23 +200,31 @@ export const readNominees = async (
   investorId: string
 ) => snapshotOf(await nominationInForce(tx, farmId, investorId));
 
-/** A Nomination's Nominees as the table holds them, in the order printed. */
+/** A Nomination's Nominees as the table holds them, in the order printed, each known by the one number that fits
+ *  their age on the day it was signed. */
 export const nomineeRows = (
   nominationId: string,
-  nominees: readonly Nominee[]
+  nominees: readonly Nominee[],
+  signedOn: string
 ) =>
-  nominees.map((one, index) => ({
-    nominationId,
-    place: index + 1,
-    name: one.name.trim(),
-    relation: one.relation?.trim() || null,
-    phone: one.phone?.trim() || null,
-    bornOn: one.bornOn,
-    sharePercent: one.sharePercent,
-    receiverName: one.receiver?.name.trim() || null,
-    receiverRelation: one.receiver?.relation?.trim() || null,
-    receiverPhone: one.receiver?.phone?.trim() || null,
-  }));
+  nominees.map((given, index) => {
+    const one = knownBy(given, signedOn);
+    return {
+      nominationId,
+      place: index + 1,
+      name: one.name.trim(),
+      relation: one.relation?.trim() || null,
+      phone: one.phone?.trim() || null,
+      bornOn: one.bornOn,
+      nid: one.nid,
+      birthRegistration: one.birthRegistration,
+      sharePercent: one.sharePercent,
+      receiverName: one.receiver?.name.trim() || null,
+      receiverRelation: one.receiver?.relation?.trim() || null,
+      receiverPhone: one.receiver?.phone?.trim() || null,
+      receiverNid: one.receiver?.nid ?? null,
+    };
+  });
 
 /**
  * Records a মনোনয়নপত্র signed on `signedOn` in front of the Owner, with its photo: the Nominees it names, each judged
@@ -267,7 +280,7 @@ export const recordNomination = async (
         recordedBy: context.actor.id,
         recordedAt: now,
       });
-      const rows = nomineeRows(id, input.nominees);
+      const rows = nomineeRows(id, input.nominees, input.signedOn);
       if (rows.length > 0) {
         await tx.insert(nominee).values(rows);
       }
@@ -349,7 +362,7 @@ export const nominationBySigning = async (
     recordedBy,
     recordedAt: now,
   });
-  const rows = nomineeRows(id, nominees);
+  const rows = nomineeRows(id, nominees, signedOn);
   if (rows.length > 0) {
     await tx.insert(nominee).values(rows);
   }

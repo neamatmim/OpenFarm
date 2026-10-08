@@ -509,6 +509,9 @@ export const dataCopyOf = async (
                           row.name,
                           row.relation,
                           row.born ? `জন্ম ${row.born}` : null,
+                          row.idNumber
+                            ? `${row.minor ? "জন্ম নিবন্ধন" : "এনআইডি"} ${row.idNumber}`
+                            : null,
                           row.phone,
                           `অংশ ${row.share}`,
                           row.receiver ? `গ্রহণকারী ${row.receiver}` : null

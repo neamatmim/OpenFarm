@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Nominee } from "./nominees";
-import { isMinorOn, nomineesProblem } from "./nominees";
+import { isMinorOn, knownBy, nomineeRowOf, nomineesProblem } from "./nominees";
 
 const DAY = "2026-09-26";
 
@@ -10,6 +10,8 @@ const adult = (share: number, name = "রহিমা বেগম"): Nominee =>
   relation: "স্ত্রী",
   phone: "01712-345678",
   bornOn: "1982-03-14",
+  nid: "1982 4417 2093",
+  birthRegistration: null,
   sharePercent: share,
   receiver: null,
 });
@@ -19,11 +21,18 @@ const minor = (share: number, receiver: Nominee["receiver"]): Nominee => ({
   relation: "মেয়ে",
   phone: null,
   bornOn: "2012-11-20",
+  nid: null,
+  birthRegistration: "20122691507114382",
   sharePercent: share,
   receiver,
 });
 
-const MOTHER = { name: "রহিমা বেগম", relation: "মা", phone: null };
+const MOTHER = {
+  name: "রহিমা বেগম",
+  relation: "মা",
+  phone: null,
+  nid: "1982 4417 2093",
+};
 
 describe("coming of age", () => {
   it("is a minor the day before the eighteenth birthday and not on it", () => {
@@ -99,12 +108,68 @@ describe("what stops a paper naming its Nominees", () => {
     );
   });
 
+  it("asks an adult for their NID, a minor for their birth registration, and a minor's Receiver for their NID", () => {
+    expect(nomineesProblem([{ ...adult(100), nid: " " }], DAY)).toEqual({
+      code: "nid_missing",
+      at: 1,
+    });
+    expect(
+      nomineesProblem(
+        [adult(80), { ...minor(20, MOTHER), birthRegistration: null }],
+        DAY
+      )
+    ).toEqual({ code: "birth_registration_missing", at: 2 });
+    expect(
+      nomineesProblem([adult(80), minor(20, { ...MOTHER, nid: null })], DAY)
+    ).toEqual({ code: "receiver_nid_missing", at: 2 });
+  });
+
+  it("asks no NID of a minor, who has none before eighteen", () => {
+    expect(nomineesProblem([minor(100, MOTHER)], DAY)).toBeNull();
+  });
+
   it("judges a minor on the day the paper is signed", () => {
-    const turnsEighteen = { ...minor(100, MOTHER), bornOn: "2008-09-26" };
+    const turnsEighteen = {
+      ...minor(100, MOTHER),
+      bornOn: "2008-09-26",
+      nid: "2008 1190 3346",
+    };
     expect(nomineesProblem([turnsEighteen], DAY)).toEqual({
       code: "receiver_not_needed",
       at: 1,
     });
     expect(nomineesProblem([turnsEighteen], "2026-09-25")).toBeNull();
+  });
+});
+
+describe("the number a Nominee is known by", () => {
+  it("keeps an adult's NID and a minor's birth registration, never the other", () => {
+    const both = {
+      birthRegistration: "20122691507114382",
+      nid: "1982 4417 2093",
+    };
+    expect(knownBy({ ...adult(100), ...both }, DAY)).toMatchObject({
+      nid: "1982 4417 2093",
+      birthRegistration: null,
+    });
+    expect(knownBy({ ...minor(100, MOTHER), ...both }, DAY)).toMatchObject({
+      nid: null,
+      birthRegistration: "20122691507114382",
+    });
+  });
+
+  it("prints the number beside the name, and the Receiver's NID on their line", () => {
+    expect(nomineeRowOf({ ...adult(100), minor: false }).idNumber).toBe(
+      "1982 4417 2093"
+    );
+    const row = nomineeRowOf({ ...minor(100, MOTHER), minor: true });
+    expect(row.idNumber).toBe("20122691507114382");
+    expect(row.receiver).toBe("রহিমা বেগম (মা), এনআইডি 1982 4417 2093");
+  });
+
+  it("prints nothing for a Nominee written down before the number was asked", () => {
+    expect(
+      nomineeRowOf({ ...adult(100), nid: null, minor: false }).idNumber
+    ).toBeNull();
   });
 });

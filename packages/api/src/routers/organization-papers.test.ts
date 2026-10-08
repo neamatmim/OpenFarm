@@ -1,19 +1,13 @@
-import { paperTemplateVersion } from "@OpenFarm/db/schema/paper-template";
 import {
   PORTAL_CONSENT_BEFORE_ORGANIZATIONS,
   STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
 } from "@OpenFarm/domain";
-import type { PaperDocument, TemplateKind } from "@OpenFarm/domain";
-import {
-  FakeClock,
-  asTheFarmHeldItBefore,
-  scratchDb,
-  theFarm,
-} from "@OpenFarm/test-harness";
-import { eq } from "drizzle-orm";
+import type { PaperDocument } from "@OpenFarm/domain";
+import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { caughtUpFrom } from "../test/standard-wording";
 import { appRouter } from "./index";
 
 // An Organization's papers (ADR 0020): its own details and its Signatory where a person's NID and Nominees would be, the
@@ -204,39 +198,10 @@ describe("an Organization's Portal Consent", () => {
   });
 });
 
-/** Puts the farm back on an earlier standard wording of one kind, published by nobody, as a farm given it then holds
- *  it; then opens the wording page, which catches it up. The wording in force afterwards. */
-const caughtUpFrom = async (
-  kind: TemplateKind,
-  content: typeof STANDARD_AGREEMENT_WITH_FARM_CAPITAL
-) => {
-  const owner = await asOwner();
-  await owner.templates.list();
-  const db = scratchDb();
-  const template = await db.query.paperTemplate.findFirst({
-    where: { farmId: theFarm().id, kind },
-  });
-  if (!template?.currentVersionId) {
-    throw new Error("expected the farm's wording");
-  }
-  const { currentVersionId } = template;
-  await asTheFarmHeldItBefore((tx) =>
-    tx
-      .update(paperTemplateVersion)
-      .set({ content })
-      .where(eq(paperTemplateVersion.id, currentVersionId))
-  );
-  await owner.templates.list();
-  const caughtUp = await db.query.paperTemplate.findFirst({
-    where: { id: template.id },
-    with: { currentVersion: true },
-  });
-  return { before: currentVersionId, caughtUp };
-};
-
 describe("a farm on the standard wording before Organizations", () => {
   it("is caught up to the Agreement that carries an Organization's lines", async () => {
     const { before, caughtUp } = await caughtUpFrom(
+      await asOwner(),
       "investment_agreement",
       STANDARD_AGREEMENT_WITH_FARM_CAPITAL
     );
@@ -249,6 +214,7 @@ describe("a farm on the standard wording before Organizations", () => {
 
   it("is caught up to the Portal Consent a Signatory gives", async () => {
     const { before, caughtUp } = await caughtUpFrom(
+      await asOwner(),
       "portal_consent",
       PORTAL_CONSENT_BEFORE_ORGANIZATIONS
     );

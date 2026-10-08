@@ -503,7 +503,13 @@ describe("an Agreement offered in the app, as things move on after it was offere
     const owner = await as("owner");
     const { id } = await owner.ventures.agreements.offers.make({
       ...terms(ventureId, them.id),
-      nominees: [{ ...theWhole(`স্ত্রী ${suffix}`), bornOn: "1990-01-01" }],
+      nominees: [
+        {
+          ...theWhole(`স্ত্রী ${suffix}`),
+          bornOn: "1990-01-01",
+          nid: "1990 0101 2287",
+        },
+      ],
     });
     const offers = await them.client.portal.agreementOffers();
     const offered = offers.find((one) => one.id === id);
@@ -516,7 +522,11 @@ describe("an Agreement offered in the app, as things move on after it was offere
     await third.investors.recordNomination({
       id: them.id,
       nominees: [
-        { ...theWhole(`ছেলে ${suffix}`, "ছেলে"), bornOn: "1995-01-01" },
+        {
+          ...theWhole(`ছেলে ${suffix}`, "ছেলে"),
+          bornOn: "1995-01-01",
+          nid: "1995 0101 6634",
+        },
       ],
       signedOn: "2093-01-03",
       contentType: "image/jpeg",

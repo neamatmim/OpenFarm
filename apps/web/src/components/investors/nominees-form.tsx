@@ -71,7 +71,8 @@ const RelationField = ({
   );
 };
 
-/** One Nominee's boxes, and — once their date of birth makes them a minor on the day — their Receiver's. */
+/** One Nominee's boxes — their NID, or a minor's birth registration — and, once their date of birth makes them a minor
+ *  on the day, their Receiver's. */
 const NomineeRowFields = ({
   draft,
   place,
@@ -134,6 +135,21 @@ const NomineeRowFields = ({
             }
             type="date"
             value={draft.bornOn}
+          />
+        </FormField>
+        <FormField
+          id={`${id}-number`}
+          label={t(minor ? "nominees.birthRegistration" : "nominees.nid")}
+        >
+          <Input
+            autoComplete="off"
+            id={`${id}-number`}
+            inputMode="numeric"
+            maxLength={40}
+            onChange={(event) =>
+              onChange({ ...draft, idNumber: event.target.value })
+            }
+            value={draft.idNumber}
           />
         </FormField>
         <FormField id={`${id}-phone`} label={t("nominees.phone")}>
@@ -203,6 +219,21 @@ const NomineeRowFields = ({
                   onChange({ ...draft, receiverPhone: event.target.value })
                 }
                 value={draft.receiverPhone}
+              />
+            </FormField>
+            <FormField
+              id={`${id}-receiver-nid`}
+              label={t("nominees.receiverNid")}
+            >
+              <Input
+                autoComplete="off"
+                id={`${id}-receiver-nid`}
+                inputMode="numeric"
+                maxLength={40}
+                onChange={(event) =>
+                  onChange({ ...draft, receiverNid: event.target.value })
+                }
+                value={draft.receiverNid}
               />
             </FormField>
           </div>

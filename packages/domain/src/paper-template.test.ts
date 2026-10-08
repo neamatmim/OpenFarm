@@ -50,6 +50,8 @@ const SALMA = {
   relation: "মেয়ে",
   phone: "01911000000",
   bornOn: "1990-05-06",
+  nid: "1990 2231 8804",
+  birthRegistration: null,
   sharePercent: 100,
   minor: false,
   receiver: null,
@@ -312,9 +314,16 @@ describe("the Investment Agreement's data section and nominee lines", () => {
         relation: "নাতনি",
         phone: null,
         bornOn: "2015-01-02",
+        nid: null,
+        birthRegistration: "20152691507114382",
         sharePercent: 20,
         minor: true,
-        receiver: { name: "সালমা", relation: "মা", phone: "01911000000" },
+        receiver: {
+          name: "সালমা",
+          relation: "মা",
+          phone: "01911000000",
+          nid: "1990 2231 8804",
+        },
       },
     ]).find((section) => section.kind === "parties");
     if (parties?.kind !== "parties") {
@@ -328,6 +337,7 @@ describe("the Investment Agreement's data section and nominee lines", () => {
         name: "সালমা",
         relation: "মেয়ে",
         born: expect.stringContaining("১৯৯০"),
+        idNumber: "1990 2231 8804",
         minor: false,
         phone: "01911000000",
         share: "৮০%",
@@ -337,10 +347,11 @@ describe("the Investment Agreement's data section and nominee lines", () => {
         name: "তানিয়া",
         relation: "নাতনি",
         born: expect.stringContaining("২০১৫"),
+        idNumber: "20152691507114382",
         minor: true,
         phone: null,
         share: "২০%",
-        receiver: "সালমা (মা), 01911000000",
+        receiver: "সালমা (মা), 01911000000, এনআইডি 1990 2231 8804",
       },
     ]);
     expect(him?.rows.map((row) => row.label.en)).not.toContain("Nominee");
@@ -607,9 +618,16 @@ describe("the মনোনয়নপত্র", () => {
     relation: "নাতনি",
     phone: null,
     bornOn: "2015-01-02",
+    nid: null,
+    birthRegistration: "20152691507114382",
     sharePercent: 20,
     minor: true,
-    receiver: { name: "সালমা", relation: "মা", phone: null },
+    receiver: {
+      name: "সালমা",
+      relation: "মা",
+      phone: null,
+      nid: "1990 2231 8804",
+    },
   };
   const laidOutFor = (nominees: PaperParties["investors"][0]["nominees"]) =>
     paperFrom(nomination, {

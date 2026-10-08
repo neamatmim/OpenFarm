@@ -45,8 +45,16 @@ const terms = (investorId: string, stampedOn = "2064-01-10") => ({
   stampSerial: `S-${investorId}`,
 });
 
-const WIFE = { ...theWhole(`স্ত্রী ${suffix}`), bornOn: "1980-01-01" };
-const SON = { ...theWhole(`ছেলে ${suffix}`, "ছেলে"), bornOn: "2000-01-01" };
+const WIFE = {
+  ...theWhole(`স্ত্রী ${suffix}`),
+  bornOn: "1980-01-01",
+  nid: "1980 0101 4417",
+};
+const SON = {
+  ...theWhole(`ছেলে ${suffix}`, "ছেলে"),
+  bornOn: "2000-01-01",
+  nid: "2000 0101 3346",
+};
 
 beforeAll(async () => {
   const owner = await as("owner");
@@ -138,6 +146,7 @@ describe("an Agreement's Nominees", () => {
         name: `স্ত্রী ${suffix}`,
         relation: "স্ত্রী",
         bornOn: "1980-01-01",
+        nid: "1980 0101 4417",
         sharePercent: 100,
         receiver: null,
       }),
@@ -165,6 +174,35 @@ describe("an Agreement's Nominees", () => {
     ).not.toContainEqual(expect.objectContaining({ investorId }));
   });
 
+  it("are refused from a list in force written down before Nominees gave their NID, until the sign sheet gives it", async () => {
+    const owner = await as("owner");
+    const investorId = await someone("নম্বর");
+    await nominationOnFile({
+      investorId,
+      nominees: [{ ...theWhole(`নম্বরহীন ${suffix}`), bornOn: "1980-01-01" }],
+      signedOn: "2064-01-01",
+      recordedAt: new Date("2064-01-01T04:00:00.000Z"),
+    });
+
+    await expect(
+      owner.ventures.agreements.sign(terms(investorId))
+    ).rejects.toMatchObject({
+      data: { refusal: "nominees_nid_missing", at: 1 },
+    });
+    await owner.ventures.agreements.sign({
+      ...terms(investorId),
+      nominees: [
+        {
+          ...theWhole(`নম্বরহীন ${suffix}`),
+          bornOn: "1980-01-01",
+          nid: "1980 0101 9902",
+        },
+      ],
+    });
+    const [inForce] = await owner.investors.nominations({ id: investorId });
+    expect(inForce?.nominees[0]).toMatchObject({ nid: "1980 0101 9902" });
+  });
+
   it("may be none, and signing still records that he named nobody", async () => {
     const owner = await as("owner");
     const investorId = await someone("একা");
@@ -189,6 +227,7 @@ describe("an Agreement's Nominees", () => {
     const turning = {
       ...theWhole(`মেয়ে ${suffix}`, "মেয়ে"),
       bornOn: "2046-01-10",
+      nid: "2046 0110 5521",
     };
 
     await expect(

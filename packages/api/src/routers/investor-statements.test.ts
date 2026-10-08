@@ -96,13 +96,20 @@ beforeAll(async () => {
       {
         ...theWhole(`আমেনা বেগম ${suffix}`),
         bornOn: "1985-05-05",
+        nid: "1985 0505 2214",
         sharePercent: 70,
       },
       {
         ...theWhole(`সাকিব ${suffix}`, "ছেলে"),
         bornOn: "2040-06-01",
+        birthRegistration: "20402691507119925",
         sharePercent: 30,
-        receiver: { name: `আমেনা বেগম ${suffix}`, relation: "মা", phone: null },
+        receiver: {
+          name: `আমেনা বেগম ${suffix}`,
+          relation: "মা",
+          phone: null,
+          nid: "1985 0505 2214",
+        },
       },
     ],
     signedOn: "2051-01-01",
@@ -171,9 +178,11 @@ describe("the paper an Investor gets when he joins", () => {
     expect(text).toContain("নিবন্ধন নম্বর");
     // Each of his Nominees in force on its own line, with the share each collects and who collects for a minor.
     expect(text).toContain(`নমিনি ১ / Nominee 1`);
-    expect(text).toContain(`আমেনা বেগম ${suffix} · স্ত্রী · ৭০%`);
     expect(text).toContain(
-      `সাকিব ${suffix} · ছেলে · ৩০% (গ্রহণকারী: আমেনা বেগম ${suffix} (মা))`
+      `আমেনা বেগম ${suffix} · স্ত্রী · এনআইডি 1985 0505 2214 · ৭০%`
+    );
+    expect(text).toContain(
+      `সাকিব ${suffix} · ছেলে · জন্ম নিবন্ধন 20402691507119925 · ৩০% (গ্রহণকারী: আমেনা বেগম ${suffix} (মা), এনআইডি 1985 0505 2214)`
     );
     expect(text).toContain(`AA 1 ${suffix}`);
     expect(text).toContain(`মাওলানা 1 ${suffix}`);

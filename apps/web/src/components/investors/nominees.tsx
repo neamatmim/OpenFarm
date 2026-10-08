@@ -22,11 +22,43 @@ const useDay = () => {
     formatDate(new Date(`${farmDay}T00:00:00Z`), language);
 };
 
-/** One Nominee: who, their relation, when they were born, how to reach them, the share they collect, and — while a
- *  minor — who collects it for them. */
+/** A Nominee's number, said by which it is: the NID, or the birth registration a minor gave — none for one written
+ *  down before Nominees gave it, or on a list cached before then. */
+const NomineeNumber = ({ nominee }: { nominee: PaperNominee }) => {
+  const { t } = useLanguage();
+  const nid = nominee.nid ?? null;
+  const birthRegistration = nominee.birthRegistration ?? null;
+  if (nid) {
+    return (
+      <span className="tabular-nums">
+        {t("nominees.nidIs", { number: nid })}
+      </span>
+    );
+  }
+  if (birthRegistration) {
+    return (
+      <span className="tabular-nums">
+        {t("nominees.birthRegistrationIs", { number: birthRegistration })}
+      </span>
+    );
+  }
+  return (
+    <StatusBadge tone="warning">
+      {t(
+        nominee.minor
+          ? "nominees.birthRegistrationNotGiven"
+          : "nominees.numberNotGiven"
+      )}
+    </StatusBadge>
+  );
+};
+
+/** One Nominee: who, their relation, when they were born, their number, how to reach them, the share they collect,
+ *  and — while a minor — who collects it for them. */
 const NomineeLine = ({ nominee }: { nominee: PaperNominee }) => {
   const { t } = useLanguage();
   const day = useDay();
+  const receiverNid = nominee.receiver?.nid ?? null;
   return (
     <li className="flex flex-col gap-1 py-2 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4">
@@ -50,6 +82,7 @@ const NomineeLine = ({ nominee }: { nominee: PaperNominee }) => {
         {nominee.minor ? (
           <StatusBadge tone="info">{t("nominees.minor")}</StatusBadge>
         ) : null}
+        <NomineeNumber nominee={nominee} />
         {nominee.phone ? phoneLink(nominee.phone) : null}
       </div>
       {nominee.receiver ? (
@@ -61,6 +94,12 @@ const NomineeLine = ({ nominee }: { nominee: PaperNominee }) => {
           })}
           {nominee.receiver.phone ? (
             <> · {phoneLink(nominee.receiver.phone)}</>
+          ) : null}
+          {receiverNid ? (
+            <span className="tabular-nums">
+              {" "}
+              · {t("nominees.nidIs", { number: receiverNid })}
+            </span>
           ) : null}
         </p>
       ) : null}

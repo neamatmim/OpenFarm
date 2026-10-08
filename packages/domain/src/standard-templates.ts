@@ -411,11 +411,12 @@ const ORGANIZATION_DATA = {
 const A_PERSONS = new Set<Said>([HEIRS_CLAUSE, ...NOMINEE_RULES, DATA_HOLDS]);
 
 /**
- * The standard Investment Agreement today (2026-10-08): the one before it, with the death, Nominee and data clauses
- * printed for a person only, and in their place for an Organization the clause that its share is its own and what the
- * Farm holds of it. A person's Agreement reads exactly as it did.
+ * The standard Investment Agreement from an Organization being an Investor (2026-10-08) until Nominees gave their NID:
+ * the one before it, with the death, Nominee and data clauses printed for a person only, and in their place for an
+ * Organization the clause that its share is its own and what the Farm holds of it. A person's Agreement reads exactly
+ * as it did. Kept whole, so a farm still on exactly these words is caught up to the standard that followed.
  */
-const investmentAgreement: TemplateContent = {
+export const STANDARD_AGREEMENT_BEFORE_NOMINEE_NUMBERS: TemplateContent = {
   ...STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
   sections: STANDARD_AGREEMENT_WITH_FARM_CAPITAL.sections.map((section) => {
     if (section.kind !== "clauses") {
@@ -675,8 +676,10 @@ export const PORTAL_CONSENT_BEFORE_ORGANIZATIONS: TemplateContent = {
  * and a page of the portal — one text in all three places. It says what the Personal Data Protection Act 2026 asks a
  * farm to say (s.5(2), s.15(2)); who runs the server and keeps the backup are the farm's facts, filled in once they are
  * chosen. The complaint line is worded for the lawyer to confirm, the Authority not yet having been found to exist.
+ * Kept whole as it stood until Nominees gave their NID (2026-10-08), so a farm still on exactly these words is caught
+ * up to the standard that followed.
  */
-const privacyNotice: TemplateContent = {
+export const PRIVACY_NOTICE_BEFORE_NOMINEE_NUMBERS: TemplateContent = {
   title: {
     bn: "আপনার তথ্য খামার কীভাবে রাখে",
     en: "How the farm keeps your data",
@@ -841,9 +844,10 @@ const privacyNotice: TemplateContent = {
  * মনোনয়নপত্র: the Investor's own short paper naming every Nominee in full, signed in front of the Owner, which
  * replaces every earlier one and governs all their Agreements. Its parties part carries the table; the rules follow
  * in full, because it is read alone. The opening is the Investor's own words, and says nothing of how many Nominees
- * there are, so a paper naming none reads right too.
+ * there are, so a paper naming none reads right too. Kept whole as it stood until Nominees gave their NID
+ * (2026-10-08), so a farm still on exactly these words is caught up to the standard that followed.
  */
-const nomination: TemplateContent = {
+export const NOMINATION_BEFORE_NOMINEE_NUMBERS: TemplateContent = {
   title: { bn: "মনোনয়নপত্র", en: "Nomination" },
   preamble: {
     bn: "আমি, {investorName}, আমার মৃত্যুর পর খামারের কাছে আমার মূলধন ও প্রাপ্য কে সংগ্রহ করে আমার আইনগত উত্তরাধিকারীদের বুঝিয়ে দেবেন, তা নিচে লিখে দিচ্ছি।",
@@ -930,6 +934,71 @@ const portalConsent: TemplateContent = {
         ],
       };
     }
+  ),
+};
+
+/** What the Investor confirms of every Nominee once Nominees give their NID: the number is held too. */
+const EACH_NOMINEE_KNOWS_THEIR_NUMBER: Said = {
+  bn: "বিনিয়োগকারী নিশ্চিত করছেন যে তাঁর প্রত্যেক নমিনি জানেন, খামার তাঁদের নাম, সম্পর্ক, জন্মতারিখ, ফোন আর এনআইডি নম্বর — নাবালক হলে জন্ম নিবন্ধন নম্বর — রাখছে, শুধু বিনিয়োগকারীর উত্তরাধিকারীদের টাকা দেওয়ার জন্য।",
+  en: "The Investor confirms that each Nominee knows the Farm holds their name, relationship, date of birth, phone and NID number — a minor's birth registration number — only to pay the Investor's heirs.",
+};
+
+/** The minor Nominee's line once Receivers give their NID: the Receiver consents to their own number being held. */
+const RECEIVER_GIVES_THEIR_NID: Said = {
+  bn: "নমিনি {nomineeName}-এর বয়স আঠারো বছরের কম। তাঁর গ্রহণকারী হিসেবে আমি, {receiverName} ({receiverRelation}), আঠারো বছর না হওয়া পর্যন্ত তাঁর অংশ সংগ্রহ করতে এবং তাঁর এই তথ্য ও আমার এনআইডি নম্বর রাখায় সম্মতি দিচ্ছি। সই: ____________",
+  en: "Nominee {nomineeName} is under eighteen. As their Receiver I, {receiverName} ({receiverRelation}), agree to collect their part until they turn eighteen, and consent to their data and my NID number being kept. Signature: ____________",
+};
+
+/** What the privacy notice says is kept, once Nominees and Receivers give their NID. */
+const WHAT_IS_KEPT_WITH_NOMINEE_NUMBERS: Said = {
+  bn: "আপনার নাম, ফোন, ঠিকানা, এনআইডি নম্বর, ব্যাংক হিসাব; আপনার নমিনিদের নাম, সম্পর্ক, জন্মতারিখ, ফোন, অংশ আর এনআইডি নম্বর — নাবালক হলে জন্ম নিবন্ধন নম্বর; আর নাবালক নমিনির গ্রহণকারীর নাম, সম্পর্ক, ফোন ও এনআইডি নম্বর। এগুলো আপনি নিজে দিয়েছেন।",
+  en: "Your name, phone, address, NID number and bank account; your Nominees' names, relationships, dates of birth, phones, shares and NID numbers — a minor's birth registration number; and a minor Nominee's Receiver's name, relationship, phone and NID number. You gave these yourself.",
+};
+
+/**
+ * A paper's parties part once Nominees give their NID (the Owner, 2026-10-08): what each Nominee knows the Farm holds
+ * names the number, and a minor's Receiver consents to their own being held. Nothing else in it changes.
+ */
+const withNomineeNumbers = (content: TemplateContent): TemplateContent => ({
+  ...content,
+  sections: content.sections.map((section) =>
+    section.kind === "parties"
+      ? {
+          ...section,
+          nomineeLines: section.nomineeLines?.map((line) =>
+            line === EACH_NOMINEE_KNOWS ? EACH_NOMINEE_KNOWS_THEIR_NUMBER : line
+          ),
+          receiverLine:
+            section.receiverLine === RECEIVER_LINE
+              ? RECEIVER_GIVES_THEIR_NID
+              : section.receiverLine,
+        }
+      : section
+  ),
+});
+
+/** The standard Investment Agreement today (2026-10-08): the one before it, with the Nominees' numbers held. */
+const investmentAgreement = withNomineeNumbers(
+  STANDARD_AGREEMENT_BEFORE_NOMINEE_NUMBERS
+);
+
+/** The মনোনয়নপত্র today (2026-10-08): the one before it, with the Nominees' numbers held. */
+const nomination = withNomineeNumbers(NOMINATION_BEFORE_NOMINEE_NUMBERS);
+
+/** The privacy notice today (2026-10-08): the one before it, saying the Nominees' and Receivers' numbers are kept. */
+const privacyNotice: TemplateContent = {
+  ...PRIVACY_NOTICE_BEFORE_NOMINEE_NUMBERS,
+  sections: PRIVACY_NOTICE_BEFORE_NOMINEE_NUMBERS.sections.map((section) =>
+    section.kind === "clauses"
+      ? {
+          ...section,
+          clauses: section.clauses.map((clause) =>
+            clause.en.startsWith("Your name, phone, address, NID number")
+              ? WHAT_IS_KEPT_WITH_NOMINEE_NUMBERS
+              : clause
+          ),
+        }
+      : section
   ),
 };
 

@@ -965,6 +965,12 @@ export const enCore = {
     "A Nominee under eighteen needs a Receiver to collect for them.",
   "nominees.problem.receiver_not_needed":
     "Only a Nominee under eighteen has a Receiver.",
+  "nominees.problem.nid_missing":
+    "Every Nominee eighteen or over needs their NID number.",
+  "nominees.problem.birth_registration_missing":
+    "A Nominee under eighteen needs their birth registration number.",
+  "nominees.problem.receiver_nid_missing":
+    "The Receiver needs their NID number: they are the one who collects.",
   "nominees.new": "New মনোনয়নপত্র",
   "nominees.newTitle": "A new মনোনয়নপত্র for {name}",
   "nominees.newHint":
@@ -975,12 +981,19 @@ export const enCore = {
   "nominees.name": "Name",
   "nominees.relation": "Relation to them",
   "nominees.bornOn": "Date of birth",
+  "nominees.nid": "NID number",
+  "nominees.birthRegistration": "Birth registration number",
   "nominees.phone": "Phone",
   "nominees.sharePercent": "Share (%)",
   "nominees.receiverHeading": "Under eighteen: who collects for them",
   "nominees.receiverName": "Receiver's name",
   "nominees.receiverRelation": "Relation to the Nominee",
   "nominees.receiverPhone": "Receiver's phone",
+  "nominees.receiverNid": "Receiver's NID number",
+  "nominees.nidIs": "NID {number}",
+  "nominees.birthRegistrationIs": "Birth registration {number}",
+  "nominees.numberNotGiven": "No NID given",
+  "nominees.birthRegistrationNotGiven": "No birth registration given",
   "nominees.total": "Shares so far: {total}%",
   "nominees.noneYet": "No Nominee: the money would go straight to their heirs.",
   "nominees.print": "Print the মনোনয়নপত্র to sign",
