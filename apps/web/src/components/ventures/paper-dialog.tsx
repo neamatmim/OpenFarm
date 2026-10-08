@@ -9,14 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@OpenFarm/ui/components/dialog";
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@OpenFarm/ui/components/toggle-group";
 import { Printer } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
+import { SegmentedControl } from "@/components/page";
 import {
   PAPER_DOCUMENT_ID,
   PaperDocumentView,
@@ -61,8 +58,9 @@ const WordingLine = ({ wording }: { wording: WordingSaid }) => {
 const LANGUAGE_NAMES: Record<Language, string> = { bn: "বাংলা", en: "English" };
 
 /**
- * Which language a paper is read in: বাংলা or English, never both on one paper (ADR 0021). Each choice is its name in
- * its own language, as the app's own language button is, so it reads rightly to a screen reader in either.
+ * Which language a paper is read in: বাংলা or English, never both on one paper (ADR 0021) — the app's own segmented
+ * control, as every other choice of a few is made. Each choice is its name in its own language, as the app's language
+ * button is, so it reads rightly to a screen reader in either.
  */
 export const PaperLanguageSwitch = ({
   language,
@@ -72,38 +70,64 @@ export const PaperLanguageSwitch = ({
   onChange: (language: Language) => void;
 }) => {
   const { t } = useLanguage();
+  const name = useId();
   return (
-    <ToggleGroup
-      aria-label={t("papers.languageSwitch")}
-      className="no-print"
-      onValueChange={(chosen) => {
-        const [next] = chosen;
-        if (next === "bn" || next === "en") {
-          onChange(next);
-        }
-      }}
-      size="sm"
-      spacing={0}
-      value={[language]}
-      variant="outline"
-    >
-      <ToggleGroupItem
-        className="aria-pressed:bg-primary aria-pressed:text-primary-foreground px-3"
-        lang="bn"
-        value="bn"
-      >
-        {LANGUAGE_NAMES.bn}
-      </ToggleGroupItem>
-      <ToggleGroupItem
-        className="aria-pressed:bg-primary aria-pressed:text-primary-foreground px-3"
-        lang="en"
-        value="en"
-      >
-        {LANGUAGE_NAMES.en}
-      </ToggleGroupItem>
-    </ToggleGroup>
+    <SegmentedControl
+      label={t("papers.languageSwitch")}
+      name={name}
+      onChange={onChange}
+      options={(["bn", "en"] as const).map((one) => ({
+        value: one,
+        label: <span lang={one}>{LANGUAGE_NAMES[one]}</span>,
+      }))}
+      value={language}
+    />
   );
 };
+
+/**
+ * What sits over every paper on the screen, and is never printed: its language on the left, and on the right Print —
+ * which prints the paper in the language shown — and whatever else the reader does with it.
+ */
+export const PaperToolbar = ({
+  language,
+  onLanguage,
+  printId,
+  action,
+}: {
+  language: Language;
+  onLanguage: (language: Language) => void;
+  /** The id of the paper Print prints alone. */
+  printId: string;
+  action?: ReactNode;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <div className="no-print flex flex-wrap items-center justify-between gap-3">
+      <PaperLanguageSwitch language={language} onChange={onLanguage} />
+      <div className="flex flex-wrap items-center gap-2">
+        {action}
+        <Button
+          onClick={() => {
+            const shown = document.querySelector<HTMLElement>(`#${printId}`);
+            if (shown) {
+              void printAlone(shown);
+            }
+          }}
+          type="button"
+        >
+          <Printer aria-hidden data-icon="inline-start" />
+          {t("common.print")}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+/** The desk a paper lies on in a dialog: a quiet ground, so the white sheet reads as a page. */
+export const PaperDesk = ({ children }: { children: ReactNode }) => (
+  <div className="bg-muted/40 rounded-lg p-3 sm:p-6">{children}</div>
+);
 
 /**
  * A paper laid out in a dialog wide enough for a page, and printed from there alone — in the language its switch shows,
@@ -152,27 +176,17 @@ export const PaperDialog = ({
         </DialogHeader>
         {notice ? <div className="no-print">{notice}</div> : null}
         {wording ? <WordingLine wording={wording} /> : null}
-        <PaperLanguageSwitch language={language} onChange={setLanguage} />
+        <PaperToolbar
+          action={action}
+          language={language}
+          onLanguage={setLanguage}
+          printId={PAPER_DOCUMENT_ID}
+        />
         {paper ? (
-          <PaperDocumentView document={paper} language={language} />
+          <PaperDesk>
+            <PaperDocumentView document={paper} language={language} />
+          </PaperDesk>
         ) : null}
-        <div className="no-print flex flex-wrap justify-end gap-2">
-          <Button
-            onClick={() => {
-              const shown = document.querySelector<HTMLElement>(
-                `#${PAPER_DOCUMENT_ID}`
-              );
-              if (shown) {
-                void printAlone(shown);
-              }
-            }}
-            type="button"
-          >
-            <Printer aria-hidden data-icon="inline-start" />
-            {t("common.print")}
-          </Button>
-          {action}
-        </div>
       </DialogContent>
     </Dialog>
   );

@@ -30,6 +30,24 @@ const useNumeral = () => {
   return (number: number) => formatDigits(number, language);
 };
 
+/**
+ * The few shapes every part of a paper is drawn from — one box, one note, one table, one line to write on, one width
+ * for what a fact is called — so the parties, the facts, the stamp and the statements' tables read as one paper.
+ */
+const LOOK = {
+  box: "rounded-md border p-4",
+  note: "bg-muted/50 rounded-md px-3 py-2 text-sm",
+  overline: "text-muted-foreground text-xs font-medium",
+  facts:
+    "grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-x-6 gap-y-2 text-sm sm:grid-cols-[11rem_minmax(0,1fr)]",
+  tableBox: "overflow-x-auto rounded-md border",
+  table: "w-full border-collapse text-sm",
+  tableHead: "bg-muted/50 text-muted-foreground text-xs",
+  th: "px-3 py-2 align-bottom font-medium",
+  td: "px-3 py-2 align-top",
+  writeOn: "border-foreground/60 border-b",
+} as const;
+
 /** A section of the paper: its number and its name, over a rule. */
 const Section = ({
   number,
@@ -44,7 +62,7 @@ const Section = ({
   const numeral = useNumeral();
   return (
     <section className="flex break-inside-avoid flex-col gap-3">
-      <h3 className="border-foreground/20 flex items-baseline gap-2 border-b pb-1.5 text-base font-semibold">
+      <h3 className="flex items-baseline gap-2 border-b pb-2 text-base font-semibold">
         <span className="text-muted-foreground tabular-nums">
           {numeral(number)}.
         </span>
@@ -59,7 +77,7 @@ const Section = ({
 const Rows = ({ rows }: { rows: DocumentRow[] }) => {
   const say = useSay();
   return (
-    <dl className="grid grid-cols-[minmax(7rem,max-content)_1fr] gap-x-6 gap-y-1.5 text-sm">
+    <dl className={LOOK.facts}>
       {rows.map((row) => (
         <div
           className="contents"
@@ -79,7 +97,9 @@ const Blank = ({ said, value }: { said: Said; value?: Worded }) => {
   return (
     <div className="flex flex-col gap-1">
       {/* What was written on it, where the paper is a copy of one already filled in. */}
-      <div className="border-foreground/70 flex h-7 items-end border-b pb-0.5 text-sm font-medium">
+      <div
+        className={`${LOOK.writeOn} flex h-8 items-end pb-1 text-sm font-medium`}
+      >
         {value === undefined ? null : say(value)}
       </div>
       <span className="text-muted-foreground text-xs">{say(said)}</span>
@@ -96,7 +116,7 @@ const PartyLines = ({ lines }: { lines: Said[] }) => {
     return null;
   }
   return (
-    <div className="mt-4 flex flex-col gap-2 border-t pt-3 text-sm">
+    <div className="mt-4 flex flex-col gap-2 border-t pt-4 text-sm">
       {lines.map((line) => (
         <p key={line.bn}>{say(line)}</p>
       ))}
@@ -113,12 +133,12 @@ const NomineeTable = ({ nominees }: { nominees: NomineeRow[] }) => {
     return null;
   }
   const head = NOMINEE_HEADINGS;
-  const heading = "px-2 py-1.5 font-medium";
-  const cell = "px-2 py-1.5 align-top";
+  const heading = `${LOOK.th} text-left`;
+  const cell = LOOK.td;
   return (
-    <div className="mt-4 overflow-x-auto rounded-md border">
-      <table className="w-full border-collapse text-left text-xs">
-        <thead className="bg-muted/60 text-muted-foreground">
+    <div className={`mt-4 ${LOOK.tableBox}`}>
+      <table className={LOOK.table}>
+        <thead className={LOOK.tableHead}>
           <tr>
             <th className={heading}>{say(head.name)}</th>
             <th className={heading}>{say(head.relation)}</th>
@@ -139,7 +159,7 @@ const NomineeTable = ({ nominees }: { nominees: NomineeRow[] }) => {
                 <td className={cell}>
                   {one.born ? say(one.born) : "—"}
                   {one.minor ? (
-                    <span className="bg-muted ml-1.5 rounded px-1 py-px text-[0.6875rem] whitespace-nowrap">
+                    <span className="bg-muted text-muted-foreground ml-1.5 rounded px-1.5 py-px text-xs whitespace-nowrap">
                       {say(head.minor)}
                     </span>
                   ) : null}
@@ -154,7 +174,7 @@ const NomineeTable = ({ nominees }: { nominees: NomineeRow[] }) => {
               </tr>
               {one.receiver ? (
                 <tr className="text-muted-foreground">
-                  <td className="px-2 pb-1.5 pl-4" colSpan={6}>
+                  <td className="px-3 pb-2 pl-6" colSpan={6}>
                     ↳ {say(head.receiver)}: {say(one.receiver)}
                   </td>
                 </tr>
@@ -196,13 +216,13 @@ const Table = ({
     section.columns[at]?.figures ? "text-right tabular-nums" : "text-left";
   return (
     <>
-      <div className="overflow-x-auto rounded-md border">
-        <table className="w-full border-collapse text-sm">
-          <thead className="bg-muted/60 text-muted-foreground text-xs">
+      <div className={LOOK.tableBox}>
+        <table className={LOOK.table}>
+          <thead className={LOOK.tableHead}>
             <tr>
               {section.columns.map((column, at) => (
                 <th
-                  className={`px-3 py-1.5 font-medium ${align(at)}`}
+                  className={`${LOOK.th} ${align(at)}`}
                   key={column.label.en || column.label.bn}
                 >
                   {say(column.label)}
@@ -220,7 +240,7 @@ const Table = ({
               >
                 {line.map((cell, at) => (
                   <td
-                    className={`px-3 py-1.5 align-top ${align(at)}`}
+                    className={`${LOOK.td} ${align(at)}`}
                     // oxlint-disable-next-line react/no-array-index-key
                     key={at}
                   >
@@ -232,10 +252,10 @@ const Table = ({
           </tbody>
           {section.foot ? (
             <tfoot>
-              <tr className="border-foreground/30 border-t-2 font-semibold">
+              <tr className="bg-muted/30 border-t font-semibold">
                 {section.foot.map((cell, at) => (
                   <td
-                    className={`px-3 py-1.5 ${align(at)}`}
+                    className={`${LOOK.td} ${align(at)}`}
                     // oxlint-disable-next-line react/no-array-index-key
                     key={at}
                   >
@@ -247,11 +267,7 @@ const Table = ({
           ) : null}
         </table>
       </div>
-      {section.note ? (
-        <p className="bg-muted/60 rounded-md px-3 py-2 text-sm">
-          {say(section.note)}
-        </p>
-      ) : null}
+      {section.note ? <p className={LOOK.note}>{say(section.note)}</p> : null}
     </>
   );
 };
@@ -275,13 +291,11 @@ const SectionBody = ({ section }: { section: PaperSection }) => {
         >
           {section.parties.map((party, index) => (
             <div
-              className="rounded-md border p-4"
+              className={LOOK.box}
               key={`${party.role.bn}-${party.rows[0] ? say(party.rows[0].value) : index}`}
             >
               {say(party.role).trim() ? (
-                <p className="text-muted-foreground mb-3 text-xs font-semibold">
-                  {say(party.role)}
-                </p>
+                <p className={`${LOOK.overline} mb-3`}>{say(party.role)}</p>
               ) : null}
               <Rows rows={party.rows} />
               <NomineeTable nominees={party.nominees ?? []} />
@@ -296,9 +310,7 @@ const SectionBody = ({ section }: { section: PaperSection }) => {
         <>
           <Rows rows={section.rows} />
           {section.note ? (
-            <p className="bg-muted/60 rounded-md px-3 py-2 text-sm">
-              {say(section.note)}
-            </p>
+            <p className={LOOK.note}>{say(section.note)}</p>
           ) : null}
         </>
       );
@@ -311,7 +323,7 @@ const SectionBody = ({ section }: { section: PaperSection }) => {
     }
     case "stamp": {
       return (
-        <div className="grid grid-cols-3 gap-4 rounded-md border border-dashed p-4">
+        <div className={`${LOOK.box} grid grid-cols-3 gap-6`}>
           {section.blanks.map((blank, at) => (
             <Blank key={blank.en} said={blank} value={section.filled?.[at]} />
           ))}
@@ -321,32 +333,32 @@ const SectionBody = ({ section }: { section: PaperSection }) => {
     default: {
       return (
         <>
-          <div className="grid grid-cols-2 gap-x-10 gap-y-6">
+          {/* Each signer in a box of their own, as each party is: who they sign as, room to sign, and their name under
+              the line. */}
+          <div className="grid gap-4 sm:grid-cols-2 print:grid-cols-2">
             {section.signers.map((signer) => (
-              <div className="flex flex-col gap-2" key={signer.name}>
-                <div className="h-14" />
-                <div className="border-foreground border-t pt-1.5 text-sm">
-                  <p className="font-medium">{signer.name}</p>
-                  <p className="text-muted-foreground text-xs">
-                    {say(signer.role)}
-                  </p>
-                </div>
+              <div
+                className={`${LOOK.box} flex flex-col gap-2`}
+                key={signer.name}
+              >
+                <p className={LOOK.overline}>{say(signer.role)}</p>
+                <div className={`${LOOK.writeOn} h-16`} />
+                <p className="text-sm font-medium">{signer.name}</p>
                 {section.dateBlank ? <Blank said={section.dateBlank} /> : null}
               </div>
             ))}
+            {section.witnesses.map((witness) => (
+              <div
+                className={`${LOOK.box} flex flex-col gap-3`}
+                key={witness.en}
+              >
+                <p className={LOOK.overline}>{say(witness)}</p>
+                {section.witnessBlanks.map((blank) => (
+                  <Blank key={blank.en} said={blank} />
+                ))}
+              </div>
+            ))}
           </div>
-          {section.witnesses.length > 0 ? (
-            <div className="grid grid-cols-2 gap-x-10 gap-y-6 pt-2">
-              {section.witnesses.map((witness) => (
-                <div className="flex flex-col gap-2" key={witness.en}>
-                  <p className="text-sm font-semibold">{say(witness)}</p>
-                  {section.witnessBlanks.map((blank) => (
-                    <Blank key={blank.en} said={blank} />
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : null}
         </>
       );
     }
@@ -485,12 +497,12 @@ const PaperBody = ({
         <Photographs photographs={photographs} />
       ) : null}
 
-      <footer className="flex flex-col gap-2 border-t pt-3 text-xs">
+      <footer className="flex flex-col gap-3 border-t pt-4 text-xs">
         {document.copyOf ? (
           <p className="font-semibold">{say(document.copyOf)}</p>
         ) : null}
         {document.closing.length > 0 ? (
-          <div className="bg-muted/60 rounded-md px-3 py-2 font-medium">
+          <div className={`${LOOK.note} font-medium`}>
             {document.closing.map((line) => (
               <p key={say(line)}>{say(line)}</p>
             ))}
