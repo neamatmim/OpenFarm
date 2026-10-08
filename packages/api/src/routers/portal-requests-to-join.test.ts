@@ -320,7 +320,7 @@ describe("the Owner reading a Venture's Requests", () => {
       arbitrator: `সালিস ${suffix}`,
       stampKind: "paper",
       stampValueMoney: 300,
-      stampedOn: "2052-01-02",
+      stampedOn: "2052-01-01",
       stampSerial: `S-R${suffix}`,
     });
     const asker = await invited("প্রার্থী");
@@ -512,7 +512,7 @@ describe("a Request the farm refuses", () => {
       arbitrator: `সালিস ${suffix}`,
       stampKind: "paper",
       stampValueMoney: 300,
-      stampedOn: "2052-01-02",
+      stampedOn: "2052-01-01",
       stampSerial: `S-N${suffix}`,
     });
 

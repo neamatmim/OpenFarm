@@ -185,7 +185,7 @@ describe("an Agreement agreed in the app", () => {
     await owner.ventures.agreements.sign({
       ...terms(ventureId, other.id, 4),
       stampValueMoney: 300,
-      stampedOn: "2093-01-02",
+      stampedOn: "2093-01-01",
       stampSerial: `AA ${suffix}`,
     });
     expect(
@@ -354,7 +354,7 @@ describe("an Agreement agreed in the app", () => {
       const signed = await owner.ventures.agreements.sign({
         ...terms(ventureId, them.id, 2),
         stampValueMoney: 300,
-        stampedOn: "2093-01-02",
+        stampedOn: "2093-01-01",
         stampSerial: `AC ${them.id.slice(-8)}`,
       });
       if (photographed) {
@@ -472,7 +472,7 @@ describe("an Agreement agreed in the app", () => {
         ...terms(ventureId, them.id),
         stampKind: "in_app" as never,
         stampValueMoney: 300,
-        stampedOn: "2093-01-02",
+        stampedOn: "2093-01-01",
         stampSerial: `AB ${suffix}`,
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });

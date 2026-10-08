@@ -638,7 +638,7 @@ const agreementPart = (
       ),
       {
         label: { bn: "সই", en: "Signed" },
-        value: each((language) => when(one.signedAt, language)),
+        value: each((language) => onDay(one.signedOn, language)),
       },
       {
         label: { bn: "স্ট্যাম্প", en: "Stamp" },

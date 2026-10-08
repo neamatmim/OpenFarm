@@ -328,6 +328,8 @@ export const approveOffer = async (
             on: farmDayOf(now),
             serial: paperNumberOf(offer.paperHash),
           },
+          // Agreed in the app, it is signed the day the Owner approves it, as an Amendment agreed in the app is.
+          signedOn: farmDayOf(now),
           templateVersionId: offer.templateVersionId ?? "",
           requestId: offer.requestId ?? undefined,
           nominees: (offer.nominees ?? []) as Nominee[],

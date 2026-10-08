@@ -19,10 +19,10 @@ import { appRouter } from "./index";
 const suffix = `${Date.now()}`.slice(-6);
 const JANUARY = "2095-01-01T04:00:00.000Z";
 
-const as = async (role: "owner" | "manager") => {
+const as = async (role: "owner" | "manager", instant = JANUARY) => {
   const { client } = await createTestClient(appRouter, {
     as: role,
-    clock: new FakeClock(JANUARY),
+    clock: new FakeClock(instant),
   });
   return client;
 };
@@ -55,9 +55,14 @@ const aVenture = async (name: string) => {
   return venture.id;
 };
 
-/** An Investor signed for Units of a Venture, the stamped paper on file. */
-const signedUp = async (name: string, ventureId: string, units: number) => {
-  const owner = await as("owner");
+/** An Investor signed for Units of a Venture, the stamped paper on file: stamped and signed on the day of `instant`. */
+const signedUp = async (
+  name: string,
+  ventureId: string,
+  units: number,
+  instant = JANUARY
+) => {
+  const owner = await as("owner", instant);
   const person = await owner.investors.record({
     name: `${name} ${suffix}`,
     phone: `0171${suffix}${units}`,
@@ -69,7 +74,7 @@ const signedUp = async (name: string, ventureId: string, units: number) => {
     investorsPercent: 60,
     arbitrator: `সালিস ${suffix}`,
     stampValueMoney: 300,
-    stampedOn: "2095-01-02",
+    stampedOn: instant.slice(0, 10),
     stampSerial: `S-${name}-${suffix}`,
   });
   await owner.ventures.agreements.keepPaper({
@@ -295,7 +300,12 @@ describe("the Farm's own Units at Settlement", () => {
       ventureId: venture.id,
       units: 10,
     });
-    const theirs = await signedUp("হিসাবের জন", venture.id, 10);
+    const theirs = await signedUp(
+      "হিসাবের জন",
+      venture.id,
+      10,
+      "2096-01-02T04:00:00.000Z"
+    );
     for (const [agreementId, reference] of [
       [farms.id, `FARM-${suffix}`],
       [theirs, `INV-${suffix}`],
@@ -547,7 +557,7 @@ describe("the Farm's own partner record", () => {
         investorsPercent: 60,
         arbitrator: `সালিস ${suffix}`,
         stampValueMoney: 300,
-        stampedOn: "2095-01-02",
+        stampedOn: "2095-01-01",
         stampSerial: `S-farm-${suffix}`,
       })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
@@ -631,7 +641,7 @@ describe("the split the Farm's own Units are on", () => {
           investorsPercent: 70,
           arbitrator: `সালিস ${suffix}`,
           stampValueMoney: 300,
-          stampedOn: "2095-01-02",
+          stampedOn: "2095-01-01",
           stampSerial: `S-split-${suffix}`,
         })
       )

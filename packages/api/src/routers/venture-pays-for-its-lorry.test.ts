@@ -70,7 +70,7 @@ beforeAll(async () => {
     arbitrator: `মাওলানা ${suffix}`,
     stampValueMoney: 300,
     stampSerial: `AA ${suffix}`,
-    stampedOn: "2049-01-02",
+    stampedOn: "2049-01-01",
   });
   agreementId = agreement.id;
   await owner.client.ventures.agreements.keepPaper({

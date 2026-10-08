@@ -542,7 +542,7 @@ const KeyDates = ({ today }: { today: Today }) => {
   const rows: { label: string; at: ReactNode; done: boolean }[] = [
     {
       label: t("portal.dates.signed"),
-      at: mine ? <SaidDate at={mine.signedAt} /> : <Nothing />,
+      at: mine ? <SaidDate at={mine.signedOn} /> : <Nothing />,
       done: Boolean(mine),
     },
     {

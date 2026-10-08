@@ -120,7 +120,7 @@ describe("a Venture Plan", () => {
       investorsPercent: 60,
       arbitrator: `সালিস ${suffix}`,
       stampValueMoney: 300,
-      stampedOn: "2053-01-02",
+      stampedOn: "2053-01-01",
       stampSerial: `PL-${suffix}`,
     });
     await owner.ventures.agreements.keepPaper({
@@ -206,7 +206,7 @@ describe("a plan line's Breed", () => {
       investorsPercent: 60,
       arbitrator: `সালিস ${suffix}`,
       stampValueMoney: 300,
-      stampedOn: "2053-01-02",
+      stampedOn: "2053-01-01",
       stampSerial: `PB-${name}-${suffix}`,
     });
     await owner.ventures.agreements.keepPaper({

@@ -57,7 +57,7 @@ const signFor = async (
     investorsPercent: 60,
     arbitrator: `মাওলানা ${which} ${suffix}`,
     stampValueMoney: 300,
-    stampedOn: "2051-01-02",
+    stampedOn: "2051-01-01",
     stampSerial: `AA ${which} ${suffix}`,
   });
   await owner.client.ventures.agreements.keepPaper({

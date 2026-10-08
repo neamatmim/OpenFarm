@@ -199,7 +199,7 @@ const PaperBadge = ({ agreement }: { agreement: Agreement }) => {
 /** The day it was signed, its stamp, and whether the Farm keeps its photo. */
 const SignedCell = ({ row }: AgreementCell) => (
   <span className="flex flex-col items-start gap-1">
-    <SaidDate at={row.original.signedAt} />
+    <SaidDate at={row.original.signedOn} />
     <span className="text-muted-foreground font-mono text-xs">
       {row.original.stamp.serial}
     </span>
@@ -264,7 +264,7 @@ const agreementColumns = agreementColumn.columns([
     cell: SplitCell,
     meta: { align: "end" },
   }),
-  agreementColumn.accessor((row) => new Date(row.signedAt).getTime(), {
+  agreementColumn.accessor("signedOn", {
     id: "signed",
     header: listHeader("investors.page.signed"),
     cell: SignedCell,
@@ -308,7 +308,7 @@ const AgreementCard = ({ row }: { row: AgreementRow }) => {
         </Line>
         <Line label={t("investors.page.signed")}>
           <span className="flex flex-col items-end">
-            <SaidDate at={row.signedAt} />
+            <SaidDate at={row.signedOn} />
             <span className="text-muted-foreground font-mono text-xs">
               {row.stamp.serial}
             </span>

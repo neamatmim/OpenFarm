@@ -858,6 +858,9 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "ventures.missing.stampValue": "স্ট্যাম্পের মূল্য লিখুন।",
   "ventures.missing.stampedOn": "স্ট্যাম্পের তারিখ লিখুন।",
   "ventures.missing.stampSerial": "স্ট্যাম্পের সিরিয়াল লিখুন।",
+  "ventures.missing.signedInFuture": "সইয়ের দিন আজকের পরে হতে পারে না।",
+  "ventures.missing.signedBeforeStamped":
+    "সইয়ের দিন স্ট্যাম্পের তারিখের আগে হতে পারে না।",
   "ventures.signHint":
     "{venture}-এ এই বিনিয়োগকারী কত ইউনিট নিচ্ছেন, কত ভাগ পাবেন, আর কোন স্ট্যাম্পে লেখা হলো",
   "ventures.signedFor": "সই হয়েছে",
@@ -875,6 +878,9 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "ventures.arbitratorHint": "মতভেদ হলে যাঁর কাছে যাওয়া হবে, দুই পক্ষ এখনই তাঁর নাম দেয়",
   "ventures.stampValue": "স্ট্যাম্পের মূল্য",
   "ventures.stampedOn": "স্ট্যাম্পের তারিখ",
+  "ventures.signedOn": "সইয়ের দিন",
+  "ventures.signedOnHint":
+    "যেদিন তিনি আপনার সামনে সই করেছেন; আজ লিখে রাখলে আজকের দিনই থাকুক।",
   "ventures.stampSerial": "স্ট্যাম্পের সিরিয়াল",
   "ventures.stampKind": "স্ট্যাম্প শুল্ক কীভাবে দেওয়া হয়েছে",
   "ventures.stampKind.paper": "স্ট্যাম্প কাগজ",

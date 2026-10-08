@@ -540,9 +540,18 @@ export const investmentAgreement = pgTable(
      *  joined by phone. Where the two disagree on Units, the paper is right. */
     requestId: text("request_id").references(() => requestToJoin.id),
     signedBy: text("signed_by").references(() => user.id),
+    /** The farm day the Investor signed it: on paper, the day the Owner says it was signed in front of them, which may
+     *  be before it was recorded; agreed in the app, the day the Owner approved it. Every Agreement recorded before it
+     *  was asked reads the day it was recorded. */
+    signedOn: text("signed_on").notNull(),
+    /** When it was recorded. */
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
+    check(
+      "investment_agreement_signed_on_day",
+      sql`${table.signedOn} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`
+    ),
     check(
       "investment_agreement_window_days",
       sql`${table.targetWindowStart} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' and ${table.targetWindowEnd} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`

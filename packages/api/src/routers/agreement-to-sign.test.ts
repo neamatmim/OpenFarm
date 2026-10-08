@@ -267,7 +267,7 @@ describe("stamp duty paid by e-challan", () => {
       ...terms(),
       stampKind: "e_challan",
       stampValueMoney: 300,
-      stampedOn: "2052-01-02",
+      stampedOn: "2052-01-01",
       stampSerial: `2324-${suffix}`,
     });
     await owner.ventures.agreements.keepPaper({

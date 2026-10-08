@@ -214,7 +214,7 @@ describe("what an invited Investor is offered", () => {
       arbitrator: `সালিস ${suffix}`,
       stampKind: "paper",
       stampValueMoney: 300,
-      stampedOn: "2052-01-02",
+      stampedOn: "2052-01-01",
       stampSerial: `S-0175${suffix}`,
     });
 

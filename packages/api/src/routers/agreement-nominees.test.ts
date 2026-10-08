@@ -221,7 +221,7 @@ describe("an Agreement's Nominees", () => {
     });
   });
 
-  it("are judged minors on the day the paper is stamped: a Receiver for a minor, none for one who turns eighteen that day", async () => {
+  it("are judged minors on the day the paper is signed: a Receiver for a minor, none for one who turns eighteen that day", async () => {
     const owner = await as("owner");
     const investorId = await someone("বাবা");
     const turning = {
@@ -230,15 +230,18 @@ describe("an Agreement's Nominees", () => {
       nid: "2046 0110 5521",
     };
 
+    // Stamped the day before she turns eighteen either way: the day it is signed is the one she is judged on.
     await expect(
       owner.ventures.agreements.sign({
         ...terms(investorId, "2064-01-09"),
+        signedOn: "2064-01-09",
         nominees: [turning],
       })
     ).rejects.toMatchObject({ data: { refusal: "nominees_receiver_missing" } });
 
     await owner.ventures.agreements.sign({
-      ...terms(investorId, "2064-01-10"),
+      ...terms(investorId, "2064-01-09"),
+      signedOn: "2064-01-10",
       nominees: [turning],
     });
     const [inForce] = await owner.investors.nominations({ id: investorId });
