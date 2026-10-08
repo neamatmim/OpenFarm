@@ -242,3 +242,38 @@ describe("the Owner's line", () => {
     expect(farm?.storeShortfallTellMoney).toBe(5000);
   });
 });
+
+describe("a count put right", () => {
+  it("leaves the Owner's notices once the count is put right to no shortfall", async () => {
+    const owner = await as("owner", "2057-03-01T03:00:00.000Z");
+    // What the store holds before anybody counts: what a count finding nothing missing says.
+    const stock = await owner.client.stock.onHand();
+    const { completionId } = await countOn("2057-03-01", {
+      // Two hundred kilos short at ৳40, past the Owner's line of ৳5,000.
+      [bran]: {
+        counted:
+          (stock.find((line) => line.feedItemId === bran)?.onHand ?? 0) - 200,
+        reason: "ভুল গোনা",
+      },
+    });
+    const before = await owner.client.alerts.mine({ entityId: completionId });
+    expect(before.map((one) => one.kind)).toContain("store_shortfall");
+
+    const again = await as("manager", "2057-03-01T06:00:00.000Z");
+    await correctStepAsShown(again.client, {
+      completionId,
+      reason: "আবার গোনা হলো, সব ঠিক আছে",
+      evidence: [true],
+      counts: [bran, napier].map((feedItemId) => ({
+        feedItemId,
+        counted: Math.max(
+          0,
+          stock.find((line) => line.feedItemId === feedItemId)?.onHand ?? 0
+        ),
+      })),
+    });
+
+    const after = await owner.client.alerts.mine({ entityId: completionId });
+    expect(after.map((one) => one.kind)).not.toContain("store_shortfall");
+  });
+});
