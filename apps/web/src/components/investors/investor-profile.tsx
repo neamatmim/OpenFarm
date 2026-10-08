@@ -14,7 +14,11 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import type { Investor } from "@/components/investors/investor-types";
-import { PortalAccess, standingOf } from "@/components/investors/portal-access";
+import {
+  AgreeingReadiness,
+  PortalAccess,
+  standingOf,
+} from "@/components/investors/portal-access";
 import { Section } from "@/components/page";
 import { ConfirmDialog } from "@/components/page-kit";
 import { KIND_WORDS } from "@/components/ventures/request-parts";
@@ -453,10 +457,13 @@ const OrganizationCards = ({
 export const InvestorProfile = ({
   investor,
   portalOpen,
+  agreementsInApp = false,
 }: {
   investor: Investor;
   /** Whether the farm has its Investor portal open. */
   portalOpen: boolean;
+  /** Whether the farm's switch for agreeing in the app is on: only then is it said whether they can. */
+  agreementsInApp?: boolean;
 }) => {
   const { t } = useLanguage();
   return (
@@ -493,6 +500,7 @@ export const InvestorProfile = ({
       <div className="flex flex-col gap-4">
         <Section description={t("portal.recordHint")} title={t("portal.title")}>
           <PortalAccess investor={investor} portalOpen={portalOpen} />
+          {agreementsInApp ? <AgreeingReadiness investor={investor} /> : null}
           {standingOf(investor) === "in" ||
           standingOf(investor) === "taken_away" ? (
             <PortalActivity investor={investor} />

@@ -40,6 +40,7 @@ import type { Owned } from "./portal-invitable";
 import { refused } from "./portal-invitable";
 import { theNoticeToRead } from "./portal-reads";
 import { theirRequests, whatTheyDidToTheirRequests } from "./requests-to-join";
+import type { SigningChannel } from "./signing-code";
 import { theirAgreements } from "./their-agreements";
 
 // The Data Copy, «খামারে আপনার তথ্য» (the glossary's entry): everything the farm holds on one Investor, which answers
@@ -146,6 +147,16 @@ const BANGLA = {
   farmApproved: (at: string) => `খামারের অনুমোদন ${at}`,
   offerWithdrawn: (at: string) => `প্রস্তাব তুলে নেওয়া ${at}`,
   paperMark: (hash: string) => `কাগজের ছাপ ${hash}`,
+  sealedBy: (channel: SigningChannel, to: string) =>
+    `কোড এসেছিল ${channel === "sms" ? "এসএমএসে" : "ইমেইলে"}, ${to}-এ`,
+  sealedFrom: (address: string, agent: string) =>
+    `ঠিকানা ${address}, ব্রাউজার ${agent}`,
+  toldApproved: (ways: string, at: string) => `অনুমোদনের খবর ${ways} ${at}`,
+  notToldApproved: "অনুমোদনের খবর যায়নি",
+  bySmsAndEmail: (sms: boolean, email: boolean) =>
+    [sms ? "এসএমএসে" : null, email ? "ইমেইলে" : null]
+      .filter(Boolean)
+      .join(" ও "),
   amendment: (venture: string) => `সংশোধন: ${venture}`,
   noConsent: "কোনো সম্মতি রেকর্ড নেই",
   consentWithdrawn: (day: string) => `তুলে নেওয়া ${day}`,
@@ -186,6 +197,15 @@ const ENGLISH: typeof BANGLA = {
   farmApproved: (at: string) => `the farm approved ${at}`,
   offerWithdrawn: (at: string) => `offer withdrawn ${at}`,
   paperMark: (hash: string) => `paper fingerprint ${hash}`,
+  sealedBy: (channel: SigningChannel, to: string) =>
+    `the code came by ${channel === "sms" ? "text" : "email"} to ${to}`,
+  sealedFrom: (address: string, agent: string) =>
+    `from address ${address}, browser ${agent}`,
+  toldApproved: (ways: string, at: string) =>
+    `told of the approval by ${ways} ${at}`,
+  notToldApproved: "the approval was not told",
+  bySmsAndEmail: (sms: boolean, email: boolean) =>
+    [sms ? "text" : null, email ? "email" : null].filter(Boolean).join(" and "),
   amendment: (venture: string) => `Amendment: ${venture}`,
   noConsent: "No consent on record",
   consentWithdrawn: (day: string) => `withdrawn ${day}`,
@@ -529,6 +549,40 @@ const emailLines = (them: {
   );
 };
 
+/** How a paper agreed in the app was sealed: the way the code came and where, from what address and browser, and
+ *  whether the farm told them of the approval. Nothing where no code sealed it. */
+const sealWords = (
+  proof:
+    | {
+        channel: SigningChannel;
+        sentTo: string;
+        callerAddress: string | null;
+        callerAgent: string | null;
+        confirmedAt: Date | null;
+        confirmedBySms: boolean;
+        confirmedByEmail: boolean;
+      }
+    | undefined,
+  language: Language
+): string | null => {
+  if (!proof) {
+    return null;
+  }
+  const say = WORDS[language];
+  const told = proof.confirmedBySms || proof.confirmedByEmail;
+  return joined(
+    say.sealedBy(proof.channel, proof.sentTo),
+    say.sealedFrom(proof.callerAddress ?? "—", proof.callerAgent ?? "—"),
+    proof.confirmedAt && told
+      ? say.toldApproved(
+          say.bySmsAndEmail(proof.confirmedBySms, proof.confirmedByEmail),
+          when(proof.confirmedAt, language)
+        )
+      : null,
+    proof.confirmedAt && !told ? say.notToldApproved : null
+  );
+};
+
 /**
  * The Data Copy of one Investor, laid out to print and hand over: the notice's points first, then their record
  * unmasked, their Agreements with any Settlement, the money they moved, the papers made for them, their Requests to
@@ -582,7 +636,7 @@ export const dataCopyOf = async (
     ]);
   const nominations = await nominationsOf(db, farm.id, investorId);
   // What they said they paid through the portal, and what they agreed to there: theirs, as much as a signed paper is.
-  const [payInNotes, offers, amendmentsAgreed] = await Promise.all([
+  const [payInNotes, offers, amendmentsAgreed, proofs] = await Promise.all([
     db.query.payInNote.findMany({
       where: { farmId: farm.id, investorId },
       orderBy: { createdAt: "asc", id: "asc" },
@@ -600,7 +654,12 @@ export const dataCopyOf = async (
           },
           orderBy: { agreedAt: "asc", id: "asc" },
         }),
+    db.query.signingProof.findMany({ where: { farmId: farm.id, investorId } }),
   ]);
+  // How each paper they agreed to in the app was sealed, by what it was offered as (ADR 0022).
+  const proofOf = new Map(
+    proofs.map((one) => [`${one.offerKind}:${one.offerId}`, one])
+  );
   const portalVentureIds = [
     ...new Set([...payInNotes, ...offers].map((one) => one.ventureId)),
   ];
@@ -786,7 +845,8 @@ export const dataCopyOf = async (
             one.withdrawnAt
               ? say.offerWithdrawn(when(one.withdrawnAt, language))
               : null,
-            say.paperMark(one.paperHash.slice(0, 12))
+            say.paperMark(one.paperHash.slice(0, 12)),
+            sealWords(proofOf.get(`agreement_offer:${one.id}`), language)
           );
         }),
       })),
@@ -795,7 +855,10 @@ export const dataCopyOf = async (
           WORDS[language].amendment(ventureOf.get(one.agreementId) ?? "")
         ),
         value: each((language) =>
-          WORDS[language].youAgreed(when(one.agreedAt, language))
+          joined(
+            WORDS[language].youAgreed(when(one.agreedAt, language)),
+            sealWords(proofOf.get(`amendment_offer:${one.offerId}`), language)
+          )
         ),
       })),
     ]),

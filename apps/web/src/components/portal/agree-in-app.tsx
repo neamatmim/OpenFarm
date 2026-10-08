@@ -1,7 +1,8 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Eye, Handshake } from "lucide-react";
+import { Eye, Handshake, MessageSquareLock } from "lucide-react";
 import { useState } from "react";
 
 import { Notice } from "@/components/page";
@@ -25,14 +26,50 @@ const REFUSALS = {
   paper_changed_since: "agreeInApp.refusal.paper_changed_since",
   not_an_investor: "portal.refused.notAnInvestor",
   signed_in_too_long: "portal.endedHint",
+  // The code that seals it (ADR 0022).
+  wrong_code: "agreeInApp.refusal.wrong_code",
+  code_expired: "agreeInApp.refusal.code_expired",
+  code_used: "agreeInApp.refusal.code_used",
+  too_many_codes: "agreeInApp.refusal.too_many_codes",
+  code_sent_just_now: "agreeInApp.refusal.code_sent_just_now",
+  code_not_sent: "agreeInApp.refusal.code_not_sent",
+  no_signing_clause: "agreeInApp.refusal.no_signing_clause",
+  no_way_to_send_a_code: "agreeInApp.refusal.no_way_to_send_a_code",
+  already_agreed: "agreeInApp.refusal.already_agreed",
 } as const;
 
 type AmendmentOffer = Awaited<
   ReturnType<typeof client.portal.amendmentOffers>
 >[number];
 
-/** The paper offered, to read in full, and «আমি সম্মত» beneath it until they have agreed. */
+/** Where the farm sent the codes for a paper, mostly hidden, and how long they work. */
+type Sent = Awaited<ReturnType<typeof client.portal.sendSigningCode>>;
+
+/** Where the codes went, mostly hidden: by text, by email, or both. */
+const sentSaid = (sent: Sent, t: ReturnType<typeof useLanguage>["t"]) => {
+  const { minutes } = sent;
+  if (sent.bySms && sent.byEmail) {
+    return t("agreeInApp.portal.codeSentBoth", {
+      phone: sent.bySms,
+      email: sent.byEmail,
+      minutes,
+    });
+  }
+  return sent.bySms
+    ? t("agreeInApp.portal.codeSentSms", { phone: sent.bySms, minutes })
+    : t("agreeInApp.portal.codeSentEmail", {
+        email: sent.byEmail ?? "",
+        minutes,
+      });
+};
+
+/**
+ * The paper offered, to read in full, and beneath its title the way to agree until they have: a code the farm sends by
+ * text and to their confirmed email, entered here — which is their agreement, as their signature would be (ADR 0022).
+ */
 const ReadAndAgree = ({
+  kind,
+  offerId,
   title,
   paper,
   agreed,
@@ -40,26 +77,79 @@ const ReadAndAgree = ({
   onAgree,
   onClose,
 }: {
+  kind: "agreement_offer" | "amendment_offer";
+  offerId: string;
   title: string;
   paper: Offer["paper"] | null;
   agreed: boolean;
   pending: boolean;
-  onAgree: () => void;
+  onAgree: (code: string) => void;
   onClose: () => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused(REFUSALS);
+  const [sent, setSent] = useState<Sent | null>(null);
+  const [code, setCode] = useState("");
+  const sending = useMutation(
+    orpc.portal.sendSigningCode.mutationOptions({
+      onError: refused,
+      onSuccess: setSent,
+    })
+  );
+  const send = () => sending.mutate({ kind, offerId });
+  const asking = sent ? (
+    <form
+      className="flex flex-wrap items-center gap-2"
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (code.trim() !== "") {
+          onAgree(code);
+        }
+      }}
+    >
+      <Input
+        aria-label={t("agreeInApp.portal.code")}
+        autoComplete="one-time-code"
+        className="w-32 tracking-widest tabular-nums"
+        inputMode="numeric"
+        maxLength={12}
+        onChange={(event) => setCode(event.target.value)}
+        placeholder={t("agreeInApp.portal.code")}
+        value={code}
+      />
+      <Button disabled={pending || code.trim() === ""} type="submit">
+        <Handshake aria-hidden data-icon="inline-start" />
+        {t("agreeInApp.portal.agree")}
+      </Button>
+      <Button
+        disabled={sending.isPending}
+        onClick={send}
+        type="button"
+        variant="outline"
+      >
+        {t("agreeInApp.portal.sendAgain")}
+      </Button>
+    </form>
+  ) : (
+    <Button disabled={sending.isPending} onClick={send} type="button">
+      <MessageSquareLock aria-hidden data-icon="inline-start" />
+      {t("agreeInApp.portal.sendCode")}
+    </Button>
+  );
+  // Where the codes went once sent; until then, how agreeing works.
+  const description = sent
+    ? sentSaid(sent, t)
+    : t("agreeInApp.portal.agreeHint");
   return (
     <PaperDialog
-      action={
-        agreed ? undefined : (
-          <Button disabled={pending} onClick={onAgree} type="button">
-            <Handshake aria-hidden data-icon="inline-start" />
-            {t("agreeInApp.portal.agree")}
-          </Button>
-        )
-      }
-      description={agreed ? undefined : t("agreeInApp.portal.agreeHint")}
-      onClose={onClose}
+      action={agreed ? undefined : asking}
+      description={agreed ? undefined : description}
+      onClose={() => {
+        setSent(null);
+        setCode("");
+        onClose();
+      }}
       paper={paper}
       title={title}
       wording={null}
@@ -113,8 +203,14 @@ const OfferNotice = ({ offer }: { offer: Offer }) => {
       </div>
       <ReadAndAgree
         agreed={agreed}
-        onAgree={() =>
-          agreeing.mutate({ offerId: offer.id, paperHash: offer.paperHash })
+        kind="agreement_offer"
+        offerId={offer.id}
+        onAgree={(code) =>
+          agreeing.mutate({
+            offerId: offer.id,
+            paperHash: offer.paperHash,
+            code,
+          })
         }
         onClose={() => setReading(false)}
         paper={reading ? offer.paper : null}
@@ -174,8 +270,14 @@ const AmendmentNotice = ({ offer }: { offer: AmendmentOffer }) => {
       </div>
       <ReadAndAgree
         agreed={agreed}
-        onAgree={() =>
-          agreeing.mutate({ offerId: offer.id, paperHash: offer.paperHash })
+        kind="amendment_offer"
+        offerId={offer.id}
+        onAgree={(code) =>
+          agreeing.mutate({
+            offerId: offer.id,
+            paperHash: offer.paperHash,
+            code,
+          })
         }
         onClose={() => setReading(false)}
         paper={reading ? offer.paper : null}
@@ -188,7 +290,7 @@ const AmendmentNotice = ({ offer }: { offer: AmendmentOffer }) => {
 
 /**
  * The Agreements the farm has offered them to agree to in the app, at the top of their home: each to read in full and
- * agree to with one press, and, agreed, waiting on the Owner's approval. Nothing while none is offered, and nothing in
+ * agree to with a code the farm sends them, and, agreed, waiting on the Owner's approval. Nothing while none is offered, and nothing in
  * the Owner's preview of the portal — an Investor's agreement is theirs to give.
  */
 export const AgreeInApp = () => {

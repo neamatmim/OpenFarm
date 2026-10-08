@@ -289,6 +289,69 @@ export const PortalSwitch = ({ open }: { open: boolean }) => {
   );
 };
 
+/** Which of the farm's two ways a Signing Code goes by, said as what in-app agreeing still needs (ADR 0022). */
+const WAYS_SAID = {
+  both: "agreeInApp.ways.both",
+  sms: "agreeInApp.ways.smsOnly",
+  email: "agreeInApp.ways.emailOnly",
+  none: "agreeInApp.ways.none",
+} as const;
+
+/** The ways the farm can send a Signing Code, as one word for what the screens say. */
+export const waysOf = (codesBy: { sms: boolean; email: boolean }) => {
+  if (codesBy.sms && codesBy.email) {
+    return "both";
+  }
+  if (codesBy.sms) {
+    return "sms";
+  }
+  return codesBy.email ? "email" : "none";
+};
+
+/**
+ * How the farm sends the codes that seal a paper agreed in the app — a text gateway, an email sender — and what in-app
+ * agreeing still needs where it has neither. Set at deploy, not here; said under the switch so turning it on is not a
+ * surprise. Nothing on an answer cached before the farm said.
+ */
+export const SigningCodeWays = ({
+  codesBy,
+}: {
+  codesBy: { sms: boolean; email: boolean } | undefined;
+}) => {
+  const { t } = useLanguage();
+  if (!codesBy) {
+    return null;
+  }
+  return (
+    <p className="text-muted-foreground py-3 text-sm">
+      {t(WAYS_SAID[waysOf(codesBy)])}
+    </p>
+  );
+};
+
+/**
+ * Whether one Investor can agree to a paper in the app now, said only while the farm's switch is on and they are in the
+ * portal: their consent carries the signing clause, and a code has a way to reach them — or what is missing.
+ */
+export const AgreeingReadiness = ({ investor }: { investor: Investor }) => {
+  const { t } = useLanguage();
+  const consent = investor.portalConsent ?? null;
+  const { codesBy } = investor;
+  if (standingOf(investor) !== "in" || !consent || !codesBy) {
+    return null;
+  }
+  const ways = waysOf(codesBy);
+  let said: string;
+  if (consent.signsInApp === false) {
+    said = t("agreeInApp.ready.noClause");
+  } else if (ways === "none") {
+    said = t("agreeInApp.ready.noWay");
+  } else {
+    said = t(`agreeInApp.ready.${ways}`);
+  }
+  return <p className="text-muted-foreground text-sm">{said}</p>;
+};
+
 /** One thing the Owner shows invited Investors or keeps from them, each behind the advisers: its words, and the act
  *  that switches it. */
 const SHOWN = {

@@ -353,6 +353,8 @@ export const investorsRouter = {
         projectionsShown: context.farm.investorProjections,
         /** Whether Agreements and Amendments may be agreed within the app. */
         agreementsInApp: context.farm.agreementsInApp,
+        /** The ways the farm can send a Signing Code at all: a text gateway, an email sender (ADR 0022). */
+        codesBy: { sms: context.sms.sends, email: context.email.sends },
         /** Whether an Investor may send a Pay-in Note from the portal (ADR 0018). */
         payInNotes: context.farm.payInNotes,
         /** Whether invited Investors are shown a settled Venture's Return on Capital (ADR 0012). */
@@ -369,6 +371,15 @@ export const investorsRouter = {
            *  for one not confirmed yet. */
           email: one.email,
           emailConfirmedAt: one.emailConfirmedAt,
+          /** The ways a Signing Code would reach them now: by text through the farm's gateway, and by email to one
+           *  they confirmed through its sender. */
+          codesBy: {
+            sms: context.sms.sends,
+            email:
+              context.email.sends &&
+              one.email !== null &&
+              one.emailConfirmedAt !== null,
+          },
           address: one.address,
           nid: one.nid,
           bankAccount: one.bankAccount,
@@ -790,9 +801,9 @@ export const investorsRouter = {
 
   /**
    * Lets an Investment Agreement or an Amendment be agreed within the app — offered by the Owner, agreed by the Investor
-   * in the portal, approved by the Owner — or stops it. Off until the Owner turns it on, once the lawyer and the Shariah
-   * scholar have confirmed the farm may rely on an Agreement with no stamp on it. Turned off, an offer already agreed may
-   * still be approved. The Owner's alone.
+   * in the portal with a Signing Code, approved by the Owner — or stops it. Off until the Owner turns it on, accepting
+   * that such an Agreement carries no stamp (ADR 0022). Turned off, an offer already agreed may still be approved. The
+   * Owner's alone.
    */
   setAgreementsInApp: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))

@@ -19,9 +19,16 @@ import type { AmendmentTerms } from "./agreement-paper";
 import { writeAmendment } from "./agreement-write";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
+import type { Context } from "./context";
 import { assertRegistered } from "./export-store";
 import { assertReadAsKept, keepPaper } from "./kept-paper";
 import { madeOn } from "./paper-values";
+import {
+  checkSigningCode,
+  confirmApproval,
+  keepProof,
+  proofSaid,
+} from "./signing-code";
 import { currentWording, giveStandardTemplates } from "./template-store";
 import { lockTheFarm, termsAcrossOn } from "./venture-store";
 
@@ -259,7 +266,7 @@ const assertEveryoneAgreed = async (tx: Tx, offer: OfferRow) => {
  * with the switch since turned off: it was agreed while it was on.
  */
 export const approveAmendment = async (
-  context: Acting,
+  context: Acting & Pick<Context, "sms" | "email">,
   offerId: string
 ): Promise<{ id: string; agreements: number }> => {
   const offer = await theOffer(context.db, context.farm.id, offerId);
@@ -325,6 +332,17 @@ export const approveAmendment = async (
       return written.length;
     }
   );
+  // Each Investor who agreed to it with a code is told it is approved.
+  const run = await context.db.query.venture.findFirst({
+    where: { id: offer.ventureId, farmId: context.farm.id },
+    columns: { name: true },
+  });
+  await confirmApproval(context, {
+    kind: "amendment_offer",
+    id: offer.id,
+    paperHash: offer.paperHash,
+    ventureName: run?.name ?? "",
+  });
   return { id: amendedId, agreements: amended };
 };
 
@@ -346,13 +364,23 @@ export const amendmentOffersOn = async (context: Acting, ventureId: string) => {
       columns: { id: true },
     }),
   ]);
-  const answers = await context.db.query.amendmentOfferAnswer.findMany({
-    where: {
-      farmId: context.farm.id,
-      offerId: { in: rows.map((one) => one.id) },
-    },
-    columns: { offerId: true, agreementId: true },
-  });
+  const [answers, proofs] = await Promise.all([
+    context.db.query.amendmentOfferAnswer.findMany({
+      where: {
+        farmId: context.farm.id,
+        offerId: { in: rows.map((one) => one.id) },
+      },
+      columns: { offerId: true, agreementId: true },
+    }),
+    context.db.query.signingProof.findMany({
+      where: {
+        farmId: context.farm.id,
+        offerKind: "amendment_offer",
+        offerId: { in: rows.map((one) => one.id) },
+      },
+      orderBy: { agreedAt: "asc", id: "asc" },
+    }),
+  ]);
   const onTheVenture = new Set(signed.map((one) => one.id));
   return rows.map((one) => ({
     id: one.id,
@@ -369,6 +397,8 @@ export const amendmentOffersOn = async (context: Acting, ventureId: string) => {
         answer.offerId === one.id && onTheVenture.has(answer.agreementId)
     ).length,
     of: signed.length,
+    /** How each Investor who agreed sealed it with a code (ADR 0022). */
+    proofs: proofs.filter((proof) => proof.offerId === one.id).map(proofSaid),
   }));
 };
 
@@ -475,17 +505,16 @@ export const theirAmendmentOffers = async (
 };
 
 /**
- * An Investor agrees, from their own portal sign-in, to an Amendment offered on a Venture they are in — to the paper
- * they read, whose fingerprint they send back: refused when it is not the one kept. Refused for one not naming them,
- * one withdrawn, one on a Venture settled since, and while the farm's switch is off. Agreeing again changes nothing.
+ * The Amendment an Investor may agree to now, and their Agreement it names: one naming them, standing, on a Venture not
+ * settled, while the farm's switch is on. What sending them a code for it and agreeing to it both ask.
  */
-export const agreeToAmendment = async (
+export const amendmentToAgree = async (
   context: Acting,
   investorId: string,
-  input: { offerId: string; paperHash: string }
-): Promise<void> => {
+  offerId: string
+) => {
   assertSwitchedOn(context.farm);
-  const offer = await theOffer(context.db, context.farm.id, input.offerId);
+  const offer = await theOffer(context.db, context.farm.id, offerId);
   const theirs = await theirAgreementOn(context.db, offer, investorId);
   if (!theirs) {
     throw new ORPCError("NOT_FOUND", { message: "No such offer" });
@@ -495,7 +524,6 @@ export const agreeToAmendment = async (
   }
   // Its Settlement approved since: an Amendment agreed now could never be approved.
   await assertNotSettled(context, offer.ventureId);
-  assertReadAsKept(offer, input.paperHash);
   const already = await context.db.query.amendmentOfferAnswer.findFirst({
     where: {
       farmId: context.farm.id,
@@ -504,9 +532,36 @@ export const agreeToAmendment = async (
     },
     columns: { id: true },
   });
-  if (already || offer.approvedAt) {
+  return { offer, theirs, agreed: !!already || offer.approvedAt !== null };
+};
+
+/**
+ * An Investor agrees, from their own portal sign-in, to an Amendment offered on a Venture they are in — to the paper
+ * they read, whose fingerprint they send back, refused when it is not the one kept — sealed by a Signing Code the farm
+ * sent them (ADR 0022), whose proof is kept with it. Refused for one not naming them, one withdrawn, one on a Venture
+ * settled since, and while the farm's switch is off. Agreeing again changes nothing, and asks no code.
+ */
+export const agreeToAmendment = async (
+  context: Acting & Pick<Context, "callerAddress" | "callerAgent">,
+  investorId: string,
+  input: { offerId: string; paperHash: string; code: string }
+): Promise<void> => {
+  const { offer, theirs, agreed } = await amendmentToAgree(
+    context,
+    investorId,
+    input.offerId
+  );
+  assertReadAsKept(offer, input.paperHash);
+  if (agreed) {
     return;
   }
+  const signed = { kind: "amendment_offer", id: offer.id } as const;
+  const sealed = await checkSigningCode(
+    context,
+    investorId,
+    signed,
+    input.code
+  );
   const now = context.clock.now();
   const id = uuidv7(now);
   await audited(context).write(
@@ -517,7 +572,7 @@ export const agreeToAmendment = async (
       after: { agreementId: theirs.id, agreedAt: now.toISOString() },
     },
     async (tx) => {
-      await tx
+      const [answered] = await tx
         .insert(amendmentOfferAnswer)
         .values({
           id,
@@ -527,7 +582,18 @@ export const agreeToAmendment = async (
           agreedBy: context.actor.id,
           agreedAt: now,
         })
-        .onConflictDoNothing();
+        .onConflictDoNothing()
+        .returning({ id: amendmentOfferAnswer.id });
+      // Agreed meanwhile: the code stays unused, and nothing is kept as proof of nothing.
+      if (answered) {
+        await keepProof(
+          tx,
+          context,
+          investorId,
+          { ...signed, paperHash: offer.paperHash },
+          sealed
+        );
+      }
     }
   );
 };

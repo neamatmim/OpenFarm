@@ -1,4 +1,5 @@
 import { session as sessionTable } from "@OpenFarm/db/schema/auth";
+import { mobileNumberOf } from "@OpenFarm/domain";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import type { RouterClient } from "@orpc/server";
 import { createRouterClient } from "@orpc/server";
@@ -6,6 +7,7 @@ import { createRouterClient } from "@orpc/server";
 import { buildContext } from "../context";
 import type { EmailTransport } from "../email";
 import { appRouter } from "../routers";
+import type { SmsMessage, SmsTransport } from "../sms";
 import { createTestClient } from "./client";
 
 // The Investor's side of the portal, for tests that drive it: an Investor written down, invited and joined, and the
@@ -19,12 +21,56 @@ const PASSWORD = "gorur-khamar-2026";
 /** How long a test's sign-in lasts: a day, longer than any test runs. */
 const A_DAY_MS = 24 * 60 * 60 * 1000;
 
+/** Every text a portal client in the tests sent, by the number it went to — the world's way of writing it — latest last. */
+const texts = new Map<string, SmsMessage[]>();
+
+/** A text gateway that takes every message and keeps it, as the tests' portal clients send through by default. */
+export const textsKept: SmsTransport = {
+  sends: true,
+  send: (to, message) => {
+    texts.set(to, [...(texts.get(to) ?? []), message]);
+    return Promise.resolve({ delivered: true });
+  },
+};
+
+/** The texts sent to a phone, however it was typed, latest last. */
+export const textsTo = (phone: string): SmsMessage[] =>
+  texts.get(mobileNumberOf(phone) ?? phone) ?? [];
+
+/** The six-digit code in the latest text to a phone. */
+export const codeTextedTo = (phone: string): string => {
+  const code = textsTo(phone)
+    .at(-1)
+    ?.text.match(/\b\d{6}\b/u)?.[0];
+  if (!code) {
+    throw new Error(`expected a code texted to ${phone}`);
+  }
+  return code;
+};
+
+/** The Signing Code an Investor asks for to agree to one paper, as the farm texts it to them. */
+export const aSigningCode = async (
+  them: { client: Client; phone: string },
+  kind: "agreement_offer" | "amendment_offer",
+  offerId: string
+): Promise<string> => {
+  await them.client.portal.sendSigningCode({ kind, offerId });
+  return codeTextedTo(them.phone);
+};
+
 /** The API as the account an invitation opened reaches it, signed in at the moment given. */
 export const signedInAs = async (
   loginEmail: string,
   at: string,
-  /** Where an email goes. Omitted, nowhere, as on a farm with no mail account. */
-  email?: EmailTransport
+  {
+    email,
+    sms = textsKept,
+  }: {
+    /** Where an email goes. Omitted, nowhere, as on a farm with no mail account. */
+    email?: EmailTransport;
+    /** Where a text goes. Omitted, into the tests' own outbox (`textsTo`). */
+    sms?: SmsTransport;
+  } = {}
 ): Promise<Client> => {
   const db = scratchDb();
   const person = await db.query.user.findFirst({
@@ -59,6 +105,7 @@ export const signedInAs = async (
     clock,
     db,
     email,
+    sms,
     farmId: theFarm().id,
   });
   return createRouterClient(appRouter, { context });
@@ -136,6 +183,7 @@ export const anInvitedInvestor = async (
   });
   return {
     id: them.id,
+    phone,
     userId: account?.id ?? "",
     loginEmail,
     client: await signedInAs(loginEmail, at),

@@ -91,7 +91,8 @@ const anInvestorWithEmail = async (count: number, email: string) => {
     name,
     phone,
     outbox,
-    at: (when: string) => signedInAs(them.loginEmail, when, outbox.transport),
+    at: (when: string) =>
+      signedInAs(them.loginEmail, when, { email: outbox.transport }),
   };
 };
 
@@ -277,7 +278,9 @@ describe("an Investor's email", () => {
     });
 
     const refusing = anOutbox(false);
-    const portal = await signedInAs(them.loginEmail, AT, refusing.transport);
+    const portal = await signedInAs(them.loginEmail, AT, {
+      email: refusing.transport,
+    });
     await expect(portal.portal.sendEmailCode()).rejects.toMatchObject({
       data: { refusal: "email_not_sent" },
     });

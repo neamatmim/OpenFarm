@@ -16,21 +16,28 @@ import type { AgreementTerms } from "./agreement-paper";
 import { writeAgreement } from "./agreement-write";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
+import type { Context } from "./context";
 import { assertRegistered } from "./export-store";
 import { assertTheVenturesSplit, farmUnitsOf } from "./farm-capital-store";
 import { readAgreement, unitsTaken } from "./investor-store";
 import { assertReadAsKept, keepPaper, stillAsKept } from "./kept-paper";
 import { assertNamable, nomineesToSign } from "./nominations";
 import { madeOn } from "./paper-values";
+import {
+  checkSigningCode,
+  confirmApproval,
+  keepProof,
+  paperNumberOf,
+  proofSaid,
+  proofsOf,
+} from "./signing-code";
 import { currentWording, giveStandardTemplates } from "./template-store";
 import { withWindowsInForce } from "./venture-store";
 
 // An Investment Agreement agreed within the app, instead of on stamped paper: the Owner offers it, the Investor agrees
-// to the paper in the portal, and the Owner approves it — and only then is it an Agreement. Behind the farm's switch,
-// which is off until the lawyer and the Shariah scholar have confirmed the farm may rely on an Agreement with no stamp.
-
-/** How much of the paper's fingerprint the Agreement's stamp line carries as its number: enough to find the paper by. */
-const NUMBER_LENGTH = 12;
+// to the paper in the portal with a Signing Code, and the Owner approves it — and only then is it an Agreement. Behind
+// the farm's switch, the Owner's to turn on: an Agreement agreed in the app carries no stamp, a risk the Owner accepted
+// without asking the advisers (ADR 0022).
 
 /** Where an offer stands. */
 export type OfferStanding = "offered" | "agreed" | "approved" | "withdrawn";
@@ -296,7 +303,7 @@ const assertApprovable = (offer: OfferRow) => {
  * off: it was agreed while it was on.
  */
 export const approveOffer = async (
-  context: Acting,
+  context: Acting & Pick<Context, "sms" | "email">,
   offerId: string
 ): Promise<{ agreementId: string; payInCode: string }> => {
   const offer = await theOffer(context.db, context.farm.id, offerId);
@@ -330,7 +337,7 @@ export const approveOffer = async (
             kind: "in_app",
             valueMoney: 0,
             on: farmDayOf(now),
-            serial: offer.paperHash.slice(0, NUMBER_LENGTH).toUpperCase(),
+            serial: paperNumberOf(offer.paperHash),
           },
           templateVersionId: offer.templateVersionId ?? "",
           requestId: offer.requestId ?? undefined,
@@ -366,6 +373,13 @@ export const approveOffer = async (
       return given;
     }
   );
+  // Told by text and email that it is approved, once it is: the farm's word that the paper they agreed to now binds.
+  await confirmApproval(context, {
+    kind: "agreement_offer",
+    id: offer.id,
+    paperHash: offer.paperHash,
+    ventureName: run.name,
+  });
   return { agreementId, payInCode };
 };
 
@@ -384,13 +398,25 @@ const offerSaid = (offer: OfferRow) => ({
   agreementId: offer.agreementId,
 });
 
-/** Every offer made on a Venture, oldest first. */
+/** Every offer made on a Venture, oldest first, each agreed with a code carrying the farm's proof of it (ADR 0022). */
 export const offersOn = async (context: Acting, ventureId: string) => {
   const rows = await context.db.query.agreementOffer.findMany({
     where: { farmId: context.farm.id, ventureId },
     orderBy: { offeredAt: "asc", id: "asc" },
   });
-  return rows.map(offerSaid);
+  const proofs = await context.db.query.signingProof.findMany({
+    where: {
+      farmId: context.farm.id,
+      offerKind: "agreement_offer",
+      offerId: { in: rows.map((one) => one.id) },
+    },
+  });
+  const proofOf = new Map(proofs.map((one) => [one.offerId, proofSaid(one)]));
+  return rows.map((one) => ({
+    ...offerSaid(one),
+    /** How they sealed it, where a code did; null before they agreed, or for one agreed before codes. */
+    proof: proofOf.get(one.id) ?? null,
+  }));
 };
 
 /**
@@ -434,17 +460,16 @@ export const theirOffers = async (context: Acting, investorId: string) => {
 };
 
 /**
- * An Investor agrees, from their own portal sign-in, to the paper offered to them — the paper they read, whose
- * fingerprint they send back: refused when it is not the one kept. Refused for an offer not theirs, one withdrawn, and
- * while the farm's switch is off. Agreeing again changes nothing.
+ * The offer an Investor may agree to now: theirs, standing, on a Venture still open, while the farm's switch is on. What
+ * sending them a code for it and agreeing to it both ask.
  */
-export const agreeToOffer = async (
+export const offerToAgree = async (
   context: Acting,
   investorId: string,
-  input: { offerId: string; paperHash: string }
-): Promise<void> => {
+  offerId: string
+) => {
   assertSwitchedOn(context.farm);
-  const offer = await theOffer(context.db, context.farm.id, input.offerId);
+  const offer = await theOffer(context.db, context.farm.id, offerId);
   if (offer.investorId !== investorId) {
     throw new ORPCError("NOT_FOUND", { message: "No such offer" });
   }
@@ -462,10 +487,32 @@ export const agreeToOffer = async (
       "venture_wrong_state"
     );
   }
+  return offer;
+};
+
+/**
+ * An Investor agrees, from their own portal sign-in, to the paper offered to them — the paper they read, whose
+ * fingerprint they send back, refused when it is not the one kept — sealed by a Signing Code the farm sent them
+ * (ADR 0022), whose proof is kept with it. Refused for an offer not theirs, one withdrawn, and while the farm's switch
+ * is off. Agreeing again changes nothing, and asks no code.
+ */
+export const agreeToOffer = async (
+  context: Acting & Pick<Context, "callerAddress" | "callerAgent">,
+  investorId: string,
+  input: { offerId: string; paperHash: string; code: string }
+): Promise<void> => {
+  const offer = await offerToAgree(context, investorId, input.offerId);
   assertReadAsKept(offer, input.paperHash);
   if (offer.agreedAt) {
     return;
   }
+  const signed = { kind: "agreement_offer", id: offer.id } as const;
+  const sealed = await checkSigningCode(
+    context,
+    investorId,
+    signed,
+    input.code
+  );
   await audited(context).write(
     {
       entity: "agreement_offer",
@@ -475,7 +522,7 @@ export const agreeToOffer = async (
       after: (tx) => readOffer(tx, context.farm.id, offer.id),
     },
     async (tx) => {
-      await tx
+      const [agreeing] = await tx
         .update(agreementOffer)
         .set({ agreedAt: context.clock.now(), agreedBy: context.actor.id })
         .where(
@@ -484,9 +531,41 @@ export const agreeToOffer = async (
             isNull(agreementOffer.withdrawnAt),
             isNull(agreementOffer.agreedAt)
           )
+        )
+        .returning({ id: agreementOffer.id });
+      // Withdrawn or agreed meanwhile: the code stays unused, and nothing is kept as proof of nothing.
+      if (agreeing) {
+        await keepProof(
+          tx,
+          context,
+          investorId,
+          { ...signed, paperHash: offer.paperHash },
+          sealed
         );
+      }
     }
   );
+};
+
+/** How the Investor sealed an Agreement approved from an offer: the day and the way the code they entered came; nothing
+ *  for one signed on stamp, or agreed before codes sealed anything. */
+export const sealOfAgreement = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  agreementId: string
+) => {
+  const offer = await db.query.agreementOffer.findFirst({
+    where: { farmId, agreementId },
+    columns: { id: true },
+  });
+  if (!offer) {
+    return null;
+  }
+  const [proof] = await proofsOf(db, farmId, {
+    kind: "agreement_offer",
+    id: offer.id,
+  });
+  return proof ? { agreedAt: proof.agreedAt, channel: proof.channel } : null;
 };
 
 /**

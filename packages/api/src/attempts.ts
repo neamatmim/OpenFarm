@@ -21,6 +21,8 @@ export const CODE_ATTEMPTS: AttemptRule = { limit: 10, windowMs: 15 * 60_000 };
 /** Codes the farm sends to confirm an email: not a guess but an email, which costs the farm and fills an inbox. Five in
  *  an hour is somebody whose mail is slow; more is somebody pressing the button for no reason. */
 export const EMAIL_SENDS: AttemptRule = { limit: 5, windowMs: 60 * 60_000 };
+/** Signing Codes sent to agree to papers: a text and an email each time, both costing the farm. The same five an hour. */
+export const SIGNING_SENDS: AttemptRule = { limit: 5, windowMs: 60 * 60_000 };
 
 const recent = (key: string, now: Date, rule: AttemptRule): number[] => {
   const since = now.getTime() - rule.windowMs;
@@ -46,6 +48,7 @@ const RULES: readonly AttemptRule[] = [
   PIN_ATTEMPTS,
   CODE_ATTEMPTS,
   EMAIL_SENDS,
+  SIGNING_SENDS,
 ];
 
 /** The longest any rule remembers a guess: a key whose newest guess is older is remembered by nothing. */

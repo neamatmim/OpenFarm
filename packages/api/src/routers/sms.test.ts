@@ -21,6 +21,7 @@ const listeningGateway = () => {
   const sent: { to: string; message: SmsMessage }[] = [];
   let answer = { delivered: true };
   const transport: SmsTransport = {
+    sends: true,
     send: (to, message) => {
       sent.push({ to, message });
       return Promise.resolve(answer);
