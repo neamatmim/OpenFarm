@@ -10,6 +10,7 @@ import {
   FIRST_PRINTED_AGREEMENT,
   STANDARD_TEMPLATES,
   TEMPLATE_KINDS,
+  paperText,
 } from "@OpenFarm/domain";
 import {
   FakeClock,
@@ -204,9 +205,10 @@ describe("changing the wording", () => {
         investorsPercent: 60,
         arbitrator: `সালিস ${suffix}`,
       });
-    const { text } = await owner.investorStatements.joining({
+    const { document: letter } = await owner.investorStatements.joining({
       agreementId: signedBefore.id,
     });
+    const text = paperText(letter, "bn");
 
     expect(published.number).toBe(before.current.number + 1);
     expect(wording.number).toBe(published.number);

@@ -183,34 +183,23 @@ export type {
   RegisterPaperRow,
   RegistrationRecord,
   PenSpellLine,
-  CapitalLine,
-  JoiningLetter,
   PaperOrganization,
-  ProgressAnimal,
-  ProgressStatement,
-  SettlementStatement,
-  SpendLine,
-  StatementAdjustment,
-  StatementSheet,
   ShortenedHold,
   SaleReceipt,
   SoldAnimal,
-  StampLine,
   DocumentRow,
   Said,
   TransportCard,
+  Worded,
   WithdrawalSummary,
 } from "./papers";
 export {
   INSPECTOR_REGISTERS,
   accountantSummary,
   animalPassport,
+  NO_GUARANTEE,
   NO_GUARANTEE_LINES,
-  investorStatement,
-  joiningLetter,
-  progressStatement,
-  settlementStatement,
-  stampLines,
+  inLanguage,
   registerPaper,
   herdSummary,
   registrationRecord,
@@ -905,6 +894,8 @@ export {
   readingOf,
   templateProblems,
   termsOf,
+  termsSaid,
+  investorRows,
   wordingFor,
 } from "./paper-template";
 export {
@@ -914,6 +905,9 @@ export {
   PRIVACY_NOTICE_BEFORE_NOMINEE_NUMBERS,
   STANDARD_AGREEMENT_BEFORE_MONTHLY,
   STANDARD_AGREEMENT_BEFORE_NOMINEE_NUMBERS,
+  STANDARD_AGREEMENT_BEFORE_ENGLISH_FACTS,
+  SCHEDULE_BEFORE_ENGLISH_FACTS,
+  AMENDMENT_BEFORE_ENGLISH_FACTS,
   STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
   STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
   STANDARD_TEMPLATES,
@@ -938,7 +932,9 @@ export {
   COMING_OF_AGE,
   MOST_NOMINEES,
   NOMINEE_HEADINGS,
+  dayIn,
   dayInBangla,
+  daySaid,
   isMinorOn,
   knownBy,
   nomineeRowOf,
@@ -1017,3 +1013,19 @@ export type {
   OwnersAloneToRead,
   ParameterBounds,
 } from "./farm-parameters";
+export type { JoiningLetterFacts } from "./joining-letter";
+export { countSaid, joiningLetterPaper, moneySaid } from "./joining-letter";
+export { paperText } from "./paper-text";
+export type {
+  ChargeLine,
+  ProgressAnimal,
+  ProgressStatementFacts,
+  SettlementStatementFacts,
+  StatementAdjustment,
+} from "./investor-statements";
+export {
+  daysSaid,
+  kgSaid,
+  progressStatementPaper,
+  settlementStatementPaper,
+} from "./investor-statements";

@@ -1,6 +1,7 @@
 import {
   STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
   STANDARD_TEMPLATES,
+  paperText,
 } from "@OpenFarm/domain";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -506,9 +507,12 @@ describe("the Farm's own Units, told to every Investor before they sign", () => 
     });
     const agreementId = await signedUp("অগ্রগতির জন", ventureId, 4);
 
-    const { text } = await owner.investorStatements.progress({ agreementId });
+    const { document } = await owner.investorStatements.progress({
+      agreementId,
+    });
 
-    expect(text).toMatch(/খামারের নিজের ইউনিট[^\n]*৩ \/ ১০/u);
+    expect(paperText(document, "bn")).toContain("খামারের নিজের ইউনিট: ৩ / ১০");
+    expect(paperText(document, "en")).toContain("The Farm's own Units: 3 / 10");
 
     // And on his Venture's page in the portal, which says the same figures as the statement.
     const his = await scratchDb().query.investmentAgreement.findFirst({

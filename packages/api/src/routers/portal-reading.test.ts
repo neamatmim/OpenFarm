@@ -1,6 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { session as sessionTable } from "@OpenFarm/db/schema/auth";
 import { animal, animalPhoto } from "@OpenFarm/db/schema/herd";
+import { paperText } from "@OpenFarm/domain";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { createRouterClient } from "@orpc/server";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -286,14 +287,16 @@ describe("the photographs of their animals", () => {
 
 describe("an Investor's papers", () => {
   it("are the Farm's papers, signed for by the Owner, and the trail says the Investor read them", async () => {
-    const { text } = await rahim.portal.paper({
+    const joining = await rahim.portal.paper({
       agreementId: agreementOf["রহিম"] ?? "",
       kind: "joining",
     });
-    const { text: progress } = await rahim.portal.paper({
+    const progressed = await rahim.portal.paper({
       agreementId: agreementOf["রহিম"] ?? "",
       kind: "progress",
     });
+    const text = paperText(joining.document, "bn");
+    const progress = paperText(progressed.document, "bn");
 
     expect(text).toContain(`রহিম ${suffix}`);
     expect(text).toContain("মুনাফা ভাগ হবে বিনিয়োগকারী ৬০% এবং খামার ৪০%");

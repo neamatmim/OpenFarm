@@ -7,7 +7,6 @@ import {
 import { formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
-import { Input } from "@OpenFarm/ui/components/input";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -244,14 +243,18 @@ const FactLineFields = ({
         onChange={(label) => onChange({ ...line, label })}
         value={line.label}
       />
-      <FormField id={`${line.key}-value`} label={t("templates.factValue")}>
-        <Input
-          id={`${line.key}-value`}
-          lang="bn"
-          onChange={(event) => onChange({ ...line, value: event.target.value })}
-          value={line.value}
-        />
-      </FormField>
+      {/* A fact worded before facts said their English holds Bangla alone: it is edited as Bangla with its English
+          still to write. */}
+      <SaidField
+        id={`${line.key}-value`}
+        label={t("templates.factValue")}
+        onChange={(value) => onChange({ ...line, value })}
+        value={
+          typeof line.value === "string"
+            ? { bn: line.value, en: "" }
+            : line.value
+        }
+      />
       {line.only ? (
         <p className="text-muted-foreground text-xs">
           {onlySaid(line.only, t)}

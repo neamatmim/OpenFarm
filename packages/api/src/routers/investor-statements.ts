@@ -1,10 +1,6 @@
 import type { StampKind } from "@OpenFarm/db/schema/venture";
-import {
-  dayInBangla,
-  farmDayOf,
-  paperFrom,
-  wordingFor,
-} from "@OpenFarm/domain";
+import type { Said } from "@OpenFarm/domain";
+import { daySaid, farmDayOf, paperFrom, wordingFor } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -24,9 +20,8 @@ import {
 } from "../investor-papers";
 import { nominationSignedWith, paperNominees } from "../nomination-store";
 import { assertNamable, nomineesInput, nomineesToSign } from "../nominations";
-import { paperInvestor, paperValues, producedAt } from "../paper-values";
+import { paperInvestor, paperValues, madeOn } from "../paper-values";
 import { noticeFilling } from "../portal-reads";
-import { languageOf } from "../reader-language";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import type { Wording } from "../template-store";
 import {
@@ -46,21 +41,35 @@ const copyMarksOf = (agreement: {
   stampSerial: string;
   stampValueMoney: number;
   stampedOn: string;
-}): { filled: string[]; copyOf: string } => {
-  const day = dayInBangla(agreement.stampedOn);
+}): { filled: Said[]; copyOf: Said } => {
+  const day = daySaid(agreement.stampedOn);
+  const serial = { bn: agreement.stampSerial, en: agreement.stampSerial };
   if (agreement.stampKind === "in_app") {
     return {
-      filled: [agreement.stampSerial, "নেই — অ্যাপে সম্মত", day],
-      copyOf: `অনুলিপি — মূল নয় / COPY — not the original · অ্যাপে সম্মত / Agreed in the app · অনুমোদন / Approved ${day} · সম্মত কাগজ নম্বর / Agreed paper no. ${agreement.stampSerial}`,
+      filled: [
+        serial,
+        { bn: "নেই — অ্যাপে সম্মত", en: "None — agreed in the app" },
+        day,
+      ],
+      copyOf: {
+        bn: `অনুলিপি — মূল নয় · অ্যাপে সম্মত · অনুমোদন ${day.bn} · সম্মত কাগজ নম্বর ${agreement.stampSerial}`,
+        en: `Copy — not the original · Agreed in the app · Approved ${day.en} · Agreed paper no. ${agreement.stampSerial}`,
+      },
     };
   }
   return {
     filled: [
-      agreement.stampSerial,
-      `${formatNumber(agreement.stampValueMoney, "bn")} টাকা`,
+      serial,
+      {
+        bn: `${formatNumber(agreement.stampValueMoney, "bn")} টাকা`,
+        en: `${formatNumber(agreement.stampValueMoney, "en")} taka`,
+      },
       day,
     ],
-    copyOf: `অনুলিপি — মূল নয় / COPY — not the original · স্ট্যাম্প ক্রমিক / Stamp serial ${agreement.stampSerial} · স্ট্যাম্পের তারিখ / Stamped ${day}`,
+    copyOf: {
+      bn: `অনুলিপি — মূল নয় · স্ট্যাম্প ক্রমিক ${agreement.stampSerial} · স্ট্যাম্পের তারিখ ${day.bn}`,
+      en: `Copy — not the original · Stamp serial ${agreement.stampSerial} · Stamped ${day.en}`,
+    },
   };
 };
 
@@ -140,7 +149,6 @@ export const investorStatementsRouter = {
         "investment_agreement"
       );
       const now = context.clock.now();
-      const language = await languageOf(context.db, context.actor.id);
       // The Nominees it will name — written on the sign sheet, or the list in force — each judged a minor or not on the
       // day it is printed to be signed.
       const today = farmDayOf(now);
@@ -174,7 +182,7 @@ export const investorStatementsRouter = {
         terms: input,
         wording: wording.content,
         today,
-        producedAt: producedAt(now, language),
+        producedAt: madeOn(now),
         farmUnits: await farmUnitsOf(context.db, context.farm.id, run.id),
       });
       await audited(context).write(
@@ -253,7 +261,6 @@ export const investorStatementsRouter = {
         });
       }
       const now = context.clock.now();
-      const language = await languageOf(context.db, context.actor.id);
       // Whoever signed for the Farm on the day, not whoever asks for the copy.
       const ownerName = signer?.name ?? context.actor.name;
       // Its Nominees as it named them, each a minor or not on the day it was stamped, as the original printed them.
@@ -301,7 +308,7 @@ export const investorStatementsRouter = {
             farmCapital,
           }),
           producedBy: context.actor.name,
-          producedAt: producedAt(now, language),
+          producedAt: madeOn(now),
           version: wording.number,
         }
       );
@@ -396,10 +403,7 @@ export const investorStatementsRouter = {
         },
         values,
         producedBy: context.actor.name,
-        producedAt: producedAt(
-          now,
-          await languageOf(context.db, context.actor.id)
-        ),
+        producedAt: madeOn(now),
         version: wording.number,
       });
       await audited(context).write(
@@ -445,7 +449,6 @@ export const investorStatementsRouter = {
         "agreement_amendment"
       );
       const now = context.clock.now();
-      const language = await languageOf(context.db, context.actor.id);
       const { document, run } = await amendmentLaidOut(context.db, {
         farm: context.farm,
         ownerName: context.actor.name,
@@ -454,7 +457,7 @@ export const investorStatementsRouter = {
         amendedOn: input.signedOn,
         wording: wording.content,
         today: farmDayOf(now),
-        producedAt: producedAt(now, language),
+        producedAt: madeOn(now),
       });
       await audited(context).write(
         {
@@ -495,11 +498,10 @@ export const investorStatementsRouter = {
    * অগ্রগতি — the sheet an Investor is sent while the run goes on: how his animals are doing, and where
    * his money has gone.
    *
-   * The photographs come back beside the text rather than inside it. Every paper the farm writes is a
-   * plain string, which is what lets it be produced again years later and read the same — a table with a
-   * face in every row is not one. So the sheet says what it says, and the animals' photographs travel
-   * with it for whatever draws it to lay out. Nothing is dropped: an Investor who cannot visit the shed
-   * is buying on trust, and the faces are the answer to that.
+   * The photographs come back beside the paper rather than inside it: the paper is words in both languages,
+   * read in either (ADR 0021), and the animals' photographs travel with it for whatever draws it to lay
+   * out. Nothing is dropped: an Investor who cannot visit the shed is buying on trust, and the faces are
+   * the answer to that.
    */
   progress: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))

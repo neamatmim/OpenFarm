@@ -1,4 +1,7 @@
-import { formatDate, formatDigits } from "@OpenFarm/i18n";
+import type { Language } from "@OpenFarm/i18n";
+import { formatDate, formatDigits, translate } from "@OpenFarm/i18n";
+
+import type { Said } from "./papers";
 
 /**
  * An Investor's Nominees (the glossary's **Nominee** and **Nomination**): who collects their capital and share from the
@@ -157,21 +160,21 @@ export interface PaperNominee extends Nominee {
   minor: boolean;
 }
 
-/** One Nominee's row of a paper's table, in Bangla, the paper's language. */
+/** One Nominee's row of a paper's table, said in both languages: names, relations and numbers as they were typed. */
 export interface NomineeRow {
   name: string;
-  relation: string | null;
+  relation: Said | null;
   /** Their date of birth, or nothing for one carried over without it. */
-  born: string | null;
+  born: Said | null;
   /** Their NID number, or a minor's birth registration number; nothing for one written down before either was
    *  asked. */
   idNumber: string | null;
   minor: boolean;
   phone: string | null;
-  /** "৫০%". */
-  share: string;
+  /** "৫০%" / "50%". */
+  share: Said;
   /** Who collects for a minor: "রহিমা বেগম (মা), 01712-345678, এনআইডি 1987…". */
-  receiver: string | null;
+  receiver: Said | null;
 }
 
 /** The headings of a paper's Nominee table, in the order of a row. */
@@ -190,28 +193,75 @@ export const NOMINEE_HEADINGS = {
 export const shareInBangla = (percent: number) =>
   `${formatDigits(percent, "bn")}%`;
 
-/** A farm day as a Bangla paper writes it. */
-export const dayInBangla = (farmDay: string) =>
-  formatDate(new Date(`${farmDay}T00:00:00Z`), "bn", "date");
+/** A farm day as a paper in `language` writes it. */
+export const dayIn = (farmDay: string, language: Language) =>
+  formatDate(new Date(`${farmDay}T00:00:00Z`), language, "date");
 
-/** The Receiver as one line: their name, their relation to the Nominee in brackets, then a phone and their NID where
- *  there are. */
-export const receiverLine = (receiver: Receiver) => {
-  const relation = filledIn(receiver.relation);
+/** A farm day as a Bangla paper writes it. */
+export const dayInBangla = (farmDay: string) => dayIn(farmDay, "bn");
+
+/** A farm day said in both languages, each with its own numerals. */
+export const daySaid = (farmDay: string): Said => ({
+  bn: dayIn(farmDay, "bn"),
+  en: dayIn(farmDay, "en"),
+});
+
+/** The relations a form offers, kept as their Bangla words: the ones a paper read in English can say in English. */
+const USUAL_RELATIONS = [
+  "wife",
+  "husband",
+  "son",
+  "daughter",
+  "father",
+  "mother",
+  "brother",
+  "sister",
+] as const;
+
+/** A relation as a paper says it: one of the usual ones in each language, and any other in the words it was written in,
+ *  which both readings print as they are. */
+export const relationSaid = (word: string | null): Said | null => {
+  const kept = filledIn(word);
+  if (!kept) {
+    return null;
+  }
+  const usual = USUAL_RELATIONS.find(
+    (relation) => translate("bn", `investors.relation.${relation}`) === kept
+  );
+  return {
+    bn: kept,
+    en: usual ? translate("en", `investors.relation.${usual}`) : kept,
+  };
+};
+
+/** The Receiver as one line, in both languages: their name, their relation to the Nominee in brackets, then a phone
+ *  and their NID where there are. */
+export const receiverLine = (receiver: Receiver): Said => {
+  const relation = relationSaid(receiver.relation);
   const phone = filledIn(receiver.phone);
   const nid = filledIn(receiver.nid);
-  const who = relation ? `${receiver.name} (${relation})` : receiver.name;
-  return [who, phone, nid ? `এনআইডি ${nid}` : null].filter(Boolean).join(", ");
+  const line = (language: Language, nidWord: string) =>
+    [
+      relation ? `${receiver.name} (${relation[language]})` : receiver.name,
+      phone,
+      nid ? `${nidWord} ${nid}` : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
+  return { bn: line("bn", "এনআইডি"), en: line("en", "NID") };
 };
 
 /** One Nominee as a paper's table prints them. */
 export const nomineeRowOf = (nominee: PaperNominee): NomineeRow => ({
   name: nominee.name,
-  relation: filledIn(nominee.relation),
-  born: nominee.bornOn ? dayInBangla(nominee.bornOn) : null,
+  relation: relationSaid(nominee.relation),
+  born: nominee.bornOn ? daySaid(nominee.bornOn) : null,
   idNumber: filledIn(nominee.minor ? nominee.birthRegistration : nominee.nid),
   minor: nominee.minor,
   phone: filledIn(nominee.phone),
-  share: shareInBangla(nominee.sharePercent),
+  share: {
+    bn: shareInBangla(nominee.sharePercent),
+    en: `${nominee.sharePercent}%`,
+  },
   receiver: nominee.receiver ? receiverLine(nominee.receiver) : null,
 });

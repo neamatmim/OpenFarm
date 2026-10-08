@@ -127,8 +127,12 @@ export const handOver = async (
     },
     farm: farmToCall(context.farm),
     issuedOn: farmDayOf(now),
-    // A Bangla paper throughout, whatever the Owner reads the app in.
-    produced: `${producedAt(now, "bn")} · ${context.actor.name}`,
+    // Read in Bangla or in English, as the Owner chooses for whoever it is handed to (ADR 0021).
+    produced: {
+      bn: `${producedAt(now, "bn")} · ${context.actor.name}`,
+      en: `${producedAt(now, "en")} · ${context.actor.name}`,
+    },
     notice,
+    noticeInEnglish: toRead?.inEnglish ?? null,
   };
 };

@@ -1,8 +1,11 @@
+import type { Language } from "@OpenFarm/i18n";
+
+import { factSaid } from "./fact-english";
 import type { FarmIdentity } from "./farm";
 import type { NomineeRow, PaperNominee } from "./nominees";
 import { nomineeRowOf } from "./nominees";
-import type { DocumentRow, PaperOrganization, Said } from "./papers";
-import { NO_GUARANTEE_LINES } from "./papers";
+import type { DocumentRow, PaperOrganization, Said, Worded } from "./papers";
+import { NO_GUARANTEE, inLanguage } from "./papers";
 
 /**
  * The farm's wording for the papers an Investor signs or is handed, as data the Owner edits rather than words in the
@@ -162,21 +165,17 @@ interface PaperRules {
   refused: readonly TemplateSectionKind[];
   /** Whether it is about an Investor's money, and so closes on the lines that promise no return. */
   aboutMoney: boolean;
-  /** Whether the English beside the Bangla is printed; a paper an Investor is handed in Bangla prints only its
-   *  title's. */
-  englishPrinted: boolean;
   /** Whether each signature has a date to write beside it. */
   dated: boolean;
   /** Who signs, where the paper has no parties part to name them. */
   signers: Signers | null;
 }
 
-/** An Agreement: who signs and where they sign, the terms of the money, both languages on the paper. */
+/** An Agreement: who signs and where they sign, and the terms of the money. */
 const AN_AGREEMENT = {
   required: ["parties", "signatures"],
   refused: [],
   aboutMoney: true,
-  englishPrinted: true,
   dated: false,
   signers: null,
 } as const satisfies Omit<PaperRules, "fields">;
@@ -184,9 +183,9 @@ const AN_AGREEMENT = {
 /**
  * Each kind of paper's rules. A Master Agreement belongs to no one Venture, so it names none. A Portal Consent names
  * the Investor in its own words, is signed and dated by him first and countersigned by the Owner, and carries no stamp.
- * The notice is read, not signed. Neither of the two is about money, and each is handed to the Investor in Bangla. A
- * মনোনয়নপত্র is the Investor's own paper: signed and dated by him first in front of the Owner, in both languages, with
- * his Nominees in its parties part and no stamp.
+ * The notice is read, not signed. Neither of the two is about money. A মনোনয়নপত্র is the Investor's own paper:
+ * signed and dated by him first in front of the Owner, with his Nominees in its parties part and no stamp. Every one of
+ * them is read in Bangla or in English, as its reader chooses (ADR 0021).
  */
 const RULES: Record<TemplateKind, PaperRules> = {
   investment_agreement: {
@@ -222,7 +221,6 @@ const RULES: Record<TemplateKind, PaperRules> = {
     required: ["signatures"],
     refused: ["stamp"],
     aboutMoney: false,
-    englishPrinted: false,
     dated: true,
     signers: {
       investor: { bn: "বিনিয়োগকারী", en: "Investor" },
@@ -244,7 +242,6 @@ const RULES: Record<TemplateKind, PaperRules> = {
     required: [],
     refused: ["parties", "stamp", "signatures"],
     aboutMoney: false,
-    englishPrinted: false,
     dated: false,
     signers: null,
   },
@@ -253,7 +250,6 @@ const RULES: Record<TemplateKind, PaperRules> = {
     required: ["parties", "clauses", "signatures"],
     refused: ["stamp"],
     aboutMoney: false,
-    englishPrinted: true,
     dated: true,
     signers: {
       investor: { bn: "বিনিয়োগকারী", en: "Investor" },
@@ -307,8 +303,9 @@ export const conditionsOf = (only: PrintedOnly | undefined) => {
 /** One fact of the paper's own, as the Owner words its line: what it is called, and what it says. */
 export interface FactLine {
   label: Said;
-  /** In Bangla, the paper's language; fields in braces. */
-  value: string;
+  /** What the line says, fields in braces: in both languages, or — in a Version worded before a fact said its English —
+   *  in Bangla alone, which an English paper then reads as it is. */
+  value: Worded;
   /** Printed only where its condition holds — a Venture paid by the month, say. */
   only?: PrintedOnly;
 }
@@ -439,10 +436,7 @@ const wordingOf = (section: TemplateSection): Said[] => {
     case "facts": {
       return [
         section.heading,
-        ...section.rows.flatMap((row) => [
-          row.label,
-          { bn: row.value, en: "" },
-        ]),
+        ...section.rows.flatMap((row) => [row.label, factSaid(row.value)]),
         ...(section.note ? [section.note] : []),
       ];
     }
@@ -609,11 +603,22 @@ export type PaperSection =
   | { kind: "facts"; heading: Said; rows: DocumentRow[]; note: Said | null }
   | { kind: "clauses"; heading: Said; clauses: Said[] }
   | {
+      kind: "table";
+      heading: Said;
+      /** Each column's heading, and whether it holds figures, which stand to the right. */
+      columns: { label: Said; figures?: boolean }[];
+      /** One line each, a cell to a column. */
+      rows: Worded[][];
+      /** A last line set apart — a total — or nothing. */
+      foot: Worded[] | null;
+      note: Said | null;
+    }
+  | {
       kind: "stamp";
       heading: Said;
       blanks: Said[];
       /** What each blank says on a paper already stamped — a copy of a signed Agreement — in the blanks' order. */
-      filled?: string[];
+      filled?: Worded[];
     }
   | {
       kind: "signatures";
@@ -628,16 +633,17 @@ export type PaperSection =
 
 /** A paper laid out to print: the letterhead, its title and opening, its parts in order, and the closing lines. */
 export interface PaperDocument {
-  letterhead: { name: string; details: string[] };
+  letterhead: { name: string; details: Worded[] };
   title: Said;
   preamble: Said;
   sections: PaperSection[];
   /** What a paper about an Investor's money ends on: no return is promised. Nothing on the others. */
-  closing: readonly string[];
-  produced: string;
+  closing: readonly Worded[];
+  /** When it was laid out, by whom, from which Version. */
+  produced: Worded;
   /** On a copy of a paper already signed: that it is a copy and not the original, and which signed paper it copies —
    *  printed on it so a copy can never be mistaken for, or signed again as, a second original. */
-  copyOf?: string;
+  copyOf?: Worded;
 }
 
 const row = (bn: string, en: string, value: string | null | undefined) =>
@@ -661,7 +667,7 @@ const farmRows = (parties: PaperParties): DocumentRow[] =>
  * who signs for it. An Organization's name is its "Name" row and its Signatory's mobile its "Phone" row, so a paper
  * read in the portal still finds its reader by the two.
  */
-const investorRows = (him: PaperInvestor): DocumentRow[] => {
+export const investorRows = (him: PaperInvestor): DocumentRow[] => {
   const { organization } = him;
   if (!organization) {
     return rows(
@@ -805,68 +811,6 @@ const signingOrder = (signers: Signers, parties: PaperParties) => {
   return signers.investorFirst ? [...investors, farm] : [farm, ...investors];
 };
 
-/** A piece of wording with its English left off: a paper an Investor is handed in Bangla. */
-const banglaOnly = (said: Said): Said => ({ bn: said.bn, en: "" });
-
-/** A laid-out part with every English line left off. */
-const inBanglaOnly = (section: PaperSection): PaperSection => {
-  switch (section.kind) {
-    case "parties": {
-      return {
-        ...section,
-        heading: banglaOnly(section.heading),
-        parties: section.parties.map((party) => ({
-          role: banglaOnly(party.role),
-          rows: party.rows.map((one) => ({
-            ...one,
-            label: banglaOnly(one.label),
-          })),
-          nominees: party.nominees,
-          lines: party.lines.map(banglaOnly),
-        })),
-      };
-    }
-    case "facts": {
-      return {
-        ...section,
-        heading: banglaOnly(section.heading),
-        rows: section.rows.map((one) => ({
-          ...one,
-          label: banglaOnly(one.label),
-        })),
-        note: section.note ? banglaOnly(section.note) : null,
-      };
-    }
-    case "clauses": {
-      return {
-        ...section,
-        heading: banglaOnly(section.heading),
-        clauses: section.clauses.map(banglaOnly),
-      };
-    }
-    case "stamp": {
-      return {
-        ...section,
-        heading: banglaOnly(section.heading),
-        blanks: section.blanks.map(banglaOnly),
-      };
-    }
-    default: {
-      return {
-        ...section,
-        heading: banglaOnly(section.heading),
-        signers: section.signers.map((one) => ({
-          ...one,
-          role: banglaOnly(one.role),
-        })),
-        dateBlank: section.dateBlank ? banglaOnly(section.dateBlank) : null,
-        witnesses: section.witnesses.map(banglaOnly),
-        witnessBlanks: section.witnessBlanks.map(banglaOnly),
-      };
-    }
-  }
-};
-
 /** The one line for a minor Nominee, filled with whose it is and who collects for them. */
 const receiverLineFor = (line: Said, minor: PaperNominee): Said => {
   const local: Record<ReceiverField, string> = {
@@ -945,7 +889,7 @@ const laidOut = (
         heading: filled(section.heading, values),
         rows: section.rows.map((line) => ({
           label: line.label,
-          value: fillIn(line.value, values, "bn"),
+          value: filled(factSaid(line.value), values),
         })),
         note: section.note ? filled(section.note, values) : null,
       };
@@ -990,11 +934,16 @@ export const letterheadOf = (
   name: farm.name,
   details: [
     farm.address?.trim() ?? null,
-    farm.phone?.trim() ? `মোবাইল / Phone: ${farm.phone}` : null,
-    farm.registrationNumber?.trim()
-      ? `ডিএলএস নিবন্ধন / DLS registration: ${farm.registrationNumber}`
+    farm.phone?.trim()
+      ? { bn: `মোবাইল: ${farm.phone}`, en: `Phone: ${farm.phone}` }
       : null,
-  ].filter((line): line is string => Boolean(line)),
+    farm.registrationNumber?.trim()
+      ? {
+          bn: `ডিএলএস নিবন্ধন: ${farm.registrationNumber}`,
+          en: `DLS registration: ${farm.registrationNumber}`,
+        }
+      : null,
+  ].filter((line): line is Worded => line !== null),
 });
 
 /**
@@ -1032,9 +981,9 @@ const kindsOnThePaper = (
 };
 
 /**
- * One paper, laid out to print from a Version's wording and the farm's facts: every field filled in its own language,
- * the parties written from what the farm holds, and — on a paper about an Investor's money — the lines that promise no
- * return at the foot. A paper handed to an Investor in Bangla prints its title's English and no other. `version` is
+ * One paper, laid out to print from a Version's wording and the farm's facts: every field filled in each language, the
+ * parties written from what the farm holds, and — on a paper about an Investor's money — the lines that promise no
+ * return at the foot. Everything is said in both languages, for its reader to read in either (ADR 0021). `version` is
  * the Version's number, written in the foot so a paper kept on file says which wording it was.
  */
 export const paperFrom = (
@@ -1051,7 +1000,8 @@ export const paperFrom = (
     parties: PaperParties;
     values: FieldValues;
     producedBy: string;
-    producedAt: string;
+    /** When it was laid out, said in both languages. */
+    producedAt: Said;
     version?: number;
   }
 ): PaperDocument => {
@@ -1059,41 +1009,59 @@ export const paperFrom = (
   const forThem = kindsOnThePaper(content, parties);
   const signers = signersOf(kind, forThem);
   const { farm } = parties;
-  const sections = forThem.sections.map((section) =>
-    laidOut(section, values, parties, signers, rules.dated)
-  );
-  const preamble = filled(forThem.preamble, values);
-  const wording =
-    version === undefined
-      ? ""
-      : ` · সংস্করণ ${inBangla(version)} / Version ${version}`;
+  const said = (language: Language) =>
+    [
+      producedAt[language],
+      producedBy,
+      version === undefined
+        ? null
+        : `${language === "bn" ? "সংস্করণ" : "Version"} ${language === "bn" ? inBangla(version) : version}`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
   return {
     letterhead: letterheadOf(farm),
     title: filled(forThem.title, values),
-    preamble: rules.englishPrinted ? preamble : banglaOnly(preamble),
-    sections: rules.englishPrinted ? sections : sections.map(inBanglaOnly),
-    closing: rules.aboutMoney ? NO_GUARANTEE_LINES : [],
-    produced: `${producedAt} · ${producedBy}${wording}`,
+    preamble: filled(forThem.preamble, values),
+    sections: forThem.sections.map((section) =>
+      laidOut(section, values, parties, signers, rules.dated)
+    ),
+    closing: rules.aboutMoney ? [NO_GUARANTEE] : [],
+    produced: { bn: said("bn"), en: said("en") },
   };
 };
 
 /**
- * The terms of a paper in Bangla, numbered, as a letter repeats them: every clause of every clauses part, filled from
- * the facts in force — the first part's straight after one another, and each later part under its own heading,
+ * Wording filled in one language: its own words with that language's values — or, where its words in that language are
+ * empty, the Bangla words with the Bangla values, so a paper never mixes the two inside one line.
+ */
+const filledIn = (
+  said: Said,
+  values: FieldValues,
+  language: Language
+): string => {
+  const own = said[language].trim() ? language : "bn";
+  return fillIn(said[own], values, own);
+};
+
+/**
+ * The terms of a paper in one language, numbered, as a letter repeats them: every clause of every clauses part, filled
+ * from the facts in force — the first part's straight after one another, and each later part under its own heading,
  * numbered afresh as the paper numbers it. The joining letter reads its terms from the Version its Agreement was
  * signed under, so the letter and the deed cannot say different things.
  */
 export const termsOf = (
   content: TemplateContent,
-  values: FieldValues
+  values: FieldValues,
+  language: Language = "bn"
 ): string[] =>
   content.sections
     .filter((section) => section.kind === "clauses")
     .flatMap((section, place) => [
-      ...(place === 0 ? [] : [fillIn(section.heading.bn, values, "bn")]),
+      ...(place === 0 ? [] : [filledIn(section.heading, values, language)]),
       ...section.clauses.map(
         (clause, index) =>
-          `${inBangla(index + 1)}. ${fillIn(clause.bn, values, "bn")}`
+          `${language === "bn" ? inBangla(index + 1) : index + 1}. ${filledIn(clause, values, language)}`
       ),
     ]);
 
@@ -1120,6 +1088,25 @@ export const factsMissing = (
     .filter((name) => counted.has(name) && !values[name]?.bn.trim());
 };
 
+/**
+ * The terms of a paper in both languages, part by part, as a letter repeats them: each clauses part's heading and its
+ * clauses, filled from the facts in force — the same words the Agreement signed in that Version printed.
+ */
+export const termsSaid = (
+  content: TemplateContent,
+  values: FieldValues
+): { heading: Said; clauses: Said[] }[] =>
+  content.sections.flatMap((section) =>
+    section.kind === "clauses"
+      ? [
+          {
+            heading: filled(section.heading, values),
+            clauses: section.clauses.map((clause) => filled(clause, values)),
+          },
+        ]
+      : []
+  );
+
 /** One part of a notice as a page reads it: its heading, and what it says line by line. */
 export interface ReadPart {
   heading: string;
@@ -1127,23 +1114,24 @@ export interface ReadPart {
 }
 
 /**
- * A notice's wording read as a page rather than printed: its title, its opening and each part, in Bangla, with the
- * facts filled in — a clauses part line by line, a facts part as each label and what it says. Nothing of parties,
+ * A notice's wording read as a page rather than printed, in one language: its title, its opening and each part, with
+ * the facts filled in — a clauses part line by line, a facts part as each label and what it says. Nothing of parties,
  * stamps or signatures: a page is read, not signed.
  */
 export const readingOf = (
   content: TemplateContent,
-  values: FieldValues
+  values: FieldValues,
+  language: Language = "bn"
 ): { title: string; preamble: string; parts: ReadPart[] } => ({
-  title: fillIn(content.title.bn, values, "bn"),
-  preamble: fillIn(content.preamble.bn, values, "bn"),
+  title: filledIn(content.title, values, language),
+  preamble: filledIn(content.preamble, values, language),
   parts: content.sections.flatMap((section): ReadPart[] => {
     if (section.kind === "clauses") {
       return [
         {
-          heading: fillIn(section.heading.bn, values, "bn"),
+          heading: filledIn(section.heading, values, language),
           lines: section.clauses.map((clause) =>
-            fillIn(clause.bn, values, "bn")
+            filledIn(clause, values, language)
           ),
         },
       ];
@@ -1151,9 +1139,10 @@ export const readingOf = (
     if (section.kind === "facts") {
       return [
         {
-          heading: fillIn(section.heading.bn, values, "bn"),
+          heading: filledIn(section.heading, values, language),
           lines: section.rows.map(
-            (one) => `${one.label.bn}: ${fillIn(one.value, values, "bn")}`
+            (one) =>
+              `${inLanguage(one.label, language)}: ${filledIn(factSaid(one.value), values, language)}`
           ),
         },
       ];

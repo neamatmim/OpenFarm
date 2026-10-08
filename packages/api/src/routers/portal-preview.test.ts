@@ -242,7 +242,7 @@ describe("the Portal Preview", () => {
       kind: "joining",
     });
 
-    expect(paper.text.length).toBeGreaterThan(0);
+    expect(paper.document.sections.length).toBeGreaterThan(0);
     expect(await owner.investors.portalActivity({ id: rahimId })).toEqual(
       before
     );

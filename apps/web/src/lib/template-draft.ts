@@ -158,7 +158,7 @@ export const newSection = (kind: TemplateSectionKind): DraftSection => {
 /** An empty clause, or an empty fact line, to add to a part. */
 export const newClause = (): Keyed<Said> => keyed(EMPTY);
 export const newFactLine = (): Keyed<FactLine> =>
-  keyed({ label: EMPTY, value: "" });
+  keyed({ label: EMPTY, value: EMPTY });
 
 /** A list with the item at `from` moved one place up or down; unchanged at either end. */
 export const moved = <T>(list: readonly T[], from: number, by: -1 | 1): T[] => {

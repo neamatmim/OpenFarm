@@ -440,7 +440,6 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "statements.paperTitle": "সই করা চুক্তির কাগজ",
   "statements.paperHint": "স্ট্যাম্প করা, সই করা মূল কাগজের ছবি, যেমন খামারে রাখা হয়েছে।",
   "statements.download": "ছবি নামান",
-  "statements.copyMark": "অনুলিপি · COPY",
   "statements.photoOf": "{tag} ট্যাগের পশু",
   "statements.noCapitalYet":
     "এই চুক্তির বিপরীতে এখনো কোনো মূলধন আসেনি, তাই স্বীকার করার কিছু নেই",
@@ -1674,6 +1673,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "এই ফোন কাজ রাখতে পারছে না, তাই কিছুই লেখা হয়নি: অ্যাপটি নিজের ব্রাউজারে খুলুন, প্রাইভেট উইন্ডোতে নয়",
   "work.correctionKept": "এই ফোনে ঠিক করা হয়েছে। নেটওয়ার্ক পেলে খামারে যাবে।",
   "common.cancel": "বাতিল",
+  "papers.languageSwitch": "কাগজের ভাষা",
   "common.close": "বন্ধ করুন",
   "common.messages": "বার্তা",
   "nav.signOff": "যাচাই",

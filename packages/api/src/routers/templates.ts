@@ -22,8 +22,7 @@ import { farmsOwnValues } from "../data-keepers";
 import { exportedPaper } from "../export-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { producedAt } from "../paper-values";
-import { languageOf } from "../reader-language";
+import { madeOn } from "../paper-values";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import { templateContentSchema, templateKindSchema } from "../template-content";
 import { giveStandardTemplates, templatesOf } from "../template-store";
@@ -136,7 +135,6 @@ export const templatesRouter = {
       z.object({ kind: templateKindSchema, content: templateContentSchema })
     )
     .handler(async ({ context, input }) => {
-      const language = await languageOf(context.db, context.actor.id);
       const farmValues = await farmsOwnValues(
         context.db,
         context.farm,
@@ -159,7 +157,7 @@ export const templatesRouter = {
         },
         values: { ...namedFields(input.kind), ...farmValues },
         producedBy: context.actor.name,
-        producedAt: producedAt(context.clock.now(), language),
+        producedAt: madeOn(context.clock.now()),
       });
       await audited(context).write(
         {

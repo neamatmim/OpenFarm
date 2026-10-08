@@ -1,4 +1,7 @@
 import { payInNote } from "@OpenFarm/db/schema/venture-account";
+import type { PaperDocument } from "@OpenFarm/domain";
+import { inLanguage } from "@OpenFarm/domain";
+import type { Language } from "@OpenFarm/i18n";
 import {
   FakeClock,
   scratchDb,
@@ -39,6 +42,24 @@ const NID = `19853012${suffix}`;
 /** A moment as the database keeps it, `2061-01-01T04:00:00.000Z`: never on a Bangla paper. */
 const ISO_MOMENT = /\d{4}-\d{2}-\d{2}T\d{2}/u;
 const BANK = `সোনালী ব্যাংক, সাভার শাখা, হিসাব ০১২৩${suffix}`;
+/** A Bangla numeral: never in a figure the farm writes on the English paper. */
+const BANGLA_DIGIT = /[০-৯]/u;
+
+/** One facts part of the paper as it is drawn in one language: each line its label and what it says. */
+const drawn = (
+  document: PaperDocument,
+  heading: string,
+  language: Language
+): string[] => {
+  const section = document.sections.find((one) => one.heading.bn === heading);
+  if (section?.kind !== "facts") {
+    throw new Error(`expected the part «${heading}»`);
+  }
+  return section.rows.map(
+    (row) =>
+      `${inLanguage(row.label, language)}: ${inLanguage(row.value, language)}`
+  );
+};
 
 /**
  * An Investor with a history: in the portal, a Request made and changed and answered yes, an Agreement signed with its
@@ -212,16 +233,17 @@ describe("«খামারে আপনার তথ্য»", () => {
       expect.stringContaining("মনোনয়নপত্র"),
       expect.stringContaining("এখনো সই হয়নি"),
     ]);
-    expect(nominees.rows[0]?.value).toContain(`রাশেদের মেয়ে ${suffix}`);
-    expect(nominees.rows[0]?.value).toContain("অংশ ৪০%");
-    expect(nominees.rows[0]?.value).toContain(
+    const [inForce, signed, carried] = drawn(document, "আপনার নমিনি", "bn");
+    expect(inForce).toContain(`রাশেদের মেয়ে ${suffix}`);
+    expect(inForce).toContain("অংশ ৪০%");
+    expect(inForce).toContain(
       `গ্রহণকারী রাশেদের স্ত্রী ${suffix} (মা), এনআইডি 1965 0712 3390`
     );
     // Their Nominees' numbers in full: the copy is theirs.
-    expect(nominees.rows[0]?.value).toContain("এনআইডি 1990 0203 5546");
-    expect(nominees.rows[0]?.value).toContain("জন্ম নিবন্ধন 20502691507114382");
-    expect(nominees.rows[1]?.value).toContain(`রাশেদের মেয়ে ${suffix}`);
-    expect(nominees.rows[2]?.value).toContain("অংশ ১০০%");
+    expect(inForce).toContain("এনআইডি 1990 0203 5546");
+    expect(inForce).toContain("জন্ম নিবন্ধন 20502691507114382");
+    expect(signed).toContain(`রাশেদের মেয়ে ${suffix}`);
+    expect(carried).toContain("অংশ ১০০%");
     // Their Agreement, and the money it moved.
     expect(part("আপনার চুক্তি")).toContain(`S-${suffix}`);
     expect(part("আপনার টাকার লেনদেন")).toContain(`TRF-${suffix}`);
@@ -249,6 +271,70 @@ describe("«খামারে আপনার তথ্য»", () => {
     expect(changes).not.toMatch(ISO_MOMENT);
     // The Agreement's photo kept, said so.
     expect(part("আপনার চুক্তি")).toContain("ছবি");
+  });
+
+  it("is read in English with every day, sum, count and word the farm writes in English", async () => {
+    const owner = await as("owner");
+    const { document } = await owner.investors.dataCopy({ id: history.id });
+
+    // The notice's points in the English the portal's page reads them in.
+    const { inEnglish } = await owner.portalPreview.yourData();
+    expect(
+      document.sections
+        .slice(0, inEnglish?.parts.length)
+        .map((one) => one.heading.en)
+    ).toEqual(inEnglish?.parts.map((part) => part.heading));
+    expect(inLanguage(document.preamble, "en")).toContain(
+      "everything the farm holds about you up to 1 January 2061"
+    );
+    expect(inLanguage(document.produced, "en")).not.toMatch(BANGLA_DIGIT);
+    // Each Nominee in English: their numbers in full, their birth day and share in English figures.
+    const [inForce] = drawn(document, "আপনার নমিনি", "en");
+    expect(inForce).toContain("in force now");
+    expect(inForce).toContain("NID 1990 0203 5546");
+    expect(inForce).toContain("born 3 February 1990");
+    expect(inForce).toContain("birth registration 20502691507114382");
+    expect(inForce).toContain("share 40%");
+    expect(inForce).toContain("Receiver");
+    // Their Agreement, money, Pay-in Note and Request, each in English figures.
+    const [agreement] = drawn(document, "আপনার চুক্তি", "en");
+    expect(agreement).toContain("3 Units");
+    expect(agreement).toContain("your share 60%");
+    expect(agreement).toContain(`stamp S-${suffix}`);
+    expect(agreement).toContain("2 January 2061");
+    expect(drawn(document, "আপনার টাকার লেনদেন", "en").join("\n")).toContain(
+      "150,000"
+    );
+    expect(drawn(document, "আপনার জমার খবর", "en").join("\n")).toContain(
+      "Mobile money to the Venture Account"
+    );
+    expect(
+      drawn(document, "ভেঞ্চারে যোগ দেওয়ার অনুরোধ", "en").join("\n")
+    ).toContain("Changed to 3 units");
+    expect(drawn(document, "পোর্টাল", "en").join("\n")).toContain("in force");
+    // The changes about them in English, the farm's moments too.
+    const changes = drawn(document, "আপনার সম্পর্কে প্রতিটি বদল", "en").join("\n");
+    expect(changes).toContain("Your record");
+    expect(changes).toContain("Portal access");
+    // No Bangla numeral anywhere the farm writes a figure: what they typed (the bank account) and what the trail kept
+    // in Bangla (the Nominees' line) are theirs, as written.
+    const farmWritten = document.sections
+      .flatMap((one) =>
+        one.kind === "facts" &&
+        one.heading.bn !== "আপনার রেকর্ড" &&
+        one.heading.bn !== "আপনার সম্পর্কে প্রতিটি বদল"
+          ? drawn(document, one.heading.bn, "en")
+          : []
+      )
+      .join("\n");
+    expect(farmWritten).not.toMatch(BANGLA_DIGIT);
+    expect(
+      document.sections.flatMap((one) =>
+        one.kind === "facts"
+          ? one.rows.map((row) => inLanguage(row.label, "en"))
+          : []
+      )
+    ).not.toContainEqual(expect.stringMatching(BANGLA_DIGIT));
   });
 
   it("holds the Pay-in Notes they sent from the portal, with the reference they gave", async () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { joiningLetterPaper } from "./joining-letter";
 import type { PaperParties, TemplateKind } from "./paper-template";
 import {
   paperFrom,
@@ -7,10 +8,11 @@ import {
   termsOf,
   wordingFor,
 } from "./paper-template";
+import { paperText } from "./paper-text";
 import type { PaperOrganization } from "./papers";
-import { joiningLetter } from "./papers";
 import {
   PORTAL_CONSENT_BEFORE_ORGANIZATIONS,
+  STANDARD_AGREEMENT_BEFORE_NOMINEE_NUMBERS,
   STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
   STANDARD_TEMPLATES,
 } from "./standard-templates";
@@ -56,7 +58,7 @@ const laidOut = (
       signerName: { bn: PERSON.name, en: PERSON.name },
     },
     producedBy: "করিম",
-    producedAt: "৮ অক্টোবর ২০২৬",
+    producedAt: { bn: "৮ অক্টোবর ২০২৬", en: "৮ অক্টোবর ২০২৬" },
   });
 
 /** The terms a joining letter repeats, from one wording, for a person or an Organization. */
@@ -86,7 +88,7 @@ describe("the standard wording of 2026-10-08", () => {
       expect(
         laidOut(
           "investment_agreement",
-          STANDARD_TEMPLATES.investment_agreement,
+          STANDARD_AGREEMENT_BEFORE_NOMINEE_NUMBERS,
           paidByTheMonth
         )
       ).toEqual(
@@ -119,46 +121,52 @@ describe("the standard wording of 2026-10-08", () => {
 
 describe("an Organization's joining letter", () => {
   const letter = (organization: PaperOrganization | null) =>
-    joiningLetter({
-      farm: FARM,
-      him: {
-        name: "মেঘনা ডেইরি লিমিটেড",
-        phone: "01833445566",
-        address: "মতিঝিল",
-        nid: null,
-        organization,
-        nominees: [],
-      },
-      ventureName: "ঈদ ২০২৭",
-      unitPrice: "৫০,০০০",
-      units: "২",
-      capital: [
-        {
-          kind: "received",
-          amount: "১,০০,০০০",
-          on: "১ অক্টোবর, ২০২৬",
-          reference: "TRX-1",
+    paperText(
+      joiningLetterPaper({
+        farm: FARM,
+        him: {
+          name: "মেঘনা ডেইরি লিমিটেড",
+          phone: "01833445566",
+          address: "মতিঝিল",
+          nid: null,
+          organization,
+          nominees: [],
         },
-      ],
-      totalCapital: "১,০০,০০০",
-      terms: [],
-      amendedOn: null,
-      stamp: {
-        kind: "paper",
-        value: "৩০০",
-        on: "১ অক্টোবর, ২০২৬",
-        serial: "AA 1",
-      },
-      producedBy: "করিম",
-      producedAt: "৮ অক্টোবর ২০২৬",
-    } as unknown as Parameters<typeof joiningLetter>[0]);
+        ventureName: "ঈদ ২০২৭",
+        unitPriceMoney: 50_000,
+        units: 2,
+        capital: [
+          {
+            kind: "received",
+            amountMoney: 100_000,
+            movedOn: "2026-10-01",
+            reference: "TRX-1",
+          },
+        ],
+        totalCapitalMoney: 100_000,
+        terms: [],
+        monthlySums: null,
+        amendedOn: null,
+        stamp: {
+          kind: "paper",
+          valueMoney: 300,
+          on: "2026-10-01",
+          serial: "AA 1",
+        },
+        ownerName: "করিম",
+        producedBy: "করিম",
+        producedAt: { bn: "৮ অক্টোবর ২০২৬", en: "8 October 2026" },
+      }),
+      "bn"
+    );
 
   it("names the Organization, its papers and its Signatory, who signs for it", () => {
     const text = letter(ORGANIZATION);
     expect(text).toContain("বিনিয়োগকারী প্রতিষ্ঠান");
     expect(text).toContain("TRAD/DNCC/1");
-    expect(text).toContain("রফিক, পরিচালক");
-    expect(text).toContain("বিনিয়োগকারী প্রতিষ্ঠানের পক্ষে স্বাক্ষর");
+    expect(text).toContain("পক্ষে স্বাক্ষরকারী: রফিক");
+    expect(text).toContain("পদবি: পরিচালক");
+    expect(text).toContain("বিনিয়োগকারী প্রতিষ্ঠানের পক্ষে: রফিক");
     expect(text).not.toContain("নমিনি");
   });
 });

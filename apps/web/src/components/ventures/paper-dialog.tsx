@@ -1,5 +1,6 @@
 import type { PaperDocument } from "@OpenFarm/domain";
-import { formatDate } from "@OpenFarm/i18n";
+import type { Language } from "@OpenFarm/i18n";
+import { formatDate, translate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
   Dialog,
@@ -8,8 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@OpenFarm/ui/components/dialog";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@OpenFarm/ui/components/toggle-group";
 import { Printer } from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 
 import {
   PAPER_DOCUMENT_ID,
@@ -51,8 +57,54 @@ const WordingLine = ({ wording }: { wording: WordingSaid }) => {
 };
 
 /**
- * A paper laid out in a dialog wide enough for a page, and printed from there alone. Which wording it was laid out in
- * is said above the page, with the want of a lawyer's approval where there is one, and never printed.
+ * Which language a paper is read in: বাংলা or English, never both on one paper (ADR 0021). Each choice is its name in
+ * its own language, as the app's own language button is, so it reads rightly to a screen reader in either.
+ */
+export const PaperLanguageSwitch = ({
+  language,
+  onChange,
+}: {
+  language: Language;
+  onChange: (language: Language) => void;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <ToggleGroup
+      aria-label={t("papers.languageSwitch")}
+      className="no-print"
+      onValueChange={(chosen) => {
+        const [next] = chosen;
+        if (next === "bn" || next === "en") {
+          onChange(next);
+        }
+      }}
+      size="sm"
+      spacing={0}
+      value={[language]}
+      variant="outline"
+    >
+      <ToggleGroupItem
+        className="aria-pressed:bg-primary aria-pressed:text-primary-foreground px-3"
+        lang="bn"
+        value="bn"
+      >
+        {translate("bn", "language.bn")}
+      </ToggleGroupItem>
+      <ToggleGroupItem
+        className="aria-pressed:bg-primary aria-pressed:text-primary-foreground px-3"
+        lang="en"
+        value="en"
+      >
+        {translate("en", "language.en")}
+      </ToggleGroupItem>
+    </ToggleGroup>
+  );
+};
+
+/**
+ * A paper laid out in a dialog wide enough for a page, and printed from there alone — in the language its switch shows,
+ * starting on the reader's own. Which wording it was laid out in is said above the page, with the want of a lawyer's
+ * approval where there is one, and never printed.
  */
 export const PaperDialog = ({
   paper,
@@ -73,7 +125,8 @@ export const PaperDialog = ({
   action?: ReactNode;
   onClose: () => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language: reads } = useLanguage();
+  const [language, setLanguage] = useState<Language>(reads);
   return (
     <Dialog
       onOpenChange={(open) => {
@@ -95,7 +148,10 @@ export const PaperDialog = ({
         </DialogHeader>
         {notice ? <div className="no-print">{notice}</div> : null}
         {wording ? <WordingLine wording={wording} /> : null}
-        {paper ? <PaperDocumentView document={paper} /> : null}
+        <PaperLanguageSwitch language={language} onChange={setLanguage} />
+        {paper ? (
+          <PaperDocumentView document={paper} language={language} />
+        ) : null}
         <div className="no-print flex flex-wrap justify-end gap-2">
           <Button
             onClick={() => {

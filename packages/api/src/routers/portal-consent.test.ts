@@ -1,6 +1,7 @@
 import { inspect } from "node:util";
 
 import { portalConsent } from "@OpenFarm/db/schema/venture";
+import { inLanguage } from "@OpenFarm/domain";
 import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
 import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -162,6 +163,6 @@ describe("a Portal Consent", () => {
     expect(
       signatures?.kind === "signatures" ? signatures.signers[0]?.name : null
     ).toBe(`হাসান ${suffix}`);
-    expect(document.produced).toContain("সংস্করণ ১");
+    expect(inLanguage(document.produced, "bn")).toContain("সংস্করণ ১");
   });
 });

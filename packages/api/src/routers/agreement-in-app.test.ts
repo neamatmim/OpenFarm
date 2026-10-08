@@ -1,5 +1,6 @@
 import { eq } from "@OpenFarm/db/operators";
 import { agreementOffer } from "@OpenFarm/db/schema/venture";
+import { inLanguage } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -397,23 +398,23 @@ describe("an Agreement agreed in the app", () => {
     const { document } = await owner.investorStatements.agreementCopy({
       agreementId,
     });
-    expect(document.copyOf).toContain("Agreed in the app");
-    expect(document.copyOf).toContain(
-      offer?.paperHash.slice(0, 12).toUpperCase()
-    );
-    expect(document.copyOf).not.toMatch(/Stamp serial|Stamped/u);
+    const copyOf = inLanguage(document.copyOf ?? "", "en");
+    expect(copyOf).toContain("Agreed in the app");
+    expect(copyOf).toContain(offer?.paperHash.slice(0, 12).toUpperCase());
+    expect(copyOf).not.toMatch(/Stamp serial|Stamped/u);
     const stamp = document.sections.find((one) => one.kind === "stamp");
+    const number = offer?.paperHash.slice(0, 12).toUpperCase();
     expect(stamp?.kind === "stamp" && stamp.filled).toEqual([
-      offer?.paperHash.slice(0, 12).toUpperCase(),
-      "নেই — অ্যাপে সম্মত",
-      "৫ জানুয়ারি, ২০৯৩",
+      { bn: number, en: number },
+      { bn: "নেই — অ্যাপে সম্মত", en: "None — agreed in the app" },
+      { bn: "৫ জানুয়ারি, ২০৯৩", en: "5 January 2093" },
     ]);
     // Every word the Investor agreed to, as they read it.
     const kept = offer?.paper;
     expect(document.sections.filter((one) => one.kind !== "stamp")).toEqual(
       kept?.sections.filter((one) => one.kind !== "stamp")
     );
-    expect(document.produced).toBe(kept?.produced);
+    expect(document.produced).toEqual(kept?.produced);
   });
 
   it("is never copied from a kept paper changed since it was agreed", async () => {

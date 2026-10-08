@@ -1,3 +1,4 @@
+import { paperText } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -187,11 +188,18 @@ describe("the progress paper of a part-paid Venture", () => {
     const reader = await as("owner", "2071-02-02T04:00:00.000Z");
     const paperOf = async (agreementId: string) => {
       const paper = await reader.investorStatements.progress({ agreementId });
-      return paper.text;
+      return {
+        bn: paperText(paper.document, "bn"),
+        en: paperText(paper.document, "en"),
+      };
     };
 
     // Ten Units and six held of sixteen: 63% and 38% — not the half each their signatures would say.
-    expect(await paperOf(full)).toContain("১০ (৬৩%)");
-    expect(await paperOf(part)).toContain("৬ (৩৮%)");
+    const fully = await paperOf(full);
+    const partly = await paperOf(part);
+    expect(fully.bn).toContain("ইউনিট: ১০ (৬৩%)");
+    expect(partly.bn).toContain("ইউনিট: ৬ (৩৮%)");
+    expect(fully.en).toContain("Units held: 10 (63%)");
+    expect(partly.en).toContain("Units held: 6 (38%)");
   });
 });

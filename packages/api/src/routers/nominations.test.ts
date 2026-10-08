@@ -197,7 +197,7 @@ describe("a মনোনয়নপত্র", () => {
       throw new Error("expected the parties");
     }
     const [, him] = parties.parties;
-    expect(him?.nominees.map((one) => [one.share, one.minor])).toEqual([
+    expect(him?.nominees.map((one) => [one.share.bn, one.minor])).toEqual([
       ["৫০%", false],
       ["৩০%", false],
       ["২০%", true],
@@ -369,7 +369,10 @@ describe("a মনোনয়নপত্র", () => {
       { idNumber: "1982 4417 2093" },
       {
         idNumber: "20522691507114382",
-        receiver: expect.stringContaining("এনআইডি 1982 4417 2093"),
+        receiver: {
+          bn: expect.stringContaining("এনআইডি 1982 4417 2093"),
+          en: expect.stringContaining("NID 1982 4417 2093"),
+        },
       },
     ]);
     const [inForce] = await owner.investors.nominations({ id });

@@ -118,7 +118,7 @@ export const PortalPapers = ({
                         onSuccess: (made) =>
                           setShown({
                             kind,
-                            text: made.text,
+                            document: made.document,
                             photos: made.photos,
                           }),
                       }
@@ -149,7 +149,7 @@ export const PortalPapers = ({
         open={shown !== null}
       >
         <DialogContent
-          className="max-h-[90vh] overflow-y-auto sm:max-w-3xl"
+          className="max-h-[90vh] overflow-y-auto sm:max-w-4xl"
           closeLabel={t("common.close")}
         >
           <DialogHeader>

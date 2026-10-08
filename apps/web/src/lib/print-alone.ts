@@ -48,7 +48,9 @@ export const printAlone = async (
   const styles = [...document.querySelectorAll('link[rel="stylesheet"], style')]
     .map((node) => node.outerHTML)
     .join("");
-  frame.srcdoc = `<!doctype html><html lang="${document.documentElement.lang}"><head><meta charset="utf-8">${styles}<style>${pageRules(setup)}</style></head><body>${element.outerHTML}</body></html>`;
+  // A paper read in a language of its own prints in it, whatever the app is read in (ADR 0021).
+  const language = element.lang || document.documentElement.lang;
+  frame.srcdoc = `<!doctype html><html lang="${language}"><head><meta charset="utf-8">${styles}<style>${pageRules(setup)}</style></head><body>${element.outerHTML}</body></html>`;
   // oxlint-disable-next-line promise/avoid-new -- a frame's load is an event, with no promise of its own
   const ready = new Promise<void>((resolve) => {
     frame.addEventListener("load", () => resolve(), { once: true });

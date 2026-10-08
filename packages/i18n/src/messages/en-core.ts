@@ -476,7 +476,6 @@ export const enCore = {
   "statements.paperHint":
     "The photo of the stamped, signed original, as the farm kept it.",
   "statements.download": "Download the photo",
-  "statements.copyMark": "অনুলিপি · COPY",
   "statements.photoOf": "The animal tagged {tag}",
   "statements.noCapitalYet":
     "No capital has arrived against that agreement yet, so there is nothing to acknowledge",
@@ -1824,6 +1823,7 @@ export const enCore = {
   "work.correctionKept":
     "Put right on this phone. It goes to the farm when the phone has signal.",
   "common.cancel": "Cancel",
+  "papers.languageSwitch": "The paper's language",
   "common.close": "Close",
   "common.messages": "Messages",
   "nav.signOff": "Review",

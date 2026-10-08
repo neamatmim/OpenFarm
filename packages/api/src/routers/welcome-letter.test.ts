@@ -1,5 +1,6 @@
 import { inspect } from "node:util";
 
+import { inLanguage } from "@OpenFarm/domain";
 import { FakeClock, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -117,9 +118,9 @@ describe("the Welcome Letter", () => {
       // As the world writes it; the letter prints it the way the farm's country does.
       phone: `+880179${suffix}2`,
     });
-    expect(letter.letterhead.details.join(" ")).toContain(
-      `DLS/SAV/2059/${suffix}`
-    );
+    expect(
+      letter.letterhead.details.map((one) => inLanguage(one, "bn")).join(" ")
+    ).toContain(`DLS/SAV/2059/${suffix}`);
     expect(letter.issuedOn).toBe("2059-01-01");
     expect(letter.notice?.title).toBe("আপনার তথ্য খামার কীভাবে রাখে");
     expect(JSON.stringify(letter.notice)).toContain(KEEPERS.dataHost);

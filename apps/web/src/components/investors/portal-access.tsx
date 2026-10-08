@@ -1,5 +1,6 @@
 import type { PaperDocument } from "@OpenFarm/domain";
 import { farmDayOf, mobileNumberOf } from "@OpenFarm/domain";
+import type { Language } from "@OpenFarm/i18n";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import {
@@ -37,7 +38,10 @@ import {
   NativeSelect,
 } from "@/components/page-kit";
 import { TO_THE_KEEPERS } from "@/components/templates/data-keepers";
-import { PaperDialog } from "@/components/ventures/paper-dialog";
+import {
+  PaperDialog,
+  PaperLanguageSwitch,
+} from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { portalAddress } from "@/lib/portal-address";
 import { printAlone } from "@/lib/print-alone";
@@ -424,6 +428,7 @@ const CodeDialog = ({
   const refused = useRefused(REFUSALS, TO_THE_KEEPERS);
   // The paper laid out round the code, set off the screen to print alone.
   const [laidOut, setLaidOut] = useState<HandedOverPaper | null>(null);
+  const [paperLanguage, setPaperLanguage] = useState<Language>(language);
   const handing = useMutation(
     orpc.investors.handOver.mutationOptions({
       onError: refused,
@@ -473,6 +478,11 @@ const CodeDialog = ({
           </div>
         </dl>
         <div className="flex flex-col gap-2">
+          {/* The paper is printed in the language the Investor reads, which the Owner chooses here. */}
+          <PaperLanguageSwitch
+            language={paperLanguage}
+            onChange={setPaperLanguage}
+          />
           <Button
             disabled={handing.isPending}
             onClick={() =>
@@ -491,7 +501,11 @@ const CodeDialog = ({
         </div>
         {given && laidOut ? (
           <div className="hidden">
-            <printed.Paper given={given} paper={laidOut} />
+            <printed.Paper
+              given={given}
+              language={paperLanguage}
+              paper={laidOut}
+            />
           </div>
         ) : null}
       </DialogContent>
