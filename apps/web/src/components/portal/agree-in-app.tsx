@@ -37,7 +37,8 @@ const REFUSALS = {
   no_signing_clause: "agreeInApp.refusal.no_signing_clause",
   no_way_to_send_a_code: "agreeInApp.refusal.no_way_to_send_a_code",
   already_agreed: "agreeInApp.refusal.already_agreed",
-  nomination_approved: "agreeInApp.portal.nominationApproved",
+  // Approved by the farm a moment before, whichever paper it is.
+  offer_already_approved: "agreeInApp.portal.alreadyApproved",
 } as const;
 
 type AmendmentOffer = Awaited<
@@ -168,9 +169,7 @@ const ReadAndAgree = ({
 
 /** Why the farm would not take back their agreement, in their words: approved already, it is theirs to keep. */
 const WITHDRAW_REFUSALS = {
-  offer_already_approved: "agreeInApp.portal.withdrawTooLate",
-  already_approved: "agreeInApp.portal.withdrawTooLate",
-  nomination_approved: "agreeInApp.portal.nominationApproved",
+  offer_withdrawn: "agreeInApp.refusal.offer_withdrawn",
   not_an_investor: "portal.refused.notAnInvestor",
   signed_in_too_long: "portal.endedHint",
 } as const;
@@ -187,7 +186,14 @@ const WithdrawAgreement = ({
   offerId: string;
 }) => {
   const { t } = useLanguage();
-  const refused = useRefused(WITHDRAW_REFUSALS);
+  // Approved already, it is part of what they signed — or, a মনোনয়নপত্র, their list in force.
+  const refused = useRefused({
+    ...WITHDRAW_REFUSALS,
+    offer_already_approved:
+      kind === "nomination_offer"
+        ? "agreeInApp.portal.nominationApproved"
+        : "agreeInApp.portal.withdrawTooLate",
+  });
   const [asking, setAsking] = useState(false);
   const withdrawing = useMutation(
     orpc.portal.withdrawAgreement.mutationOptions({

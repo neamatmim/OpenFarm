@@ -1,3 +1,5 @@
+import { setTimeout as sleep } from "node:timers/promises";
+
 import type { Nominee } from "@OpenFarm/domain";
 import { paperText } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
@@ -30,6 +32,19 @@ const as = async (role: "owner" | "manager", at = JANUARY) => {
 
 const invited = invitingInvestors({ prefix: "019", run: suffix }, JANUARY);
 type Them = Awaited<ReturnType<typeof invited>>;
+
+/** How an act sent at the same moment as another ended: done, or the word it was refused with — or the error. */
+const wordOf = (settled: PromiseSettledResult<unknown>) => {
+  if (settled.status === "fulfilled") {
+    return "done";
+  }
+  const error = settled.reason as {
+    data?: { refusal?: string };
+    cause?: { message?: string };
+    message?: string;
+  };
+  return error.data?.refusal ?? error.cause?.message ?? error.message;
+};
 
 /** What an act was refused with, as the screen reads it. */
 const refusalOf = async (act: Promise<unknown>) => {
@@ -263,5 +278,41 @@ describe("a মনোনয়নপত্র offered in the app", () => {
         : (one.reason as { data?: { refusal?: string } }).data?.refusal
     );
     expect(words.toSorted()).toEqual(["done", "nomination_offer_standing"]);
+  });
+
+  it("settles the Investor withdrawing and the Owner approving at once in one way or the other, never both", async () => {
+    const owner = await as("owner", LATER);
+    const outcomes = [];
+    for (const [n, gap] of [0, 5, -5].entries()) {
+      // oxlint-disable-next-line no-await-in-loop
+      const them = await invited(`মনোনয়ন দৌড় ${n}`);
+      // oxlint-disable-next-line no-await-in-loop
+      const { id } = await offeredAndAgreed(them);
+      // oxlint-disable-next-line no-await-in-loop
+      const [approved, withdrawn] = await Promise.allSettled([
+        sleep(Math.max(-gap, 0)).then(() =>
+          owner.investors.approveNominationOffer({ offerId: id })
+        ),
+        sleep(Math.max(gap, 0)).then(() =>
+          them.client.portal.withdrawAgreement({
+            kind: "nomination_offer",
+            offerId: id,
+          })
+        ),
+      ]);
+      // oxlint-disable-next-line no-await-in-loop
+      const inForce = await owner.investors.nominations({ id: them.id });
+      outcomes.push({
+        approved: wordOf(approved),
+        withdrawn: wordOf(withdrawn),
+        inForce: inForce.length,
+      });
+    }
+    for (const outcome of outcomes) {
+      expect([
+        { approved: "done", withdrawn: "offer_already_approved", inForce: 1 },
+        { approved: "offer_not_agreed", withdrawn: "done", inForce: 0 },
+      ]).toContainEqual(outcome);
+    }
   });
 });

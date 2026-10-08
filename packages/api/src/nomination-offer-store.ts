@@ -28,13 +28,17 @@ import {
   nomineeRows,
   readNominees,
 } from "./nominations";
+import type { OfferWords } from "./offer-lifecycle";
 import {
-  checkSigningCode,
-  confirmApproval,
-  keepProof,
-  proofSaid,
-  proofWithdrawn,
-} from "./signing-code";
+  approvedAlready,
+  sealAgreement,
+  standingOf,
+  stillAgreed,
+  withdrawTheAgreement,
+  withdrawTheOffer,
+  withdrawnAlready,
+} from "./offer-lifecycle";
+import { confirmApproval, proofSaid } from "./signing-code";
 import { currentWording, giveStandardTemplates } from "./template-store";
 import { lockTheFarm } from "./venture-store";
 
@@ -42,19 +46,6 @@ import { lockTheFarm } from "./venture-store";
 // Investor agrees to the paper in the portal with a Signing Code, and the Owner approves it — and only then is it the
 // list in force, a Nomination made in the app whose kept paper is the proof. One naming a minor stays on paper: no
 // institution in Bangladesh takes a Receiver's consent without one (docs/research/nomination-without-paper.md).
-
-type OfferRow = typeof nominationOffer.$inferSelect;
-
-/** Where an offer stands. */
-const standingOf = (offer: OfferRow) => {
-  if (offer.approvedAt) {
-    return "approved" as const;
-  }
-  if (offer.withdrawnAt) {
-    return "withdrawn" as const;
-  }
-  return offer.agreedAt ? ("agreed" as const) : ("offered" as const);
-};
 
 /** The offer as the trail records it either side of a change. */
 const readOffer = async (tx: Pick<Tx, "query">, farmId: string, id: string) =>
@@ -78,12 +69,13 @@ const theOffer = async (
   return offer;
 };
 
-/** A মনোনয়নপত্র the Owner has approved: the list in force now, which no agreement to it can change. */
-const approvedNomination = () =>
-  refused(
-    "This মনোনয়নপত্র is approved: it is the list in force now",
-    "nomination_approved"
-  );
+/** A মনোনয়নপত্র's refusals, in its own words. */
+const WORDS: OfferWords = {
+  approved: approvedAlready(
+    "This মনোনয়নপত্র is approved: it is the list in force now"
+  ),
+  withdrawn: withdrawnAlready("This মনোনয়নপত্র was withdrawn"),
+};
 
 /** Refuses a list naming a minor: their Receiver signs on paper, in front of the Owner. */
 const assertNoMinor = (nominees: readonly Nominee[], onDay: string) => {
@@ -191,7 +183,7 @@ export const nominationOffersOf = async (
   const proofOf = new Map(proofs.map((one) => [one.offerId, proofSaid(one)]));
   return rows.map((one) => ({
     id: one.id,
-    standing: standingOf({ ...one, paper: null }),
+    standing: standingOf(one),
     nominees: one.nominees as Nominee[],
     offeredAt: one.offeredAt,
     agreedAt: one.agreedAt,
@@ -211,35 +203,39 @@ export const withdrawNominationOffer = async (
 ): Promise<void> => {
   const offer = await theOffer(context.db, context.farm.id, offerId);
   if (offer.approvedAt) {
-    throw refused(
-      "This মনোনয়নপত্র is approved: it is the list in force now",
-      "offer_already_approved"
-    );
+    throw WORDS.approved();
   }
   if (offer.withdrawnAt) {
     return;
   }
-  await audited(context).write(
-    {
+  await withdrawTheOffer(context, {
+    trail: () => ({
       entity: "nomination_offer",
       entityId: offer.id,
       action: "update",
       before: (tx) => readOffer(tx, context.farm.id, offer.id),
       after: (tx) => readOffer(tx, context.farm.id, offer.id),
-    },
-    async (tx) => {
-      await lockTheFarm(tx, context.farm.id);
-      await tx
+    }),
+    words: WORDS,
+    withdraw: async (tx, now) => {
+      const [withdrawing] = await tx
         .update(nominationOffer)
-        .set({ withdrawnAt: context.clock.now() })
+        .set({ withdrawnAt: now })
         .where(
           and(
             eq(nominationOffer.id, offer.id),
-            isNull(nominationOffer.approvedAt)
+            isNull(nominationOffer.approvedAt),
+            isNull(nominationOffer.withdrawnAt)
           )
-        );
-    }
-  );
+        )
+        .returning({ id: nominationOffer.id });
+      if (withdrawing) {
+        return "withdrawn_now";
+      }
+      const meanwhile = await readOffer(tx, context.farm.id, offer.id);
+      return meanwhile?.approvedAt ? "approved" : "withdrawn";
+    },
+  });
 };
 
 /**
@@ -254,13 +250,10 @@ export const approveNominationOffer = async (
 ): Promise<{ nominationId: string }> => {
   const offer = await theOffer(context.db, context.farm.id, offerId);
   if (offer.approvedAt) {
-    throw refused(
-      "This মনোনয়নপত্র is approved already",
-      "offer_already_approved"
-    );
+    throw WORDS.approved();
   }
   if (offer.withdrawnAt) {
-    throw refused("This offer was withdrawn", "offer_withdrawn");
+    throw WORDS.withdrawn();
   }
   // Still somebody who may sign: not retired since it was offered, for a retired Investor signs nothing new.
   await nominatingInvestor(context, offer.investorId);
@@ -279,19 +272,7 @@ export const approveNominationOffer = async (
     async (tx) => {
       await lockTheFarm(tx, farmId);
       const standing = await readOffer(tx, farmId, offer.id);
-      if (!standing?.agreedAt) {
-        throw refused(
-          "The Investor has not agreed to it, or withdrew their agreement",
-          "offer_not_agreed"
-        );
-      }
-      if (standing.withdrawnAt || standing.approvedAt) {
-        throw refused(
-          "This offer was withdrawn or approved meanwhile",
-          "offer_withdrawn"
-        );
-      }
-      const signedOn = farmDayOf(standing.agreedAt);
+      const signedOn = farmDayOf(stillAgreed(standing, WORDS));
       const inForce = await nominationInForce(tx, farmId, offer.investorId);
       if (inForce && signedOn < inForce.signedOn) {
         throw refused(
@@ -379,10 +360,10 @@ export const nominationToAgree = async (
     throw new ORPCError("NOT_FOUND", { message: "No such offer" });
   }
   if (offer.withdrawnAt) {
-    throw refused("This offer was withdrawn", "offer_withdrawn");
+    throw WORDS.withdrawn();
   }
   if (offer.approvedAt) {
-    throw approvedNomination();
+    throw WORDS.approved();
   }
   return offer;
 };
@@ -401,43 +382,33 @@ export const agreeToNomination = async (
   if (offer.agreedAt) {
     return;
   }
-  const signed = { kind: "nomination_offer", id: offer.id } as const;
-  const sealed = await checkSigningCode(
+  await sealAgreement(
     context,
     investorId,
-    signed,
-    input.code
-  );
-  await audited(context).write(
+    { kind: "nomination_offer", id: offer.id, paperHash: offer.paperHash },
+    input.code,
     {
-      entity: "nomination_offer",
-      entityId: offer.id,
-      action: "update",
-      before: (tx) => readOffer(tx, context.farm.id, offer.id),
-      after: (tx) => readOffer(tx, context.farm.id, offer.id),
-    },
-    async (tx) => {
-      const [agreeing] = await tx
-        .update(nominationOffer)
-        .set({ agreedAt: context.clock.now(), agreedBy: context.actor.id })
-        .where(
-          and(
-            eq(nominationOffer.id, offer.id),
-            isNull(nominationOffer.withdrawnAt),
-            isNull(nominationOffer.agreedAt)
+      trail: () => ({
+        entity: "nomination_offer",
+        entityId: offer.id,
+        action: "update",
+        before: (tx) => readOffer(tx, context.farm.id, offer.id),
+        after: (tx) => readOffer(tx, context.farm.id, offer.id),
+      }),
+      mark: async (tx, now) => {
+        const [agreeing] = await tx
+          .update(nominationOffer)
+          .set({ agreedAt: now, agreedBy: context.actor.id })
+          .where(
+            and(
+              eq(nominationOffer.id, offer.id),
+              isNull(nominationOffer.withdrawnAt),
+              isNull(nominationOffer.agreedAt)
+            )
           )
-        )
-        .returning({ id: nominationOffer.id });
-      // Withdrawn or agreed meanwhile: the code stays unused, and nothing is kept as proof of nothing.
-      if (agreeing) {
-        await keepProof(
-          tx,
-          context,
-          investorId,
-          { ...signed, paperHash: offer.paperHash },
-          sealed
-        );
-      }
+          .returning({ id: nominationOffer.id });
+        return agreeing !== undefined;
+      },
     }
   );
 };
@@ -456,49 +427,49 @@ export const withdrawAgreementToNomination = async (
     throw new ORPCError("NOT_FOUND", { message: "No such offer" });
   }
   if (offer.approvedAt) {
-    throw approvedNomination();
+    throw WORDS.approved();
   }
   if (offer.withdrawnAt) {
-    throw refused("This offer was withdrawn", "offer_withdrawn");
+    throw WORDS.withdrawn();
   }
   if (!offer.agreedAt) {
     return;
   }
-  const now = context.clock.now();
-  await audited(context).write(
+  await withdrawTheAgreement(
+    context,
+    investorId,
+    { kind: "nomination_offer", id: offer.id },
     {
-      entity: "nomination_offer",
-      entityId: offer.id,
-      action: "update",
-      reason: "The Investor withdrew their agreement before it was approved",
-      before: (tx) => readOffer(tx, context.farm.id, offer.id),
-      after: (tx) => readOffer(tx, context.farm.id, offer.id),
-    },
-    async (tx) => {
-      // Behind the Farm lock, as approving is: whichever comes second finds the offer as the first left it.
-      await lockTheFarm(tx, context.farm.id);
-      const [withdrawing] = await tx
-        .update(nominationOffer)
-        .set({ agreedAt: null, agreedBy: null, agreementWithdrawnAt: now })
-        .where(
-          and(
-            eq(nominationOffer.id, offer.id),
-            isNull(nominationOffer.approvedAt),
-            isNull(nominationOffer.withdrawnAt),
-            isNotNull(nominationOffer.agreedAt)
+      trail: () => ({
+        entity: "nomination_offer",
+        entityId: offer.id,
+        action: "update",
+        before: (tx) => readOffer(tx, context.farm.id, offer.id),
+        after: (tx) => readOffer(tx, context.farm.id, offer.id),
+      }),
+      words: WORDS,
+      withdraw: async (tx, now) => {
+        const [withdrawing] = await tx
+          .update(nominationOffer)
+          .set({ agreedAt: null, agreedBy: null, agreementWithdrawnAt: now })
+          .where(
+            and(
+              eq(nominationOffer.id, offer.id),
+              isNull(nominationOffer.approvedAt),
+              isNull(nominationOffer.withdrawnAt),
+              isNotNull(nominationOffer.agreedAt)
+            )
           )
-        )
-        .returning({ id: nominationOffer.id });
-      if (!withdrawing) {
+          .returning({ id: nominationOffer.id });
+        if (withdrawing) {
+          return "withdrawn_now";
+        }
         const meanwhile = await readOffer(tx, context.farm.id, offer.id);
-        throw meanwhile?.approvedAt
-          ? approvedNomination()
-          : refused("Your agreement is withdrawn already", "not_agreed");
-      }
-      await proofWithdrawn(tx, now, investorId, {
-        kind: "nomination_offer",
-        id: offer.id,
-      });
+        if (meanwhile?.approvedAt) {
+          return "approved";
+        }
+        return meanwhile?.withdrawnAt ? "withdrawn" : "not_agreed";
+      },
     }
   );
 };

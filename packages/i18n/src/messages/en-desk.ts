@@ -632,6 +632,7 @@ export const enDesk = {
   "agreeInApp.portal.nominationPaperTitle": "মনোনয়নপত্র",
   "agreeInApp.portal.nominationApproved":
     "The farm has approved it already; it is your list of Nominees now.",
+  "agreeInApp.portal.alreadyApproved": "The farm has approved it already.",
   "agreeInApp.portal.agree": "I agree",
   "agreeInApp.portal.agreedDone": "Your agreement has reached the farm",
   "agreeInApp.how": "How it is agreed",

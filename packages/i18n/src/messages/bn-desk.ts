@@ -588,6 +588,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "agreeInApp.portal.nominationPaperTitle": "মনোনয়নপত্র",
   "agreeInApp.portal.nominationApproved":
     "খামার এরই মধ্যে অনুমোদন দিয়েছে; এটিই এখন আপনার নমিনির তালিকা।",
+  "agreeInApp.portal.alreadyApproved": "খামার এরই মধ্যে অনুমোদন দিয়েছে।",
   "agreeInApp.portal.agree": "আমি সম্মত",
   "agreeInApp.portal.agreedDone": "আপনার সম্মতি খামারে পৌঁছেছে",
   "agreeInApp.how": "কীভাবে সম্মতি",
