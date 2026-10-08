@@ -927,7 +927,7 @@ export const bookMoney = async (
 ): Promise<{ id: string; approval: string }> => {
   const { farm, now } = booking;
   if (byHand?.wageMonth && money.purseVentureId) {
-    // A wage is the Farm's, whatever else is true: the Farm provides the labour, which is the whole of
+    // A wage is the Farm's, whatever else is true: the Farm provides the labor, which is the whole of
     // what it brings to a Venture. The unique index behind "one wage per person per month" counts the
     // Farm's purse as nothing, so a wage in another purse would slip past it unseen.
     throw new ORPCError("BAD_REQUEST", {
@@ -1029,7 +1029,7 @@ export const bookMoney = async (
   return { id, approval };
 };
 
-/** All the money waiting for the Owner's word, every purse, counted and totalled on the farm — whichever way each
+/** All the money waiting for the Owner's word, every purse, counted and totaled on the farm — whichever way each
  *  goes — however many of them a queue lists. */
 export const awaitingApproval = async (
   db: Pick<Tx, "select">,

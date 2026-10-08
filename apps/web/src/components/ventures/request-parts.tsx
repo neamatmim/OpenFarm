@@ -41,7 +41,7 @@ export const STATE_WORDS = {
 /** Why the farm closed a Request, in the Owner's words. */
 export const CLOSED_WORDS = {
   venture_buying: "ventures.requests.closed.venture_buying",
-  venture_cancelled: "ventures.requests.closed.venture_cancelled",
+  venture_canceled: "ventures.requests.closed.venture_canceled",
   taken_out_of_portal: "ventures.requests.closed.taken_out_of_portal",
   investor_retired: "ventures.requests.closed.investor_retired",
 } as const satisfies Record<RequestCloseReason, MessageKey>;

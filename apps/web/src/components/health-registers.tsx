@@ -455,7 +455,7 @@ const CauseCell = ({ row }: { row: { original: DeathRow } }) => {
   return causeWord(row.original.cause, t);
 };
 
-/** How the carcass went, or — in the warning colour — that the farm is still to say. */
+/** How the carcass went, or — in the warning color — that the farm is still to say. */
 const DisposalCell = ({ row }: { row: { original: DeathRow } }) => {
   const { t } = useLanguage();
   const { disposal, disposalNote } = row.original;

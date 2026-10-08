@@ -66,7 +66,7 @@ interface ProductRow extends DrugProduct {
   actions: ProductActions;
 }
 
-/** A product's standing, as a word with its colour. */
+/** A product's standing, as a word with its color. */
 const Standing = ({ product }: { product: DrugProduct }) => {
   const { t } = useLanguage();
   const standing = standingOf(product);

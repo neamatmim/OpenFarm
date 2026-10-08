@@ -30,7 +30,7 @@ export type SyncKind = (typeof SYNC_KINDS)[number];
  *
  * - `applied` — it is in the farm's records.
  * - `flagged` — it is in the records, and someone has been asked to look at it anyway: a
- *   phone whose clock is far out still recorded the litres.
+ *   phone whose clock is far out still recorded the liters.
  * - `kept` — the world moved past it, so it is not in the records as they stand; what the
  *   phone sent is held whole, with a person asked to decide (ADR 0002: never dropped, and
  *   never overwriting).

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fieldChanges, whyRaised } from "./audit-words";
+import { fieldChanges, fieldLabelKey, whyRaised } from "./audit-words";
 
 // The table of what a change touched is read by the Owner, and in Bangla it said "5" and
 // "2026-09-24T11:00:00.000Z" as the database keeps them. The whole record, below it, still does.
@@ -15,7 +15,7 @@ describe("the fields a change touched", () => {
   });
 
   it("says a figure the database keeps as text in the reader's numerals", () => {
-    expect(afterOf({ litres: "12.50" }, "bn")).toEqual(["১২.৫"]);
+    expect(afterOf({ liters: "12.50" }, "bn")).toEqual(["১২.৫"]);
   });
 
   it("says an instant as a date and a time, and a day as a date", () => {
@@ -45,6 +45,16 @@ const theDay = (after: Record<string, unknown>) => ({
   entityId: "schedule:2026-09-24",
   action: "create" as const,
   after,
+});
+
+describe("a field the trail wrote before American spelling", () => {
+  it("is named as the field is today, the trail being kept as written", () => {
+    expect(fieldLabelKey("litres")).toBe("auditField.liters");
+    expect(fieldLabelKey("pricePerLitreMoney")).toBe(
+      "auditField.pricePerLiterMoney"
+    );
+    expect(fieldLabelKey("liters")).toBe("auditField.liters");
+  });
 });
 
 describe("why the farm raised work", () => {

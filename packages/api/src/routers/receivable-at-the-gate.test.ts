@@ -396,35 +396,35 @@ describe("milk on credit", () => {
     const manager = await as("manager", "2048-03-15T03:00:00.000Z");
     const recorded = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2048-03-15T02:00:00.000Z"),
-      litres: 45.5,
+      liters: 45.5,
       buyer: milkBuyer,
-      pricePerLitreMoney: 68,
+      pricePerLiterMoney: 68,
       paidNowMoney: 3000,
     });
     const row = await scratchDb().query.dispatch.findFirst({
       where: { id: recorded.id },
       columns: { receivableMoney: true, promisedBy: true },
     });
-    // 45.5 litres at 68 comes to 3094.
+    // 45.5 liters at 68 comes to 3094.
     expect(row).toEqual({ receivableMoney: 94, promisedBy: null });
     const booked = await bookedFor(recorded.id);
     expect(booked).toHaveLength(1);
     expect(booked[0]).toMatchObject({ amountMoney: 3000 });
   });
 
-  it("keeps what he paid when the litres are put right, and books nothing for milk taken all on credit", async () => {
+  it("keeps what he paid when the liters are put right, and books nothing for milk taken all on credit", async () => {
     const manager = await as("manager", "2048-03-16T03:00:00.000Z");
     const recorded = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2048-03-16T02:00:00.000Z"),
-      litres: 40,
+      liters: 40,
       buyer: milkBuyer,
-      pricePerLitreMoney: 70,
+      pricePerLiterMoney: 70,
       paidNowMoney: 2000,
     });
     await manager.client.milk.correctDispatch({
       id: recorded.id,
       reason: "মাপার সময় ভুল পড়া হয়েছিল",
-      changes: { litres: { from: 40, to: 42 } },
+      changes: { liters: { from: 40, to: 42 } },
     });
     const row = await scratchDb().query.dispatch.findFirst({
       where: { id: recorded.id },
@@ -436,9 +436,9 @@ describe("milk on credit", () => {
 
     const onCredit = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2048-03-16T02:30:00.000Z"),
-      litres: 20,
+      liters: 20,
       buyer: milkBuyer,
-      pricePerLitreMoney: 70,
+      pricePerLiterMoney: 70,
       paidNowMoney: 0,
     });
     expect(await bookedFor(onCredit.id)).toHaveLength(0);
@@ -449,9 +449,9 @@ describe("milk on credit", () => {
     await expect(
       manager.client.milk.dispatch({
         dispatchedAt: new Date("2048-03-17T02:00:00.000Z"),
-        litres: 10,
+        liters: 10,
         buyer: milkBuyer,
-        pricePerLitreMoney: 70,
+        pricePerLiterMoney: 70,
         paidNowMoney: 701,
       })
     ).rejects.toMatchObject({ data: { refusal: "paid_more_than_price" } });

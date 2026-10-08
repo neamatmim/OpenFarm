@@ -42,7 +42,7 @@ import type { Venture } from "@/lib/ventures";
 import { venturesNeedingHer } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
-const TABS = ["running", "settled", "cancelled"] as const;
+const TABS = ["running", "settled", "canceled"] as const;
 type Tab = (typeof TABS)[number];
 
 /**
@@ -239,8 +239,8 @@ const VenturesPage = () => {
                 ),
               },
               {
-                value: "cancelled",
-                label: t("ventures.state.cancelled"),
+                value: "canceled",
+                label: t("ventures.state.canceled"),
                 icon: XCircle,
                 content: (
                   <VentureList
@@ -250,7 +250,7 @@ const VenturesPage = () => {
                       title: "ventures.noneCalledOff",
                       hint: "ventures.noneCalledOffHint",
                     }}
-                    ventures={on("cancelled")}
+                    ventures={on("canceled")}
                   />
                 ),
               },

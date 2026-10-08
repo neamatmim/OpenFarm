@@ -41,7 +41,7 @@ export const useNextEid = (): EidWindow | null => {
   return nextEidWindow(farmDayOf(new Date()));
 };
 
-/** How sure the farm is of the day, as a word with its colour. */
+/** How sure the farm is of the day, as a word with its color. */
 export const EidBasisBadge = ({ basis }: { basis: EidBasis }) => {
   const { t } = useLanguage();
   return (

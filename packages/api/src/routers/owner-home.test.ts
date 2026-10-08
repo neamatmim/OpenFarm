@@ -8,7 +8,7 @@ import { appRouter } from "./index";
 
 const suffix = `${Date.now()}`;
 
-/** The milking SOP, cut down: litres per cow and a tank reading. */
+/** The milking SOP, cut down: liters per cow and a tank reading. */
 const milkingSop = (): SopContent => ({
   name: { bn: `দোহন ${suffix}`, en: "Milking" },
   purpose: { bn: "প্রতিটি গাভীর দুধ" },
@@ -73,7 +73,7 @@ beforeAll(async () => {
 });
 
 describe("the Owner's home", () => {
-  it("opens on what needs the Owner, and the litres the day actually came to", async () => {
+  it("opens on what needs the Owner, and the liters the day actually came to", async () => {
     const clock = new FakeClock("2028-02-01T03:30:00.000Z");
     const owner = await createTestClient(appRouter, { as: "owner", clock });
     await owner.client.work.ensureDue();
@@ -94,11 +94,11 @@ describe("the Owner's home", () => {
 
     const home = await owner.client.overview.get();
 
-    // The litres are the farm's own record, not a figure anybody typed on a dashboard.
+    // The liters are the farm's own record, not a figure anybody typed on a dashboard.
     expect(home.tiles.bulkToday).toBeGreaterThanOrEqual(12);
     // A day of the farm's milk, not a row per Pen: what somebody means by "today's milk".
     expect(home.tiles.days.length).toBeGreaterThanOrEqual(1);
-    expect(home.tiles.days.at(-1)?.litres).toBeGreaterThanOrEqual(12);
+    expect(home.tiles.days.at(-1)?.liters).toBeGreaterThanOrEqual(12);
     // The list that needs them is the longest-waiting work, bounded — so what is asserted
     // is its shape, not that this test's own hour-late milking beat a farm's worth of it.
     expect(home.needsYou.overdue.length).toBeLessThanOrEqual(50);
@@ -155,7 +155,7 @@ describe("the Owner's home", () => {
     expect(home.tiles.bulkToday).toBe(0);
   });
 
-  it("adds the litres up the way the farm would, and no other way", async () => {
+  it("adds the liters up the way the farm would, and no other way", async () => {
     const clock = new FakeClock("2028-02-04T03:30:00.000Z");
     const owner = await createTestClient(appRouter, { as: "owner", clock });
     await owner.client.work.ensureDue();
@@ -236,7 +236,7 @@ describe("the Owner's home", () => {
   });
 
   it("reads today against the days before it, not against an average today's half morning has pulled down", async () => {
-    const milk = async (instant: string, litres: number) => {
+    const milk = async (instant: string, liters: number) => {
       const owner = await createTestClient(appRouter, {
         as: "owner",
         clock: new FakeClock(instant),
@@ -254,17 +254,17 @@ describe("the Owner's home", () => {
         instanceId: morning.id,
         stepId: "milk",
         animalTag: world.cow.tagNumber,
-        evidence: [litres],
+        evidence: [liters],
       });
       return owner;
     };
-    // Twelve litres yesterday; this morning, by half past nine, two so far.
+    // Twelve liters yesterday; this morning, by half past nine, two so far.
     await milk("2097-05-10T03:30:00.000Z", 12);
     const owner = await milk("2097-05-11T03:30:00.000Z", 2);
 
     const home = await owner.client.overview.get();
     // Today is a bar of its own, the darker one…
-    expect(home.tiles.days.at(-1)).toEqual({ day: "2097-05-11", litres: 2 });
+    expect(home.tiles.days.at(-1)).toEqual({ day: "2097-05-11", liters: 2 });
     // …and what it is read against is the days that are over: 12, not the 7 a mean with this morning in it would say.
     expect(home.tiles.averageBulk).toBe(12);
   });
@@ -292,7 +292,7 @@ describe("the Owner's home", () => {
     const todaysBar = home.tiles.days.at(-1);
     // One bar for the day, carrying every Pen's Sessions in it — and today's figure is the
     // same number, because they are the same question asked twice.
-    expect(todaysBar?.litres).toBe(home.tiles.bulkToday);
+    expect(todaysBar?.liters).toBe(home.tiles.bulkToday);
     expect(home.tiles.bulkToday).toBeGreaterThanOrEqual(7);
     // Named by the farm's own day: half past nine in the morning in Dhaka is the 6th, whatever UTC says.
     expect(todaysBar?.day).toBe("2028-02-06");

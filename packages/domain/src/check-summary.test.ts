@@ -61,10 +61,10 @@ describe("what a piece of work came to, for its check", () => {
     expect(
       checkSummaryOf({
         ...round,
-        milk: { bulkLitres: 80, differenceLitres: -6, flagged: true },
+        milk: { bulkLiters: 80, differenceLiters: -6, flagged: true },
       })
     ).toMatchObject({
-      milk: { bulkLitres: 80, differenceLitres: -6 },
+      milk: { bulkLiters: 80, differenceLiters: -6 },
       flagged: true,
       clean: false,
     });

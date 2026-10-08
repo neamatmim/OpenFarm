@@ -48,7 +48,7 @@ export const randomToken = (): string => randomHex(32);
 const CODE_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const CODE_LENGTH = 10;
 
-export const randomEnrolmentCode = (): string => {
+export const randomEnrollmentCode = (): string => {
   const values = new Uint8Array(CODE_LENGTH);
   let code = "";
   // Rejection sampling: 256 is not a multiple of 32, so bytes ≥ 256 - (256 % 32) would
@@ -70,7 +70,7 @@ export const randomEnrolmentCode = (): string => {
  * Resolves the phone a request came from, and who proved a PIN on it.
  *
  * Never throws: a phone whose token is unknown or revoked must still be able to reach
- * `devices.claim` to enrol again, and a locked phone must still be able to read the roster.
+ * `devices.claim` to enroll again, and a locked phone must still be able to read the roster.
  * The status travels on the context so procedures and the phone's own screen can react.
  */
 export const resolveDeviceSession = async (
@@ -252,7 +252,7 @@ export const requireDevice = <T>(
   if (!device) {
     if (status === "revoked" || status === "unknown") {
       throw new ORPCError("FORBIDDEN", {
-        message: "This phone is no longer one of the farm's: enrol it again",
+        message: "This phone is no longer one of the farm's: enroll it again",
         data: { refusal: "phone_revoked" },
       });
     }

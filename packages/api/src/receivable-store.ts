@@ -14,7 +14,7 @@ import {
   isReceivableOverdue,
   isReceivableRefusal,
   overdueFrom,
-  roundLitres,
+  roundLiters,
   roundMoney,
   soldOnCreditWhileOverdue,
   startOfFarmDay,
@@ -57,9 +57,9 @@ export const CATEGORY_OF_RECEIVABLE: Record<ReceivableKind, CategoryKey> = {
 export interface OwedItem {
   id: string;
   leftOn: string;
-  /** A Sale's animal by her tag; a Dispatch by its litres. */
+  /** A Sale's animal by her tag; a Dispatch by its liters. */
   tagNumber: string | null;
-  litres: number | null;
+  liters: number | null;
   receivableMoney: number;
   paidMoney: number;
   owingMoney: number;
@@ -116,7 +116,7 @@ export interface BuyerReceivable {
 const owedItem = (
   one: { id: string; receivableMoney: number; promisedBy: string | null },
   leftAt: Date,
-  label: Pick<OwedItem, "tagNumber" | "litres">,
+  label: Pick<OwedItem, "tagNumber" | "liters">,
   /** What the Owner wrote off of it, before any payment puts some back. */
   writtenOffMoney: number,
   writeOffs: WriteOffWritten[]
@@ -189,7 +189,7 @@ const readBook = async (
         dispatchedAt: true,
         receivableMoney: true,
         promisedBy: true,
-        litres: true,
+        liters: true,
         buyerId: true,
       },
       with: { buyer: { columns: { name: true, phone: true } } },
@@ -284,7 +284,7 @@ const itemsByBuyer = (
       owedItem(
         one,
         one.soldAt,
-        { tagNumber: one.animal.tagNumber, litres: null },
+        { tagNumber: one.animal.tagNumber, liters: null },
         writtenOff.get(one.id) ?? 0,
         written.get(one.id) ?? []
       )
@@ -298,7 +298,7 @@ const itemsByBuyer = (
       owedItem(
         one,
         one.dispatchedAt,
-        { tagNumber: null, litres: roundLitres(Number(one.litres)) },
+        { tagNumber: null, liters: roundLiters(Number(one.liters)) },
         writtenOff.get(one.id) ?? 0,
         written.get(one.id) ?? []
       )
@@ -726,7 +726,7 @@ export const raiseOverdueReceivable = async (
 /**
  * What stays written off of each Sale and Dispatch, as the buyers' payments have left it: what the animal or the milk
  * did not fetch after all. Read by every sum of what she fetched, from one place, so Margin and Return on Cost — and
- * what a litre fetched — cannot disagree about a written-off buyer.
+ * what a liter fetched — cannot disagree about a written-off buyer.
  */
 export const writtenOffByItem = async (
   db: Db,
@@ -753,21 +753,21 @@ export const writtenOffByItem = async (
 };
 
 /**
- * What a litre of a Dispatch fetched after all: what the milk came to, less whatever of its Receivable stays written off,
- * over its litres. The price itself where nothing was written off — nearly always.
+ * What a liter of a Dispatch fetched after all: what the milk came to, less whatever of its Receivable stays written off,
+ * over its liters. The price itself where nothing was written off — nearly always.
  */
-export const fetchedPerLitre = (
+export const fetchedPerLiter = (
   row: {
     id: string;
-    litres: string | number;
-    pricePerLitreMoney: string | number;
+    liters: string | number;
+    pricePerLiterMoney: string | number;
   },
   writtenOff: ReadonlyMap<string, number>
 ): number => {
-  const litres = Number(row.litres);
-  const price = Number(row.pricePerLitreMoney);
+  const liters = Number(row.liters);
+  const price = Number(row.pricePerLiterMoney);
   const lost = writtenOff.get(row.id) ?? 0;
-  return litres > 0 && lost > 0 ? (litres * price - lost) / litres : price;
+  return liters > 0 && lost > 0 ? (liters * price - lost) / liters : price;
 };
 
 /** A Write-off as the trail records it. */

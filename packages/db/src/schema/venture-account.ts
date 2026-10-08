@@ -51,7 +51,7 @@ export const VENTURE_MOVEMENT_KINDS = [
   "farm_loss_in",
   "reimbursement",
   "advance",
-  // A bull bought with no outing — at the farm gate, from a neighbour — paid straight from the account by bank, and
+  // A bull bought with no outing — at the farm gate, from a neighbor — paid straight from the account by bank, and
   // written from her Intake as a Sale's money is from the Sale.
   "intake_out",
   // A Venture's animal written off as lost, made good by the Farm at what she had cost the Venture: the Farm's own
@@ -107,7 +107,7 @@ export const ventureMovement = pgTable(
     amountMoney: numericMoney("amount_money").notNull(),
     /** The day the bank moved it, on the farm's own clock. */
     movedOn: text("moved_on").notNull(),
-    /** Bank channels only: the transfer, the cheque or the deposit slip, and what it is numbered. */
+    /** Bank channels only: the transfer, the check or the deposit slip, and what it is numbered. */
     reference: text("reference").notNull(),
     /** The movement this one sends back: a refund is tied to the capital it returns, and the cash off a
      *  Buying Float to the Float that took it to the livestock market. */
@@ -254,7 +254,7 @@ export const ventureSettlement = pgTable(
 /**
  * What one Investor is owed by an approved Settlement, and what has happened about it.
  *
- * Frozen with the Settlement, then the payout against it and his acknowledgement of it — so that "I never
+ * Frozen with the Settlement, then the payout against it and his acknowledgment of it — so that "I never
  * got it" has an answer that is not somebody's memory.
  */
 export const ventureSettlementShare = pgTable(
@@ -364,12 +364,12 @@ export const settlementAdjustment = pgTable(
   ]
 );
 
-/** How an Investor says they sent money towards an Agreement: by bank — a transfer, a cheque or a deposit slip — or
+/** How an Investor says they sent money towards an Agreement: by bank — a transfer, a check or a deposit slip — or
  *  by Mobile Money sent into the Venture Account, which lands there as the bank's own credit (ADR 0018). Mirrored in the
  *  domain, for the screens; a test holds them together. */
 export const PAY_IN_WAYS = [
   "bank_transfer",
-  "cheque",
+  "check",
   "deposit_slip",
   "mobile_money",
 ] as const;
@@ -424,7 +424,7 @@ export const payInNote = pgTable(
     /** The day they say it went, on the farm's own clock. */
     sentOn: text("sent_on").notNull(),
     way: text("way", { enum: PAY_IN_WAYS }).notNull(),
-    /** The reference the bank or the provider gave: the transfer's, the cheque's number, the slip's, the TrxID. */
+    /** The reference the bank or the provider gave: the transfer's, the check's number, the slip's, the TrxID. */
     reference: text("reference").notNull(),
     state: text("state", { enum: PAY_IN_NOTE_STATES })
       .notNull()

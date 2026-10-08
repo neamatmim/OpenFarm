@@ -28,7 +28,7 @@ import { worthOf } from "./milk-types";
 
 const NOTHING_TYPED = {
   dispatchedAt: "",
-  litres: "",
+  liters: "",
   buyerName: "",
   buyerAddress: "",
   buyerPhone: "",
@@ -49,7 +49,7 @@ const written = (value: string): string | undefined =>
 const typed = (value: string): number | undefined =>
   value.trim() === "" ? undefined : Number(value);
 
-/** One box of the Dispatch, labelled, holding what was typed into it. */
+/** One box of the Dispatch, labeled, holding what was typed into it. */
 const DispatchInput = ({
   name,
   label,
@@ -81,17 +81,17 @@ const FIGURE = { inputMode: "decimal", step: "0.01", type: "number" } as const;
 /** What the milk comes to at the price typed, worked out as it is typed, as the collector's slip would say it. */
 const Worth = ({ form }: { form: Typed }) => {
   const { t } = useLanguage();
-  const litres = Number(form.litres);
+  const liters = Number(form.liters);
   const price = Number(form.price);
-  if (!(litres > 0 && price > 0)) {
+  if (!(liters > 0 && price > 0)) {
     return null;
   }
   return (
     <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
       {t("dispatch.worth", {
-        litres,
+        liters,
         price,
-        amount: worthOf(litres, price),
+        amount: worthOf(liters, price),
       })}
     </p>
   );
@@ -128,9 +128,9 @@ export const DispatchSheet = ({
   );
   const handleType = (name: keyof Typed, value: string) =>
     setForm((current) => ({ ...current, [name]: value }));
-  const worthMoney = worthOf(Number(form.litres), Number(form.price));
+  const worthMoney = worthOf(Number(form.liters), Number(form.price));
   const complete =
-    Number(form.litres) > 0 &&
+    Number(form.liters) > 0 &&
     Number(form.price) > 0 &&
     form.buyerName.trim() !== "" &&
     receivableComplete(receivable, worthMoney, false);
@@ -147,14 +147,14 @@ export const DispatchSheet = ({
           dispatchedAt: form.dispatchedAt
             ? new Date(form.dispatchedAt)
             : new Date(),
-          litres: Number(form.litres),
+          liters: Number(form.liters),
           buyer: {
             name: form.buyerName,
             address: written(form.buyerAddress),
             phone: written(form.buyerPhone),
           },
           deliveryNote: written(form.deliveryNote),
-          pricePerLitreMoney: Number(form.price),
+          pricePerLiterMoney: Number(form.price),
           fatPercent: typed(form.fat),
           snfPercent: typed(form.snf),
           note: written(form.note),
@@ -173,9 +173,9 @@ export const DispatchSheet = ({
         <DispatchInput
           {...box}
           {...FIGURE}
-          label={t("dispatch.litresField")}
+          label={t("dispatch.litersField")}
           min={0}
-          name="litres"
+          name="liters"
           required
         />
         <DispatchInput

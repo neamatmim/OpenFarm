@@ -48,7 +48,7 @@ export interface StockLine {
   feedItemId: string;
   nameBn: string;
   nameEn: string | null;
-  /** The Feed Item's own unit — kg, bales, litres — which every quantity here is in. */
+  /** The Feed Item's own unit — kg, bales, liters — which every quantity here is in. */
   unit: string;
   retiredAt: Date | null;
   /** Below this much, the Manager is told. Null for a Feed Item nobody watches. */

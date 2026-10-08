@@ -39,8 +39,8 @@ const standingOf = (phone: ShedPhone): PhoneStanding => {
   if (phone.claimedAt) {
     return "claimed";
   }
-  const expiresAt = phone.enrolmentExpiresAt
-    ? new Date(phone.enrolmentExpiresAt).getTime()
+  const expiresAt = phone.enrollmentExpiresAt
+    ? new Date(phone.enrollmentExpiresAt).getTime()
     : null;
   return expiresAt !== null && expiresAt < Date.now() ? "expired" : "unclaimed";
 };
@@ -63,7 +63,7 @@ const STANDING_ORDER: Record<PhoneStanding, number> = {
   revoked: 3,
 };
 
-/** A Shed Phone's standing, as a word with its colour and icon. */
+/** A Shed Phone's standing, as a word with its color and icon. */
 const PhoneStatus = ({ phone }: { phone: ShedPhone }) => {
   const t = useT();
   const { word, tone, icon } = STANDING[standingOf(phone)];

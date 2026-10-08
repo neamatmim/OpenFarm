@@ -67,9 +67,9 @@ const WAY_WORDS = {
     way: "portal.payIn.way.bank_transfer",
     reference: "portal.payIn.reference.bank_transfer",
   },
-  cheque: {
-    way: "portal.payIn.way.cheque",
-    reference: "portal.payIn.reference.cheque",
+  check: {
+    way: "portal.payIn.way.check",
+    reference: "portal.payIn.reference.check",
   },
   deposit_slip: {
     way: "portal.payIn.way.deposit_slip",

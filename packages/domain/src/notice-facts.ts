@@ -22,7 +22,7 @@ export interface NoticeFacts {
   /**
    * What the farm could not put right on its own, and whatever the thing being put right carried with it — a
    * corrected Step names its work and its Step, a late Entry what a phone sent, a doubted weighing what the scale
-   * said. Five different things want a Manager's judgement, and what each of them has to show is its own.
+   * said. Five different things want a Manager's judgment, and what each of them has to show is its own.
    */
   needs_review: { reason: ReviewReason } & Record<string, unknown>;
   /** The English name beside it since 2026-09-23; a Notice raised before then has only the Bangla. */
@@ -36,8 +36,8 @@ export interface NoticeFacts {
   notifiable_diagnosis: { tag: string; disease: string };
   /** One Receivable gone past its day: who owes it, what is still owing on it, and the first day it was late. */
   milk_unaccounted: {
-    /** Litres gone in the week that nobody can account for. */
-    litres: number;
+    /** Liters gone in the week that nobody can account for. */
+    liters: number;
     /** As a whole percent of what went into the tank. */
     percent: number;
     /** The farm day ("YYYY-MM-DD") the week began. */
@@ -314,7 +314,7 @@ export interface NoticeFacts {
     amountMoney: number;
     /** The farm day ("YYYY-MM-DD") they say it went. */
     sentOn: string;
-    way: "bank_transfer" | "cheque" | "deposit_slip" | "mobile_money";
+    way: "bank_transfer" | "check" | "deposit_slip" | "mobile_money";
   };
 }
 

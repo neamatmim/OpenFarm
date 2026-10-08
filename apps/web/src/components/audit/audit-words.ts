@@ -333,8 +333,8 @@ const NAMED_FIELDS = new Set<string>([
   "feedItemId",
   "dispatchedAt",
   "deliveryNote",
-  "litres",
-  "pricePerLitreMoney",
+  "liters",
+  "pricePerLiterMoney",
   "fatPercent",
   "snfPercent",
   "buyerId",
@@ -400,7 +400,26 @@ const NAMED_FIELDS = new Set<string>([
   "report",
 ]);
 
+/**
+ * A field as the trail wrote it before the code moved to American spelling (2026-10-08), and the field it is today. The
+ * trail is kept as written, so an event recorded before says `litres`; it is still named in the reader's words.
+ */
+const RENAMED_FIELDS: Readonly<Record<string, string>> = {
+  litres: "liters",
+  pricePerLitreMoney: "pricePerLiterMoney",
+  bulkLitres: "bulkLiters",
+  sumBulkLitres: "sumBulkLiters",
+  differenceLitres: "differenceLiters",
+  cancelledReason: "canceledReason",
+  enrolmentCode: "enrollmentCode",
+  enrolmentExpiresAt: "enrollmentExpiresAt",
+  learntAt: "learnedAt",
+  tradeLicence: "tradeLicense",
+};
+
 /** The reader's word for a field a change touched, where the trail has one; a field it has no word for is shown as it
  *  is stored. */
-export const fieldLabelKey = (field: string): MessageKey | null =>
-  NAMED_FIELDS.has(field) ? (`auditField.${field}` as MessageKey) : null;
+export const fieldLabelKey = (field: string): MessageKey | null => {
+  const today = RENAMED_FIELDS[field] ?? field;
+  return NAMED_FIELDS.has(today) ? (`auditField.${today}` as MessageKey) : null;
+};

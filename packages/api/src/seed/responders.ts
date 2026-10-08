@@ -394,8 +394,8 @@ RESPONDERS.cashCount = async (_step, _beast, { farm }) => {
   return { evidence: [mine?.amount ?? 0, ""] };
 };
 
-/** Half a litre at a time, as a bottle is filled. */
-const toHalfLitre = (litres: number) => Math.round(litres * 2) / 2;
+/** Half a liter at a time, as a bottle is filled. */
+const toHalfLiter = (liters: number) => Math.round(liters * 2) / 2;
 
 /** What each calf weighed at birth, so her colostrum can be a tenth of it. */
 const birthWeights = new Map<string, number>();
@@ -413,7 +413,7 @@ RESPONDERS.newbornCalfCare = (step, beast, { farm, day }) => {
       return { skipReason: "সুস্থ — শ্বাস নিচ্ছে, দাঁড়িয়েছে, দুধ টানছে" };
     }
     case "weigh": {
-      const kg = toHalfLitre(farm.random.between(22, 34));
+      const kg = toHalfLiter(farm.random.between(22, 34));
       birthWeights.set(beast.tagNumber, kg);
       return { evidence: [kg] };
     }
@@ -425,7 +425,7 @@ RESPONDERS.newbornCalfCare = (step, beast, { farm, day }) => {
         };
       }
       return {
-        evidence: [toHalfLitre((birthWeights.get(beast.tagNumber) ?? 28) / 10)],
+        evidence: [toHalfLiter((birthWeights.get(beast.tagNumber) ?? 28) / 10)],
       };
     }
     default: {
@@ -442,7 +442,7 @@ RESPONDERS.newbornSecondFeed = (step, beast, { farm, day }) => {
     return { skipReason: "ডোবানো হয়েছে — নাভি ঠিক আছে" };
   }
   return {
-    evidence: [toHalfLitre((birthWeights.get(beast.tagNumber) ?? 28) / 20)],
+    evidence: [toHalfLiter((birthWeights.get(beast.tagNumber) ?? 28) / 20)],
   };
 };
 

@@ -361,7 +361,7 @@ const applyEntries = async (
       reason = message(error);
     }
     if (outcome === "applied" && skewed) {
-      // The litres are still the litres; the phone's clock is the thing to look at.
+      // The liters are still the liters; the phone's clock is the thing to look at.
       outcome = "flagged";
     }
     // oxlint-disable-next-line no-await-in-loop

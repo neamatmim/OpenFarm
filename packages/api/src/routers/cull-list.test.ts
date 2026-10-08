@@ -37,7 +37,7 @@ const feedingSop = (): SopContent => ({
   ],
 });
 
-/** Each cow's litres, then what went into the tank. */
+/** Each cow's liters, then what went into the tank. */
 const milkingSop = (): SopContent => ({
   name: { bn: `দোহন ${suffix}` },
   purpose: { bn: "দুধ সংগ্রহ" },
@@ -183,9 +183,9 @@ const feed = async (instant: string, givenKg: number) => {
   });
 };
 
-const milk = async (instant: string, litres: [string, number][]) => {
+const milk = async (instant: string, liters: [string, number][]) => {
   const { manager, id } = await workIn(milkPen, sops.milking, instant);
-  for (const [tagNumber, given] of litres) {
+  for (const [tagNumber, given] of liters) {
     // oxlint-disable-next-line no-await-in-loop -- one cow at a time, as she is milked
     await manager.client.work.completeStep({
       instanceId: id,
@@ -197,7 +197,7 @@ const milk = async (instant: string, litres: [string, number][]) => {
   await manager.client.work.completeStep({
     instanceId: id,
     stepId: "bulk",
-    evidence: [litres.reduce((sum, [, given]) => sum + given, 0)],
+    evidence: [liters.reduce((sum, [, given]) => sum + given, 0)],
   });
   await manager.client.work.complete({ id });
 };
@@ -326,33 +326,33 @@ beforeAll(async () => {
   await feed("2041-02-10T02:00:00.000Z", 280);
   await feed("2041-02-20T02:00:00.000Z", 280);
 
-  // Two milkings in the four weeks: 40 litres each from the one that pays and the one long empty, 20 from the two
+  // Two milkings in the four weeks: 40 liters each from the one that pays and the one long empty, 20 from the two
   // that do not.
-  const litres: [string, number][] = [
+  const liters: [string, number][] = [
     [cow.short, 20],
     [cow.paying, 40],
     [cow.emptyLong, 40],
     [cow.inCalfShort, 20],
   ];
-  await milk("2041-02-10T00:30:00.000Z", litres);
-  await milk("2041-02-20T00:30:00.000Z", litres);
+  await milk("2041-02-10T00:30:00.000Z", liters);
+  await milk("2041-02-20T00:30:00.000Z", liters);
 
   // Milk sold at ৳100 on the 20th of December, more than two months before the 1st of March, and at ৳55 on the 21st of
-  // February: ৳55 is what a litre fetched.
+  // February: ৳55 is what a liter fetched.
   const buyer = { name: `দুধের ক্রেতা ${suffix}` };
   const december = await as("manager", "2040-12-20T03:00:00.000Z");
   await december.client.milk.dispatch({
     dispatchedAt: new Date("2040-12-20T02:30:00.000Z"),
-    litres: 100,
+    liters: 100,
     buyer,
-    pricePerLitreMoney: 100,
+    pricePerLiterMoney: 100,
   });
   const february = await as("manager", "2041-02-21T03:00:00.000Z");
   await february.client.milk.dispatch({
     dispatchedAt: new Date("2041-02-21T02:30:00.000Z"),
-    litres: 240,
+    liters: 240,
     buyer,
-    pricePerLitreMoney: 55,
+    pricePerLiterMoney: 55,
   });
 });
 
@@ -374,18 +374,18 @@ const theList = async () => {
 };
 
 describe("why the farm names a dairy cow to the Owner", () => {
-  it("weighs her milk against her keep over her last four weeks, at what a litre fetched lately", async () => {
+  it("weighs her milk against her keep over her last four weeks, at what a liter fetched lately", async () => {
     const { list, of } = await theList();
     // The farm's own days, as a new farm starts with them.
     expect(list.openDays).toBe(150);
     expect(list.milkAfterDays).toBe(35);
     expect(list.milkPriceDays).toBe(60);
     expect(list.milkPrice).toMatchObject({
-      moneyPerLitre: 55,
-      litres: 240,
+      moneyPerLiter: 55,
+      liters: 240,
       days: 60,
     });
-    // 40 litres in the four weeks at ৳55 is ৳2,200, against ৳4,200 of keep: ৳2,000 short, and a litre costs her ৳105
+    // 40 liters in the four weeks at ৳55 is ৳2,200, against ৳4,200 of keep: ৳2,000 short, and a liter costs her ৳105
     // to make. 121 days since she calved, and nobody has found her carrying.
     expect(of(cow.short)).toMatchObject({
       state: "milking",
@@ -395,18 +395,18 @@ describe("why the farm names a dairy cow to the Owner", () => {
       milk: {
         known: true,
         days: 28,
-        litres: 40,
-        litresPerDay: 1.43,
-        moneyPerLitre: 55,
+        liters: 40,
+        litersPerDay: 1.43,
+        moneyPerLiter: 55,
         worthMoney: 2200,
         keepMoney: 4200,
         overKeepMoney: -2000,
-        costPerLitreMoney: 105,
+        costPerLiterMoney: 105,
         whole: true,
       },
       reasons: ["milk_short"],
     });
-    // 80 litres fetch ৳4,400: ৳200 over her keep, and nothing to say.
+    // 80 liters fetch ৳4,400: ৳200 over her keep, and nothing to say.
     expect(of(cow.paying)).toMatchObject({
       milk: { worthMoney: 4400, overKeepMoney: 200 },
       reasons: [],
@@ -489,7 +489,7 @@ describe("why the farm names a dairy cow to the Owner", () => {
     await owner.client.farm.setParameters({ cullMilkAfterDays: 35 });
   });
 
-  it("prices a litre over as many days of Dispatches as the Owner says", async () => {
+  it("prices a liter over as many days of Dispatches as the Owner says", async () => {
     const owner = await as("owner", "2041-03-01T04:00:00.000Z");
     const manager = await as("manager", "2041-03-01T04:00:00.000Z");
     await expect(
@@ -499,23 +499,23 @@ describe("why the farm names a dairy cow to the Owner", () => {
       owner.client.farm.setParameters({ cullMilkPriceDays: 6 })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
-    // Ninety days back from the 1st of March takes in December's 100 litres at ৳100 beside February's 240 at ৳55:
-    // ৳23,200 over 340 litres is ৳68.24. The first cow's 40 litres then fetch ৳2,729.60, ৳1,470.40 short of ৳4,200.
+    // Ninety days back from the 1st of March takes in December's 100 liters at ৳100 beside February's 240 at ৳55:
+    // ৳23,200 over 340 liters is ৳68.24. The first cow's 40 liters then fetch ৳2,729.60, ৳1,470.40 short of ৳4,200.
     await owner.client.farm.setParameters({ cullMilkPriceDays: 90 });
     const wide = await theList();
     expect(wide.list.milkPriceDays).toBe(90);
     expect(wide.list.milkPrice).toMatchObject({
-      moneyPerLitre: 68.24,
-      litres: 340,
+      moneyPerLiter: 68.24,
+      liters: 340,
       days: 90,
     });
     expect(wide.of(cow.short)?.milk).toMatchObject({
-      moneyPerLitre: 68.24,
+      moneyPerLiter: 68.24,
       worthMoney: 2729.6,
       overKeepMoney: -1470.4,
     });
 
-    // A week back from the 1st of March holds no Dispatch at all: no litre has a price, and no cow's milk is weighed.
+    // A week back from the 1st of March holds no Dispatch at all: no liter has a price, and no cow's milk is weighed.
     await owner.client.farm.setParameters({ cullMilkPriceDays: 7 });
     const narrow = await theList();
     expect(narrow.list.milkPrice).toBeNull();
@@ -535,20 +535,20 @@ describe("why the farm names a dairy cow to the Owner", () => {
     });
     try {
       // A fortnight back from the 1st of March is the 15th of February: the 20th's feeding and milking are inside it,
-      // the 10th's are not. ৳8,400 split four ways is ৳2,100 of keep; 20 litres at ৳55 fetch ৳1,100, ৳1,000 short, and
-      // a litre costs her ৳105 to make.
+      // the 10th's are not. ৳8,400 split four ways is ৳2,100 of keep; 20 liters at ৳55 fetch ৳1,100, ৳1,000 short, and
+      // a liter costs her ৳105 to make.
       const { list, of } = await theList();
       expect(list.keepReadDays).toBe(14);
       expect(of(cow.short)?.milk).toEqual({
         known: true,
         days: 14,
-        litres: 20,
-        litresPerDay: 1.43,
-        moneyPerLitre: 55,
+        liters: 20,
+        litersPerDay: 1.43,
+        moneyPerLiter: 55,
         worthMoney: 1100,
         keepMoney: 2100,
         overKeepMoney: -1000,
-        costPerLitreMoney: 105,
+        costPerLiterMoney: 105,
         whole: true,
       });
     } finally {

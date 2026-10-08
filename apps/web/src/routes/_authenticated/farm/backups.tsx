@@ -109,7 +109,7 @@ const useSize = (bytes: string | null): string | null => {
 const KILOBYTE = 1024;
 const MEGABYTE = KILOBYTE * KILOBYTE;
 
-/** Whether a copy worked, as a word with its colour, how big it came out, and what went wrong when it did not. */
+/** Whether a copy worked, as a word with its color, how big it came out, and what went wrong when it did not. */
 const RunResult = ({ run }: { run: BackupRun }) => {
   const t = useT();
   const state = stateOf(run);

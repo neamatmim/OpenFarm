@@ -132,11 +132,11 @@ export const underMeatWithdrawal = (
 export const withdrawalEndsAt = (givenAt: Date, days: number): Date =>
   new Date(givenAt.getTime() + days * DAY_MS);
 
-/** One dose's hold of one kind: until when, and when the farm learnt it was given. */
+/** One dose's hold of one kind: until when, and when the farm learned it was given. */
 export interface DoseHold {
   until: Date;
   /** Null where the farm cannot say — read as known all along. */
-  learntAt: Date | null;
+  learnedAt: Date | null;
 }
 
 /** The latest end of some holds, or nothing for none. */
@@ -153,8 +153,8 @@ const latestOf = (holds: readonly DoseHold[]): Date | null => {
 /**
  * One of her holds as it stands: the latest end her doses give, except where the Vet has shortened it.
  *
- * A shortening covers the doses the Vet could have known of — those the farm had learnt of by then — and holds
- * them only to where the Vet said. A dose learnt of afterwards is new: it holds her on its own days, so in force is
+ * A shortening covers the doses the Vet could have known of — those the farm had learned of by then — and holds
+ * them only to where the Vet said. A dose learned of afterwards is new: it holds her on its own days, so in force is
  * the later of the two. Shortening once replaced every later reckoning only when the latest end moved, so a short
  * dose after a long one was ignored and she went on a lorry inside its withdrawal; and any change at all threw the
  * shortening away, so a dose corrected to a skip held her to the long one's end again.
@@ -170,9 +170,9 @@ export const holdInForce = (
   if (!shortening) {
     return { until: uncapped, shortened: false };
   }
-  // Learnt of in the same instant as the shortening is newer: the safe side, holding her on its own days.
+  // Learned of in the same instant as the shortening is newer: the safe side, holding her on its own days.
   const knewOf = (hold: DoseHold) =>
-    hold.learntAt === null || hold.learntAt < shortening.at;
+    hold.learnedAt === null || hold.learnedAt < shortening.at;
   const covered = latestOf(holds.filter(knewOf));
   const newer = latestOf(holds.filter((hold) => !knewOf(hold)));
   const capped = covered && covered > shortening.to ? shortening.to : covered;

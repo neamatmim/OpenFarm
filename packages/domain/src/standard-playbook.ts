@@ -19,10 +19,10 @@ const choice = (
   choices: options.map(([value, bn, en]) => ({ value, label: { bn, en } })),
 });
 
-const litres = (max: number): Evidence => ({
+const liters = (max: number): Evidence => ({
   type: "number",
   required: true,
-  unit: { bn: "লিটার", en: "litres" },
+  unit: { bn: "লিটার", en: "liters" },
   min: 0,
   max,
 });
@@ -53,7 +53,7 @@ const milkingSession = (time: string, bn: string, en: string): SopContent => ({
       id: "milk",
       text: { bn: "গাভীর দুধ দোহন করে মাপুন", en: "Milk the cow and measure it" },
       repeatPerAnimal: true,
-      evidence: [litres(40)],
+      evidence: [liters(40)],
       skipReasons: [
         // Means she is unwell: an Observation of her, and so the Manager's work to see to her.
         { bn: "অসুস্থ", en: "Unwell", means: "unwell" },
@@ -65,7 +65,7 @@ const milkingSession = (time: string, bn: string, en: string): SopContent => ({
       id: "tank",
       text: { bn: "বাল্ক ট্যাংকে মোট দুধ", en: "Total into the bulk tank" },
       repeatPerAnimal: false,
-      evidence: [litres(2000)],
+      evidence: [liters(2000)],
       skipReasons: [],
       effect: { kind: "bulk_total" },
     },
@@ -142,7 +142,7 @@ export const ROUND_WORDS = {
   mastitis: "mastitis",
   cough: "cough",
   bloat: "bloat",
-  diarrhoea: "diarrhoea",
+  diarrhea: "diarrhea",
   breathing: "breathing",
   sores: "mouth_foot_sores",
   // A calf's own: not sucking, and a navel gone bad — the two the first weeks turn on (docs/research/newborn-calf-care.md
@@ -157,7 +157,7 @@ export const ROUND_WORDS = {
   afterbirth: "afterbirth_retained",
 } as const;
 
-/** What the round may see that cannot wait for tomorrow: bloat and laboured breathing kill within hours, a cow down
+/** What the round may see that cannot wait for tomorrow: bloat and labored breathing kill within hours, a cow down
  *  after calving is milk fever until the Vet says otherwise, and a retained afterbirth needs the Vet (Merck). */
 export const URGENT_ROUND_WORDS: readonly string[] = [
   ROUND_WORDS.bloat,
@@ -183,7 +183,7 @@ const healthRound = (): SopContent => ({
   name: { bn: "স্বাস্থ্য ও গরম পর্যবেক্ষণ", en: "Health and heat round" },
   purpose: {
     bn: "প্রতিদিন প্রতিটি পশু দেখে যা চোখে পড়ে লিখুন — গরম, খোঁড়ানো, খাবারে অরুচি, পেট ফাঁপা, পাতলা পায়খানা, শ্বাসকষ্ট",
-    en: "Look at every animal every day and write down what you see — heat, lameness, off feed, bloat, scours, laboured breathing",
+    en: "Look at every animal every day and write down what you see — heat, lameness, off feed, bloat, scours, labored breathing",
   },
   // Every morning (DLS GLPP 2023: monitor every animal daily). Pneumonia comes in the first fortnight after a bull is
   // bought, and grain overload within a day of it (Merck) — a round walked when somebody remembers finds both late.
@@ -204,8 +204,8 @@ const healthRound = (): SopContent => ({
           [ROUND_WORDS.mastitis, "ওলান ফোলা/শক্ত", "Swollen or hard udder"],
           [ROUND_WORDS.cough, "কাশি", "Coughing"],
           [ROUND_WORDS.bloat, "পেট ফাঁপা", "Bloated"],
-          [ROUND_WORDS.diarrhoea, "পাতলা পায়খানা", "Scours"],
-          [ROUND_WORDS.breathing, "শ্বাসকষ্ট", "Laboured breathing"],
+          [ROUND_WORDS.diarrhea, "পাতলা পায়খানা", "Scours"],
+          [ROUND_WORDS.breathing, "শ্বাসকষ্ট", "Labored breathing"],
           [ROUND_WORDS.sores, "মুখে বা ক্ষুরে ঘা", "Sores on mouth or feet"],
           [ROUND_WORDS.notSuckling, "বাছুর দুধ টানছে না", "Calf not suckling"],
           [ROUND_WORDS.navel, "নাভি ফোলা বা পুঁজ", "Navel swollen or discharging"],
@@ -669,7 +669,7 @@ const dlsReport = (): SopContent => ({
  * What the round saw of an animal, answered by somebody: the Vet rung, or the Manager has looked again. The Vet visits
  * weekly, and an Observation that only waited on the Vet's list could wait a week and then drop off it. The Manager
  * answers, because a Diagnosis is the Vet's alone (BVC Act) and the Manager is who rings the Vet; the Vet's Diagnosis
- * answers it too, and calls the work off. Late in a day — or in an hour for bloat and laboured breathing, which kill
+ * answers it too, and calls the work off. Late in a day — or in an hour for bloat and labored breathing, which kill
  * within hours (Merck). Late work goes to the Manager and then to the Owner, as all work does.
  */
 const seeToUnwell = (urgent: boolean): SopContent => ({
@@ -978,7 +978,7 @@ const arrivalCheck = (): SopContent => ({
             [ROUND_WORDS.sores, "মুখে বা ক্ষুরে ঘা", "Sores on mouth or feet"],
             [ROUND_WORDS.lame, "খোঁড়াচ্ছে", "Lame"],
             [ROUND_WORDS.cough, "কাশি বা নাক দিয়ে পানি", "Cough or runny nose"],
-            [ROUND_WORDS.diarrhoea, "পাতলা পায়খানা", "Scours"],
+            [ROUND_WORDS.diarrhea, "পাতলা পায়খানা", "Scours"],
           ]),
         ],
         skipReasons: [
@@ -1074,7 +1074,7 @@ const hsVaccination = (productId: string | undefined): SopContent =>
     "HS vaccination",
     {
       bn: "ভেটের পরামর্শে আসার দুই সপ্তাহ পরে গলাফোলার টিকা দিন; প্রতি ছয় মাসে আবার",
-      en: "On the Vet's advice, vaccinate for haemorrhagic septicaemia a fortnight after he came; again every six months",
+      en: "On the Vet's advice, vaccinate for hemorrhagic septicemia a fortnight after he came; again every six months",
     },
     HS_BQ_AFTER_DAYS
   );
@@ -1350,7 +1350,7 @@ const newbornCalfCare = (): SopContent => ({
           choice(true, [
             ["weak", "দুর্বল — উঠে দাঁড়াতে পারছে না", "Weak — cannot stand"],
             [ROUND_WORDS.notSuckling, "দুধ টানছে না", "Not sucking"],
-            [ROUND_WORDS.breathing, "শ্বাসকষ্ট", "Laboured breathing"],
+            [ROUND_WORDS.breathing, "শ্বাসকষ্ট", "Labored breathing"],
             [
               "defect",
               "পায়ুপথ বন্ধ, বা হাত-পা-চোখে সমস্যা",
@@ -1397,7 +1397,7 @@ const newbornCalfCare = (): SopContent => ({
       "প্রথম শাল দুধ: ওজনের দশ ভাগের এক ভাগ — ৩০ কেজির বাছুরে ৩ লিটার; ২ ঘণ্টার মধ্যে, কখনো ৬ ঘণ্টার পরে নয়",
       "First colostrum: a tenth of her weight — 3 L for a 30 kg calf; within 2 hours, never after 6",
       {
-        evidence: [litres(6)],
+        evidence: [liters(6)],
         skipReasons: [SUCKLED_HER_DAM, NOT_NEWBORN],
       }
     ),
@@ -1481,7 +1481,7 @@ const newbornSecondFeed = (): SopContent => ({
       "দ্বিতীয় শাল দুধ: প্রথমবারের অর্ধেকের মতো",
       "Second colostrum: about half the first",
       {
-        evidence: [litres(4)],
+        evidence: [liters(4)],
         skipReasons: [SUCKLED_HER_DAM, NOT_NEWBORN],
       }
     ),
@@ -1676,7 +1676,7 @@ const calfHs = (productId: string | undefined): SopContent =>
     "Calf HS vaccination",
     {
       bn: "ছয় মাস বয়সে গলাফোলার টিকা; তারপর প্রতি বছর",
-      en: "Haemorrhagic septicaemia at six months; then every year",
+      en: "Hemorrhagic septicemia at six months; then every year",
     },
     CALF_HS_BQ_AFTER_DAYS
   );

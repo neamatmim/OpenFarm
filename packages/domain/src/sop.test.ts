@@ -226,18 +226,17 @@ describe("a Step done in one tap", () => {
 
 describe("a Step that asks several things", () => {
   it("says what each answer is, on every one the standard Playbook writes", () => {
-    const unlabelled = Object.entries(standardPlaybook()).flatMap(
-      ([key, sop]) =>
-        sop.steps.flatMap((step) => {
-          const asked = step.evidence.filter((item) => item.type !== "tick");
-          return asked.length > 1
-            ? asked
-                .filter((item) => item.label === undefined)
-                .map(() => `${key}.${step.id}`)
-            : [];
-        })
+    const unlabeled = Object.entries(standardPlaybook()).flatMap(([key, sop]) =>
+      sop.steps.flatMap((step) => {
+        const asked = step.evidence.filter((item) => item.type !== "tick");
+        return asked.length > 1
+          ? asked
+              .filter((item) => item.label === undefined)
+              .map(() => `${key}.${step.id}`)
+          : [];
+      })
     );
-    expect([...new Set(unlabelled)]).toEqual([]);
+    expect([...new Set(unlabeled)]).toEqual([]);
   });
 });
 

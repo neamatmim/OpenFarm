@@ -375,15 +375,15 @@ export const draftFrom = <Shape extends StepShape>(
   slotsOf(shape).map(({ slot, required, label: above }) => {
     // A slot the farm decides about starts out not insisted on; the Owner may turn it on.
     const insisted = required === "either" ? false : required;
-    const labelled = above ? { label: above } : {};
+    const labeled = above ? { label: above } : {};
     if (slot.kind !== "choice") {
-      return { type: slot.kind, required: insisted, ...labelled };
+      return { type: slot.kind, required: insisted, ...labeled };
     }
     const said = words as Record<string, Bilingual>;
     return {
       type: "choice",
       required: insisted,
-      ...labelled,
+      ...labeled,
       choices: slot.values.map((value) => {
         const label = said[value];
         if (!label) {

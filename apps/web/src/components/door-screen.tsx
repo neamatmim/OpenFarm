@@ -85,7 +85,7 @@ export const DoorScreen = ({
     </aside>
     <div className="flex flex-col">
       {header}
-      {/* Held off the bottom by the header's own height, so the form is centred on the same line as the promise. */}
+      {/* Held off the bottom by the header's own height, so the form is centered on the same line as the promise. */}
       <main
         className="flex flex-1 items-center justify-center px-4 pb-16 outline-none"
         id="main"

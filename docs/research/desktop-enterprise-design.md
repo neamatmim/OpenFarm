@@ -8,7 +8,7 @@
 
 - IBM Carbon. Read from the Markdown source of carbondesignsystem.com, and from the `carbon` code where the site gives no number.
 - Microsoft Fluent 2. Its pages are rendered on the server and were read directly. Some values exist only in the `microsoft/fluentui` source.
-- Atlassian. Read through a summarising fetch, so treat its quotes as near-verbatim.
+- Atlassian. Read through a summarizing fetch, so treat its quotes as near-verbatim.
 - Shopify Polaris. The guidance was read from the docs' own `.mdx` source on GitHub, and the newer pages from shopify.dev.
 - SAP Fiori for web, versioned pages (`v1-151`, and `v1-136` for breakpoints).
 - WCAG 2.2 and its Understanding documents, verbatim.
@@ -230,7 +230,7 @@ None of this needs a redesign. It is about a dozen small changes, each of which 
   - Wage draws: a nested list per person (`components/money/wage-draws.tsx:239-268`).
   - Giving less: queue rows carrying tag, lately, usually, drop and pen (`components/giving-less.tsx:27-60`).
   - Ventures against plan on the monthly report (`by-month.tsx:538`).
-- **While a list loads, `Loaded` draws one 80px grey block** (`page.tsx:504-505`).
+- **While a list loads, `Loaded` draws one 80px gray block** (`page.tsx:504-505`).
 
 **Applies here as:**
 
@@ -337,14 +337,14 @@ None of this needs a redesign. It is about a dozen small changes, each of which 
 
 **What OpenFarm does.**
 
-- Sonner sits at **top centre** (`routes/__root.tsx:91`). About 140 success toasts and 20 error toasts use it.
+- Sonner sits at **top center** (`routes/__root.tsx:91`). About 140 success toasts and 20 error toasts use it.
 - **The app-wide query failure is a toast with a Retry action** (`utils/orpc.ts:59-71`). It sets no duration, so Sonner's default of 4,000 ms applies (`TOAST_LIFETIME` in sonner 2.0.8). Retry is gone in 4 seconds.
-- In-page problems use `Notice`, coloured, with an icon, the word and `role="alert"`, which is the standard inline notification (`page.tsx:445-477`).
+- In-page problems use `Notice`, colored, with an icon, the word and `role="alert"`, which is the standard inline notification (`page.tsx:445-477`).
 
 **Applies here as:**
 
 - **Error toasts, and toasts with an action, stay until dismissed.** This is a must.
-- **On a desk, toasts go top right, under the bar.** On a phone they stay top centre.
+- **On a desk, toasts go top right, under the bar.** On a phone they stay top center.
 - Success toasts are fine as they are.
 
 ## 12. Keyboard and focus
@@ -419,7 +419,7 @@ Paths are under `apps/web/src/` unless they start `packages/`. "Cited" points to
 | 11  | `routes/_authenticated/people/$userId.tsx:88-110`                                                                                                                                                                                               | Header has no mark or key facts                                                                           | Fiori header facets; app's own Investor header (§9)                                                                                 | could    | `PageHeader leading` with `initialsOf` (lib/initials.ts), and Roles and last sign-in as meta.                                                                                                                                                   |
 | 12  | `components/money/receivable-tab.tsx:283-298`, `money/cash-tab.tsx:610-657`, `money/wage-draws.tsx:239-268`, `giving-less.tsx:27-60`, `returns/returns-page.tsx:83,349,409`, `returns/dairy-returns.tsx:226,395,515`, `months/by-month.tsx:538` | Records with several figures shown as cards or plain rows across about 1100–1600px                        | Polaris index table for records to act on. Carbon data table (§7)                                                                   | should   | Move each to `DataTable` with a `card` for the phone (keeps today's phone look). One page per merge. Keep `<details>` only where a row opens to a breakdown.                                                                                    |
 | 13  | `routes/_authenticated/settings.tsx:226-233`; `farm.tsx:88,159`; `components/farm-parameters.tsx:852`                                                                                                                                           | Settings are thin cards across the full width; farm fields stretch to about 700px                         | Polaris annotated layout and Settings template (small width). Carbon: "field widths should reflect the intended length" (§8)        | should   | A `Page width="settings"` (`max-w-5xl`) plus a `SettingsSection` (`lg:grid-cols-[18rem_minmax(0,1fr)]`, title and description left, fields right). Cap farm form grids at `max-w-3xl`.                                                          |
-| 14  | `routes/__root.tsx:91`                                                                                                                                                                                                                          | Toasts top centre on every width                                                                          | Carbon top right; Fluent top or bottom right (§11)                                                                                  | should   | On `md` and up, `position="top-right"` with `offset` 64px (clears the 56px bar). On a phone keep `top-center`. Read the width with `useIsMobile`.                                                                                               |
+| 14  | `routes/__root.tsx:91`                                                                                                                                                                                                                          | Toasts top center on every width                                                                          | Carbon top right; Fluent top or bottom right (§11)                                                                                  | should   | On `md` and up, `position="top-right"` with `offset` 64px (clears the 56px bar). On a phone keep `top-center`. Read the width with `useIsMobile`.                                                                                               |
 | 15  | `components/shell/app-sidebar.tsx:83`                                                                                                                                                                                                           | Current page marked by a 1.29:1 background and weight                                                     | Carbon: selected item has a 4px border. WCAG 1.4.11 states (§2)                                                                     | should   | `data-active:before:` a 3px `bg-sidebar-primary` bar on the inline start, hidden in icon mode. Or `data-active:shadow-[inset_3px_0_0_var(--sidebar-primary)]`.                                                                                  |
 | 16  | `components/page.tsx:504-505`                                                                                                                                                                                                                   | One 80px block while a table loads                                                                        | Carbon: skeletons shaped like the data table (§7, §10)                                                                              | could    | `DataTable` gets a `TableSkeleton` (header and 5 rows) that pages pass to `Loaded skeleton`.                                                                                                                                                    |
 | 17  | `components/page.tsx:45-48`                                                                                                                                                                                                                     | No max width; on a 2560px monitor content is about 2240px                                                 | Carbon product model: max width 1584, left-aligned (§1)                                                                             | could    | `default: "max-w-[99rem]"` (left-aligned, no `mx-auto`), so the title stays put as the window grows.                                                                                                                                            |
@@ -465,7 +465,7 @@ The investor portal already had its own research round (`docs/research/investor-
    - Check a Step at 375: its boxes should simply look firmer.
 2. **Toasts that wait** (audit 2, 14).
    - Error toasts and toasts with an action stay until dismissed. On a desk they go top right, under the bar.
-   - Check: stop the API, open `/money` at 1440. The failure toast should stay with Retry, top right, clear of the bar. At 375 it should be top centre.
+   - Check: stop the API, open `/money` at 1440. The failure toast should stay with Retry, top right, clear of the bar. At 375 it should be top center.
 3. **One density on a desk** (audit 3). Add the `md:` twins on PageTabs, BackLink and the overview's panel links.
    - Check `/money` and `/animals/$tagNumber` at 1280: the tabs should be 36px and the back link should sit where it did.
    - At 375 nothing should change.
@@ -514,6 +514,6 @@ Steps 1–3 are the ones that matter most for "enterprise". Steps 5–8 are the 
 - **Material 3's own pages** (m3.material.io would not load). Its size classes are quoted from Android's documentation.
 - **Carbon for IBM Products' side panel and tearsheet sizes,** which are behind IBM sign-in. Carbon's page header has only Storybook notes, no design measurements.
 - **Fluent's maximum content width** (none is published), **its table guidance** (no design page; the row heights are from code) and **its exact button heights.**
-- **Atlassian quotes** came through a summarising fetch.
+- **Atlassian quotes** came through a summarizing fetch.
 - **The field counts for the sheets** are counts of input components in the source, not of fields seen on screen.
 - **Nothing here was measured in a browser.** Every width check above is still to be done, page by page, as each step merges.

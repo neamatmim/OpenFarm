@@ -9,7 +9,7 @@ import { orpc } from "@/utils/orpc";
 /** More than one in ten lost before weaning is too many (DLS NG-GLPP §11.5(a)). */
 const TOO_MANY_LOST = 0.1;
 
-/** One figure of the three, labelled. */
+/** One figure of the three, labeled. */
 const Figure = ({
   label,
   value,

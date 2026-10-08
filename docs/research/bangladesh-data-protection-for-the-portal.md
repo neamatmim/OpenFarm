@@ -15,7 +15,7 @@
 1. **Tell each Investor, before relying on their consent,** what the data is for, how long it is kept, where it goes (a server in Singapore is a transfer abroad), and how to withdraw consent (s.5(2)). The fuller notice in s.15(2) adds what is held and how it was collected, how to exercise their rights, how to complain to the Authority, and who the farm is and how to reach it.
 2. **Get consent the farm can prove** (s.5(4)). The alternative ground, performing the Investor's contract (s.5(3)(ক)), probably covers holding the data for the Agreement and for payouts. It is less clearly a ground for putting the data online, or for keeping it in Singapore.
 3. **Answer written requests** for a copy of their data, with purpose, recipients, retention, source and cross-border safeguards (s.11). Correct wrong data, and tell them within 30 days that it was corrected (s.12). Erase it when its purpose ends or consent is withdrawn, unless a legal duty requires keeping it (s.13).
-4. **Keep it secure** with technical and organisational measures, which the Act says include pseudonymisation and encryption (s.17), and have a data-protection plan (s.22).
+4. **Keep it secure** with technical and organizational measures, which the Act says include pseudonymisation and encryption (s.17), and have a data-protection plan (s.22).
 5. **Keep it no longer than the period regulations will set** (s.18). Keep a register of processing records for at least five years (s.19).
 6. **Report a breach likely to cause significant harm to the Authority** (s.20). Under the Cyber Security Act 2026, also report any "cyber incident" to the National CERT without delay (s.9(4)).
 
@@ -49,8 +49,8 @@ No registration is needed. No rule in force says the data must stay in Banglades
 | 7   | Data subject's rights           | Access and a copy (with purpose, recipients, retention, source, transfer safeguards and a list of who it was shared with). Correction, with notice within 30 days. Withdrawal of consent. Erasure, with exceptions. The rights cannot be waived by contract or notice.                               | PDPA ss.10–14                                                | High on the text; time limits by regulation |
 | 8   | Sensitive data                  | Genetic, biometric, ethnic, political or religious belief, trade-union, health, sexual orientation, criminal and live location data. **NID and bank details are not on the list.** NID numbers count as "sensitive personally identifiable data" only for bulk cross-border transfer.                | PDPA ss.2(1), 2(17), 2(21), 7, 29(6)                         | High                                        |
 | 9   | Breach notification             | To the Authority, if significant harm is likely, in the form and time regulations set (none set). The Act puts no duty to tell the data subject. Any "cyber incident" goes to the National CERT without delay.                                                                                       | PDPA s.20; Cyber Security Act 2026 s.9(4)                    | High on the text                            |
-| 10  | Penalties                       | PDPA: administrative fines up to Tk 25 lakh, deferred. NDMA: complaint and fines up to Tk 25 lakh, **not deferred** but amounts left to rules. **No criminal offences in the PDPA**: the Ordinance's offences were dropped.                                                                          | PDPA ss.1(3), 32–35; NDMA ss.1(2), 41–42; Ordinance ss.36–48 | Medium                                      |
-| 11  | NID law                         | The EC runs NID under the NID Act 2010 (on bdlaws, unrepealed). The 2023 Act was never commenced. News says it was repealed in January 2025 **[SECONDARY]**, but bdlaws shows no repeal. Its offences are about the EC's database and about holding another citizen's NID _card_.                    | NID Act 2010 ss.2(4), 13, 16A, 19; NID Act 2023 s.1(2)       | Medium                                      |
+| 10  | Penalties                       | PDPA: administrative fines up to Tk 25 lakh, deferred. NDMA: complaint and fines up to Tk 25 lakh, **not deferred** but amounts left to rules. **No criminal offenses in the PDPA**: the Ordinance's offenses were dropped.                                                                          | PDPA ss.1(3), 32–35; NDMA ss.1(2), 41–42; Ordinance ss.36–48 | Medium                                      |
+| 11  | NID law                         | The EC runs NID under the NID Act 2010 (on bdlaws, unrepealed). The 2023 Act was never commenced. News says it was repealed in January 2025 **[SECONDARY]**, but bdlaws shows no repeal. Its offenses are about the EC's database and about holding another citizen's NID _card_.                    | NID Act 2010 ss.2(4), 13, 16A, 19; NID Act 2023 s.1(2)       | Medium                                      |
 | 12  | Bank data                       | "Financial data" is personal data, not sensitive data. No rule found that stops a non-bank holding a person's account number with their knowledge. Bank secrecy and record rules bind banks.                                                                                                         | PDPA ss.2(1), 2(17)                                          | Medium (absence)                            |
 
 ---
@@ -76,8 +76,8 @@ It is unclear whether the 18 months run from the Ordinance (6 Nov 2025, giving M
 
 **What changed from the Ordinance to the Act.** I compared the two texts on bdlaws. The Act dropped three things:
 
-- **The whole chapter of criminal offences.** The Ordinance's ss.36–46 carried up to 7 years' prison for processing sensitive data without consent, and up to 5 years for misuse or disclosure by staff.
-- **The cloud rule in s.29(7).** It required a data dictionary for the Authority, a synchronised real-time copy in Bangladesh of "restricted" data held in a cloud, and the Authority's power to order a cloud moved within 60 days.
+- **The whole chapter of criminal offenses.** The Ordinance's ss.36–46 carried up to 7 years' prison for processing sensitive data without consent, and up to 5 years for misuse or disclosure by staff.
+- **The cloud rule in s.29(7).** It required a data dictionary for the Authority, a synchronized real-time copy in Bangladesh of "restricted" data held in a cloud, and the Authority's power to order a cloud moved within 60 days.
 - **Section 48's criminal liability of company officers,** which became administrative fines in s.36.
 
 These points are from reading [act-print-1574](http://bdlaws.minlaw.gov.bd/act-print-1574.html) beside [act-print-1692](http://bdlaws.minlaw.gov.bd/act-print-1692.html). No secondary source was found that sets out these changes with a citation.
@@ -100,7 +100,7 @@ Both must be published as drafts for public comment before they are made (ss.41(
 - **Scope, s.1(2)** ([section](http://bdlaws.minlaw.gov.bd/act-1692/section-57267.html)): the Act applies to any person, data-fiduciary or processor who is a citizen of Bangladesh, resident in it, or working in it. It also applies to anyone processing personal data inside Bangladesh, or abroad in connection with goods or services to data subjects in Bangladesh. The farm and its Owner are in Bangladesh, so the Act applies wherever the server is.
 - **Personal data, s.2(17)** ([section](http://bdlaws.minlaw.gov.bd/act-1692/section-57268.html)): information about a person, "such as name, parents' names, **identification number, mobile number, financial data identifying the person**, location data or a similar online identifier".
 - **Financial data, s.2(1):** information that identifies whoever opens an account for financial transactions, or a card or instrument for them, or their transaction history, or their relationship with a financial institution. A bank account number is financial data.
-- **Data-fiduciary, s.2(2):** a person who, alone or jointly, processes personal data for a specific purpose, or supervises or authorises its processing. That is the farm. **Processor, s.2(11):** processes on the fiduciary's behalf. That is the Singapore host.
+- **Data-fiduciary, s.2(2):** a person who, alone or jointly, processes personal data for a specific purpose, or supervises or authorizes its processing. That is the farm. **Processor, s.2(11):** processes on the fiduciary's behalf. That is the Singapore host.
 - **Data subject, s.2(3):** a natural person "whether living or dead". An Investor's record stays protected after death. **The nominee is a data subject too:** the farm holds their name, phone and relation, given by the Investor rather than by the nominee.
 - **Child, s.2(19):** under 18. Personal data of a child is processed with the consent of a parent or legal guardian, in the manner regulations set (s.9) ([section](http://bdlaws.minlaw.gov.bd/act-1692/section-57275.html)). A nominee who is the Investor's child falls here.
 - **Processing, s.2(10):** includes collecting, recording, storing, retaining, transferring, using and disclosing by transmission. Showing a record on a portal and storing it on a server are both processing.
@@ -145,7 +145,7 @@ Both must be published as drafts for public comment before they are made (ss.41(
   - trade-union membership;
   - health;
   - sexual orientation;
-  - criminal offences and proceedings, and offences alleged;
+  - criminal offenses and proceedings, and offenses alleged;
   - real-time location;
   - anything else rules or regulations add.
 
@@ -176,7 +176,7 @@ Both must be published as drafts for public comment before they are made (ss.41(
 - **No registration.** Neither Act asks a data-fiduciary to register with the Authority or be licensed. A 2023-era summary also found "no requirements" for registration ([DLA Piper](https://www.dlapiperdataprotection.com/index.html?t=authority&c=BD), **[SECONDARY]**, outdated: it still describes the Cyber Security Act 2023 as the main law).
 - **s.15(1), accountability** ([section](http://bdlaws.minlaw.gov.bd/act-1692/section-57281.html)): the fiduciary is responsible for complying.
 - **s.8, processors** ([section](http://bdlaws.minlaw.gov.bd/act-1692/section-57274.html)): processing by a processor on the fiduciary's behalf "shall be deemed to be done by the fiduciary", and the fiduciary is liable for it. It must take reasonable steps to make the processor comply. **The Singapore host is the farm's processor. The farm answers for it.**
-- **s.17, security** ([section](http://bdlaws.minlaw.gov.bd/act-1692/section-57283.html)): appropriate technical and organisational measures against accidental or unlawful destruction, loss, misuse, alteration, unauthorised disclosure or access. They are to be weighed by volume, sensitivity, likely harm, scope, retention period and cost. The measures "shall include":
+- **s.17, security** ([section](http://bdlaws.minlaw.gov.bd/act-1692/section-57283.html)): appropriate technical and organizational measures against accidental or unlawful destruction, loss, misuse, alteration, unauthorized disclosure or access. They are to be weighed by volume, sensitivity, likely harm, scope, retention period and cost. The measures "shall include":
   - pseudonymisation and encryption;
   - confidentiality, integrity, availability and resilience;
   - timely restoration after an incident;
@@ -189,7 +189,7 @@ Both must be published as drafts for public comment before they are made (ss.41(
 - **s.21, audit** ([section](http://bdlaws.minlaw.gov.bd/act-1692/section-57287.html)): only for classes of fiduciary named by regulation, or when the Authority orders one.
 - **s.23, Chief Data Officer** ([section](http://bdlaws.minlaw.gov.bd/act-1692/section-57289.html)): only for "significant data-fiduciaries". s.2(5) says regulations will name them by effect on sovereignty, volume and financial weight of the data, risk to data subjects, and threats to security or order. This section is **not yet in force** (s.1(3)). A farm with twenty Investors is very unlikely to be named, but no list exists.
 - **s.29(5):** the government may levy a fee on annual profit that comes from using Bangladeshi citizens' personal data. Nothing has been levied, and it is aimed at data businesses.
-- **NDMA 2026:** its duties to connect to the national exchange (NRDEX) fall on organisations in its Schedule and on government bodies (ss.30(6), 32, 33) ([s.30](http://bdlaws.minlaw.gov.bd/act-1709/section-57921.html)). Nothing found puts a private farm under them.
+- **NDMA 2026:** its duties to connect to the national exchange (NRDEX) fall on organizations in its Schedule and on government bodies (ss.30(6), 32, 33) ([s.30](http://bdlaws.minlaw.gov.bd/act-1709/section-57921.html)). Nothing found puts a private farm under them.
 
 ---
 
@@ -214,7 +214,7 @@ Both must be published as drafts for public comment before they are made (ss.41(
 
 ## 8. What an Investor must be able to see, correct or delete
 
-- **s.10, how rights are used** ([section](http://bdlaws.minlaw.gov.bd/act-1692/section-57276.html)): by written application to the fiduciary. Acknowledgement, refusal and compliance follow procedures regulations will set. The fiduciary must check the sensitivity and fraud risk before acting, keep a record of what it did for audit, and tell the data subject. **s.10(4):** the rights are "universal, inherent, non-transferable and inviolable, and may not be excluded or varied by contract or notice".
+- **s.10, how rights are used** ([section](http://bdlaws.minlaw.gov.bd/act-1692/section-57276.html)): by written application to the fiduciary. Acknowledgment, refusal and compliance follow procedures regulations will set. The fiduciary must check the sensitivity and fraud risk before acting, keep a record of what it did for audit, and tell the data subject. **s.10(4):** the rights are "universal, inherent, non-transferable and inviolable, and may not be excluded or varied by contract or notice".
 - **s.11, access and portability** ([section](http://bdlaws.minlaw.gov.bd/act-1692/section-57277.html)): the data subject has access to their data. On request the fiduciary shall provide it "in a concise and intelligible format", with a description of:
   - a summary of the data and what was done with it;
   - the purpose, the kinds of data and the recipients;
@@ -244,9 +244,9 @@ Both must be published as drafts for public comment before they are made (ss.41(
 
 - **PDPA s.20** ([section](http://bdlaws.minlaw.gov.bd/act-1692/section-57286.html)): "If a personal data breach is likely to cause significant harm to the data subject concerned, the data-fiduciary shall inform the Authority of the breach in the form, manner and time prescribed by regulations." The Authority will judge severity by the nature of the breach, the categories and approximate number of people and records, and what the fiduciary did. **No form or deadline has been prescribed. The Act does not require telling the data subject.**
 
-  A "personal data breach" (s.2(18)) includes unauthorised access, unlawful transfer, disclosure or alteration, and accidental loss or destruction.
+  A "personal data breach" (s.2(18)) includes unauthorized access, unlawful transfer, disclosure or alteration, and accidental loss or destruction.
 
-- **Cyber Security Act 2026 s.9(4), proviso** ([section](http://bdlaws.minlaw.gov.bd/act-1710/section-57950.html)): "Provided that, if a cyber incident occurs in any government, private or autonomous organisation or institution, it shall **without delay** inform the National Computer Emergency Response Team under the Agency." "Cyber incident" is not defined in the Act's definitions. This proviso applies to any private organisation, not only CII.
+- **Cyber Security Act 2026 s.9(4), proviso** ([section](http://bdlaws.minlaw.gov.bd/act-1710/section-57950.html)): "Provided that, if a cyber incident occurs in any government, private or autonomous organisation or institution, it shall **without delay** inform the National Computer Emergency Response Team under the Agency." "Cyber incident" is not defined in the Act's definitions. This proviso applies to any private organization, not only CII.
 - **What the farm should plan:** tell the Authority (once it exists) and the National CERT, and tell the Investors themselves. The Act does not demand the last, but a closed circle of twenty people will hear of it anyway, and s.13(6) and s.15 lean that way.
 
 ---
@@ -262,8 +262,8 @@ Both must be published as drafts for public comment before they are made (ss.41(
   **All of ss.31–35 are deferred** by s.1(3) ([s.32](http://bdlaws.minlaw.gov.bd/act-1692/section-57298.html), [s.33](http://bdlaws.minlaw.gov.bd/act-1692/section-57299.html)). Company officers involved in a violation may be fined (s.36). Appeals go to the ICT Act tribunal (s.37).
 
 - **NDMA:** a data subject may complain to the Authority that a fiduciary or processor violated their rights (s.42(1)). A violation of the Act, rules or regulations carries an administrative fine **up to Tk 25 lakh** (s.42(2)), plus compensation (s.44) ([s.41](http://bdlaws.minlaw.gov.bd/act-1709/section-57932.html), [s.42](http://bdlaws.minlaw.gov.bd/act-1709/section-57933.html)). **The NDMA defers none of its sections** (s.1(2)). So a complaint-and-fine route exists on paper today, once the Authority is constituted, even while the PDPA's own fines wait. The scale of fines is left to rules (s.41(2)).
-- **No criminal offences in the PDPA.** The Ordinance's prison terms did not survive into the Act (see section 1).
-- **Cyber Security Act 2026:** it punishes _intruders_ rather than the farm. Examples are unlawful access, up to 1 year or Tk 10 lakh, and hacking to steal or alter data, up to 5 years or Tk 50 lakh (s.18) ([section](http://bdlaws.minlaw.gov.bd/act-1710/section-57959.html)). Anyone who breaks into the portal commits these offences.
+- **No criminal offenses in the PDPA.** The Ordinance's prison terms did not survive into the Act (see section 1).
+- **Cyber Security Act 2026:** it punishes _intruders_ rather than the farm. Examples are unlawful access, up to 1 year or Tk 10 lakh, and hacking to steal or alter data, up to 5 years or Tk 50 lakh (s.18) ([section](http://bdlaws.minlaw.gov.bd/act-1710/section-57959.html)). Anyone who breaks into the portal commits these offenses.
 
 ---
 
@@ -273,7 +273,7 @@ Both must be published as drafts for public comment before they are made (ss.41(
 - **What the NID law restricts:**
   - s.2(4) of the 2010 Act defines its "data" as data collected for NID registration and the voter list, including biometrics. That is the EC's database.
   - s.13 makes it confidential and lets people or institutions apply for access on prescribed terms. That is the route the EC's partner verification service runs on.
-  - s.16A punishes unauthorised access to, or unlawful use of, that data: up to 5 years or Tk 50,000.
+  - s.16A punishes unauthorized access to, or unlawful use of, that data: up to 5 years or Tk 50,000.
   - s.17A punishes disclosure by EC staff.
 
   ([act-print-1030](http://bdlaws.minlaw.gov.bd/act-print-1030.html); same in the 2023 Act ss.14, 21, 22, [s.21](http://bdlaws.minlaw.gov.bd/act-1458/section-52905.html)). **None of this bars a private party from writing down a person's NID number with their consent.** The farm does not use the EC's verification service.

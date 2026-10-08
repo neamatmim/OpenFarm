@@ -15,7 +15,7 @@ const STAGES = ["open", "buying", "fattening", "selling", "settled"] as const;
  */
 export const StageTrack = ({ state }: { state: Venture["state"] }) => {
   const { t } = useLanguage();
-  const calledOff = state === "cancelled";
+  const calledOff = state === "canceled";
   const here = calledOff ? 0 : STAGES.indexOf(state);
   const shown = calledOff ? STAGES.slice(0, 1) : STAGES;
   return (
@@ -57,7 +57,7 @@ export const StageTrack = ({ state }: { state: Venture["state"] }) => {
             className="border-danger/40 text-danger flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium"
           >
             <XCircle aria-hidden className="size-3.5" />
-            {t("ventures.state.cancelled")}
+            {t("ventures.state.canceled")}
           </span>
         </li>
       ) : null}

@@ -239,16 +239,16 @@ export type {
   Reconciliation,
 } from "./milk";
 export {
-  LITRE_DECIMALS,
+  LITER_DECIMALS,
   MILK_DESTINATIONS,
   daysInMilk,
   destinationFor,
   lactationSummary,
   lactationView,
-  litresPerCowMilked,
+  litersPerCowMilked,
   reconcile,
-  litresTo,
-  roundLitres,
+  litersTo,
+  roundLiters,
   underMilkWithdrawal,
   milkHeldAt,
   MILK_ACCOUNT_DAYS,
@@ -548,7 +548,7 @@ export type {
 export {
   PURCHASES_A_DOSE_IS_COSTED_OVER,
   costOfGainOf,
-  costPerLitreOf,
+  costPerLiterOf,
   dosePriceOf,
   feedShares,
   herdShares,
@@ -603,7 +603,7 @@ export type {
   DairyRun,
   DairyWent,
   HeadRange,
-  LitresSent,
+  LitersSent,
 } from "./dairy-returns";
 export {
   bredHere,
@@ -662,10 +662,10 @@ export {
 export type {
   InAndOut,
   MoneySummary,
-  MoneyToSummarise,
+  MoneyToSummarize,
   SideShare,
 } from "./money-summary";
-export { summariseMoney } from "./money-summary";
+export { summarizeMoney } from "./money-summary";
 export type {
   EnteredUnder,
   MonthlyCost,
@@ -736,7 +736,7 @@ export {
   FEWEST_CALF_MILK_DAYS,
   fewestDaysBeforeMilkIsWeighed,
   cullReasonsOf,
-  litresOver,
+  litersOver,
   milkAgainstKeep,
   milkPriceOf,
 } from "./cull";

@@ -26,13 +26,13 @@ beforeAll(async () => {
   const byTheKilo = await manager.client.feed.items.create({
     name: { bn: `ভুসি ${suffix}` },
   });
-  const byTheLitre = await manager.client.feed.items.create({
+  const byTheLiter = await manager.client.feed.items.create({
     name: { bn: `চিটাগুড় ${suffix}` },
-    unit: "litre",
+    unit: "liter",
   });
   bagged = inBags.id;
   loose = byTheKilo.id;
-  molasses = byTheLitre.id;
+  molasses = byTheLiter.id;
 });
 
 const RASHID = `রশিদ ট্রেডার্স ${suffix}`;

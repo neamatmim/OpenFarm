@@ -79,7 +79,7 @@ const STANDING_SHORT: Record<RegistrationStanding, MessageKey> = {
   unknown: "inspector.kpi.unknown",
 };
 
-/** Where the Registration stands, as a colour beside its word. */
+/** Where the Registration stands, as a color beside its word. */
 const STANDING_TONE: Record<RegistrationStanding, Tone> = {
   valid: "success",
   ending_soon: "warning",

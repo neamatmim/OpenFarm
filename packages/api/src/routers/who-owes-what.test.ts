@@ -62,9 +62,9 @@ const milkOnCredit = async (day: string) => {
   const manager = await as("manager", `${day}T04:00:00.000Z`);
   return await manager.client.milk.dispatch({
     dispatchedAt: new Date(`${day}T03:00:00.000Z`),
-    litres: 25,
+    liters: 25,
     buyer: { name: SHOP },
-    pricePerLitreMoney: 70,
+    pricePerLiterMoney: 70,
     paidNowMoney: 0,
   });
 };

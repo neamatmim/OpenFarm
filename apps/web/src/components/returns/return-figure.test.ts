@@ -4,7 +4,7 @@ import type { DairyRun, Running } from "./return-figure";
 import { dairyFigureOf, todayRangeSaid, wordFor, SAID } from "./return-figure";
 
 // A cow is read in two places: a line on the Cull list and the panel on her own page. Each once chose her figure for
-// itself, and the panel never learnt the two the line had — a calf gone having cost nothing, and one here with nothing
+// itself, and the panel never learned the two the line had — a calf gone having cost nothing, and one here with nothing
 // spent on her yet — so her own page said nothing at all where the list said what she made or would fetch.
 
 /** A calf born here: nothing paid for her, no milk, nothing charged — everything a figure is made of left at nought. */
@@ -17,7 +17,7 @@ const aCalf = (over: Partial<DairyRun>): DairyRun => ({
   from: null,
   left: null,
   costMoney: 0,
-  milkLitres: 0,
+  milkLiters: 0,
   milkMoney: 0,
   endMoney: null,
   milkPricedEarlier: [],

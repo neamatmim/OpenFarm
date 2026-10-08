@@ -156,7 +156,7 @@ export const DELIVERY = {
 /** What one kind says. Whether it says anything in a text message is not this table's decision but the delivery
  *  table's: a kind marked for texting must have the words for it, and a kind not marked must not have them. */
 type Saying<Kind extends AlertKind> = {
-  /** In the farm's own list, which every Notice reaches whether or not it travelled. */
+  /** In the farm's own list, which every Notice reaches whether or not it traveled. */
   app: MessageKey;
   /** In a pocket, for the kinds that go now — a title and a line under it. */
   push?: { title: MessageKey; body: MessageKey };

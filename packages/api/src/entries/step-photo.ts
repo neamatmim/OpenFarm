@@ -30,7 +30,7 @@ const readPhotos = async (tx: Tx, completionId: string) => {
 };
 
 /**
- * A photograph the Step asked for, arriving on its own after the Step it answers — so a morning's litres are never held
+ * A photograph the Step asked for, arriving on its own after the Step it answers — so a morning's liters are never held
  * up behind a picture. The same slot sent again is the same picture, not a second one.
  */
 export const stepPhotoEntry: EntryKind<

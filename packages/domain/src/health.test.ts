@@ -272,22 +272,22 @@ describe("the days a dose not prescribed keeps", () => {
 const on = (day: string) => new Date(`2032-10-${day}T02:00:00.000Z`);
 
 describe("the hold in force, with a Vet's shortening", () => {
-  const long = { until: on("29"), learntAt: on("01") };
+  const long = { until: on("29"), learnedAt: on("01") };
   const shortening = { at: on("06"), to: on("07") };
 
   it("is the latest dose's end where the Vet has shortened nothing", () => {
     expect(
-      holdInForce([long, { until: on("13"), learntAt: on("06") }], null)
+      holdInForce([long, { until: on("13"), learnedAt: on("06") }], null)
     ).toEqual({
       until: on("29"),
       shortened: false,
     });
   });
 
-  it("caps the doses the Vet knew of, and adds a dose learnt of afterwards on its own days", () => {
+  it("caps the doses the Vet knew of, and adds a dose learned of afterwards on its own days", () => {
     const after = {
       until: on("13"),
-      learntAt: new Date("2032-10-06T03:00:00.000Z"),
+      learnedAt: new Date("2032-10-06T03:00:00.000Z"),
     };
     expect(holdInForce([long, after], shortening)).toEqual({
       until: on("13"),
@@ -306,8 +306,8 @@ describe("the hold in force, with a Vet's shortening", () => {
     expect(
       holdInForce(
         [
-          { until: on("10"), learntAt: on("01") },
-          { until: on("20"), learntAt: on("08") },
+          { until: on("10"), learnedAt: on("01") },
+          { until: on("20"), learnedAt: on("08") },
         ],
         shortening
       )

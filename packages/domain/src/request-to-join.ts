@@ -58,7 +58,7 @@ export const isPastDecideBy = (decideBy: string, now: Date): boolean =>
  *  or the Investor was retired. The schema says it too, for the column; a test holds the two together. */
 export const REQUEST_CLOSE_REASONS = [
   "venture_buying",
-  "venture_cancelled",
+  "venture_canceled",
   "taken_out_of_portal",
   "investor_retired",
 ] as const;

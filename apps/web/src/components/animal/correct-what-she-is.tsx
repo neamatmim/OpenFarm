@@ -16,7 +16,7 @@ const SEXES = ["female", "male"] as const;
 
 /**
  * What she is, put right by the Owner or the Manager with a reason: her sex, her breed, her birth date, her dam. A breed
- * left out at the gate decides her Expected Gain and the deshi judgement; a sex typed wrong gave her the other Side's
+ * left out at the gate decides her Expected Gain and the deshi judgment; a sex typed wrong gave her the other Side's
  * routines. Her sex is refused once her breeding, a calving or a calf of hers rests on it.
  */
 export const CorrectWhatSheIs = ({

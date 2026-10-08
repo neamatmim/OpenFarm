@@ -30,7 +30,7 @@ The parts on Bangladeshi banks, platforms, regulators and foreign rules were gat
    - Since September 2025, a bank's promotional material and its method of calculating depositors' profit must be certified by its Shariah Supervisory Committee.
 3. **The Shariah standards let a past return and an expected return be stated. What they forbid is setting the entitlement as a percentage of capital, as a fixed sum, or as a guarantee.**
    - Profit is shared by agreed ratio, "not ... a percentage of the capital" (AAOIFI SS 13 8/1; SS 40 4/1).
-   - An "expected rate of return which is not considered to be binding if not achieved" is allowed, provided the final distribution follows realised profit (SS 40 5/2).
+   - An "expected rate of return which is not considered to be binding if not achieved" is allowed, provided the final distribution follows realized profit (SS 40 5/2).
    - Whenever profit is mentioned in advertising, the method of calculating it must be disclosed (SS 47 §9).
    - Bank Negara Malaysia makes the split explicit. Profit "shall not be fixed in the form of a certain percentage of the capital" (S 16.9), but "the ex-post performance profit amount ... may be translated into a fixed percentage yield of the capital" (G 16.10).
    - **A settled Venture's return put as a share of capital describes a fact. It is not a term of the contract.** The Shariah risk lies in the Projection, and in anything that makes a stated figure binding in practice.
@@ -39,7 +39,7 @@ The parts on Bangladeshi banks, platforms, regulators and foreign rules were gat
    - Al-Arafah's terms keep the provisional rate as a floor. If the final rate is lower, "ব্যাংকের কোন দাবী/আপত্তি থাকবেনা" (the bank will have no claim).
    - IFSB GN-3 says smoothing makes profit-sharing returns "behave more like those on conventional deposits", with expectations "based on the same interest rates".
    - Five merged Islamic banks made heavy losses in 2024–25. Bangladesh Bank first said that under Shariah no profit is due, then allowed a 4% rate after all **[SECONDARY]**.
-5. **No Bangladeshi cattle or agri platform publishes a realised return as a percentage.**
+5. **No Bangladeshi cattle or agri platform publishes a realized return as a percentage.**
    - biniyog.io's 290 completed campaigns still display their projected ROI, and the `finalizedROI` field is empty for every one.
    - DeenAgro's completed project shows only "প্রত্যাশিত মুনাফা" (expected profit).
    - Freshie Farm alone shows what investors got. It gives taka per share per batch ("বিনিয়োগকারির লাভঃ ৭২০০" on a Tk 55,000 share over six months) and never a percentage, because "% এর গ্যারান্টি দিলে সেটা সুদ হয়ে যায়" (a guaranteed % becomes interest).
@@ -66,7 +66,7 @@ The parts on Bangladeshi banks, platforms, regulators and foreign rules were gat
    - Where a regulator allows a short period to be annualised, it wants the formula shown and a "no certainty" line (FINRA 2220).
 9. **For OpenFarm:**
    - **The settled return.** Show a settled Venture's return first in taka and as a share of capital over the Venture's own days, worked from the Settlement. Show a loss the same way.
-   - **The rate a year.** It may sit beside that share, labelled as the share scaled to a year and with the working shown. It never stands alone.
+   - **The rate a year.** It may sit beside that share, labeled as the share scaled to a year and with the working shown. It never stands alone.
    - **The Projection.** Never show it as a rate a year. At most, show it as a low–high share of capital over the run, under "an estimate, not a promise".
    - **Words.** Avoid "মুনাফার হার", which is the banks' and Bangladesh Bank's word for a deposit rate. Avoid "নিশ্চিত", "নির্ধারিত", "ফিক্সড" and "secure".
    - **No top-ups.** Never top an Investor up to any stated figure.
@@ -81,9 +81,9 @@ The parts on Bangladeshi banks, platforms, regulators and foreign rules were gat
 | ------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | Islamic banks, provisional rate | A % for each deposit product                                                                   | Before: for the months ahead                   | Yes, though "p.a." is seldom printed                                                                    | Headed "Provisional". Final rate declared after audit. EBL: "indicative, non-guaranteed (not part of the Mudarabah contract)". **Undone** where the provisional rate works as a floor (AIBL; IBBL's hiba) | IBBL, AIBL, SIBL, EXIM, SJIBL, EBL, Bank Asia notices |
 | Islamic banks, final rate       | A % for each product, per year                                                                 | After: audited accounts and the Shariah report | Yes                                                                                                     | It is the result. IBBL has published one for most years since 2013                                                                                                                                        | IBBL final-rate notices; annual reports 2024, 2025    |
-| Bank Asia                       | Realised rate month by month                                                                   | After                                          | "Annualized Profit Rate"                                                                                | Under "Historical Rate of Profit"                                                                                                                                                                         | Bank Asia Islamic window                              |
+| Bank Asia                       | Realized rate month by month                                                                   | After                                          | "Annualized Profit Rate"                                                                                | Under "Historical Rate of Profit"                                                                                                                                                                         | Bank Asia Islamic window                              |
 | Bangladesh Bank                 | Sharing ratio and weightage before; "Rate of Return" after                                     | Both                                           | Yes                                                                                                     | Terms disclosed before the year; result computed after                                                                                                                                                    | 2009 Guidelines, App. III; IBRPD Circ. 01/2025        |
-| AAOIFI, IIFA                    | An expected rate is allowed; the final split follows realised profit                           | Both                                           | Not addressed for mudarabah. An annualised % is allowed in financing "with full disclosure" (SS 47 §10) | Not binding; method disclosed; no guarantee                                                                                                                                                               | SS 13, 17, 40, 47; IIFA 30, 123                       |
+| AAOIFI, IIFA                    | An expected rate is allowed; the final split follows realized profit                           | Both                                           | Not addressed for mudarabah. An annualised % is allowed in financing "with full disclosure" (SS 47 §10) | Not binding; method disclosed; no guarantee                                                                                                                                                               | SS 13, 17, 40, 47; IIFA 30, 123                       |
 | Bank Negara Malaysia            | Past profit as a % yield on capital; projections as best, flat and worst case                  | Both                                           | Yes: rate × days/365                                                                                    | No "fixed return" wording; "NOT A DEPOSIT PRODUCT"; "past performance is not indicative"                                                                                                                  | Mudarabah PD 2015; Investment Account PD 2017         |
 | IFSB                            | Historical returns as a % of funds, by maturity                                                | After                                          | Yes                                                                                                     | "not projections or estimates"; the rate paid and the rate earned shown apart                                                                                                                             | IFSB-22; GN-3                                         |
 | BSEC, mutual funds              | Past performance in advertisements                                                             | After                                          | Not addressed                                                                                           | Method stated; "no indicator of future results"; "not a basis for comparison with other investments"                                                                                                      | Mutual Fund Rules 2025, 4th Sch.                      |
@@ -146,7 +146,7 @@ The product pages say what the provisional rate is for:
   - It states its sharing ratio: "35:65".
 - **Bank Asia, Islamic window** ([page](https://www.bankasia-bd.com/islamic/product/Profit-on-Deposit)).
   - "Hereby the rate of profit paid is variable."
-  - It is the only bank found that publishes realised rates month by month, under "Historical Rate of Profit" and "Month wise Annualized Profit Rate" ([PDF](https://www.bankasia-bd.com/downloads/IProfit_Rate_November_2024.pdf)). Example: 1-year term deposit, 7.64% … 8.02% for the months of 2024.
+  - It is the only bank found that publishes realized rates month by month, under "Historical Rate of Profit" and "Month wise Annualized Profit Rate" ([PDF](https://www.bankasia-bd.com/downloads/IProfit_Rate_November_2024.pdf)). Example: 1-year term deposit, 7.64% … 8.02% for the months of 2024.
 
 ### 1.2 How far the final rate moved from the provisional rate (IBBL)
 
@@ -214,7 +214,7 @@ The Venture is not a bank, but this is the pattern the farm already follows by t
 
 ### 2.4 What was not found
 
-No Bangladesh Bank rule requiring banks to display or advertise deposit or profit rates in a set form was found. Circulars checked: BRPD 27/2010, 02/2012, 04/2012 and Circular Letter 09/2011, which is about lending rates. A 2026 circular refers to BRPD 27/2010 as covering "interest calculation, display, and disclosure", but the text read has no display rule. The Central Shariah Board for Islamic Banks of Bangladesh has published no guidance on its site. [SECONDARY]: the Financial Express reports it favours an Income Sharing Ratio method under which "Provisional rate is not required … The profit rate obtained in the ISR is always an 'output'" ([FE, 6 July 2023](https://today.thefinancialexpress.com.bd/views-opinion/isr-module-in-islamic-banking-1688565507)).
+No Bangladesh Bank rule requiring banks to display or advertise deposit or profit rates in a set form was found. Circulars checked: BRPD 27/2010, 02/2012, 04/2012 and Circular Letter 09/2011, which is about lending rates. A 2026 circular refers to BRPD 27/2010 as covering "interest calculation, display, and disclosure", but the text read has no display rule. The Central Shariah Board for Islamic Banks of Bangladesh has published no guidance on its site. [SECONDARY]: the Financial Express reports it favors an Income Sharing Ratio method under which "Provisional rate is not required … The profit rate obtained in the ISR is always an 'output'" ([FE, 6 July 2023](https://today.thefinancialexpress.com.bd/views-opinion/isr-module-in-islamic-banking-1688565507)).
 
 ---
 
@@ -250,7 +250,7 @@ That last sentence describes exactly what the collapsed schemes sold (§5).
 - **IIFA Resolution 123 (5/13), 2001, Tenth** ([iifa-aifi.org](https://iifa-aifi.org/en/32844.html)): "It is permissible in Shariah to set up a rate of expected profit and stipulate that if realized profit exceeds that rate, the Muḍārib shall be entitled to a specific share of this increment."
 - **SS 47, Rules for Calculating Profit in Financial Transactions** (issued 29 May 2011; [PDF](https://aaoifi.com/wp-content/uploads/2020/08/SS-47-Rules-for-Calculating-Profit-in-Financial-Transactions.pdf)), 7/2: a capital provider may restrict the mudarib to activities where "the expected profit rate" is above a figure, "taking into consideration that it is not permissible to either guarantee the capital, or the profit or both".
 
-### 3.3 A realised profit may be put as a yield on capital
+### 3.3 A realized profit may be put as a yield on capital
 
 **Bank Negara Malaysia, Mudarabah policy document** (BNM/RH/STD 028-8, 20 April 2015; [PDF](https://www.bnm.gov.my/documents/20124/938039/Mudarabah.pdf/2ea1c2df-b084-1b3b-f640-d7993d1e38ea)). "S" is a binding standard and "G" is guidance.
 
@@ -308,13 +308,13 @@ This is the most direct regulatory text found on the question. The ban on "a per
 
 All pages were read on 27 September 2026. Archived pages are cited by their capture. `cattle-investment-schemes.md` §1–2 covers each scheme's terms. What follows is only how they state a return.
 
-### 4.1 Nobody publishes a realised percentage
+### 4.1 Nobody publishes a realized percentage
 
 - **biniyog.io.**
   - The Funded Campaigns page loads 290 campaigns with status COMPLETED from its public API.
   - Each card renders the _projected_ ROI as "`x`% return in `n` months" and "annualized". The annual figure is computed as `(roiMin / durationInMonths) * 12`.
   - The API has a `finalizedROI` field. **It is null for all 290.** A completed campaign therefore still shows what was projected, not what was paid.
-  - [SECONDARY] Future Startup, 7 May 2026, reports "annualized returns in the range of 15–18% … These returns are not guaranteed" and a 3.75% non-performing rate. The API also marks 16 instalments "DELAYED".
+  - [SECONDARY] Future Startup, 7 May 2026, reports "annualized returns in the range of 15–18% … These returns are not guaranteed" and a 3.75% non-performing rate. The API also marks 16 installments "DELAYED".
 - **DeenAgro** ([deenagro.com](https://deenagro.com/)).
   - Its one completed ("সম্পন্ন") project shows only "প্রত্যাশিত মুনাফা ১৫–২০%" (expected profit 15–20%).
   - Its "স্বচ্ছতা ড্যাশবোর্ড" (transparency dashboard) shows "বণ্টিত লাভ" (profit distributed), but the page's own code computes that figure from the _capital_ of completed projects.
@@ -451,7 +451,7 @@ These are comparators only. None binds a Bangladeshi farm.
 
 - **FINRA Rule 2210(d)(1)(F):** communications "may not predict or project performance, imply that past performance will recur or make any exaggerated or unwarranted claim".
   - FAQ D.7: this extends to "target returns to investors".
-  - FAQ D.6: "realized historical performance for a completed investment program, whether expressed as IRR or any other return metric, will generally be consistent with" the rule. An IRR for a new programme with no operations "is a projection".
+  - FAQ D.6: "realized historical performance for a completed investment program, whether expressed as IRR or any other return metric, will generally be consistent with" the rule. An IRR for a new program with no operations "is a projection".
 - **SEC Marketing Rule** (17 CFR 275.206(4)-1). "Targeted or projected performance returns" are hypothetical performance. They are allowed only with policies ensuring relevance to the audience, and with enough information to understand "the criteria used and assumptions made" and "the risks and limitations".
 - **UK FCA COBS 4.6.**
   - Past performance must cover five years or the whole period offered, in complete 12-month periods. It carries "a prominent warning that the figures refer to the past and that past performance is not a reliable indicator of future results". It may not be the most prominent feature.
@@ -476,9 +476,9 @@ What has read as a promise, and what has not, across all of the above:
 | **One percentage, before the result**     | Called fixed, secure, guaranteed or insured, or paid on a schedule regardless: iFarmer 2020, iGrow, Investify, Destiny's 46%, Agriventure's "profit or interest"                                          | Headed provisional, expected or estimated, trued up both ways, and not binding (SS 40 5/2; EBL; Pakistan's "expected profit rate")                                     |
 | **A range, before the result**            | Paired with the farm bearing the loss (WeGro 2024)                                                                                                                                                        | Low and high with the working and a loss case (BNM best/flat/worst; PRIIPs scenarios; biniyog's loss example; OpenFarm's Projection). No enforcement case used a range |
 | **A rate a year on a short run**          | Multiplied up from a few months to a year and put first: Investify's 24%; the cloud kitchens' "24 percent annually", which a Bangladesh Bank spokesman called banking [SECONDARY]                         | Not annualised under a year (GIPS; PRIIPs; SEC N-1A). Where it is annualised, the formula is shown with "no certainty" (FINRA 2220)                                    |
-| **A realised return, after the result**   | Used to sell the next offer (BSEC Sch. 4 item ২(ক); BSEC's warning about "a small profit shown first"); left showing the projection after completion (biniyog, DeenAgro)                                  | Stated from the accounts with the method: IBBL final rates; Freshie's taka per share; BNM G 16.10; IFSB-22; FINRA FAQ D.6. No case concerns one                        |
+| **A realized return, after the result**   | Used to sell the next offer (BSEC Sch. 4 item ২(ক); BSEC's warning about "a small profit shown first"); left showing the projection after completion (biniyog, DeenAgro)                                  | Stated from the accounts with the method: IBBL final rates; Freshie's taka per share; BNM G 16.10; IFSB-22; FINRA FAQ D.6. No case concerns one                        |
 | **Beside a bank rate**                    | Used as the lure: Sukher Khamar's "three times bank savings"; the press account of the Meherpur cooperatives, "where a bank pays at most 5%, these promise 15–20%"                                        | Given as context in a bank's own disclosure (IFSB-22 ¶90). BSEC's item ৮ says a past return is "not a basis for comparison with other investments"                     |
-| **A figure honoured whatever happens**    | Topped up to the stated rate: IBBL's hiba, AIBL's "no claim if lower", the 4% for the merged banks (IFSB GN-3; IFSB-9 "in effect, a guarantee of interest")                                               | Paid on what was made, a loss included, with any gift from the mudarib disclosed as such (SS 40 5/6)                                                                   |
+| **A figure honored whatever happens**    | Topped up to the stated rate: IBBL's hiba, AIBL's "no claim if lower", the 4% for the merged banks (IFSB GN-3; IFSB-9 "in effect, a guarantee of interest")                                               | Paid on what was made, a loss included, with any gift from the mudarib disclosed as such (SS 40 5/6)                                                                   |
 
 Two things turn a stated figure into a promise, whatever the label says:
 
@@ -494,11 +494,11 @@ A figure worked from a closed account, stated with its working and with its loss
 ### Constraints the spec should respect
 
 1. **A settled return is a fact and may be shown.** Show it only after the **Settlement** is approved, and work it from the Settlement's own figures: the Investor's payout against their capital. This is what SS 13 8/7–8/8, BNM G 16.10, IFSB-22 and FINRA FAQ D.6 all allow. It is the kind of fact the **Investor Statement** rule already admits: "weights, gains and days are facts".
-2. **Taka first, then the share, then the days.** Freshie Farm, the only cattle scheme that states realised results, states them in taka per share. The share of capital comes next. The Venture's own days sit beside it, so the reader sees the period and not a year.
+2. **Taka first, then the share, then the days.** Freshie Farm, the only cattle scheme that states realized results, states them in taka per share. The share of capital comes next. The Venture's own days sit beside it, so the reader sees the period and not a year.
 3. **A loss is stated the same way.** It is a negative share of capital, in the same place and the same size, with the standing footer. BNM requires "both the potential upside return and downside risk of losses" (S 25.2(h)(iii)), and biniyog's loss example states a loss in the same form as a gain.
 4. **A rate a year never stands alone.** For a run under a year it is an extrapolation: GIPS calls it "a simulated return". If an Investor is shown one:
    - it sits after the share for the run;
-   - it is labelled as that share scaled to a year;
+   - it is labeled as that share scaled to a year;
    - its working is shown, as SS 47 §9 and BSEC's item ৮ require;
    - it is not the most prominent figure (FCA; BNM S 25.2(h)(iv)).
 
@@ -535,7 +535,7 @@ A figure worked from a closed account, stated with its working and with its loss
 - **Ticket 07, which bank rate, and for whom.**
   - Candidates: an Islamic bank's final mudaraba rate, a Shariah-side figure published yearly (IBBL since 2013), or Bangladesh Bank's "deposit rate (percentage per annum)" chart.
   - Tax: EXIM's and Al-Arafah's tables show the profit before and after the 10% tax.
-  - For the Owner's own judgement a bank rate beside the return is ordinary: IFSB-22 ¶90 has banks compare with market returns.
+  - For the Owner's own judgment a bank rate beside the return is ordinary: IFSB-22 ¶90 has banks compare with market returns.
   - For Investors it points the other way. BSEC's item ৮ says a past return is not a basis for comparing investments. Sukher Khamar markets itself as "three times bank savings", and the press explained the pull of the Meherpur cooperatives the same way.
 
 ### Take to the lawyer and the Shariah scholar

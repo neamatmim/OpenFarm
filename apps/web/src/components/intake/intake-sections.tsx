@@ -27,7 +27,7 @@ interface PartProps {
   onEdit: (patch: Partial<IntakeFields>) => void;
 }
 
-/** A number box, labelled, with an optional line beneath. */
+/** A number box, labeled, with an optional line beneath. */
 const NumberField = ({
   id,
   label,
@@ -325,7 +325,7 @@ const PerKgLine = ({ fields }: { fields: IntakeFields }) => {
   );
 };
 
-/** A Venture's bull with no outing: paid from its account by bank, so the transfer or cheque and the day it moved. */
+/** A Venture's bull with no outing: paid from its account by bank, so the transfer or check and the day it moved. */
 const PaidFromTheAccount = ({ fields, onEdit }: PartProps) => {
   const { t } = useLanguage();
   return (

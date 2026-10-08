@@ -69,7 +69,7 @@ const OtherNames = ({ disease }: { disease: Disease }) => {
 const nameOf = (disease: Disease, language: string) =>
   language === "en" && disease.nameEn ? disease.nameEn : disease.nameBn;
 
-/** On the list, or taken off it, as a word with its colour. */
+/** On the list, or taken off it, as a word with its color. */
 const Standing = ({ disease }: { disease: Disease }) => {
   const { t } = useLanguage();
   return disease.retiredAt ? (

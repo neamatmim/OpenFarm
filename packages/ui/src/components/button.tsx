@@ -3,7 +3,7 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import { cva } from "class-variance-authority";
 import type { VariantProps } from "class-variance-authority";
 
-/** A small button keeps its look and gets a thumb's 44px to press on a phone: an invisible area round it, centred. */
+/** A small button keeps its look and gets a thumb's 44px to press on a phone: an invisible area round it, centered. */
 const WIDE_TARGET =
   "relative max-md:after:absolute max-md:after:inset-x-0 max-md:after:top-1/2 max-md:after:h-11 max-md:after:-translate-y-1/2 max-md:after:content-['']";
 const SQUARE_TARGET =

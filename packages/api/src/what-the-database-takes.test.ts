@@ -41,7 +41,7 @@ const listedColumns = () =>
 
 // Left free, each for its reason: the Owner's settings, refused out of range by their own form; a balance the bank
 // shows, which may be overdrawn; a plan's guesses; a Settlement's figures, which may be a loss; the tank's
-// difference from the cows' own litres, either way; the sign-in limiter's own count; a Ration's expected gain; and what a
+// difference from the cows' own liters, either way; the sign-in limiter's own count; a Ration's expected gain; and what a
 // Buying Float counted home did not account for, short or over.
 const leftFree = (table: string, column: string): boolean =>
   [
@@ -55,7 +55,7 @@ const leftFree = (table: string, column: string): boolean =>
     "venture_settlement_adjustment",
   ].includes(table) ||
   [
-    "milking_session.difference_litres",
+    "milking_session.difference_liters",
     "rate_limit.count",
     "ration.expected_gain_high_kg",
     "ration.expected_gain_low_kg",
@@ -77,12 +77,12 @@ describe("what the database takes", () => {
     }
   });
 
-  it("holds every amount, weight, litre and count at nothing or more, but those that may go below", async () => {
+  it("holds every amount, weight, liter and count at nothing or more, but those that may go below", async () => {
     const checks = await checksInTheDatabase();
     const result = await scratchDb().execute<{ table: string; column: string }>(
       sql`select table_name as table, column_name as column from information_schema.columns
           where table_schema = 'public' and data_type in ('numeric', 'integer', 'bigint')
-            and column_name ~ '(money|_bdt|_kg|litres|quantity|doses|units|counted|amount|_days$|^days$|count$|animals$|sessions)'`
+            and column_name ~ '(money|_bdt|_kg|liters|quantity|doses|units|counted|amount|_days$|^days$|count$|animals$|sessions)'`
     );
     const unheld = result.rows
       .filter(({ table, column }) => !leftFree(table, column))

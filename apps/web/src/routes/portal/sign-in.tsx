@@ -36,7 +36,7 @@ const PortalLogin = () => {
   const [refused, setRefused] = useState<SignInRefusal | null>(null);
   const [pending, setPending] = useState(false);
   const signIn = async () => {
-    // Always pressable, as the farm's own sign-in is: a grey button says nothing about what it is waiting for.
+    // Always pressable, as the farm's own sign-in is: a gray button says nothing about what it is waiting for.
     if (phone.trim() === "" || password === "") {
       setRefused({ message: t("portal.fillBoth"), home: null });
       return;

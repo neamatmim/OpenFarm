@@ -73,7 +73,7 @@ const CullFigures = ({
   );
 };
 
-/** What a litre is priced at for every cow on the page, and where that came from — or that nothing could be. */
+/** What a liter is priced at for every cow on the page, and where that came from — or that nothing could be. */
 const MilkPriceLine = ({
   price,
   days,
@@ -83,7 +83,7 @@ const MilkPriceLine = ({
   days: number | undefined;
 }) => {
   const { t } = useLanguage();
-  const perLitre = useMoneyRate();
+  const perLiter = useMoneyRate();
   if (!price) {
     return (
       <Notice
@@ -99,7 +99,7 @@ const MilkPriceLine = ({
   return (
     <p className="text-muted-foreground text-sm">
       {t("cull.price", {
-        price: perLitre(price.moneyPerLitre),
+        price: perLiter(price.moneyPerLiter),
         days: price.days,
       })}
     </p>

@@ -335,7 +335,7 @@ describe("a Venture called off", () => {
     const called = ventures.find((one) => one.id === doomed.id);
     // Every taka that came in has gone back, so the account should hold nothing.
     expect(called).toMatchObject({
-      state: "cancelled",
+      state: "canceled",
       capitalInMoney: 250_000,
       refundedMoney: 250_000,
       balanceMoney: 0,

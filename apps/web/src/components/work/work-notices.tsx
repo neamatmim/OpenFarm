@@ -293,18 +293,18 @@ export const WhatChanged = ({ changed }: { changed: Changed }) => {
 
 /** What the tank reading came to. A difference beyond the farm's tolerance has already been
  *  flagged for the Manager server-side; this says so, rather than asking the person to fix
- *  it in the parlour. */
+ *  it in the parlor. */
 export const BulkOutcomeBanner = ({ outcome }: { outcome: BulkOutcome }) => {
   const { t, language } = useLanguage();
-  const litres = new Intl.NumberFormat(
+  const liters = new Intl.NumberFormat(
     language === "bn" ? "bn-BD" : "en-GB"
-  ).format(Math.abs(outcome.differenceLitres));
+  ).format(Math.abs(outcome.differenceLiters));
   return (
     <Notice
       title={
-        outcome.differenceLitres === 0
+        outcome.differenceLiters === 0
           ? t("milk.matched")
-          : t("milk.difference", { litres })
+          : t("milk.difference", { liters })
       }
       tone={outcome.flagged ? "warning" : "success"}
     >

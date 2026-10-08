@@ -18,7 +18,7 @@ export const VENTURE_STATES = [
   "fattening",
   "selling",
   "settled",
-  "cancelled",
+  "canceled",
 ] as const;
 export type VentureState = (typeof VENTURE_STATES)[number];
 
@@ -37,11 +37,11 @@ export const isRunning = (state: VentureState): state is RunningState =>
   (RUNNING_STATES as readonly VentureState[]).includes(state);
 
 /** A Venture whose run is over, either way it ended. */
-export const ENDED_STATES = ["settled", "cancelled"] as const;
+export const ENDED_STATES = ["settled", "canceled"] as const;
 export type EndedState = (typeof ENDED_STATES)[number];
 
 /**
- * Whether the run is over: a settled Venture's books are closed and a cancelled one's money has gone
+ * Whether the run is over: a settled Venture's books are closed and a canceled one's money has gone
  * back. Neither takes an act that would move a figure somebody has already been paid on.
  */
 export const hasEnded = (state: VentureState): state is EndedState =>
@@ -60,7 +60,7 @@ export const isStillBuying = (state: VentureState): boolean =>
  * Where a Venture may go from where it is — the route the farm takes it along on purpose.
  *
  * Buying reaches Selling as well as Fattening, because a Sale is what moves a Venture to Selling and
- * one may be recorded before the farm has said buying is over. Cancelled is reachable only from Open:
+ * one may be recorded before the farm has said buying is over. Canceled is reachable only from Open:
  * once a taka has bought an animal there is no returning capital and only capital.
  *
  * Settled is the one the farm does not move it to. `reachesSettledOnLastPayout` sets it when the last
@@ -69,12 +69,12 @@ export const isStillBuying = (state: VentureState): boolean =>
  * settling itself on this table without deciding that question first.
  */
 const TRANSITIONS: Record<VentureState, readonly VentureState[]> = {
-  open: ["buying", "cancelled"],
+  open: ["buying", "canceled"],
   buying: ["fattening", "selling"],
   fattening: ["selling"],
   selling: ["settled"],
   settled: [],
-  cancelled: [],
+  canceled: [],
 };
 
 /** Every state a Venture in this one may reach next. */

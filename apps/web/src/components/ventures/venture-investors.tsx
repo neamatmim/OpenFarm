@@ -193,7 +193,7 @@ interface InvestorRow extends Agreement {
   /** Capital is taken against the stamped paper, while the run is still gathering it. */
   mayTakeCapital: boolean;
   /** Nothing is done to the papers of a called-off Venture. */
-  cancelled: boolean;
+  canceled: boolean;
   papers: ReturnType<typeof useInvestorPapers>;
   handleTakeCapital: () => void;
   handlePay: () => void;
@@ -239,7 +239,7 @@ const SplitCell = ({ row }: InvestorCell) => {
 
 /**
  * Paid by the month and running: how many of his Monthly Sums are paid, and the one thing to know next — what he has
- * missed, what is due and not yet late, or the next sum and its day. Missed is said in the warning's colour; the
+ * missed, what is due and not yet late, or the next sum and its day. Missed is said in the warning's color; the
  * Owner rings him, and nothing is ever charged for it. Nothing for a Venture paid before buying, or an answer cached
  * before Ventures were paid by the month.
  */
@@ -276,7 +276,7 @@ const SumsLine = ({ sums }: { sums: Agreement["sums"] | undefined }) => {
   );
 };
 
-/** What he has paid against what his Units are worth, the paid part in the warning's colour until they agree. */
+/** What he has paid against what his Units are worth, the paid part in the warning's color until they agree. */
 const PaidCell = ({ row }: InvestorCell) => {
   const asMoney = useMoney();
   const { paidMoney, owedMoney, sums } = row.original;
@@ -332,7 +332,7 @@ const RowActions = ({
   const { t } = useLanguage();
   // Put right against the stamped paper only while nothing has been paid on it.
   const nothingPaidOnIt = row.paidMoney === 0;
-  const mayPutRight = nothingPaidOnIt && !row.cancelled && !row.isFarm;
+  const mayPutRight = nothingPaidOnIt && !row.canceled && !row.isFarm;
   return (
     <>
       {row.share ? (
@@ -354,12 +354,12 @@ const RowActions = ({
           {t("ventures.takeCapital")}
         </Button>
       ) : null}
-      {paperOnFile(row) || row.cancelled || row.isFarm ? null : (
+      {paperOnFile(row) || row.canceled || row.isFarm ? null : (
         <AgreementPaperButton agreementId={row.id} idPrefix={idPrefix} />
       )}
       {mayPutRight ? <CorrectAgreement agreement={row} /> : null}
       {/* The Farm's own Units have no papers: no Agreement, no statements to send itself. */}
-      {row.cancelled || row.isFarm ? null : (
+      {row.canceled || row.isFarm ? null : (
         <PapersMenu
           agreementId={row.id}
           hasPaid={row.paidMoney > 0}
@@ -534,7 +534,7 @@ export const VentureInvestors = ({
   const open = venture.state === "open";
   // Open, or paid by the month and running: the Monthly Sums come in while it buys and fattens.
   const taking = takesCapitalNow(venture);
-  const cancelled = venture.state === "cancelled";
+  const canceled = venture.state === "canceled";
   const settled = venture.settlementApproved ?? false;
   if (agreements.isPending) {
     return <Skeleton className="h-40 rounded-xl" />;
@@ -562,7 +562,7 @@ export const VentureInvestors = ({
       settled,
       advanceFirst,
       mayTakeCapital: taking && mayPayIn(one),
-      cancelled,
+      canceled,
       papers,
       handleTakeCapital: () => acts.takeCapital(venture, one.id),
       handlePay: () => {
@@ -636,7 +636,7 @@ export const VentureInvestors = ({
         <InvestorsTable approved={approved !== null} rows={rows} />
       )}
       {open ? <OffersInApp ventureId={venture.id} /> : null}
-      {cancelled ? null : <AmendmentOffersInApp ventureId={venture.id} />}
+      {canceled ? null : <AmendmentOffersInApp ventureId={venture.id} />}
       <PayOutSheet
         onOpenChange={(wanted) => {
           if (!wanted) {

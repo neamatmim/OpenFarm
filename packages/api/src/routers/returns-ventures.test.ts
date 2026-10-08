@@ -324,7 +324,7 @@ describe("what the Investor reads of it (ADR 0012)", () => {
   // Rafiq's own: his ৳16,200 on his ৳10,00,000 from 3 January to his payout on 2 April — 1.6 on every hundred over
   // 89 days, as the Owner reads the whole Venture's, since his is the whole of it.
   const HIS = { per100: 1.6, days: 89 };
-  /** Nothing of a rate a year, however it might be spelt: a field, the Owner's 6.6 standing as a number of its own — not
+  /** Nothing of a rate a year, however it might be spelled: a field, the Owner's 6.6 standing as a number of its own — not
    *  inside ৯৬,৬৬৬.৬৭ — or the words for one. */
   const A_YEAR =
     /perYear|(?<![\d০-৯.,])(?:6\.6|৬\.৬)(?![\d০-৯])|বছরে|বার্ষিক|a year|annual|p\.a\./iu;

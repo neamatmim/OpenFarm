@@ -38,7 +38,7 @@ import { orpc } from "@/utils/orpc";
 import type { Dispatch, MilkDay } from "./milk-types";
 import { shiftDay, worthOf } from "./milk-types";
 
-/** The Manager puts a Dispatch right — when it left, litres, price, buyer, delivery note, fat and SNF, its note, what was paid
+/** The Manager puts a Dispatch right — when it left, liters, price, buyer, delivery note, fat and SNF, its note, what was paid
  *  then or the day promised — with the reason. */
 const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
   const { t } = useLanguage();
@@ -46,8 +46,8 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
     voided: voiding(),
     // A collection typed in after midnight is put back on the day the milk left.
     dispatchedAt: moment(dispatch.dispatchedAt),
-    litres: amount(dispatch.litres),
-    pricePerLitreMoney: amount(dispatch.pricePerLitreMoney),
+    liters: amount(dispatch.liters),
+    pricePerLiterMoney: amount(dispatch.pricePerLiterMoney),
     buyer: counterparty(dispatch.buyerName),
     deliveryNote: note(dispatch.deliveryNote),
     fatPercent: optionalFigure(dispatch.fatPercent ?? null),
@@ -56,7 +56,7 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
     // Left out of a day cached before Receivable was written down: paid in full, as every such Dispatch was.
     paidNowMoney: figure(
       paidAtTheGate(
-        worthOf(dispatch.litres, dispatch.pricePerLitreMoney),
+        worthOf(dispatch.liters, dispatch.pricePerLiterMoney),
         dispatch.receivableMoney ?? 0
       )
     ),
@@ -85,17 +85,17 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
       <div className="grid gap-4 sm:grid-cols-2">
         <CorrectionAnswer
           inputMode="decimal"
-          label={t("dispatch.litresField")}
-          onChange={(value) => correcting.set("litres", value)}
+          label={t("dispatch.litersField")}
+          onChange={(value) => correcting.set("liters", value)}
           type="number"
-          value={correcting.typed.litres ?? ""}
+          value={correcting.typed.liters ?? ""}
         />
         <CorrectionAnswer
           inputMode="decimal"
           label={t("dispatch.price")}
-          onChange={(value) => correcting.set("pricePerLitreMoney", value)}
+          onChange={(value) => correcting.set("pricePerLiterMoney", value)}
           type="number"
-          value={correcting.typed.pricePerLitreMoney ?? ""}
+          value={correcting.typed.pricePerLiterMoney ?? ""}
         />
       </div>
       <CorrectionAnswer
@@ -189,11 +189,11 @@ const DeliveryNoteCell = ({ row }: { row: { original: DispatchRow } }) =>
     <Nothing />
   );
 
-const LitresCell = ({ row }: { row: { original: DispatchRow } }) => {
+const LitersCell = ({ row }: { row: { original: DispatchRow } }) => {
   const { t, language } = useLanguage();
   return (
     <span className="font-semibold whitespace-nowrap">
-      {formatNumber(row.original.litres, language)} {t("dispatch.litres")}
+      {formatNumber(row.original.liters, language)} {t("dispatch.liters")}
     </span>
   );
 };
@@ -203,7 +203,7 @@ const PriceCell = ({ row }: { row: { original: DispatchRow } }) => {
   return (
     <span className="whitespace-nowrap">
       {currencySign()}
-      {formatNumber(row.original.pricePerLitreMoney, language)}
+      {formatNumber(row.original.pricePerLiterMoney, language)}
     </span>
   );
 };
@@ -237,12 +237,12 @@ const dispatchColumns = column.columns([
     header: listHeader("dispatch.deliveryNote"),
     cell: DeliveryNoteCell,
   }),
-  column.accessor("litres", {
-    header: listHeader("dispatch.litresField"),
-    cell: LitresCell,
+  column.accessor("liters", {
+    header: listHeader("dispatch.litersField"),
+    cell: LitersCell,
     meta: { align: "end" },
   }),
-  column.accessor("pricePerLitreMoney", {
+  column.accessor("pricePerLiterMoney", {
     header: listHeader("dispatch.price"),
     cell: PriceCell,
     meta: { align: "end" },
@@ -267,7 +267,7 @@ const dispatchColumns = column.columns([
   }),
 ]);
 
-/** A Dispatch on a phone: the buyer on top, the litres large, and when, the delivery note and the price beneath. */
+/** A Dispatch on a phone: the buyer on top, the liters large, and when, the delivery note and the price beneath. */
 const DispatchCard = ({ row }: { row: DispatchRow }) => {
   const { t, language } = useLanguage();
   return (
@@ -280,11 +280,11 @@ const DispatchCard = ({ row }: { row: DispatchRow }) => {
           promisedBy={row.promisedBy}
         />
         <span className="font-semibold tabular-nums">
-          {formatNumber(row.litres, language)} {t("dispatch.litres")}
+          {formatNumber(row.liters, language)} {t("dispatch.liters")}
           <span className="text-muted-foreground text-xs font-normal">
             {" "}
             · {currencySign()}
-            {formatNumber(row.pricePerLitreMoney, language)}
+            {formatNumber(row.pricePerLiterMoney, language)}
           </span>
         </span>
         <span className="text-muted-foreground text-xs">

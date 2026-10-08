@@ -9,7 +9,7 @@
  * Noto Sans Bengali, declared here rather than imported, for one change: where its line sits. As shipped, the font
  * keeps room below the baseline for descenders that Bangla seldom uses, so a word's body (headline to baseline) rides
  * about 0.1em above the middle of its line — beside an icon, every label looks lifted. The overrides move the same
- * total height from below the baseline to above it, which centres the body; the line itself is no taller or shorter.
+ * total height from below the baseline to above it, which centers the body; the line itself is no taller or shorter.
  * Measured against the sidebar's icons: 1.5–3px high before, within half a pixel after.
  */
 @font-face {
@@ -63,7 +63,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* The one surface every card, section and tile sits on: the card colour and a hairline. Flat — the border says where
+/* The one surface every card, section and tile sits on: the card color and a hairline. Flat — the border says where
    a surface ends, and a shadow would only say it again. */
 @utility surface {
   background-color: var(--card);
@@ -75,7 +75,7 @@
 
 /*
  * OpenFarm — a working farm ledger. Evergreen on a neutral ground, white surfaces with hairlines, tight corners: the
- * plain frame of an operations tool, so the farm's figures are what stand out. The same ledger at night. Status is never colour alone: every semantic colour comes with its word and its icon.
+ * plain frame of an operations tool, so the farm's figures are what stand out. The same ledger at night. Status is never color alone: every semantic color comes with its word and its icon.
  */
 :root {
   color-scheme: light;
@@ -100,7 +100,7 @@
   --ring: oklch(0.55 0.09 160);
 
   --success: oklch(0.4 0.1 150);
-  /* Words and marks drawn on the success colour itself — a Step's done tick — as the primary's are: 8.6:1. */
+  /* Words and marks drawn on the success color itself — a Step's done tick — as the primary's are: 8.6:1. */
   --success-foreground: oklch(0.99 0.004 150);
   --success-surface: oklch(0.95 0.025 150);
   --warning: oklch(0.43 0.095 75);
@@ -153,7 +153,7 @@
   --ring: oklch(0.65 0.1 155);
 
   --success: oklch(0.78 0.12 150);
-  /* 9.8:1 on the night's lighter success colour, as the primary's foreground is dark on the night's primary. */
+  /* 9.8:1 on the night's lighter success color, as the primary's foreground is dark on the night's primary. */
   --success-foreground: oklch(0.18 0.03 160);
   --success-surface: oklch(0.29 0.05 150);
   --warning: oklch(0.82 0.12 80);
@@ -304,7 +304,7 @@
   h3 {
     text-wrap: balance;
   }
-  /* Capitals only for the overline: the small grey names over a group of menu items, as enterprise design systems
+  /* Capitals only for the overline: the small gray names over a group of menu items, as enterprise design systems
      keep them. Everything a person reads as words — titles, buttons, labels, a table's column headings — is in
      sentence case: headings in capitals made every English column wider than its figures, and a table that fitted in
      Bangla ran off its card in English. Bangla has no capitals, and letter-spacing would pull its joined letters

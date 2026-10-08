@@ -8,8 +8,8 @@ import { FigureTerm } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 
-/** The colours the allocation is drawn in, from the design tokens, in the order the Ventures are listed. Each is
- *  named in words beside it too, so nothing rests on telling two colours apart. */
+/** The colors the allocation is drawn in, from the design tokens, in the order the Ventures are listed. Each is
+ *  named in words beside it too, so nothing rests on telling two colors apart. */
 const SWATCHES = [
   "bg-chart-1",
   "bg-chart-2",
@@ -133,7 +133,7 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
 
 /**
  * Where the capital held now sits, by Venture: one bar split in the Ventures' shares, and each named with its taka
- * and its percent beneath — the bar for the eye, the words for anybody who cannot tell the colours apart. Drawn only
+ * and its percent beneath — the bar for the eye, the words for anybody who cannot tell the colors apart. Drawn only
  * once there are two to compare.
  */
 export const Allocation = ({ theirs }: { theirs: TheirAgreements }) => {

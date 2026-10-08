@@ -44,7 +44,7 @@ export interface HisAgreement {
  * moved it, and the reference it went on — the four things that let him hold a paper beside his own bank
  * statement and find the same lines.
  *
- * Both ways, because a Venture that missed its Floor is cancelled and every taka goes back: a sheet
+ * Both ways, because a Venture that missed its Floor is canceled and every taka goes back: a sheet
  * showing only what came in would tell a man the Farm holds money it has already returned.
  */
 export interface HisCapital {
@@ -108,7 +108,7 @@ const noSuchAgreement = () =>
  * Every existing reading of a Venture is Venture-shaped: `ventures.agreements.list` and `ventures.movements`
  * hand back every Agreement and every movement on the run, and a Settlement's payout rows carry every
  * Investor's name. A statement assembled from those would be one careless `.filter` away from sending a
- * man his neighbour's money, and a payload that reached a browser holding it has left the farm whatever
+ * man his neighbor's money, and a payload that reached a browser holding it has left the farm whatever
  * the paper printed. So the narrowing happens here, in the one place the three papers read through, and
  * what comes back was never wider than the man it is for (CONTEXT: Investor Statement).
  *
@@ -163,7 +163,7 @@ export const hisStanding = async (
   const inForce = await nominationInForce(tx, farmId, investor.id);
   // His own capital, asked for by his Agreement: a Float or a Reimbursement is the Venture's money and no
   // Investor's, and another man's capital is none of his business. Refunds as well as what came in — a
-  // cancelled Venture sends every taka back, and those movements carry his Agreement too.
+  // canceled Venture sends every taka back, and those movements carry his Agreement too.
   const moved = await tx.query.ventureMovement.findMany({
     where: {
       farmId,
@@ -283,7 +283,7 @@ export const hisHolding = (
   spend: Pick<TheirSpend, "signedUnits" | "heldUnits">,
   venture: { state: VentureRow["state"]; unitPriceMoney: number }
 ) => {
-  const gathering = venture.state === "open" || venture.state === "cancelled";
+  const gathering = venture.state === "open" || venture.state === "canceled";
   if (gathering) {
     return {
       units: his.units,
@@ -308,7 +308,7 @@ const KEEPING_THEM = new Set<ChargeWord>(["feed", "medicine", "vet", "herd"]);
  *
  * The charge lines are the Settlement's own — `chargeLinesOf`, the same seven words off the same costing
  * — so that what an Investor is shown while the run goes on adds up the same way as what he is shown
- * when it ends. A progress sheet that totalled differently from the settlement sheet would be the farm
+ * when it ends. A progress sheet that totaled differently from the settlement sheet would be the farm
  * arguing with itself in front of the man whose money it is.
  *
  * Both purses, because the costing covers both: what the Venture's own Float paid at the livestock market, and what
@@ -477,7 +477,7 @@ export interface HisSettlement {
  *
  * Never recomputed. Approving wrote the figures down as they stood and every Investor was paid on them,
  * so what he is shown a year later has to be what he was shown on the day — which is why the Corrections
- * that would move them are refused in favour of an Adjustment. A sheet that worked the sum out afresh
+ * that would move them are refused in favor of an Adjustment. A sheet that worked the sum out afresh
  * would quietly undo all of that.
  *
  * Narrowed to his Agreement before it leaves: the frozen read carries every Investor's share row and

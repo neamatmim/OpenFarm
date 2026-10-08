@@ -20,7 +20,7 @@ describe("enrolling a Shed Phone", () => {
   it("gives the Manager a one-time code the phone exchanges for its own token", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
 
-    const enrolled = await manager.client.devices.enrol({
+    const enrolled = await manager.client.devices.enroll({
       name: `phone-${Date.now()}`,
     });
     const claimed = await manager.client.devices.claim({ code: enrolled.code });
@@ -37,10 +37,10 @@ describe("enrolling a Shed Phone", () => {
 
   it("takes the code however it was typed off the Manager's screen — small letters, spaces, a dash", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
-    const enrolled = await manager.client.devices.enrol({
+    const enrolled = await manager.client.devices.enroll({
       name: `phone-typed-${Date.now()}`,
     });
-    // Read out in two halves, typed on a phone that does not capitalise.
+    // Read out in two halves, typed on a phone that does not capitalize.
     const typed =
       `${enrolled.code.slice(0, 5)} - ${enrolled.code.slice(5)}`.toLowerCase();
     const claimed = await manager.client.devices.claim({ code: typed });
@@ -69,7 +69,7 @@ describe("enrolling a Shed Phone", () => {
       as: "manager",
       from: "203.0.113.20",
     });
-    const enrolled = await manager.client.devices.enrol({
+    const enrolled = await manager.client.devices.enroll({
       name: `after-a-stranger-${Date.now()}`,
     });
     const claimed = await manager.client.devices.claim({ code: enrolled.code });
@@ -79,7 +79,7 @@ describe("enrolling a Shed Phone", () => {
   it("refuses an expired code", async () => {
     const clock = new FakeClock("2026-09-11T05:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const enrolled = await manager.client.devices.enrol({
+    const enrolled = await manager.client.devices.enroll({
       name: `stale-${Date.now()}`,
     });
 
@@ -94,7 +94,7 @@ describe("enrolling a Shed Phone", () => {
 
   it("a revoked phone cannot be used again", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
-    const enrolled = await manager.client.devices.enrol({
+    const enrolled = await manager.client.devices.enroll({
       name: `revoked-${Date.now()}`,
     });
 
@@ -104,7 +104,7 @@ describe("enrolling a Shed Phone", () => {
       where: { id: enrolled.id },
     });
     expect(row?.revokedAt).toBeInstanceOf(Date);
-    expect(row?.enrolmentCode).toBeNull();
+    expect(row?.enrollmentCode).toBeNull();
     await expect(
       manager.client.devices.revoke({ id: enrolled.id })
     ).rejects.toMatchObject({
@@ -114,7 +114,7 @@ describe("enrolling a Shed Phone", () => {
 
   it("tells a revoked phone so when somebody tries to PIN in on it, rather than letting it pass for no signal", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
-    const enrolled = await manager.client.devices.enrol({
+    const enrolled = await manager.client.devices.enroll({
       name: `lost-${Date.now()}`,
     });
     const { token } = await manager.client.devices.claim({
@@ -139,7 +139,7 @@ describe("enrolling a Shed Phone", () => {
 
   it("tells a revoked phone so on everything it asks, not only at its next PIN", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
-    const enrolled = await manager.client.devices.enrol({
+    const enrolled = await manager.client.devices.enroll({
       name: `lost-again-${Date.now()}`,
     });
     const { token } = await manager.client.devices.claim({
@@ -162,7 +162,7 @@ describe("enrolling a Shed Phone", () => {
     });
   });
 
-  it("only those who run the farm may enrol, and only from their own phone", async () => {
+  it("only those who run the farm may enroll, and only from their own phone", async () => {
     const staff = await createTestClient(appRouter, { as: "staff" });
     const managerOnPhone = await createTestClient(appRouter, {
       as: "manager",
@@ -170,12 +170,12 @@ describe("enrolling a Shed Phone", () => {
     });
 
     await expect(
-      staff.client.devices.enrol({ name: "x" })
+      staff.client.devices.enroll({ name: "x" })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     await expect(
-      managerOnPhone.client.devices.enrol({ name: "x" })
+      managerOnPhone.client.devices.enroll({ name: "x" })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
@@ -356,7 +356,7 @@ describe("review findings", () => {
     expect(where.autoLockMinutes).toBe(5);
   });
 
-  it("an unknown or revoked token does not break the phone: it can still enrol again", async () => {
+  it("an unknown or revoked token does not break the phone: it can still enroll again", async () => {
     const { resolveDeviceSession } = await import("../device");
 
     const unknown = await resolveDeviceSession(
@@ -440,10 +440,10 @@ describe("review findings", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it("enrolment codes are long and unambiguous", async () => {
-    const { randomEnrolmentCode } = await import("../device");
+  it("enrollment codes are long and unambiguous", async () => {
+    const { randomEnrollmentCode } = await import("../device");
 
-    const codes = Array.from({ length: 50 }, () => randomEnrolmentCode());
+    const codes = Array.from({ length: 50 }, () => randomEnrollmentCode());
 
     expect(codes.every((code) => /^[0-9A-HJKMNP-TV-Z]{10}$/u.test(code))).toBe(
       true

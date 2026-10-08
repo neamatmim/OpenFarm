@@ -20,7 +20,7 @@ import {
   extendSwitch,
   hashToken,
   openSwitch,
-  randomEnrolmentCode,
+  randomEnrollmentCode,
   randomToken,
   requireDevice,
 } from "../device";
@@ -29,8 +29,8 @@ import { rolesOf } from "../membership";
 import { silenceDevice } from "../push-store";
 import { requirePersonalSession, requireRole } from "../roles";
 
-/** How long a Manager's enrolment code is good for. Long enough to walk to the shed. */
-const ENROLMENT_MINUTES = 30;
+/** How long a Manager's enrollment code is good for. Long enough to walk to the shed. */
+const ENROLLMENT_MINUTES = 30;
 const MINUTE_MS = 60_000;
 
 export const devicesRouter = {
@@ -47,15 +47,15 @@ export const devicesRouter = {
           claimedAt: true,
           lastSeenAt: true,
           revokedAt: true,
-          enrolmentCode: true,
-          enrolmentExpiresAt: true,
+          enrollmentCode: true,
+          enrollmentExpiresAt: true,
         },
         orderBy: { name: "asc" },
       })
     ),
 
   /** Creates the phone and a one-time code the Manager reads out to it. */
-  enrol: protectedProcedure
+  enroll: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
     .input(
@@ -67,7 +67,7 @@ export const devicesRouter = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const id = uuidv7(now);
-      const code = randomEnrolmentCode();
+      const code = randomEnrollmentCode();
       await audited(context).write(
         {
           entity: "shed_phone",
@@ -84,9 +84,9 @@ export const devicesRouter = {
             // No token until the phone claims the code; a hash of the id keeps the column
             // unique and unusable as a credential.
             tokenHash: `unclaimed:${id}`,
-            enrolmentCode: code,
-            enrolmentExpiresAt: new Date(
-              now.getTime() + ENROLMENT_MINUTES * MINUTE_MS
+            enrollmentCode: code,
+            enrollmentExpiresAt: new Date(
+              now.getTime() + ENROLLMENT_MINUTES * MINUTE_MS
             ),
             enrolledBy: context.actor.id,
             enrolledByRole: context.roleUsed,
@@ -97,7 +97,7 @@ export const devicesRouter = {
         id,
         name: input.name,
         code,
-        expiresInMinutes: ENROLMENT_MINUTES,
+        expiresInMinutes: ENROLLMENT_MINUTES,
       };
     }),
 
@@ -105,7 +105,7 @@ export const devicesRouter = {
   claim: publicProcedure
     .input(
       z.object({
-        // As it was read off the Manager's screen and typed: a phone that does not capitalise, a space or a dash where
+        // As it was read off the Manager's screen and typed: a phone that does not capitalize, a space or a dash where
         // the Manager paused. The code itself is capitals and digits, run together.
         code: z
           .string()
@@ -116,7 +116,7 @@ export const devicesRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      // Enrolment codes are long and short-lived; this stops a script walking through them anyway. Counted per
+      // Enrollment codes are long and short-lived; this stops a script walking through them anyway. Counted per
       // caller: one key for everybody let ten junk requests shut every new phone out for a quarter of an hour.
       const guesses = `claim:${context.callerAddress ?? "unknown"}`;
       if (lockedOut(guesses, now, CODE_ATTEMPTS)) {
@@ -126,13 +126,13 @@ export const devicesRouter = {
         });
       }
       const phone = await context.db.query.shedPhone.findFirst({
-        where: { enrolmentCode: input.code },
+        where: { enrollmentCode: input.code },
       });
       if (
         !phone ||
         phone.revokedAt ||
-        !phone.enrolmentExpiresAt ||
-        phone.enrolmentExpiresAt <= now
+        !phone.enrollmentExpiresAt ||
+        phone.enrollmentExpiresAt <= now
       ) {
         countFailure(guesses, now, CODE_ATTEMPTS);
         throw new ORPCError("NOT_FOUND", {
@@ -155,15 +155,15 @@ export const devicesRouter = {
             .update(shedPhone)
             .set({
               tokenHash: await hashToken(token),
-              enrolmentCode: null,
-              enrolmentExpiresAt: null,
+              enrollmentCode: null,
+              enrollmentExpiresAt: null,
               claimedAt: now,
             })
             // Only an unclaimed code can be claimed, so a replay finds nothing.
             .where(
               and(
                 eq(shedPhone.id, phone.id),
-                eq(shedPhone.enrolmentCode, input.code)
+                eq(shedPhone.enrollmentCode, input.code)
               )
             )
             .returning({ id: shedPhone.id, name: shedPhone.name });
@@ -200,7 +200,7 @@ export const devicesRouter = {
         async (tx) => {
           const [row] = await tx
             .update(shedPhone)
-            .set({ revokedAt: now, enrolmentCode: null })
+            .set({ revokedAt: now, enrollmentCode: null })
             .where(
               and(
                 eq(shedPhone.id, input.id),

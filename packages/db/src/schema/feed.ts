@@ -19,12 +19,12 @@ import { numericMoney } from "./numeric-columns";
 
 /** What a Feed Item is counted in. Its own copy, as `SIDES` and `ANIMAL_STATES` are: this package depends on
  *  nothing, and the domain keeps the rules that read it — a test holds the two the same. */
-export const FEED_UNITS = ["kg", "litre", "bundle"] as const;
+export const FEED_UNITS = ["kg", "liter", "bundle"] as const;
 
 /** What feed bought other than in its own unit came as: bags, or a trader's maunds. */
 export const FEED_PACKS = ["bag", "maund"] as const;
 
-/** Something the Farm feeds, counted in kilos, litres or bundles. Home-grown fodder is a Feed Item too. Retired
+/** Something the Farm feeds, counted in kilos, liters or bundles. Home-grown fodder is a Feed Item too. Retired
  *  rather than removed: a Ration the farm fed in March still names it. */
 export const feedItem = pgTable(
   "feed_item",
@@ -35,7 +35,7 @@ export const feedItem = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     nameBn: text("name_bn").notNull(),
     nameEn: text("name_en"),
-    /** What it is counted in: kilos unless the farm says otherwise — molasses in litres, napier cut in bundles —
+    /** What it is counted in: kilos unless the farm says otherwise — molasses in liters, napier cut in bundles —
      *  and a Ration line, a purchase and a count all mean whatever this says. */
     unit: text("unit", { enum: FEED_UNITS }).notNull().default("kg"),
     /** What one of this feed's bags weighs, in kilos, for buying it by the bag. Null until the farm says. */

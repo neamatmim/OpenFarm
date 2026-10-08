@@ -1,6 +1,6 @@
 # Why does the English UI feel off next to enterprise products?
 
-**Question:** The Owner says the English screens "feel off — maybe the font, font size, casing" beside enterprise products. What do Inter's own documents and the enterprise design systems say about Inter's features, its tracking, line heights, body and title sizes, and the capitalisation of product nouns? How does OpenFarm compare, and what should change?
+**Question:** The Owner says the English screens "feel off — maybe the font, font size, casing" beside enterprise products. What do Inter's own documents and the enterprise design systems say about Inter's features, its tracking, line heights, body and title sizes, and the capitalization of product nouns? How does OpenFarm compare, and what should change?
 
 **Researched:** 4 October 2026. Code read at `46b776dc` on main.
 
@@ -33,7 +33,7 @@
 
 Three things make the English read as "off". In order of how much a reader notices them:
 
-1. **Casing.** About 500 English strings (11%) capitalise a common noun mid-sentence or mid-label: "Open a Venture", "Draw a Float", "by her Tag Number", "the farm's Owner".
+1. **Casing.** About 500 English strings (11%) capitalize a common noun mid-sentence or mid-label: "Open a Venture", "Draw a Float", "by her Tag Number", "the farm's Owner".
    - Every writing guide read says to lowercase these.
    - The app is not even consistent with itself. "Pen" appears 50 times and "pen" 96; "Farm" 54 and "farm" 311; "Version" 16 and "version" 24.
 2. **Line heights.** English line heights run 2–4px taller than every system read: 12/20, 16/26, 20/30, 24/36.
@@ -58,7 +58,7 @@ One thing that looked like a cause is not one: **`font-feature-settings: "cv11",
   - GSUB: `calt ccmp dnom frac locl numr pnum tnum`
   - GPOS: `kern mark mkmk`
 
-  There are no `cv*`, `ss*`, `case` or `zero`. The other subsets have even fewer; Cyrillic-ext and Greek have only `pnum tnum`. The glyph set has no single-storey "a" for a feature to reach either: 518 glyphs, with no `a.*` alternates. **[measured with fontTools]**
+  There are no `cv*`, `ss*`, `case` or `zero`. The other subsets have even fewer; Cyrillic-ext and Greek have only `pnum tnum`. The glyph set has no single-story "a" for a feature to reach either: 518 glyphs, with no `a.*` alternates. **[measured with fontTools]**
 
 - **Inter's site does not recommend a UI feature set.** Its only usage CSS is `font-feature-settings: 'liga' 1, 'calt' 1; /* fix for Chrome */` ([rsms.me/inter](https://rsms.me/inter/), "Usage"). Its FAQ sends readers to `font-feature-settings` and the OpenType Feature Freezer, but names no set.
 - **What design systems built on Inter turn on:**
@@ -80,7 +80,7 @@ One thing that looked like a cause is not one: **`font-feature-settings: "cv11",
 
 **Applies here as:**
 
-- **Delete `font-feature-settings: "cv11", "ss01"`** (`globals.css:292`). Nothing on screen changes. It removes a setting that would suddenly turn on a single-storey "a" and open digits if the font were ever swapped for the full Inter, and no enterprise system on Inter does that.
+- **Delete `font-feature-settings: "cv11", "ss01"`** (`globals.css:292`). Nothing on screen changes. It removes a setting that would suddenly turn on a single-story "a" and open digits if the font were ever swapped for the full Inter, and no enterprise system on Inter does that.
 - **Keep `tabular-nums` for figures.** It is EUI's and Grafana's practice, and it works with the shipped font.
 - **Disambiguation is optional.** If Tag Numbers such as "D-0001" or "I-1011" are ever misread, GitLab's `cv05` (an `l` with a tail) is the precedent. Turning it on needs a full Inter build, such as rsms.me's own files or a `pyftsubset --layout-features+=cv05` subset. The Google build cannot do it.
 
@@ -231,14 +231,14 @@ At 20px the excess is +6px (+25%) against Polaris, Atlassian and EUI's 24. At 24
 
 The shared, tightened scale gets English to within 2px of the systems everywhere but `sm`, and keeps the no-jump rule. This note recommends it.
 
-## 4. Capitalising product and domain nouns
+## 4. Capitalizing product and domain nouns
 
 **What the sources say.**
 
 - **Microsoft.**
   - "Microsoft style uses sentence-style capitalization. That means everything is lowercase except the first word and proper nouns" (`capitalization.md`).
   - "If there's more than one of a thing, it's a common noun… Most technology concepts, product categories, devices, and features are common nouns, not proper nouns… Default to lowercase unless there's a compelling reason to capitalize the term" (`grammar/nouns-pronouns.md`, "Capitalization and proper nouns").
-  - Titles of people are capitalised only as part of a name: "There's only one _Latasha Sharp, Chief Operating Officer_".
+  - Titles of people are capitalized only as part of a name: "There's only one _Latasha Sharp, Chief Operating Officer_".
 - **Google.**
   - "Don't use unnecessary capitalization". "Don't rely on a difference in capitalization to convey meaning. For example, although people who are familiar with Kubernetes probably understand that a capitalized Pod is a Kubernetes unit, and a lowercase pod is any other kind of pod, that distinction is likely lost on many casual readers" ([Capitalization](https://developers.google.com/style/capitalization)).
   - "Use lowercase for glossary and index terms unless the term is a proper noun" (same page, "Capitalization in glossaries and indexes").
@@ -247,16 +247,16 @@ The shared, tightened scale gets English to within 2px of the systems everywhere
 - **Polaris.**
   - Use sentence case for headings, buttons and card titles: "Create purchase order", not "Create Purchase Order".
   - "Use lowercase for: Features or product terms not unique to Shopify; Job titles without a name associated with them": "blogs, navigation, admin, page", and "The content strategist designed this" (`grammar-and-mechanics.mdx`, "Capitalization").
-  - "Avoid capitalizing descriptive feature names." A default feature, such as "fraud analysis", stays lowercase, and only a branded, opt-in product, such as "Shopify Capital", is capitalised (`naming.mdx`).
-  - A page's name may be capitalised in steps: "Go to the Products page".
+  - "Avoid capitalizing descriptive feature names." A default feature, such as "fraud analysis", stays lowercase, and only a branded, opt-in product, such as "Shopify Capital", is capitalized (`naming.mdx`).
+  - A page's name may be capitalized in steps: "Go to the Products page".
 - **Atlassian.** "Use sentence case in all titles, headings, menu items, labels, and buttons. Capitalize proper nouns…": "Create work item", not "Create Work Item". Its example "Ask your admin to add you" lowercases the role ([Language and grammar](https://atlassian.design/foundations/content/language-and-grammar), "Capitalization").
 - **Apple.** "Adopt capitalization rules that align with your app's style, then apply them consistently… Choose a style for each UI element type and use it consistently" ([HIG Writing](https://developer.apple.com/design/human-interface-guidelines/writing)).
 
 **What OpenFarm does.**
 
-- The glossary capitalises its terms (`CONTEXT.md`), and en.ts carries them into the UI. These counts are approximate: a regex over the string values, where "mid" means after a lowercase word or punctuation.
+- The glossary capitalizes its terms (`CONTEXT.md`), and en.ts carries them into the UI. These counts are approximate: a regex over the string values, where "mid" means after a lowercase word or punctuation.
 
-| Term       | Capitalised (mid-sentence) | Lowercase | Kind of noun                                         |
+| Term       | Capitalized (mid-sentence) | Lowercase | Kind of noun                                         |
 | ---------- | -------------------------- | --------- | ---------------------------------------------------- |
 | Venture    | 231 (188)                  | 30        | common: there are many                               |
 | Investor   | 122 (97)                   | 14        | common: a role, many people                          |
@@ -277,8 +277,8 @@ The shared, tightened scale gets English to within 2px of the systems everywhere
 | Step       | 7 (0)                      | 18        | common                                               |
 | Shed Phone | 5 (2)                      | 1         | a named mode of the app                              |
 
-- **494 of 4,487 strings** have at least one capitalised term mid-sentence.
-- **65 short labels** capitalise a noun after a lowercase word: "Open a Venture", "Draw a Float", "Count the Float home", "Sign an Agreement", "How Investors pay", "Each Unit is paid".
+- **494 of 4,487 strings** have at least one capitalized term mid-sentence.
+- **65 short labels** capitalize a noun after a lowercase word: "Open a Venture", "Draw a Float", "Count the Float home", "Sign an Agreement", "How Investors pay", "Each Unit is paid".
 - **Where they are.** 124 of the 494 are in Investor-facing or paper namespaces (`portal.*`, `agreeInApp.*`, `statements.*`, `projection.*`, `templates.*` and the like). The other 380 are staff screens: `ventures.*` 88, `refusal.*` 57, `returns.*` 22 and `params.*` 21.
 - **The app is inconsistent with itself.** "Pen" and "pen", "Version" and "version", and "Farm" and "farm" all appear with no rule between them. For example, `plan.version` "Version {version}, {day}" sits beside `plan.measuredAgainst` "…baseline, version {version}."
 
@@ -344,10 +344,10 @@ The shared, tightened scale gets English to within 2px of the systems everywhere
 
 **Must**
 
-1. **Lowercase common nouns in the English staff screens.** This means the 380 strings outside the Investor and paper namespaces (§4), plus a test that keeps a fixed list of words (venture, investor, unit, pen, farm, owner, manager, vet, tag number…) from appearing capitalised mid-sentence in `en.ts`.
+1. **Lowercase common nouns in the English staff screens.** This means the 380 strings outside the Investor and paper namespaces (§4), plus a test that keeps a fixed list of words (venture, investor, unit, pen, farm, owner, manager, vet, tag number…) from appearing capitalized mid-sentence in `en.ts`.
    - Keep: OpenFarm, Playbook, Shed Phone, Investor Portal, and page names used as destinations.
    - This is the change every guide asks for. It also ends the app's own inconsistency.
-2. **Delete `font-feature-settings: "cv11", "ss01"`** (`globals.css:292`). It does nothing today, and it would turn on a single-storey "a" and open digits if the font were ever swapped (§1).
+2. **Delete `font-feature-settings: "cv11", "ss01"`** (`globals.css:292`). It does nothing today, and it would turn on a single-story "a" and open digits if the font were ever swapped (§1).
 
 **Should**
 

@@ -35,7 +35,7 @@ export const asPublished = <Value>(
 };
 
 /** The figure a record-writing Step asks for: the first `number` slot the Version declares.
- *  A Step that writes a record has exactly one figure to write — litres, kilograms, a dose. */
+ *  A Step that writes a record has exactly one figure to write — liters, kilograms, a dose. */
 export const numberIn = (step: Step, evidence: unknown[]): number => {
   const index = step.evidence.findIndex((item) => item.type === "number");
   const value = index === -1 ? undefined : evidence[index];

@@ -158,13 +158,13 @@ const recordCow = async (
   client: Awaited<ReturnType<typeof as>>,
   instanceId: string,
   tagNumber: string,
-  litres: number
+  liters: number
 ) => {
   await client.work.completeStep({
     instanceId,
     stepId: "milk",
     animalTag: tagNumber,
-    evidence: [litres],
+    evidence: [liters],
   });
   const loaded = await client.work.get({ id: instanceId });
   const completion = loaded.completions.find(
@@ -317,7 +317,7 @@ describe("correction windows", () => {
 
     // A Vet's unlimited window is over the clinical record — a Diagnosis, a Prescription,
     // a dose they gave. Health arrives in increment 3; until then there is no such entry,
-    // and being a Vet is not a licence over the milking book.
+    // and being a Vet is not a license over the milking book.
     clock.advance(HOUR);
     const vetLater = await as("vet", clock);
 
@@ -388,8 +388,8 @@ describe("what a correction does", () => {
     const after = await staff.milk.session({ instanceId: instance.id });
     expect(after.records).toHaveLength(2);
     expect(after).toMatchObject({
-      sumBulkLitres: "21.50",
-      differenceLitres: "0.00",
+      sumBulkLiters: "21.50",
+      differenceLiters: "0.00",
       flaggedAt: null,
     });
   });
@@ -450,7 +450,7 @@ describe("what a correction does", () => {
     expect(history.map((row) => row.action)).toEqual(["correct", "create"]);
   });
 
-  it("turning an entry into a skip takes its litres away", async () => {
+  it("turning an entry into a skip takes its liters away", async () => {
     const { instance, clock } = await session("2026-12-09");
     const staff = await as("staff", clock);
     await staff.work.claim({ id: instance.id });
@@ -592,7 +592,7 @@ describe("needs review", () => {
     const manager = await as("manager", clock);
     await manager.work.approve({ id: instance.id });
 
-    // The Manager signed off on 10 litres. The Owner now says it was 14.
+    // The Manager signed off on 10 liters. The Owner now says it was 14.
     clock.advance(2 * DAY);
     const owner = await as("owner", clock);
     const corrected = await correctStepAsShown(owner, {
@@ -622,7 +622,7 @@ describe("needs review", () => {
     const told = await manager.alerts.mine({ entityId: completionId });
     expect(told.some((row) => row.kind === "needs_review")).toBe(true);
 
-    // Closing it is a judgement, and is recorded as one.
+    // Closing it is a judgment, and is recorded as one.
     if (!entry) {
       throw new Error("expected a queue entry");
     }

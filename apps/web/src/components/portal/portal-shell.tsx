@@ -136,7 +136,7 @@ const PortalNavLink = ({
   onGo: () => void;
   /** How many there are, in the reader's own digits, said beside it; nothing for none. */
   count?: string;
-  /** Whether any of them is new to the reader, which sets the count in the brand's colour. */
+  /** Whether any of them is new to the reader, which sets the count in the brand's color. */
   fresh?: boolean;
 }) => (
   <SidebarMenuItem>

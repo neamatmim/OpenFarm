@@ -817,7 +817,7 @@ export const peopleRouter = {
    * Where somebody is signed in as themselves: their own phone, a browser in the office. The Owner's and the
    * Manager's to see, because a handset left in a yard is the farm's problem and not only its owner's.
    *
-   * Not Shed Phones, which the farm enrols and revokes as devices (CONTEXT: Shed Phone).
+   * Not Shed Phones, which the farm enrolls and revokes as devices (CONTEXT: Shed Phone).
    */
   signedInOn: protectedProcedure
     .use(requireRole("owner", "manager"))

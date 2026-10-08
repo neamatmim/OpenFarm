@@ -222,7 +222,7 @@ const refuseKeepNeededLongerThanRead = (
   }
 };
 
-/** One advisory lock key for "creating the farm", so concurrent first-run submissions serialise. */
+/** One advisory lock key for "creating the farm", so concurrent first-run submissions serialize. */
 const BOOTSTRAP_LOCK = 7001;
 
 /**

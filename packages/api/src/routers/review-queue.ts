@@ -26,7 +26,7 @@ const letTheReadingStand = async (
   farmId: string,
   completionId: string,
   now: Date,
-  /** The Manager's judgement, which a reading after it doubted because of it hangs its own question on. */
+  /** The Manager's judgment, which a reading after it doubted because of it hangs its own question on. */
   eventId: string
 ): Promise<void> => {
   const [reading] = await tx
@@ -135,7 +135,7 @@ export const reviewQueueRouter = {
       return { waiting: row?.waiting ?? 0 };
     }),
 
-  /** Closing one is a judgement, so it is recorded as one: what was decided, by whom, under
+  /** Closing one is a judgment, so it is recorded as one: what was decided, by whom, under
    *  which Role. Nothing is removed. */
   resolve: protectedProcedure
     .use(requireRole("owner", "manager"))
@@ -174,7 +174,7 @@ export const reviewQueueRouter = {
                 eq(needsReview.id, input.id),
                 eq(needsReview.farmId, context.farm.id),
                 // Only an open one: resolving twice would overwrite the first person's
-                // judgement with the second's.
+                // judgment with the second's.
                 isNull(needsReview.resolvedAt)
               )
             )

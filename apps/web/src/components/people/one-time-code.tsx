@@ -57,7 +57,7 @@ const CodeBox = ({ code }: { code: string }) => {
 };
 
 /**
- * A code the farm shows once and never again — an invitation, a forgotten password, a Shed Phone's enrolment — in a
+ * A code the farm shows once and never again — an invitation, a forgotten password, a Shed Phone's enrollment — in a
  * dialog of its own, so it cannot scroll away or be lost under the next thing on the page. It closes only when somebody
  * says they are done with it: a stray tap beside it does not throw the code away.
  */

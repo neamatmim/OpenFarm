@@ -397,7 +397,7 @@ export const offersOn = async (context: Acting, ventureId: string) => {
 /**
  * The offers waiting on one Investor or on the Owner — neither withdrawn nor approved — with the Venture's name and the
  * paper kept, for them to read and agree to. Only while the farm's switch is on, and only on a Venture still open:
- * one cancelled or buying since takes no Agreement, and an offer on it would be agreed for nothing.
+ * one canceled or buying since takes no Agreement, and an offer on it would be agreed for nothing.
  */
 export const theirOffers = async (context: Acting, investorId: string) => {
   if (!context.farm.agreementsInApp) {
@@ -452,7 +452,7 @@ export const agreeToOffer = async (
   if (offer.withdrawnAt) {
     throw refused("This offer was withdrawn", "offer_withdrawn");
   }
-  // Its Venture cancelled or buying since: nothing agreed now could ever be approved.
+  // Its Venture canceled or buying since: nothing agreed now could ever be approved.
   const run = await context.db.query.venture.findFirst({
     where: { id: offer.ventureId, farmId: context.farm.id },
     columns: { state: true },

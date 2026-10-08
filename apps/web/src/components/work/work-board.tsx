@@ -235,7 +235,7 @@ const standingOf = (
   return completion.status === "skipped" && !passedAsWell ? "skipped" : "done";
 };
 
-/** How each standing looks on its tile: its word, its icon, and its colour — never the colour alone. */
+/** How each standing looks on its tile: its word, its icon, and its color — never the color alone. */
 const TILE_LOOK = {
   done: {
     icon: Check,
@@ -337,7 +337,7 @@ export const everythingRecorded = (
   );
 };
 
-/** One count of the round — done, skipped or left — as a word with its icon, never its colour alone. */
+/** One count of the round — done, skipped or left — as a word with its icon, never its color alone. */
 const TallyCount = ({
   icon: Icon,
   className,
@@ -355,7 +355,7 @@ const TallyCount = ({
   </span>
 );
 
-/** How far round the Pen this work has got: done, skipped and still to do, each counted and each its own colour. */
+/** How far round the Pen this work has got: done, skipped and still to do, each counted and each its own color. */
 export const WorkHeader = ({
   name,
   pen,
@@ -481,7 +481,7 @@ export const StepRow = ({
   );
 };
 
-/** One animal of a Pen's round: her number first, then — in words, not only colour — whether she is done, skipped
+/** One animal of a Pen's round: her number first, then — in words, not only color — whether she is done, skipped
  *  and why, or still to do, and whether a Withdrawal holds her milk. The next one to do is marked, in a word too. */
 export const AnimalTile = ({
   animal,

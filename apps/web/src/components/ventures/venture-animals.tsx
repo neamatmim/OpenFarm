@@ -124,7 +124,7 @@ const CostOfGainCell = ({ row }: AnimalCell) => (
   <CostOfGainSaid amount={row.original.costOfGainMoney} />
 );
 
-/** What she made, in the loss's colour where she lost money. */
+/** What she made, in the loss's color where she lost money. */
 const MarginSaid = ({ amount }: { amount: number | null }) => {
   // Named, because the guard against untranslated JSX text reads an angle bracket in a comparison as a tag.
   const lostMoney = amount !== null && amount < 0;

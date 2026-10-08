@@ -33,7 +33,7 @@ const treatmentSop = (): SopContent => ({
   ],
 });
 
-/** The milking round: one cow at a time, litres into the tank. */
+/** The milking round: one cow at a time, liters into the tank. */
 const milkingSop = (): SopContent => ({
   name: { bn: "দুধ দোহন", en: "Milking" },
   purpose: { bn: "প্রতিটি গাভীর দুধ মেপে লিখুন" },
@@ -43,7 +43,7 @@ const milkingSop = (): SopContent => ({
   graceMinutes: 120,
   steps: [
     {
-      id: "litres",
+      id: "liters",
       text: { bn: "লিটার লিখুন" },
       repeatPerAnimal: true,
       evidence: [
@@ -222,13 +222,13 @@ describe("withdrawal, from the last dose actually given", () => {
     await staff.client.work.claim({ id: milking.id });
     const recorded = await staff.client.work.completeStep({
       instanceId: milking.id,
-      stepId: "litres",
+      stepId: "liters",
       animalTag: cow.tagNumber,
       evidence: [7.5],
       destination: "bulk",
     });
 
-    // The gate is the server's, not the phone's: her litres are recorded and sent to Discard,
+    // The gate is the server's, not the phone's: her liters are recorded and sent to Discard,
     // and the record says the answer was taken out of the milker's hands.
     expect(recorded.effect).toMatchObject({
       kind: "milk_record",
@@ -236,7 +236,7 @@ describe("withdrawal, from the last dose actually given", () => {
       forced: true,
     });
   });
-  it("pours away litres the phone was still holding when the dose was recorded", async () => {
+  it("pours away liters the phone was still holding when the dose was recorded", async () => {
     const clock = new FakeClock("2026-10-12T02:00:00.000Z");
     const { cow } = await onACourse(clock, 1);
     await giveDose(clock, cow.tagNumber, 1);
@@ -267,7 +267,7 @@ describe("withdrawal, from the last dose actually given", () => {
           recordedAt: clock.now(),
           kind: "step_completion" as const,
           instanceId: milking.id,
-          stepId: "litres",
+          stepId: "liters",
           animalTag: cow.tagNumber,
           evidence: [6],
           destination: "bulk" as const,
@@ -316,7 +316,7 @@ describe("withdrawal, from the last dose actually given", () => {
           recordedAt: milkedAt,
           kind: "step_completion" as const,
           instanceId: milking.id,
-          stepId: "litres",
+          stepId: "liters",
           animalTag: cow.tagNumber,
           evidence: [11],
           destination: "bulk" as const,

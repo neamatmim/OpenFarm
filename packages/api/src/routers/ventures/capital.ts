@@ -63,7 +63,7 @@ const capitalInput = z.object({
   /** The farm's own word for how money moved. The door takes all three so it can refuse two of them in
    *  the reader's own language: a schema that only knew "bank" would answer cash with a type error. */
   paymentMethod: z.enum(PAYMENT_METHODS),
-  /** The transfer, cheque or deposit slip, and what it is numbered. */
+  /** The transfer, check or deposit slip, and what it is numbered. */
   reference: z.string().trim().min(1).max(120),
   /** The Investor's Pay-in Note this is the money of, when the Owner records it from one: it answers the note
    *  received (ADR 0018). */
@@ -170,7 +170,7 @@ export const capitalProcedures = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       if (input.paymentMethod !== "bank") {
-        // A Venture Account takes bank transfers, cheques and deposit slips. Cash nobody can prove is
+        // A Venture Account takes bank transfers, checks and deposit slips. Cash nobody can prove is
         // exactly what an Investor's family would ask about years later.
         throw new ORPCError("BAD_REQUEST", {
           message: "A Venture takes capital by bank only",
@@ -198,7 +198,7 @@ export const capitalProcedures = {
           // divides by Units, so a Unit paid for twice would take twice its share of the profit while
           // holding one share of the Venture.
           await lockTheFarm(tx, context.farm.id);
-          // Asked again behind the lock: a Venture cancelled or moved on at the same moment takes nothing.
+          // Asked again behind the lock: a Venture canceled or moved on at the same moment takes nothing.
           const standing = await tx.query.venture.findFirst({
             where: { id: row.id, farmId: context.farm.id },
           });

@@ -253,7 +253,7 @@ const herDoses = async (
     where: { farmId, animalId, givenAt: { isNotNull: true } },
     columns: {
       givenAt: true,
-      learntAt: true,
+      learnedAt: true,
       milkWithdrawalDays: true,
       meatWithdrawalDays: true,
     },
@@ -301,7 +301,7 @@ export const milkHoldsOf = async (
   });
 };
 
-/** Each dose's hold of one kind, with when the farm learnt of it. A product may not be prescribed without its days,
+/** Each dose's hold of one kind, with when the farm learned of it. A product may not be prescribed without its days,
  *  so a dose given under one had them; days nobody wrote hold her for nothing. */
 const holdsOf = (
   given: readonly HerDose[],
@@ -313,7 +313,7 @@ const holdsOf = (
       ? [
           {
             until: withdrawalEndsAt(dose.givenAt, days),
-            learntAt: dose.learntAt,
+            learnedAt: dose.learnedAt,
           },
         ]
       : [];
@@ -398,7 +398,7 @@ const holdChangeIsNews = (
  * dose given late — or given days ago and only synced this morning — must lengthen it. The
  * latest end wins, whichever course or product it came from.
  *
- * A Vet's shortening holds the doses the farm knew of then to where the Vet said; a dose learnt of afterwards is new
+ * A Vet's shortening holds the doses the farm knew of then to where the Vet said; a dose learned of afterwards is new
  * knowledge, whenever it was given, and holds her on its own days beside it (`holdInForce`). Worked out the same way
  * every time, so a phone sending the same dose twice changes nothing. Once newer doses hold her longer than all the
  * shortening covered, it no longer says anything, and is put away.
@@ -577,7 +577,7 @@ export const withdrawalsEndingSoon = async (
 /**
  * Tells the Manager, and the milkers of her Pen, that a milk Withdrawal is nearly over — the
  * two the farm's notification table names for this, because they are the people who decide
- * where tomorrow morning's litres go.
+ * where tomorrow morning's liters go.
  *
  * Once per cow per Withdrawal: the end instant is part of what the notice is about, so a second
  * course months later is a new thing to be told rather than one already dismissed.
@@ -683,7 +683,7 @@ export const theReportSop = async (tx: Tx, farmId: string) => {
  *
  * Matched on the Vet's own words, because that is what both the list and the Diagnosis are
  * written in — against each disease's name, its English and the other names it goes by
- * ("FMD", "খুরা রোগ"), spelt either Unicode way, whatever the capitals, spaces or dashes. A
+ * ("FMD", "খুরা রোগ"), spelled either Unicode way, whatever the capitals, spaces or dashes. A
  * name the list does not know yet is the Owner's, the Manager's or the Vet's to add to it.
  */
 export const isNotifiable = async (

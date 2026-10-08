@@ -106,7 +106,7 @@ const whatTheChoiceSays = ({
 
 /**
  * Capital as it lands: which paper it came against, how much, the day the bank moved it, and the
- * reference on the transfer, cheque or deposit slip.
+ * reference on the transfer, check or deposit slip.
  *
  * Each paper is listed with its Pay-in Code, and a reference that carries one chooses that paper: the Owner types
  * what the bank printed, and the farm says whose money it is. The reference is kept exactly as typed — the code

@@ -12,7 +12,7 @@ import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 // Anything the round sees of an animal other than a heat is work for the Manager: late in a day, or in an hour for
-// bloat and laboured breathing. The Vet's Diagnosis answers it and calls it off; so does taking the sighting back; and
+// bloat and labored breathing. The Vet's Diagnosis answers it and calls it off; so does taking the sighting back; and
 // the Manager answers it by saying what was done.
 
 const suffix = `unwell-${Date.now()}`;
@@ -200,7 +200,7 @@ describe("called off", () => {
   it("by the round put right to say she was well", async () => {
     const cow = await aCow("ভুল পেন");
     const { completionId } = await theRound("2058-03-08", cow, {
-      evidence: ["diarrhoea"],
+      evidence: ["diarrhea"],
     });
     await workFor("2058-03-08T03:00:00.000Z", cow);
     const manager = await as("manager", "2058-03-08T04:00:00.000Z");

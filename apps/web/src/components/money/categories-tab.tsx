@@ -87,7 +87,7 @@ const MonthlyBadge = ({ row }: { row: CategoryRow }) => {
   ) : null;
 };
 
-/** Which way a Category's money goes, as a word with its icon and colour. */
+/** Which way a Category's money goes, as a word with its icon and color. */
 const DirectionBadge = ({ direction }: { direction: Direction }) => {
   const { t } = useLanguage();
   return direction === "in" ? (

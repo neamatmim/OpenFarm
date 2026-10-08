@@ -1,10 +1,10 @@
 # How a cattle return is measured
 
-**Question:** Before OpenFarm decides what a return counts, how do the people whose figures the Owner will read beside ours measure a cattle fattening or dairy return? That means Bangladeshi livestock economics (BLRI, BAU, DLS and published farm studies), extension guides and the standard farm-management texts. Which measures do they use (benefit–cost ratio, gross margin, net return, return on investment, return on capital, return per head or per kg), and what does each divide by what? What counts as the money in? How is a calf bred on the farm valued? What is left out (labour, sheds, interest on own capital, manure)? How does an animal that died enter? How is a 3–8 month batch put per year, and what pitfalls are named? How is a dairy cow's or herd's return measured? (Ticket: `.scratch/openfarm-roi/issues/01-how-a-cattle-return-is-measured.md`.)
+**Question:** Before OpenFarm decides what a return counts, how do the people whose figures the Owner will read beside ours measure a cattle fattening or dairy return? That means Bangladeshi livestock economics (BLRI, BAU, DLS and published farm studies), extension guides and the standard farm-management texts. Which measures do they use (benefit–cost ratio, gross margin, net return, return on investment, return on capital, return per head or per kg), and what does each divide by what? What counts as the money in? How is a calf bred on the farm valued? What is left out (labor, sheds, interest on own capital, manure)? How does an animal that died enter? How is a 3–8 month batch put per year, and what pitfalls are named? How is a dairy cow's or herd's return measured? (Ticket: `.scratch/openfarm-roi/issues/01-how-a-cattle-return-is-measured.md`.)
 
 **Researched:** 27 September 2026. Primary sources read in full:
 
-- **Bangladeshi fattening studies:** Sarma & Ahmed 2011 and Sarma, Raha & Jørgensen 2014, both in the Journal of the Bangladesh Agricultural University. Ferdush et al., with BLRI's Socioeconomic Research Division and BAU, read as the Qeios preprint (v2). The version published in _Discover Agriculture_ (January 2026) was only summarised through the publisher's page, because Springer refused a direct download.
+- **Bangladeshi fattening studies:** Sarma & Ahmed 2011 and Sarma, Raha & Jørgensen 2014, both in the Journal of the Bangladesh Agricultural University. Ferdush et al., with BLRI's Socioeconomic Research Division and BAU, read as the Qeios preprint (v2). The version published in _Discover Agriculture_ (January 2026) was only summarized through the publisher's page, because Springer refused a direct download.
 - **Bangladeshi dairy studies:** Uddin et al. 2010 (IFCN method, LRRD); Khan et al. 2012 (with a BLRI co-author, LRRD); Alam et al. 2022 (IJARIT).
 - **The World Bank's appraisal of the DLS Livestock and Dairy Development Project**, 2018.
 - **Standard texts:**
@@ -17,7 +17,7 @@
   - Dunn's _Measuring Cow-Calf Profitability_ (Beef Improvement Federation).
 - **The investment-performance standard:** GIPS 2020 for Firms (CFA Institute).
 
-Two sources were read in **abstract only**: Datta et al. 2019 and BLRI's buffalo study. bb.org.bd refused automated access, so **no Bangladesh Bank credit policy was read in the original**. Its fattening refinance terms come from the press and are marked **[SECONDARY]**. The annualised figures in §6.4 and the "netted" BCRs in §1.2 are my arithmetic on the studies' own tables, and are labelled as such.
+Two sources were read in **abstract only**: Datta et al. 2019 and BLRI's buffalo study. bb.org.bd refused automated access, so **no Bangladesh Bank credit policy was read in the original**. Its fattening refinance terms come from the press and are marked **[SECONDARY]**. The annualised figures in §6.4 and the "netted" BCRs in §1.2 are my arithmetic on the studies' own tables, and are labeled as such.
 
 ---
 
@@ -30,12 +30,12 @@ Two sources were read in **abstract only**: Datta et al. 2019 and BLRI's buffalo
    - Iowa State's budgets: interest on the animal for the whole period and on feed for half of it.
 4. **Standard practice values a calf bred on the farm at market when she leaves the herd that bred her, not at nothing.** US standard practice (SPA) values an unsold calf at the market price at weaning. Dairy studies count the calf's value as a dairy return. Treating her as bought for 0 credits the dairy herd's calf to the fattening run. No Bangladeshi fattening study says how it treats home-bred animals.
 5. **What is counted differs by study, and the figure moves with it.** Bangladeshi studies:
-   - charge labour, family and hired together;
+   - charge labor, family and hired together;
    - usually charge interest on operating capital (Sarma 2014 does not);
    - charge small depreciation on tools and sheds, and land rent (0.1–3% of cost);
    - count dung and feed sacks as returns (0.8–9% of return).
 
-   IFCN and FAO add opportunity costs for own labour, land and capital (an "economic" figure). Dunn and the SPA say a financial figure should leave opportunity costs out, and **the two must not be mixed**. A Margin charges no wages, sheds or interest, so it will read higher than a study's net return on the same animals.
+   IFCN and FAO add opportunity costs for own labor, land and capital (an "economic" figure). Dunn and the SPA say a financial figure should leave opportunity costs out, and **the two must not be mixed**. A Margin charges no wages, sheds or interest, so it will read higher than a study's net return on the same animals.
 
 6. **Deaths.** No Bangladeshi farm survey accounts for deaths. Ferdush et al. left traders' death losses out because none happened in the survey. Elsewhere the rule is that a dead animal's cost stays in the batch and is carried by the animals sold. Texas A&M: "deads are in", and "feedyard performance with deads out is wrong and just distorts reality". Iowa State charges death loss as 1–2% of the feeder cost and 0.5–1% of other costs.
 7. **Per year, and the pitfall.**
@@ -54,14 +54,14 @@ Two sources were read in **abstract only**: Datta et al. 2019 and BLRI's buffalo
    - manure;
    - the change in herd value.
 
-   A lifetime figure (yearly × lactations kept) can reverse the ranking of cows (Khan 2012). IFCN's cost of milk takes calves, culls and manure off the cost before dividing by milk. OpenFarm's Cost per Litre does not.
+   A lifetime figure (yearly × lactations kept) can reverse the ranking of cows (Khan 2012). IFCN's cost of milk takes calves, culls and manure off the cost before dividing by milk. OpenFarm's Cost per Liter does not.
 
 9. **Typical Bangladeshi figures.**
    - **Fattening:** net return 25–52% of cost per batch of 3.5–4.5 months, BCR 1.25–1.52. The World Bank/DLS beef-fattening model has an FIRR of 35%.
    - **Dairy:**
      - BCR 1.31 per buffalo lactation (BLRI);
-     - BCR 2.17 per cow per day (Alam 2022, which does not say whether family labour or interest is costed);
-     - IFCN ROI up to about 40% a year on a large intensive farm, and a loss on two small farms once family labour is costed;
+     - BCR 2.17 per cow per day (Alam 2022, which does not say whether family labor or interest is costed);
+     - IFCN ROI up to about 40% a year on a large intensive farm, and a loss on two small farms once family labor is costed;
      - FIRR 19–23% (World Bank/DLS).
 
 ---
@@ -70,18 +70,18 @@ Two sources were read in **abstract only**: Datta et al. 2019 and BLRI's buffalo
 
 | Measure                                | Divides                                                                       | Who reports it here                                                                                           | What to watch                                                                           |
 | -------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Gross margin                           | Gross return − variable cost (taka, no ratio)                                 | Every Bangladeshi fattening and dairy study; FAO; Iowa ("income over variable costs")                         | Where labour sits: Ferdush makes it fixed, Sarma 2014 variable                          |
-| Net return / net margin                | Gross return − total cost (taka)                                              | Every Bangladeshi study                                                                                       | Total cost may or may not include family labour, interest, depreciation                 |
+| Gross margin                           | Gross return − variable cost (taka, no ratio)                                 | Every Bangladeshi fattening and dairy study; FAO; Iowa ("income over variable costs")                         | Where labor sits: Ferdush makes it fixed, Sarma 2014 variable                          |
+| Net return / net margin                | Gross return − total cost (taka)                                              | Every Bangladeshi study                                                                                       | Total cost may or may not include family labor, interest, depreciation                 |
 | Benefit–cost ratio (farm studies)      | Gross return ÷ total cost, undiscounted                                       | Sarma 2014 (defined), Ferdush, Alam, BLRI buffalo                                                             | Purchase price in the cost pins fattening near 1; Sarma 2014 prints net ÷ cost as "BCR" |
 | Benefit–cost ratio (project appraisal) | PV of benefits ÷ PV of costs                                                  | Gittinger                                                                                                     | Changes with netting convention; Gittinger prefers NPV/IRR                              |
 | Return on cost / net return per taka   | Net return ÷ total cost                                                       | Alam ("return on cost" 117.6%); FAO ("net total factor productivity" 23%); implied by Sarma and Ferdush       | Per batch; says nothing about time                                                      |
-| Return on capital / ROA                | Annual net return (after a charge for own labour) ÷ capital or average assets | FAO; Iowa C3-55; Dunn/SPA; IFCN ROI                                                                           | Needs a register of assets; annual by definition                                        |
+| Return on capital / ROA                | Annual net return (after a charge for own labor) ÷ capital or average assets | FAO; Iowa C3-55; Dunn/SPA; IFCN ROI                                                                           | Needs a register of assets; annual by definition                                        |
 | Return on equity                       | (Net return − interest paid) ÷ own capital                                    | FAO; Iowa C3-55                                                                                               | Only differs from ROA where money is borrowed                                           |
 | Annualised ROI (feedlot)               | (Net income + interest paid) ÷ (feeder cost + ½ other costs) × days ÷ 365     | Texas A&M closeout                                                                                            | Simple scaling; assumes capital turns over                                              |
 | FIRR / NPV                             | Discounted multi-year cash flows                                              | World Bank/DLS appraisal (12%, 15 years); Gittinger                                                           | A project measure, not a batch's                                                        |
 | Money-weighted return (IRR)            | Dated cash flows in and out                                                   | GIPS 2020 (closed-end, fixed-life funds)                                                                      | Not annualised under a year                                                             |
 | Per head / per cow                     | Any of the above ÷ head                                                       | Bangladeshi fattening (per head), dairy (per cow per day/month/year/lactation), Iowa (per head, per cow unit) | Per cow can mislead (Dunn)                                                              |
-| Per kg / per litre / per 100 kg milk   | Cost or return ÷ kg gained, litres, 100 kg ECM                                | IFCN (per 100 kg ECM); Alam (per litre); Texas A&M (cost of gain)                                             | Bangladeshi fattening studies cannot: farmers do not weigh                              |
+| Per kg / per liter / per 100 kg milk   | Cost or return ÷ kg gained, liters, 100 kg ECM                                | IFCN (per 100 kg ECM); Alam (per liter); Texas A&M (cost of gain)                                             | Bangladeshi fattening studies cannot: farmers do not weigh                              |
 
 ---
 
@@ -108,7 +108,7 @@ Two sources were read in **abstract only**: Datta et al. 2019 and BLRI's buffalo
 - **Sample:** 120 small fatteners in Rajbari, surveyed September–November 2010. Fattening lasted 4.5 months.
 - **Method:** "Net Margin (NM) = Total Return − Total Cost". Costs are split into direct and indirect. Returns are also direct and indirect.
 - **Table 2, per head:**
-  - cost 16,316, including "interest on capital" 1,129, labour 1,711 and depreciation 234;
+  - cost 16,316, including "interest on capital" 1,129, labor 1,711 and depreciation 234;
   - return 21,875, including manure 1,220 and by-products 728;
   - "profit Tk 5559 per cattle".
 - No BCR is printed. TR/TC is 1.34 (my arithmetic).
@@ -123,7 +123,7 @@ Two sources were read in **abstract only**: Datta et al. 2019 and BLRI's buffalo
   - feed 14,602 (21.22%);
   - treatment 389;
   - **interest on operating capital 1,188 (1.73%)**;
-  - labour 7,208 (10.57%), treated as a fixed cost;
+  - labor 7,208 (10.57%), treated as a fixed cost;
   - housing 59;
   - total 68,813.
 - **Table 2, return per head:**
@@ -163,7 +163,7 @@ Same animals, same profit. This is why a fattening BCR cannot sit beside a dairy
 **FAO, _Farm Management for Asia: a Systems Approach_** (Farm Systems Management Series 13, 1997), chapter 7 ([fao.org](https://www.fao.org/4/w7365e/w7365e0a.htm)). All measures are on an **annual** basis.
 
 - **Farm gross margin** = gross return − direct costs. **Net returns** = gross margin − fixed costs. **Sustainable returns** also charge depreciation.
-- The "economic" appraisal charges family labour "at its market value of Rs 10 per day", "an assumed opportunity cost of 10 per cent interest … on all capital including land", and depreciation (Table 7.8).
+- The "economic" appraisal charges family labor "at its market value of Rs 10 per day", "an assumed opportunity cost of 10 per cent interest … on all capital including land", and depreciation (Table 7.8).
 - **Gross total factor productivity** = total gross returns ÷ total costs (1.23). This is what Bangladeshi studies call the BCR.
 - **Net total factor productivity** = net returns ÷ total costs (0.23): "the net return per Rs of input is 23 per cent".
 - **Return on capital** = total net returns ÷ total capital, including land (7.83%).
@@ -179,7 +179,7 @@ Same animals, same profit. This is why a fattening BCR cannot sit beside a dairy
 
 **Iowa State, _Financial Performance Measures for Iowa Farms_** (AgDM C3-55, revised September 2026) ([PDF](https://www.extension.iastate.edu/agdm/wholefarm/pdf/c3-55.pdf)).
 
-- **ROA** = (net farm income from operations − value of operator and unpaid family labour and management) ÷ average total farm assets, at fair market value.
+- **ROA** = (net farm income from operations − value of operator and unpaid family labor and management) ÷ average total farm assets, at fair market value.
 - **ROE** also takes off farm interest, and divides by average net worth.
 - "Common farm wage rates in the community can be used to value unpaid labor and management."
 - Long-term Iowa ROA has run at 6–10%.
@@ -203,13 +203,13 @@ Same animals, same profit. This is why a fattening BCR cannot sit beside a dairy
 - **Return on investment (real)** = "the percentage of farm profits on the investment costs, adjusted to the inflation rate". The highest, 40%, is on the 22-cow intensive farm in Sirajganj.
 - **Unit:** results are per 100 kg of energy-corrected milk (ECM), with milk yield per cow per year.
 
-### 1.5 Per head, per kg, per litre
+### 1.5 Per head, per kg, per liter
 
 - **Bangladeshi fattening studies report per head.** They cannot report per kg because fatteners do not weigh. Sarma & Ahmed 2011 recommend "weighting their animals at purchase and at regular interval".
 - **Dairy studies report per unit of milk:**
   - Alam 2022 adds a "net return (per liter of milk)";
   - IFCN works per 100 kg ECM.
-- **Texas A&M's closeout** puts cost of gain per unit of gain at the centre: "the most important product of the cattle cost accounting system is the cost of gain" ([manual](https://agecoext.tamu.edu/wp-content/uploads/2020/07/D5a.-User-Manual-Finished-Cattle-Closeout-9-3-2019.pdf)).
+- **Texas A&M's closeout** puts cost of gain per unit of gain at the center: "the most important product of the cattle cost accounting system is the cost of gain" ([manual](https://agecoext.tamu.edu/wp-content/uploads/2020/07/D5a.-User-Manual-Finished-Cattle-Closeout-9-3-2019.pdf)).
 - **Dunn** found per cwt of calf "the most statistically sensitive" denominator, and warns that "expressing efficiency ratios on a per cow or per acre basis can be misleading".
 
 ---
@@ -218,7 +218,7 @@ Same animals, same profit. This is why a fattening BCR cannot sit beside a dairy
 
 | Source                          | Money in                                                                                                                                                                                | Time-weighted?                             |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Sarma 2011, 2014; Ferdush; Alam | Total cost: purchase + feed + medicine + labour + (interest) + depreciation + rent                                                                                                      | No. The whole batch's cost, whenever spent |
+| Sarma 2011, 2014; Ferdush; Alam | Total cost: purchase + feed + medicine + labor + (interest) + depreciation + rent                                                                                                      | No. The whole batch's cost, whenever spent |
 | FAO 1997                        | Total costs for the year (TFP); total capital including land (return on capital)                                                                                                        | Annual                                     |
 | Iowa C3-55; Dunn/SPA            | Average farm assets over the year (market in Iowa, cost in SPA)                                                                                                                         | Annual average                             |
 | Iowa B1-21 budgets              | Interest charged on the feeder "6.5 months" (whole period); "Interest is calculated on feed and other variable costs for one-half of the production period"                             | Yes, as an interest cost                   |
@@ -256,16 +256,16 @@ Same animals, same profit. This is why a fattening BCR cannot sit beside a dairy
 
 | Item                    | Sarma 2014                                                                        | Sarma & Ahmed 2011                         | Ferdush 2026                                           | Alam 2022 (dairy)                  | IFCN (Uddin 2010)                                 | FAO 1997                          | Iowa B1-21                                                                             | Dunn/SPA (financial)                               |
 | ----------------------- | --------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------ | ---------------------------------- | ------------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| Hired labour            | In ("labour charges" 2.18%)                                                       | In (labour 1,711)                          | In (fixed, 10.57%)                                     | Not stated                         | In                                                | In                                | $20/h                                                                                  | In                                                 |
-| Family labour           | In, lumped with hired ("including both family labour and hired labour")           | Not separated                              | In ("family labour … included the owner themselves")   | Not stated                         | At "the average wage rate per hour in the region" | At opportunity cost, Rs 10/day    | Same $20/h                                                                             | Out; family living subtracted from ROA's numerator |
+| Hired labor            | In ("labour charges" 2.18%)                                                       | In (labor 1,711)                          | In (fixed, 10.57%)                                     | Not stated                         | In                                                | In                                | $20/h                                                                                  | In                                                 |
+| Family labor           | In, lumped with hired ("including both family labour and hired labour")           | Not separated                              | In ("family labour … included the owner themselves")   | Not stated                         | At "the average wage rate per hour in the region" | At opportunity cost, Rs 10/day    | Same $20/h                                                                             | Out; family living subtracted from ROA's numerator |
 | Interest on own capital | **None**                                                                          | "Interest on capital" 1,129 (6.9% of cost) | "Interest on operating capital" 1.73%, rate not stated | Not stated                         | 3% real (own), 6% (borrowed)                      | 10% on all capital including land | 7.11% on the feeder (whole period), feed (half period)                                 | Out: opportunity cost                              |
-| Sheds, equipment        | Depreciation of feeders, drinkers, rakes, spade, tubewell, "shade", bucket (1.0%) | Depreciation 234                           | "Housing" 59 (0.09%)                                   | Fixed cost 48.85/day, not itemised | Straight-line on purchase price, zero residual    | Depreciation charged              | 14% of original investment a year (8% depreciation, 5% interest, 1% tax and insurance) | At cost, depreciated                               |
+| Sheds, equipment        | Depreciation of feeders, drinkers, rakes, spade, tubewell, "shade", bucket (1.0%) | Depreciation 234                           | "Housing" 59 (0.09%)                                   | Fixed cost 48.85/day, not itemized | Straight-line on purchase price, zero residual    | Depreciation charged              | 14% of original investment a year (8% depreciation, 5% interest, 1% tax and insurance) | At cost, depreciated                               |
 | Land                    | Land rent 0.55%                                                                   | Rent 270                                   | None                                                   | –                                  | Regional rent for own land                        | 10% on land value                 | –                                                                                      | At cost                                            |
 | Manure                  | **Return**, 1.4%                                                                  | **Return**, 1,220 (5.6%) + by-products 728 | **Return**, dung 598 + sacks 124 (0.8%)                | **Return**, Tk 2.29/day            | **Return**, "value of manure used at home"        | –                                 | A cost (application), not income                                                       | –                                                  |
 
-**What the table shows.** The Bangladeshi fattening studies are **partly economic**. They impute family labour and usually interest on the animals' money, but not on the farm's capital, and their sheds are almost free. IFCN and FAO are **fully economic**. SPA and Dunn are **financial**. OpenFarm's Margin is **narrower than all of them**: no wages, sheds, utilities, repairs, equipment or interest (CONTEXT.md, **Herd Cost** and **Margin**).
+**What the table shows.** The Bangladeshi fattening studies are **partly economic**. They impute family labor and usually interest on the animals' money, but not on the farm's capital, and their sheds are almost free. IFCN and FAO are **fully economic**. SPA and Dunn are **financial**. OpenFarm's Margin is **narrower than all of them**: no wages, sheds, utilities, repairs, equipment or interest (CONTEXT.md, **Herd Cost** and **Margin**).
 
-**The effect of the opportunity costs.** Uddin 2010 found every typical Bangladeshi dairy farm had a positive farm income. But the small extensive and traditional farms had a **negative entrepreneur's profit** (−0.93 and −0.27 US$/100 kg ECM): "The variation is due to the opportunity costs", chiefly family labour. The same farms read profitable or not depending on which is counted.
+**The effect of the opportunity costs.** Uddin 2010 found every typical Bangladeshi dairy farm had a positive farm income. But the small extensive and traditional farms had a **negative entrepreneur's profit** (−0.93 and −0.27 US$/100 kg ECM): "The variation is due to the opportunity costs", chiefly family labor. The same farms read profitable or not depending on which is counted.
 
 **Texas A&M's warning on labels:** "Most frequently in feedyard and other cattle reporting, these numbers are gross margins … and do not include overhead and owner labor and management costs, which are required to calculate a true profit." It adds that the owner's management should be costed at what a hired manager would be paid.
 
@@ -315,7 +315,7 @@ Same animals, same profit. This is why a fattening BCR cannot sit beside a dairy
 - **Annualising a short period is a simulation, not a result** (GIPS 2.A.12).
 - **A BCR or a per-batch return has no time in it.** Two batches with the same BCR over four and ten months are the same by BCR, not per year (Gittinger's measures are discounted for this reason).
 - **Comparing a batch's return with a yearly rate unscaled** understates the batch (Sarma 2014). **Scaling it** overstates it unless the money really turns again.
-- **A figure labelled "profit" is often a gross margin** (Texas A&M).
+- **A figure labeled "profit" is often a gross margin** (Texas A&M).
 
 ### 6.4 What scaling does to the Bangladeshi figures (my arithmetic)
 
@@ -338,7 +338,7 @@ Same animals, same profit. This is why a fattening BCR cannot sit beside a dairy
   - Khan converts lactation yield to a year: "Milk yield (kg/year) = Milk yield per lactation (kg) x 365/Calving interval".
 - **Per lactation.** BLRI's buffalo study: "Per lactation total cost was estimated BDT 24,507, lactation period was 255 days … the BCR was 1.31 (undiscounted)". This is Islam, Nahar, Begum, Deb, Khatun & Mustafa, BLRI; a book chapter deposited on [Zenodo](https://zenodo.org/records/5137756) in 2021, data January–April 2016; **abstract only**.
 - **Per cow per day, or per month.**
-  - Alam, Sampa, Anny & Afrin 2022, IJARIT 12(1): 182–187 ([doi](https://doi.org/10.3329/ijarit.v12i1.61050), [Zenodo](https://zenodo.org/records/7086280)): gross return Tk 1,099 a cow a day, made of milk 975, calf 122 and dung 2.29, against total cost 505. Net return 594, "Return on cost {(f/d)*100}" 117.62%, "BCR (a/d)" 2.17. The paper does not say whether family labour or interest is costed.
+  - Alam, Sampa, Anny & Afrin 2022, IJARIT 12(1): 182–187 ([doi](https://doi.org/10.3329/ijarit.v12i1.61050), [Zenodo](https://zenodo.org/records/7086280)): gross return Tk 1,099 a cow a day, made of milk 975, calf 122 and dung 2.29, against total cost 505. Net return 594, "Return on cost {(f/d)*100}" 117.62%, "BCR (a/d)" 2.17. The paper does not say whether family labor or interest is costed.
   - Datta, Haider & Ghosh 2019, TAHP 51(1): 55–64: "average monthly revenue and cost of milk production were US$ 79 and US$ 21 per cow" ([abstract](https://pubmed.ncbi.nlm.nih.gov/30003526/)). **Abstract only**, so the cost basis cannot be checked.
 - **Per 100 kg milk.** IFCN. Its "cost of milk production only" takes the non-milk returns off the total cost before comparing with the milk price: "the non-milk returns have been subtracted from the total costs to show a cost bar that can be compared with the milk price".
 - **Over her life.** Khan, Miah, Huque, Khatun & Das 2012, LRRD 24(1) #20 ([lrrd.org](http://www.lrrd.org/lrrd24/1/khan24020.htm)): "The lifetime profitability was estimated by the product of yearly profit per cow and the lactation number of cows." Farmers keep Local and Red Chittagong cows to 7 lactations and Holstein × Local to 3.
@@ -375,13 +375,13 @@ The spread within fattening, 25–52% net on cost per batch, is as much what is 
 
 ### Constraints the spec should respect
 
-1. **Say what is and is not charged, beside the figure.** The studies the Owner will read charge family labour, usually interest, and small depreciation, and count dung as income. A Margin charges none of the first three. On the same animals, OpenFarm's figure will read **higher** than a study's net return. The glossary's line that wages, sheds and equipment "are the place and the people, and the Farm's" should reach the page as a sentence, or the Owner will compare unlike things.
+1. **Say what is and is not charged, beside the figure.** The studies the Owner will read charge family labor, usually interest, and small depreciation, and count dung as income. A Margin charges none of the first three. On the same animals, OpenFarm's figure will read **higher** than a study's net return. The glossary's line that wages, sheds and equipment "are the place and the people, and the Farm's" should reach the page as a sentence, or the Owner will compare unlike things.
 2. **Divide by total cost, and do not call it a BCR.** Net ÷ (purchase + everything charged) is the one figure every source can be turned into:
    - FAO's "net return per Rs of input";
    - Alam's "return on cost";
    - what Sarma 2014 printed.
 
-   A BCR is dominated by the purchase price, is labelled inconsistently, and moves with netting.
+   A BCR is dominated by the purchase price, is labeled inconsistently, and moves with netting.
 
 3. **A dead animal stays in the run.** Her purchase and keep are money in with nothing back (Texas A&M, Iowa, FAO). A sum of Margins, which leaves her out, must not be read as a run's return.
 4. **A figure a year shorter than a year says what it assumes.** It assumes the money turns again at the same margin, which an Eid run does not. Investor-facing words should follow GIPS 2.A.12 and not annualise under a year. The pooled-investment research already forbids anything that reads as a promised return.
@@ -407,7 +407,7 @@ The spread within fattening, 25–52% net on cost per batch, is as much what is 
 - **Ticket 08, dairy.**
   - The unit: per cow per year (IFCN, Khan), per lactation (BLRI) or both.
   - Whether calves (at market) and cull sales count as the herd's return.
-  - Whether Cost per Litre should, like IFCN's cost of milk, take calves, culls and dung off the keep first.
+  - Whether Cost per Liter should, like IFCN's cost of milk, take calves, culls and dung off the keep first.
   - A lifetime figure can rank cows differently from a yearly one.
 - **Ticket 09, what an Investor reads.** GIPS: a fixed-life pool reports a money-weighted since-inception return, not annualised before a year has passed.
 
@@ -420,7 +420,7 @@ Nothing for the lawyer or the Shariah scholar arises from this ticket alone. Tic
 ## Unclear / not found
 
 - **The published _Discover Agriculture_ version of Ferdush et al.** was not read in full. The preprint's tables were used. The publisher's page summary gives the same headline figures (68,813; 17,358; 1.25; 65.51%).
-- **The rate behind Ferdush's "interest on operating capital"** is not stated. Neither is the wage used for family labour in Sarma 2014 or Ferdush.
+- **The rate behind Ferdush's "interest on operating capital"** is not stated. Neither is the wage used for family labor in Sarma 2014 or Ferdush.
 - **Datta et al. 2019 and BLRI's buffalo study** were read in abstract only. Datta's cost basis (US$21 against US$79 revenue) cannot be checked.
 - **No Bangladeshi study was found that states how deaths or home-bred animals enter a fattening return.**
 - **No DLS publication** stating a return measure was found. DLS's figures reach us through the World Bank's appraisal of its project.

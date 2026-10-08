@@ -12,7 +12,7 @@ const tab =
 
 /**
  * A phone's few daily destinations — the Role a person lands as on the farm, or an Investor's in the portal — and
- * More for everything else: thumb-reach, labelled, never icons alone. Hidden while somebody is working a Step, so the
+ * More for everything else: thumb-reach, labeled, never icons alone. Hidden while somebody is working a Step, so the
  * completion action owns the bottom.
  */
 export const BottomBar = ({ items }: { items: readonly NavItem[] }) => {

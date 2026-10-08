@@ -159,7 +159,7 @@ describe("the paper an Investor gets when he joins", () => {
     expect(text).toContain(`TRF-A-${suffix}`);
     expect(text).toContain(`TRF-B-${suffix}`);
     // Both transfers, and what they come to — a total nobody can check against a bank line is not an
-    // acknowledgement.
+    // acknowledgment.
     expect(text).toContain("৩,০০,০০০");
   });
 
@@ -266,7 +266,7 @@ describe("the paper an Investor gets when he joins", () => {
     // A Venture that misses its Floor is called off and every taka returns. A joining letter then would
     // tell a man the Farm holds money it has already sent him.
     const owner = await as("owner", "2051-02-10T04:00:00.000Z");
-    const cancelled = await owner.client.ventures.open({
+    const canceled = await owner.client.ventures.open({
       name: `বাতিল ${suffix}`,
       ...plan,
       decideBy: "2051-02-15",
@@ -276,7 +276,7 @@ describe("the paper an Investor gets when he joins", () => {
       phone: "01977000041",
     });
     const agreement = await owner.client.ventures.agreements.sign({
-      ventureId: cancelled.id,
+      ventureId: canceled.id,
       investorId: person.id,
       units: 4,
       investorsPercent: 60,
@@ -306,10 +306,10 @@ describe("the paper an Investor gets when he joins", () => {
     // Calling a Venture off sends every taka back, and each capital movement needs its own refund named.
     const calling = await as("owner", "2051-02-16T04:00:00.000Z");
     const taken = await calling.client.ventures.movements.list({
-      ventureId: cancelled.id,
+      ventureId: canceled.id,
     });
     await calling.client.ventures.cancel({
-      id: cancelled.id,
+      id: canceled.id,
       reason: `মূলধন জোগাড় হয়নি ${suffix}`,
       refunds: taken
         .filter((one) => one.kind === "capital_in")
@@ -320,7 +320,7 @@ describe("the paper an Investor gets when he joins", () => {
         })),
     });
     const refunds = await calling.client.ventures.movements.list({
-      ventureId: cancelled.id,
+      ventureId: canceled.id,
     });
     expect(refunds.some((one) => one.kind === "refund")).toBe(true);
 

@@ -43,7 +43,7 @@ const recordInput = z.object({
   farmAccountId: farmAccountIdInput,
   /** Whose hand paid the cash, where it was not the writer's: the Owner writing up the Manager's lorry. */
   heldBy: z.string().optional(),
-  /** Its transaction ID, or the cheque's or slip's number. */
+  /** Its transaction ID, or the check's or slip's number. */
   reference: referenceInput,
 });
 

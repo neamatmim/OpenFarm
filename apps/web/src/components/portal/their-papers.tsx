@@ -37,7 +37,7 @@ export const TheirPapers = ({
   agreements: TheirAgreements["agreements"];
 }) => {
   const { t } = useLanguage();
-  const papered = agreements.filter((one) => one.venture.state !== "cancelled");
+  const papered = agreements.filter((one) => one.venture.state !== "canceled");
   if (papered.length === 0) {
     return (
       <EmptyState

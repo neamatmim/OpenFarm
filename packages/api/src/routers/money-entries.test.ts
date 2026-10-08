@@ -322,9 +322,9 @@ describe("money entered by hand", () => {
     // Only an entry made by hand is corrected here; a record's money is put right on the record.
     const milk = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2038-04-01T02:00:00.000Z"),
-      litres: 40,
+      liters: 40,
       buyer: { name: `ঘোষ ${suffix}` },
-      pricePerLitreMoney: 50,
+      pricePerLiterMoney: 50,
     });
     const year = await owner.client.money.list(YEAR);
     const fromTheRecord = year.events.find((one) => one.sourceId === milk.id);

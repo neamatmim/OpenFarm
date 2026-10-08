@@ -165,7 +165,7 @@ const EXAMPLE: NoticeFacts = {
   animal_missing: { tag: "F-0012", pen: "ষাঁড় পেন ক", since: "2038-03-09" },
   store_shortfall: { shortMoney: 3450, countedOn: "2038-03-09" },
   pen_sores_seen: { pen: "ষাঁড় পেন ক", animals: 3, since: "2038-03-09" },
-  milk_unaccounted: { litres: 42.5, percent: 4, since: "2038-03-09" },
+  milk_unaccounted: { liters: 42.5, percent: 4, since: "2038-03-09" },
   head_count_differs: { pen: "ষাঁড় পেন ক", counted: 22, expected: 23 },
   dose_not_prescribed: {
     tag: "D-0007",

@@ -4,16 +4,16 @@ import {
   farmDayOf,
   farmTimeOf,
   milkDispatchRecord,
-  roundLitres,
+  roundLiters,
   startOfFarmDay,
-  summariseMoney,
+  summarizeMoney,
 } from "@OpenFarm/domain";
 import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { z } from "zod";
 
 import type { Context } from "../context";
 import { toCsv } from "../csv";
-import { dispatchesBetween, litresDispatched } from "../dispatch-store";
+import { dispatchesBetween, litersDispatched } from "../dispatch-store";
 import type { DispatchRow } from "../dispatch-store";
 import { stampedFileName } from "../export-name";
 import { assertRegistered, recordExport } from "../export-store";
@@ -110,14 +110,14 @@ const dispatchPaper = async (
     to: formatDate(startOfFarmDay(period.to), language),
     dispatches: dispatches.map((one) => ({
       at: formatDate(one.dispatchedAt, language, "dateTime"),
-      litres: formatNumber(one.litres, language),
+      liters: formatNumber(one.liters, language),
       buyerName: one.buyerName,
       buyerAddress: one.buyerAddress,
       deliveryNote: one.deliveryNote,
       fatPercent: figure(one.fatPercent),
       snfPercent: figure(one.snfPercent),
     })),
-    totalLitres: formatNumber(litresDispatched(dispatches), language),
+    totalLiters: formatNumber(litersDispatched(dispatches), language),
     producedBy: context.actor.name,
     producedAt: formatDate(context.clock.now(), language, "dateTime"),
   });
@@ -129,7 +129,7 @@ const dispatchCsv = (dispatches: readonly DispatchRow[]) =>
     [
       "date",
       "time",
-      "litres",
+      "liters",
       "buyer",
       "buyer_address",
       "delivery_note",
@@ -140,7 +140,7 @@ const dispatchCsv = (dispatches: readonly DispatchRow[]) =>
     dispatches.map((one) => [
       farmDayOf(one.dispatchedAt),
       farmTimeOf(one.dispatchedAt),
-      one.litres.toFixed(2),
+      one.liters.toFixed(2),
       one.buyerName,
       one.buyerAddress,
       one.deliveryNote,
@@ -171,7 +171,7 @@ export const reportsRouter = {
         context.farm.id,
         periodOf(input)
       );
-      const totalLitres = litresDispatched(dispatches);
+      const totalLiters = litersDispatched(dispatches);
       const result =
         input.format === "paper"
           ? { text: await dispatchPaper(context, input, dispatches) }
@@ -187,14 +187,14 @@ export const reportsRouter = {
       await recordExport(context, "milk_dispatch_record", input, {
         format: input.format,
         dispatches: dispatches.length,
-        totalLitres,
+        totalLiters,
       });
-      return { ...result, totalLitres };
+      return { ...result, totalLiters };
     }),
 
   /**
-   * R13, milk production: litres by farm day, session, Pen and Destination, with the milk poured away
-   * under a Withdrawal shown apart from milk poured away by judgement. A CSV for the Owner's own
+   * R13, milk production: liters by farm day, session, Pen and Destination, with the milk poured away
+   * under a Withdrawal shown apart from milk poured away by judgment. A CSV for the Owner's own
    * spreadsheet.
    */
   milkProduction: protectedProcedure
@@ -212,16 +212,16 @@ export const reportsRouter = {
             with: { shed: { columns: { name: true } } },
           },
           records: {
-            columns: { litres: true, destination: true, underWithdrawal: true },
+            columns: { liters: true, destination: true, underWithdrawal: true },
           },
         },
         orderBy: { dueAt: "asc", id: "asc" },
       });
       // One line per Session per Destination, with the withheld milk its own line: poured away under a
-      // Withdrawal is not the same fact as poured away by judgement.
+      // Withdrawal is not the same fact as poured away by judgment.
       const lines = new Map<
         string,
-        { key: string[]; underWithdrawal: string; litres: number }
+        { key: string[]; underWithdrawal: string; liters: number }
       >();
       for (const session of sessions) {
         for (const record of session.records) {
@@ -237,9 +237,9 @@ export const reportsRouter = {
               record.destination,
             ],
             underWithdrawal,
-            litres: 0,
+            liters: 0,
           };
-          line.litres += Number(record.litres);
+          line.liters += Number(record.liters);
           lines.set(id, line);
         }
       }
@@ -250,12 +250,12 @@ export const reportsRouter = {
           "shed",
           "pen",
           "destination",
-          "litres",
+          "liters",
           "under_withdrawal",
         ],
         [...lines.values()].map((line) => [
           ...line.key,
-          roundLitres(line.litres).toFixed(2),
+          roundLiters(line.liters).toFixed(2),
           line.underWithdrawal,
         ])
       );
@@ -292,7 +292,7 @@ export const reportsRouter = {
         context.farm.id,
         periodOf(input)
       );
-      const summary = summariseMoney(money);
+      const summary = summarizeMoney(money);
       const result =
         input.format === "paper"
           ? {

@@ -1,6 +1,6 @@
 import { crc32, deflateSync } from "node:zlib";
 
-// The picture the seed's Investor sends with a Pay-in Note: a pale slip with a stamp-coloured header and a few ruled
+// The picture the seed's Investor sends with a Pay-in Note: a pale slip with a stamp-colored header and a few ruled
 // lines, drawn here as a PNG so the Owner's photo dialog shows a picture of a slip rather than a single pixel.
 
 const WIDTH = 240;
@@ -22,8 +22,8 @@ const chunk = (type: string, data: Buffer): Buffer => {
   return Buffer.concat([length, named, check]);
 };
 
-/** The colour of one pixel of the slip. */
-const colourAt = (x: number, y: number): readonly number[] => {
+/** The color of one pixel of the slip. */
+const colorAt = (x: number, y: number): readonly number[] => {
   if (y < HEADER_ROWS) {
     return HEADER;
   }
@@ -39,7 +39,7 @@ const drawSlip = (): string => {
   for (let y = 0; y < HEIGHT; y += 1) {
     const row = Buffer.alloc(1 + WIDTH * 3);
     for (let x = 0; x < WIDTH; x += 1) {
-      const [r = 0, g = 0, b = 0] = colourAt(x, y);
+      const [r = 0, g = 0, b = 0] = colorAt(x, y);
       row.writeUInt8(r, 1 + x * 3);
       row.writeUInt8(g, 2 + x * 3);
       row.writeUInt8(b, 3 + x * 3);
@@ -49,7 +49,7 @@ const drawSlip = (): string => {
   const header = Buffer.alloc(13);
   header.writeUInt32BE(WIDTH, 0);
   header.writeUInt32BE(HEIGHT, 4);
-  // Eight bits a channel, colour without alpha.
+  // Eight bits a channel, color without alpha.
   header.writeUInt8(8, 8);
   header.writeUInt8(2, 9);
   const png = Buffer.concat([

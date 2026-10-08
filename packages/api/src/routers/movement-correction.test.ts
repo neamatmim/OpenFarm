@@ -240,7 +240,7 @@ describe("putting a movement right", () => {
         },
       ],
     });
-    // Cancelling sent every taka back, one refund against each payment. Change what came in now and the
+    // Canceling sent every taka back, one refund against each payment. Change what came in now and the
     // refund beside it stops matching, and the Venture reads as still holding somebody's money.
     await expect(
       owner.client.ventures.movements.correct({
@@ -250,7 +250,7 @@ describe("putting a movement right", () => {
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
-      data: { refusal: "venture_is_cancelled" },
+      data: { refusal: "venture_is_canceled" },
     });
   });
 

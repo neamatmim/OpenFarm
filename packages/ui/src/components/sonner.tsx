@@ -31,8 +31,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
           "--border-radius": "var(--radius)",
-          // A coloured toast in the app's own tones, whose text holds 4.5:1 on its ground in both themes; Sonner's
-          // own rich colours fall to about 3:1 in light (WCAG 1.4.3).
+          // A colored toast in the app's own tones, whose text holds 4.5:1 on its ground in both themes; Sonner's
+          // own rich colors fall to about 3:1 in light (WCAG 1.4.3).
           "--success-bg": "var(--success-surface)",
           "--success-text": "var(--success)",
           "--success-border":

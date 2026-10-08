@@ -52,23 +52,23 @@ const useMilkFigures = ({
   const { t, language } = useLanguage();
   // A figure the farm has not given yet: a placeholder while it is asked, a dash once asking has failed.
   const notYet = failed ? "—" : <Skeleton className="h-8 w-28" />;
-  const litres = (value: number) =>
-    `${formatNumber(value, language)} ${t("dispatch.litres")}`;
+  const liters = (value: number) =>
+    `${formatNumber(value, language)} ${t("dispatch.liters")}`;
   const worth = (milkDay?.dispatches ?? []).reduce(
-    (sum, one) => sum + worthOf(one.litres, one.pricePerLitreMoney),
+    (sum, one) => sum + worthOf(one.liters, one.pricePerLiterMoney),
     0
   );
   const dayWord = formatDate(new Date(`${day}T12:00:00`), language);
   return [
     {
       label: t("dispatch.intoTank"),
-      value: milkDay ? litres(milkDay.toBulkLitres) : notYet,
+      value: milkDay ? liters(milkDay.toBulkLiters) : notYet,
       hint: dayWord,
       icon: Milk,
     },
     {
       label: t("dispatch.handedOver"),
-      value: milkDay ? litres(milkDay.dispatchedLitres) : notYet,
+      value: milkDay ? liters(milkDay.dispatchedLiters) : notYet,
       hint: milkDay
         ? t("dispatch.kpi.handedOverHint", {
             count: milkDay.dispatches.length,

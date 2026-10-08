@@ -57,7 +57,7 @@ is the part that is easy to believe was done and was not:
       `127.0.0.1:3001`; it must not be exposed directly to the internet.
 - [ ] The proxy **sets** `X-Forwarded-For` to the address it saw, rather than adding to what
       the caller sent (nginx: `proxy_set_header X-Forwarded-For $remote_addr;`). Sign-in and
-      Shed Phone enrolment count wrong guesses per address, read from that header; a proxy
+      Shed Phone enrollment count wrong guesses per address, read from that header; a proxy
       that appends lets a script name a new address on every try.
 - [ ] The proxy takes a request of up to **8 MB** and no more (nginx: `client_max_body_size 8m;`).
       nginx's own default is 1 MB, which refuses a Shed Phone's batch of photographs (up to 4 MB, as

@@ -23,8 +23,8 @@ export interface WorkToCheck {
   }[];
   /** The Milking Session it wrote, for work that milks. */
   milk: {
-    bulkLitres: number | null;
-    differenceLitres: number | null;
+    bulkLiters: number | null;
+    differenceLiters: number | null;
     flagged: boolean;
   } | null;
   /** The feeding it wrote, for work that feeds. */
@@ -40,7 +40,7 @@ export interface CheckSummary {
   outOfRange: number;
   /** Finished after its due time and its grace. */
   late: boolean;
-  milk: { bulkLitres: number | null; differenceLitres: number | null } | null;
+  milk: { bulkLiters: number | null; differenceLiters: number | null } | null;
   /** How far short a feeding came, where it did. */
   shortFedPercent: number | null;
   /** Something the farm itself flagged: the tank against the cows, a short feed, a figure out of range. */
@@ -87,8 +87,8 @@ export const checkSummaryOf = (work: WorkToCheck): CheckSummary => {
     late,
     milk: work.milk
       ? {
-          bulkLitres: work.milk.bulkLitres,
-          differenceLitres: work.milk.differenceLitres,
+          bulkLiters: work.milk.bulkLiters,
+          differenceLiters: work.milk.differenceLiters,
         }
       : null,
     shortFedPercent:

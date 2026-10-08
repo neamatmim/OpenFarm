@@ -5,7 +5,7 @@ import { Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
-/** One figure, labelled, with what it is made of beneath. */
+/** One figure, labeled, with what it is made of beneath. */
 const Figure = ({
   label,
   value,

@@ -56,7 +56,7 @@ const ownEntriesOnly = (role: RoleName): boolean =>
   role === "staff" || role === "vet";
 
 /** A Vet's standing is over the clinical record — a Diagnosis, a Prescription, a dose they
- *  gave. Being a Vet is not a licence over the milking book. */
+ *  gave. Being a Vet is not a license over the milking book. */
 const covers = (role: RoleName, isHealthEntry: boolean): boolean =>
   role !== "vet" || isHealthEntry;
 

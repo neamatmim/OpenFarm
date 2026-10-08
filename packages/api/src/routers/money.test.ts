@@ -61,9 +61,9 @@ describe("money from the farm's records", () => {
     const manager = await as("manager", "2037-01-10T04:00:00.000Z");
     const recorded = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2037-01-10T02:00:00.000Z"),
-      litres: 100,
+      liters: 100,
       buyer: { name: `মিল্ক ভিটা ${suffix}` },
-      pricePerLitreMoney: 55,
+      pricePerLiterMoney: 55,
       paymentMethod: "mobile_money",
     });
     expect(await moneyOf(recorded.id)).toEqual([
@@ -80,13 +80,13 @@ describe("money from the farm's records", () => {
 
     await manager.client.milk.correctDispatch({
       id: recorded.id,
-      changes: { litres: { from: 100, to: 120 } },
+      changes: { liters: { from: 100, to: 120 } },
       reason: "মাপে ভুল",
     });
     const [money, ...more] = await moneyOf(recorded.id);
     expect(more).toEqual([]);
     expect(money?.amountMoney).toBe(6600);
-    // The trail shows the money either side of the correction, not only the litres.
+    // The trail shows the money either side of the correction, not only the liters.
     const trail = await manager.client.audit.list({
       entity: "dispatch",
       entityId: recorded.id,
@@ -321,9 +321,9 @@ describe("money from the farm's records", () => {
     const manager = await as("manager", "2037-04-01T04:00:00.000Z");
     const recorded = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2037-04-01T02:00:00.000Z"),
-      litres: 500,
+      liters: 500,
       buyer: { name: `প্রাণ ডেইরি ${suffix}` },
-      pricePerLitreMoney: 50,
+      pricePerLiterMoney: 50,
     });
     const [waiting] = await moneyOf(recorded.id);
     expect(waiting).toMatchObject({
@@ -345,7 +345,7 @@ describe("money from the farm's records", () => {
 
     await manager.client.milk.correctDispatch({
       id: recorded.id,
-      changes: { litres: { from: 500, to: 520 } },
+      changes: { liters: { from: 500, to: 520 } },
       reason: "মাপে ভুল",
     });
     const [asked] = await moneyOf(recorded.id);
@@ -364,7 +364,7 @@ describe("money from the farm's records", () => {
     // Under the threshold again, it waits for nobody and the notice comes down.
     await manager.client.milk.correctDispatch({
       id: recorded.id,
-      changes: { litres: { from: 520, to: 300 } },
+      changes: { liters: { from: 520, to: 300 } },
       reason: "দুটো গাড়ির দুধ এক সাথে লেখা হয়েছিল",
     });
     const [under] = await moneyOf(recorded.id);

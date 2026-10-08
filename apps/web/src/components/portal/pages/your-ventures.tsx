@@ -51,7 +51,7 @@ const VentureCell = ({ row }: { row: { original: HisAgreement } }) => {
   );
 };
 
-/** Where the Venture stands, in the same word and colour the Owner's list says it in. */
+/** Where the Venture stands, in the same word and color the Owner's list says it in. */
 const StageCell = ({ row }: { row: { original: HisAgreement } }) => (
   <StateBadge state={row.original.venture.state} />
 );

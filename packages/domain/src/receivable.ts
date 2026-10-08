@@ -83,7 +83,7 @@ export const receivableAtTheGate = ({
   leftOn,
   promiseRequired,
 }: {
-  /** What the animal or the milk came to: a Sale's price, a Dispatch's litres at its price. */
+  /** What the animal or the milk came to: a Sale's price, a Dispatch's liters at its price. */
   worthMoney: number;
   paidNowMoney?: number;
   promisedBy?: string | null;

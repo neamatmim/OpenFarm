@@ -48,7 +48,7 @@ import {
 /** The camera's file picker, opened from her menu. */
 const PHOTO_INPUT = "animal-photo-input";
 
-/** One act in the header's menu, with its icon; an act that ends her record in the danger colour. */
+/** One act in the header's menu, with its icon; an act that ends her record in the danger color. */
 const ActItem = ({ action }: { action: RowAction }) => {
   const Icon = action.icon;
   const { handleSelect } = action;

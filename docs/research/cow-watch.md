@@ -1,6 +1,6 @@
 # When a cow should show heat, and when her milk says she is ill
 
-**Question:** OpenFarm will build a "heat watch" list and a "cows giving less" list. The Owner has accepted defaults pending this research: from 60 days after calving, any open cow with no heat in the last 24 days; a return to heat after a service expected on days 18–24; heifer first service at 18 months; and a milk drop of 20% over 2 days against her previous 7 days. On what evidence do these rest? By how many days after calving should a crossbred cow in Bangladesh have shown a heat, and what do Bangladeshi studies report for calving-to-first-heat and calving interval? How long is the oestrous cycle, and what does a short or long return mean? At what age and weight should a crossbred heifer be served, and what do Bangladeshi heifers actually reach? What fall in a cow's daily milk points to mastitis, ketosis or lameness?
+**Question:** OpenFarm will build a "heat watch" list and a "cows giving less" list. The Owner has accepted defaults pending this research: from 60 days after calving, any open cow with no heat in the last 24 days; a return to heat after a service expected on days 18–24; heifer first service at 18 months; and a milk drop of 20% over 2 days against her previous 7 days. On what evidence do these rest? By how many days after calving should a crossbred cow in Bangladesh have shown a heat, and what do Bangladeshi studies report for calving-to-first-heat and calving interval? How long is the estrous cycle, and what does a short or long return mean? At what age and weight should a crossbred heifer be served, and what do Bangladeshi heifers actually reach? What fall in a cow's daily milk points to mastitis, ketosis or lameness?
 
 **Researched:** 30 September 2026.
 
@@ -12,7 +12,7 @@ Primary sources read in full:
 - **Bangladeshi crossbred herds:** Hridoy et al. 2025 (4,319 daughters of CCBDF bulls, PMC); Rahman, Chowdhury & Islam 2024 (204 Holstein crossbred cows on three Keraniganj farms, PMC; abstract, methods and results read); Rahman et al. 2021 (_RALF_ review of crossbred Friesian reproduction).
 - **Milk-yield perturbations:** Cabbia et al. 2026 (_Animals_, PMC).
 
-Read through a summarising fetch only (a small model answered my questions from the page):
+Read through a summarizing fetch only (a small model answered my questions from the page):
 
 - Kamal 2010 (_Int J Dairy Sci_ review of cattle reproduction in Bangladesh).
 - Smith & Becker 1994 (New Mexico State University Guide D-302).
@@ -20,7 +20,7 @@ Read through a summarising fetch only (a small model answered my questions from 
 
 Read in **abstract only**, and marked so where used:
 
-- **Bangladeshi cows:** Kamal et al. 2014 (postpartum anoestrus, 273 farms); Shamsuddin et al. 2006 (milk progesterone, AI programme); Siddiqui et al. 2013 (6,101 first services). Howlader & Rahman 2017 (_J Sylhet Agril Univ_ review): the PDF was opened, but only its abstract's ranges are used.
+- **Bangladeshi cows:** Kamal et al. 2014 (postpartum anestrus, 273 farms); Shamsuddin et al. 2006 (milk progesterone, AI program); Siddiqui et al. 2013 (6,101 first services). Howlader & Rahman 2017 (_J Sylhet Agril Univ_ review): the PDF was opened, but only its abstract's ranges are used.
 - **Return intervals:** Remnant et al. 2015; Greenham, Oikonomou & Grove-White 2019; Remnant's 2019 thesis.
 - **Milk yield and disease:** Adriaens et al. 2021 (two papers); Rajala-Schultz et al. 1999; Gröhn et al. 2004; Hand, Godkin & Kelton 2012; Edwards & Tozer 2004; Lukas et al. 2009; Green et al. 2002; Khorrami et al. 2026; Stangaferro et al. 2016 (Parts I and II); Huybrechts et al. 2014.
 
@@ -53,10 +53,10 @@ Search-snippet facts are marked **[SNIPPET]**. Figures a read source quotes from
 1. **Keep day 60 as the day a cow with no heat goes on the list. It is DLS's own figure, not a Bangladeshi average.**
    - **DLS says to act by day 60.** NG-GLPP says to "re-examine cows that don't come into heat at 50-60 days postpartum". Its breeding table gives "Calving to first heat 40 days" and "Calving to first service 60 days or less". Its target is "60-85 days open period" and "an inter-calving interval of 360 to 380 days".
    - **Merck:** voluntary waiting period "60–70 days for cows"; average days open "100–110".
-   - **Bangladeshi research uses the same line.** Kamal et al. 2014 defined anoestrus in crossbred cows "at =>60 days postpartum" (abstract only).
+   - **Bangladeshi research uses the same line.** Kamal et al. 2014 defined anestrus in crossbred cows "at =>60 days postpartum" (abstract only).
 2. **Most Bangladeshi crossbred cows will be on that list at day 60, and many cows that are cycling will be among them.**
    - **First ovulation is late.** By milk progesterone, only 25 of 84 cows (29.7%) cycled within 120 days. HF crossbreds that did cycle began at 80.2 ± 17.5 days, and intensively managed cows at 73.5 ± 10 days (Saha 2015).
-   - **Heats are late or missed.** In the AI programme the median from calving to a seen oestrus was 120 days. Heat was "accurately detected" in only 30% of cows, with 40% "not detected when they were in oestrus" (Shamsuddin 2006, abstract only).
+   - **Heats are late or missed.** In the AI program the median from calving to a seen estrus was 120 days. Heat was "accurately detected" in only 30% of cows, with 40% "not detected when they were in oestrus" (Shamsuddin 2006, abstract only).
    - **Surveys agree.** Farmers reported a post-partum heat at 114 days for HF × Local cows, 125 for Sahiwal × Local and 127 for Sindhi × Local (Famous 2021). Calving to first service averaged 153.4 ± 80.6 days (Siddiqui 2013, abstract only).
    - **Only 18% of cows past day 60 had no ovarian activity.** Kamal 2014 examined them by ultrasound (abstract only). **So a cow on the list is more often a missed heat than a cow that is not cycling.**
 3. **Calving interval in Bangladeshi crossbreds is about 13–14 months, against DLS's 12.**
@@ -73,7 +73,7 @@ Search-snippet facts are marked **[SNIPPET]**. Figures a read source quotes from
    - **Under 18 days:** the service was probably not at a true heat, or she has follicular cysts, which Merck links to "shortened cycles".
    - **25–35 days (Viking gives 25–45):** usually read as the embryo dying after the cow had registered the pregnancy (Viking Genetics). Merck: 5–10% of pregnancies are lost from about day 14–19 to day 42.
    - **36–48 days:** one heat missed. The thesis abstract uses the same bands (Remnant 2019).
-   - **Longer:** cysts or anoestrus (Viking; Merck).
+   - **Longer:** cysts or anestrus (Viking; Merck).
    - **Early loss hides in normal returns.** 35–40% of embryos are lost before day 14–19, and that loss brings the cow back in 18–24 days, like a failed service (Merck).
 7. **Heifer first service: 18 months for crossbreds is DLS's figure, not what Bangladeshi farms reach. It should also check weight, and deshi heifers need their own age.**
    - **DLS:** crossbreds "18-20 months", at "180-275 kg". §12.1.1.1 wants "about 250 and 300 kg at 18 months", and conception "when 18 to 21 months old". Indigenous heifers: 30 months, 150–250 kg.
@@ -85,7 +85,7 @@ Search-snippet facts are marked **[SNIPPET]**. Figures a read source quotes from
    - **Disease drops build over days.** Yield falls 5–7 days before ketosis is diagnosed (Edwards & Tozer 2004). With clinical mastitis it falls "1 or 2 wk before diagnosis" (Gröhn 2004), and the drop starts on average "8.7 days before the first treatment" (Adriaens 2021 PVM). All abstract only.
    - **Lameness and subclinical mastitis are slow.** Lameness lowers yield "from up to 4 mo before" diagnosis (Green 2002, abstract only). Subclinical mastitis costs 0.35–1.09 kg a day at 200,000 cells/mL (Hand 2012, abstract only).
    - **So 20% in 2 days will catch sudden illness,** such as milk fever, acute (often _E. coli_) mastitis, or ketosis and displaced abomasum. **It will miss subclinical mastitis and early lameness;** those need the CMT and a walk past the cows.
-   - **Oestrus also drops milk.** NG-GLPP lists a "Sharp decline in milk production" among standing-heat signs. **A cow on the milk-drop list should be checked against the heat list.**
+   - **Estrus also drops milk.** NG-GLPP lists a "Sharp decline in milk production" among standing-heat signs. **A cow on the milk-drop list should be checked against the heat list.**
 
 ---
 
@@ -97,7 +97,7 @@ Search-snippet facts are marked **[SNIPPET]**. Figures a read source quotes from
 - **§10.1.3.2(j)(2):** "Examine cows around 30-40 days postpartum to ascertain uterine health, and re-examine cows that don't come into heat at 50-60 days postpartum, and treat the cows, if necessary."
 - **§10.1.3.2(j)(3):** "Inseminate all cows with proven bulls' semen on first heat by 40-60 days of calving."
 - **§10.1.3.2(g):** "If the lactating cows don't conceive between 60 to 85 days postpartum, a Registered Veterinarian should be consulted".
-- **Suckling and anoestrus:**
+- **Suckling and anestrus:**
   - (d) "lactational anestrus can occur for utilizing more body reserves in the early lactation".
   - (e) "the suckling stimulus has a negative effect on cyclicity of the dam … so the calf should be weaned as early as possible".
   - (h) "Presence of teaser bull during postpartum results in causing cows to cycle earlier."
@@ -114,20 +114,20 @@ Search-snippet facts are marked **[SNIPPET]**. Figures a read source quotes from
   - "Days in milk at first breeding VWP + 11 days".
   - "Average days open 100–110 (ideally lower end of range to achieve 12-month calving)"; "Calving interval 13.5 months".
   - "Full uterine involution 40–45 days post partum".
-- **Hormonal Control of Estrus:** cows "need to be at least 40–45 days postpartum" before synchronisation.
+- **Hormonal Control of Estrus:** cows "need to be at least 40–45 days postpartum" before synchronization.
 - **Breeding Programs (Statham, September 2024):**
   - "Genuine anestrus is not common in dairy cows".
   - Silent heat "decreases as lactation progresses … the incidence of silent heat is low by 4 months postpartum".
-  - Anoestrous ovaries "may reveal no activity or change after several examinations during a period of 3 weeks". A common cause is "excessive loss of body weight postpartum in lactating dairy cows".
+  - Anestrous ovaries "may reveal no activity or change after several examinations during a period of 3 weeks". A common cause is "excessive loss of body weight postpartum in lactating dairy cows".
   - **Merck gives no day by which a cow with no heat must be examined.** That day comes from DLS (50–60).
-- **An older extension guide:** "Most cows normally show their first estrus by 30-50 days after calving" (Smith & Becker 1994, NMSU; summarising fetch). That figure is for Holstein herds in the United States.
+- **An older extension guide:** "Most cows normally show their first estrus by 30-50 days after calving" (Smith & Becker 1994, NMSU; summarizing fetch). That figure is for Holstein herds in the United States.
 
 **Bangladeshi crossbreds.**
 
 | Study                                | Cows                                                                                 | Calving to first heat / cyclicity                                                                                                                                                                                                               |
 | ------------------------------------ | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Saha et al. 2015 (milk progesterone) | 84: 30 local, 37 HF × local, 17 Sahiwal/Sindhi × local; 27 intensive, 57 smallholder | "only 25 (29.7%) started cycling … within 120 days". HF × local: 80.2 ± 17.5 d (n 14 of 37, 37.9%); Sahiwal/Sindhi × local: 82.9 ± 18.8 d (18.8%); local: 84.8 ± 21.0 d (13.3%). Intensive: 73.5 ± 10 d (40.8%); extensive: 88.1 ± 20 d (24.6%) |
-| Shamsuddin et al. 2006 (abstract)    | 88 cows, AI programme, Mymensingh                                                    | calving to seen oestrus "40 to 362 days (median=120, n=82)"; to luteal activity "34 to 398 (median=111, n=64)"                                                                                                                                  |
+| Shamsuddin et al. 2006 (abstract)    | 88 cows, AI program, Mymensingh                                                    | calving to seen estrus "40 to 362 days (median=120, n=82)"; to luteal activity "34 to 398 (median=111, n=64)"                                                                                                                                  |
 | Famous et al. 2021                   | 162 crossbred cows, 17 farms, Kishoreganj (farmer recall and farm records)           | post-partum heat period: L × F 114 ± 5 d; L × SL 125 ± 5; L × S 127 ± 5                                                                                                                                                                         |
 | Miazi et al. 2007 **[SECONDARY]**    | via Famous 2021                                                                      | Sahiwal × Local 95.0 ± 25.0; Friesian × Local 90.0 ± 13.42 days                                                                                                                                                                                 |
 | Howlader & Rahman 2017 (abstract)    | review                                                                               | post-partum heat period "74.5±1.6 to 114.5±73.00 days" across studies                                                                                                                                                                           |
@@ -139,7 +139,7 @@ Saha 2015 sampled milk every 10 days and stopped at day 120, so its day counts d
 **Why so late.**
 
 - **Body condition, weight and suckling.** In Saha's cows weighing 152–200 kg at calving only 5.2% cycled within 120 days, against 38.3% of those at 201–300 kg.
-- Kamal 2014 (abstract only): the odds of true anoestrus were "17.52" times higher with poor body condition, "2.82 times higher in suckled than in nonsuckled cows", and "2.53 times higher in cows that calved during the cold season".
+- Kamal 2014 (abstract only): the odds of true anestrus were "17.52" times higher with poor body condition, "2.82 times higher in suckled than in nonsuckled cows", and "2.53 times higher in cows that calved during the cold season".
 - **Management.** Saha's own conclusion: HF crosses need "an intensive farming system with proper management and health care, otherwise it would be very difficult to achieve a calving interval of 365 days."
 
 **Calving interval and days open in Bangladeshi crossbreds.**
@@ -155,15 +155,15 @@ Saha 2015 sampled milk every 10 days and stopped at day 120, so its day counts d
 
 Hridoy's days-open column ranges from 50 to 240, so shorter intervals may have been excluded. **DLS's 60–85 days open and 360–380-day interval are targets that the averages in these studies do not reach.**
 
-**For the app.** Day 60 is where DLS draws the line, and where Kamal 2014 starts calling a cow anoestrous. **On a Bangladeshi farm the list at day 60 will be long.** It holds three kinds of cow:
+**For the app.** Day 60 is where DLS draws the line, and where Kamal 2014 starts calling a cow anestrous. **On a Bangladeshi farm the list at day 60 will be long.** It holds three kinds of cow:
 
 - cows cycling unseen (Shamsuddin: 40% of heats missed);
 - cows not yet cycling (Saha);
-- a few truly anoestrous (Kamal: 18%).
+- a few truly anestrous (Kamal: 18%).
 
 The list's words should ask for **closer watching and, per NG-GLPP, the Vet's examination**. They should not call the cow barren. A second mark at **day 85** would match DLS's "open days not more than 85" and §10.1.3.2(g) (my suggestion).
 
-## 2. The oestrous cycle and the return window
+## 2. The estrous cycle and the return window
 
 **Length.**
 
@@ -193,7 +193,7 @@ The list's words should ask for **closer watching and, per NG-GLPP, the Vet's ex
 | 18–24 days                 | "short regular"     | Service failed, or the embryo died before the cow registered the pregnancy (Merck: 35–40% "from conception to maternal recognition of pregnancy at 14–19 days"). **These two cannot be told apart by the calendar.** |
 | 25–35 days (Viking: 25–45) | "long irregular"    | "insemination was successful but that a high proportion resulted in early embryo loss" (Viking Genetics). Merck: 5–10% of pregnancies lost from recognition to day 42                                                |
 | 36–48 days                 | "long regular"      | A heat was missed in between (twice the cycle)                                                                                                                                                                       |
-| over 48 days               | "extended"          | Several heats missed, cysts ("irregular heat", Viking), anoestrus, or later embryo loss                                                                                                                              |
+| over 48 days               | "extended"          | Several heats missed, cysts ("irregular heat", Viking), anestrus, or later embryo loss                                                                                                                              |
 
 **Caution.** A search summary carried the sentence, from a paper not identified, that "evaluations of interestrous intervals are not a good indicator of early embryonic death" **[SNIPPET]**. And Greenham's abstract found that "longer interservice interval length may be more conducive to subsequent conception". **The app can name the band; the Vet decides what it means for the cow.**
 
@@ -217,7 +217,7 @@ The list's words should ask for **closer watching and, per NG-GLPP, the Vet's ex
 - **Van Saun (December 2025):** "desired age at first calving, generally between 22 and 24 months", and "50–55% of mature weight at 13–15 months old". "Heifers should grow to achieve a minimum of 50–55% and 80–85% of their mature weight at breeding and first calving, respectively."
 - **Van Saun's weight table:** at 13–15 months, 53.7–61.1% of mature weight. That is 242–275 kg for "small breeds" and 295–336 kg for "medium breeds".
 - **Statham:** "Lifetime profits of dairy replacement heifers are maximized when heifers calve at 23–25 months old."
-- **Romano:** "at least 60% of the expected mature weight" before synchronisation.
+- **Romano:** "at least 60% of the expected mature weight" before synchronization.
 
 **What mature weight is for this farm's cows.**
 
@@ -323,7 +323,7 @@ These herds give far more milk than this farm's cows: 6.6–8.6 L a day for CCBD
 ## Unclear / not found
 
 - **A Bangladeshi threshold for "no heat after calving" other than DLS's 50–60 days.** The studies report averages; none sets a day for action. Kamal 2014's "≥60 days" is a study definition.
-- **The full text of Kamal 2014,** which would say how many of the 82% of cows past day 60 that were not truly anoestrous were cycling unseen, and at what day. Only the abstract was read.
+- **The full text of Kamal 2014,** which would say how many of the 82% of cows past day 60 that were not truly anestrous were cycling unseen, and at what day. Only the abstract was read.
 - **How many returns fall on day 25 and later in Bangladeshi cows.** Remnant's modal 22 days is from the UK. No Bangladeshi interval distribution was found.
 - **A Merck page named "Estrous Cycles in Cattle".** It does not exist under that name. The cycle facts are on the pages cited.
 - **Any herd-software milk-drop default** (Lely, DeLaval, Afimilk, DairyComp). Not published in pages that could be read.
@@ -351,13 +351,13 @@ These herds give far more milk than this farm's cows: 6.6–8.6 L a day for CCBD
 13. Kamal MM, Bhuiyan MMU, Parveen N, Momont HW, Shamsuddin M. Risk factors for postpartum anestrus in crossbred cows in Bangladesh. _Turk J Vet Anim Sci_ 2014; 38(2): 151–156. doi:10.3906/vet-1303-74. https://journals.tubitak.gov.tr/veterinary/vol38/iss2/6/ (abstract only).
 14. Shamsuddin M, Bhuiyan MMU, Chanda PK, Alam MGS, Galloway D. Radioimmunoassay of milk progesterone as a tool for fertility control in smallholder dairy farms. _Trop Anim Health Prod_ 2006; 38: 85–92. doi:10.1007/s11250-006-4249-z (abstract only).
 15. Siddiqui MA, Das ZC, Bhattacharjee J, Rahman MM, Islam MM, Haque MA, Parrish JJ, Shamsuddin M. Factors affecting the first service conception rate of cows in smallholder dairy farms in Bangladesh. _Reprod Domest Anim_ 2013; 48: 500–505. doi:10.1111/rda.12114 (abstract only).
-16. Kamal MM. A Review on Cattle Reproduction in Bangladesh. _Int J Dairy Sci_ 2010; 5(4): 245–252. https://scialert.net/fulltext/?doi=ijds.2010.245.252 (summarising fetch).
+16. Kamal MM. A Review on Cattle Reproduction in Bangladesh. _Int J Dairy Sci_ 2010; 5(4): 245–252. https://scialert.net/fulltext/?doi=ijds.2010.245.252 (summarizing fetch).
 17. Howlader MMR, Rahman MM. Review on reproductive performances of dairy cows. _J Sylhet Agril Univ_ 2017; 4(1): 27–34. https://jsau.sau.ac.bd/wp-content/uploads/2018/09/03.-JSAU-ID-013-M.-Rahman-converted.pdf (abstract used).
 18. Remnant JG, Green MJ, Huxley JN, Hudson CD. Variation in the interservice intervals of dairy cows in the United Kingdom. _J Dairy Sci_ 2015; 98(2): 889–897. doi:10.3168/jds.2014-8366 (abstract only).
 19. Greenham T, Oikonomou G, Grove-White DH. A description of interestrus and interservice intervals and associated fertility in 16 United Kingdom dairy herds. _J Dairy Sci_ 2019. doi:10.3168/jds.2018-14755 (abstract only).
 20. Remnant J. _Measuring dairy herd heat detection: the use of inter-service intervals_. PhD thesis, University of Nottingham, 2019. http://eprints.nottingham.ac.uk/55896/ (abstract only, via Europe PMC).
-21. Viking Genetics. Early embryo loss. 5 October 2020. https://www.vikinggenetics.com/tipt-reproduction/early-embryo-loss (summarising fetch).
-22. Smith JF, Becker DA. _The Reproductive Status of Your Dairy Herd_. Guide D-302, New Mexico State University, October 1994. https://pubs.nmsu.edu/_d/D302/index.html (summarising fetch).
+21. Viking Genetics. Early embryo loss. 5 October 2020. https://www.vikinggenetics.com/tipt-reproduction/early-embryo-loss (summarizing fetch).
+22. Smith JF, Becker DA. _The Reproductive Status of Your Dairy Herd_. Guide D-302, New Mexico State University, October 1994. https://pubs.nmsu.edu/_d/D302/index.html (summarizing fetch).
 23. Adriaens I, van den Brulle I, D'Anvers L, Statham JME, Geerinckx K, De Vliegher S, Piepers S, Aernouts B. Milk losses and dynamics during perturbations in dairy cows differ with parity and lactation stage. _J Dairy Sci_ 2021; 104: 405–418. doi:10.3168/jds.2020-19195 (abstract only).
 24. Adriaens I, Van Den Brulle I, Geerinckx K, D'Anvers L, De Vliegher S, Aernouts B. Milk losses linked to mastitis treatments at dairy farms with automatic milking systems. _Prev Vet Med_ 2021; 194: 105420. doi:10.1016/j.prevetmed.2021.105420 (abstract only).
 25. Cabbia A, Braidot M, Florit E, Corazzin M, Romanzin A. Perturbations in Dairy Cows: Impact of Heat Stress, Lameness, and Mastitis on Milk Yield and Feeding Behavior. _Animals_ 2026; 16: 1111. doi:10.3390/ani16071111. PMC13072371.

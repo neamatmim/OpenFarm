@@ -81,7 +81,7 @@ const TAB_NAMES = ["Capital in", "Money in and out"];
 /** Inside a sentence: after any word (the sentence's first among them), a figure, a comma, a closing brace or
  *  bracket, a dash or a count's "#". */
 const MID_SENTENCE = String.raw`(?:(?<=[A-Za-z0-9,;}\)%—–#’'] )|(?<=\())`;
-const CAPITALISED = new RegExp(
+const CAPITALIZED = new RegExp(
   `${MID_SENTENCE}(?:${COMMON_NOUNS.join("|")})(?:s|'s|s')?\\b(?! page| tab| Portal| Ops)`,
   "u"
 );
@@ -127,7 +127,7 @@ const portalKeys = new Set(
 /** A label's own length: a menu item, a heading, a column, a button — not a sentence. */
 const LABEL_LENGTH = 40;
 
-/** Names a label keeps capitalised after its first word: proper names, an acronym, and the Return on capital the
+/** Names a label keeps capitalized after its first word: proper names, an acronym, and the Return on capital the
  *  advisers approved by that name. */
 const PROPER = new Set([
   "OpenFarm",
@@ -147,15 +147,15 @@ const LATER_CAPITAL = /(?<=[A-Za-z0-9,;:'’)] )(?<word>[A-Z][a-z]+)/gu;
 
 describe("the farm's English", () => {
   it("keeps common nouns lowercase inside a sentence", () => {
-    const capitalised = Object.entries(en)
+    const capitalized = Object.entries(en)
       .filter(
         ([key]) =>
           !ADVISERS_WORDING.has(key.split(".")[0] ?? "") && !portalKeys.has(key)
       )
-      .filter(([, words]) => CAPITALISED.test(withoutPageNames(words)))
+      .filter(([, words]) => CAPITALIZED.test(withoutPageNames(words)))
       .map(([key, words]) => `${key}: ${words}`);
 
-    expect(capitalised).toEqual([]);
+    expect(capitalized).toEqual([]);
   });
 
   it("writes its labels in sentence case", () => {

@@ -21,7 +21,7 @@ export const finishedWord = (checkerRole: string | null | undefined) =>
 /** What the server's effect decided, shown back to the person who recorded it — the tank
  *  reading against what the cows account for, and whether that needs the Manager. */
 export interface BulkOutcome {
-  differenceLitres: number;
+  differenceLiters: number;
   flagged: boolean;
 }
 /** Work closed without being done — Missed or Called Off: neither owed any more nor finished. */

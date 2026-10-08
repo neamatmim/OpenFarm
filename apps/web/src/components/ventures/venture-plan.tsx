@@ -863,7 +863,7 @@ export const VenturePlanPanel = ({ venture }: { venture: Venture }) => {
   const plan = useQuery(
     orpc.ventures.plan.get.queryOptions({ input: { ventureId: venture.id } })
   );
-  const ended = venture.state === "settled" || venture.state === "cancelled";
+  const ended = venture.state === "settled" || venture.state === "canceled";
   const latest = plan.data?.latest ?? null;
   return (
     <Section

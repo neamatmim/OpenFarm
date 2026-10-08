@@ -47,7 +47,7 @@ describe("the month before this one", () => {
 const month = (name: string, inMoney: number) => ({
   name,
   money: { inMoney, outMoney: 0 },
-  dairy: { milkSoldMoney: 0, chargedMoney: 0, litresToBulk: 0 },
+  dairy: { milkSoldMoney: 0, chargedMoney: 0, litersToBulk: 0 },
   fattening: { chargedMoney: 0, sold: 0 },
 });
 

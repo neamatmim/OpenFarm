@@ -4,14 +4,14 @@ import {
   daysInMilk,
   groupedBy,
   keptOver,
-  litresOver,
+  litersOver,
   milkAgainstKeep,
   milkPriceOf,
 } from "@OpenFarm/domain";
 
 import { repeatBreedersOn } from "./breeding-store";
 import { farmCosts, keepChargesOf } from "./cost-store";
-import { fetchedPerLitre, writtenOffByItem } from "./receivable-store";
+import { fetchedPerLiter, writtenOffByItem } from "./receivable-store";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -72,23 +72,23 @@ export const cullList = async (
   const repeat = new Map(
     unsettled.map((one) => [one.animalId, one.failedAttempts] as const)
   );
-  // Only milk that left: what a buyer paid a litre is the price, not what the farm hoped for.
+  // Only milk that left: what a buyer paid a liter is the price, not what the farm hoped for.
   const since = new Date(now.getTime() - farm.cullMilkPriceDays * DAY_MS);
   const dispatched = await db.query.dispatch.findMany({
     where: { farmId: farm.id, dispatchedAt: { gte: since, lte: now } },
-    columns: { id: true, litres: true, pricePerLitreMoney: true },
+    columns: { id: true, liters: true, pricePerLiterMoney: true },
   });
   // Milk a buyer never paid for, and the Owner wrote off, did not fetch its price.
   const writtenOff = await writtenOffByItem(db, farm.id);
   const price = milkPriceOf(
     dispatched.map((one) => ({
-      litres: Number(one.litres),
-      pricePerLitreMoney: fetchedPerLitre(one, writtenOff),
+      liters: Number(one.liters),
+      pricePerLiterMoney: fetchedPerLiter(one, writtenOff),
     }))
   );
   const stoodBy = groupedBy(costs.history, (line) => line.animalId);
   return {
-    /** What a litre fetched in the farm's Dispatches over its milk price window; nothing where none left. */
+    /** What a liter fetched in the farm's Dispatches over its milk price window; nothing where none left. */
     milkPrice: price ? { ...price, since, days: farm.cullMilkPriceDays } : null,
     /** The Farm Parameter the Dispatches were read back over, in days, priced or not. */
     milkPriceDays: farm.cullMilkPriceDays,
@@ -114,8 +114,8 @@ export const cullList = async (
                   now,
                   readDays: farm.keepReadDays,
                 }),
-                litres: litresOver(
-                  costs.ofAnimal.litres.get(cow.id) ?? [],
+                liters: litersOver(
+                  costs.ofAnimal.liters.get(cow.id) ?? [],
                   now,
                   farm.keepReadDays
                 ),

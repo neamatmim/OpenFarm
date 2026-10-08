@@ -170,7 +170,7 @@ const PinPad = ({
 };
 
 /** The Shed Phone's own screen: set the phone up once, then PIN Switch between people.
- *  Everything after enrolment works with no signal (ADR 0003). */
+ *  Everything after enrollment works with no signal (ADR 0003). */
 const DevicePage = () => {
   const t = useT();
   const refused = useRefused();
@@ -263,7 +263,7 @@ const DevicePage = () => {
       } catch (error) {
         const answer = pinAnswerOf(error);
         if (answer === "revoked") {
-          // Taken off the farm's list: it forgets its token, and the Manager's code enrols it again.
+          // Taken off the farm's list: it forgets its token, and the Manager's code enrolls it again.
           setDeviceToken(null);
           refused(error);
           return;
@@ -360,7 +360,7 @@ const DevicePage = () => {
         </div>
         <Button type="submit" className={BIG_BUTTON} disabled={claim.isPending}>
           {claim.isPending ? <Spinner /> : null}
-          {t("device.enrol")}
+          {t("device.enroll")}
         </Button>
         {/* Somebody who came here by mistake, or a Manager on their own phone, has a way back. */}
         <BackToSignIn to="/sign-in">{t("auth.backToSignIn")}</BackToSignIn>

@@ -39,7 +39,7 @@ const heatWatchSop = (): SopContent => ({
           required: true,
           choices: [
             { value: "nothing", label: { bn: "কিছু না" } },
-            // The farm's own word for oestrus: this is what makes an Observation a Heat.
+            // The farm's own word for estrus: this is what makes an Observation a Heat.
             { value: HEAT, label: { bn: "গরম হয়েছে" } },
           ],
         },

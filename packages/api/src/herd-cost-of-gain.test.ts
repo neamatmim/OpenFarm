@@ -41,7 +41,7 @@ const costs = {
       ["weighed", [fed("weighed")]],
       ["never", [fed("never")]],
     ]),
-    litres: new Map(),
+    liters: new Map(),
   },
 } as unknown as FarmCosts;
 

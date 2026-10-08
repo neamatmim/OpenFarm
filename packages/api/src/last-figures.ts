@@ -67,11 +67,11 @@ export const lastFiguresFor = async (
           },
         },
       },
-      columns: { animalId: true, litres: true, recordedAt: true },
+      columns: { animalId: true, liters: true, recordedAt: true },
       orderBy: { recordedAt: "desc", id: "desc" },
     });
     return firstOfEach(rows, (row) => ({
-      figure: Number(row.litres),
+      figure: Number(row.liters),
       at: row.recordedAt,
     }));
   }

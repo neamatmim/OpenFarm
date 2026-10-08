@@ -1,5 +1,5 @@
 /**
- * Wrong guesses, counted in memory: a PIN, an enrolment code, an invitation code. Four digits are ten thousand
+ * Wrong guesses, counted in memory: a PIN, an enrollment code, an invitation code. Four digits are ten thousand
  * guesses, and a script makes them in a minute; five wrong in a quarter of an hour is a person having a bad morning,
  * and more is not. Kept per server process — a restart forgets, which is the right side to err on for a farm with
  * one server — and never written to the database, because a count of mistakes is not a farm record. Kept on the

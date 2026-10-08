@@ -74,7 +74,7 @@ export const resolveStepAnimal = async (
     });
   }
   // An animal that has left keeps its Pen, so the Pen alone does not prove she is here —
-  // and a Step that writes a farm record would otherwise book litres to a sold cow. Both of
+  // and a Step that writes a farm record would otherwise book liters to a sold cow. Both of
   // these are the world moving under an entry that was true when it was written.
   // Work about her takes her whatever she has done since — gone, she is what her death's work is about.
   const aboutHer = work.animalId !== null && beast.id === work.animalId;

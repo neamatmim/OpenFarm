@@ -121,7 +121,7 @@ const setup = async () => {
     await manager.client.farm.setIdentity({ registrationNumber: REGISTRATION });
   }
 
-  // The morning milking of 1 February: 12 litres to the tank, 8 poured away under the Withdrawal.
+  // The morning milking of 1 February: 12 liters to the tank, 8 poured away under the Withdrawal.
   const morning = new FakeClock("2036-02-01T00:30:00.000Z");
   const scheduler = await createTestClient(appRouter, {
     as: "owner",
@@ -204,10 +204,10 @@ describe("the milk dispatch", () => {
     });
     const recorded = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2036-02-01T02:30:00.000Z"),
-      litres: 11.5,
+      liters: 11.5,
       buyer,
       deliveryNote: "CH-0412",
-      pricePerLitreMoney: 55,
+      pricePerLiterMoney: 55,
       fatPercent: 4.1,
       snfPercent: 8.4,
     });
@@ -215,22 +215,22 @@ describe("the milk dispatch", () => {
 
     const day = await manager.client.milk.day({ day: "2036-02-01" });
     // What went into the tank, from this farm's sessions that day — other files milk too, so this
-    // pen's twelve litres are among it — and what left in the Dispatches.
-    expect(day.toBulkLitres).toBeGreaterThanOrEqual(12);
+    // pen's twelve liters are among it — and what left in the Dispatches.
+    expect(day.toBulkLiters).toBeGreaterThanOrEqual(12);
     expect(day.dispatches).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: recorded.id,
-          litres: 11.5,
+          liters: 11.5,
           buyerName: buyer.name,
           deliveryNote: "CH-0412",
-          pricePerLitreMoney: 55,
+          pricePerLiterMoney: 55,
           fatPercent: 4.1,
           snfPercent: 8.4,
         }),
       ])
     );
-    expect(day.dispatchedLitres).toBeGreaterThanOrEqual(11.5);
+    expect(day.dispatchedLiters).toBeGreaterThanOrEqual(11.5);
   });
 
   it("puts right a Dispatch written up wrong, with a reason", async () => {
@@ -240,12 +240,12 @@ describe("the milk dispatch", () => {
     });
     await manager.client.milk.correctDispatch({
       id: dispatchId,
-      changes: { litres: { from: 11.5, to: 11.8 } },
+      changes: { liters: { from: 11.5, to: 11.8 } },
       reason: "মাপার সময় ভুল পড়া হয়েছিল",
     });
     const day = await manager.client.milk.day({ day: "2036-02-01" });
     expect(day.dispatches.find((one) => one.id === dispatchId)).toMatchObject({
-      litres: 11.8,
+      liters: 11.8,
       deliveryNote: "CH-0412",
       fatPercent: 4.1,
     });
@@ -257,19 +257,19 @@ describe("the milk dispatch", () => {
     });
     await owner.client.milk.correctDispatch({
       id: dispatchId,
-      changes: { litres: { from: 11.8, to: 11.9 } },
+      changes: { liters: { from: 11.8, to: 11.9 } },
       reason: "মালিকের হিসাবে ১১.৯",
     });
     const later = await owner.client.milk.day({ day: "2036-02-01" });
     expect(later.dispatches.find((one) => one.id === dispatchId)).toMatchObject(
       {
-        litres: 11.9,
+        liters: 11.9,
       }
     );
     // And back, as the delivery note says — the records the next test reads are the Manager's figure.
     await owner.client.milk.correctDispatch({
       id: dispatchId,
-      changes: { litres: { from: 11.9, to: 11.8 } },
+      changes: { liters: { from: 11.9, to: 11.8 } },
       reason: "চালানে ১১.৮ লেখা",
     });
   });
@@ -281,10 +281,10 @@ describe("the milk dispatch", () => {
     });
     const wrong = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2036-02-05T02:00:00.000Z"),
-      litres: 9,
+      liters: 9,
       buyer: { name: `ঘোষ ${suffix}`, address: "উল্লাপাড়া" },
       deliveryNote: "CH-0999",
-      pricePerLitreMoney: 52,
+      pricePerLiterMoney: 52,
       snfPercent: 8.2,
       note: "অন্য গাড়ির",
     });
@@ -299,7 +299,7 @@ describe("the milk dispatch", () => {
     });
     const day = await manager.client.milk.day({ day: "2036-02-05" });
     expect(day.dispatches.find((one) => one.id === wrong.id)).toMatchObject({
-      litres: 9,
+      liters: 9,
       deliveryNote: null,
       snfPercent: null,
       note: null,
@@ -317,9 +317,9 @@ describe("the milk dispatch", () => {
     });
     const { id } = await manager.client.milk.dispatch({
       dispatchedAt: typedIn,
-      litres: 6,
+      liters: 6,
       buyer,
-      pricePerLitreMoney: 55,
+      pricePerLiterMoney: 55,
     });
     // The sheet sends the moment it was shown as the record holds it, to the second, and the farm-time moment typed.
     await manager.client.milk.correctDispatch({
@@ -360,7 +360,7 @@ describe("the milk dispatch", () => {
     expect(sheet.csv?.startsWith("\uFEFF")).toBe(true);
     const [header, ...rows] = (sheet.csv ?? "").slice(1).split("\r\n");
     expect(header).toBe(
-      "date,time,litres,buyer,buyer_address,delivery_note,fat_percent,snf_percent,note"
+      "date,time,liters,buyer,buyer_address,delivery_note,fat_percent,snf_percent,note"
     );
     expect(rows.find((row) => row.includes("CH-0412"))).toBe(
       `2036-02-01,08:30,11.80,${buyer.name},"${buyer.address}",CH-0412,4.10,8.40,`
@@ -444,10 +444,10 @@ describe("the milk dispatch", () => {
     });
     await manager.client.milk.dispatch({
       dispatchedAt: new Date("2036-02-06T02:00:00.000Z"),
-      litres: 7,
+      liters: 7,
       buyer: { name: `=HYPERLINK("x") ${suffix}` },
       deliveryNote: "-2+3",
-      pricePerLitreMoney: 50,
+      pricePerLiterMoney: 50,
     });
     const sheet = await manager.client.reports.milkDispatchRecord({
       from: "2036-02-06",
@@ -473,7 +473,7 @@ describe("the milk dispatch", () => {
     });
     const [header, ...rows] = report.csv.slice(1).trim().split("\r\n");
     expect(header).toBe(
-      "date,session,shed,pen,destination,litres,under_withdrawal"
+      "date,session,shed,pen,destination,liters,under_withdrawal"
     );
     const mine = rows.filter((row) => row.includes(`দোহনের ঘর ${suffix}`));
     expect(mine.toSorted()).toEqual([
@@ -486,14 +486,14 @@ describe("the milk dispatch", () => {
     const at = new FakeClock("2036-02-03T04:00:00.000Z");
     const dispatchIt = {
       dispatchedAt: new Date("2036-02-03T02:00:00.000Z"),
-      litres: 10,
+      liters: 10,
       buyer,
-      pricePerLitreMoney: 55,
+      pricePerLiterMoney: 55,
     };
     const owner = await createTestClient(appRouter, { as: "owner", clock: at });
     await owner.client.milk.dispatch(dispatchIt);
     const ownersDay = await owner.client.milk.day({ day: "2036-02-03" });
-    expect(ownersDay.dispatches.map((one) => one.litres)).toEqual([10]);
+    expect(ownersDay.dispatches.map((one) => one.liters)).toEqual([10]);
     for (const as of ["staff", "vet"] as const) {
       // oxlint-disable-next-line no-await-in-loop
       const other = await createTestClient(appRouter, { as, clock: at });

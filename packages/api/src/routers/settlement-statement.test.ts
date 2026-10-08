@@ -362,7 +362,7 @@ describe("the sheet an Investor checks the whole run against", () => {
     });
     expect(text).toContain(HIM);
     expect(text).not.toContain(THE_OTHER_MAN);
-    // Seven Units and ৩,৫০,০০০ are his neighbour's business.
+    // Seven Units and ৩,৫০,০০০ are his neighbor's business.
     expect(text).not.toContain("৩,৯৩,০৫০");
     expect(text).not.toContain(`PAY-${theOtherMansWon.slice(-6)}-${suffix}`);
   });

@@ -192,7 +192,7 @@ export const enDesk = {
   "portal.request.notThisTime": "The farm's answer: not this time.",
   "portal.requests.closed.venture_buying":
     "Closed: the farm has stopped gathering capital for this Venture and started buying.",
-  "portal.requests.closed.venture_cancelled":
+  "portal.requests.closed.venture_canceled":
     "Closed: this Venture was called off.",
   "portal.requests.closed.taken_out_of_portal":
     "Closed: the farm is no longer taking requests for this Venture.",
@@ -202,7 +202,7 @@ export const enDesk = {
   /** How to pay, on an Investor's own signed Agreement while its capital is owed. */
   "portal.pay.title": "How to pay",
   "portal.pay.hint":
-    "By bank transfer, cheque or deposit slip from your own bank — never cash, and never through this portal.",
+    "By bank transfer, check or deposit slip from your own bank — never cash, and never through this portal.",
   "portal.pay.dueNow": "Due now",
   "portal.pay.owedAltogether": "{owed} still to pay altogether",
   "portal.pay.next": "Next monthly sum",
@@ -224,11 +224,11 @@ export const enDesk = {
   "portal.payIn.sentOn": "The day you sent it",
   "portal.payIn.way": "How you sent it",
   "portal.payIn.way.bank_transfer": "Bank transfer",
-  "portal.payIn.way.cheque": "Cheque",
+  "portal.payIn.way.check": "Check",
   "portal.payIn.way.deposit_slip": "Paid in at the bank",
   "portal.payIn.way.mobile_money": "Mobile money to the Venture Account",
   "portal.payIn.reference.bank_transfer": "The transfer's reference",
-  "portal.payIn.reference.cheque": "The cheque's number",
+  "portal.payIn.reference.check": "The check's number",
   "portal.payIn.reference.deposit_slip": "The deposit slip's number",
   "portal.payIn.reference.mobile_money": "The transaction ID (TrxID)",
   "portal.payIn.referenceHint":
@@ -822,7 +822,7 @@ export const enDesk = {
   "ventures.state.fattening": "Fattening",
   "ventures.state.selling": "Selling",
   "ventures.state.settled": "Settled",
-  "ventures.state.cancelled": "Called off",
+  "ventures.state.canceled": "Called off",
   "portal.offers.farmHolds":
     "The Farm itself holds {farmUnits} of these units with its own money, of {units} in all, on the same terms as you",
   "ventures.sign": "Sign an agreement",
@@ -944,7 +944,7 @@ export const enDesk = {
     "What investors say they sent. Check each against the venture account: record it, or answer not found.",
   "ventures.payIn.said": "{investor} says {amount}, {way}",
   "ventures.payIn.way.bank_transfer": "by bank transfer",
-  "ventures.payIn.way.cheque": "by cheque",
+  "ventures.payIn.way.check": "by check",
   "ventures.payIn.way.deposit_slip": "paid in at the bank",
   "ventures.payIn.way.mobile_money": "by mobile money",
   "ventures.payIn.facts": "Reference {reference} · pay-in code {code}",
@@ -976,7 +976,7 @@ export const enDesk = {
   "ventures.movedOn": "The day the bank moved it",
   "ventures.reference": "Bank reference",
   "ventures.referenceHint":
-    "The transfer, cheque or deposit slip, and what it is numbered",
+    "The transfer, check or deposit slip, and what it is numbered",
   /** The code one Agreement is given for its Investor to write on the transfer. Never the bank's reference. */
   "ventures.payInCodeIs": "Pay-in code {code}",
   /** The Request to Join a paper answers, chosen on the sign form. */
@@ -1292,7 +1292,7 @@ export const enDesk = {
   "ventures.requests.answer.saidYes":
     "Come and sign: {units, plural, one {# unit} other {# units}}",
   "ventures.requests.closed.venture_buying": "Closed when buying started",
-  "ventures.requests.closed.venture_cancelled":
+  "ventures.requests.closed.venture_canceled":
     "Closed when the venture was called off",
   "ventures.requests.closed.taken_out_of_portal":
     "Closed when it was taken out of the portal",
@@ -1603,8 +1603,8 @@ export const enDesk = {
   "auditField.feedItemId": "Feed item",
   "auditField.dispatchedAt": "Dispatched at",
   "auditField.deliveryNote": "Delivery note",
-  "auditField.litres": "Litres",
-  "auditField.pricePerLitreMoney": "Price per litre (Tk)",
+  "auditField.liters": "Liters",
+  "auditField.pricePerLiterMoney": "Price per liter (Tk)",
   "auditField.fatPercent": "Fat %",
   "auditField.snfPercent": "SNF %",
   "auditField.buyerId": "Buyer",
@@ -2053,7 +2053,7 @@ export const enDesk = {
   "returns.cameUnpriced": "Not priced yet",
   "returns.dairyCost": "Cost {amount}",
   "returns.dairyMilk":
-    "Milk to Bulk: {litres, plural, one {# litre} other {# litres}}, {amount}",
+    "Milk to Bulk: {liters, plural, one {# liter} other {# liters}}, {amount}",
   "returns.dairyEnd": "Went for {amount}",
   "returns.milkEarlier":
     "{months}: no dispatch that month, so her milk went at the latest earlier month's price",

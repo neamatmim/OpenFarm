@@ -59,7 +59,7 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
         className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
-          // Always pressable, as every door's button is: what is still missing is said rather than greyed out.
+          // Always pressable, as every door's button is: what is still missing is said rather than grayed out.
           if (!ready) {
             setMissing(true);
             return;

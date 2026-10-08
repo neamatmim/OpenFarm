@@ -70,7 +70,7 @@ const assertNothingRestsOnHerSex = async (tx: Tx, animalId: string) => {
 /**
  * What an animal is, put right by the Owner or the Manager with a reason: her sex, her breed, her birth date, her dam.
  * Only her tag and her State could be changed: a breed left out at the gate could never be added, though it decides her
- * Expected Gain, the deshi judgement and a heifer's first service; and a sex typed wrong gave her the other Side's
+ * Expected Gain, the deshi judgment and a heifer's first service; and a sex typed wrong gave her the other Side's
  * routines for good.
  */
 export const animalFactsCorrection: CorrectionKind<

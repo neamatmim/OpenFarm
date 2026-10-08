@@ -51,7 +51,7 @@ const answerOf = (evidence: Evidence, value: unknown): Answer | null => {
 /**
  * Her first day, for a calf born here: every Step of work raised about her in the hours after her birth, oldest first —
  * her first colostrum and how much, her navel, her weight — read from the Step Completions themselves, since the
- * litres are kept nowhere else. Only her own work: a round of the whole Pen passes over her too ("not calved yet"), and
+ * liters are kept nowhere else. Only her own work: a round of the whole Pen passes over her too ("not calved yet"), and
  * that says nothing about her first day. Nothing for an animal the farm did not see born.
  */
 export const herFirstDay = async (

@@ -20,7 +20,7 @@ const unique = (content: SopContent): SopContent => {
 };
 
 /** The milking SOP as the Owner would author it: two sessions a day, a per-cow block with
- *  litres, and a bulk total at the end. */
+ *  liters, and a bulk total at the end. */
 const milkingSopAsWritten = (): SopContent => ({
   name: { bn: "দোহন", en: "Milking" },
   purpose: {
@@ -34,7 +34,7 @@ const milkingSopAsWritten = (): SopContent => ({
   steps: [
     {
       id: "prep",
-      text: { bn: "পার্লার প্রস্তুত করুন", en: "Prepare the parlour" },
+      text: { bn: "পার্লার প্রস্তুত করুন", en: "Prepare the parlor" },
       repeatPerAnimal: false,
       evidence: [
         { type: "tick", required: true },
@@ -50,7 +50,7 @@ const milkingSopAsWritten = (): SopContent => ({
         {
           type: "number",
           required: true,
-          unit: { bn: "লিটার", en: "litres" },
+          unit: { bn: "লিটার", en: "liters" },
           min: 0,
           max: 40,
         },
@@ -68,7 +68,7 @@ const milkingSopAsWritten = (): SopContent => ({
         {
           type: "number",
           required: true,
-          unit: { bn: "লিটার", en: "litres" },
+          unit: { bn: "লিটার", en: "liters" },
           min: 0,
           max: 5000,
         },
@@ -92,7 +92,7 @@ const withStep = (
   ),
 });
 
-const litres = (min: number, max: number): Evidence => ({
+const liters = (min: number, max: number): Evidence => ({
   type: "number",
   required: true,
   unit: { bn: "লিটার" },
@@ -157,7 +157,7 @@ describe("authoring an SOP", () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
     const gaps = withStep(
       withStep(milkingSop(), 0, {
-        text: { bn: "", en: "Prepare the parlour" },
+        text: { bn: "", en: "Prepare the parlor" },
       }),
       1,
       {
@@ -165,7 +165,7 @@ describe("authoring an SOP", () => {
           {
             type: "number",
             required: true,
-            unit: { bn: "", en: "litres" },
+            unit: { bn: "", en: "liters" },
             min: 0,
             max: 40,
           },
@@ -195,7 +195,7 @@ describe("authoring an SOP", () => {
       ...milkingSop(),
       triggers: [{ kind: "schedule", times: ["25:00"] }],
     };
-    const backwards = withStep(milkingSop(), 1, { evidence: [litres(40, 0)] });
+    const backwards = withStep(milkingSop(), 1, { evidence: [liters(40, 0)] });
 
     await expect(
       owner.client.sops.create({ content: empty })
@@ -242,7 +242,7 @@ describe("a Manager's proposal", () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
     const created = await owner.client.sops.create({ content: milkingSop() });
 
-    const changed = withStep(milkingSop(), 1, { evidence: [litres(0, 60)] });
+    const changed = withStep(milkingSop(), 1, { evidence: [liters(0, 60)] });
     const proposal = await manager.client.sops.proposals.create({
       definitionId: created.definitionId,
       content: changed,
@@ -316,7 +316,7 @@ describe("a proposal or an edit the procedure has moved on from", () => {
     const created = await owner.client.sops.create({ content: milkingSop() });
     const proposal = await manager.client.sops.proposals.create({
       definitionId: created.definitionId,
-      content: withStep(milkingSop(), 1, { evidence: [litres(0, 60)] }),
+      content: withStep(milkingSop(), 1, { evidence: [liters(0, 60)] }),
       note: "বেশি দুধের গাভী",
     });
     await owner.client.sops.publish({

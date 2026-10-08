@@ -4,7 +4,7 @@ import { milkPriceOf } from "./cull";
 import { farmDayOf, startOfFarmDay } from "./farm-clock";
 import { chargesInHolding, howSheLeft } from "./holding";
 import type { Left } from "./holding";
-import { roundLitres } from "./milk";
+import { roundLiters } from "./milk";
 import { roundMoney } from "./money";
 import type { Returned, RunningRange, Spent } from "./returns";
 import { returnOf, runningRangeOf } from "./returns";
@@ -42,7 +42,7 @@ export interface DairyRun {
   left: { how: DairyWent; on: Date } | null;
   /** What she has cost: her price and every charge inside her Dairy Holding, to the day she left or today. */
   costMoney: number;
-  milkLitres: number;
+  milkLiters: number;
   milkMoney: number;
   /** What she went for at the end; null while she stands. */
   endMoney: number | null;
@@ -74,14 +74,14 @@ export interface DairyAnimalRead {
   entryPrice: { priceMoney: number; asOf: string } | null;
 }
 
-/** Litres one cow sent to Bulk at one milking. */
-export interface LitresSent {
+/** Liters one cow sent to Bulk at one milking. */
+export interface LitersSent {
   at: Date;
   side: string;
-  litres: number;
+  liters: number;
 }
 
-/** What the dairy runs are read from: the Books every return is, and every cow's litres to Bulk. */
+/** What the dairy runs are read from: the Books every return is, and every cow's liters to Bulk. */
 export type DairyBooks = Pick<
   ReturnBooks,
   | "charges"
@@ -92,7 +92,7 @@ export type DairyBooks = Pick<
   | "died"
   | "culled"
   | "lost"
-> & { litres: ReadonlyMap<string, readonly LitresSent[]> };
+> & { liters: ReadonlyMap<string, readonly LitersSent[]> };
 
 /**
  * Bred here: born to a dam the farm wrote down, so counted from her birth at nothing and never priced. One registered
@@ -105,19 +105,19 @@ export const bredHere = (her: { source: string; damId: string | null }) =>
 const monthKey = (at: Date) => farmDayOf(at).slice(0, 7);
 
 /**
- * What a litre fetched each month the farm sent milk away: that month's Dispatches, every litre weighed by its price.
+ * What a liter fetched each month the farm sent milk away: that month's Dispatches, every liter weighed by its price.
  * A month with none has no price of its own.
  */
 export const milkPricesByMonth = (
   dispatches: readonly {
     dispatchedAt: Date;
-    litres: number;
-    pricePerLitreMoney: number;
+    liters: number;
+    pricePerLiterMoney: number;
   }[]
 ): Map<string, number> => {
   const byMonth = new Map<
     string,
-    { litres: number; pricePerLitreMoney: number }[]
+    { liters: number; pricePerLiterMoney: number }[]
   >();
   for (const one of dispatches) {
     const key = monthKey(one.dispatchedAt);
@@ -127,7 +127,7 @@ export const milkPricesByMonth = (
   for (const [key, given] of byMonth) {
     const price = milkPriceOf(given);
     if (price) {
-      priced.set(key, price.moneyPerLitre);
+      priced.set(key, price.moneyPerLiter);
     }
   }
   return priced;
@@ -137,10 +137,10 @@ export const milkPricesByMonth = (
 const priceFor = (
   prices: ReadonlyMap<string, number>,
   month: string
-): { moneyPerLitre: number; earlier: boolean } | null => {
+): { moneyPerLiter: number; earlier: boolean } | null => {
   const own = prices.get(month);
   if (own !== undefined) {
-    return { moneyPerLitre: own, earlier: false };
+    return { moneyPerLiter: own, earlier: false };
   }
   const before = [...prices.keys()]
     .filter((key) => key < month)
@@ -148,21 +148,21 @@ const priceFor = (
     .at(-1);
   return before === undefined
     ? null
-    : { moneyPerLitre: prices.get(before) ?? 0, earlier: true };
+    : { moneyPerLiter: prices.get(before) ?? 0, earlier: true };
 };
 
 /** Her milk to Bulk between two moments, month by month at each month's price. Null where a month has no price at all. */
 const milkOf = (
-  litres: readonly LitresSent[],
+  liters: readonly LitersSent[],
   prices: ReadonlyMap<string, number>,
   from: Date,
   until: Date
 ) => {
   const byMonth = new Map<string, number>();
-  for (const one of litres) {
+  for (const one of liters) {
     if (one.side === "dairy" && one.at >= from && one.at <= until) {
       const key = monthKey(one.at);
-      byMonth.set(key, (byMonth.get(key) ?? 0) + one.litres);
+      byMonth.set(key, (byMonth.get(key) ?? 0) + one.liters);
     }
   }
   let amount = 0;
@@ -178,10 +178,10 @@ const milkOf = (
     if (price.earlier) {
       earlier.push(month);
     }
-    amount += given * price.moneyPerLitre;
+    amount += given * price.moneyPerLiter;
     total += given;
   }
-  return { litres: total, amount, earlier };
+  return { liters: total, amount, earlier };
 };
 
 /** How she came to the herd: bred here from a dam the farm wrote down, or at the Owner's price, or not priced yet. */
@@ -291,7 +291,7 @@ export const dairyRunOf = (
   );
   const until = went?.on ?? now;
   const spent = whatSheCost(books, her, priceMoney, begun, until);
-  const milk = milkOf(books.litres.get(her.id) ?? [], milkPrices, begun, until);
+  const milk = milkOf(books.liters.get(her.id) ?? [], milkPrices, begun, until);
   const head = went ? undefined : headPrices.get(her.state);
   const gaps = whyUncounted(came, milk, went, head).map((why) => ({
     tagNumber: her.tagNumber,
@@ -317,7 +317,7 @@ export const dairyRunOf = (
           }
         : null,
       costMoney: roundMoney(spent.reduce((sum, one) => sum + one.amount, 0)),
-      milkLitres: roundLitres(milk?.litres ?? 0),
+      milkLiters: roundLiters(milk?.liters ?? 0),
       milkMoney: roundMoney(milkMoney),
       endMoney: went?.backMoney ?? null,
       milkPricedEarlier: milk?.earlier ?? [],

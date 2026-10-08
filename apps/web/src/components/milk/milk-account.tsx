@@ -6,14 +6,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
-/** One figure of the week's milk, in litres. */
+/** One figure of the week's milk, in liters. */
 const Line = ({
   label,
-  litres,
+  liters,
   loud = false,
 }: {
   label: string;
-  litres: number;
+  liters: number;
   loud?: boolean;
 }) => {
   const { t, language } = useLanguage();
@@ -21,7 +21,7 @@ const Line = ({
     <div className="flex items-baseline justify-between gap-3 py-1 text-sm">
       <span className="text-muted-foreground">{label}</span>
       <span className={cn("tabular-nums", loud && "text-danger font-semibold")}>
-        {t("units.litres", { litres: formatNumber(litres, language) })}
+        {t("units.liters", { liters: formatNumber(liters, language) })}
       </span>
     </div>
   );
@@ -39,7 +39,7 @@ export const MilkAccountCard = () => {
     return null;
   }
   const week = account.data;
-  const calvesDrank = week.calves.litresADay > 0;
+  const calvesDrank = week.calves.litersADay > 0;
   const pastTheLine =
     week.notAccounted > 0 && week.notAccountedPercent > week.linePercent;
   return (
@@ -51,21 +51,21 @@ export const MilkAccountCard = () => {
         })}
       </p>
       {week.carriedIn > 0 ? (
-        <Line label={t("milkAccount.carriedIn")} litres={week.carriedIn} />
+        <Line label={t("milkAccount.carriedIn")} liters={week.carriedIn} />
       ) : null}
-      <Line label={t("milkAccount.toBulk")} litres={week.toBulk} />
-      <Line label={t("milkAccount.dispatched")} litres={week.dispatched} />
-      <Line label={t("milkAccount.stillInTank")} litres={week.stillInTank} />
+      <Line label={t("milkAccount.toBulk")} liters={week.toBulk} />
+      <Line label={t("milkAccount.dispatched")} liters={week.dispatched} />
+      <Line label={t("milkAccount.stillInTank")} liters={week.stillInTank} />
       <Line
         label={`${t("milkAccount.notAccounted")} (${formatNumber(week.notAccountedPercent, language)}%)`}
-        litres={week.notAccounted}
+        liters={week.notAccounted}
         loud={pastTheLine}
       />
       {/* Only when the calves drank from the pail this week: none recorded is not calves going hungry. */}
       {calvesDrank && week.calves.perCalf !== null ? (
         <p className="text-muted-foreground pt-2 text-xs">
           {t("milkAccount.calves", {
-            litres: formatNumber(week.calves.litresADay, language),
+            liters: formatNumber(week.calves.litersADay, language),
             calves: week.calves.calves,
             perCalf: formatNumber(week.calves.perCalf, language),
           })}

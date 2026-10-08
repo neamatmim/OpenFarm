@@ -223,7 +223,7 @@ export const animal = pgTable(
     withdrawalShortenedReason: text("withdrawal_shortened_reason"),
     /** Where the Vet shortened each hold to, for the doses the farm knew of then — the Vet's own instant when the
      *  hold was ended outright, null for a hold the Vet left alone. Kept beside what is in force because a dose
-     *  learnt of afterwards adds to the hold rather than replacing it: in force is the later of this, over the doses
+     *  learned of afterwards adds to the hold rather than replacing it: in force is the later of this, over the doses
      *  it covered, and what the newer doses say. */
     milkWithdrawalShortenedTo: timestamp("milk_withdrawal_shortened_to", {
       withTimezone: true,
@@ -361,7 +361,7 @@ export const MORTALITY_KINDS = ["died", "culled"] as const;
  * carcass was disposed of.
  *
  * One row per Animal, because she goes once. Everything else recorded about her stays exactly
- * where it is — her litres, her Treatments, her Moves — because a mortality is one more fact
+ * where it is — her liters, her Treatments, her Moves — because a mortality is one more fact
  * about her and not an erasure: the farm's mortality register is read from these rows, and the
  * six-month disease history behind a slaughter certificate is read from the ones beside them.
  *

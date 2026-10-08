@@ -56,7 +56,7 @@ const isReported = async (disease: { bn: string; en?: string }) => {
 };
 
 describe("a notifiable disease by another name", () => {
-  it("is reported whether the Vet writes its name, its English spelt otherwise, or another name it goes by", async () => {
+  it("is reported whether the Vet writes its name, its English spelled otherwise, or another name it goes by", async () => {
     expect(await isReported({ bn: "ক্ষুরা রোগ" })).toBe(true);
     expect(await isReported({ bn: "fmd" })).toBe(true);
     expect(await isReported({ bn: "খুরা রোগ" })).toBe(true);

@@ -8,7 +8,7 @@ import type { Tx } from "./audit";
  *  name — trimmed. */
 const oneForm = (name: string) => name.normalize("NFC").trim();
 
-/** The trader this farm wrote down by this name, whatever letters were capitalised and however the keyboard spelled its
+/** The trader this farm wrote down by this name, whatever letters were capitalized and however the keyboard spelled its
  *  letters; the first where two differ only so. Asked by the sheets as a Sale finds him, so what they say of his debts is
  *  said of the man the Sale goes to. */
 export const knownAs = async (
@@ -41,7 +41,7 @@ export const knownAs = async (
  *
  * Found by name rather than chosen from a list, because that is how the Manager knows him: a
  * farm does not carry a customer database, it carries the names of the people it deals with — and
- * found whatever letters she capitalised today, the first written down where two differ only so.
+ * found whatever letters she capitalized today, the first written down where two differ only so.
  */
 export const counterpartyNamed = async (
   tx: Tx,

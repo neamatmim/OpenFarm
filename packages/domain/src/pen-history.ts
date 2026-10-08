@@ -86,7 +86,7 @@ export const penHistoryOf = (
 
 /**
  * Which Side each Animal was on at a moment, read from her own Pen history — indexed once, because the
- * farm asks it for every dose and every litre.
+ * farm asks it for every dose and every liter.
  */
 export const sidesOverTime = (
   history: readonly PenHistoryLine[]

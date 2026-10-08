@@ -129,7 +129,7 @@ export const outsideItsRange = (
  *  effect runs in the same transaction as the Completion and is idempotent on its id, so a
  *  replayed entry cannot double-count. */
 export type StepEffect =
-  /** The litres one cow gave this Milking Session. */
+  /** The liters one cow gave this Milking Session. */
   | { kind: "milk_record" }
   /** The Session's bulk total, reconciled against the sum of the per-cow Bulk records. */
   | { kind: "bulk_total" }
@@ -272,7 +272,7 @@ export const CALVED = "calved";
 
 /** Something the round saw of an animal that is not a Heat: work for the Manager, late in a day. */
 export const UNWELL = "unwell";
-/** Something the round saw that kills within hours — bloat, laboured breathing: work for the Manager, late in an hour. */
+/** Something the round saw that kills within hours — bloat, labored breathing: work for the Manager, late in an hour. */
 export const UNWELL_URGENT = "unwell_urgent";
 
 /**
@@ -281,7 +281,7 @@ export const UNWELL_URGENT = "unwell_urgent";
  * arrives, and the Owner would have no way of knowing. Service, Calving and Diagnosis join
  * the list in the tickets that record them.
  *
- * A Heat is the first of Breeding's: an Observation of oestrus, and the work it raises falls due
+ * A Heat is the first of Breeding's: an Observation of estrus, and the work it raises falls due
  * in the farm's AI window rather than a whole number of days later. A Service is the second: the
  * work it raises — the Pregnancy Check — falls due the farm's number of days after the attempt's
  * first service, and once per attempt however many times she was served.
@@ -616,7 +616,7 @@ const ONCE_FOR_THE_PEN_FIGURES: Partial<Record<StepEffect["kind"], string>> = {
 };
 
 /** A Step that writes a farm record must be able to: it needs the figure it writes, and it
- *  must run at the level the record is kept at — litres are per cow, a tank reading is per
+ *  must run at the level the record is kept at — liters are per cow, a tank reading is per
  *  Session. A Version that breaks this would raise work nobody can finish. */
 const effectProblems = (step: Step, stepIndex: number): string[] => {
   const { effect } = step;
@@ -775,7 +775,7 @@ const triggerProblems = (trigger: Trigger, index: number): string[] => {
   }
   const offset = trigger.offsetDays;
   // A Heat's and a Service's work are timed by the farm, not by the Trigger. A number of days here
-  // would be quietly ignored — and a setting the Playbook accepts and then does not honour is how an
+  // would be quietly ignored — and a setting the Playbook accepts and then does not honor is how an
   // author comes to believe the farm does something it does not.
   const timedByTheFarm =
     trigger.kind === "event" ? FARM_TIMED_EVENTS[trigger.event] : undefined;

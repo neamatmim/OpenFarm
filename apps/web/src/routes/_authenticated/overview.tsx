@@ -72,15 +72,15 @@ const useMilkFigure = (tiles: OwnerAnswer["tiles"]): Figure => {
   });
   return {
     label: t("owner.bulkToday"),
-    value: t("owner.litres", {
-      litres: formatNumber(tiles.bulkToday, language),
+    value: t("owner.liters", {
+      liters: formatNumber(tiles.bulkToday, language),
     }),
     hint: yesterdays
       ? t("owner.milkHint", {
-          yesterday: formatNumber(yesterdays.litres, language),
+          yesterday: formatNumber(yesterdays.liters, language),
           average,
         })
-      : t("owner.average", { litres: average }),
+      : t("owner.average", { liters: average }),
     icon: Milk,
   };
 };
@@ -214,15 +214,15 @@ const MilkPanel = ({ tiles }: { tiles: OwnerAnswer["tiles"] }) => {
             className="border-foreground/50 w-5 border-t border-dashed"
           />
           {t("owner.average", {
-            litres: formatNumber(tiles.averageBulk, language, {
+            liters: formatNumber(tiles.averageBulk, language, {
               maximumFractionDigits: 1,
             }),
           })}
         </span>
         <span className={tiles.discardToday > 0 ? "text-warning" : undefined}>
           {t("owner.discardToday")}:{" "}
-          {t("owner.litres", {
-            litres: formatNumber(tiles.discardToday, language),
+          {t("owner.liters", {
+            liters: formatNumber(tiles.discardToday, language),
           })}
         </span>
       </div>

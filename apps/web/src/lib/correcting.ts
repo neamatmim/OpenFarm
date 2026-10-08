@@ -25,7 +25,7 @@ export interface Answer<Held, Sent> {
   couldBeSent: (typed: string) => boolean;
 }
 
-/** A figure the farm keeps as a number: litres, kilogrammes, taka. A record that holds none is not corrected here. */
+/** A figure the farm keeps as a number: liters, kilogrammes, taka. A record that holds none is not corrected here. */
 export const figure = (
   held: number | null,
   /** The least the farm will take. A price or a weight is above nothing; a figure that may be nothing says so. */

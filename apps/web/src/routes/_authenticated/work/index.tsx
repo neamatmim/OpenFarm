@@ -32,7 +32,7 @@ import { orpc } from "@/utils/orpc";
 
 type Work = Awaited<ReturnType<typeof orpc.work.today.call>>[number];
 
-/** Where a piece of work stands for the person holding the phone, as one badge: its word, its icon, its colour. */
+/** Where a piece of work stands for the person holding the phone, as one badge: its word, its icon, its color. */
 interface Standing {
   tone: Tone;
   icon: LucideIcon;
@@ -113,7 +113,7 @@ const PutOffLine = ({ work }: { work: Work }) => {
 
 /**
  * One piece of work as a card the whole of which is the tap: what it is, where and when, where it stands, and what the
- * tap does — start it, or open work somebody else holds. Late work is edged in the danger colour and says so first.
+ * tap does — start it, or open work somebody else holds. Late work is edged in the danger color and says so first.
  */
 const WorkCard = ({
   work,

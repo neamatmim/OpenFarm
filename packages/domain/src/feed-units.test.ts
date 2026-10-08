@@ -16,9 +16,9 @@ describe("a Feed Item's unit", () => {
     expect(roundFeedTarget(2.6, "bundle")).toBe(3);
     expect(roundFeedTarget(0.2, "bundle")).toBe(1);
     expect(roundFeedTarget(0, "bundle")).toBe(0);
-    // Kilos and litres are weighed as before.
+    // Kilos and liters are weighed as before.
     expect(roundFeedTarget(0.034, "kg")).toBe(0.03);
-    expect(roundFeedTarget(14.14, "litre")).toBe(14.1);
+    expect(roundFeedTarget(14.14, "liter")).toBe(14.1);
   });
 
   it("gives a pen its napier in whole bundles", () => {
@@ -33,14 +33,14 @@ describe("a Feed Item's unit", () => {
     ).toBe(3);
   });
 
-  it("goes by weight only in kilos or litres", () => {
+  it("goes by weight only in kilos or liters", () => {
     expect(mayGoByWeight("kg")).toBe(true);
-    expect(mayGoByWeight("litre")).toBe(true);
+    expect(mayGoByWeight("liter")).toBe(true);
     expect(mayGoByWeight("bundle")).toBe(false);
   });
 
   it("reads a unit it no longer keeps as kilos", () => {
-    expect(feedUnitOf("litre")).toBe("litre");
+    expect(feedUnitOf("liter")).toBe("liter");
     expect(feedUnitOf("KG ")).toBe("kg");
   });
 });
@@ -71,7 +71,7 @@ describe("feed bought in packs", () => {
     expect(
       quantityOfPacks(
         { kind: "maund", count: 1 },
-        { unit: "litre", bagSizeKg: null }
+        { unit: "liter", bagSizeKg: null }
       )
     ).toEqual({ refusal: "pack_needs_kg" });
   });

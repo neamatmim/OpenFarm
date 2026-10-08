@@ -11,7 +11,7 @@ import { shortfallIn } from "../stock-store";
 export const costsRouter = {
   /**
    * What one animal has cost and earned over her whole time on the farm: the feed charged to her, her
-   * doses, what she was bought and sold for and the margin between, and what a litre of hers cost.
+   * doses, what she was bought and sold for and the margin between, and what a liter of hers cost.
    *
    * The Owner's and the Manager's (roles matrix: finance reports — R). Barn Staff and the Vet see none of
    * it: it is money.

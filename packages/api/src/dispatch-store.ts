@@ -6,7 +6,7 @@ import {
   farmDayOf,
   milkAccountOf,
   paidAtTheGate,
-  roundLitres,
+  roundLiters,
   roundMoney,
   startOfFarmDay,
 } from "@OpenFarm/domain";
@@ -24,11 +24,11 @@ import { tell } from "./notice";
 export interface DispatchRow {
   id: string;
   dispatchedAt: Date;
-  litres: number;
+  liters: number;
   buyerName: string;
   buyerAddress: string | null;
   deliveryNote: string | null;
-  pricePerLitreMoney: number;
+  pricePerLiterMoney: number;
   fatPercent: number | null;
   snfPercent: number | null;
   /** What the buyer still owed for it as it left, and the farm day he promised to pay by, when he named one. */
@@ -50,11 +50,11 @@ export const dispatchesBetween = async (
   return rows.map((row) => ({
     id: row.id,
     dispatchedAt: row.dispatchedAt,
-    litres: Number(row.litres),
+    liters: Number(row.liters),
     buyerName: row.buyerName,
     buyerAddress: row.buyerAddress,
     deliveryNote: row.deliveryNote,
-    pricePerLitreMoney: Number(row.pricePerLitreMoney),
+    pricePerLiterMoney: Number(row.pricePerLiterMoney),
     fatPercent: row.fatPercent === null ? null : Number(row.fatPercent),
     snfPercent: row.snfPercent === null ? null : Number(row.snfPercent),
     receivableMoney: row.receivableMoney,
@@ -63,18 +63,18 @@ export const dispatchesBetween = async (
   }));
 };
 
-/** Everything these Dispatches handed over, in litres. */
-export const litresDispatched = (dispatches: readonly DispatchRow[]): number =>
-  roundLitres(dispatches.reduce((sum, one) => sum + one.litres, 0));
+/** Everything these Dispatches handed over, in liters. */
+export const litersDispatched = (dispatches: readonly DispatchRow[]): number =>
+  roundLiters(dispatches.reduce((sum, one) => sum + one.liters, 0));
 
 /**
- * The litres the farm's Milk Records sent to Bulk in the Milking Sessions due in a stretch of time.
+ * The liters the farm's Milk Records sent to Bulk in the Milking Sessions due in a stretch of time.
  *
  * By the Session, where a Dispatch goes by when the milk left: an evening's milk collected the next
  * morning is in the tank one day and out of the gate the next, and a day that shows both figures says
  * so rather than pretending they are the same milk.
  */
-export const litresToBulkBetween = async (
+export const litersToBulkBetween = async (
   db: Pick<Database, "query">,
   farmId: string,
   { from, until }: { from: Date; until: Date }
@@ -85,14 +85,14 @@ export const litresToBulkBetween = async (
     with: {
       records: {
         where: { destination: "bulk" },
-        columns: { litres: true },
+        columns: { liters: true },
       },
     },
   });
-  return roundLitres(
+  return roundLiters(
     sessions
       .flatMap((one) => one.records)
-      .reduce((sum, record) => sum + Number(record.litres), 0)
+      .reduce((sum, record) => sum + Number(record.liters), 0)
   );
 };
 
@@ -104,9 +104,9 @@ export const buyerInput = z.object({
 
 export const dispatchFields = {
   dispatchedAt: z.coerce.date(),
-  litres: z.number().positive().max(100_000),
+  liters: z.number().positive().max(100_000),
   deliveryNote: z.string().trim().min(1).max(60),
-  pricePerLitreMoney: z.number().positive().max(10_000),
+  pricePerLiterMoney: z.number().positive().max(10_000),
   fatPercent: z.number().min(0).max(20),
   snfPercent: z.number().min(0).max(20),
   note: z.string().trim().min(1).max(300),
@@ -120,14 +120,14 @@ export const readDispatch = async (tx: Tx, id: string) => {
     : null;
 };
 
-/** What a Dispatch's milk came to: its litres at its price, to the poisha. */
+/** What a Dispatch's milk came to: its liters at its price, to the poisha. */
 export const worthOfDispatch = (row: {
-  litres: string | number;
-  pricePerLitreMoney: string | number;
-}): number => roundMoney(Number(row.litres) * Number(row.pricePerLitreMoney));
+  liters: string | number;
+  pricePerLiterMoney: string | number;
+}): number => roundMoney(Number(row.liters) * Number(row.pricePerLiterMoney));
 
 /**
- * Books a Dispatch's milk sale as it now stands: what the buyer paid for it as it left — its litres at its price,
+ * Books a Dispatch's milk sale as it now stands: what the buyer paid for it as it left — its liters at its price,
  * less whatever he still owed — to its buyer. Milk taken all on credit books nothing, unless it was booked before and a
  * Correction now puts it right.
  */
@@ -213,7 +213,7 @@ export const milkAccountOn = async (
     db.query.milkingSession.findMany({
       where: { farmId, dueAt: { gte: readFrom, lt: now } },
       columns: { dueAt: true },
-      with: { records: { columns: { litres: true, destination: true } } },
+      with: { records: { columns: { liters: true, destination: true } } },
     }),
     dispatchesBetween(db, farmId, { from: readFrom, until: now }),
     db.query.animal.findMany({
@@ -227,9 +227,9 @@ export const milkAccountOn = async (
     let toCalves = 0;
     for (const record of one.records) {
       if (record.destination === "bulk") {
-        toBulk += Number(record.litres);
+        toBulk += Number(record.liters);
       } else if (record.destination === "calves") {
-        toCalves += Number(record.litres);
+        toCalves += Number(record.liters);
       }
     }
     feeds.push({ at: one.dueAt, toCalves });
@@ -237,7 +237,7 @@ export const milkAccountOn = async (
   });
   const account = milkAccountOf(
     intoTheTank,
-    dispatches.map((one) => ({ at: one.dispatchedAt, litres: one.litres })),
+    dispatches.map((one) => ({ at: one.dispatchedAt, liters: one.liters })),
     weekFrom,
     now
   );
@@ -246,9 +246,9 @@ export const milkAccountOn = async (
     ...account,
     since: farmDayOf(weekFrom),
     calves: {
-      litresADay: roundLitres(perDay),
+      litersADay: roundLiters(perDay),
       calves: calves.length,
-      perCalf: calves.length > 0 ? roundLitres(perDay / calves.length) : null,
+      perCalf: calves.length > 0 ? roundLiters(perDay / calves.length) : null,
     },
   };
 };
@@ -276,7 +276,7 @@ export const tellOfUnaccountedMilk = async (
       kind: "milk_unaccounted",
       about: { id: farmDayOf(now) },
       facts: {
-        litres: account.notAccounted,
+        liters: account.notAccounted,
         percent: account.notAccountedPercent,
         since: account.since,
       },

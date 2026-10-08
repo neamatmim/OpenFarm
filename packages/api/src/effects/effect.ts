@@ -104,8 +104,8 @@ export type EffectResult =
     }
   | {
       kind: "bulk_total";
-      sumBulkLitres: number;
-      differenceLitres: number;
+      sumBulkLiters: number;
+      differenceLiters: number;
       differencePercent: number;
       flagged: boolean;
     }

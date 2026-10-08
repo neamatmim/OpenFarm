@@ -121,7 +121,7 @@ const EvidenceFields = ({
           label={`${t("sop.choices")} — ${t("sop.english")}`}
         >
           {/* Begun afresh whenever the Bangla list changes: its English goes by place, and a place that moved under
-              what was typed would hand an item's English to its neighbour. */}
+              what was typed would hand an item's English to its neighbor. */}
           <ListInput
             id={`${step.id}-choices-en`}
             key={fromChoices(evidence.choices)}
@@ -402,7 +402,7 @@ const StepEditor = ({
           />
           {t("sop.repeatPerAnimal")}
         </label>
-        {/* Greyed with a reason: what the Step records decides both, and the Owner is told so rather than left to
+        {/* Grayed with a reason: what the Step records decides both, and the Owner is told so rather than left to
             wonder why the box will not tick. */}
         {step.effect ? (
           <p className="text-muted-foreground -mt-2 text-xs">

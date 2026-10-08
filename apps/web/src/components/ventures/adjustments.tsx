@@ -180,7 +180,7 @@ const ReopenAdjustment = ({
  * What one Adjustment says: what turned up, what the run would come to now against what was frozen, and
  * what became of it.
  *
- * The two profits are labelled apart on purpose. An Owner who cannot tell which figure is the Settlement's
+ * The two profits are labeled apart on purpose. An Owner who cannot tell which figure is the Settlement's
  * and which is today's is an Owner about to read the wrong one to an Investor.
  */
 const OneAdjustment = ({

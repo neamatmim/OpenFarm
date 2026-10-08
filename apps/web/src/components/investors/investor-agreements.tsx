@@ -207,7 +207,7 @@ const SignedCell = ({ row }: AgreementCell) => (
   </span>
 );
 
-/** The capital held on it against what its Units promised, the held part in the warning's colour while an open
+/** The capital held on it against what its Units promised, the held part in the warning's color while an open
  *  Venture still waits on some of it. */
 const HeldCell = ({ row }: AgreementCell) => {
   const asMoney = useMoney();
@@ -229,7 +229,7 @@ const PayoutCell = ({ row }: AgreementCell) => (
 
 /** Its three Investor Statements, for any paper but one on a called-off Venture. */
 const PapersCell = ({ row }: AgreementCell) =>
-  row.original.venture.state === "cancelled" ? null : (
+  row.original.venture.state === "canceled" ? null : (
     <PapersMenu
       agreementId={row.original.id}
       hasPaid={row.original.capitalHeldMoney > 0}

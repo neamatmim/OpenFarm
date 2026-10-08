@@ -342,7 +342,7 @@ describe("who recorded work on a Shed Phone", () => {
 
 describe("work a Shed Phone held while things changed", () => {
   it("is still hers when it reaches the farm on the phone enrolled again under a new name", async () => {
-    // Milked on the 1st of May on the old enrolment; the phone was enrolled afresh before it found signal.
+    // Milked on the 1st of May on the old enrollment; the phone was enrolled afresh before it found signal.
     const { instance, clock, staff } = await morning("2031-05-01");
     const token = await provedPin(thePerson("staff").id, clock.now());
     const { client: again } = await createTestClient(appRouter, {
@@ -477,12 +477,12 @@ describe("work the farm held, taken in by the Manager", () => {
       outcome: "kept",
       refusal: { category: "late", word: "work_closed" },
     });
-    const litres = () =>
+    const liters = () =>
       scratchDb().query.milkRecord.findFirst({
         where: { completionId: entry.id },
-        columns: { litres: true, recordedBy: true },
+        columns: { liters: true, recordedBy: true },
       });
-    expect(await litres()).toBeUndefined();
+    expect(await liters()).toBeUndefined();
 
     const queue = await manager.reviewQueue.list();
     const waiting = queue.find((row) => row.entityId === entry.id);
@@ -500,8 +500,8 @@ describe("work the farm held, taken in by the Manager", () => {
     });
     await manager.reviewQueue.takeIn({ id: waiting?.id ?? "" });
 
-    // Her litres, under her name, on the work the Manager had closed.
-    expect(await litres()).toMatchObject({
+    // Her liters, under her name, on the work the Manager had closed.
+    expect(await liters()).toMatchObject({
       recordedBy: thePerson("staff").id,
     });
     const after = await manager.reviewQueue.list();
@@ -546,7 +546,7 @@ describe("work the farm held, taken in by the Manager", () => {
   it("is refused, and changes nothing, where the farm still cannot take it", async () => {
     const { instance, clock, other, staff } = await morning("2031-07-03");
     const token = await provedPin(thePerson("staff").id, clock.now());
-    // Recorded with signal at 05:30 as 12 litres; the phone held a second answer of 9 for the same cow.
+    // Recorded with signal at 05:30 as 12 liters; the phone held a second answer of 9 for the same cow.
     await other.sync.batch({
       key: `attr-${suffix}-${counted()}`,
       entries: [milked(instance.id, thePerson("staff").id, clock.now(), token)],

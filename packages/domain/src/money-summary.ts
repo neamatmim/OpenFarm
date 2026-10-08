@@ -8,7 +8,7 @@ export interface SideShare {
 }
 
 /** One Money Event as the accountant's summary adds it up. */
-export interface MoneyToSummarise {
+export interface MoneyToSummarize {
   direction: "in" | "out";
   amountMoney: number;
   categoryBn: string;
@@ -67,8 +67,8 @@ const rounded = (totals: InAndOut): InAndOut => ({
  * Counterparty and by Side — the Dairy side, the Fattening side, and the whole farm for money that belongs
  * to neither. Money the Owner has not approved is counted, as it has moved, and counted apart as well.
  */
-export const summariseMoney = (
-  events: readonly MoneyToSummarise[]
+export const summarizeMoney = (
+  events: readonly MoneyToSummarize[]
 ): MoneySummary => {
   const all = new Map<"all", InAndOut>();
   const awaiting = new Map<"awaiting", InAndOut>();

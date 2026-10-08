@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-// Feed is counted in kilos, litres or bundles, and bought in its own unit or — for kilos — by the bag or the maund. A
+// Feed is counted in kilos, liters or bundles, and bought in its own unit or — for kilos — by the bag or the maund. A
 // bag weighs what the farm says its bags weigh; a bundle is counted whole; and a line by body weight is for feed that
 // can be weighed out, not counted.
 
@@ -48,7 +48,7 @@ const setup = async () => {
   });
   const molasses = await manager.client.feed.items.create({
     name: { bn: `চিটাগুড় ${suffix}` },
-    unit: "litre",
+    unit: "liter",
   });
   const napier = await manager.client.feed.items.create({
     name: { bn: `নেপিয়ার আঁটি ${suffix}` },
@@ -169,7 +169,7 @@ describe("feed bought by the bag or the maund", () => {
     await expect(
       manager.client.feed.items.create({
         name: { bn: `বস্তায় গুড় ${suffix}` },
-        unit: "litre",
+        unit: "liter",
         bagSizeKg: 20,
       })
     ).rejects.toMatchObject({ data: { refusal: "pack_needs_kg" } });

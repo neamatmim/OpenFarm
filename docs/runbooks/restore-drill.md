@@ -115,7 +115,7 @@ Once a quarter, and after any change to the database provider.
    that the real server has died.
 2. **The Manager** looks at four screens in it:
    - **Animals** — the herd is there, with the right count on each Side;
-   - **a milking Instance** — yesterday's litres are the ones they remember, per cow;
+   - **a milking Instance** — yesterday's liters are the ones they remember, per cow;
    - **an Animal's history** — it reads back, and a Correction still shows what it replaced;
    - **Admin → Audit** — the trail reaches further back than the backup is old.
 3. **Write the result down** twice: a line in the farm's ops log with the date, the backup
@@ -177,7 +177,7 @@ Work in this order:
    a phone taken off the list since, an Investor's access taken away, a PIN set anew, somebody who
    left, a password changed — all come back as they were. Redo each from the ops log, and sign
    everybody out — as the owner, in the restored database: `DELETE FROM session;`. Everybody signs
-   in again; the Shed Phones keep their enrolment, and each person PINs in afresh.
+   in again; the Shed Phones keep their enrollment, and each person PINs in afresh.
    After any restore, **erase again** anybody who asked to be erased since the copy was taken: a
    copy keeps what the farm erased after it.
 6. **Re-enter what the phones had already sent.** A phone keeps an entry only until the farm has

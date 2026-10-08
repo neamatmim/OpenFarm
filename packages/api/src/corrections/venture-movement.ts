@@ -88,12 +88,12 @@ export const whyItStands = (
       refusal: "venture_is_settled",
     };
   }
-  if (ventureState === "cancelled") {
+  if (ventureState === "canceled") {
     // Calling a Venture off sent every taka back, one refund against each payment. Change what came in and
     // the refund beside it stops matching, and the Venture reads as still holding somebody's money.
     return {
       message: "That Venture was called off and its money sent back",
-      refusal: "venture_is_cancelled",
+      refusal: "venture_is_canceled",
     };
   }
   if (row.internalSaleId) {

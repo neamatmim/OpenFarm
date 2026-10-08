@@ -74,7 +74,7 @@ const STATE_TONE: Record<RequestToJoinState, Tone> = {
 /** Why the farm closed a Request, said to the Investor. */
 const CLOSED_WORDS = {
   venture_buying: "portal.requests.closed.venture_buying",
-  venture_cancelled: "portal.requests.closed.venture_cancelled",
+  venture_canceled: "portal.requests.closed.venture_canceled",
   taken_out_of_portal: "portal.requests.closed.taken_out_of_portal",
   investor_retired: "portal.requests.closed.investor_retired",
 } as const satisfies Record<RequestCloseReason, MessageKey>;

@@ -82,7 +82,7 @@ interface GoingOut {
  * share of a loss coming in.
  *
  * An Investor's share, the Owner's own money back and the Farm's share of the profit are the same act
- * with a different name on the cheque: the same lock, the same refusal when nothing has been approved,
+ * with a different name on the check: the same lock, the same refusal when nothing has been approved,
  * the same movement of the Venture's money, and the same look afterwards at whether anything is left to
  * pay. What differs is who is owed and what it marks off, which is all `owed` decides.
  */

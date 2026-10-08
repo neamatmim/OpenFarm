@@ -137,7 +137,7 @@ const session = async (day: string) => {
 const milkEntry = (
   instanceId: string,
   tagNumber: string,
-  litres: number,
+  liters: number,
   at: Date
 ) => ({
   id: recordId(),
@@ -146,7 +146,7 @@ const milkEntry = (
   instanceId,
   stepId: "milk",
   animalTag: tagNumber,
-  evidence: [litres],
+  evidence: [liters],
   recordedAt: at,
 });
 
@@ -344,7 +344,7 @@ describe("what the farm makes of it", () => {
     expect(held?.reason).toContain("already recorded");
     // And the cow's own record is untouched.
     const loaded = await staff.milk.session({ instanceId: instance.id });
-    expect(loaded.records[0]?.litres).toBe("11.00");
+    expect(loaded.records[0]?.liters).toBe("11.00");
   });
 
   it("says so when a phone's sequence has skipped numbers", async () => {
@@ -373,8 +373,8 @@ describe("what the farm makes of it", () => {
   it("flags a phone whose clock is far out, and keeps the entry", async () => {
     const { instance, clock, staff } = await session("2027-01-09");
     const at = clock.now();
-    // A phone whose clock is a day fast, saying so as it sends. The litres are still the
-    // litres — what is wrong is the phone, not the milking.
+    // A phone whose clock is a day fast, saying so as it sends. The liters are still the
+    // liters — what is wrong is the phone, not the milking.
     const sent = await staff.sync.batch({
       key: key(),
       sentAt: new Date(at.getTime() + 24 * HOUR),
@@ -808,11 +808,11 @@ describe("a phone that was out of signal all morning", () => {
       "applied",
       "applied",
     ]);
-    // The farm's records now say what the phone said: both cows, their litres, the time
+    // The farm's records now say what the phone said: both cows, their liters, the time
     // they were actually milked, and the tank they went to.
     const milked = await staff.milk.session({ instanceId: instance.id });
     expect(
-      milked.records.map((row) => [row.animal.tagNumber, row.litres]).toSorted()
+      milked.records.map((row) => [row.animal.tagNumber, row.liters]).toSorted()
     ).toEqual(
       [
         [tagOf(0), "12.50"],
@@ -873,7 +873,7 @@ describe("photos", () => {
     const completionId = recordId();
 
     // The figures go first, saying which slots have pictures coming; the pictures follow as
-    // entries of their own, so a megabyte of image cannot hold up a morning's litres.
+    // entries of their own, so a megabyte of image cannot hold up a morning's liters.
     const sent = await staff.client.sync.batch({
       key: key(),
       entries: [

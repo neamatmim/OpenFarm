@@ -39,7 +39,7 @@ describe("what is left to set the farm up", () => {
       name: `পেন ${suffix}`,
     });
     await owner.client.people.addForShedPhones({ name: `কর্মী ${suffix}` });
-    await owner.client.devices.enrol({ name: `ফোন ${suffix}` });
+    await owner.client.devices.enroll({ name: `ফোন ${suffix}` });
     await owner.client.animals.register({
       sex: "female",
       side: "dairy",

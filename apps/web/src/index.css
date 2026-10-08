@@ -3,7 +3,7 @@
 /*
  * A table wider than its page says so. Left to the system, a phone or a Mac draws a scrollbar only while it is
  * being scrolled, and a table whose last columns are off to the right looks like a table that ends early.
- * Drawn always, thin, in the border's colour.
+ * Drawn always, thin, in the border's color.
  */
 [data-slot="table-container"]::-webkit-scrollbar {
   height: 10px;

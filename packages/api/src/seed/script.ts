@@ -151,7 +151,7 @@ const keepTheStore = ({ farm, days, on }: Script) => {
   }
 };
 
-/** Milk leaves every morning: the tank to the chilling centre, a can to the sweet shop — which, these last ten days,
+/** Milk leaves every morning: the tank to the chilling center, a can to the sweet shop — which, these last ten days,
  *  has taken its can on credit and not said when it will pay. */
 const sendTheMilk = ({ farm, days, on }: Script) => {
   const { random, today } = farm;
@@ -164,20 +164,20 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
           destination: "bulk",
           recordedAt: { gte: since },
         },
-        columns: { litres: true },
+        columns: { liters: true },
       });
-      const litres = records.reduce((sum, row) => sum + Number(row.litres), 0);
-      if (litres < 20) {
+      const liters = records.reduce((sum, row) => sum + Number(row.liters), 0);
+      if (liters < 20) {
         return;
       }
-      const sweets = Math.round(Math.min(40, litres * 0.1));
+      const sweets = Math.round(Math.min(40, liters * 0.1));
       const deliveryNote = `চালান-${day.replaceAll("-", "").slice(2)}`;
       await f.as.manager.milk.dispatch({
         dispatchedAt: onFarm(day, "08:45"),
-        litres: Math.round(litres - sweets),
+        liters: Math.round(liters - sweets),
         buyer: random.chance(0.8) ? MILK_BUYERS.pran : MILK_BUYERS.milkVita,
         deliveryNote: `${deliveryNote}-${random.int(10, 99)}`,
-        pricePerLitreMoney: random.int(56, 60),
+        pricePerLiterMoney: random.int(56, 60),
         fatPercent: Math.round(random.between(3.8, 4.4) * 10) / 10,
         snfPercent: Math.round(random.between(8.1, 8.6) * 10) / 10,
         ...paidBy(f, "bank"),
@@ -195,10 +195,10 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
       }
       await f.as.manager.milk.dispatch({
         dispatchedAt: onFarm(day, "09:10"),
-        litres: sweets,
+        liters: sweets,
         buyer: MILK_BUYERS.sweets,
         deliveryNote: `${deliveryNote}-মি`,
-        pricePerLitreMoney: 70,
+        pricePerLiterMoney: 70,
         paymentMethod: "cash",
         ...(day > addDays(today, -10) ? { paidNowMoney: 0 } : {}),
       });
@@ -633,10 +633,10 @@ const keepTheBooks = ({ farm, days, on }: Script) => {
 };
 
 /** A phone for the dairy shed, the staff's PINs and training; lately a newcomer and a proposed change. */
-const organiseThePeople = ({ farm, on }: Script) => {
+const organizeThePeople = ({ farm, on }: Script) => {
   const { start, today } = farm;
   on(start, "07:00", "shed phone, PINs and training", async (f) => {
-    await f.as.owner.devices.enrol({ name: "গাভীর শেডের ফোন" });
+    await f.as.owner.devices.enroll({ name: "গাভীর শেডের ফোন" });
     const staff: [keyof Farm["accounts"], string, (keyof Farm["sops"])[]][] = [
       [
         "milker",
@@ -1122,7 +1122,7 @@ export const scriptTheDays = (farm: Farm, herd: Herd): Happening[] => {
     crossTwoCalves,
     runTheCampaigns,
     keepTheBooks,
-    organiseThePeople,
+    organizeThePeople,
     nurseTheSick,
     loseACalf,
     sellTheReady,

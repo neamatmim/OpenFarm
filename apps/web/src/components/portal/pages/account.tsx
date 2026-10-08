@@ -221,7 +221,7 @@ const NewPassword = () => {
           if (!acting.can) {
             return;
           }
-          // Always pressable, as every other form in the portal: what is still missing is said, not greyed out.
+          // Always pressable, as every other form in the portal: what is still missing is said, not grayed out.
           if (!ready) {
             setRefused(t("auth.formIncomplete"));
             return;

@@ -38,7 +38,7 @@ export interface CostShare {
   at: Date;
   amount: number;
   /** What it came from: the Category of a Herd Cost, or the outing or livestock market a by-the-head cost was
-   *  paid at. Always said, so a month's charges can be named rather than only totalled. */
+   *  paid at. Always said, so a month's charges can be named rather than only totaled. */
   fromId: string;
   /** The days it is for: her days in the month a Herd Cost is split over. Nothing for a cost of one moment. */
   over?: { from: Date; until: Date };
@@ -422,9 +422,9 @@ export const costOfGainOf = (
 ): number | null =>
   gainKg !== null && gainKg > 0 ? roundMoney(spentOn(costs) / gainKg) : null;
 
-/** A dairy cow's Cost per Litre: what she cost over the litres she sent to Bulk. Null for none sent. */
-export const costPerLitreOf = (
+/** A dairy cow's Cost per Liter: what she cost over the liters she sent to Bulk. Null for none sent. */
+export const costPerLiterOf = (
   costs: Costs,
-  litresToBulk: number
+  litersToBulk: number
 ): number | null =>
-  litresToBulk > 0 ? roundMoney(spentOn(costs) / litresToBulk) : null;
+  litersToBulk > 0 ? roundMoney(spentOn(costs) / litersToBulk) : null;

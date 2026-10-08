@@ -156,7 +156,7 @@ export const stepCompletion = pgTable(
  * not say which it answered would be a photo nobody can read back.
  *
  * Its own row, and its own entry when it arrives from a phone (ADR 0002): a megabyte of
- * image should not be able to hold up a morning's litres.
+ * image should not be able to hold up a morning's liters.
  */
 export const completionPhoto = pgTable(
   "completion_photo",

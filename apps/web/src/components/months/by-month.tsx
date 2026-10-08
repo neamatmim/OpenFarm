@@ -96,7 +96,7 @@ export const YearPicker = ({
 export const YearFigures = ({ year }: { year: Stretch }) => {
   const { t, language } = useLanguage();
   const asMoney = useMoney();
-  const perLitre = useMoneyRate();
+  const perLiter = useMoneyRate();
   const { money, dairy, fattening } = year;
   return (
     <SummaryFigures
@@ -116,11 +116,11 @@ export const YearFigures = ({ year }: { year: Stretch }) => {
           label: t("months.milkSold"),
           value: asMoney(dairy.milkSoldMoney),
           hint:
-            dairy.fetchedPerLitreMoney === null
+            dairy.fetchedPerLiterMoney === null
               ? undefined
               : t("months.milkSoldHint", {
-                  litres: formatNumber(dairy.litresSold, language),
-                  fetched: perLitre(dairy.fetchedPerLitreMoney),
+                  liters: formatNumber(dairy.litersSold, language),
+                  fetched: perLiter(dairy.fetchedPerLiterMoney),
                 }),
           icon: Milk,
         },
@@ -128,10 +128,10 @@ export const YearFigures = ({ year }: { year: Stretch }) => {
           label: t("months.dairyCost"),
           value: asMoney(dairy.chargedMoney),
           hint:
-            dairy.costPerLitreMoney === null
+            dairy.costPerLiterMoney === null
               ? undefined
               : t("months.dairyCostHint", {
-                  perLitre: perLitre(dairy.costPerLitreMoney),
+                  perLiter: perLiter(dairy.costPerLiterMoney),
                 }),
           icon: Receipt,
         },
@@ -158,7 +158,7 @@ const shortMonth = (
 
 /**
  * The Farm's own money in less money out, a bar a month, oldest on the left: one hue, above nought for a month that
- * made money and below it for one that lost, so the sign is where the bar stands rather than what colour it is. This
+ * made money and below it for one that lost, so the sign is where the bar stands rather than what color it is. This
  * month is the darker bar, as today is in the milk's week, and is only so far. Each bar says its month and figure to a
  * finger or a pointer resting on its column and to a screen reader; the table below has every figure.
  */
@@ -309,35 +309,35 @@ const DairyCostCell = ({ row }: MonthCell) => (
   <Sum amount={row.original.dairy.chargedMoney} />
 );
 
-/** What a litre fetched beside what it cost: either may be nothing, where no milk left or none went to Bulk. */
-const LitreCell = ({ row }: MonthCell) => {
+/** What a liter fetched beside what it cost: either may be nothing, where no milk left or none went to Bulk. */
+const LiterCell = ({ row }: MonthCell) => {
   const { t } = useLanguage();
-  const perLitre = useMoneyRate();
-  const { fetchedPerLitreMoney, costPerLitreMoney } = row.original.dairy;
-  if (fetchedPerLitreMoney === null && costPerLitreMoney === null) {
+  const perLiter = useMoneyRate();
+  const { fetchedPerLiterMoney, costPerLiterMoney } = row.original.dairy;
+  if (fetchedPerLiterMoney === null && costPerLiterMoney === null) {
     return <Nothing />;
   }
   return (
     <span className="tabular-nums">
       {t("months.pair", {
         first:
-          fetchedPerLitreMoney === null ? "—" : perLitre(fetchedPerLitreMoney),
-        second: costPerLitreMoney === null ? "—" : perLitre(costPerLitreMoney),
+          fetchedPerLiterMoney === null ? "—" : perLiter(fetchedPerLiterMoney),
+        second: costPerLiterMoney === null ? "—" : perLiter(costPerLiterMoney),
       })}
     </span>
   );
 };
 
-/** Litres to Bulk for each cow milked, a day; nothing where none went, or a phone's copy from before it was said. */
+/** Liters to Bulk for each cow milked, a day; nothing where none went, or a phone's copy from before it was said. */
 const PerCowCell = ({ row }: MonthCell) => {
   const { t, language } = useLanguage();
-  const litres = row.original.dairy.litresPerCowMilked;
-  if (litres === null || litres === undefined) {
+  const liters = row.original.dairy.litersPerCowMilked;
+  if (liters === null || liters === undefined) {
     return <Nothing />;
   }
   return (
     <span className="tabular-nums">
-      {t("owner.litres", { litres: formatNumber(litres, language) })}
+      {t("owner.liters", { liters: formatNumber(liters, language) })}
     </span>
   );
 };
@@ -421,13 +421,13 @@ const monthColumns = column.columns([
     cell: DairyCostCell,
     meta: { align: "end" },
   }),
-  column.accessor((row) => row.dairy.fetchedPerLitreMoney ?? undefined, {
-    id: "litre",
-    header: listHeader("months.col.litre"),
-    cell: LitreCell,
+  column.accessor((row) => row.dairy.fetchedPerLiterMoney ?? undefined, {
+    id: "liter",
+    header: listHeader("months.col.liter"),
+    cell: LiterCell,
     meta: { align: "end" },
   }),
-  column.accessor((row) => row.dairy.litresPerCowMilked ?? undefined, {
+  column.accessor((row) => row.dairy.litersPerCowMilked ?? undefined, {
     id: "perCow",
     header: listHeader("months.col.perCow"),
     cell: PerCowCell,
@@ -458,7 +458,7 @@ const monthColumns = column.columns([
 const MonthCard = ({ month }: { month: Month }) => {
   const { t } = useLanguage();
   const asMoney = useMoney();
-  const perLitre = useMoneyRate();
+  const perLiter = useMoneyRate();
   const perHead = usePerHeadPerDay();
   const { money, dairy, fattening } = month;
   return (
@@ -486,12 +486,12 @@ const MonthCard = ({ month }: { month: Month }) => {
           cost: asMoney(dairy.chargedMoney),
         })}
       </p>
-      {dairy.fetchedPerLitreMoney !== null &&
-      dairy.costPerLitreMoney !== null ? (
+      {dairy.fetchedPerLiterMoney !== null &&
+      dairy.costPerLiterMoney !== null ? (
         <p className="text-muted-foreground text-sm">
-          {t("months.cardLitre", {
-            fetched: perLitre(dairy.fetchedPerLitreMoney),
-            cost: perLitre(dairy.costPerLitreMoney),
+          {t("months.cardLiter", {
+            fetched: perLiter(dairy.fetchedPerLiterMoney),
+            cost: perLiter(dairy.costPerLiterMoney),
           })}
         </p>
       ) : null}
@@ -519,7 +519,7 @@ const MonthCard = ({ month }: { month: Month }) => {
 const monthCard = (month: Month) => <MonthCard month={month} />;
 
 /**
- * Each month, the newest first: the Farm's money in and out, the milk sold beside what the dairy cows cost and a litre
+ * Each month, the newest first: the Farm's money in and out, the milk sold beside what the dairy cows cost and a liter
  * of each, and the fattening animals sold with their Margins beside what the fattening side cost. Below it, what the
  * figures hold that a reader would not guess: money not yet approved, and feed or doses the farm put no price on.
  */

@@ -8,7 +8,7 @@ import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 // A cow skipped at milking as unwell is an Observation of her, and so the Manager's work to see to her, as anything the
-// round sees is. Her litres, written in its place, take it back.
+// round sees is. Her liters, written in its place, take it back.
 
 const suffix = `milk-unwell-${Date.now()}`;
 const UNWELL = "অসুস্থ";
@@ -139,7 +139,7 @@ describe("a cow skipped at milking as unwell", () => {
     expect(await seenOf(cow.tag)).toHaveLength(1);
   });
 
-  it("is taken back, with her work, when her litres are written in its place", async () => {
+  it("is taken back, with her work, when her liters are written in its place", async () => {
     const cow = await aCowInMilk("ভুল পেন");
     const { manager, completionId } = await milkHer("2059-01-04", cow, {
       skipReason: UNWELL,

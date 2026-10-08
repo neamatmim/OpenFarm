@@ -15,7 +15,7 @@ const weekEndingToday = (now: Date): string[] =>
 
 /** The week behind today, oldest on the left: a day is read against the week around it.
  *  Each bar is one day of the farm's milk — every Pen's Sessions added together, which is
- *  what somebody means when they ask what yesterday came to — with its litres above it, and
+ *  what somebody means when they ask what yesterday came to — with its liters above it, and
  *  the average of the week before today drawn across as a dashed line. Today is the darker bar, and may be
  *  half a day yet, which is why it is not in the average it is read against. A day with nothing recorded is an outline, not a bar: no record is not
  *  the same as no milk. */
@@ -23,25 +23,25 @@ export const MilkWeek = ({
   days,
   average,
 }: {
-  days: { day: string; litres: number }[];
+  days: { day: string; liters: number }[];
   average?: number;
 }) => {
   const { t, language } = useLanguage();
-  const litresOn = new Map(days.map((one) => [one.day, one.litres]));
+  const litersOn = new Map(days.map((one) => [one.day, one.liters]));
   const slots = weekEndingToday(new Date()).map((day) => ({
     day,
-    litres: litresOn.get(day),
+    liters: litersOn.get(day),
   }));
   const today = slots.at(-1)?.day;
-  const most = Math.max(...days.map((one) => one.litres), average ?? 0, 1);
+  const most = Math.max(...days.map((one) => one.liters), average ?? 0, 1);
   return (
     <ol className="grid grid-cols-7 items-end gap-1.5">
-      {slots.map(({ day, litres }) => {
+      {slots.map(({ day, liters }) => {
         const when = formatDate(atFarmTime(day, "12:00"), language, "date");
         const said =
-          litres === undefined
+          liters === undefined
             ? `${when}: ${t("owner.noRecord")}`
-            : `${when}: ${t("owner.litres", { litres: formatNumber(litres, language) })}`;
+            : `${when}: ${t("owner.liters", { liters: formatNumber(liters, language) })}`;
         const isToday = day === today;
         return (
           <li
@@ -57,12 +57,12 @@ export const MilkWeek = ({
                 isToday && "text-foreground font-semibold"
               )}
             >
-              {litres === undefined
+              {liters === undefined
                 ? "—"
-                : formatNumber(Math.round(litres), language)}
+                : formatNumber(Math.round(liters), language)}
             </span>
             <span aria-hidden className="relative flex h-28 w-full items-end">
-              {litres === undefined ? (
+              {liters === undefined ? (
                 <span className="border-border h-full w-full rounded-sm border border-dashed" />
               ) : (
                 <span
@@ -72,9 +72,9 @@ export const MilkWeek = ({
                   )}
                   style={{
                     height:
-                      litres === 0
+                      liters === 0
                         ? "2px"
-                        : `${Math.max((litres / most) * 100, 6)}%`,
+                        : `${Math.max((liters / most) * 100, 6)}%`,
                   }}
                 />
               )}

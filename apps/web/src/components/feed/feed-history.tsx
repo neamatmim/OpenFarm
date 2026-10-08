@@ -125,7 +125,7 @@ const ArrivalItemCell = ({ row }: { row: { original: ArrivalRow } }) => (
   <TwoNames className="font-medium" named={row.original} />
 );
 
-/** Bought or cut from the farm's own land, as a word with its colour. */
+/** Bought or cut from the farm's own land, as a word with its color. */
 const KindBadge = ({ harvest }: { harvest: boolean }) => {
   const { t } = useLanguage();
   return (
@@ -494,7 +494,7 @@ const CountedCell = ({ row }: { row: { original: Adjustment } }) => (
   <CountFigure value={row.original.counted} />
 );
 
-/** The difference a count found, less in the danger colour and more in the success colour. */
+/** The difference a count found, less in the danger color and more in the success color. */
 const DifferenceCell = ({ row }: { row: { original: Adjustment } }) => {
   const { language } = useLanguage();
   const difference =
@@ -513,7 +513,7 @@ const DifferenceCell = ({ row }: { row: { original: Adjustment } }) => {
   );
 };
 
-/** What a difference is worth at the store's price when counted: missing in the danger colour; nothing for feed never
+/** What a difference is worth at the store's price when counted: missing in the danger color; nothing for feed never
  *  bought, which has no price. Missing from an answer a phone kept from before counts were priced. */
 const ValueCell = ({ row }: { row: { original: Adjustment } }) => {
   const asMoney = useMoney();

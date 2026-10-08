@@ -42,7 +42,7 @@ describe("a figure that rounds to nothing", () => {
 
 describe("a rate", () => {
   it("keeps its paisa, which is the whole point of a rate", () => {
-    // A cost per litre rounded to the taka makes two different rates print the same.
+    // A cost per liter rounded to the taka makes two different rates print the same.
     expect(saidAsMoneyRate(45.5, "en")).toBe("৳45.5");
     expect(saidAsMoneyRate(45.75, "en")).toBe("৳45.75");
     expect(saidAsMoneyRate(45.5, "bn")).toBe("৳৪৫.৫");

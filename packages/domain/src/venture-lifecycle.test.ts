@@ -23,7 +23,7 @@ const EXPECTED: Record<
   fattening: { running: true, ended: false, buying: false },
   selling: { running: true, ended: false, buying: false },
   settled: { running: false, ended: true, buying: false },
-  cancelled: { running: false, ended: true, buying: false },
+  canceled: { running: false, ended: true, buying: false },
 };
 
 describe("where a Venture stands", () => {
@@ -41,15 +41,15 @@ describe("where a Venture stands", () => {
 
   it("holds a Venture to one answer either way it ended", () => {
     expect(hasEnded("settled")).toBe(true);
-    expect(hasEnded("cancelled")).toBe(true);
+    expect(hasEnded("canceled")).toBe(true);
     expect(isRunning("settled")).toBe(false);
-    expect(isRunning("cancelled")).toBe(false);
+    expect(isRunning("canceled")).toBe(false);
   });
 });
 
 describe("where a Venture may go next", () => {
   it("opens on buying, or is called off", () => {
-    expect(nextVentureStates("open")).toEqual(["buying", "cancelled"]);
+    expect(nextVentureStates("open")).toEqual(["buying", "canceled"]);
   });
 
   it("reaches Selling from Buying as well as from Fattening", () => {
@@ -65,14 +65,14 @@ describe("where a Venture may go next", () => {
   });
 
   it("calls off only a Venture still Open, because capital is all that goes back", () => {
-    expect(mayMoveTo("open", "cancelled")).toBe(true);
-    expect(mayMoveTo("buying", "cancelled")).toBe(false);
-    expect(mayMoveTo("fattening", "cancelled")).toBe(false);
+    expect(mayMoveTo("open", "canceled")).toBe(true);
+    expect(mayMoveTo("buying", "canceled")).toBe(false);
+    expect(mayMoveTo("fattening", "canceled")).toBe(false);
   });
 
   it("lets a Venture whose run is over go nowhere", () => {
     expect(nextVentureStates("settled")).toEqual([]);
-    expect(nextVentureStates("cancelled")).toEqual([]);
+    expect(nextVentureStates("canceled")).toEqual([]);
   });
 
   it("never moves a Venture backwards", () => {

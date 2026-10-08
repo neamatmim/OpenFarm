@@ -150,7 +150,7 @@ const setup = async () => {
     slow: await bull(growers.id, 190),
     good: await bull(growers.id, 190),
     losing: await bull(growers.id, 250),
-    // Weighed once too far from its neighbour to be believed, downwards.
+    // Weighed once too far from its neighbor to be believed, downwards.
     doubted: await bull(growers.id, 240),
     // Slow, and grown past the growers' 250 kg: the finishers' Ration is his to be judged by, once he is moved.
     outgrown: await bull(growers.id, 245),
@@ -435,7 +435,7 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
 });
 
 describe("how far back a gain is read", () => {
-  it("is the Manager's to set, never under a fortnight, and moves the judgement", async () => {
+  it("is the Manager's to set, never under a fortnight, and moves the judgment", async () => {
     const manager = await as("manager");
     try {
       for (const gainReadDays of [13, 91]) {
@@ -457,7 +457,7 @@ describe("how far back a gain is read", () => {
 });
 
 describe("the shares a deshi animal and a female are judged at", () => {
-  it("are the Manager's to set, from three tenths to the whole, and move the judgement", async () => {
+  it("are the Manager's to set, from three tenths to the whole, and move the judgment", async () => {
     const manager = await as("manager");
     try {
       for (const deshiGainPercent of [29, 101]) {
@@ -484,7 +484,7 @@ describe("the shares a deshi animal and a female are judged at", () => {
 });
 
 describe("the share of his penmates a bull is measured at", () => {
-  it("is the Manager's to set, from a half to nineteen twentieths, and moves the judgement", async () => {
+  it("is the Manager's to set, from a half to nineteen twentieths, and moves the judgment", async () => {
     const manager = await as("manager");
     try {
       for (const penGainPercent of [49, 96]) {

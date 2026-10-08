@@ -53,7 +53,7 @@ const LateName = ({ row }: { row: LateWork }) => {
   );
 };
 
-/** How late, as a word with its colour. */
+/** How late, as a word with its color. */
 const Lateness = ({ row }: { row: LateWork }) => {
   const { t } = useLanguage();
   return (

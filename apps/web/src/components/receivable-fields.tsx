@@ -26,7 +26,7 @@ export const ReceivableFields = ({
   idPrefix: string;
   typed: ReceivableTyped;
   onType: (patch: Partial<ReceivableTyped>) => void;
-  /** What it came to — a Sale's price, a Dispatch's litres at its price — or nothing while it is not yet typed. */
+  /** What it came to — a Sale's price, a Dispatch's liters at its price — or nothing while it is not yet typed. */
   worthMoney: number;
   /** A trader promises a day; a milk buyer who pays on a round often does not. */
   promiseRequired: boolean;

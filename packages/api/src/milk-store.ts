@@ -4,13 +4,13 @@ import { and, eq, sql } from "@OpenFarm/db/operators";
 import { milkRecord, milkingSession } from "@OpenFarm/db/schema/milk";
 import type { MilkDestination, Reconciliation } from "@OpenFarm/domain";
 import {
-  LITRE_DECIMALS,
+  LITER_DECIMALS,
   addDays,
   farmDayOf,
   startOfFarmDay,
   destinationFor,
   reconcile,
-  roundLitres,
+  roundLiters,
   milkHeldAt,
   MILK_USUAL_DAYS,
   milkDropOf,
@@ -19,12 +19,12 @@ import {
 import type { Tx } from "./audit";
 import { milkHoldsOf } from "./health-store";
 
-/** Litres live in a numeric column and come back as a string; they are money-like, so they
+/** Liters live in a numeric column and come back as a string; they are money-like, so they
  *  are converted at the edge rather than left to drift as floats in the middle. */
-export const litresOf = (value: string | null | undefined): number =>
+export const litersOf = (value: string | null | undefined): number =>
   value === null || value === undefined ? 0 : Number(value);
-const asLitres = (value: number): string =>
-  roundLitres(value).toFixed(LITRE_DECIMALS);
+const asLiters = (value: number): string =>
+  roundLiters(value).toFixed(LITER_DECIMALS);
 
 /** What a Milking Session is opened from: the Instance it belongs to. */
 export interface SessionKey {
@@ -65,12 +65,12 @@ export const ensureSession = async (
 };
 
 /** What the Session's per-cow records destined for Bulk add up to, right now. */
-export const sumBulkLitres = async (
+export const sumBulkLiters = async (
   tx: Tx,
   sessionId: string
 ): Promise<number> => {
   const [row] = await tx
-    .select({ total: sql<string>`coalesce(sum(${milkRecord.litres}), 0)` })
+    .select({ total: sql<string>`coalesce(sum(${milkRecord.liters}), 0)` })
     .from(milkRecord)
     .where(
       and(
@@ -78,7 +78,7 @@ export const sumBulkLitres = async (
         eq(milkRecord.destination, "bulk")
       )
     );
-  return litresOf(row?.total);
+  return litersOf(row?.total);
 };
 
 /**
@@ -104,7 +104,7 @@ const lactationAt = async (
 };
 
 /**
- * Writes the litres one cow gave. Keyed on the Step Completion, so replaying the entry — or
+ * Writes the liters one cow gave. Keyed on the Step Completion, so replaying the entry — or
  * correcting it — replaces the record rather than adding a second one. The Destination is
  * re-decided here from the cow's Withdrawal: the phone's answer was worked out from its last
  * sync and may be stale.
@@ -116,7 +116,7 @@ export const writeMilkRecord = async (
     sessionId: string;
     completionId: string;
     animalId: string;
-    litres: number;
+    liters: number;
     requested: MilkDestination;
     recordedBy: string;
     recordedAt: Date;
@@ -156,7 +156,7 @@ export const writeMilkRecord = async (
     farmId: entry.farmId,
     sessionId: entry.sessionId,
     animalId: entry.animalId,
-    litres: asLitres(entry.litres),
+    liters: asLiters(entry.liters),
     destination,
     forced,
     underWithdrawal,
@@ -176,13 +176,13 @@ export const writeMilkRecord = async (
         entry.recordedAt
       ),
     })
-    // Put right, she keeps the Lactation she was first written in: a Correction changes her litres, not the milking
+    // Put right, she keeps the Lactation she was first written in: a Correction changes her liters, not the milking
     // she gave them at, and a cow who has calved since is in another Lactation now.
     .onConflictDoUpdate({ target: milkRecord.completionId, set: values });
   return { destination, forced };
 };
 
-/** A cow recorded and then skipped has no litres to her name: the derived record goes, and
+/** A cow recorded and then skipped has no liters to her name: the derived record goes, and
  *  the Audit Event keeps the history of both entries. */
 export const removeMilkRecord = (tx: Tx, completionId: string) =>
   tx.delete(milkRecord).where(eq(milkRecord.completionId, completionId));
@@ -196,18 +196,18 @@ export const removeMilkRecord = (tx: Tx, completionId: string) =>
 export const reconcileSession = async (
   tx: Tx,
   sessionId: string,
-  bulkLitres: number,
+  bulkLiters: number,
   tolerancePercent: number,
   now: Date
 ): Promise<Reconciliation> => {
-  const sum = await sumBulkLitres(tx, sessionId);
-  const result = reconcile(bulkLitres, sum, tolerancePercent);
+  const sum = await sumBulkLiters(tx, sessionId);
+  const result = reconcile(bulkLiters, sum, tolerancePercent);
   await tx
     .update(milkingSession)
     .set({
-      bulkLitres: asLitres(bulkLitres),
-      sumBulkLitres: asLitres(result.sumBulkLitres),
-      differenceLitres: asLitres(result.differenceLitres),
+      bulkLiters: asLiters(bulkLiters),
+      sumBulkLiters: asLiters(result.sumBulkLiters),
+      differenceLiters: asLiters(result.differenceLiters),
       tolerancePercent,
       flaggedAt: result.flagged ? now : null,
     })
@@ -225,15 +225,15 @@ export const reReconcile = async (
 ): Promise<void> => {
   const session = await tx.query.milkingSession.findFirst({
     where: { id: sessionId },
-    columns: { bulkLitres: true },
+    columns: { bulkLiters: true },
   });
-  if (!session?.bulkLitres) {
+  if (!session?.bulkLiters) {
     return;
   }
   await reconcileSession(
     tx,
     sessionId,
-    litresOf(session.bulkLitres),
+    litersOf(session.bulkLiters),
     tolerancePercent,
     now
   );
@@ -264,13 +264,13 @@ export const milkDropsOn = async (
   const sessions = await db.query.milkingSession.findMany({
     where: { farmId: farm.id, dueAt: { gte: readFrom, lt: now } },
     columns: { dueAt: true },
-    with: { records: { columns: { animalId: true, litres: true } } },
+    with: { records: { columns: { animalId: true, liters: true } } },
   });
-  const byCow = new Map<string, { at: Date; litres: number }[]>();
+  const byCow = new Map<string, { at: Date; liters: number }[]>();
   for (const session of sessions) {
     for (const one of session.records) {
       const hers = byCow.get(one.animalId) ?? [];
-      hers.push({ at: session.dueAt, litres: Number(one.litres) });
+      hers.push({ at: session.dueAt, liters: Number(one.liters) });
       byCow.set(one.animalId, hers);
     }
   }

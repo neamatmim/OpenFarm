@@ -20,7 +20,7 @@ export type GivingLessRows = Awaited<
 >;
 
 /**
- * Cows in milk giving well under their own week, the furthest under first: litres a milking lately and usually, how far
+ * Cows in milk giving well under their own week, the furthest under first: liters a milking lately and usually, how far
  * under, and how long she has been in milk, each opening her page. A sudden drop is often the first sign of mastitis,
  * milk fever or ketosis — and a heat drops milk too.
  */
@@ -79,12 +79,12 @@ const TagCell = ({ row }: Cell) => (
     <TagChip>{row.original.tag}</TagChip>
   </Link>
 );
-const Litres = ({ litres }: { litres: number }) => {
+const Liters = ({ liters }: { liters: number }) => {
   const { language } = useLanguage();
-  return <span>{formatNumber(litres, language)}</span>;
+  return <span>{formatNumber(liters, language)}</span>;
 };
-const LatelyCell = ({ row }: Cell) => <Litres litres={row.original.lately} />;
-const UsuallyCell = ({ row }: Cell) => <Litres litres={row.original.usually} />;
+const LatelyCell = ({ row }: Cell) => <Liters liters={row.original.lately} />;
+const UsuallyCell = ({ row }: Cell) => <Liters liters={row.original.usually} />;
 const DropCell = ({ row }: Cell) => {
   const { language } = useLanguage();
   return (
@@ -144,7 +144,7 @@ const GivingLessTable = ({ rows }: { rows: GivingLessRows }) => {
 
 /**
  * The Milk page's list of cows giving less. A phone keeps the queue's lines; a desk reads them as a table — Tag
- * Number, Pen, days in milk, and litres a milking usually, lately and how far under — sortable, the furthest under
+ * Number, Pen, days in milk, and liters a milking usually, lately and how far under — sortable, the furthest under
  * first (Polaris's index table).
  */
 export const GivingLessList = ({ rows }: { rows: GivingLessRows }) => (

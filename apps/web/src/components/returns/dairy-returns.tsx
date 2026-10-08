@@ -94,7 +94,7 @@ const DairyRunFacts = ({ run }: { run: DairyRun }) => {
         {t("returns.dairyCost", { amount: asMoney(run.costMoney) })}
         {" · "}
         {t("returns.dairyMilk", {
-          litres: run.milkLitres,
+          liters: run.milkLiters,
           amount: asMoney(run.milkMoney),
         })}
         {run.endMoney === null
@@ -611,11 +611,11 @@ export const DairyReturnsPanel = ({ animalId }: { animalId: string }) => {
  */
 export const CullListReturn = ({
   tagNumber,
-  labelled,
+  labeled,
 }: {
   tagNumber: string;
   /** Said with its words, on a phone's card where no column header says it. */
-  labelled: boolean;
+  labeled: boolean;
 }) => {
   const { t } = useLanguage();
   const owner = useIsOwner();
@@ -631,7 +631,7 @@ export const CullListReturn = ({
   }
   return (
     <span className="flex flex-wrap items-center gap-2 text-sm">
-      {labelled ? (
+      {labeled ? (
         <span className="text-muted-foreground">{t("returns.soFar")}</span>
       ) : null}
       <DairyRunShort run={run} />

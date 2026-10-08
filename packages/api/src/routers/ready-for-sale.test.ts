@@ -13,7 +13,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 // Ready for Sale: the farm suggests, and the Manager decides. Every figure the suggestion rests
-// on is worked out from the Intake and the Weigh-ins; the judgement is not.
+// on is worked out from the Intake and the Weigh-ins; the judgment is not.
 
 const suffix = `${Date.now()}`;
 

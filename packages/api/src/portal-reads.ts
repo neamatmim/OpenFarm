@@ -226,7 +226,7 @@ export const theirSignIns = async (
  * One of their Ventures as it stands today, to draw rather than print: their part of it, how the animals are doing,
  * where the Venture's money has gone and what is left of its budgets. The same figures the progress statement says —
  * days are counted, weights are read — and, apart from them and only once the Owner shows it, its **Projection** as a
- * labelled range (ADR 0010); the paper never carries one. Refused for an Agreement not theirs.
+ * labeled range (ADR 0010); the paper never carries one. Refused for an Agreement not theirs.
  */
 export const theirVentureToday = async (
   reader: PortalReader,

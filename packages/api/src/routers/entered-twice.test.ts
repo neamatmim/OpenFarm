@@ -159,9 +159,9 @@ describe("a milk Dispatch entered twice", () => {
     const manager = await as("manager");
     const lorry = {
       dispatchedAt: new Date("2093-04-09T02:00:00.000Z"),
-      litres: 100,
+      liters: 100,
       buyer: { name: `মিল্ক ভিটা ${suffix}` },
-      pricePerLitreMoney: 50,
+      pricePerLiterMoney: 50,
       paymentMethod: "bank" as const,
     };
     await manager.client.milk.dispatch(lorry);

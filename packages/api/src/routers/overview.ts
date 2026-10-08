@@ -1,9 +1,9 @@
 import {
   isEscalated,
   isFinished,
-  litresTo,
+  litersTo,
   minutesOverdue,
-  roundLitres,
+  roundLiters,
   underMilkWithdrawal,
   farmDayOf,
   farmDaysApart,
@@ -124,7 +124,7 @@ export const overviewRouter = {
           columns: { id: true, dueAt: true },
           orderBy: { dueAt: "desc" },
           with: {
-            records: { columns: { litres: true, destination: true } },
+            records: { columns: { liters: true, destination: true } },
           },
         }),
         // Feed running low, which the Owner's exception list names too (spec: "low stock").
@@ -146,7 +146,7 @@ export const overviewRouter = {
           orderBy: { recordedAt: "asc", id: "asc" },
           limit: QUEUE_LIMIT,
         }),
-        // All of it counted and totalled, however many the list above shows.
+        // All of it counted and totaled, however many the list above shows.
         awaitingApproval(context.db, farmId),
         // The rent, the electricity and the wages the month has nothing entered for yet: a month missing is otherwise read as
         // a cheaper month.
@@ -170,11 +170,11 @@ export const overviewRouter = {
       for (const session of week) {
         const day = farmDayOf(session.dueAt);
         const tally = byDay.get(day) ?? { bulk: 0, discard: 0 };
-        tally.bulk = roundLitres(
-          tally.bulk + litresTo("bulk", session.records)
+        tally.bulk = roundLiters(
+          tally.bulk + litersTo("bulk", session.records)
         );
-        tally.discard = roundLitres(
-          tally.discard + litresTo("discard", session.records)
+        tally.discard = roundLiters(
+          tally.discard + litersTo("discard", session.records)
         );
         byDay.set(day, tally);
       }
@@ -189,7 +189,7 @@ export const overviewRouter = {
       const average =
         over.length === 0
           ? 0
-          : roundLitres(
+          : roundLiters(
               over.reduce((total, [, tally]) => total + tally.bulk, 0) /
                 over.length
             );
@@ -257,7 +257,7 @@ export const overviewRouter = {
             /** Under the line alone, and waiting because the week's other pieces to the same person take it past. */
             inPieces: row.awaitingInPieces,
           })),
-          /** All the money waiting for her word, counted and totalled, where the list above shows the oldest few. */
+          /** All the money waiting for her word, counted and totaled, where the list above shows the oldest few. */
           moneyAwaitingAll,
           monthlyCosts,
           receivableOverdue: receivableOverdue.slice(0, QUEUE_LIMIT),
@@ -284,7 +284,7 @@ export const overviewRouter = {
           discardToday: todaysMilk.discard,
           /** What the farm has been sending to the tank, a day at a time, oldest first —
            *  and what that came to on an average day of the week before today, which is what today is read against. */
-          days: days.map(([day, tally]) => ({ day, litres: tally.bulk })),
+          days: days.map(([day, tally]) => ({ day, liters: tally.bulk })),
           averageBulk: average,
           workDone: today.filter((instance) => isFinished(instance.state))
             .length,

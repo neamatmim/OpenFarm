@@ -175,9 +175,9 @@ describe("a Dispatch his payments have cleared", () => {
     const manager = await as("manager", "2052-03-14T04:00:00.000Z");
     const sent = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2052-03-14T03:00:00.000Z"),
-      litres: 40,
+      liters: 40,
       buyer: { name: shop },
-      pricePerLitreMoney: 75,
+      pricePerLiterMoney: 75,
       paidNowMoney: 0,
     });
     await pay(shop, "milk", 2000, "2052-03-15");

@@ -80,7 +80,7 @@ export interface VentureRow {
   firstSumDueOn: string | null;
   /** Frozen when its first Investor signed; `windUpDaysOf` reads it. */
   windUpDays: number | null;
-  cancelledReason: string | null;
+  canceledReason: string | null;
   shownInPortalAt: Date | null;
   portalWords: string | null;
   accountBank: string | null;
@@ -388,7 +388,7 @@ export const ventureView = (
     /** How many of its Animals are still standing. Past the wind-up day with any of them standing is
      *  the Venture that cannot settle on time. */
     animalsStanding: alsoKnown.stillHers,
-    cancelledReason: row.cancelledReason,
+    canceledReason: row.canceledReason,
     /** Whether invited Investors are offered it in the portal, and the Owner's words on it there (ADR 0008). */
     shownInPortal: row.shownInPortalAt !== null,
     portalWords: row.portalWords,
