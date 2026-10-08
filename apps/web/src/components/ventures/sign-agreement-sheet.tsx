@@ -42,6 +42,8 @@ interface Terms {
   stampValueMoney: string;
   stampedOn: string;
   stampSerial: string;
+  /** The day it was signed, as typed; empty is today, the day it is recorded. */
+  signedOn: string;
 }
 
 /** Stamp paper by its serial, or duty paid by e-challan by the e-challan's number. */
@@ -100,12 +102,16 @@ const NOTHING_SIGNED: Terms = {
   stampValueMoney: "",
   stampedOn: "",
   stampSerial: "",
+  signedOn: "",
 };
 
-/** The day its Nominees are judged on, as the farm judges them: the day it is stamped — before a day is typed, or
- *  offered in the app, today. */
+/** The day the paper says it was signed: what was typed, or — nothing typed — today, the day it is recorded. */
+const signedOnOf = (terms: Terms, today: string) =>
+  terms.signedOn === "" ? today : terms.signedOn;
+
+/** The day its Nominees are judged on, as the farm judges them: the day it is signed — offered in the app, today. */
 const judgedOn = (terms: Terms, today: string) =>
-  terms.inApp || terms.stampedOn === "" ? today : terms.stampedOn;
+  terms.inApp ? today : signedOnOf(terms, today);
 
 /** The field of a Nominee's row each of the farm's objections is about. */
 const NOMINEE_FIELD: Record<NomineesProblem["code"], string> = {
@@ -122,10 +128,11 @@ const NOMINEE_FIELD: Record<NomineesProblem["code"], string> = {
   receiver_nid_missing: "receiver-nid",
 };
 
-/** The first of the stamp's three boxes still empty, and the box. */
+/** The first of the stamp's three boxes still empty, and the box; then a signing day the farm would refuse. */
 const stampMissing = (
   terms: Terms,
-  t: ReturnType<typeof useLanguage>["t"]
+  t: ReturnType<typeof useLanguage>["t"],
+  today: string
 ): StillMissing | null => {
   if (!(Number(terms.stampValueMoney) > 0)) {
     return {
@@ -145,6 +152,20 @@ const stampMissing = (
       at: "agreement-stamp-serial",
     };
   }
+  const signedOn = signedOnOf(terms, today);
+  if (signedOn > today) {
+    return {
+      said: t("ventures.missing.signedInFuture"),
+      at: "agreement-signed-on",
+    };
+  }
+  // The stamp is bought before the paper is signed.
+  if (signedOn < terms.stampedOn) {
+    return {
+      said: t("ventures.missing.signedBeforeStamped"),
+      at: "agreement-signed-on",
+    };
+  }
   return null;
 };
 
@@ -160,6 +181,7 @@ const stillMissing = (
     percent,
     left,
     nominees,
+    today,
   }: {
     units: number;
     /** The split as the box holds it: empty is no split, though it reads as nothing. */
@@ -167,6 +189,7 @@ const stillMissing = (
     percent: number;
     left: number;
     nominees: NomineesProblem | null;
+    today: string;
   },
   { t, language }: Pick<ReturnType<typeof useLanguage>, "t" | "language">
 ): StillMissing | null => {
@@ -200,7 +223,7 @@ const stillMissing = (
       at: `nominee-${place}-${NOMINEE_FIELD[nominees.code]}`,
     };
   }
-  return terms.inApp ? null : stampMissing(terms, t);
+  return terms.inApp ? null : stampMissing(terms, t, today);
 };
 
 /**
@@ -473,7 +496,9 @@ const TheStamp = ({
   onChange,
   paper,
   onPaper,
+  today,
 }: {
+  today: string;
   terms: Terms;
   onChange: (terms: Terms) => void;
   paper: Photo | null;
@@ -524,6 +549,24 @@ const TheStamp = ({
           />
         </FormField>
       </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <FormField
+          hint={t("ventures.signedOnHint")}
+          id="agreement-signed-on"
+          label={t("ventures.signedOn")}
+        >
+          <Input
+            id="agreement-signed-on"
+            max={today}
+            min={terms.stampedOn === "" ? undefined : terms.stampedOn}
+            onChange={(event) =>
+              onChange({ ...terms, signedOn: event.target.value })
+            }
+            type="date"
+            value={signedOnOf(terms, today)}
+          />
+        </FormField>
+      </div>
       <FormField
         hint={t("ventures.paperHint")}
         id="agreement-paper"
@@ -551,6 +594,7 @@ const HowItIsMade = ({
   onChange,
   paper,
   onPaper,
+  today,
 }: {
   terms: Terms;
   inApp: boolean;
@@ -558,6 +602,7 @@ const HowItIsMade = ({
   onChange: (terms: Terms) => void;
   paper: Photo | null;
   onPaper: (photo: Photo | null) => void;
+  today: string;
 }) => {
   const { t } = useLanguage();
   return (
@@ -596,6 +641,7 @@ const HowItIsMade = ({
           onPaper={onPaper}
           paper={paper}
           terms={terms}
+          today={today}
         />
       )}
     </>
@@ -734,7 +780,7 @@ export const SignAgreementSheet = ({
   // answer to both, so a button can never stand pressable with nothing to say why it does nothing.
   const missing = stillMissing(
     asOffered,
-    { units, split, percent, left, nominees: nomineesWrong },
+    { units, split, percent, left, nominees: nomineesWrong, today },
     { t, language }
   );
   const ready = venture !== null && missing === null;
@@ -759,6 +805,7 @@ export const SignAgreementSheet = ({
           stampValueMoney: Number(terms.stampValueMoney),
           stampedOn: terms.stampedOn,
           stampSerial: terms.stampSerial,
+          signedOn: signedOnOf(terms, today),
         });
       }}
       open={open}
@@ -889,6 +936,7 @@ export const SignAgreementSheet = ({
         onPaper={setPaper}
         paper={paper}
         terms={terms}
+        today={today}
       />
     </FormSheet>
   );

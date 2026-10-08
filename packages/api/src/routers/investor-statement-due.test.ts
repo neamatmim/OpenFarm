@@ -76,7 +76,7 @@ beforeAll(async () => {
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
     stampValueMoney: 300,
-    stampedOn: "2054-01-02",
+    stampedOn: "2054-01-01",
     stampSerial: `AA ${suffix}`,
   });
   agreementId = agreement.id;

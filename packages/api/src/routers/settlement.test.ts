@@ -85,7 +85,7 @@ const funded = async (owner: Owner, which: number) => {
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
     stampValueMoney: 300,
-    stampedOn: "2047-01-02",
+    stampedOn: "2047-01-01",
     stampSerial: `AA ${which} ${suffix}`,
   });
   await owner.client.ventures.agreements.keepPaper({

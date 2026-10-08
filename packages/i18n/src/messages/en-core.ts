@@ -968,6 +968,12 @@ export const enCore = {
   "nominees.receiver": "Collected by {name}",
   "nominees.earlier": "Earlier Nominations",
   "refusal.signedInFuture": "A paper cannot be signed on a day still to come.",
+  "refusal.signedBeforeStamped":
+    "An agreement cannot be signed before its stamp was bought: give a signing day on or after the stamp's.",
+  "refusal.signedBeforeOpened":
+    "An agreement cannot be signed before its venture was opened.",
+  "refusal.signedBeforeAmended":
+    "The venture's agreements were amended after that day, so a paper signed before it names the old terms. Print a fresh one and have it signed.",
   "refusal.signedBeforeInForce":
     "This মনোনয়নপত্র is dated before the one in force. Check the day it was signed.",
   "nominees.problem.too_many": "At most three Nominees.",

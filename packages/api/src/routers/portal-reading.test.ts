@@ -91,7 +91,7 @@ const signAndPay = async (name: string, phone: string, units: number) => {
     arbitrator: `সালিস ${suffix}`,
     stampKind: "paper",
     stampValueMoney: 300,
-    stampedOn: "2052-01-02",
+    stampedOn: "2052-01-01",
     stampSerial: `S-${phone}`,
   });
   await owner.ventures.agreements.keepPaper({

@@ -100,7 +100,7 @@ beforeAll(async () => {
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
     stampValueMoney: 300,
-    stampedOn: "2048-01-02",
+    stampedOn: "2048-01-01",
     stampSerial: `AA ${suffix}`,
   });
   await owner.client.ventures.agreements.keepPaper({

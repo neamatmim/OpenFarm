@@ -47,7 +47,7 @@ const signAndPay = async (investorId: string, serial: string) => {
     arbitrator: `সালিস ${suffix}`,
     stampKind: "paper",
     stampValueMoney: 300,
-    stampedOn: "2052-01-02",
+    stampedOn: "2052-01-01",
     stampSerial: serial,
   });
   await owner.ventures.agreements.keepPaper({

@@ -915,6 +915,9 @@ export const enDesk = {
   "ventures.missing.stampValue": "Write the stamp's value.",
   "ventures.missing.stampedOn": "Write the day it was stamped.",
   "ventures.missing.stampSerial": "Write the stamp's serial.",
+  "ventures.missing.signedInFuture": "The signing day cannot be after today.",
+  "ventures.missing.signedBeforeStamped":
+    "The signing day cannot be before the stamp's.",
   "ventures.signHint":
     "The units this person takes of {venture}, the split they earn, and the stamped paper it is written on",
   "ventures.signedFor": "Signed for",
@@ -934,6 +937,9 @@ export const enDesk = {
     "The person both sides name now, to be asked if they ever disagree",
   "ventures.stampValue": "Stamp value",
   "ventures.stampedOn": "Stamped on",
+  "ventures.signedOn": "Signed on",
+  "ventures.signedOnHint":
+    "The day they signed it in front of you; recording it today, leave it at today.",
   "ventures.stampSerial": "Stamp serial",
   "ventures.stampKind": "How the stamp duty was paid",
   "ventures.stampKind.paper": "Stamp paper",

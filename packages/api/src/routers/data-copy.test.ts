@@ -170,7 +170,7 @@ const withAHistory = async () => {
     arbitrator: `সালিস ${suffix}`,
     stampKind: "paper",
     stampValueMoney: 300,
-    stampedOn: "2061-01-02",
+    stampedOn: "2061-01-01",
     stampSerial: `S-${suffix}`,
   });
   await owner.ventures.agreements.keepPaper({
@@ -324,7 +324,12 @@ describe("«খামারে আপনার তথ্য»", () => {
     expect(agreement).toContain("3 Units");
     expect(agreement).toContain("Your share: 60%");
     expect(agreement).toContain(`Stamp: S-${suffix}`);
-    expect(agreement).toContain("2 January 2061");
+    // The stamp's own day, on the stamp's line: bought the day the paper was signed, so the Signed line says it too.
+    expect(
+      drawn(document, "চুক্তি — ", "en").find((line) =>
+        line.startsWith("Stamp: ")
+      )
+    ).toMatch(/ · 1 January 2061$/u);
     expect(drawn(document, "আপনার টাকার লেনদেন", "en").join("\n")).toContain(
       "150,000"
     );

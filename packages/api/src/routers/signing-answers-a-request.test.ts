@@ -75,7 +75,7 @@ const sign = async (
     arbitrator: `সালিস ${suffix}`,
     stampKind: "paper",
     stampValueMoney: 300,
-    stampedOn: "2056-01-02",
+    stampedOn: "2056-01-01",
     stampSerial: `S-${investorId.slice(-8)}`,
     ...(requestId === undefined ? {} : { requestId }),
   });

@@ -67,7 +67,7 @@ const signedUp = async (name: string, ventureId: string, units: number) => {
     investorsPercent: 60,
     arbitrator: `সালিস ${suffix}`,
     stampValueMoney: 300,
-    stampedOn: "2058-01-02",
+    stampedOn: "2058-01-01",
     stampSerial: `S-${them.id.slice(-8)}`,
   });
   await owner.ventures.agreements.keepPaper({

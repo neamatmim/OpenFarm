@@ -203,6 +203,7 @@ export const farmTakesUnits = async (
         templateVersionId: null,
         payInCode: await nextPayInCode(tx, farmId, standing),
         signedBy: context.actor.id,
+        signedOn: farmDayOf(now),
         createdAt: now,
       });
     },

@@ -113,7 +113,7 @@ const aVenture = async (owner: Client, which: number, splits: number[]) => {
       investorsPercent: 60,
       arbitrator: `মাওলানা ${suffix}`,
       stampValueMoney: 300,
-      stampedOn: "2052-01-02",
+      stampedOn: "2052-01-01",
       stampSerial: `AA ${who} ${suffix}`,
     });
     // oxlint-disable-next-line no-await-in-loop

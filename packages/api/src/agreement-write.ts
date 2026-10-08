@@ -1,5 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNull, sql } from "@OpenFarm/db/operators";
+import { and, desc, eq, isNull, sql } from "@OpenFarm/db/operators";
 import { farm as farmTable } from "@OpenFarm/db/schema/farm";
 import {
   agreementAmendment,
@@ -28,6 +28,8 @@ export interface AgreementToWrite {
     ordinal: number;
     targetWindowStart: string;
     targetWindowEnd: string;
+    /** When it was opened: nobody signs for it before that day. */
+    createdAt: Date;
   };
   investorId: string;
   units: number;
@@ -35,6 +37,9 @@ export interface AgreementToWrite {
   arbitrator: string;
   /** How its duty was paid, or that it was agreed in the app; the day, the taka and the paper's or the offer's number. */
   stamp: { kind: StampKind; valueMoney: number; on: string; serial: string };
+  /** The farm day the Investor signed it: on paper, the day the Owner says, which may be before it is recorded; agreed
+   *  in the app, the day the Owner approves it. */
+  signedOn: string;
   templateVersionId: string;
   /** The Request to Join it answers; left out, a Request the Investor had live reads signed all the same. */
   requestId?: string;
@@ -44,6 +49,62 @@ export interface AgreementToWrite {
    *  the day they agreed — so a মনোনয়নপত্র signed between agreeing and the Owner's approval still outranks it. */
   nominatedOn?: string;
 }
+
+/**
+ * The day an Agreement says it was signed, held to what a signing day can be: not a day still to come, not before its
+ * stamp was bought — the duty is paid before the paper is signed — not before the Venture was opened, and not before
+ * the Venture's terms were last amended, since a paper signed before that names the terms the Amendment replaced and
+ * every Investor signed the Amendment but this one. Asked behind the Farm's lock, as an Amendment is written behind it.
+ */
+const assertSignedOn = async (
+  tx: Tx,
+  farmId: string,
+  venture: { id: string; createdAt: Date },
+  agreement: Pick<AgreementToWrite, "signedOn" | "stamp">,
+  now: Date
+) => {
+  const { signedOn } = agreement;
+  if (signedOn > farmDayOf(now)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "An Agreement cannot be signed on a day still to come",
+      data: { refusal: "signed_in_future" },
+    });
+  }
+  if (signedOn < agreement.stamp.on) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "An Agreement cannot be signed before its stamp was bought",
+      data: { refusal: "signed_before_stamped" },
+    });
+  }
+  if (signedOn < farmDayOf(venture.createdAt)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "An Agreement cannot be signed before its Venture was opened",
+      data: { refusal: "signed_before_opened" },
+    });
+  }
+  const [amended] = await tx
+    .select({ signedOn: agreementAmendment.signedOn })
+    .from(agreementAmendment)
+    .innerJoin(
+      investmentAgreement,
+      eq(investmentAgreement.id, agreementAmendment.agreementId)
+    )
+    .where(
+      and(
+        eq(agreementAmendment.farmId, farmId),
+        eq(investmentAgreement.ventureId, venture.id)
+      )
+    )
+    .orderBy(desc(agreementAmendment.signedOn))
+    .limit(1);
+  if (amended && signedOn < amended.signedOn) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "An Agreement cannot be signed before the Venture's terms were last amended",
+      data: { refusal: "signed_before_amended" },
+    });
+  }
+};
 
 /**
  * Writes one Investment Agreement inside a transaction already held, asking first everything signing asks: the Investor
@@ -65,6 +126,7 @@ export const writeAgreement = async (
 ): Promise<string> => {
   const { venture } = agreement;
   await lockTheFarm(tx, farm.id);
+  await assertSignedOn(tx, farm.id, venture, agreement, by.now);
   const signing = await tx.query.investor.findFirst({
     where: { id: agreement.investorId, farmId: farm.id },
     columns: { retiredAt: true, isFarm: true, kind: true },
@@ -159,6 +221,7 @@ export const writeAgreement = async (
     payInCode: given,
     requestId: agreement.requestId ?? null,
     signedBy: by.id,
+    signedOn: agreement.signedOn,
     createdAt: by.now,
   });
   // The first Investor signs for the Wind-up the Agreement names: from now the farm's Parameter moves no Wind-up of
@@ -179,7 +242,7 @@ export const writeAgreement = async (
     farmId: farm.id,
     investorId: agreement.investorId,
     agreementId: agreement.id,
-    signedOn: agreement.nominatedOn ?? agreement.stamp.on,
+    signedOn: agreement.nominatedOn ?? agreement.signedOn,
     nominees: agreement.nominees,
     recordedBy: by.id,
     now: by.now,

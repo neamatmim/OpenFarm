@@ -209,7 +209,8 @@ export const theirAgreements = async (
         end: inForce?.targetWindowEnd ?? one.targetWindowEnd,
       },
       amendedOn: inForce?.amendedOn ?? null,
-      signedAt: one.createdAt,
+      /** The farm day they signed it, as the Owner recorded it — not the moment it was recorded. */
+      signedOn: one.signedOn,
       arbitrator: one.arbitrator,
       stamp: {
         kind: one.stampKind,

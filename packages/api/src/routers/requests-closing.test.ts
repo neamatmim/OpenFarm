@@ -77,7 +77,7 @@ const meetTheFloor = async (ventureId: string) => {
     arbitrator: `সালিস ${suffix}`,
     stampKind: "paper",
     stampValueMoney: 300,
-    stampedOn: "2055-01-02",
+    stampedOn: "2055-01-01",
     stampSerial: `S-${ventureId.slice(-8)}`,
   });
   await owner.ventures.agreements.keepPaper({

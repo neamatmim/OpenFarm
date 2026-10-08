@@ -866,6 +866,11 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "nominees.receiver": "সংগ্রহ করবেন {name}",
   "nominees.earlier": "আগের মনোনয়ন",
   "refusal.signedInFuture": "ভবিষ্যতের কোনো দিনে কাগজে সই হতে পারে না।",
+  "refusal.signedBeforeStamped":
+    "স্ট্যাম্প কেনার আগে চুক্তিতে সই হতে পারে না: সইয়ের দিন স্ট্যাম্পের তারিখের পরে দিন।",
+  "refusal.signedBeforeOpened": "ভেঞ্চার খোলার আগে চুক্তিতে সই হতে পারে না।",
+  "refusal.signedBeforeAmended":
+    "এই দিনের পরে ভেঞ্চারের চুক্তি সংশোধন হয়েছে: তার আগে সই করা কাগজে পুরোনো শর্ত লেখা। নতুন কাগজ ছাপিয়ে সই করান।",
   "refusal.signedBeforeInForce":
     "এই মনোনয়নপত্রের তারিখ এখন বহাল মনোনয়নের আগের। সইয়ের দিনটি দেখে নিন।",
   "nominees.problem.too_many": "সর্বোচ্চ তিনজন নমিনি।",

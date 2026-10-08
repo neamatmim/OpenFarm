@@ -61,6 +61,9 @@ const signInput = z.object({
     message: "A stamped paper has a stamp value",
   }),
   stampedOn: farmDay,
+  /** The day the Investor signed it in front of the Owner, which may be before it is recorded; left out, the day it is
+   *  recorded. Never a day still to come, nor before its stamp, its Venture or the Venture's last Amendment. */
+  signedOn: farmDay.optional(),
   /** Stamp paper, or an e-challan paid into the treasury; the serial is the paper's or the e-challan's number. Agreed in
    *  the app is not signed here: it is offered, agreed and approved. */
   stampKind: z.enum(STAMPED_KINDS).default("paper"),
@@ -229,14 +232,15 @@ export const agreementsProcedures = {
             data: { refusal: "venture_wrong_state" },
           });
         }
-        // The Nominees it names, judged on the day it is stamped: a Nominee who turns eighteen that day is of age on it.
+        const signedOn = input.signedOn ?? farmDayOf(now);
+        // The Nominees it names, judged on the day it is signed: a Nominee who turns eighteen that day is of age on it.
         const nominees = await nomineesToSign(
           context.db,
           context.farm.id,
           input.investorId,
           input.nominees
         );
-        assertNamable(nominees, input.stampedOn);
+        assertNamable(nominees, signedOn);
         // Signed in the wording the farm prints Agreements in now, and recorded against it for good.
         await giveStandardTemplates(context);
         const wording = await currentWording(
@@ -272,6 +276,7 @@ export const agreementsProcedures = {
                   on: input.stampedOn,
                   serial: input.stampSerial,
                 },
+                signedOn,
                 templateVersionId: wording.versionId,
                 requestId: input.requestId,
                 nominees,

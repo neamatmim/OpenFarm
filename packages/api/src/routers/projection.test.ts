@@ -143,7 +143,7 @@ beforeAll(async () => {
     arbitrator: `সালিস ${suffix}`,
     stampKind: "paper",
     stampValueMoney: 300,
-    stampedOn: "2052-01-02",
+    stampedOn: "2052-01-01",
     stampSerial: `S-P-${suffix}`,
   });
   agreementId = signed.id;
@@ -475,7 +475,7 @@ describe("an Investor's own Venture in the portal", () => {
       arbitrator: `সালিস ${suffix}`,
       stampKind: "paper",
       stampValueMoney: 300,
-      stampedOn: "2052-01-02",
+      stampedOn: "2052-01-01",
       stampSerial: `S-Q-${suffix}`,
     });
     const today = await owner.portalPreview.venture({

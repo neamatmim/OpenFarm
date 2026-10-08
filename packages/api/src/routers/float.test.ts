@@ -29,7 +29,7 @@ const paper = {
   investorsPercent: 60,
   arbitrator: `মাওলানা ${suffix}`,
   stampValueMoney: 300,
-  stampedOn: "2046-12-02",
+  stampedOn: "2046-12-01",
   stampSerial: `AA ${suffix}`,
 };
 

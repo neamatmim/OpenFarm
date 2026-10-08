@@ -68,6 +68,13 @@ export const agreementCorrection: CorrectionKind<
     }),
   trail: (tx, row) => readAgreement(tx, row.farmId, row.id),
   apply: async (tx, row, to) => {
+    // The stamp is bought before the paper is signed, so it is put right to no day after the day it was signed.
+    if (to.stampedOn !== undefined && to.stampedOn > row.signedOn) {
+      throw refuse(
+        "An Agreement cannot be signed before its stamp was bought",
+        "signed_before_stamped"
+      );
+    }
     if (to.units !== undefined) {
       const venture = await tx.query.venture.findFirst({
         where: { id: row.ventureId, farmId: row.farmId },
