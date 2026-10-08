@@ -65,8 +65,11 @@ const namesNoNominee = () =>
     "organization_names_no_nominee"
   );
 
-/** The Investor a মনোনয়নপত্র is for: on this farm, and not retired — a retired Investor signs nothing new. */
-const theirs = async (context: Owned, investorId: string) => {
+/** The Investor a মনোনয়নপত্র is for: on this farm, a person, and not retired — a retired Investor signs nothing new. */
+export const nominatingInvestor = async (
+  context: Owned,
+  investorId: string
+) => {
   const them = await context.db.query.investor.findFirst({
     // The Farm's own partner record is no person and names no Nominee.
     where: { id: investorId, farmId: context.farm.id, isFarm: false },
@@ -97,6 +100,46 @@ export const assertNamable = (nominees: readonly Nominee[], onDay: string) => {
   }
 };
 
+/** The মনোনয়নপত্র for one Investor and their Nominees, laid out in the wording given on a day: what is printed to sign,
+ *  and what is kept to agree to in the app. */
+export const nominationLaidOut = (
+  context: Owned,
+  {
+    them,
+    nominees,
+    today,
+    wording,
+    now,
+  }: {
+    them: Parameters<typeof paperInvestor>[0];
+    nominees: readonly Nominee[];
+    today: string;
+    wording: { content: Parameters<typeof paperFrom>[0]; number: number };
+    now: Date;
+  }
+): PaperDocument => {
+  const him = paperInvestor(
+    them,
+    paperNominees({ nominees: [...nominees] }, today)
+  );
+  return paperFrom(wording.content, {
+    kind: "nomination",
+    parties: {
+      farm: context.farm,
+      ownerName: context.actor.name,
+      investors: [him],
+    },
+    values: paperValues({
+      farm: context.farm,
+      ownerName: context.actor.name,
+      him,
+    }),
+    producedBy: context.actor.name,
+    producedAt: madeOn(now),
+    version: wording.number,
+  });
+};
+
 /**
  * The মনোনয়নপত্র for one Investor and the Nominees the Owner has written down, laid out to print and have signed today,
  * each Nominee judged a minor or not on that day. Nothing is written but the trail's line: an Export on the Investor.
@@ -113,7 +156,7 @@ export const nominationToSign = async (
     reviewedOn: string | null;
   };
 }> => {
-  const them = await theirs(context, investorId);
+  const them = await nominatingInvestor(context, investorId);
   const now = context.clock.now();
   const today = farmDayOf(now);
   assertNamable(nominees, today);
@@ -124,25 +167,12 @@ export const nominationToSign = async (
     context.farm.id,
     "nomination"
   );
-  const him = paperInvestor(
+  const document = nominationLaidOut(context, {
     them,
-    paperNominees({ nominees: [...nominees] }, today)
-  );
-  const document = paperFrom(wording.content, {
-    kind: "nomination",
-    parties: {
-      farm: context.farm,
-      ownerName: context.actor.name,
-      investors: [him],
-    },
-    values: paperValues({
-      farm: context.farm,
-      ownerName: context.actor.name,
-      him,
-    }),
-    producedBy: context.actor.name,
-    producedAt: madeOn(now),
-    version: wording.number,
+    nominees,
+    today,
+    wording,
+    now,
   });
   await audited(context).write(
     {
@@ -242,7 +272,7 @@ export const recordNomination = async (
   }
 ): Promise<{ id: string }> => {
   const farmId = context.farm.id;
-  await theirs(context, input.investorId);
+  await nominatingInvestor(context, input.investorId);
   const now = context.clock.now();
   if (input.signedOn > farmDayOf(now)) {
     throw refused(

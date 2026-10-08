@@ -179,6 +179,7 @@ export const sendSigningCode = async (
           text: translate(ways.language, "signing.code.sms", {
             farm: farmName,
             paper: paperSaid(offer.kind, ways.language),
+            paperIn: translate(ways.language, `signing.paperIn.${offer.kind}`),
             code: byText,
             minutes,
           }),
@@ -193,6 +194,7 @@ export const sendSigningCode = async (
               translate(language, "signing.code.email", {
                 farm: farmName,
                 paper: paperSaid(offer.kind, language),
+                paperIn: translate(language, `signing.paperIn.${offer.kind}`),
                 code: byEmail,
                 minutes,
               })
@@ -402,7 +404,8 @@ export const confirmApproval = async (
     kind: SignedOfferKind;
     id: string;
     paperHash: string;
-    ventureName: string;
+    /** The Venture it was on; none for a মনোনয়নপত্র, which is about the Investor alone. */
+    ventureName: string | null;
   }
 ) => {
   const proofs = await proofsOf(context.db, context.farm.id, offer);
@@ -425,13 +428,19 @@ export const confirmApproval = async (
       farm: context.farm.name,
       paper: paperSaid(offer.kind, words),
       number,
-      venture: offer.ventureName,
+      venture: offer.ventureName ?? "",
     });
     // oxlint-disable-next-line no-await-in-loop -- as above
     const [texted, emailed] = await Promise.all([
       context.sms.sends && phone
         ? context.sms.send(phone, {
-            text: translate(language, "signing.approved.sms", said(language)),
+            text: translate(
+              language,
+              offer.kind === "nomination_offer"
+                ? "signing.approvedNomination.sms"
+                : "signing.approved.sms",
+              said(language)
+            ),
             lang: language,
           })
         : { delivered: false },
@@ -440,7 +449,13 @@ export const confirmApproval = async (
             subject: `${context.farm.name}: ${translate("bn", "signing.approved.subject")} · ${translate("en", "signing.approved.subject")}`,
             text: (["bn", "en"] as const)
               .map((words) =>
-                translate(words, "signing.approved.email", said(words))
+                translate(
+                  words,
+                  offer.kind === "nomination_offer"
+                    ? "signing.approvedNomination.email"
+                    : "signing.approved.email",
+                  said(words)
+                )
               )
               .join("\n\n—\n\n"),
           })

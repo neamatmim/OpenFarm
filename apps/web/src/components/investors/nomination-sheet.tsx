@@ -1,9 +1,9 @@
-import { farmDayOf } from "@OpenFarm/domain";
+import { farmDayOf, namesAMinor } from "@OpenFarm/domain";
 import type { PaperDocument } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
-import { FileText } from "lucide-react";
+import { FileText, Handshake } from "lucide-react";
 import { useState } from "react";
 
 import type { Investor } from "@/components/investors/investor-types";
@@ -75,6 +75,61 @@ const PrintToSign = ({
 };
 
 /**
+ * The same মনোনয়নপত্র offered in the app instead of printed (ADR 0022): the Investor reads it in the portal and agrees
+ * with a code, and the Owner approves it. Only while the farm agrees in the app and they are in the portal — and never
+ * for a list naming a minor, whose Receiver signs on paper.
+ */
+const OfferInTheApp = ({
+  investorId,
+  drafts,
+  today,
+  onOffered,
+}: {
+  investorId: string;
+  drafts: NomineeDraft[];
+  today: string;
+  onOffered: () => void;
+}) => {
+  const { t } = useLanguage();
+  const refused = useRefused({
+    minor_signs_on_paper: "nominees.offerMinor",
+    nomination_offer_standing: "nominees.offerStanding",
+    agreements_in_app_off: "agreeInApp.refusal.agreements_in_app_off",
+    investor_not_in_portal: "agreeInApp.refusal.investor_not_in_portal",
+    investor_retired: "nominees.offerRetired",
+  });
+  const offering = useMutation(
+    orpc.investors.offerNomination.mutationOptions({
+      onError: refused,
+      onSuccess: () => {
+        toast.success(t("nominees.offered"));
+        onOffered();
+      },
+    })
+  );
+  const nominees = nomineesOf(drafts, today);
+  const minor = namesAMinor(nominees, today);
+  const mayOffer = !minor && draftsProblem(drafts, today) === null;
+  return (
+    <div className="flex flex-col gap-2">
+      <Button
+        className="self-start"
+        disabled={!mayOffer || offering.isPending}
+        onClick={() => offering.mutate({ id: investorId, nominees })}
+        type="button"
+        variant="outline"
+      >
+        <Handshake aria-hidden data-icon="inline-start" />
+        {t("nominees.offerInApp")}
+      </Button>
+      <p className="text-muted-foreground text-sm">
+        {t(minor ? "nominees.offerMinor" : "nominees.offerInAppHint")}
+      </p>
+    </div>
+  );
+};
+
+/**
  * A new মনোনয়নপত্র for one Investor: every Nominee they want written down, starting from the list in force, printed
  * for them to sign in front of the Owner, and recorded with the day they signed and — now or later — a photo of it.
  * From then on it is the list in force for all their Agreements.
@@ -83,10 +138,13 @@ export const NominationSheet = ({
   investor,
   open,
   onOpenChange,
+  inTheApp = false,
 }: {
   investor: Investor;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Whether it may be offered in the app instead: the farm's switch on, and the Investor in the portal. */
+  inTheApp?: boolean;
 }) => {
   const { t } = useLanguage();
   const refused = useRefused();
@@ -134,6 +192,14 @@ export const NominationSheet = ({
     >
       <NomineesForm drafts={drafts} onChange={setDrafts} onDay={onDay} />
       <PrintToSign drafts={drafts} investorId={investor.id} today={today} />
+      {inTheApp ? (
+        <OfferInTheApp
+          drafts={drafts}
+          investorId={investor.id}
+          onOffered={() => onOpenChange(false)}
+          today={today}
+        />
+      ) : null}
       <FormField id="nomination-signed-on" label={t("nominees.signedOn")}>
         <Input
           id="nomination-signed-on"

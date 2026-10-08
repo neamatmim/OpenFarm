@@ -623,6 +623,15 @@ export const enDesk = {
     "The farm has approved it already; it is part of your Agreement now.",
   "agreeInApp.agreementWithdrawn": "The Investor withdrew their agreement {on}",
   "agreeInApp.agreementWithdrawnBy": "{name} withdrew their agreement {on}",
+  "agreeInApp.portal.nominationTitle": "Your new মনোনয়নপত্র",
+  "agreeInApp.portal.nominationHint":
+    "The farm has sent your new list of Nominees. Read the paper and agree with a code; once the farm approves it, it is your list.",
+  "agreeInApp.portal.nominationAgreedHint":
+    "You agreed. Once the farm approves it, it is your list of Nominees.",
+  "agreeInApp.portal.readNomination": "Read the মনোনয়নপত্র",
+  "agreeInApp.portal.nominationPaperTitle": "মনোনয়নপত্র",
+  "agreeInApp.portal.nominationApproved":
+    "The farm has approved it already; it is your list of Nominees now.",
   "agreeInApp.portal.agree": "I agree",
   "agreeInApp.portal.agreedDone": "Your agreement has reached the farm",
   "agreeInApp.how": "How it is agreed",
@@ -1808,6 +1817,7 @@ export const enDesk = {
   "audit.entity.agreement_offer": "Agreement offered in the app",
   "audit.entity.investment_agreement": "Investment agreement",
   "audit.entity.amendment_offer": "Amendment offered in the app",
+  "audit.entity.nomination_offer": "মনোনয়নপত্র offered in the app",
   "audit.entity.venture": "Venture",
   "audit.entity.receivable_payment": "Receivable payment",
   "audit.entity.receivable_write_off": "Receivable written off",

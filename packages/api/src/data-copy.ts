@@ -320,6 +320,10 @@ const NOMINATION_HOW_WORDS: Record<NominationHow, Said> = {
     bn: "আগের রেকর্ড থেকে, এখনো সই হয়নি",
     en: "From the earlier record, not yet signed",
   },
+  in_app: {
+    bn: "অ্যাপে কোড দিয়ে সম্মত মনোনয়নপত্র",
+    en: "মনোনয়নপত্র agreed in the app",
+  },
 };
 
 const isNominationHow = (text: string): text is NominationHow =>
@@ -711,29 +715,35 @@ export const dataCopyOf = async (
     ]);
   const nominations = await nominationsOf(db, farm.id, investorId);
   // What they said they paid through the portal, and what they agreed to there: theirs, as much as a signed paper is.
-  const [payInNotes, offers, amendmentsAgreed, proofs] = await Promise.all([
-    db.query.payInNote.findMany({
-      where: { farmId: farm.id, investorId },
-      orderBy: { createdAt: "asc", id: "asc" },
-    }),
-    db.query.agreementOffer.findMany({
-      where: { farmId: farm.id, investorId },
-      orderBy: { offeredAt: "asc", id: "asc" },
-    }),
-    money.agreements.length === 0
-      ? Promise.resolve([])
-      : db.query.amendmentOfferAnswer.findMany({
-          where: {
-            farmId: farm.id,
-            agreementId: { in: money.agreements.map((one) => one.id) },
-          },
-          orderBy: { agreedAt: "asc", id: "asc" },
-        }),
-    db.query.signingProof.findMany({
-      where: { farmId: farm.id, investorId },
-      orderBy: { agreedAt: "asc", id: "asc" },
-    }),
-  ]);
+  const [payInNotes, offers, amendmentsAgreed, proofs, nominationOffers] =
+    await Promise.all([
+      db.query.payInNote.findMany({
+        where: { farmId: farm.id, investorId },
+        orderBy: { createdAt: "asc", id: "asc" },
+      }),
+      db.query.agreementOffer.findMany({
+        where: { farmId: farm.id, investorId },
+        orderBy: { offeredAt: "asc", id: "asc" },
+      }),
+      money.agreements.length === 0
+        ? Promise.resolve([])
+        : db.query.amendmentOfferAnswer.findMany({
+            where: {
+              farmId: farm.id,
+              agreementId: { in: money.agreements.map((one) => one.id) },
+            },
+            orderBy: { agreedAt: "asc", id: "asc" },
+          }),
+      db.query.signingProof.findMany({
+        where: { farmId: farm.id, investorId },
+        orderBy: { agreedAt: "asc", id: "asc" },
+      }),
+      db.query.nominationOffer.findMany({
+        where: { farmId: farm.id, investorId },
+        columns: { paper: false },
+        orderBy: { offeredAt: "asc", id: "asc" },
+      }),
+    ]);
   // How each paper they agreed to in the app was sealed, by what it was offered as (ADR 0022) — the agreement standing,
   // and each they withdrew before it was approved.
   const proofOf = new Map(
@@ -926,7 +936,7 @@ export const dataCopyOf = async (
         ),
       }))
     ),
-    facts({ bn: "পোর্টালে রাজি হওয়া চুক্তি ও সংশোধন", en: "Agreed in the portal" }, [
+    facts({ bn: "পোর্টালে রাজি হওয়া কাগজ", en: "Agreed in the portal" }, [
       ...offers.map((one) => ({
         label: asTyped(ventureNamed.get(one.ventureId) ?? ""),
         value: each((language) => {
@@ -964,6 +974,26 @@ export const dataCopyOf = async (
         value: each((language) =>
           withdrawnOf(`amendment_offer:${one.id}`, language)
         ),
+      })),
+      // Each মনোনয়নপত্র offered to them in the app, as an Agreement offered there is.
+      ...nominationOffers.map((one) => ({
+        label: { bn: "মনোনয়নপত্র", en: "মনোনয়নপত্র" },
+        value: each((language) => {
+          const say = WORDS[language];
+          return joined(
+            say.offered(when(one.offeredAt, language)),
+            one.agreedAt ? say.youAgreed(when(one.agreedAt, language)) : null,
+            one.approvedAt
+              ? say.farmApproved(when(one.approvedAt, language))
+              : null,
+            one.withdrawnAt
+              ? say.offerWithdrawn(when(one.withdrawnAt, language))
+              : null,
+            say.paperMark(one.paperHash.slice(0, 12)),
+            withdrawnOf(`nomination_offer:${one.id}`, language),
+            sealWords(proofOf.get(`nomination_offer:${one.id}`), language)
+          );
+        }),
       })),
     ]),
     facts({ bn: "ভেঞ্চারে যোগ দেওয়ার অনুরোধ", en: "Your Requests to Join" }, [

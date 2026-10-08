@@ -706,10 +706,11 @@ export const amendmentOfferAnswer = pgTable(
   ]
 );
 
-/** What a Signing Code seals: an Agreement Offer, or an Amendment offered in the app. */
+/** What a Signing Code seals: an Agreement Offer, an Amendment or a মনোনয়নপত্র offered in the app. */
 export const SIGNED_OFFER_KINDS = [
   "agreement_offer",
   "amendment_offer",
+  "nomination_offer",
 ] as const;
 
 /** The way a Signing Code came that an Investor entered: by text to their phone, or to their confirmed email. */
@@ -901,13 +902,15 @@ export const amendmentPaper = pgTable("amendment_paper", {
 
 /**
  * How a Nomination came to be on file: a মনোনয়নপত্র signed in front of the Owner; an Investment Agreement, which
- * names the Nominees it was signed with and so is one too; or a nominee written down before Nominations were kept,
- * carried over and not yet signed for.
+ * names the Nominees it was signed with and so is one too; a nominee written down before Nominations were kept,
+ * carried over and not yet signed for; or a মনোনয়নপত্র agreed in the app with a Signing Code and approved by the Owner
+ * (ADR 0022), its kept paper the proof.
  */
 export const NOMINATION_HOW = [
   "nomination",
   "agreement",
   "carried_over",
+  "in_app",
 ] as const;
 
 /**
@@ -944,6 +947,51 @@ export const nomination = pgTable(
     uniqueIndex("nomination_agreement_uidx")
       .on(table.agreementId)
       .where(sql`${table.agreementId} is not null`),
+  ]
+);
+
+/**
+ * A মনোনয়নপত্র offered to an Investor to agree to in the app, instead of signing it in front of the Owner (ADR 0022):
+ * the Nominees the Owner wrote down, and the paper laid out from them the moment it was offered, kept as it was with
+ * its fingerprint. Not a Nomination: nothing reads it until the Owner approves it, and then one is written from it, made
+ * in the app. Never one naming a minor, whose Receiver signs on paper.
+ */
+export const nominationOffer = pgTable(
+  "nomination_offer",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    investorId: text("investor_id")
+      .notNull()
+      .references(() => investor.id),
+    nominees: jsonb("nominees").notNull(),
+    templateVersionId: text("template_version_id").references(
+      () => paperTemplateVersion.id
+    ),
+    paper: jsonb("paper").notNull(),
+    paperHash: text("paper_hash").notNull(),
+    offeredBy: text("offered_by").references(() => user.id),
+    offeredAt: timestamp("offered_at", { withTimezone: true }).notNull(),
+    agreedBy: text("agreed_by").references(() => user.id),
+    agreedAt: timestamp("agreed_at", { withTimezone: true }),
+    /** When the Investor last withdrew their agreement before the Owner approved it. */
+    agreementWithdrawnAt: timestamp("agreement_withdrawn_at", {
+      withTimezone: true,
+    }),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+    approvedBy: text("approved_by").references(() => user.id),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    /** The Nomination written from it on approval. */
+    nominationId: text("nomination_id").references(() => nomination.id),
+  },
+  (table) => [
+    index("nomination_offer_investor_idx").on(table.investorId),
+    // One standing at a time for an Investor: a second would leave which list they meant to the order approved.
+    uniqueIndex("nomination_offer_standing_uidx")
+      .on(table.investorId)
+      .where(sql`${table.withdrawnAt} is null and ${table.approvedAt} is null`),
   ]
 );
 

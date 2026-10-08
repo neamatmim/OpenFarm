@@ -1,13 +1,16 @@
 import type { PaperNominee } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, FilePen } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Check, ChevronRight, FilePen, Undo2 } from "lucide-react";
 import { useState } from "react";
 
 import type { Investor } from "@/components/investors/investor-types";
+import { standingOf } from "@/components/investors/portal-access";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import {
@@ -212,11 +215,115 @@ const Earlier = ({ investorId }: { investorId: string }) => {
 };
 
 /**
+ * The মনোনয়নপত্র offered to them in the app and still waiting — on them to agree, or on the Owner to approve — with
+ * the proof of their agreement, to approve or take back. Nothing while none waits.
+ */
+const OfferedInTheApp = ({ investorId }: { investorId: string }) => {
+  const { t, language } = useLanguage();
+  const refused = useRefused({
+    offer_not_agreed: "agreeInApp.refusal.offer_not_agreed",
+    offer_withdrawn: "agreeInApp.refusal.offer_withdrawn",
+    offer_already_approved: "nominees.offerApprovedAlready",
+  });
+  const offers = useQuery(
+    orpc.investors.nominationOffers.queryOptions({ input: { id: investorId } })
+  );
+  const approving = useMutation(
+    orpc.investors.approveNominationOffer.mutationOptions({
+      onError: refused,
+      onSuccess: () => toast.success(t("nominees.offerApproved")),
+    })
+  );
+  const withdrawing = useMutation(
+    orpc.investors.withdrawNominationOffer.mutationOptions({
+      onError: refused,
+      onSuccess: () => toast.success(t("agreeInApp.withdrawn")),
+    })
+  );
+  const offer = (offers.data ?? []).find(
+    (one) => one.standing === "offered" || one.standing === "agreed"
+  );
+  if (!offer) {
+    return null;
+  }
+  const agreed = offer.standing === "agreed";
+  const when = (at: Date | string) =>
+    formatDate(new Date(at), language, "dateTime");
+  const busy = approving.isPending || withdrawing.isPending;
+  return (
+    <div className="flex flex-col gap-2 rounded-md border p-3">
+      <p className="text-sm">
+        {agreed && offer.agreedAt
+          ? t("nominees.offerAgreed", { on: when(offer.agreedAt) })
+          : t("nominees.offerWaiting", { on: when(offer.offeredAt) })}
+      </p>
+      {offer.proof ? (
+        <p className="text-muted-foreground text-xs">
+          {t("agreeInApp.proof", {
+            way: t(
+              offer.proof.channel === "sms"
+                ? "agreeInApp.proofBySms"
+                : "agreeInApp.proofByEmail"
+            ),
+            to: offer.proof.sentTo,
+            on: when(offer.proof.agreedAt),
+            from: offer.proof.callerAddress ?? "—",
+          })}
+        </p>
+      ) : null}
+      {!agreed && offer.agreementWithdrawnAt ? (
+        <p className="text-muted-foreground text-xs">
+          {t("agreeInApp.agreementWithdrawn", {
+            on: when(offer.agreementWithdrawnAt),
+          })}
+        </p>
+      ) : null}
+      <NomineeList
+        nominees={offer.nominees.map((one) => ({ ...one, minor: false }))}
+      />
+      <span className="flex flex-wrap gap-2">
+        <Button
+          disabled={busy}
+          onClick={() => withdrawing.mutate({ offerId: offer.id })}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <Undo2 aria-hidden data-icon="inline-start" />
+          {t("agreeInApp.withdraw")}
+        </Button>
+        {agreed ? (
+          <Button
+            disabled={busy}
+            onClick={() => approving.mutate({ offerId: offer.id })}
+            size="sm"
+            type="button"
+          >
+            <Check aria-hidden data-icon="inline-start" />
+            {t("agreeInApp.approve")}
+          </Button>
+        ) : null}
+      </span>
+    </div>
+  );
+};
+
+/**
  * An Investor's Nominees in force, on their page: each with the share they collect and, for a minor, who collects it;
  * where the list came from; a list never signed for said so; and the earlier ones below. Read-only — only a paper the
  * Investor signs changes it.
  */
-export const Nominees = ({ investor }: { investor: Investor }) => {
+export const Nominees = ({
+  investor,
+  agreementsInApp = false,
+  portalOpen = false,
+}: {
+  investor: Investor;
+  /** Whether the farm has its Investor portal open: shut, nothing is offered there. */
+  portalOpen?: boolean;
+  /** Whether the farm's switch for agreeing in the app is on: then a মনোনয়নপত্র may be offered there. */
+  agreementsInApp?: boolean;
+}) => {
   const { t } = useLanguage();
   const [naming, setNaming] = useState(false);
   // A list cached before Nominations has no such field: nobody on it has one yet.
@@ -257,8 +364,12 @@ export const Nominees = ({ investor }: { investor: Investor }) => {
       ) : null}
       {nomination ? <NominationPhoto nomination={nomination} /> : null}
       <NomineeList nominees={nomination?.nominees ?? []} />
+      <OfferedInTheApp investorId={investor.id} />
       <Earlier investorId={investor.id} />
       <NominationSheet
+        inTheApp={
+          agreementsInApp && portalOpen && standingOf(investor) === "in"
+        }
         investor={investor}
         onOpenChange={setNaming}
         open={naming}

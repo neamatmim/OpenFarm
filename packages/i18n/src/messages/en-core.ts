@@ -941,9 +941,27 @@ export const enCore = {
   "nominees.notSignedFor": "Not yet signed for",
   "nominees.notSignedForHint":
     "Written down before Nominations were kept. It counts once they sign a মনোনয়নপত্র or an Agreement naming them.",
+  "nominees.offerInApp": "Offer in the app",
+  "nominees.offerInAppHint":
+    "Instead of printing it, you may offer it in the app: the Investor reads it in the portal and agrees with a code, and once you approve it, it is their list.",
+  "nominees.offerMinor":
+    "A Nominee is a minor: this মনোনয়নপত্র is signed on paper, with their Receiver.",
+  "nominees.offerStanding":
+    "A মনোনয়নপত্র is offered to them in the app already; withdraw it before offering another.",
+  "nominees.offered": "মনোনয়নপত্র offered in the app",
+  "nominees.offerWaiting":
+    "মনোনয়নপত্র offered in the app {on} — waiting for them to agree",
+  "nominees.offerAgreed":
+    "They agreed to the মনোনয়নপত্র offered in the app {on} — waiting for your approval",
+  "nominees.offerApproved": "Their list of Nominees is updated",
+  "nominees.offerApprovedAlready":
+    "It is approved already; it is their list of nominees now.",
+  "nominees.offerRetired":
+    "A retired Investor signs nothing new; bring them back first.",
   "nominees.from.nomination": "মনোনয়নপত্র signed {day}",
   "nominees.from.agreement": "Named in the {venture} Agreement, signed {day}",
   "nominees.from.carried_over": "Carried over {day}",
+  "nominees.from.in_app": "মনোনয়নপত্র agreed in the app {day}",
   "nominees.born": "Born {day}",
   "nominees.minor": "Minor",
   "nominees.share": "{share}%",
@@ -2814,6 +2832,10 @@ export const enCore = {
     "The code to confirm your email in the {farm} Investor Portal: {code}\n\nEnter it on the portal's “Account” page. It works for {minutes, plural, one {# minute} other {# minutes}}. If you did not ask for it, ignore this email and tell the farm.",
   "signing.paper.agreement_offer": "investment agreement",
   "signing.paper.amendment_offer": "amendment",
+  "signing.paper.nomination_offer": "মনোনয়নপত্র",
+  "signing.paperIn.agreement_offer": "investment agreement",
+  "signing.paperIn.amendment_offer": "amendment",
+  "signing.paperIn.nomination_offer": "মনোনয়নপত্র",
   "signing.code.sms":
     "{farm}: your code to agree to the {paper} is {code}. It works for {minutes, plural, one {# minute} other {# minutes}}. Tell nobody.",
   "signing.code.subject": "Your code to agree to a paper",
@@ -2821,6 +2843,10 @@ export const enCore = {
     "The code to agree to the {paper} in the {farm} Investor Portal: {code}\n\nEntering it on the paper's page is your agreement, as your signature would be. It works for {minutes, plural, one {# minute} other {# minutes}}. Tell nobody; if you did not ask for it, tell the farm.",
   "signing.approved.sms":
     "{farm}: your {paper} no. {number} for {venture} is approved by the farm.",
+  "signing.approvedNomination.sms":
+    "{farm}: your {paper} no. {number} is approved by the farm.",
+  "signing.approvedNomination.email":
+    "{farm} has approved your {paper} no. {number}, which you agreed to in the portal with a code. It is your list of nominees from now on.",
   "signing.approved.subject": "Your paper is approved",
   "signing.approved.email":
     "{farm} has approved your {paper} no. {number} for {venture}, which you agreed to in the portal with a code. Its copy is on the portal's “Papers” page.",

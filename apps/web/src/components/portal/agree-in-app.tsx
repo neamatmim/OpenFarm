@@ -37,11 +37,19 @@ const REFUSALS = {
   no_signing_clause: "agreeInApp.refusal.no_signing_clause",
   no_way_to_send_a_code: "agreeInApp.refusal.no_way_to_send_a_code",
   already_agreed: "agreeInApp.refusal.already_agreed",
+  nomination_approved: "agreeInApp.portal.nominationApproved",
 } as const;
 
 type AmendmentOffer = Awaited<
   ReturnType<typeof client.portal.amendmentOffers>
 >[number];
+
+type NominationOffer = Awaited<
+  ReturnType<typeof client.portal.nominationOffers>
+>[number];
+
+/** What a Signing Code seals: each kind of paper offered in the app, as the farm names them. */
+type SignedKind = Parameters<typeof client.portal.withdrawAgreement>[0]["kind"];
 
 /** Where the farm sent the codes for a paper, mostly hidden, and how long they work. */
 type Sent = Awaited<ReturnType<typeof client.portal.sendSigningCode>>;
@@ -78,7 +86,7 @@ const ReadAndAgree = ({
   onAgree,
   onClose,
 }: {
-  kind: "agreement_offer" | "amendment_offer";
+  kind: SignedKind;
   offerId: string;
   title: string;
   paper: Offer["paper"] | null;
@@ -162,6 +170,7 @@ const ReadAndAgree = ({
 const WITHDRAW_REFUSALS = {
   offer_already_approved: "agreeInApp.portal.withdrawTooLate",
   already_approved: "agreeInApp.portal.withdrawTooLate",
+  nomination_approved: "agreeInApp.portal.nominationApproved",
   not_an_investor: "portal.refused.notAnInvestor",
   signed_in_too_long: "portal.endedHint",
 } as const;
@@ -174,7 +183,7 @@ const WithdrawAgreement = ({
   kind,
   offerId,
 }: {
-  kind: "agreement_offer" | "amendment_offer";
+  kind: SignedKind;
   offerId: string;
 }) => {
   const { t } = useLanguage();
@@ -351,6 +360,72 @@ const AmendmentNotice = ({ offer }: { offer: AmendmentOffer }) => {
   );
 };
 
+/** The মনোনয়নপত্র the farm has offered them: their new list of Nominees, to read and agree to, or — agreed — waiting on
+ *  the farm's approval. */
+const NominationNotice = ({ offer }: { offer: NominationOffer }) => {
+  const { t } = useLanguage();
+  const refused = useRefused(REFUSALS);
+  const [reading, setReading] = useState(false);
+  const agreeing = useMutation(
+    orpc.portal.agreeToNomination.mutationOptions({
+      onError: refused,
+      onSuccess: () => {
+        setReading(false);
+        toast.success(t("agreeInApp.portal.agreedDone"));
+      },
+    })
+  );
+  const agreed = offer.agreedAt !== null;
+  return (
+    <Notice
+      icon={Handshake}
+      title={t("agreeInApp.portal.nominationTitle")}
+      tone={agreed ? "success" : "info"}
+    >
+      <div className="flex flex-col gap-3">
+        <p>
+          {t(
+            agreed
+              ? "agreeInApp.portal.nominationAgreedHint"
+              : "agreeInApp.portal.nominationHint"
+          )}
+        </p>
+        <Button
+          className="self-start"
+          onClick={() => setReading(true)}
+          size="sm"
+          type="button"
+          variant={agreed ? "outline" : "default"}
+        >
+          <Eye aria-hidden data-icon="inline-start" />
+          {agreed
+            ? t("agreeInApp.portal.readAgain")
+            : t("agreeInApp.portal.readNomination")}
+        </Button>
+        {agreed ? (
+          <WithdrawAgreement kind="nomination_offer" offerId={offer.id} />
+        ) : null}
+      </div>
+      <ReadAndAgree
+        agreed={agreed}
+        kind="nomination_offer"
+        offerId={offer.id}
+        onAgree={(code) =>
+          agreeing.mutate({
+            offerId: offer.id,
+            paperHash: offer.paperHash,
+            code,
+          })
+        }
+        onClose={() => setReading(false)}
+        paper={reading ? offer.paper : null}
+        pending={agreeing.isPending}
+        title={t("agreeInApp.portal.nominationPaperTitle")}
+      />
+    </Notice>
+  );
+};
+
 /**
  * The Agreements the farm has offered them to agree to in the app, at the top of their home: each to read in full and
  * agree to with a code the farm sends them, and, agreed, waiting on the Owner's approval. Nothing while none is offered, and nothing in
@@ -366,6 +441,10 @@ export const AgreeInApp = () => {
     ...orpc.portal.amendmentOffers.queryOptions(),
     enabled: !previewing,
   });
+  const nominations = useQuery({
+    ...orpc.portal.nominationOffers.queryOptions(),
+    enabled: !previewing,
+  });
   if (previewing) {
     return null;
   }
@@ -376,6 +455,9 @@ export const AgreeInApp = () => {
       ))}
       {(amendments.data ?? []).map((one) => (
         <AmendmentNotice key={one.id} offer={one} />
+      ))}
+      {(nominations.data ?? []).map((one) => (
+        <NominationNotice key={one.id} offer={one} />
       ))}
     </>
   );

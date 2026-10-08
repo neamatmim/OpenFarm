@@ -58,6 +58,14 @@ export const isMinorOn = (bornOn: string, day: string): boolean => {
   return day < eighteenth;
 };
 
+/** Whether a list names anybody under eighteen on the day: their Receiver signs on paper, so it is never agreed in the
+ *  app (ADR 0022). */
+export const namesAMinor = (
+  nominees: readonly { bornOn: string | null }[],
+  day: string
+): boolean =>
+  nominees.some((one) => one.bornOn !== null && isMinorOn(one.bornOn, day));
+
 /** The first thing wrong with a list of Nominees a paper would name, and which of them it is (from 1). */
 export interface NomineesProblem {
   code:
