@@ -171,8 +171,8 @@ export const writeAgreement = async (
     .where(
       and(eq(ventureTable.id, venture.id), isNull(ventureTable.windUpDays))
     );
-  // An Organisation names no Nominee, so its Agreement is no Nomination (ADR 0020).
-  if (signing?.kind === "organisation") {
+  // An Organization names no Nominee, so its Agreement is no Nomination (ADR 0020).
+  if (signing?.kind === "organization") {
     return given;
   }
   await nominationBySigning(tx, trail, {

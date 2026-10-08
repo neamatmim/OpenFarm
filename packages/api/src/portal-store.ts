@@ -306,7 +306,7 @@ export const takePortalAway = async (
 };
 
 /**
- * An Organisation's Signatory leaving it, on a transaction already held — the one that writes the new Signatory down
+ * An Organization's Signatory leaving it, on a transaction already held — the one that writes the new Signatory down
  * (ADR 0020). The portal sign-in was the old Signatory's: it is taken away, every session it has ends, an open code
  * dies, and the account is let go of, so the new Signatory opens one of their own rather than taking over the old
  * one's. The Portal Consent in force was the old Signatory's to give, so it ends today, said to have ended with them. The
@@ -489,10 +489,10 @@ export const takeUpInvitation = async (
   if (!them) {
     throw wrong();
   }
-  // The account is the person's who signs in: an Organisation's Signatory, by their own name (ADR 0020).
+  // The account is the person's who signs in: an Organization's Signatory, by their own name (ADR 0020).
   const who = {
     name:
-      them.kind === "organisation" && them.signatoryName
+      them.kind === "organization" && them.signatoryName
         ? them.signatoryName
         : them.name,
   };

@@ -8,7 +8,7 @@ export type Investor = Awaited<
 /**
  * Whether an Investor answers what the Owner typed into the search.
  *
- * Name and phone only, and an Organisation's Signatory by name: those are what somebody standing in front of her can
+ * Name and phone only, and an Organization's Signatory by name: those are what somebody standing in front of her can
  * tell her. An NID or a bank account is on the page once the row is open, but nobody searches a list of twenty people
  * by it, and a bank account is not something to leave a page matching on.
  */
@@ -20,7 +20,7 @@ export const matching = (investor: Investor, looking: string) => {
   return (
     investor.name.toLowerCase().includes(wanted) ||
     investor.phone.toLowerCase().includes(wanted) ||
-    (investor.organisation?.signatory.name.toLowerCase().includes(wanted) ??
+    (investor.organization?.signatory.name.toLowerCase().includes(wanted) ??
       false)
   );
 };

@@ -264,7 +264,7 @@ const NAMED_FIELDS = new Set<string>([
   "address",
   "nid",
   "bankAccount",
-  "tradeLicence",
+  "tradeLicense",
   "rjscNumber",
   "tin",
   "authority",

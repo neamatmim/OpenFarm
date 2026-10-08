@@ -1,7 +1,7 @@
 import type { FarmIdentity } from "./farm";
 import type { NomineeRow, PaperNominee } from "./nominees";
 import { nomineeRowOf } from "./nominees";
-import type { DocumentRow, PaperOrganisation, Said } from "./papers";
+import type { DocumentRow, PaperOrganization, Said } from "./papers";
 import { NO_GUARANTEE_LINES } from "./papers";
 
 /**
@@ -42,7 +42,7 @@ export const TEMPLATE_FIELDS = {
   investorAddress: { bn: "বিনিয়োগকারীর ঠিকানা", en: "Investor's address" },
   investorPhone: { bn: "বিনিয়োগকারীর মোবাইল", en: "Investor's phone" },
   investorNid: { bn: "বিনিয়োগকারীর এনআইডি", en: "Investor's NID" },
-  /** Who puts their name to the paper: a person themself, or an Organisation's Signatory for it (ADR 0020). */
+  /** Who puts their name to the paper: a person themself, or an Organization's Signatory for it (ADR 0020). */
   signerName: { bn: "যিনি সই করছেন", en: "Who signs" },
   ventureName: { bn: "ভেঞ্চারের নাম", en: "Venture name" },
   units: { bn: "ইউনিট", en: "Units" },
@@ -282,14 +282,14 @@ export const isTemplateField = (name: string): name is TemplateField =>
 /**
  * When a line of wording is printed at all: on the paper of a Venture paid by the month, and only there; on the paper
  * of a Venture in which the Farm holds Units with its own money, and only there; or on the paper of an Investor who is
- * a person, or of one who is an Organisation (ADR 0020), and only there. A line with no condition is printed on every
+ * a person, or of one who is an Organization (ADR 0020), and only there. A line with no condition is printed on every
  * paper of its kind; a line with several is printed where every one of them holds.
  */
 export const PAPER_CONDITIONS = [
   "by_the_month",
   "farm_capital",
   "a_person",
-  "an_organisation",
+  "an_organization",
 ] as const;
 export type PaperCondition = (typeof PAPER_CONDITIONS)[number];
 
@@ -345,8 +345,8 @@ export interface PaperFor {
   paidByTheMonth: boolean;
   /** Whether the Farm holds Units of the Venture with its own money; left out, it does not. */
   farmCapital?: boolean;
-  /** Whether the paper is an Organisation's (ADR 0020); left out, it is a person's. */
-  organisation?: boolean;
+  /** Whether the paper is an Organization's (ADR 0020); left out, it is a person's. */
+  organization?: boolean;
 }
 
 /**
@@ -367,10 +367,10 @@ export const wordingFor = (
         return paper.farmCapital === true;
       }
       case "a_person": {
-        return paper.organisation !== true;
+        return paper.organization !== true;
       }
       default: {
-        return paper.organisation === true;
+        return paper.organization === true;
       }
     }
   };
@@ -570,12 +570,12 @@ const filled = (said: Said, values: FieldValues): Said => ({
 /** An Investor as a paper writes him down. */
 export interface PaperInvestor {
   name: string;
-  /** The mobile on the record: an Organisation's Signatory's. */
+  /** The mobile on the record: an Organization's Signatory's. */
   phone: string;
   address: string | null;
   nid: string | null;
-  /** An Organisation's papers and Signatory; null or left out for a person. */
-  organisation?: PaperOrganisation | null;
+  /** An Organization's papers and Signatory; null or left out for a person. */
+  organization?: PaperOrganization | null;
   /** The Nominees the paper names: the list being signed, on a paper to sign that names its own; the list in force,
    *  on every other. */
   nominees: PaperNominee[];
@@ -657,13 +657,13 @@ const farmRows = (parties: PaperParties): DocumentRow[] =>
   );
 
 /**
- * Who an Investor is, as every paper writes him — or an Organisation, with its own papers, and under them the Signatory
- * who signs for it. An Organisation's name is its "Name" row and its Signatory's mobile its "Phone" row, so a paper
+ * Who an Investor is, as every paper writes him — or an Organization, with its own papers, and under them the Signatory
+ * who signs for it. An Organization's name is its "Name" row and its Signatory's mobile its "Phone" row, so a paper
  * read in the portal still finds its reader by the two.
  */
 const investorRows = (him: PaperInvestor): DocumentRow[] => {
-  const { organisation } = him;
-  if (!organisation) {
+  const { organization } = him;
+  if (!organization) {
     return rows(
       row("নাম", "Name", him.name),
       row("ঠিকানা", "Address", him.address),
@@ -671,13 +671,13 @@ const investorRows = (him: PaperInvestor): DocumentRow[] => {
       row("জাতীয় পরিচয়পত্র", "NID", him.nid)
     );
   }
-  const { signatory } = organisation;
+  const { signatory } = organization;
   return rows(
     row("প্রতিষ্ঠান", "Name", him.name),
     row("ঠিকানা", "Address", him.address),
-    row("ট্রেড লাইসেন্স", "Trade licence", organisation.tradeLicence),
-    row("আরজেএসসি নিবন্ধন", "RJSC registration", organisation.rjscNumber),
-    row("টিআইএন", "TIN", organisation.tin),
+    row("ট্রেড লাইসেন্স", "Trade license", organization.tradeLicense),
+    row("আরজেএসসি নিবন্ধন", "RJSC registration", organization.rjscNumber),
+    row("টিআইএন", "TIN", organization.tin),
     row("পক্ষে স্বাক্ষরকারী", "Signatory", signatory.name),
     row("পদবি", "Role", signatory.role),
     row("মোবাইল", "Phone", him.phone),
@@ -685,9 +685,9 @@ const investorRows = (him: PaperInvestor): DocumentRow[] => {
     row(
       "ক্ষমতা অর্পণ",
       "Authority",
-      organisation.authorityOn
-        ? `${organisation.authority} · ${organisation.authorityOn}`
-        : organisation.authority
+      organization.authorityOn
+        ? `${organization.authority} · ${organization.authorityOn}`
+        : organization.authority
     )
   );
 };
@@ -779,9 +779,9 @@ const signersOf = (kind: TemplateKind, content: TemplateContent): Signers => {
   };
 };
 
-/** The signature line of one Investor: their own, or an Organisation's, signed by its Signatory for and on its behalf. */
+/** The signature line of one Investor: their own, or an Organization's, signed by its Signatory for and on its behalf. */
 const investorSigns = (role: Said, him: PaperInvestor) => {
-  const signatory = him.organisation?.signatory;
+  const signatory = him.organization?.signatory;
   if (!signatory) {
     return { role, name: him.name };
   }
@@ -932,9 +932,9 @@ const laidOut = (
           ...parties.investors.map((him) => ({
             role: second,
             rows: investorRows(him),
-            // An Organisation names no Nominee, and its share is its own: nothing about Nominees is printed under it.
-            nominees: him.organisation ? [] : him.nominees.map(nomineeRowOf),
-            lines: him.organisation ? [] : linesUnder(section, him, values),
+            // An Organization names no Nominee, and its share is its own: nothing about Nominees is printed under it.
+            nominees: him.organization ? [] : him.nominees.map(nomineeRowOf),
+            lines: him.organization ? [] : linesUnder(section, him, values),
           })),
         ],
       };
@@ -999,7 +999,7 @@ export const letterheadOf = (
 
 /**
  * A Version's wording with the lines for a kind of Investor the paper does not name left off: a person's paper prints no
- * line meant only for an Organisation, and an Organisation's none meant only for a person. A paper naming both — an
+ * line meant only for an Organization, and an Organization's none meant only for a person. A paper naming both — an
  * Amendment on a Venture with both — keeps both. Every other condition was the caller's to decide, and stands.
  */
 const kindsOnThePaper = (
@@ -1008,13 +1008,13 @@ const kindsOnThePaper = (
 ): TemplateContent => {
   const named = new Set(
     parties.investors.map((him) =>
-      him.organisation ? "an_organisation" : "a_person"
+      him.organization ? "an_organization" : "a_person"
     )
   );
   const prints = (line: { only?: PrintedOnly }) =>
     conditionsOf(line.only).every(
       (condition) =>
-        !(condition === "a_person" || condition === "an_organisation") ||
+        !(condition === "a_person" || condition === "an_organization") ||
         named.has(condition)
     );
   return {

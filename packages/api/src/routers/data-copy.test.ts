@@ -282,13 +282,13 @@ describe("«খামারে আপনার তথ্য»", () => {
     ).toEqual([]);
   });
 
-  it("reads every field the trail keeps of an Organisation's record, but the kind it never changes from", async () => {
+  it("reads every field the trail keeps of an Organization's record, but the kind it never changes from", async () => {
     const owner = await as("owner");
     const them = await owner.investors.record({
-      kind: "organisation",
+      kind: "organization",
       name: `প্রতিষ্ঠান ${suffix}`,
       phone: `0195${suffix}9`,
-      tradeLicence: "TRAD/1",
+      tradeLicense: "TRAD/1",
       rjscNumber: "C-1",
       tin: "1",
       authority: "পর্ষদের সিদ্ধান্ত",

@@ -147,8 +147,8 @@ export const TRAILED = {
       "nid",
       "bankAccount",
       "retiredAt",
-      // An Organisation's own, and its Signatory's (ADR 0020).
-      "tradeLicence",
+      // An Organization's own, and its Signatory's (ADR 0020).
+      "tradeLicense",
       "rjscNumber",
       "tin",
       "authority",
@@ -347,10 +347,10 @@ const settlementWords = (
       : null
   );
 
-/** An Organisation's own papers and the Signatory it acts through, as "Your record" lists them; nothing for a person,
+/** An Organization's own papers and the Signatory it acts through, as "Your record" lists them; nothing for a person,
  *  whose columns are empty (ADR 0020). */
-const organisationLines = (them: typeof investor.$inferSelect) => [
-  ...linesFor({ bn: "ট্রেড লাইসেন্স", en: "Trade licence" }, them.tradeLicence),
+const organizationLines = (them: typeof investor.$inferSelect) => [
+  ...linesFor({ bn: "ট্রেড লাইসেন্স", en: "Trade license" }, them.tradeLicense),
   ...linesFor(
     { bn: "আরজেএসসি নিবন্ধন", en: "RJSC registration" },
     them.rjscNumber
@@ -475,7 +475,7 @@ export const dataCopyOf = async (
       ...linesFor({ bn: "ফোন", en: "Phone" }, them.phone),
       ...linesFor({ bn: "ঠিকানা", en: "Address" }, them.address),
       ...linesFor({ bn: "এনআইডি নম্বর", en: "NID" }, them.nid),
-      ...organisationLines(them),
+      ...organizationLines(them),
       ...linesFor({ bn: "ব্যাংক হিসাব", en: "Bank account" }, them.bankAccount),
       ...linesFor({ bn: "লেখা হয়েছে", en: "Recorded" }, when(them.createdAt)),
       ...linesFor(
@@ -483,9 +483,9 @@ export const dataCopyOf = async (
         them.retiredAt ? when(them.retiredAt) : null
       ),
     ]),
-    // Every Nomination on file, the list in force first: who they named, and on which paper. An Organisation names
+    // Every Nomination on file, the list in force first: who they named, and on which paper. An Organization names
     // none, and is not asked about them.
-    ...(them.kind === "organisation"
+    ...(them.kind === "organization"
       ? []
       : [
           facts(

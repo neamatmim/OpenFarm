@@ -118,9 +118,9 @@ export const handOver = async (
   return {
     letterhead: letterheadOf(context.farm),
     investor: {
-      // Handed to the person who signs in: an Organisation's Signatory, by their name and their Organisation's.
+      // Handed to the person who signs in: an Organization's Signatory, by their name and their Organization's.
       name:
-        who.kind === "organisation" && who.signatoryName
+        who.kind === "organization" && who.signatoryName
           ? `${who.signatoryName} (${who.name})`
           : who.name,
       phone: mobileNumberOf(who.phone) ?? who.phone,

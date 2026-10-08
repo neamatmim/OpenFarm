@@ -831,7 +831,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.cashBackNeedsASlip":
     "ফেরত আসা {currencyOf} জমার তারিখ আর স্লিপ নম্বর দিন",
   "nominees.title": "নমিনি",
-  "nominees.noneForAnOrganisation":
+  "nominees.noneForAnOrganization":
     "প্রতিষ্ঠান কোনো নমিনি দেয় না: তার অংশ তারই, যিনিই সই করুন",
   "nominees.hint":
     "ভেঞ্চারের হিসাব শেষ হওয়ার আগে তিনি মারা গেলে যাঁরা তাঁর মূলধন ও প্রাপ্য সংগ্রহ করে আইনগত উত্তরাধিকারীদের বুঝিয়ে দেবেন। শুধু তাঁর সই করা কাগজেই বদলায়।",
@@ -1957,7 +1957,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "একসাথে যতজন বিনিয়োগকারী রাখা যায়, খামারে এখন ততজনই আছেন",
   "refusal.investorExists":
     "এই নাম আর এই ফোন নম্বরে একজন বিনিয়োগকারী আগেই লেখা আছে",
-  "refusal.organisationNamesNoNominee": "প্রতিষ্ঠান কোনো নমিনি দেয় না: তার অংশ তারই",
+  "refusal.organizationNamesNoNominee": "প্রতিষ্ঠান কোনো নমিনি দেয় না: তার অংশ তারই",
   "refusal.investorIsAPerson": "শুধু প্রতিষ্ঠানেরই স্বাক্ষরকারী বদলানো যায়",
   "refusal.investorKindFixed":
     "ব্যক্তি ব্যক্তিই থাকেন, প্রতিষ্ঠান প্রতিষ্ঠানই থাকে। এটিকে বাদ দিয়ে নতুন করে লিখুন।",

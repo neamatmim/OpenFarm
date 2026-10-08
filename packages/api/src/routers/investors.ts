@@ -20,7 +20,7 @@ import { bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
 import {
   countedInvestors,
-  organisationOf,
+  organizationOf,
   readInvestor,
   theSamePerson,
 } from "../investor-store";
@@ -76,7 +76,7 @@ const takenAwaySaid = (
 };
 
 const personInput = z.object({
-  /** Left out by every caller written before an Investor could be an Organisation: a person. */
+  /** Left out by every caller written before an Investor could be an Organization: a person. */
   kind: z.literal("person").optional(),
   name: z.string().trim().min(1).max(120),
   phone: z.string().trim().min(1).max(20),
@@ -88,16 +88,16 @@ const personInput = z.object({
   bankAccount: z.string().trim().max(300).optional(),
 });
 
-/** An Organisation (ADR 0020): its own name, address, papers and bank account, and the one Signatory it acts through,
+/** An Organization (ADR 0020): its own name, address, papers and bank account, and the one Signatory it acts through,
  *  whose mobile is the record's phone. */
-const organisationInput = z.object({
-  kind: z.literal("organisation"),
+const organizationInput = z.object({
+  kind: z.literal("organization"),
   name: z.string().trim().min(1).max(120),
-  /** The Signatory's mobile: the farm reaches the Organisation on it, and the Signatory signs in to the portal with it. */
+  /** The Signatory's mobile: the farm reaches the Organization on it, and the Signatory signs in to the portal with it. */
   phone: z.string().trim().min(1).max(20),
   address: z.string().trim().max(200).optional(),
   bankAccount: z.string().trim().max(300).optional(),
-  tradeLicence: z.string().trim().max(40).optional(),
+  tradeLicense: z.string().trim().max(40).optional(),
   rjscNumber: z.string().trim().max(40).optional(),
   tin: z.string().trim().max(40).optional(),
   /** The paper that names the Signatory — a board resolution, a letter — as the Owner describes it, and its date. */
@@ -108,11 +108,11 @@ const organisationInput = z.object({
   signatoryRole: z.string().trim().max(80).optional(),
 });
 
-/** A person or an Organisation, as the Owner writes them down. */
-const investorInput = z.union([organisationInput, personInput]);
+/** A person or an Organization, as the Owner writes them down. */
+const investorInput = z.union([organizationInput, personInput]);
 
 const updateInput = z.union([
-  organisationInput.extend({ id: z.string().min(1) }),
+  organizationInput.extend({ id: z.string().min(1) }),
   personInput.extend({ id: z.string().min(1) }),
 ]);
 
@@ -148,7 +148,7 @@ const nominationSaid = (nomination: NominationOnFile | null, today: string) =>
 /** Everything written down about one Investor, as a correction replaces it: a field left out is a field cleared, since
  *  the form sends the whole record as it now stands. The other kind's columns are always empty. */
 const theRecord = (input: z.infer<typeof investorInput>) =>
-  input.kind === "organisation"
+  input.kind === "organization"
     ? {
         kind: input.kind,
         name: input.name,
@@ -156,7 +156,7 @@ const theRecord = (input: z.infer<typeof investorInput>) =>
         address: input.address ?? null,
         nid: null,
         bankAccount: input.bankAccount ?? null,
-        tradeLicence: input.tradeLicence ?? null,
+        tradeLicense: input.tradeLicense ?? null,
         rjscNumber: input.rjscNumber ?? null,
         tin: input.tin ?? null,
         authority: input.authority,
@@ -172,7 +172,7 @@ const theRecord = (input: z.infer<typeof investorInput>) =>
         address: input.address ?? null,
         nid: input.nid ?? null,
         bankAccount: input.bankAccount ?? null,
-        tradeLicence: null,
+        tradeLicense: null,
         rjscNumber: null,
         tin: null,
         authority: null,
@@ -235,7 +235,7 @@ const assertAPerson = async (
   }
 };
 
-/** Refuses turning a person into an Organisation or back: what they signed is worded for the one they were (ADR 0020).
+/** Refuses turning a person into an Organization or back: what they signed is worded for the one they were (ADR 0020).
  *  One written down as the wrong kind is retired and written down again. */
 const assertTheSameKind = async (
   context: { db: { query: Tx["query"] }; farm: { id: string } },
@@ -249,7 +249,7 @@ const assertTheSameKind = async (
   if (row && row.kind !== kind) {
     throw new ORPCError("BAD_REQUEST", {
       message:
-        "A person stays a person and an Organisation an Organisation; retire this one and write them down again",
+        "A person stays a person and an Organization an Organization; retire this one and write them down again",
       data: { refusal: "investor_kind_fixed" },
     });
   }
@@ -356,8 +356,8 @@ export const investorsRouter = {
           address: one.address,
           nid: one.nid,
           bankAccount: one.bankAccount,
-          /** An Organisation's own papers, authority and Signatory; null for a person. */
-          organisation: organisationOf(one),
+          /** An Organization's own papers, authority and Signatory; null for a person. */
+          organization: organizationOf(one),
           /** Their Nominees in force — how the list came, the day, and each Nominee marked a minor or not today — or
            *  null for somebody who has never had one on file. */
           nomination: nominationSaid(nominations.get(one.id) ?? null, today),
@@ -497,7 +497,7 @@ export const investorsRouter = {
   /**
    * One Investor recorded once, and reused for every Venture they join. A person: name, phone, address, NID and the
    * bank account they are paid into; their Nominees are not written here, since only a paper they sign names them. An
-   * Organisation: its own name, address, papers and bank account, its authority, and its Signatory (ADR 0020).
+   * Organization: its own name, address, papers and bank account, its authority, and its Signatory (ADR 0020).
    */
   record: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
@@ -535,7 +535,7 @@ export const investorsRouter = {
   /**
    * What was written down about somebody, put right — a phone changed, a bank account moved, a Signatory's NID typed
    * again. Never their Nominees, which only a paper they sign changes, and never whether they are a person or an
-   * Organisation: their papers are worded for the one they signed as. The whole record as it now stands replaces the
+   * Organization: their papers are worded for the one they signed as. The whole record as it now stands replaces the
    * old one, and the trail keeps what it said before: a payout sent to an account that was typed over has to be
    * traceable to who typed it.
    */
@@ -566,17 +566,17 @@ export const investorsRouter = {
     }),
 
   /**
-   * An Organisation's Signatory changed for another person (ADR 0020): who they are, their mobile — the record's phone
+   * An Organization's Signatory changed for another person (ADR 0020): who they are, their mobile — the record's phone
    * from now — and the paper that names them. Not putting the record right, which `update` does for the same person:
    * the portal sign-in and the Portal Consent were the old Signatory's, so both end in the same transaction, and the
-   * new Signatory signs a consent of their own before they are invited. What the Organisation signed before stands. The
+   * new Signatory signs a consent of their own before they are invited. What the Organization signed before stands. The
    * Owner's alone.
    */
   changeSignatory: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
     .input(
-      organisationInput
+      organizationInput
         .pick({
           phone: true,
           authority: true,
@@ -596,9 +596,9 @@ export const investorsRouter = {
       if (!them) {
         throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
       }
-      if (them.kind !== "organisation") {
+      if (them.kind !== "organization") {
         throw new ORPCError("BAD_REQUEST", {
-          message: "Only an Organisation has a Signatory to change",
+          message: "Only an Organization has a Signatory to change",
           data: { refusal: "investor_is_a_person" },
         });
       }

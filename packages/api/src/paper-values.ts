@@ -5,7 +5,7 @@ import type {
   MonthlySum,
   PaperInvestor,
   PaperNominee,
-  PaperOrganisation,
+  PaperOrganization,
   Said,
 } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
@@ -97,9 +97,9 @@ const farmCapitalValues = (
       }
     : {};
 
-/** Who puts their name to a paper: a person themself, or an Organisation's Signatory for and on behalf of it. */
+/** Who puts their name to a paper: a person themself, or an Organization's Signatory for and on behalf of it. */
 const signerOf = (him: PaperInvestor | undefined): Said | undefined => {
-  const signatory = him?.organisation?.signatory;
+  const signatory = him?.organization?.signatory;
   if (!(him && signatory)) {
     return same(him?.name);
   }
@@ -162,14 +162,14 @@ export const paperValues = (facts: PaperFacts): FieldValues => {
   );
 };
 
-/** An Investor as the farm holds them, as much as a paper needs: an Organisation's own columns where it is one. */
+/** An Investor as the farm holds them, as much as a paper needs: an Organization's own columns where it is one. */
 export interface InvestorOnPaper {
   name: string;
   phone: string;
   address: string | null;
   nid: string | null;
   kind?: InvestorKind;
-  tradeLicence?: string | null;
+  tradeLicense?: string | null;
   rjscNumber?: string | null;
   tin?: string | null;
   authority?: string | null;
@@ -179,13 +179,13 @@ export interface InvestorOnPaper {
   signatoryRole?: string | null;
 }
 
-/** An Organisation's papers and Signatory as a paper writes them, or null for a person (ADR 0020). */
-export const organisationOnPaper = (
+/** An Organization's papers and Signatory as a paper writes them, or null for a person (ADR 0020). */
+export const organizationOnPaper = (
   row: InvestorOnPaper
-): PaperOrganisation | null =>
-  row.kind === "organisation"
+): PaperOrganization | null =>
+  row.kind === "organization"
     ? {
-        tradeLicence: row.tradeLicence ?? null,
+        tradeLicense: row.tradeLicense ?? null,
         rjscNumber: row.rjscNumber ?? null,
         tin: row.tin ?? null,
         authority: row.authority ?? "",
@@ -198,19 +198,19 @@ export const organisationOnPaper = (
       }
     : null;
 
-/** An Investor row as a paper writes him down, with the Nominees the paper names — none for an Organisation. */
+/** An Investor row as a paper writes him down, with the Nominees the paper names — none for an Organization. */
 export const paperInvestor = (
   row: InvestorOnPaper,
   nominees: PaperNominee[]
 ): PaperInvestor => {
-  const organisation = organisationOnPaper(row);
+  const organization = organizationOnPaper(row);
   return {
     name: row.name,
     phone: row.phone,
     address: row.address,
     nid: row.nid,
-    organisation,
-    nominees: organisation ? [] : nominees,
+    organization,
+    nominees: organization ? [] : nominees,
   };
 };
 

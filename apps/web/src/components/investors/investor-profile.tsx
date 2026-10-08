@@ -341,31 +341,31 @@ const PortalActivity = ({ investor }: { investor: Investor }) => {
 };
 
 /**
- * An Organisation as the farm wrote it down (ADR 0020): the Organisation and its own papers, then the one Signatory it
+ * An Organization as the farm wrote it down (ADR 0020): the Organization and its own papers, then the one Signatory it
  * acts through and the paper that names them — the mobile on the record is the Signatory's.
  */
-const OrganisationCards = ({
+const OrganizationCards = ({
   investor,
-  organisation,
+  organization,
 }: {
   investor: Investor;
-  organisation: NonNullable<Investor["organisation"]>;
+  organization: NonNullable<Investor["organization"]>;
 }) => {
   const { t, language } = useLanguage();
   const [changing, setChanging] = useState(false);
   return (
     <>
-      <DetailCard title={t("investors.section.organisation")}>
-        <Detail label={t("investors.organisationName")} wide>
+      <DetailCard title={t("investors.section.organization")}>
+        <Detail label={t("investors.organizationName")} wide>
           {investor.name}
         </Detail>
-        <Detail label={t("investors.tradeLicence")}>
-          {organisation.tradeLicence}
+        <Detail label={t("investors.tradeLicense")}>
+          {organization.tradeLicense}
         </Detail>
         <Detail label={t("investors.rjscNumber")}>
-          {organisation.rjscNumber}
+          {organization.rjscNumber}
         </Detail>
-        <Detail label={t("investors.tin")}>{organisation.tin}</Detail>
+        <Detail label={t("investors.tin")}>{organization.tin}</Detail>
         <Detail label={t("investors.address")}>{investor.address}</Detail>
       </DetailCard>
       <DetailCard
@@ -385,27 +385,27 @@ const OrganisationCards = ({
         title={t("investors.section.signatory")}
       >
         <Detail label={t("investors.signatoryName")}>
-          {organisation.signatory.name}
+          {organization.signatory.name}
         </Detail>
         <Detail label={t("investors.signatoryRole")}>
-          {organisation.signatory.role}
+          {organization.signatory.role}
         </Detail>
         <Detail label={t("investors.signatoryPhone")}>
           {phoneLink(investor.phone)}
         </Detail>
         <Detail label={t("investors.signatoryNid")}>
-          {organisation.signatory.nid}
+          {organization.signatory.nid}
         </Detail>
         <Detail label={t("investors.authority")} wide>
-          {organisation.authorityOn
+          {organization.authorityOn
             ? t("investors.authorityDated", {
-                paper: organisation.authority,
+                paper: organization.authority,
                 day: formatDate(
-                  new Date(`${organisation.authorityOn}T00:00:00Z`),
+                  new Date(`${organization.authorityOn}T00:00:00Z`),
                   language
                 ),
               })
-            : organisation.authority}
+            : organization.authority}
         </Detail>
       </DetailCard>
       <SignatorySheet
@@ -438,10 +438,10 @@ export const InvestorProfile = ({
   return (
     <div className="grid items-start gap-4 lg:grid-cols-3">
       <div className="flex flex-col gap-4 lg:col-span-2">
-        {investor.organisation ? (
-          <OrganisationCards
+        {investor.organization ? (
+          <OrganizationCards
             investor={investor}
-            organisation={investor.organisation}
+            organization={investor.organization}
           />
         ) : (
           <DetailCard title={t("investors.section.who")}>
@@ -460,8 +460,8 @@ export const InvestorProfile = ({
             ) : null}
           </Detail>
         </DetailCard>
-        {/* An Organisation names no Nominee: its share is its own (ADR 0020). */}
-        {investor.organisation ? null : <Nominees investor={investor} />}
+        {/* An Organization names no Nominee: its share is its own (ADR 0020). */}
+        {investor.organization ? null : <Nominees investor={investor} />}
       </div>
       <div className="flex flex-col gap-4">
         <Section description={t("portal.recordHint")} title={t("portal.title")}>

@@ -36,12 +36,12 @@ const RetiredBadge = ({ investor }: { investor: Investor }) => {
   ) : null;
 };
 
-/** An Organisation's Signatory as one short line — "for it: their name, their role" — or nothing for a person. */
+/** An Organization's Signatory as one short line — "for it: their name, their role" — or nothing for a person. */
 const signatorySaid = (
   investor: Investor,
   t: ReturnType<typeof useLanguage>["t"]
 ) => {
-  const signatory = investor.organisation?.signatory;
+  const signatory = investor.organization?.signatory;
   if (!signatory) {
     return null;
   }
@@ -52,7 +52,7 @@ const signatorySaid = (
   });
 };
 
-/** Who they are, and where they live under it — what the Owner recognises somebody by; for an Organisation, the
+/** Who they are, and where they live under it — what the Owner recognises somebody by; for an Organization, the
  *  Signatory she deals with first. The name leads to their own page, as a Tag Number leads to an animal's: a link, so
  *  it opens in a tab of its own as well. */
 const NameCell = ({ row }: Cell) => {

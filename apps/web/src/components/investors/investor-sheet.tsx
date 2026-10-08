@@ -13,7 +13,7 @@ import { orpc } from "@/utils/orpc";
 
 type Kind = Investor["kind"];
 
-/** Everything the form holds, for either kind: what a person has, what an Organisation and its Signatory have. */
+/** Everything the form holds, for either kind: what a person has, what an Organization and its Signatory have. */
 interface Draft {
   kind: Kind;
   name: string;
@@ -21,7 +21,7 @@ interface Draft {
   address: string;
   nid: string;
   bankAccount: string;
-  tradeLicence: string;
+  tradeLicense: string;
   rjscNumber: string;
   tin: string;
   authority: string;
@@ -38,7 +38,7 @@ const NOBODY_YET: Draft = {
   address: "",
   nid: "",
   bankAccount: "",
-  tradeLicence: "",
+  tradeLicense: "",
   rjscNumber: "",
   tin: "",
   authority: "",
@@ -59,27 +59,27 @@ const asWritten = (investor: Investor): Draft => ({
   address: investor.address ?? "",
   nid: investor.nid ?? "",
   bankAccount: investor.bankAccount ?? "",
-  tradeLicence: investor.organisation?.tradeLicence ?? "",
-  rjscNumber: investor.organisation?.rjscNumber ?? "",
-  tin: investor.organisation?.tin ?? "",
-  authority: investor.organisation?.authority ?? "",
-  authorityOn: investor.organisation?.authorityOn ?? "",
-  signatoryName: investor.organisation?.signatory.name ?? "",
-  signatoryNid: investor.organisation?.signatory.nid ?? "",
-  signatoryRole: investor.organisation?.signatory.role ?? "",
+  tradeLicense: investor.organization?.tradeLicense ?? "",
+  rjscNumber: investor.organization?.rjscNumber ?? "",
+  tin: investor.organization?.tin ?? "",
+  authority: investor.organization?.authority ?? "",
+  authorityOn: investor.organization?.authorityOn ?? "",
+  signatoryName: investor.organization?.signatory.name ?? "",
+  signatoryNid: investor.organization?.signatory.nid ?? "",
+  signatoryRole: investor.organization?.signatory.role ?? "",
 });
 
 /** The record as the form now has it, in the shape both writing somebody down and putting them right take: a
- *  person's fields for a person, an Organisation's for an Organisation, never both. */
+ *  person's fields for a person, an Organization's for an Organization, never both. */
 const theRecord = (draft: Draft) =>
-  draft.kind === "organisation"
+  draft.kind === "organization"
     ? {
-        kind: "organisation" as const,
+        kind: "organization" as const,
         name: draft.name,
         phone: draft.phone,
         address: orNothing(draft.address),
         bankAccount: orNothing(draft.bankAccount),
-        tradeLicence: orNothing(draft.tradeLicence),
+        tradeLicense: orNothing(draft.tradeLicense),
         rjscNumber: orNothing(draft.rjscNumber),
         tin: orNothing(draft.tin),
         authority: draft.authority,
@@ -97,7 +97,7 @@ const theRecord = (draft: Draft) =>
         bankAccount: orNothing(draft.bankAccount),
       };
 
-/** Whether the form holds enough to write down: a name and a mobile, and for an Organisation its Signatory and the
+/** Whether the form holds enough to write down: a name and a mobile, and for an Organization its Signatory and the
  *  paper that names them. */
 const isReady = (draft: Draft) =>
   draft.name.trim() !== "" &&
@@ -107,7 +107,7 @@ const isReady = (draft: Draft) =>
 
 /**
  * One Investor, written down once and reused for every Venture they join — or, given one already on file, put
- * right. A person, or an Organisation and its Signatory (ADR 0020), chosen when they are written down and not changed
+ * right. A person, or an Organization and its Signatory (ADR 0020), chosen when they are written down and not changed
  * afterwards. Never a person's Nominees: those are named on a paper the Investor signs, the Agreement or a
  * মনোনয়নপত্র, and shown on their page.
  */
@@ -150,7 +150,7 @@ export const InvestorSheet = ({
     })
   );
   const ready = isReady(draft);
-  const organisation = draft.kind === "organisation";
+  const organization = draft.kind === "organization";
   /** One text field of the draft, as every input here is wired. */
   const field = (key: Exclude<keyof Draft, "kind">) => ({
     onChange: (event: { target: { value: string } }) =>
@@ -189,8 +189,8 @@ export const InvestorSheet = ({
               options={[
                 { value: "person", label: t("investors.kind.person") },
                 {
-                  value: "organisation",
-                  label: t("investors.kind.organisation"),
+                  value: "organization",
+                  label: t("investors.kind.organization"),
                 },
               ]}
               value={draft.kind}
@@ -198,13 +198,13 @@ export const InvestorSheet = ({
           </div>
         </FormSection>
       )}
-      {organisation ? (
+      {organization ? (
         <>
-          <FormSection title={t("investors.section.organisation")}>
+          <FormSection title={t("investors.section.organization")}>
             <FormField
               className="sm:col-span-2"
               id="investor-name"
-              label={t("investors.organisationName")}
+              label={t("investors.organizationName")}
             >
               <Input
                 autoComplete="off"
@@ -215,14 +215,14 @@ export const InvestorSheet = ({
               />
             </FormField>
             <FormField
-              id="investor-trade-licence"
-              label={t("investors.tradeLicence")}
+              id="investor-trade-license"
+              label={t("investors.tradeLicense")}
             >
               <Input
                 autoComplete="off"
-                id="investor-trade-licence"
+                id="investor-trade-license"
                 maxLength={40}
-                {...field("tradeLicence")}
+                {...field("tradeLicense")}
               />
             </FormField>
             <FormField id="investor-rjsc" label={t("investors.rjscNumber")}>

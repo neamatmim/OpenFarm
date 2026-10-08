@@ -9,7 +9,7 @@ import type { TemplateContent, TemplateKind } from "@OpenFarm/domain";
 import {
   FIRST_PRINTED_AGREEMENT,
   STANDARD_AGREEMENT_BEFORE_MONTHLY,
-  PORTAL_CONSENT_BEFORE_ORGANISATIONS,
+  PORTAL_CONSENT_BEFORE_ORGANIZATIONS,
   STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
   STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
   STANDARD_TEMPLATES,
@@ -163,10 +163,10 @@ const canonical = (value: unknown): string =>
 const LOST_AND_FARM_CAPITAL =
   "A lost or stolen animal is made good by the Farm, and the Farm's own capital in a Venture is told to its Investors (2026-10-05, not yet seen by the advisers).";
 
-/** What the 2026-10-08 standard adds: the lines for an Organisation and its Signatory (ADR 0020), agreed by the
+/** What the 2026-10-08 standard adds: the lines for an Organization and its Signatory (ADR 0020), agreed by the
  *  advisers before it was built, the Owner said. A person's paper reads as it did. */
-const ORGANISATIONS =
-  "An Organisation may be an Investor through its Signatory: its papers print the Organisation's lines in place of a person's death and Nominee lines; a person's read as before (2026-10-08, ADR 0020).";
+const ORGANIZATIONS =
+  "An Organization may be an Investor through its Signatory: its papers print the Organization's lines in place of a person's death and Nominee lines; a person's read as before (2026-10-08, ADR 0020).";
 
 /**
  * The standard wordings a farm may still be on exactly, kind by kind, oldest first, each with the note its catch-up
@@ -178,21 +178,21 @@ const EARLIER_STANDARDS: Partial<
   investment_agreement: [
     {
       content: STANDARD_AGREEMENT_BEFORE_MONTHLY,
-      note: `OpenFarm's standard wording: the clauses for capital paid by the month, approved by the lawyer and the Shariah scholar on 2026-10-02, printed only on a Venture paid by the month. ${LOST_AND_FARM_CAPITAL} ${ORGANISATIONS}`,
+      note: `OpenFarm's standard wording: the clauses for capital paid by the month, approved by the lawyer and the Shariah scholar on 2026-10-02, printed only on a Venture paid by the month. ${LOST_AND_FARM_CAPITAL} ${ORGANIZATIONS}`,
     },
     {
       content: STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
-      note: `OpenFarm's standard wording. ${LOST_AND_FARM_CAPITAL} ${ORGANISATIONS}`,
+      note: `OpenFarm's standard wording. ${LOST_AND_FARM_CAPITAL} ${ORGANIZATIONS}`,
     },
     {
       content: STANDARD_AGREEMENT_WITH_FARM_CAPITAL,
-      note: `OpenFarm's standard wording. ${ORGANISATIONS}`,
+      note: `OpenFarm's standard wording. ${ORGANIZATIONS}`,
     },
   ],
   portal_consent: [
     {
-      content: PORTAL_CONSENT_BEFORE_ORGANISATIONS,
-      note: `OpenFarm's standard wording. ${ORGANISATIONS}`,
+      content: PORTAL_CONSENT_BEFORE_ORGANIZATIONS,
+      note: `OpenFarm's standard wording. ${ORGANIZATIONS}`,
     },
   ],
 };
@@ -200,7 +200,7 @@ const EARLIER_STANDARDS: Partial<
 /**
  * Catches a farm's paper of one kind up to the standard wording, when the wording in force is still exactly a standard
  * it was given before — the clauses for capital paid by the month added after it (2026-10-02), a lost animal and the
- * Farm's own capital (2026-10-05), an Organisation's lines (2026-10-08). A wording the Owner changed is hers, and is
+ * Farm's own capital (2026-10-05), an Organization's lines (2026-10-08). A wording the Owner changed is hers, and is
  * left alone: she adds the clauses herself if she wants them. Published by nobody, as the standard first was, with a
  * note saying why; every paper already signed keeps the Version it was signed in.
  */
@@ -239,7 +239,7 @@ const catchUpTheStandard = async (
         entityId: template.id,
         action: "update",
         after: () =>
-          Promise.resolve({ caughtUpTo: "organisations", versionId }),
+          Promise.resolve({ caughtUpTo: "organizations", versionId }),
         reason: note,
       },
       async (tx) => {

@@ -7,7 +7,7 @@ import type { Tx } from "./audit";
 const STILL_RUNNING = ["open", "buying", "fattening", "selling"] as const;
 
 /** Whether this Farm has written this Investor down already: the same name on the same phone is the same Investor,
- *  however many Ventures they have joined — for an Organisation, its name on its Signatory's mobile. */
+ *  however many Ventures they have joined — for an Organization, its name on its Signatory's mobile. */
 export const theSamePerson = async (
   tx: Pick<Tx, "query">,
   farmId: string,
@@ -20,12 +20,12 @@ export const theSamePerson = async (
   return row ?? null;
 };
 
-/** What is written down about an Organisation beyond what a person has — its own papers, its authority and its
+/** What is written down about an Organization beyond what a person has — its own papers, its authority and its
  *  Signatory (ADR 0020) — or null for a person. */
-export const organisationOf = (row: typeof investor.$inferSelect) =>
-  row.kind === "organisation"
+export const organizationOf = (row: typeof investor.$inferSelect) =>
+  row.kind === "organization"
     ? {
-        tradeLicence: row.tradeLicence,
+        tradeLicense: row.tradeLicense,
         rjscNumber: row.rjscNumber,
         tin: row.tin,
         authority: row.authority ?? "",
@@ -52,13 +52,13 @@ export const readInvestor = async (tx: Tx, farmId: string, id: string) => {
     bankAccount: row.bankAccount,
     retiredAt: row.retiredAt,
   };
-  // An Organisation's own fields side by side with the rest, so the trail reads a change to its TIN or its Signatory's
+  // An Organization's own fields side by side with the rest, so the trail reads a change to its TIN or its Signatory's
   // NID field by field rather than as one changed object.
-  return row.kind === "organisation"
+  return row.kind === "organization"
     ? {
         kind: row.kind,
         ...said,
-        tradeLicence: row.tradeLicence,
+        tradeLicense: row.tradeLicense,
         rjscNumber: row.rjscNumber,
         tin: row.tin,
         authority: row.authority,
