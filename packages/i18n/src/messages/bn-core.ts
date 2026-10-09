@@ -3585,6 +3585,15 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "খামার চালানোর খরচ, কোনো বিভাগে ধরা নয়; আর মাথাপিছু দিনে কত।",
   "months.one.overheadsAmount": "মাসে মোট",
   "months.one.perHeadPerDay": "মাথাপিছু দিনে",
+  "months.one.results": "প্রতিটি বিভাগের ফল",
+  "months.one.resultsHint":
+    "প্রতিটি বিভাগের আয় থেকে তার পশুর খরচ বাদ, তারপর খামারের নিজের পশু সেখানে যত দিন ছিল সেই হিসাবে পরিচালন খরচের ভাগ বাদ। এটি খামারের মুনাফা নয়: তা হিসাবরক্ষকের পূর্ণ হিসাব বলবে।",
+  "months.one.broughtIn": "আয়",
+  "months.one.beforeOverheads": "পরিচালন খরচের আগে",
+  "months.one.margin": "মার্জিন",
+  "months.one.overheadsShare": "পরিচালন খরচের ভাগ",
+  "months.one.afterOverheads": "পরিচালন খরচের পরে",
+  "months.one.venturesDays": "ভেঞ্চারের পশুর দিন",
   "months.one.venturesTitle": "ভেঞ্চার",
   "months.one.ventures":
     "প্রতিটি ভেঞ্চার নিজের হিসাব নিজে রাখে, তাই ওপরে নেই; প্রতিটির নিজের পাতা আছে।",

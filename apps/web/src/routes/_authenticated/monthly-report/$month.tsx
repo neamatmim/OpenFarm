@@ -9,6 +9,7 @@ import {
   MonthPart,
   MonthPicker,
   PrintTheMonth,
+  SideResults,
   VenturesThatRan,
   useMonthLines,
   useOneMonth,
@@ -30,8 +31,8 @@ import { sayWhy, wordOf } from "@/lib/saying";
 /** The refusal this page meets: a month in the address that has not begun. */
 const REFUSALS = { month_not_begun: "months.one.notBegun" } as const;
 
-/** The month's parts, once its figures are here: money, the dairy, the fattening side, the overheads, what they leave
- *  out, and the Ventures that kept their own accounts beside it. */
+/** The month's parts, once its figures are here: money, the dairy, the fattening side, the overheads, what each Side
+ *  came to after them, what they leave out, and the Ventures that kept their own accounts beside it. */
 const TheMonth = ({ one }: { one: OneMonth }) => {
   const { t, language } = useLanguage();
   const lines = useMonthLines(one.figures, one.figuresBefore);
@@ -84,6 +85,12 @@ const TheMonth = ({ one }: { one: OneMonth }) => {
         title={t("months.one.overheads")}
       >
         <MonthPart {...at} lines={lines.overheads} />
+      </Section>
+      <Section
+        description={t("months.one.resultsHint")}
+        title={t("months.one.results")}
+      >
+        <SideResults results={one.figures.results} />
       </Section>
       <LeftOut figures={one.figures} />
       <Section title={t("months.one.venturesTitle")}>

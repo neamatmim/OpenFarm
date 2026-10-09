@@ -480,14 +480,21 @@ describe("one month of the farm", () => {
     expect(one.month).toBe("2044-03");
     expect(one.before).toBe("2044-02");
     expect(one.soFar).toBe(true);
-    const { money, dairy, fattening, overheads } = months.at(-1) ?? {};
-    expect(one.figures).toEqual({ money, dairy, fattening, overheads });
+    const { money, dairy, fattening, overheads, results } = months.at(-1) ?? {};
+    expect(one.figures).toEqual({
+      money,
+      dairy,
+      fattening,
+      overheads,
+      results,
+    });
     const february = months.at(-2);
     expect(one.figuresBefore).toEqual({
       money: february?.money,
       dairy: february?.dairy,
       fattening: february?.fattening,
       overheads: february?.overheads,
+      results: february?.results,
     });
   });
 

@@ -30,6 +30,43 @@ const FIGURES = {
     uncostedDoses: 0,
   },
   overheads: { amount: 6000, perHeadPerDayMoney: 12.5 },
+  results: {
+    dairy: {
+      broughtInMoney: 9300,
+      beforeOverheadsMoney: 5200,
+      overheadsMoney: 3000,
+      afterOverheadsMoney: 2200,
+      marginBeforePercent: 55.9,
+      marginAfterPercent: 23.7,
+    },
+    fattening: {
+      broughtInMoney: 80_000,
+      beforeOverheadsMoney: 24_500,
+      overheadsMoney: 2000,
+      afterOverheadsMoney: 22_500,
+      marginBeforePercent: 30.6,
+      marginAfterPercent: 28.1,
+    },
+    restOfOverheadsMoney: 1000,
+    farm: {
+      broughtInMoney: 89_300,
+      beforeOverheadsMoney: 29_700,
+      overheadsMoney: 6000,
+      afterOverheadsMoney: 23_700,
+      marginBeforePercent: 33.3,
+      marginAfterPercent: 26.5,
+    },
+  },
+};
+
+/** A Side's month with nothing in it. */
+const NO_RESULT = {
+  broughtInMoney: 0,
+  beforeOverheadsMoney: 0,
+  overheadsMoney: 0,
+  afterOverheadsMoney: 0,
+  marginBeforePercent: null,
+  marginAfterPercent: null,
 };
 
 const NOTHING = {
@@ -53,6 +90,12 @@ const NOTHING = {
     uncostedDoses: 0,
   },
   overheads: { amount: 0, perHeadPerDayMoney: null },
+  results: {
+    dairy: NO_RESULT,
+    fattening: NO_RESULT,
+    restOfOverheadsMoney: 0,
+    farm: NO_RESULT,
+  },
 };
 
 const FACTS: MonthlyReportFacts = {
@@ -183,6 +226,33 @@ describe("the Monthly Report of one month, on paper", () => {
   });
 });
 
+describe("what each Side came to, on paper", () => {
+  it("sets each Side's month before and after its share of the overheads, its margins, the Ventures' share and the farm's", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("What each side came to, this month");
+    expect(text).toContain(
+      "Dairy · 9,300 taka · 5,200 taka · 55.9% · 3,000 taka · 2,200 taka · 23.7%"
+    );
+    expect(text).toContain(
+      "The Ventures' animals' days · — · — · — · 1,000 taka · — · —"
+    );
+    expect(text).toContain(
+      "Whole farm · 89,300 taka · 29,700 taka · 33.3% · 6,000 taka · 23,700 taka · 26.5%"
+    );
+  });
+
+  it("says it in Bangla, a margin nobody made as nothing", () => {
+    const text = paperText(
+      monthlyReportPaper({ ...FACTS, figures: NOTHING }),
+      "bn"
+    );
+
+    expect(text).toContain("প্রতিটি বিভাগের ফল, এই মাসে");
+    expect(text).toContain("দুগ্ধ · ০ টাকা · ০ টাকা · — · ০ টাকা · ০ টাকা · —");
+  });
+});
+
 describe("the Monthly Report of one month, a row a figure", () => {
   it("says each figure of the month and the month before as a number: whole taka, rates to the paisa, nothing for none", () => {
     const rows = monthlyReportRows(FACTS);
@@ -244,6 +314,34 @@ describe("the Monthly Report of one month, a row a figure", () => {
     ]);
   });
 
+  it("says each Side's figures this month and the month before, its margins as percentages", () => {
+    const rows = monthlyReportRows(FACTS);
+
+    expect(rows).toContainEqual({
+      part: {
+        bn: "প্রতিটি বিভাগের ফল",
+        en: "What each side came to",
+      },
+      line: {
+        bn: "দুগ্ধ — পরিচালন খরচের পরে মার্জিন",
+        en: "Dairy — margin after overheads",
+      },
+      way: null,
+      thisMonth: 23.7,
+      monthBefore: null,
+    });
+    expect(rows).toContainEqual(
+      expect.objectContaining({
+        line: {
+          bn: "ভেঞ্চারের পশুর দিন — পরিচালন খরচের ভাগ",
+          en: "The Ventures' animals' days — share of overheads",
+        },
+        thisMonth: 1000,
+        monthBefore: 0,
+      })
+    );
+  });
+
   it("holds every line of the paper's figures, each named as the paper names it", () => {
     const text = paperText(monthlyReportPaper(FACTS), "en");
 
@@ -251,6 +349,7 @@ describe("the Monthly Report of one month, a row a figure", () => {
       (row) =>
         row.way === null &&
         row.part.en !== "Left out" &&
+        row.part.en !== "What each side came to" &&
         !row.part.en.startsWith("Awaiting")
     )) {
       expect(text).toContain(`${one.line.en ?? ""} · `);

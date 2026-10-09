@@ -3858,6 +3858,15 @@ export const enCore = {
     "What running the place cost, charged to no side; and what that came to a head a day.",
   "months.one.overheadsAmount": "In the month",
   "months.one.perHeadPerDay": "A head a day",
+  "months.one.results": "What each side came to",
+  "months.one.resultsHint":
+    "What each side brought in, less what its animals were charged, then less its share of the overheads by the days the farm's own animals stood on it. Not the farm's profit, which its accountant's full books say.",
+  "months.one.broughtIn": "Brought in",
+  "months.one.beforeOverheads": "Before overheads",
+  "months.one.margin": "Margin",
+  "months.one.overheadsShare": "Share of overheads",
+  "months.one.afterOverheads": "After overheads",
+  "months.one.venturesDays": "The Ventures' animals' days",
   "months.one.venturesTitle": "Ventures",
   "months.one.ventures":
     "Each venture keeps its own accounts, so none are above; each has its own page.",

@@ -7,6 +7,7 @@ import type {
 import {
   farmDayOf,
   financialYearStarting,
+  headDaysBySide,
   financialYearsBack,
   litersPerCowMilked,
   milkPriceOf,
@@ -16,6 +17,7 @@ import {
   monthsFromTo,
   monthsOfFinancialYear,
   roundMoney,
+  sideResultsOf,
   startOfFarmDay,
   summarizeMoney,
 } from "@OpenFarm/domain";
@@ -36,7 +38,7 @@ import { overheadMoneyIn, overheadsOf } from "./overhead-store";
 import { fetchedPerLiter, writtenOffByItem } from "./receivable-store";
 import { approvedSettlementOf } from "./settlement-store";
 import { planAgainstActual } from "./venture-plan-store";
-import { ownedThenByOf } from "./venture-store";
+import { ownedThenByOf, ownersOverTime } from "./venture-store";
 import { yearRulesOf } from "./year-store";
 
 /** How far back the Owner reads the farm month by month: a year, this month among them. */
@@ -96,6 +98,10 @@ interface Read {
   /** Where every Animal stood, the Ventures' too: the place and the people keep them all, so an Overhead a head a day
    *  is over all of them, where the Sides' figures are over the Farm's own. */
   everyAnimal: PenHistoryLine[];
+  /** Whose each Animal was from each moment on: the Farm's (null) or a Venture's. */
+  ownersOf: (
+    animalId: string
+  ) => readonly { from: Date; ventureId: string | null }[];
   now: Date;
 }
 
@@ -114,6 +120,7 @@ const figuresOver = (
     writtenOff,
     overheadMoney,
     everyAnimal,
+    ownersOf,
     now,
   }: Read
 ) => {
@@ -135,6 +142,24 @@ const figuresOver = (
     { from, until },
     now
   );
+  const results = sideResultsOf({
+    dairy: {
+      broughtInMoney: milk?.amount ?? 0,
+      chargedMoney: roundMoney(chargedOf(sides.dairy)),
+    },
+    fattening: {
+      broughtInMoney: roundMoney(
+        sold.reduce((sum, one) => sum + (one.saleMoney ?? 0), 0)
+      ),
+      marginMoney: sold.length === 0 ? null : sides.soldFattening.marginMoney,
+    },
+    overheadsMoney: overheads.totalMoney,
+    // Over the same days the Overheads a head a day are: up to now and no further.
+    headDays: headDaysBySide(everyAnimal, ownersOf, {
+      from,
+      until: until < now ? until : now,
+    }),
+  });
   return {
     money: {
       inMoney: cash.incomeMoney,
@@ -171,6 +196,8 @@ const figuresOver = (
       amount: overheads.totalMoney,
       perHeadPerDayMoney: overheads.perHeadPerDayMoney,
     },
+    /** What each Side came to, before and after its share of the Overheads, and the Farm with them (ADR 0023). */
+    results,
   };
 };
 
@@ -241,7 +268,7 @@ const readOver = async (
   span: { from: Date; until: Date },
   now: Date
 ): Promise<Read> => {
-  const [costs, ownedThenBy, money, dispatched, overheadMoney] =
+  const [costs, ownedThenBy, money, dispatched, overheadMoney, changed, owned] =
     await Promise.all([
       farmCosts(db, farmId),
       ownedThenByOf(db, farmId),
@@ -259,7 +286,13 @@ const readOver = async (
         },
       }),
       overheadMoneyIn(db, farmId, span),
+      ownersOverTime(db, farmId),
+      db.query.animal.findMany({
+        where: { farmId },
+        columns: { id: true, ownerVentureId: true },
+      }),
     ]);
+  const ownsNow = new Map(owned.map((one) => [one.id, one.ownerVentureId]));
   return {
     costs: theFarmsOwn(costs, ownedThenBy, await boughtInOf(db, farmId)),
     money,
@@ -267,6 +300,11 @@ const readOver = async (
     writtenOff: await writtenOffByItem(db, farmId),
     overheadMoney,
     everyAnimal: costs.history,
+    // Never sold between purses, she has had one owner throughout: her owner now.
+    ownersOf: (animalId) =>
+      changed.get(animalId) ?? [
+        { from: new Date(0), ventureId: ownsNow.get(animalId) ?? null },
+      ],
     now,
   };
 };

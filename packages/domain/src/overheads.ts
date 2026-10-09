@@ -23,6 +23,51 @@ export const headDaysIn = (
   return ms / DAY_MS;
 };
 
+/** Whose an Animal was from each moment on: the Farm's (null) or a Venture's, oldest first. */
+type OwnersOf = (
+  animalId: string
+) => readonly { from: Date; ventureId: string | null }[];
+
+/**
+ * The same days as `headDaysIn`, split: the Farm's own Animals on each Side, and every Venture's apart, whichever Side
+ * they stood on — an Animal's days cut at the moment she changed hands. What a Side's share of the Overheads is over
+ * (CONTEXT.md: **Side Result**); the three add up to `headDaysIn`.
+ */
+export const headDaysBySide = (
+  history: readonly Pick<
+    PenHistoryLine,
+    "animalId" | "side" | "from" | "until"
+  >[],
+  ownersOf: OwnersOf,
+  { from, until }: { from: Date; until: Date }
+): { dairy: number; fattening: number; ventures: number } => {
+  const days = { dairy: 0, fattening: 0, ventures: 0 };
+  for (const line of history) {
+    const owners = ownersOf(line.animalId);
+    for (const [index, owner] of owners.entries()) {
+      const next = owners[index + 1]?.from;
+      const stood = headDaysIn(
+        [
+          {
+            from: line.from > owner.from ? line.from : owner.from,
+            until:
+              next === undefined || (line.until !== null && line.until < next)
+                ? line.until
+                : next,
+          },
+        ],
+        { from, until }
+      );
+      if (owner.ventureId === null) {
+        days[line.side] += stood;
+      } else {
+        days.ventures += stood;
+      }
+    }
+  }
+  return days;
+};
+
 /** Money that went on the place and the people in the stretch: what it was entered under, and how much. */
 export interface OverheadMoney {
   categoryId: string;

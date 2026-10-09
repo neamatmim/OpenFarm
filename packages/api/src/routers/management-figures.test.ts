@@ -1,0 +1,193 @@
+import { FakeClock } from "@OpenFarm/test-harness";
+import { beforeAll, describe, expect, it } from "vitest";
+
+import { PAID_FROM_THE_ACCOUNT, putCapitalIn } from "../test/bought-by-bank";
+import { createTestClient } from "../test/client";
+import { appRouter } from "./index";
+
+// The monthly report's management figures (ADR 0023), worked by hand over May 2046.
+//
+// From midnight on 1 May a heifer stands on the Dairy side, the Farm's own bull bought for ৳50,000 and a bull a
+// Venture's money bought stand on the Fattening side. The dairy animals are charged ৳3,000 of spray on the 5th, 100
+// liters of milk go at ৳60 on the 10th, and the Farm's bull is sold for ৳80,000 at midnight on the 20th. The shed rent
+// is ৳8,100: over the 31 + 19 + 31 = 81 head-days, ৳100 a head a day.
+
+const as = (role: "owner" | "manager", instant: string) =>
+  createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
+
+/** Midnight on 1 May on the farm's own clock. */
+const FIRST_OF_MAY = "2046-04-30T18:00:00.000Z";
+const NOW = "2046-06-10T04:00:00.000Z";
+const WINDOW = {
+  targetWindowStart: "2046-08-01",
+  targetWindowEnd: "2046-08-05",
+};
+
+const category: Record<string, string> = {};
+
+const spend = async (entry: {
+  categoryId: string;
+  amountMoney: number;
+  occurredOn: string;
+  side?: "dairy" | "fattening";
+}) => {
+  const owner = await as("owner", `${entry.occurredOn}T04:00:00.000Z`);
+  await owner.client.money.enter({
+    ...entry,
+    counterparty: { name: "দোকান" },
+    paymentMethod: "cash",
+  });
+};
+
+beforeAll(async () => {
+  const owner = await as("owner", "2046-04-25T04:00:00.000Z");
+  for (const one of await owner.client.money.categories.list()) {
+    if (one.key) {
+      category[one.key] = one.id;
+    }
+  }
+  const spray = await owner.client.money.categories.create({
+    nameBn: "মাছি স্প্রে",
+    direction: "out",
+  });
+  await owner.client.money.categories.setChargedToAnimals({
+    categoryId: spray.id,
+    chargedToAnimals: true,
+  });
+  const shed = await owner.client.sheds.create({ name: "খামার" });
+  const bulls = await owner.client.sheds.pens.create({
+    quarantine: true,
+    shedId: shed.id,
+    name: "ষাঁড় পেন",
+  });
+  const cows = await owner.client.sheds.pens.create({
+    shedId: shed.id,
+    name: "গাভী পেন",
+  });
+  const venture = await owner.client.ventures.open({
+    name: "ঈদ ভেঞ্চার",
+    targetCapitalMoney: 500_000,
+    floorMoney: 0,
+    decideBy: "2046-04-28",
+    ...WINDOW,
+    unitPriceMoney: 50_000,
+    units: 10,
+  });
+  await putCapitalIn(
+    owner.client,
+    { id: venture.id, units: 10, unitPriceMoney: 50_000 },
+    "management",
+    "2046-04-25"
+  );
+  await owner.client.ventures.startBuying({ id: venture.id });
+
+  const atMidnight = await as("owner", FIRST_OF_MAY);
+  await atMidnight.client.animals.register({
+    sex: "female",
+    side: "dairy",
+    state: "heifer",
+    penId: cows.id,
+    source: "born",
+    aliases: [],
+  });
+  const manager = await as("manager", FIRST_OF_MAY);
+  const farmsBull = await manager.client.intakes.record({
+    penId: bulls.id,
+    sex: "male",
+    seller: { name: "ব্যাপারী" },
+    purchasePriceMoney: 50_000,
+    weightKg: 200,
+    estimatedAgeMonths: 20,
+    arrivedAt: new Date(FIRST_OF_MAY),
+    ...WINDOW,
+  });
+  await atMidnight.client.intakes.record({
+    penId: bulls.id,
+    sex: "male",
+    seller: { name: "ব্যাপারী" },
+    purchasePriceMoney: 50_000,
+    weightKg: 200,
+    estimatedAgeMonths: 20,
+    ventureId: venture.id,
+    ...PAID_FROM_THE_ACCOUNT,
+    arrivedAt: new Date(FIRST_OF_MAY),
+    ...WINDOW,
+  });
+
+  await spend({
+    categoryId: category.rent ?? "",
+    amountMoney: 8100,
+    occurredOn: "2046-05-03",
+  });
+  await spend({
+    categoryId: spray.id,
+    amountMoney: 3000,
+    occurredOn: "2046-05-05",
+    side: "dairy",
+  });
+  const sending = await as("manager", "2046-05-10T04:00:00.000Z");
+  await sending.client.milk.dispatch({
+    dispatchedAt: new Date("2046-05-10T02:30:00.000Z"),
+    liters: 100,
+    pricePerLiterMoney: 60,
+    buyer: {
+      name: "মিল্ক ভিটা",
+      address: "বাঘাবাড়ী, শাহজাদপুর, সিরাজগঞ্জ",
+      phone: "01711222335",
+    },
+  });
+  const selling = await as("manager", "2046-05-19T18:00:00.000Z");
+  await selling.client.sales.record({
+    tagNumber: farmsBull.tagNumber,
+    buyer: {
+      name: "কাদের কসাই",
+      address: "গাবতলী, ঢাকা",
+      phone: "+8801711000057",
+    },
+    destination: "গাবতলী পশুর হাট",
+    vehicle: "ঢাকা মেট্রো-ট ১১-২২৩৫",
+    driver: "সোহেল",
+    priceMoney: 80_000,
+    weightKg: 260,
+  });
+});
+
+describe("what each Side came to in May", () => {
+  it("is what it brought in less its charges, then its share of the rent by the days its own animals stood", async () => {
+    const { client: owner } = await as("owner", NOW);
+    const { figures } = await owner.monthlyReport.month({ month: "2046-05" });
+
+    // The heifer's 31 days bear ৳3,100 of the rent, the Farm's bull's 19 days ৳1,900.
+    expect(figures.results.dairy).toEqual({
+      broughtInMoney: 6000,
+      beforeOverheadsMoney: 3000,
+      overheadsMoney: 3100,
+      afterOverheadsMoney: -100,
+      marginBeforePercent: 50,
+      marginAfterPercent: -1.7,
+    });
+    expect(figures.results.fattening).toEqual({
+      broughtInMoney: 80_000,
+      beforeOverheadsMoney: 30_000,
+      overheadsMoney: 1900,
+      afterOverheadsMoney: 28_100,
+      marginBeforePercent: 37.5,
+      marginAfterPercent: 35.1,
+    });
+  });
+
+  it("leaves the Venture's bull's days to the Farm, and the Farm's is both Sides less all the rent", async () => {
+    const { client: owner } = await as("owner", NOW);
+    const { figures } = await owner.monthlyReport.month({ month: "2046-05" });
+
+    expect(figures.results.restOfOverheadsMoney).toBe(3100);
+    expect(figures.results.farm).toEqual({
+      broughtInMoney: 86_000,
+      beforeOverheadsMoney: 33_000,
+      overheadsMoney: 8100,
+      afterOverheadsMoney: 24_900,
+      marginBeforePercent: 38.4,
+      marginAfterPercent: 29,
+    });
+  });
+});

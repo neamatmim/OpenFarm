@@ -645,7 +645,7 @@ export type {
 } from "./monthly-costs";
 export { monthlyCostsNotEntered } from "./monthly-costs";
 export type { OverheadMoney } from "./overheads";
-export { headDaysIn, overheadsOver } from "./overheads";
+export { headDaysBySide, headDaysIn, overheadsOver } from "./overheads";
 export type { ObservationWord } from "./observation-words";
 export {
   OBSERVATION_WORDS,
@@ -1048,3 +1048,5 @@ export type {
 export { animalPassportPaper, withdrawalSummaryPaper } from "./animal-papers";
 export type { SaleReceiptFacts, TransportCardFacts } from "./sale-papers";
 export { saleReceiptPaper, transportCardPaper } from "./sale-papers";
+export type { SideResult, SideResults } from "./side-results";
+export { sideResultsOf } from "./side-results";

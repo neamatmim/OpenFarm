@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { startOfFarmDay } from "./farm-clock";
-import { headDaysIn, overheadsOver } from "./overheads";
+import { headDaysBySide, headDaysIn, overheadsOver } from "./overheads";
 
 const on = (day: string) => startOfFarmDay(day);
 const SEPTEMBER = { from: on("2026-09-01"), until: on("2026-10-01") };
@@ -41,6 +41,61 @@ describe("the days the animals stood here", () => {
     expect(
       headDaysIn([{ from: on("2026-10-05"), until: null }], SEPTEMBER)
     ).toBe(0);
+  });
+});
+
+/** One owner throughout: the Farm's (null) or a Venture's. */
+const always = (ventureId: string | null) => [{ from: new Date(0), ventureId }];
+
+describe("the days the animals stood here, by Side and whose", () => {
+  it("counts the Farm's own on the Side they stood on, and a Venture's apart, whichever Side", () => {
+    expect(
+      headDaysBySide(
+        [
+          {
+            animalId: "cow",
+            side: "dairy",
+            from: on("2026-08-01"),
+            until: null,
+          },
+          {
+            animalId: "bull",
+            side: "fattening",
+            from: on("2026-09-16"),
+            until: null,
+          },
+          {
+            animalId: "theirs",
+            side: "fattening",
+            from: on("2026-08-01"),
+            until: null,
+          },
+        ],
+        (animalId) => always(animalId === "theirs" ? "venture" : null),
+        SEPTEMBER
+      )
+    ).toEqual({ dairy: 30, fattening: 15, ventures: 30 });
+  });
+
+  it("splits an animal's days at the moment she changed hands", () => {
+    // The Farm's own until a Venture bought her, handed over on the 11th: ten days the Farm's, twenty the Venture's.
+    expect(
+      headDaysBySide(
+        [
+          {
+            animalId: "bull",
+            side: "fattening",
+            from: on("2026-08-01"),
+            until: null,
+          },
+        ],
+        () => [
+          { from: new Date(0), ventureId: null },
+          { from: on("2026-09-11"), ventureId: "venture" },
+        ],
+        SEPTEMBER
+      )
+    ).toEqual({ dairy: 0, fattening: 10, ventures: 20 });
   });
 });
 

@@ -12,6 +12,7 @@ import { letterheadOf } from "./paper-template";
 import type { PaperDocument, PaperSection } from "./paper-template";
 import type { Said, Worded } from "./papers";
 import { SIDE_LABEL } from "./papers";
+import type { SideResult, SideResults } from "./side-results";
 
 /** One stretch's figures as the monthly report works them (`figuresOver`): the Farm's own money, milk, fattening and
  *  overheads. */
@@ -42,6 +43,8 @@ export interface MonthFigures {
   };
   /** A head a day is nothing where no animal stood. */
   overheads: { amount: number; perHeadPerDayMoney: number | null };
+  /** What each Side came to, before and after its share of the Overheads, and the Farm with them (ADR 0023). */
+  results: SideResults;
 }
 
 /** The money moved in a month, one way of adding it, as the accountant's summary does. */
@@ -97,9 +100,18 @@ const litersSaid = (amount: number | null): Said =>
         en: `${formatNumber(amount, "en")} ${amount === 1 ? "liter" : "liters"}`,
       };
 
+/** A percentage, to the one decimal it was worked to, or the dash where there was none. */
+const percentSaid = (amount: number | null): Said =>
+  amount === null
+    ? NONE
+    : {
+        bn: `${formatNumber(amount, "bn")}%`,
+        en: `${formatNumber(amount, "en")}%`,
+      };
+
 /** What kind of figure a line holds, which says how it is written: a sum in whole taka, a rate to the paisa, liters,
- *  kilogrammes, or a count. */
-type Kind = "sum" | "rate" | "liters" | "kg" | "count";
+ *  kilogrammes, a count, or a percentage. */
+type Kind = "sum" | "rate" | "liters" | "kg" | "count" | "percent";
 
 /** One line of a part: its name, what kind of figure it is, and where a month's figures keep it — nothing where the
  *  month made none. */
@@ -139,6 +151,9 @@ const figureSaid = (kind: Kind, amount: number | null): Said => {
       return amount === null
         ? NONE
         : { bn: formatNumber(amount, "bn"), en: formatNumber(amount, "en") };
+    }
+    case "percent": {
+      return percentSaid(amount);
     }
     default: {
       return kind satisfies never;
@@ -332,6 +347,97 @@ const sideSaid = (side: Side | null): Said => {
   return { bn, en };
 };
 
+/** What each Side came to: its heading, and each of its figures, said the same on the paper and in the CSV. */
+const RESULTS: Said = { bn: "প্রতিটি বিভাগের ফল", en: "What each side came to" };
+const RESULT_FIGURES: readonly {
+  label: Said;
+  kind: Kind;
+  of: (result: SideResult) => number | null;
+}[] = [
+  {
+    label: { bn: "আয়", en: "Brought in" },
+    kind: "sum",
+    of: (one) => one.broughtInMoney,
+  },
+  {
+    label: { bn: "পরিচালন খরচের আগে", en: "Before overheads" },
+    kind: "sum",
+    of: (one) => one.beforeOverheadsMoney,
+  },
+  {
+    label: { bn: "মার্জিন", en: "Margin" },
+    kind: "percent",
+    of: (one) => one.marginBeforePercent,
+  },
+  {
+    label: { bn: "পরিচালন খরচের ভাগ", en: "Share of overheads" },
+    kind: "sum",
+    of: (one) => one.overheadsMoney,
+  },
+  {
+    label: { bn: "পরিচালন খরচের পরে", en: "After overheads" },
+    kind: "sum",
+    of: (one) => one.afterOverheadsMoney,
+  },
+  {
+    label: { bn: "পরিচালন খরচের পরে মার্জিন", en: "Margin after overheads" },
+    kind: "percent",
+    of: (one) => one.marginAfterPercent,
+  },
+];
+/** The Overheads the Ventures' animals' days come to, which the Farm bears: a share and nothing else. */
+const VENTURES_DAYS: Said = {
+  bn: "ভেঞ্চারের পশুর দিন",
+  en: "The Ventures' animals' days",
+};
+/** The rows of what each Side came to, a Side's figures to a row; the Ventures' days hold their share alone. */
+const resultRows = (results: SideResults) => {
+  const sides = [
+    { name: sideSaid("dairy"), result: results.dairy },
+    { name: sideSaid("fattening"), result: results.fattening },
+  ];
+  return {
+    sides,
+    rest: results.restOfOverheadsMoney,
+    farm: { name: sideSaid(null), result: results.farm },
+  };
+};
+
+/** What each Side came to this month, before and after its share of the overheads, with the farm's as the total. */
+const resultsPart = ({ figures }: MonthlyReportFacts): PaperSection => {
+  const { sides, rest, farm } = resultRows(figures.results);
+  const row = (name: Said, result: SideResult) => [
+    name,
+    ...RESULT_FIGURES.map((one) => figureSaid(one.kind, one.of(result))),
+  ];
+  return {
+    kind: "table",
+    heading: { bn: `${RESULTS.bn}, এই মাসে`, en: `${RESULTS.en}, this month` },
+    columns: [
+      { label: { bn: "বিভাগ", en: "Side" } },
+      ...RESULT_FIGURES.map((one) => ({
+        label:
+          one.kind === "percent" ? { bn: "মার্জিন", en: "Margin" } : one.label,
+        figures: true,
+      })),
+    ],
+    rows: [
+      ...sides.map((one) => row(one.name, one.result)),
+      [
+        VENTURES_DAYS,
+        ...RESULT_FIGURES.map((one) =>
+          one.label.en === "Share of overheads" ? sumSaid(rest) : NONE
+        ),
+      ],
+    ],
+    foot: row(farm.name, farm.result),
+    note: {
+      bn: "দুগ্ধের আয় বিক্রি করা দুধ, মোটাতাজাকরণের আয় বিক্রি হওয়া পশুর দাম; পরিচালন খরচ ভাগ হয়েছে প্রতিটি বিভাগে খামারের নিজের পশু যত দিন ছিল সেই হিসাবে। এটি খামারের মুনাফা নয়: তা হিসাবরক্ষকের পূর্ণ হিসাব বলবে।",
+      en: "The dairy brought in the milk it sold, the fattening side the prices of the animals it sold; the overheads are shared by the days the farm's own animals stood on each side. Not the farm's profit, which its accountant's full books say.",
+    },
+  };
+};
+
 /** The fodder fed at no price, both Sides together, in kilogrammes: left out of every cost above. */
 const unpricedKgOf = (figures: MonthFigures) =>
   figures.dairy.unpricedKg + figures.fattening.unpricedKg;
@@ -424,6 +530,7 @@ export const monthlyReportPaper = (
       partOf(DAIRY, facts),
       partOf(FATTENING, facts),
       partOf(OVERHEADS, facts),
+      resultsPart(facts),
     ],
     closing: [...leftOut(facts.figures), VENTURES_KEEP_THEIR_OWN],
     produced: producedSaid(facts.producedAt, facts.producedBy),
@@ -460,6 +567,52 @@ const moneyByRows = (
       monthBefore: null,
     }))
   );
+
+/** A row of a Side's figure: whose, then which. */
+const named = (who: Said, what: Said): Said => ({
+  bn: `${who.bn} — ${what.bn}`,
+  // Sentence case runs on past the dash: "Dairy — margin after overheads".
+  en: `${who.en} — ${what.en.charAt(0).toLowerCase()}${what.en.slice(1)}`,
+});
+
+/** What each Side came to, a row a figure — this month and the month before — and the Ventures' days' share. */
+const resultsRows = ({
+  figures,
+  figuresBefore,
+}: MonthlyReportFacts): MonthlyReportRow[] => {
+  const now = resultRows(figures.results);
+  const before = resultRows(figuresBefore.results);
+  const whose = [
+    ...now.sides.map((one, index) => ({
+      name: one.name,
+      now: one.result,
+      before: before.sides[index]?.result ?? null,
+    })),
+    { name: now.farm.name, now: now.farm.result, before: before.farm.result },
+  ];
+  return [
+    ...whose.flatMap(({ name, now: result, before: earlier }) =>
+      RESULT_FIGURES.map((one) => ({
+        part: RESULTS,
+        line: named(name, one.label),
+        way: null,
+        thisMonth: figurePlain(one.kind, one.of(result)),
+        monthBefore:
+          earlier === null ? null : figurePlain(one.kind, one.of(earlier)),
+      }))
+    ),
+    {
+      part: RESULTS,
+      line: named(VENTURES_DAYS, {
+        bn: "পরিচালন খরচের ভাগ",
+        en: "share of overheads",
+      }),
+      way: null,
+      thisMonth: figurePlain("sum", now.rest),
+      monthBefore: figurePlain("sum", before.rest),
+    },
+  ];
+};
 
 /** What a month's figures leave out, each a figure of its own: the fodder fed at no price, and the doses not costed. */
 const LEFT_OUT: Part = {
@@ -535,6 +688,7 @@ export const monthlyReportRows = (
     ...rowsOf(DAIRY),
     ...rowsOf(FATTENING),
     ...rowsOf(OVERHEADS),
+    ...resultsRows(facts),
     ...rowsOf(LEFT_OUT),
     ...rowsOf(AWAITING),
   ];

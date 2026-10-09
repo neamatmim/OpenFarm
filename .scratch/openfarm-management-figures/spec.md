@@ -57,3 +57,9 @@ domain sums pure and tested in `packages/domain`, reading in `month-store.ts`.
 ## Done
 
 (filled in as each merges)
+
+## Test seams
+
+1. Pure sums in `@OpenFarm/domain` (vitest unit tests beside each module).
+2. `monthlyReport.month` through the router client against the test database (`packages/api`), as the month's tests do.
+3. `monthlyReportPaper` / `monthlyReportRows` for the paper and the CSV.

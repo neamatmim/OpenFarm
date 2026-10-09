@@ -226,6 +226,106 @@ export const MoneyBy = ({
   );
 };
 
+type SideResult = Figures["results"]["farm"];
+
+/** What each Side came to this month, before and after its share of the overheads, the farm's as the total (ADR 0023). */
+export const SideResults = ({ results }: { results: Figures["results"] }) => {
+  const { t, language } = useLanguage();
+  const asMoney = useMoney();
+  const percent = (amount: number | null) =>
+    amount === null ? null : `${formatNumber(amount, language)}%`;
+  const cells = (result: SideResult) => [
+    asMoney(result.broughtInMoney),
+    asMoney(result.beforeOverheadsMoney),
+    percent(result.marginBeforePercent),
+    asMoney(result.overheadsMoney),
+    asMoney(result.afterOverheadsMoney),
+    percent(result.marginAfterPercent),
+  ];
+  const rows: {
+    key: string;
+    name: string;
+    cells: ReactNode[];
+    total?: boolean;
+  }[] = [
+    {
+      key: "dairy",
+      name: t("animals.side.dairy"),
+      cells: cells(results.dairy),
+    },
+    {
+      key: "fattening",
+      name: t("animals.side.fattening"),
+      cells: cells(results.fattening),
+    },
+    {
+      key: "ventures",
+      name: t("months.one.venturesDays"),
+      cells: [
+        null,
+        null,
+        null,
+        asMoney(results.restOfOverheadsMoney),
+        null,
+        null,
+      ],
+    },
+    {
+      key: "farm",
+      name: t("months.one.wholeFarm"),
+      cells: cells(results.farm),
+      total: true,
+    },
+  ];
+  const headings = [
+    t("months.one.broughtIn"),
+    t("months.one.beforeOverheads"),
+    t("months.one.margin"),
+    t("months.one.overheadsShare"),
+    t("months.one.afterOverheads"),
+    t("months.one.margin"),
+  ];
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className={COLUMN_HEADING}>
+            {t("months.one.bySide")}
+          </TableHead>
+          {headings.map((heading, index) => (
+            <TableHead
+              className={cn(COLUMN_HEADING, "text-right")}
+              // The two margins share a heading; their place tells them apart.
+              // oxlint-disable-next-line no-array-index-key -- fixed columns, never reordered
+              key={index}
+            >
+              {heading}
+            </TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row) => (
+          <TableRow key={row.key}>
+            <TableCell className={cn(row.total && "font-medium")}>
+              {row.name}
+            </TableCell>
+            {row.cells.map((cell, index) => (
+              <TableCell
+                className={cn("text-right", row.total && "font-medium")}
+                // oxlint-disable-next-line no-array-index-key -- fixed columns, never reordered
+                key={index}
+              >
+                <Figure>{cell}</Figure>
+              </TableCell>
+            ))}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+};
+
 /** The months there are to read, newest first, the one shown among them. */
 export const MonthPicker = ({
   months,
