@@ -47,7 +47,7 @@ import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 
 import LanguageToggle from "@/components/language-toggle";
-import { Notice } from "@/components/page";
+import { Notice, PAGE_LINE } from "@/components/page";
 import {
   usePortalPlaces,
   usePreviewing,
@@ -59,6 +59,7 @@ import {
 import { useSidebarOpen } from "@/components/shell/app-shell";
 import { BottomBar } from "@/components/shell/bottom-bar";
 import type { NavItem } from "@/components/shell/navigation";
+import { BAR_END, BAR_START } from "@/components/shell/top-bar";
 import { ThemeMenu } from "@/components/theme-menu";
 import { Initials } from "@/components/user-menu";
 import { Wordmark } from "@/components/wordmark";
@@ -348,7 +349,7 @@ const PortalUserMenu = ({ name, phone }: { name: string; phone: string }) => {
         render={
           <Button
             aria-label={t("auth.myAccount")}
-            className="gap-2 ps-1.5 pe-2"
+            className="gap-2 ps-1.5 pe-2 md:ps-1.5 md:pe-2"
             variant="ghost"
           />
         }
@@ -504,21 +505,23 @@ export const PortalShell = ({
         {/* The band and the bar are pinned together, so the Preview's band never covers the reader's settings. */}
         <div className="sticky top-0 z-30" data-app-chrome ref={pinned}>
           {band}
-          <header className="bg-background/85 supports-[backdrop-filter]:bg-background/70 flex h-14 shrink-0 items-center gap-2 border-b px-3 backdrop-blur md:px-5">
-            <SidebarTrigger
-              aria-label={t("nav.menu")}
-              className="-ml-1 size-9"
-            />
-            <div className="flex-1" />
-            <div className="flex shrink-0 items-center gap-1">
-              <LanguageToggle />
-              <ThemeMenu />
-              {me.data ? (
-                <PortalUserMenu
-                  name={me.data.name}
-                  phone={me.data.record.phone}
-                />
-              ) : null}
+          <header className="bg-background/85 supports-[backdrop-filter]:bg-background/70 h-14 shrink-0 border-b backdrop-blur">
+            <div className={cn("flex h-full items-center gap-2", PAGE_LINE)}>
+              <SidebarTrigger
+                aria-label={t("nav.menu")}
+                className={BAR_START}
+              />
+              <div className="flex-1" />
+              <div className={cn("flex shrink-0 items-center gap-1", BAR_END)}>
+                <LanguageToggle />
+                <ThemeMenu />
+                {me.data ? (
+                  <PortalUserMenu
+                    name={me.data.name}
+                    phone={me.data.record.phone}
+                  />
+                ) : null}
+              </div>
             </div>
           </header>
         </div>

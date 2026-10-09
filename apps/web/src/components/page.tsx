@@ -52,6 +52,13 @@ const WIDTH = {
   default: "max-w-[99rem]",
 } as const;
 
+/** A page's sides: how far its content stands in from the edge beside the sidebar. */
+const PAGE_SIDES = "px-4 md:px-8";
+
+/** The line a page's content runs between, for whatever stands over every page — the top bar — so its first and last
+ *  controls end where the page's title and its widest table do, rather than out at the window's own edges. */
+export const PAGE_LINE = cn("w-full", WIDTH.default, PAGE_SIDES);
+
 /** A page's own title, the one line that says what the page is: larger on a desk, where there is room for it. */
 export const PAGE_TITLE = "text-xl font-semibold md:text-2xl";
 
@@ -81,7 +88,8 @@ export const Page = ({
 }) => (
   <div
     className={cn(
-      "flex w-full flex-col gap-6 px-4 py-6 md:gap-8 md:px-8 md:py-8",
+      "flex w-full flex-col gap-6 py-6 md:gap-8 md:py-8",
+      PAGE_SIDES,
       WIDTH[width],
       className
     )}
