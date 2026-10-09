@@ -16,6 +16,9 @@ import {
   startOfFarmDay,
   sumsStandingOf,
 } from "@OpenFarm/domain";
+import type { FarmIdentity, Said, VentureMonthFacts } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
+import { translate } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -27,6 +30,7 @@ import {
   owedByMonth,
 } from "./cost-store";
 import { KEEPING_THEM } from "./investor-statement-store";
+import { madeOn } from "./paper-values";
 import type { ChargeWord } from "./settlement-store";
 import { CHARGED_LINE, CHARGED_WORDS } from "./settlement-store";
 import { ventureHoldingsOf } from "./venture-herd-store";
@@ -425,5 +429,95 @@ export const ventureMonth = async (
     sold: soldInIt,
     againstPlan,
     sums,
+  };
+};
+
+/** Each Venture Movement's kind by the word the farm's screens call it — the Venture's money tab's own — named
+ *  exhaustively, so a new kind fails to compile here rather than printing a key. */
+const KIND_KEY = {
+  capital_in: "ventures.kind.capitalIn",
+  refund: "ventures.kind.refund",
+  float_out: "ventures.kind.floatOut",
+  float_back: "ventures.kind.floatBack",
+  intake_out: "ventures.kind.intakeOut",
+  internal_buy: "ventures.kind.internalBuy",
+  internal_sell: "ventures.kind.internalSell",
+  sale_in: "ventures.kind.saleIn",
+  reimbursement: "ventures.kind.reimbursement",
+  advance: "ventures.kind.advance",
+  payout: "ventures.kind.payout",
+  advance_repaid: "ventures.kind.advanceRepaid",
+  farm_share: "ventures.kind.farmShare",
+  farm_loss_in: "ventures.kind.farmLossIn",
+  made_good: "ventures.kind.madeGood",
+} as const satisfies Record<VentureMovementKind, MessageKey>;
+
+/** Each of the Settlement's lines by the word the Owner's screens call it — not an Investor's paper's — named
+ *  exhaustively. */
+const CHARGE_KEY = {
+  bought: "costs.bought",
+  market_toll: "costs.market_toll",
+  trips: "costs.trips",
+  feed: "ventures.feed",
+  medicine: "ventures.medicine",
+  vet: "ventures.vet",
+  herd: "ventures.herdCosts",
+} as const satisfies Record<ChargeWord, MessageKey>;
+
+/** A catalog word in both languages, for a paper read in either (ADR 0021). */
+const bothOf = (key: MessageKey): Said => ({
+  bn: translate("bn", key),
+  en: translate("en", key),
+});
+
+/**
+ * One month of one Venture as its paper prints it (`ventureMonthPaper`), from the month as `ventureMonth` works it:
+ * the Settlement's lines and each kind of movement worded in both languages as the Owner's screens word them, each sale on
+ * its farm day. The days it
+ * covers come with it, as an Export records them: the month, or — still going — to today.
+ */
+export const ventureMonthFacts = (
+  one: Awaited<ReturnType<typeof ventureMonth>>,
+  farm: FarmIdentity,
+  produced: { at: Date; by: string }
+): { facts: VentureMonthFacts; days: { from: string; to: string } } => {
+  const today = farmDayOf(produced.at);
+  return {
+    facts: {
+      farm,
+      ventureName: one.venture.name,
+      month: one.month,
+      soFarTo: one.soFar ? today : null,
+      herd: one.herd,
+      charges: one.charges.map((charge) => ({
+        label: bothOf(CHARGE_KEY[charge.line]),
+        monthMoney: charge.monthMoney,
+        toEndMoney: charge.toEndMoney,
+      })),
+      account: {
+        ...one.account,
+        moved: one.account.moved.map((moved) => ({
+          label: bothOf(KIND_KEY[moved.kind]),
+          direction: moved.direction,
+          amountMoney: moved.amountMoney,
+        })),
+      },
+      reimbursement: one.reimbursement,
+      sold: one.sold.map((sold) => ({
+        tagNumber: sold.tagNumber,
+        soldOn: farmDayOf(sold.soldAt),
+        priceMoney: sold.priceMoney,
+        costMoney: sold.costMoney,
+        lessCostMoney: sold.lessCostMoney,
+      })),
+      againstPlan: one.againstPlan,
+      sums: one.sums,
+      producedAt: madeOn(produced.at),
+      producedBy: produced.by,
+    },
+    days: {
+      from: `${one.month}-01`,
+      to: one.soFar ? today : lastDayOf(one.month),
+    },
   };
 };

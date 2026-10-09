@@ -12,6 +12,7 @@ import {
   StatusBadge,
 } from "@/components/page";
 import {
+  PrintTheVentureMonth,
   TheVentureMonth,
   useVentureMonth,
 } from "@/components/ventures/venture-month";
@@ -56,16 +57,28 @@ const VentureMonthPage = () => {
       </BackLink>
       <PageHeader
         actions={
-          <MonthPicker
-            chosen={month}
-            months={one.data?.months ?? []}
-            onChoose={(chosen) =>
-              navigate({
-                params: { ventureId, month: chosen },
-                to: "/ventures/$ventureId/months/$month",
-              })
-            }
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            {one.data ? (
+              <PrintTheVentureMonth
+                month={month}
+                title={t("ventures.month.title", {
+                  venture: one.data.venture.name,
+                  month: saidMonth(month, language),
+                })}
+                ventureId={ventureId}
+              />
+            ) : null}
+            <MonthPicker
+              chosen={month}
+              months={one.data?.months ?? []}
+              onChoose={(chosen) =>
+                navigate({
+                  params: { ventureId, month: chosen },
+                  to: "/ventures/$ventureId/months/$month",
+                })
+              }
+            />
+          </div>
         }
         description={t("ventures.month.subtitle")}
         title={

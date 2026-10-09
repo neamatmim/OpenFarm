@@ -71,17 +71,17 @@ export interface MonthlyReportFacts {
 }
 
 /** A dash, for a figure nobody made: never a price of nought. */
-const NONE: Said = { bn: "—", en: "—" };
+export const NONE: Said = { bn: "—", en: "—" };
 
 /** A month by its name and year, in each language. */
-const monthSaid = (month: string): Said => {
+export const monthSaid = (month: string): Said => {
   const said = (language: Language) =>
     formatDate(startOfFarmDay(`${month}-01`), language, "monthYear");
   return { bn: said("bn"), en: said("en") };
 };
 
 /** A sum in whole taka, as the monthly report's screen says it; or the dash where nothing was made. */
-const sumSaid = (amount: number | null): Said =>
+export const sumSaid = (amount: number | null): Said =>
   amount === null ? NONE : moneySaid(Math.round(amount));
 
 /** A price or a cost a unit, to the paisa — its line already says a unit of what — or the dash where there was none. */

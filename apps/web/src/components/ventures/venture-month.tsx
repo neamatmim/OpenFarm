@@ -1,4 +1,6 @@
+import type { PaperDocument } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
 import {
   Table,
   TableBody,
@@ -8,16 +10,20 @@ import {
   TableRow,
 } from "@OpenFarm/ui/components/table";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Printer } from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 
 import { Nothing } from "@/components/list-cells";
 import { Section } from "@/components/page";
+import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { KIND_WORD } from "@/components/ventures/venture-money";
 import { useLanguage } from "@/i18n/language-provider";
 import { CHARGE_WORD } from "@/lib/charge-words";
 import { useMoney } from "@/lib/money";
 import { saidMonth } from "@/lib/months";
+import { useRefused } from "@/lib/refused";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -487,6 +493,57 @@ export const TheVentureMonth = ({ one }: { one: VentureMonth }) => {
       <p className="text-muted-foreground text-sm">
         {t("ventures.month.leftOut")}
       </p>
+    </>
+  );
+};
+
+/** Why the farm would not lay a Venture's month out on paper, in the Owner's words. */
+const PAPER_REFUSALS = {
+  farm_identity_incomplete: "statements.farmNotRegistered",
+  month_not_begun: "months.one.notBegun",
+  venture_not_running: "ventures.month.notRunning",
+} as const;
+
+/**
+ * A Venture's month on paper, to print or save as a PDF: laid out by the farm on its letterhead and recorded as an
+ * Export, then shown to read in Bangla or English before it is printed.
+ */
+export const PrintTheVentureMonth = ({
+  ventureId,
+  month,
+  title,
+}: {
+  ventureId: string;
+  month: string;
+  /** The paper's name on the dialog, as the page's own title says it. */
+  title: string;
+}) => {
+  const { t } = useLanguage();
+  const refused = useRefused(PAPER_REFUSALS);
+  const [paper, setPaper] = useState<PaperDocument | null>(null);
+  const laying = useMutation(
+    orpc.ventures.monthPaper.mutationOptions({
+      onError: refused,
+      onSuccess: ({ document }) => setPaper(document),
+    })
+  );
+  return (
+    <>
+      <Button
+        disabled={laying.isPending}
+        onClick={() => laying.mutate({ ventureId, month })}
+        type="button"
+        variant="outline"
+      >
+        <Printer aria-hidden data-icon="inline-start" />
+        {t("months.one.print")}
+      </Button>
+      <PaperDialog
+        onClose={() => setPaper(null)}
+        paper={paper}
+        title={title}
+        wording={null}
+      />
     </>
   );
 };
