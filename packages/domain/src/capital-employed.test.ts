@@ -51,7 +51,7 @@ describe("the money the Farm had tied up, at cost", () => {
     expect(capital.dairyMoney).toBe(92_500);
   });
 
-  it("counts one with no price at nothing, and says how many there were", () => {
+  it("counts one with no price at nothing, and says how many there were, on either Side", () => {
     const capital = capitalEmployedOf({
       at: AT,
       animals: [
@@ -61,12 +61,22 @@ describe("the money the Farm had tied up, at cost", () => {
           charges: [charge("2046-05-10", 1000)],
           firstCalvedAt: on("2045-01-01"),
         },
+        {
+          side: "fattening",
+          takenOnMoney: null,
+          charges: [charge("2046-05-10", 700)],
+          firstCalvedAt: null,
+        },
       ],
       venturesMoney: 0,
       storeMoney: 0,
       receivablesMoney: 0,
     });
-    expect(capital).toMatchObject({ dairyMoney: 0, unpricedDairy: 1 });
+    expect(capital).toMatchObject({
+      dairyMoney: 0,
+      fatteningMoney: 700,
+      unpriced: 2,
+    });
   });
 
   it("adds the Farm Capital in Ventures, the store and what buyers owe", () => {
@@ -85,7 +95,7 @@ describe("the money the Farm had tied up, at cost", () => {
       storeMoney: 45_000,
       receivablesMoney: 36_000,
       totalMoney: 181_000,
-      unpricedDairy: 0,
+      unpriced: 0,
     });
   });
 });

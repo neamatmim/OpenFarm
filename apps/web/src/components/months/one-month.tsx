@@ -1,5 +1,5 @@
 import type { PaperDocument } from "@OpenFarm/domain";
-import { RECEIVABLE_AGES } from "@OpenFarm/domain";
+import { RECEIVABLE_AGES, changeBetween } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
@@ -38,13 +38,13 @@ import { orpc } from "@/utils/orpc";
 
 export type OneMonth = Awaited<ReturnType<typeof client.monthlyReport.month>>;
 type Figures = OneMonth["figures"];
+/** The parts of a month's figures the management figures added (ADR 0023). */
+type NewParts = "results" | "atEnd" | "cashFlow" | "monthsReturn";
+type Unchanged = Omit<Figures, NewParts>;
+type MaybeNew = Partial<Pick<Figures, NewParts>>;
 /** A month's figures as the phone may hold them: an answer kept from before the management figures (ADR 0023) has
  *  neither what each Side came to nor where the Farm stood at the month's end. */
-export type KeptFigures = Omit<
-  Figures,
-  "results" | "atEnd" | "cashFlow" | "monthsReturn"
-> &
-  Partial<Pick<Figures, "results" | "atEnd" | "cashFlow" | "monthsReturn">>;
+export interface KeptFigures extends Unchanged, MaybeNew {}
 
 /** One month of the farm, the Owner's alone, beside the month before. */
 export const useOneMonth = (month: string, asked = true) =>
@@ -156,23 +156,34 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
     say: (figures: KeptFigures) => ReactNode,
     total = false
   ): Line => ({ label, now: say(now), before: say(before), total });
-  /** A sum this month and the month before, and the change between them, a rise with its sign. */
+  /** A figure this month and the month before, and the change between them (`changeBetween`), a rise with its
+   *  sign: a sum in taka, a margin in points. */
   const compared = (
     label: string,
     of: (figures: KeptFigures) => number | null | undefined,
-    total = false
+    {
+      kind = "sum",
+      total = false,
+    }: { kind?: "sum" | "percent"; total?: boolean } = {}
   ): Line => {
     const [is, was] = [of(now) ?? null, of(before) ?? null];
-    const change =
-      is === null || was === null ? null : Math.round(is) - Math.round(was);
+    const say = (amount: number) =>
+      kind === "sum" ? asMoney(amount) : percent(amount);
+    const change = changeBetween(kind, is, was);
     let said: ReactNode = null;
     if (change !== null) {
-      said = change > 0 ? `+${asMoney(change)}` : asMoney(change);
+      // A margin's points are said whole, the sign set in front as a sum's is.
+      const points = () => {
+        const sign = change < 0 ? "−" : "";
+        return `${sign}${t("months.one.points", { amount: Math.abs(change) })}`;
+      };
+      const figure = kind === "sum" ? asMoney(change) : points();
+      said = change > 0 ? `+${figure}` : figure;
     }
     return {
       label,
-      now: is === null ? null : asMoney(is),
-      before: was === null ? null : asMoney(was),
+      now: is === null ? null : say(is),
+      before: was === null ? null : say(was),
       change: said,
       total,
     };
@@ -191,15 +202,13 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
       compared(
         t("months.one.afterOverheads"),
         (one) => one.results?.farm.afterOverheadsMoney,
-        true
+        { total: true }
       ),
-      {
-        ...both(t("months.one.marginAfter"), (one) => {
-          const margin = one.results?.farm.marginAfterPercent ?? null;
-          return margin === null ? null : percent(margin);
-        }),
-        change: null,
-      },
+      compared(
+        t("months.one.marginAfter"),
+        (one) => one.results?.farm.marginAfterPercent,
+        { kind: "percent" }
+      ),
       compared(
         t("months.one.dairyAfter"),
         (one) => one.results?.dairy.afterOverheadsMoney
@@ -424,7 +433,11 @@ export const MoneyBy = ({
 type SideResult = Figures["results"]["farm"];
 
 /** What each Side came to this month, before and after its share of the overheads, the farm's as the total (ADR 0023). */
-export const SideResults = ({ results }: { results: Figures["results"] }) => {
+export const SideResultsTable = ({
+  results,
+}: {
+  results: Figures["results"];
+}) => {
   const { t } = useLanguage();
   const asMoney = useMoney();
   const percent = usePercent();
@@ -563,7 +576,7 @@ export const LeftOut = ({ figures }: { figures: KeptFigures }) => {
     figures.dairy.uncostedDoses + figures.fattening.uncostedDoses;
   const unpricedInStore = figures.atEnd?.store.unpriced ?? 0;
   const accountsNotRead = figures.atEnd?.cash.accountsNotRead ?? 0;
-  const unpricedDairy = figures.atEnd?.capital.unpricedDairy ?? 0;
+  const unpricedAnimals = figures.atEnd?.capital.unpriced ?? 0;
   const said = [
     figures.money.awaitingCount > 0 ? t("months.awaiting") : null,
     unpricedKg > 0 ? t("costs.unpricedNote", { amount: unpricedKg }) : null,
@@ -576,8 +589,8 @@ export const LeftOut = ({ figures }: { figures: KeptFigures }) => {
     accountsNotRead > 0
       ? t("months.one.accountsNotRead", { amount: accountsNotRead })
       : null,
-    unpricedDairy > 0
-      ? t("months.one.unpricedDairy", { amount: unpricedDairy })
+    unpricedAnimals > 0
+      ? t("months.one.unpricedAnimals", { amount: unpricedAnimals })
       : null,
   ].filter((line) => line !== null);
   if (said.length === 0) {

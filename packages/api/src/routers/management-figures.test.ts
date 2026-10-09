@@ -433,7 +433,7 @@ describe("what the Farm had tied up at the end of May, and what it made on it", 
       storeMoney: 45_000,
       receivablesMoney: 36_000,
       totalMoney: 184_000,
-      unpricedDairy: 1,
+      unpriced: 1,
     });
     expect(figuresBefore.atEnd.capital.totalMoney).toBe(100_000);
   });

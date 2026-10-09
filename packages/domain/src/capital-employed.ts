@@ -67,10 +67,8 @@ export const capitalEmployedOf = ({
         storeMoney +
         receivablesMoney
     ),
-    /** Dairy animals standing with no price the Owner entered: counted at nothing above. */
-    unpricedDairy: animals.filter(
-      (one) => one.side === "dairy" && one.takenOnMoney === null
-    ).length,
+    /** Animals standing, on either Side, with no price the Owner entered: counted at their charges alone above. */
+    unpriced: animals.filter((one) => one.takenOnMoney === null).length,
   };
 };
 

@@ -3866,7 +3866,7 @@ export const enCore = {
   "months.one.margin": "Margin",
   "months.one.overheadsShare": "Share of overheads",
   "months.one.afterOverheads": "After overheads",
-  "months.one.venturesDays": "The Ventures' animals' days",
+  "months.one.venturesDays": "The ventures' animals' days",
   "months.one.receivables": "Owed at the month's end, by age",
   "months.one.receivablesHint":
     "What buyers still owed on the month's last day, by the days since each sale or milk dispatch left, and what of it was past the day promised.",
@@ -3910,8 +3910,8 @@ export const enCore = {
   "months.one.theStore": "The store",
   "months.one.owedByBuyers": "Owed by buyers",
   "months.one.capitalInAll": "Capital in all",
-  "months.one.unpricedDairy":
-    "{amount, plural, one {# dairy animal was never priced, and counts in the capital at its charges alone} other {# dairy animals were never priced, and count in the capital at their charges alone}}",
+  "months.one.unpricedAnimals":
+    "{amount, plural, one {# animal was never priced, and counts in the capital at its charges alone} other {# animals were never priced, and count in the capital at their charges alone}}",
   "months.one.monthsReturn": "What the capital made this month",
   "months.one.monthsReturnHint":
     "Each side's result after overheads over the mean of its capital where the month began and ended. A ventures' return comes at its settlement, never in a month; an animal bought and sold inside the month leaves no capital at either end.",
@@ -3921,6 +3921,7 @@ export const enCore = {
   "months.one.glanceHint":
     "What came in and what it came to after the overheads, then where the farm stood at the month's end — each beside the month before, and the change.",
   "months.one.change": "Change",
+  "months.one.points": "{amount, plural, one {# point} other {# points}}",
   "months.one.marginAfter": "Margin after overheads",
   "months.one.dairyAfter": "Dairy, after overheads",
   "months.one.fatteningAfter": "Fattening, after overheads",

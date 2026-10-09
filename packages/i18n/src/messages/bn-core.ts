@@ -3637,8 +3637,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.theStore": "ভান্ডার",
   "months.one.owedByBuyers": "ক্রেতাদের কাছে বাকি",
   "months.one.capitalInAll": "মোট পুঁজি",
-  "months.one.unpricedDairy":
-    "{amount}টি দুগ্ধ পশুর কোনো দাম দেওয়া হয়নি; পুঁজিতে শুধু তার খরচ ধরা হয়েছে",
+  "months.one.unpricedAnimals":
+    "{amount}টি পশুর কোনো দাম দেওয়া হয়নি; পুঁজিতে শুধু তার খরচ ধরা হয়েছে",
   "months.one.monthsReturn": "এই মাসে পুঁজিতে যা এল",
   "months.one.monthsReturnHint":
     "প্রতিটি বিভাগের পরিচালন খরচের পরের ফল, মাসের শুরু আর শেষে তার পুঁজির গড়ের ওপর। ভেঞ্চারের রিটার্ন আসে তার নিষ্পত্তিতে, কোনো মাসে নয়; মাসের ভেতরেই কেনা আর বেচা পশু দুই প্রান্তের কোনোটিতেই পুঁজি রাখে না।",
@@ -3648,6 +3648,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.glanceHint":
     "কত আয় হলো আর পরিচালন খরচের পরে কী দাঁড়াল, তারপর মাস শেষে খামার কোথায় ছিল — প্রতিটি আগের মাসের পাশে, আর পরিবর্তন।",
   "months.one.change": "পরিবর্তন",
+  "months.one.points": "{amount} পয়েন্ট",
   "months.one.marginAfter": "পরিচালন খরচের পরে মার্জিন",
   "months.one.dairyAfter": "দুগ্ধ, পরিচালন খরচের পরে",
   "months.one.fatteningAfter": "মোটাতাজাকরণ, পরিচালন খরচের পরে",

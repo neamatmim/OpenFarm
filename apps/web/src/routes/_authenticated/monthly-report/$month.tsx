@@ -9,7 +9,7 @@ import {
   MonthPart,
   MonthPicker,
   PrintTheMonth,
-  SideResults,
+  SideResultsTable,
   VenturesThatRan,
   useMonthLines,
   useOneMonth,
@@ -102,7 +102,7 @@ const TheMonth = ({ one }: { one: OneMonth }) => {
           description={t("months.one.resultsHint")}
           title={t("months.one.results")}
         >
-          <SideResults results={kept.results} />
+          <SideResultsTable results={kept.results} />
         </Section>
       ) : null}
       {kept.cashFlow ? (

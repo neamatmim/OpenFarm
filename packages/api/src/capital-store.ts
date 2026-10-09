@@ -1,5 +1,5 @@
 import type { Database } from "@OpenFarm/db";
-import type { CapitalAnimal } from "@OpenFarm/domain";
+import type { CapitalAnimal, OwnedThenBy } from "@OpenFarm/domain";
 import { bredHere, chargesOfOwner, covers, roundMoney } from "@OpenFarm/domain";
 
 import type { FarmCosts } from "./cost-store";
@@ -7,16 +7,19 @@ import { boughtInOf, farmCosts, takenOnBy } from "./cost-store";
 import { THE_FARMS_PURSE } from "./money-store";
 import { ownedThenByOf } from "./venture-store";
 
+/** The States only a cow who has calved is in. */
+const CALVED_STATES: ReadonlySet<string> = new Set(["milking", "dry"]);
+
 /** What the Farm's capital at any moment is worked from, read once for a report however many moments it asks of it. */
 export interface CapitalBooks {
   costs: FarmCosts;
-  ownedThenBy: Awaited<ReturnType<typeof ownedThenByOf>>;
+  ownedThenBy: OwnedThenBy;
   boughtIn: Awaited<ReturnType<typeof boughtInOf>>;
   /** The price the Owner entered for a dairy animal bought, or here before the books. */
   entryPrice: ReadonlyMap<string, number>;
   /** Born to a dam the farm wrote down: taken on at nothing. */
   bornHere: ReadonlySet<string>;
-  /** When each cow first calved. */
+  /** When each cow first calved; the start of time for one who calved before her books began. */
   firstCalved: ReadonlyMap<string, Date>;
   /** The Farm's own capital into each Venture and back from it, signed, each when it moved. */
   ventureCapital: readonly { ventureId: string; at: Date; amount: number }[];
@@ -48,7 +51,13 @@ export const capitalBooksOf = async (
     }),
     db.query.animal.findMany({
       where: { farmId },
-      columns: { id: true, source: true, damId: true },
+      columns: {
+        id: true,
+        source: true,
+        damId: true,
+        state: true,
+        lactationNumber: true,
+      },
     }),
     db.query.calving.findMany({
       where: { farmId },
@@ -85,6 +94,17 @@ export const capitalBooksOf = async (
   for (const one of calvings) {
     if (!firstCalved.has(one.damId)) {
       firstCalved.set(one.damId, one.calvedAt);
+    }
+  }
+  // A cow in milk or dry with no calving written here calved before her books began — the opening register's, one
+  // bought in milk — so none of her keep here is capital. One registered dry who calves here later still counts her
+  // dry weeks: nothing kept says she had calved before.
+  for (const one of animals) {
+    if (
+      !firstCalved.has(one.id) &&
+      (one.lactationNumber > 0 || CALVED_STATES.has(one.state))
+    ) {
+      firstCalved.set(one.id, new Date(0));
     }
   }
   return {

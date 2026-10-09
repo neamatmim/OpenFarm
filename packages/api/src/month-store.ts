@@ -1,6 +1,5 @@
 import type { Database } from "@OpenFarm/db";
 import type {
-  CapitalEmployed,
   FinancialYear,
   PenHistoryLine,
   YearRules,
@@ -285,21 +284,31 @@ const atTheEndOf = async (
   };
 };
 
-/** What a stretch's capital made, each Side's Result after Overheads over its capital where it began and ended. */
-const returnOver = (
-  results: ReturnType<typeof figuresOver>["results"],
-  began: { capital: CapitalEmployed },
-  ended: { capital: CapitalEmployed }
-) =>
-  monthsReturnOf(
+/** Where the Farm stood at a stretch's end (`atTheEndOf`). */
+type AtTheEnd = Awaited<ReturnType<typeof atTheEndOf>>;
+
+/**
+ * A month's figures with where the Farm stood as it began and ended (ADR 0023): its end, the cash flow between the two,
+ * and what its capital made — each Side's Result after Overheads over its capital at the two ends.
+ */
+const withItsEnds = (
+  figures: ReturnType<typeof figuresOver>,
+  began: AtTheEnd,
+  ended: AtTheEnd
+) => ({
+  ...figures,
+  atEnd: ended,
+  cashFlow: cashFlowOf(began.cash, ended.cash, figures.money),
+  monthsReturn: monthsReturnOf(
     {
-      dairy: results.dairy.afterOverheadsMoney,
-      fattening: results.fattening.afterOverheadsMoney,
-      farm: results.farm.afterOverheadsMoney,
+      dairy: figures.results.dairy.afterOverheadsMoney,
+      fattening: figures.results.fattening.afterOverheadsMoney,
+      farm: figures.results.farm.afterOverheadsMoney,
     },
     began.capital,
     ended.capital
-  );
+  ),
+});
 
 /** The day the Farm's purse first moved a taka, or today for a farm whose purse has moved nothing yet. */
 const firstDayKept = async (db: Database, farmId: string, today: string) => {
@@ -422,7 +431,7 @@ const readOver = async (
  */
 export const monthByMonth = async (
   db: Database,
-  farm: EndFarm & { ventureInvestorsPercent: number },
+  farm: { id: string; ventureInvestorsPercent: number },
   now: Date,
   financialYear?: string
 ) => {
@@ -433,43 +442,16 @@ export const monthByMonth = async (
     from: rangeOf(months[0] ?? "").from,
     until: rangeOf(months.at(-1) ?? "").until,
   };
-  const ranges = months.map(rangeOf);
-  const books = await capitalBooksOf(db, farm.id);
-  const [read, ventures, financialYears, ends, opening] = await Promise.all([
+  const [read, ventures, financialYears] = await Promise.all([
     readOver(db, farm.id, span, now),
     venturesAgainstPlan(db, farm, now),
     financialYearsKept(db, farm.id, rules, today),
-    Promise.all(
-      [...ranges, span].map((range) =>
-        atTheEndOf(db, farm, range.until, now, books)
-      )
-    ),
-    atTheEndOf(db, farm, span.from, now, books),
   ]);
   // Each month's charges sorted out of the year's once, rather than every month reading all of them.
+  const ranges = months.map(rangeOf);
   const narrowed = narrowedToEach(read.costs, [...ranges, span]);
-  const over = (range: { from: Date; until: Date }, index: number) => {
-    // Read for every stretch above, the year last: one for each, always.
-    const atEnd = ends[index];
-    if (!atEnd) {
-      throw new Error("Expected the end of every stretch read");
-    }
-    const figures = figuresOver(range, {
-      ...read,
-      costs: narrowed[index] ?? read.costs,
-    });
-    // A month begins where the one before it ended; the first, and the year, where the year began.
-    const began =
-      index > 0 && index < months.length
-        ? (ends[index - 1] ?? opening)
-        : opening;
-    return {
-      ...figures,
-      atEnd,
-      cashFlow: cashFlowOf(began.cash, atEnd.cash, figures.money),
-      monthsReturn: returnOver(figures.results, began, atEnd),
-    };
-  };
+  const over = (range: { from: Date; until: Date }, index: number) =>
+    figuresOver(range, { ...read, costs: narrowed[index] ?? read.costs });
   return {
     months: months.map((month, index) => {
       const range = ranges[index] ?? rangeOf(month);
@@ -569,22 +551,8 @@ export const aMonth = async (
     before,
     /** This month, still going: its figures are what it has come to so far. */
     soFar: range.until > now,
-    figures: {
-      ...figures,
-      atEnd: end,
-      cashFlow: cashFlowOf(endBefore.cash, end.cash, figures.money),
-      monthsReturn: returnOver(figures.results, endBefore, end),
-    },
-    figuresBefore: {
-      ...figuresBefore,
-      atEnd: endBefore,
-      cashFlow: cashFlowOf(
-        beganBefore.cash,
-        endBefore.cash,
-        figuresBefore.money
-      ),
-      monthsReturn: returnOver(figuresBefore.results, beganBefore, endBefore),
-    },
+    figures: withItsEnds(figures, endBefore, end),
+    figuresBefore: withItsEnds(figuresBefore, beganBefore, endBefore),
     /** The month's money as the accountant adds it: by Category, and by Side. */
     moneyBy: { category: money.byCategory, side: money.bySide },
     /** The months there are to read, newest first: this one back to the month of the first taka the purse moved. */

@@ -17,7 +17,7 @@ import { NativeSelect, SummaryFigures } from "@/components/page-kit";
 import { StateBadge } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import {
-  saidAsSigned,
+  usePercent,
   usePerHeadPerDay,
   useMoney,
   useMoneyRate,
@@ -401,8 +401,9 @@ const OverheadsCell = ({ row }: MonthCell) => {
 /** What the month came to after the overheads, and its margin — missing from an answer a phone kept from before the
  *  management figures (ADR 0023). */
 const AfterOverheadsCell = ({ row }: MonthCell) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const asMoney = useMoney();
+  const percent = usePercent();
   const { results } = row.original;
   if (!results) {
     return <Nothing />;
@@ -414,7 +415,7 @@ const AfterOverheadsCell = ({ row }: MonthCell) => {
         ? asMoney(afterOverheadsMoney)
         : t("months.pair", {
             first: asMoney(afterOverheadsMoney),
-            second: `${saidAsSigned(marginAfterPercent, language)}%`,
+            second: percent(marginAfterPercent),
           })}
     </span>
   );

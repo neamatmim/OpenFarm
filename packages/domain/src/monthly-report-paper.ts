@@ -9,6 +9,7 @@ import { producedSaid } from "./investor-statements";
 import { moneySaid } from "./joining-letter";
 import type { Side } from "./lifecycle";
 import { roundMoney } from "./money";
+import { changeBetween } from "./month-change";
 import { daySaid } from "./nominees";
 import { letterheadOf } from "./paper-template";
 import type { PaperDocument, PaperSection } from "./paper-template";
@@ -261,14 +262,23 @@ const SUMMARY: Part = {
   ],
 };
 
-/** The change from the month before to this one: a sum with its sign, the dash for anything else or where either is
- *  nothing. */
+/** The change from the month before to this one (`changeBetween`), with its sign: a sum in taka, a margin in points;
+ *  the dash for anything else, or where either month has nothing. */
 const changeSaid = (kind: Kind, now: number | null, before: number | null) => {
-  if (kind !== "sum" || now === null || before === null) {
+  if (kind !== "sum" && kind !== "percent") {
     return NONE;
   }
-  const change = Math.round(now) - Math.round(before);
-  const said = sumSaid(change);
+  const change = changeBetween(kind, now, before);
+  if (change === null) {
+    return NONE;
+  }
+  const said: Said =
+    kind === "sum"
+      ? sumSaid(change)
+      : {
+          bn: `${formatNumber(change, "bn")} পয়েন্ট`,
+          en: `${formatNumber(change, "en")} ${Math.abs(change) === 1 ? "point" : "points"}`,
+        };
   return change > 0 ? { bn: `+${said.bn}`, en: `+${said.en}` } : said;
 };
 
@@ -668,12 +678,15 @@ const sideSaid = (side: Side | null): Said => {
   return { bn, en };
 };
 
-/** What each Side came to: its heading, and each of its figures, said the same on the paper and in the CSV. */
+/** The heading of what each Side came to. */
 const RESULTS: Said = { bn: "প্রতিটি বিভাগের ফল", en: "What each side came to" };
+/** Each figure of a Side's result, said the same on the paper and in the CSV; the share of the overheads is the one
+ *  figure the Ventures' animals' days have. */
 const RESULT_FIGURES: readonly {
   label: Said;
   kind: Kind;
   of: (result: SideResult) => number | null;
+  share?: true;
 }[] = [
   {
     label: { bn: "আয়", en: "Brought in" },
@@ -694,6 +707,7 @@ const RESULT_FIGURES: readonly {
     label: { bn: "পরিচালন খরচের ভাগ", en: "Share of overheads" },
     kind: "sum",
     of: (one) => one.overheadsMoney,
+    share: true,
   },
   {
     label: { bn: "পরিচালন খরচের পরে", en: "After overheads" },
@@ -706,10 +720,15 @@ const RESULT_FIGURES: readonly {
     of: (one) => one.marginAfterPercent,
   },
 ];
+/** The one figure of a Side's result the Ventures' animals' days have: their share of the overheads. */
+const SHARE = RESULT_FIGURES.find((one) => one.share) ?? {
+  label: { bn: "পরিচালন খরচের ভাগ", en: "Share of overheads" },
+};
+
 /** The Overheads the Ventures' animals' days come to, which the Farm bears: a share and nothing else. */
 const VENTURES_DAYS: Said = {
   bn: "ভেঞ্চারের পশুর দিন",
-  en: "The Ventures' animals' days",
+  en: "The ventures' animals' days",
 };
 /** The rows of what each Side came to, a Side's figures to a row; the Ventures' days hold their share alone. */
 const resultRows = (results: SideResults) => {
@@ -746,9 +765,7 @@ const resultsPart = ({ figures }: MonthlyReportFacts): PaperSection => {
       ...sides.map((one) => row(one.name, one.result)),
       [
         VENTURES_DAYS,
-        ...RESULT_FIGURES.map((one) =>
-          one.label.en === "Share of overheads" ? sumSaid(rest) : NONE
-        ),
+        ...RESULT_FIGURES.map((one) => (one.share ? sumSaid(rest) : NONE)),
       ],
     ],
     foot: row(farm.name, farm.result),
@@ -774,7 +791,7 @@ const leftOut = (figures: MonthFigures): Said[] => {
   const waiting = figures.money.awaitingCount;
   const { unpriced } = figures.atEnd.store;
   const { accountsNotRead } = figures.atEnd.cash;
-  const { unpricedDairy } = figures.atEnd.capital;
+  const { unpriced: unpricedAnimals } = figures.atEnd.capital;
   return [
     kg > 0
       ? {
@@ -788,10 +805,10 @@ const leftOut = (figures: MonthFigures): Said[] => {
           en: `${formatNumber(doses, "en")} ${doses === 1 ? "dose was" : "doses were"} of medicine the farm had not bought this month, and ${doses === 1 ? "is" : "are"} not costed.`,
         }
       : null,
-    unpricedDairy > 0
+    unpricedAnimals > 0
       ? {
-          bn: `${formatNumber(unpricedDairy, "bn")}টি দুগ্ধ পশুর কোনো দাম দেওয়া হয়নি; পুঁজিতে শুধু তার খরচ ধরা হয়েছে।`,
-          en: `${formatNumber(unpricedDairy, "en")} dairy ${unpricedDairy === 1 ? "animal was" : "animals were"} never priced, and ${unpricedDairy === 1 ? "counts" : "count"} in the capital at ${unpricedDairy === 1 ? "its" : "their"} charges alone.`,
+          bn: `${formatNumber(unpricedAnimals, "bn")}টি পশুর কোনো দাম দেওয়া হয়নি; পুঁজিতে শুধু তার খরচ ধরা হয়েছে।`,
+          en: `${formatNumber(unpricedAnimals, "en")} ${unpricedAnimals === 1 ? "animal was" : "animals were"} never priced, and ${unpricedAnimals === 1 ? "counts" : "count"} in the capital at ${unpricedAnimals === 1 ? "its" : "their"} charges alone.`,
         }
       : null,
     accountsNotRead > 0
@@ -952,10 +969,7 @@ const resultsRows = ({
     ),
     {
       part: RESULTS,
-      line: named(VENTURES_DAYS, {
-        bn: "পরিচালন খরচের ভাগ",
-        en: "share of overheads",
-      }),
+      line: named(VENTURES_DAYS, SHARE.label),
       way: null,
       thisMonth: figurePlain("sum", now.rest),
       monthBefore: figurePlain("sum", before.rest),

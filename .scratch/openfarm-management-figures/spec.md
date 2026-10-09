@@ -55,9 +55,25 @@ money each Side ties up and what it earns on it.
 07 Summary · 08 returns on the year page. Each adds its part to the month page, its paper and its CSV, test-first,
 domain sums pure and tested in `packages/domain`, reading in `month-store.ts`.
 
-## Done
+## Done (branch report/management-figures, 2026-10-09)
 
-(filled in as each merges)
+01 8ee768d1 · 02 421a898b · 03 8dd83c3b · 04 af687121 · 05 a5b9e313 · 06 4e34e095 · 07 f3d3f031 · 08 741e7358 ·
+minus sign 4d2a5ade · review fixes (below).
+
+Review (standards + spec, two sub-agents) acted on:
+- A cow in milk or dry with no calving written here (opening register, bought in milk) calved before her books: none of
+  her keep is capital (`capital-calved-before.test.ts` went red first). One registered dry who calves here later still
+  counts her dry weeks — nothing kept says she had calved.
+- Unpriced animals counted on both Sides (`unpriced`), not only the dairy.
+- The Summary's margin has its change, in points; one rule (`changeBetween`) for the paper and the screen.
+- The year page no longer reads the month's ends it never shows (14 position reads per load); only a month's own page
+  carries `atEnd`, `cashFlow` and `monthsReturn`, so no year-long "return a month" sits in the API.
+- Tidy-ups: the results table's share column keyed, not matched by its English label; "ventures'" in sentence case;
+  `KeptFigures` as an interface (the JSX-text scanner read the intersection as text); store value as two sums.
+
+Dismissed: "a sold animal with no Margin" — `marginOf` is null only with no sale, so every sold animal has one.
+Left: the Summary also carries each Side after overheads (harmless, and it is the segments over time); `bookAt(…, "")`
+is that function's own way to say "no count put right".
 
 ## Test seams
 

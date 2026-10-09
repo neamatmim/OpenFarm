@@ -1062,3 +1062,4 @@ export type {
   MonthsReturn,
 } from "./capital-employed";
 export { capitalEmployedOf, monthsReturnOf } from "./capital-employed";
+export { changeBetween } from "./month-change";

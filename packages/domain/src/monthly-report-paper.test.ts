@@ -90,7 +90,7 @@ const FIGURES = {
       storeMoney: 45_000,
       receivablesMoney: 36_000,
       totalMoney: 184_000,
-      unpricedDairy: 1,
+      unpriced: 1,
     },
   },
   monthsReturn: { dairyPer100: -6.7, fatteningPer100: null, farmPer100: 59.3 },
@@ -168,7 +168,7 @@ const NOTHING = {
       storeMoney: 0,
       receivablesMoney: 0,
       totalMoney: 0,
-      unpricedDairy: 0,
+      unpriced: 0,
     },
   },
   monthsReturn: { dairyPer100: null, fatteningPer100: null, farmPer100: null },
@@ -318,7 +318,7 @@ describe("what each Side came to, on paper", () => {
       "Dairy · 9,300 taka · 5,200 taka · 55.9% · 3,000 taka · 2,200 taka · 23.7%"
     );
     expect(text).toContain(
-      "The Ventures' animals' days · — · — · — · 1,000 taka · — · —"
+      "The ventures' animals' days · — · — · — · 1,000 taka · — · —"
     );
     expect(text).toContain(
       "Whole farm · 89,300 taka · 29,700 taka · 33.3% · 6,000 taka · 23,700 taka · 26.5%"
@@ -420,7 +420,7 @@ describe("what the farm had tied up, and what it made on it, on paper", () => {
     expect(text).toContain("In ventures · 100,000 taka · 0 taka");
     expect(text).toContain("Capital in all · 184,000 taka · 0 taka");
     expect(text).toContain(
-      "1 dairy animal was never priced, and counts in the capital at its charges alone."
+      "1 animal was never priced, and counts in the capital at its charges alone."
     );
   });
 
@@ -466,6 +466,22 @@ describe("the month at a glance, on paper", () => {
     expect(text).toContain(
       "The farm's own money · 0 taka · 246,900 taka · -246,900 taka"
     );
+  });
+
+  it("says a margin's change in points", () => {
+    const before = {
+      ...FIGURES,
+      results: {
+        ...FIGURES.results,
+        farm: { ...FIGURES.results.farm, marginAfterPercent: 24.4 },
+      },
+    };
+    const facts = { ...FACTS, figuresBefore: before };
+
+    expect(paperText(monthlyReportPaper(facts), "en")).toContain(
+      "Margin after overheads · 26.5% · 24.4% · +2.1 points"
+    );
+    expect(paperText(monthlyReportPaper(facts), "bn")).toContain("+২.১ পয়েন্ট");
   });
 
   it("says a rise with its sign", () => {
@@ -561,7 +577,7 @@ describe("the Monthly Report of one month, a row a figure", () => {
       expect.objectContaining({
         line: {
           bn: "ভেঞ্চারের পশুর দিন — পরিচালন খরচের ভাগ",
-          en: "The Ventures' animals' days — share of overheads",
+          en: "The ventures' animals' days — share of overheads",
         },
         thisMonth: 1000,
         monthBefore: 0,

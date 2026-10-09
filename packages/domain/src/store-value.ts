@@ -1,5 +1,11 @@
 import { roundMoney } from "./money";
 
+/** What some stock is worth at its prices; stock with no price adds nothing. */
+const worthOf = (stock: readonly { amount: number; price: number | null }[]) =>
+  roundMoney(
+    stock.reduce((sum, one) => sum + one.amount * (one.price ?? 0), 0)
+  );
+
 /**
  * What the Farm's store held at a moment, in taka (CONTEXT.md: **Capital Employed**; ADR 0023): each Feed Item's Stock on
  * Hand at its average price, and each medicine's doses at what a dose cost then — the prices the animals are charged at.
@@ -13,32 +19,24 @@ export const storeValueOf = ({
   feed: readonly { onHand: number; averagePriceMoney: number | null }[];
   medicine: readonly { expected: number; perDoseMoney: number | null }[];
 }) => {
-  const held = [
-    ...feed.map((one) => ({
-      kind: "feed",
-      amount: one.onHand,
-      price: one.averagePriceMoney,
-    })),
-    ...medicine.map((one) => ({
-      kind: "medicine",
-      amount: one.expected,
-      price: one.perDoseMoney,
-    })),
-  ].filter((one) => one.amount > 0);
-  const worth = (kind: string) =>
-    roundMoney(
-      held
-        .filter((one) => one.kind === kind)
-        .reduce((sum, one) => sum + one.amount * (one.price ?? 0), 0)
-    );
-  const feedMoney = worth("feed");
-  const medicineMoney = worth("medicine");
+  const held = {
+    feed: feed
+      .filter((one) => one.onHand > 0)
+      .map((one) => ({ amount: one.onHand, price: one.averagePriceMoney })),
+    medicine: medicine
+      .filter((one) => one.expected > 0)
+      .map((one) => ({ amount: one.expected, price: one.perDoseMoney })),
+  };
+  const feedMoney = worthOf(held.feed);
+  const medicineMoney = worthOf(held.medicine);
   return {
     feedMoney,
     medicineMoney,
     totalMoney: roundMoney(feedMoney + medicineMoney),
     /** How many feeds and medicines held stock with no price, which adds nothing above. */
-    unpriced: held.filter((one) => one.price === null).length,
+    unpriced: [...held.feed, ...held.medicine].filter(
+      (one) => one.price === null
+    ).length,
   };
 };
 
