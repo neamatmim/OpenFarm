@@ -3594,6 +3594,16 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.overheadsShare": "পরিচালন খরচের ভাগ",
   "months.one.afterOverheads": "পরিচালন খরচের পরে",
   "months.one.venturesDays": "ভেঞ্চারের পশুর দিন",
+  "months.one.receivables": "মাস শেষে বাকি, কত দিনের",
+  "months.one.receivablesHint":
+    "মাসের শেষ দিনে ক্রেতাদের কাছে যত বাকি, প্রতিটি বিক্রি বা দুধ পাঠানোর পর কত দিন হলো সেই হিসাবে; আর তার কতটা কথা দেওয়া দিন পেরিয়েছে।",
+  "months.one.age.0-7": "০–৭ দিন",
+  "months.one.age.8-15": "৮–১৫ দিন",
+  "months.one.age.16-30": "১৬–৩০ দিন",
+  "months.one.age.31-60": "৩১–৬০ দিন",
+  "months.one.age.over-60": "৬০ দিনের বেশি",
+  "months.one.owedInAll": "মোট বাকি",
+  "months.one.ofItOverdue": "এর মধ্যে মেয়াদ পেরোনো",
   "months.one.venturesTitle": "ভেঞ্চার",
   "months.one.ventures":
     "প্রতিটি ভেঞ্চার নিজের হিসাব নিজে রাখে, তাই ওপরে নেই; প্রতিটির নিজের পাতা আছে।",

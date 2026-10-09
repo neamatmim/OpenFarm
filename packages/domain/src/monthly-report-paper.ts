@@ -12,6 +12,8 @@ import { letterheadOf } from "./paper-template";
 import type { PaperDocument, PaperSection } from "./paper-template";
 import type { Said, Worded } from "./papers";
 import { SIDE_LABEL } from "./papers";
+import type { ReceivableAge, ReceivablesByAge } from "./receivable-ages";
+import { RECEIVABLE_AGES } from "./receivable-ages";
 import type { SideResult, SideResults } from "./side-results";
 
 /** One stretch's figures as the monthly report works them (`figuresOver`): the Farm's own money, milk, fattening and
@@ -45,6 +47,8 @@ export interface MonthFigures {
   overheads: { amount: number; perHeadPerDayMoney: number | null };
   /** What each Side came to, before and after its share of the Overheads, and the Farm with them (ADR 0023). */
   results: SideResults;
+  /** Where the Farm stood at the stretch's end — or now, for one still going. */
+  atEnd: { receivables: ReceivablesByAge };
 }
 
 /** The money moved in a month, one way of adding it, as the accountant's summary does. */
@@ -255,6 +259,42 @@ const FATTENING: Part = {
       label: { bn: "তাদের মার্জিন", en: "Their margins" },
       kind: "sum",
       of: (one) => one.fattening.marginMoney,
+    },
+  ],
+};
+
+/** An age of what buyers owe, in days, in each language's numerals. */
+const AGE_SAID: Record<ReceivableAge, Said> = {
+  "0-7": { bn: "০–৭ দিন", en: "0–7 days" },
+  "8-15": { bn: "৮–১৫ দিন", en: "8–15 days" },
+  "16-30": { bn: "১৬–৩০ দিন", en: "16–30 days" },
+  "31-60": { bn: "৩১–৬০ দিন", en: "31–60 days" },
+  "over-60": { bn: "৬০ দিনের বেশি", en: "Over 60 days" },
+};
+
+/** What buyers owed at the month's end, by the days since it left, the whole, and what of it was overdue. */
+const RECEIVABLES: Part = {
+  heading: {
+    bn: "মাস শেষে বাকি, কত দিনের",
+    en: "Owed at the month's end, by age",
+  },
+  lines: [
+    ...RECEIVABLE_AGES.map(({ age }) => ({
+      label: AGE_SAID[age],
+      kind: "sum" as const,
+      of: (one: MonthFigures) =>
+        one.atEnd.receivables.ages.find((each) => each.age === age)
+          ?.owingMoney ?? 0,
+    })),
+    {
+      label: { bn: "মোট বাকি", en: "Owed in all" },
+      kind: "sum",
+      of: (one) => one.atEnd.receivables.owingMoney,
+    },
+    {
+      label: { bn: "এর মধ্যে মেয়াদ পেরোনো", en: "Of it overdue" },
+      kind: "sum",
+      of: (one) => one.atEnd.receivables.overdueMoney,
     },
   ],
 };
@@ -531,6 +571,7 @@ export const monthlyReportPaper = (
       partOf(FATTENING, facts),
       partOf(OVERHEADS, facts),
       resultsPart(facts),
+      partOf(RECEIVABLES, facts),
     ],
     closing: [...leftOut(facts.figures), VENTURES_KEEP_THEIR_OWN],
     produced: producedSaid(facts.producedAt, facts.producedBy),
@@ -689,6 +730,7 @@ export const monthlyReportRows = (
     ...rowsOf(FATTENING),
     ...rowsOf(OVERHEADS),
     ...resultsRows(facts),
+    ...rowsOf(RECEIVABLES),
     ...rowsOf(LEFT_OUT),
     ...rowsOf(AWAITING),
   ];

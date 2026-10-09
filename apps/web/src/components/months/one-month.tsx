@@ -1,4 +1,5 @@
 import type { PaperDocument } from "@OpenFarm/domain";
+import { RECEIVABLE_AGES } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
@@ -31,6 +32,10 @@ import { orpc } from "@/utils/orpc";
 
 export type OneMonth = Awaited<ReturnType<typeof client.monthlyReport.month>>;
 type Figures = OneMonth["figures"];
+/** A month's figures as the phone may hold them: an answer kept from before the management figures (ADR 0023) has
+ *  neither what each Side came to nor where the Farm stood at the month's end. */
+export type KeptFigures = Omit<Figures, "results" | "atEnd"> &
+  Partial<Pick<Figures, "results" | "atEnd">>;
 
 /** One month of the farm, the Owner's alone, beside the month before. */
 export const useOneMonth = (month: string, asked = true) =>
@@ -113,7 +118,7 @@ export const MonthPart = ({
 };
 
 /** Each part's lines, worded and formatted for the reader, from the month's figures and the month before's. */
-export const useMonthLines = (now: Figures, before: Figures) => {
+export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
   const { t, language } = useLanguage();
   const asMoney = useMoney();
   const perLiter = useMoneyRate();
@@ -124,7 +129,7 @@ export const useMonthLines = (now: Figures, before: Figures) => {
       : t("owner.liters", { liters: formatNumber(amount, language) });
   const both = (
     label: string,
-    say: (figures: Figures) => ReactNode,
+    say: (figures: KeptFigures) => ReactNode,
     total = false
   ): Line => ({ label, now: say(now), before: say(before), total });
   return {
@@ -165,6 +170,26 @@ export const useMonthLines = (now: Figures, before: Figures) => {
         one.fattening.marginMoney === null
           ? null
           : asMoney(one.fattening.marginMoney)
+      ),
+    ],
+    receivables: [
+      ...RECEIVABLE_AGES.map(({ age }) =>
+        both(t(`months.one.age.${age}`), (one) =>
+          one.atEnd
+            ? asMoney(
+                one.atEnd.receivables.ages.find((each) => each.age === age)
+                  ?.owingMoney ?? 0
+              )
+            : null
+        )
+      ),
+      both(
+        t("months.one.owedInAll"),
+        (one) => (one.atEnd ? asMoney(one.atEnd.receivables.owingMoney) : null),
+        true
+      ),
+      both(t("months.one.ofItOverdue"), (one) =>
+        one.atEnd ? asMoney(one.atEnd.receivables.overdueMoney) : null
       ),
     ],
     overheads: [

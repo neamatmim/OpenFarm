@@ -3867,6 +3867,16 @@ export const enCore = {
   "months.one.overheadsShare": "Share of overheads",
   "months.one.afterOverheads": "After overheads",
   "months.one.venturesDays": "The Ventures' animals' days",
+  "months.one.receivables": "Owed at the month's end, by age",
+  "months.one.receivablesHint":
+    "What buyers still owed on the month's last day, by the days since each sale or milk dispatch left, and what of it was past the day promised.",
+  "months.one.age.0-7": "0–7 days",
+  "months.one.age.8-15": "8–15 days",
+  "months.one.age.16-30": "16–30 days",
+  "months.one.age.31-60": "31–60 days",
+  "months.one.age.over-60": "Over 60 days",
+  "months.one.owedInAll": "Owed in all",
+  "months.one.ofItOverdue": "Of it overdue",
   "months.one.venturesTitle": "Ventures",
   "months.one.ventures":
     "Each venture keeps its own accounts, so none are above; each has its own page.",

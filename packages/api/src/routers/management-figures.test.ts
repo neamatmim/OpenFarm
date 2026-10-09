@@ -11,6 +11,10 @@ import { appRouter } from "./index";
 // Venture's money bought stand on the Fattening side. The dairy animals are charged ৳3,000 of spray on the 5th, 100
 // liters of milk go at ৳60 on the 10th, and the Farm's bull is sold for ৳80,000 at midnight on the 20th. The shed rent
 // is ৳8,100: over the 31 + 19 + 31 = 81 head-days, ৳100 a head a day.
+//
+// The milk went on credit, promised for the 25th: on 31 May its ৳6,000 is 21 days old and overdue. The bull's buyer paid
+// ৳50,000 at the gate and promised the rest by 5 June: ৳30,000, 11 days old and not yet due. The milk buyer pays
+// ৳3,000 on 3 June, which May's end knows nothing of.
 
 const as = (role: "owner" | "manager", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
@@ -130,6 +134,8 @@ beforeAll(async () => {
     dispatchedAt: new Date("2046-05-10T02:30:00.000Z"),
     liters: 100,
     pricePerLiterMoney: 60,
+    paidNowMoney: 0,
+    promisedBy: "2046-05-25",
     buyer: {
       name: "মিল্ক ভিটা",
       address: "বাঘাবাড়ী, শাহজাদপুর, সিরাজগঞ্জ",
@@ -149,6 +155,16 @@ beforeAll(async () => {
     driver: "সোহেল",
     priceMoney: 80_000,
     weightKg: 260,
+    paidNowMoney: 50_000,
+    promisedBy: "2046-06-05",
+  });
+  const paying = await as("manager", "2046-06-03T04:00:00.000Z");
+  await paying.client.receivables.pay({
+    buyer: "মিল্ক ভিটা",
+    kind: "milk",
+    amountMoney: 3000,
+    paidOn: "2046-06-03",
+    paymentMethod: "cash",
   });
 });
 
@@ -189,5 +205,33 @@ describe("what each Side came to in May", () => {
       marginBeforePercent: 38.4,
       marginAfterPercent: 29,
     });
+  });
+});
+
+describe("what buyers owed at the end of May", () => {
+  it("is by the days since each left, with what was overdue, and knows nothing of June's payment", async () => {
+    const { client: owner } = await as("owner", NOW);
+    const { figures } = await owner.monthlyReport.month({ month: "2046-05" });
+
+    expect(figures.atEnd.receivables).toEqual({
+      owingMoney: 36_000,
+      overdueMoney: 6000,
+      ages: [
+        { age: "0-7", owingMoney: 0 },
+        { age: "8-15", owingMoney: 30_000 },
+        { age: "16-30", owingMoney: 6000 },
+        { age: "31-60", owingMoney: 0 },
+        { age: "over-60", owingMoney: 0 },
+      ],
+    });
+  });
+
+  it("reads a month still going to today", async () => {
+    const { client: owner } = await as("owner", NOW);
+    const { figures } = await owner.monthlyReport.month({ month: "2046-06" });
+
+    // By 10 June the milk buyer has paid ৳3,000 of his ৳6,000, and the bull's buyer is five days past his promise.
+    expect(figures.atEnd.receivables.owingMoney).toBe(33_000);
+    expect(figures.atEnd.receivables.overdueMoney).toBe(33_000);
   });
 });

@@ -14,7 +14,7 @@ import {
   useMonthLines,
   useOneMonth,
 } from "@/components/months/one-month";
-import type { OneMonth } from "@/components/months/one-month";
+import type { KeptFigures, OneMonth } from "@/components/months/one-month";
 import {
   BackLink,
   Notice,
@@ -36,6 +36,8 @@ const REFUSALS = { month_not_begun: "months.one.notBegun" } as const;
 const TheMonth = ({ one }: { one: OneMonth }) => {
   const { t, language } = useLanguage();
   const lines = useMonthLines(one.figures, one.figuresBefore);
+  // An answer kept on the phone from before the management figures holds none of them: drawn without those parts.
+  const kept: KeptFigures = one.figures;
   const at = { month: one.month, before: one.before };
   return (
     <>
@@ -86,12 +88,22 @@ const TheMonth = ({ one }: { one: OneMonth }) => {
       >
         <MonthPart {...at} lines={lines.overheads} />
       </Section>
-      <Section
-        description={t("months.one.resultsHint")}
-        title={t("months.one.results")}
-      >
-        <SideResults results={one.figures.results} />
-      </Section>
+      {kept.results ? (
+        <Section
+          description={t("months.one.resultsHint")}
+          title={t("months.one.results")}
+        >
+          <SideResults results={kept.results} />
+        </Section>
+      ) : null}
+      {kept.atEnd ? (
+        <Section
+          description={t("months.one.receivablesHint")}
+          title={t("months.one.receivables")}
+        >
+          <MonthPart {...at} lines={lines.receivables} />
+        </Section>
+      ) : null}
       <LeftOut figures={one.figures} />
       <Section title={t("months.one.venturesTitle")}>
         <VenturesThatRan month={one.month} ventures={one.ventures} />

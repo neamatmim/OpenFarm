@@ -57,6 +57,19 @@ const FIGURES = {
       marginAfterPercent: 26.5,
     },
   },
+  atEnd: {
+    receivables: {
+      owingMoney: 36_000,
+      overdueMoney: 6000,
+      ages: [
+        { age: "0-7" as const, owingMoney: 0 },
+        { age: "8-15" as const, owingMoney: 30_000 },
+        { age: "16-30" as const, owingMoney: 6000 },
+        { age: "31-60" as const, owingMoney: 0 },
+        { age: "over-60" as const, owingMoney: 0 },
+      ],
+    },
+  },
 };
 
 /** A Side's month with nothing in it. */
@@ -95,6 +108,19 @@ const NOTHING = {
     fattening: NO_RESULT,
     restOfOverheadsMoney: 0,
     farm: NO_RESULT,
+  },
+  atEnd: {
+    receivables: {
+      owingMoney: 0,
+      overdueMoney: 0,
+      ages: [
+        { age: "0-7" as const, owingMoney: 0 },
+        { age: "8-15" as const, owingMoney: 0 },
+        { age: "16-30" as const, owingMoney: 0 },
+        { age: "31-60" as const, owingMoney: 0 },
+        { age: "over-60" as const, owingMoney: 0 },
+      ],
+    },
   },
 };
 
@@ -253,6 +279,26 @@ describe("what each Side came to, on paper", () => {
   });
 });
 
+describe("what buyers owed at the month's end, on paper", () => {
+  it("sets each age beside the month before's, the whole and what of it was overdue", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("Owed at the month's end, by age");
+    expect(text).toContain("8–15 days · 30,000 taka · 0 taka");
+    expect(text).toContain("Over 60 days · 0 taka · 0 taka");
+    expect(text).toContain("Owed in all · 36,000 taka · 0 taka");
+    expect(text).toContain("Of it overdue · 6,000 taka · 0 taka");
+  });
+
+  it("says the ages in Bangla", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "bn");
+
+    expect(text).toContain("মাস শেষে বাকি, কত দিনের");
+    expect(text).toContain("১৬–৩০ দিন · ৬,০০০ টাকা · ০ টাকা");
+    expect(text).toContain("৬০ দিনের বেশি");
+  });
+});
+
 describe("the Monthly Report of one month, a row a figure", () => {
   it("says each figure of the month and the month before as a number: whole taka, rates to the paisa, nothing for none", () => {
     const rows = monthlyReportRows(FACTS);
@@ -340,6 +386,21 @@ describe("the Monthly Report of one month, a row a figure", () => {
         monthBefore: 0,
       })
     );
+  });
+
+  it("says what buyers owed at each month's end by age", () => {
+    const rows = monthlyReportRows(FACTS);
+
+    expect(rows).toContainEqual({
+      part: {
+        bn: "মাস শেষে বাকি, কত দিনের",
+        en: "Owed at the month's end, by age",
+      },
+      line: { bn: "১৬–৩০ দিন", en: "16–30 days" },
+      way: null,
+      thisMonth: 6000,
+      monthBefore: 0,
+    });
   });
 
   it("holds every line of the paper's figures, each named as the paper names it", () => {

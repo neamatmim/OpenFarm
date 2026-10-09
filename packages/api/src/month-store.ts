@@ -16,6 +16,7 @@ import {
   monthsEndingIn,
   monthsFromTo,
   monthsOfFinancialYear,
+  receivablesByAge,
   roundMoney,
   sideResultsOf,
   startOfFarmDay,
@@ -35,7 +36,11 @@ import { moneyForTheAccountant } from "./money-export-store";
 import { THE_FARMS_PURSE } from "./money-store";
 import type { OverheadMoneyOn } from "./overhead-store";
 import { overheadMoneyIn, overheadsOf } from "./overhead-store";
-import { fetchedPerLiter, writtenOffByItem } from "./receivable-store";
+import {
+  fetchedPerLiter,
+  receivableOfBuyers,
+  writtenOffByItem,
+} from "./receivable-store";
 import { approvedSettlementOf } from "./settlement-store";
 import { planAgainstActual } from "./venture-plan-store";
 import { ownedThenByOf, ownersOverTime } from "./venture-store";
@@ -201,6 +206,35 @@ const figuresOver = (
   };
 };
 
+/** The farm the end of a stretch is read for: its own days before a Receivable that names none is overdue. */
+interface EndFarm {
+  id: string;
+  receivableDays: number;
+}
+
+/**
+ * Where the Farm stood at the end of a stretch — or now, for one still going (ADR 0023): what buyers owed, by age.
+ */
+const atTheEndOf = async (
+  db: Database,
+  farm: EndFarm,
+  { until }: { from: Date; until: Date },
+  now: Date
+) => {
+  const end = until < now ? until : now;
+  // The farm day the stretch ended on: its last, or today.
+  const lastDay = farmDayOf(new Date(end.getTime() - 1));
+  const buyers = await receivableOfBuyers(db, farm.id, { asOf: lastDay });
+  return {
+    /** What buyers owed at its end, by the days since each Sale or Dispatch left, and what of it was overdue. */
+    receivables: receivablesByAge(
+      buyers.flatMap((buyer) => buyer.kinds.flatMap((kind) => kind.items)),
+      lastDay,
+      farm.receivableDays
+    ),
+  };
+};
+
 /** The day the Farm's purse first moved a taka, or today for a farm whose purse has moved nothing yet. */
 const firstDayKept = async (db: Database, farmId: string, today: string) => {
   const first = await db.query.moneyEvent.findFirst({
@@ -322,7 +356,7 @@ const readOver = async (
  */
 export const monthByMonth = async (
   db: Database,
-  farm: { id: string; ventureInvestorsPercent: number },
+  farm: EndFarm & { ventureInvestorsPercent: number },
   now: Date,
   financialYear?: string
 ) => {
@@ -333,16 +367,28 @@ export const monthByMonth = async (
     from: rangeOf(months[0] ?? "").from,
     until: rangeOf(months.at(-1) ?? "").until,
   };
-  const [read, ventures, financialYears] = await Promise.all([
+  const ranges = months.map(rangeOf);
+  const [read, ventures, financialYears, ends] = await Promise.all([
     readOver(db, farm.id, span, now),
     venturesAgainstPlan(db, farm, now),
     financialYearsKept(db, farm.id, rules, today),
+    Promise.all(
+      [...ranges, span].map((range) => atTheEndOf(db, farm, range, now))
+    ),
   ]);
   // Each month's charges sorted out of the year's once, rather than every month reading all of them.
-  const ranges = months.map(rangeOf);
   const narrowed = narrowedToEach(read.costs, [...ranges, span]);
-  const over = (range: { from: Date; until: Date }, index: number) =>
-    figuresOver(range, { ...read, costs: narrowed[index] ?? read.costs });
+  const over = (range: { from: Date; until: Date }, index: number) => {
+    // Read for every stretch above, the year last: one for each, always.
+    const atEnd = ends[index];
+    if (!atEnd) {
+      throw new Error("Expected the end of every stretch read");
+    }
+    return {
+      ...figuresOver(range, { ...read, costs: narrowed[index] ?? read.costs }),
+      atEnd,
+    };
+  };
   return {
     months: months.map((month, index) => {
       const range = ranges[index] ?? rangeOf(month);
@@ -398,7 +444,7 @@ const venturesRunningIn = async (
  */
 export const aMonth = async (
   db: Database,
-  farm: { id: string },
+  farm: EndFarm,
   now: Date,
   month: string
 ) => {
@@ -413,10 +459,12 @@ export const aMonth = async (
   const range = rangeOf(month);
   const earlier = rangeOf(before);
   const span = { from: earlier.from, until: range.until };
-  const [read, ventures, firstDay] = await Promise.all([
+  const [read, ventures, firstDay, end, endBefore] = await Promise.all([
     readOver(db, farm.id, span, now),
     venturesRunningIn(db, farm.id, range),
     firstDayKept(db, farm.id, today),
+    atTheEndOf(db, farm, range, now),
+    atTheEndOf(db, farm, earlier, now),
   ]);
   const [thisMonth, monthBefore] = narrowedToEach(read.costs, [range, earlier]);
   // One for each range, always: a month falling back on the whole stretch's costs would say two months as one.
@@ -435,8 +483,14 @@ export const aMonth = async (
     before,
     /** This month, still going: its figures are what it has come to so far. */
     soFar: range.until > now,
-    figures: figuresOver(range, { ...read, costs: thisMonth }),
-    figuresBefore: figuresOver(earlier, { ...read, costs: monthBefore }),
+    figures: {
+      ...figuresOver(range, { ...read, costs: thisMonth }),
+      atEnd: end,
+    },
+    figuresBefore: {
+      ...figuresOver(earlier, { ...read, costs: monthBefore }),
+      atEnd: endBefore,
+    },
     /** The month's money as the accountant adds it: by Category, and by Side. */
     moneyBy: { category: money.byCategory, side: money.bySide },
     /** The months there are to read, newest first: this one back to the month of the first taka the purse moved. */
