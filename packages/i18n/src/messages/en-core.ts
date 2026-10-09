@@ -2556,11 +2556,11 @@ export const enCore = {
   "accountant.title": "For the accountant",
   "accountant.summary": "Income and expense",
   "accountant.csv": "Every money event",
-  "accountant.hint": "For the period chosen above, for the accountant's books.",
+  "accountant.hint": "For the period chosen above.",
   "accountant.summaryHint":
     "Income against expense by category, counterparty and side, and who owed the farm at the period's end, on the farm's letterhead to print or save as a PDF.",
   "accountant.csvHint":
-    "One row to each money event, with the record behind it, its side and account, and whether it is approved, for the accountant's spreadsheet.",
+    "One row to each money event, with the record behind it, its side and account, and whether it is approved, to open in a spreadsheet.",
   "exports.csv": "Download CSV",
   "costs.bySideHint":
     "What each side's animals were fed, dosed and visited for in the period chosen above, and the fattening animals sold in it.",
@@ -3832,7 +3832,6 @@ export const enCore = {
   "months.one.title": "Monthly report — {month}",
   "months.one.subtitle":
     "How the farm did in one month, beside the month before: the farm's own money, the milk, fattening and overheads.",
-  "months.one.csv": "The month (CSV)",
   "months.one.whichMonth": "Which month",
   "months.one.line": "Figure",
   "months.one.money": "The farm's money",

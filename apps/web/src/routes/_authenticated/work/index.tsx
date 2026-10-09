@@ -129,7 +129,7 @@ const WorkCard = ({
   return (
     <Link
       className={cn(
-        "group bg-card hover:border-primary/40 focus-visible:ring-ring flex min-h-24 items-center gap-3 rounded-xl border p-4 shadow-(--surface-shadow) transition-colors duration-150 outline-none focus-visible:ring-2 sm:gap-4",
+        "surface group hover:border-primary/40 focus-visible:ring-ring flex min-h-24 items-center gap-3 p-4 transition-colors duration-150 outline-none focus-visible:ring-2 sm:gap-4",
         work.overdue && "border-danger/40"
       )}
       params={{ instanceId: work.id }}

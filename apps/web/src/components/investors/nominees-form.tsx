@@ -184,7 +184,8 @@ const NomineeRowFields = ({
         </FormField>
       </div>
       {minor ? (
-        <InsetPanel className="flex flex-col gap-3">
+        // A part of the Nominee's own box, ruled off from the rest, rather than a second box inside it.
+        <div className="flex flex-col gap-3 border-t pt-3">
           <p className="text-sm font-medium">{t("nominees.receiverHeading")}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <FormField
@@ -244,7 +245,7 @@ const NomineeRowFields = ({
               />
             </FormField>
           </div>
-        </InsetPanel>
+        </div>
       ) : null}
     </InsetPanel>
   );

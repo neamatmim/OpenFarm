@@ -132,8 +132,13 @@ export const ActionsHeader = () => (
   <span className="sr-only">{useT()("common.col.actions")}</span>
 );
 
-/** How a column of figures or words is headed, on a list and on a statement alike: muted, small, on one line, at the
- *  foot of its cell as far above the rule as a row's words sit below it. */
+/**
+ * How a column of figures or words is headed, on a list and on a statement alike: muted and small, at the foot of its
+ * cell as far above the rule as a row's words sit below it, and on one line, as a list's headings are read across —
+ * sentence case and the small size keep them short enough that the figures under them still say how wide a column is.
+ * (They wrapped while they were capitals, which pushed the Ventures table off its card; a table scrolls sideways on its
+ * own rather than the page, where one is still too wide.)
+ */
 export const COLUMN_HEADING =
   "text-muted-foreground pb-2.5 align-bottom text-xs whitespace-nowrap";
 
@@ -438,11 +443,6 @@ export const DataTable = <TData extends object>({
                     <TableHead
                       aria-sort={sorted ? ARIA_SORT[sorted] : undefined}
                       className={cn(
-                        // One line, as a list's headings are read across: sentence case and the small size keep them
-                        // short enough that the figures under them still say how wide a column is. (They wrapped while
-                        // they were capitals, which pushed the Ventures table off its card; the table scrolls sideways
-                        // on its own rather than the page, where one is still too wide.)
-                        // At the foot of the cell, as far above the rule as a row's words sit below it.
                         COLUMN_HEADING,
                         "first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
                         look?.align === "end" && "text-right",

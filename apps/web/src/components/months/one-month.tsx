@@ -86,9 +86,7 @@ export const MonthPart = ({
           <TableHead className={cn(COLUMN_HEADING, "text-right")}>
             {saidMonth(month, language)}
           </TableHead>
-          <TableHead
-            className={cn(COLUMN_HEADING, "text-muted-foreground text-right")}
-          >
+          <TableHead className={cn(COLUMN_HEADING, "text-right")}>
             {saidMonth(before, language)}
           </TableHead>
         </TableRow>
@@ -383,7 +381,7 @@ export const TheMonthAsCsv = ({ month }: { month: string }) => {
       variant="outline"
     >
       <FileSpreadsheet aria-hidden data-icon="inline-start" />
-      {t("months.one.csv")}
+      {t("exports.csv")}
     </Button>
   );
 };

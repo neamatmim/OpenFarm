@@ -22,8 +22,8 @@ import {
   FormDialog,
   FormField,
   FormSheet,
-  InsetPanel,
   NativeSelect,
+  WorkedOut,
 } from "@/components/page-kit";
 import { FarmAccountField } from "@/components/payment-method";
 import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
@@ -798,11 +798,11 @@ const WriteOffDialog = ({ detail, open, onOpenChange }: ActProps) => {
       {venture ? (
         <>
           {toMakeGood.data ? (
-            <InsetPanel as="p" className="text-sm">
+            <WorkedOut>
               {t("animals.madeGoodAmount", {
                 amount: asMoney(toMakeGood.data.amountMoney),
               })}
-            </InsetPanel>
+            </WorkedOut>
           ) : null}
           <FormField
             hint={t("animals.madeGoodReferenceHint")}

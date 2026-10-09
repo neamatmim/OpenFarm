@@ -8,6 +8,7 @@ import { orpc } from "@/utils/orpc";
 
 /** The years a press away: this financial year up to today, and the whole of the last. */
 const SHORTCUTS = ["this", "last"] as const;
+/** One of the period's shortcuts: this financial year, or the last. */
 type Shortcut = (typeof SHORTCUTS)[number];
 
 /**
@@ -55,7 +56,7 @@ export const PeriodBar = ({
     >
       {shortcuts ? (
         <SegmentedControl<Shortcut | "">
-          label={t("money.period")}
+          label={t("settings.section.years")}
           name="money-period"
           onChange={(shortcut) => {
             if (shortcut) {

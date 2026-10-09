@@ -201,8 +201,9 @@ const TriggerFields = ({
         </p>
       ) : null}
       {happenings.map((happening, index) => (
-        <InsetPanel
-          className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center"
+        // A row on the triggers' panel, not a second panel inside it.
+        <div
+          className="bg-background flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:flex-wrap sm:items-center"
           key={`${happening.kind}-${index}`}
         >
           <NativeSelect
@@ -243,7 +244,7 @@ const TriggerFields = ({
           >
             <Trash2 aria-hidden />
           </Button>
-        </InsetPanel>
+        </div>
       ))}
       <Button
         className="self-start"

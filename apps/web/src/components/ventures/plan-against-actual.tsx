@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { COLUMN_HEADING } from "@/components/data-table";
 import { Nothing } from "@/components/list-cells";
-import { Loaded, Section } from "@/components/page";
+import { Loaded, SUBHEADING, Section } from "@/components/page";
 import { FigureTerm } from "@/components/page-kit";
 import { useLineBreedName } from "@/components/ventures/line-breed";
 import { useLanguage } from "@/i18n/language-provider";
@@ -19,7 +19,7 @@ type Measured = NonNullable<
 >;
 type Heads = Measured["buying"]["outside"];
 
-const HEAD = `${COLUMN_HEADING} px-2 pt-1.5 font-medium`;
+const HEAD = `${COLUMN_HEADING} px-2 pt-1.5`;
 const CELL = "px-2 py-2 text-right tabular-nums";
 
 /** Some animals as a cell: how many, and what a kilo cost where any were bought. */
@@ -42,7 +42,7 @@ const Buying = ({ measured }: { measured: Measured }) => {
   const { buying } = measured;
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold">{t("plan.vs.buying")}</h3>
+      <h3 className={SUBHEADING}>{t("plan.vs.buying")}</h3>
       <div className="-mx-4 overflow-x-auto md:-mx-5">
         <table className="w-full min-w-[40rem] text-sm">
           <thead className="border-b">
@@ -158,7 +158,7 @@ const Growth = ({ measured }: { measured: Measured }) => {
   const behind = actual !== null && actual < growth.plannedKgToday;
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold">{t("plan.vs.growth")}</h3>
+      <h3 className={SUBHEADING}>{t("plan.vs.growth")}</h3>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
         <FigureTerm label={t("plan.vs.plannedToday")}>
           {kg(growth.plannedKgToday)}
@@ -214,7 +214,7 @@ const Money = ({ measured }: { measured: Measured }) => {
   ];
   return (
     <div className="flex flex-col gap-1">
-      <h3 className="mb-1 text-sm font-semibold">{t("plan.vs.money")}</h3>
+      <h3 className={`mb-1 ${SUBHEADING}`}>{t("plan.vs.money")}</h3>
       <div className="-mx-4 overflow-x-auto md:-mx-5">
         <table className="w-full max-w-3xl text-sm">
           <thead className="border-b">

@@ -1,7 +1,7 @@
 import type { EarlyLosses } from "@OpenFarm/domain";
 import { useQuery } from "@tanstack/react-query";
 
-import { EmptyState, Loaded, Section } from "@/components/page";
+import { EmptyState, LABEL_HEADING, Loaded, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -29,7 +29,7 @@ const LossLine = ({ row }: { row: EarlyLosses }) => {
 const LossList = ({ title, rows }: { title: string; rows: EarlyLosses[] }) =>
   rows.length === 0 ? null : (
     <div className="flex flex-col">
-      <h4 className="text-muted-foreground text-xs font-medium">{title}</h4>
+      <h4 className={LABEL_HEADING}>{title}</h4>
       <ul className="divide-y">
         {rows.map((row) => (
           <LossLine key={row.name} row={row} />

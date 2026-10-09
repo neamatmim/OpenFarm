@@ -483,7 +483,7 @@ const PlanSelling = ({
         <p
           className={cn(
             "col-span-2 -mt-1 text-xs",
-            lowAboveHigh ? "text-destructive" : "text-muted-foreground"
+            lowAboveHigh ? "text-danger" : "text-muted-foreground"
           )}
         >
           {t(lowAboveHigh ? "projection.lowAboveHigh" : "plan.saleHint")}

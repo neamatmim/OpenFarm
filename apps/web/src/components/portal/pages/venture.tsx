@@ -171,10 +171,7 @@ const OnTheirCapital = ({
   const lost = returned.per100 < 0;
   return (
     <p
-      className={cn(
-        "text-sm font-medium tabular-nums",
-        lost && "text-destructive"
-      )}
+      className={cn("text-sm font-medium tabular-nums", lost && "text-danger")}
     >
       {t(lost ? "portal.onCapitalLoss" : "portal.onCapitalGain", {
         amount: Math.abs(returned.per100),

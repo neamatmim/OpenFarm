@@ -49,14 +49,15 @@ export const MilkRecordsTab = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <Section
-        description={t("dispatch.reportsHint")}
-        title={t("dispatch.reports")}
-      >
+      {/* The tab already names it; the part says only how its dates work. */}
+      <Section>
+        <p className="text-muted-foreground text-sm">
+          {t("dispatch.reportsHint")}
+        </p>
         <PeriodFilter
           from={from}
           fromLabel={t("dispatch.from")}
-          label={t("dispatch.reports")}
+          label={t("money.period")}
           onFrom={setFrom}
           onTo={setTo}
           to={to}

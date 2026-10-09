@@ -2358,11 +2358,11 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "accountant.title": "হিসাবরক্ষকের জন্য",
   "accountant.summary": "আয় ও ব্যয়",
   "accountant.csv": "সব {currencyOf} হিসাব",
-  "accountant.hint": "ওপরে বেছে নেওয়া সময়ের, হিসাবরক্ষকের খাতার জন্য।",
+  "accountant.hint": "ওপরে বেছে নেওয়া সময়ের।",
   "accountant.summaryHint":
     "খাত, লেনদেনকারী ও বিভাগ অনুযায়ী আয় আর ব্যয়, আর সময়কালের শেষে খামারের পাওনা, খামারের প্যাডে প্রিন্ট বা PDF করার জন্য।",
   "accountant.csvHint":
-    "প্রতিটি {currencyOf} হিসাব এক সারিতে, পেছনের রেকর্ড, বিভাগ, অ্যাকাউন্ট আর অনুমোদন হয়েছে কি না সহ, হিসাবরক্ষকের স্প্রেডশিটের জন্য।",
+    "প্রতিটি {currencyOf} হিসাব এক সারিতে, পেছনের রেকর্ড, বিভাগ, অ্যাকাউন্ট আর অনুমোদন হয়েছে কি না সহ, স্প্রেডশিটে খোলার জন্য।",
   "exports.csv": "CSV ডাউনলোড",
   "costs.bySideHint":
     "ওপরে বেছে নেওয়া সময়ে প্রতিটি দিকের পশুর খাদ্য, ওষুধ আর ভেট ভিজিটের খরচ, আর সেই সময়ে বিক্রি হওয়া মোটাতাজা পশু।",
@@ -3559,7 +3559,6 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.title": "মাসিক প্রতিবেদন — {month}",
   "months.one.subtitle":
     "এক মাসে খামার কেমন চলল, আগের মাসের পাশে: খামারের নিজের টাকা, দুধ, মোটাতাজাকরণ আর পরিচালন খরচ।",
-  "months.one.csv": "মাসের হিসাব (CSV)",
   "months.one.whichMonth": "কোন মাস",
   "months.one.line": "হিসাব",
   "months.one.money": "খামারের টাকা",

@@ -42,7 +42,9 @@ export const AccountantExport = ({
   );
   return (
     <>
-      <Section description={t("accountant.hint")} title={t("accountant.title")}>
+      {/* The tab already names it; the part says only the period it reads. */}
+      <Section>
+        <p className="text-muted-foreground text-sm">{t("accountant.hint")}</p>
         <ExportList>
           <ExportRow
             description={t("accountant.summaryHint")}

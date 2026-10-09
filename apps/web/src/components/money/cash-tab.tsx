@@ -573,6 +573,7 @@ const HandCard = ({ row }: { row: HandRow }) => {
   );
 };
 
+/** One hand's cash as a phone reads it, for the list's card. */
 const handCard = (row: HandRow) => <HandCard row={row} />;
 
 type Float = Awaited<ReturnType<typeof orpc.cash.tripFloats.call>>[number];
@@ -694,6 +695,7 @@ const FloatCard = ({ row }: { row: FloatRow }) => {
   );
 };
 
+/** One float out as a phone reads it, for the list's card. */
 const floatCard = (row: FloatRow) => <FloatCard row={row} />;
 
 interface FloatCell {

@@ -518,7 +518,7 @@ const SignedIn = () => {
       {others === 0 ? null : <WhyNot acting={acting} />}
       <Loaded
         query={places}
-        skeleton={<Skeleton className="h-16 rounded-lg" />}
+        skeleton={<Skeleton className="h-16 rounded-xl" />}
       >
         <ul className="flex flex-col divide-y rounded-lg border">
           {(places.data ?? []).map((one) => {

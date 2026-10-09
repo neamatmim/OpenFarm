@@ -706,6 +706,9 @@ interface FormPanelProps {
    */
   missing?: StillMissing | null;
   pending: boolean;
+  /** False for a form whose typing is not worth keeping — a password asked again — which closes without asking
+   *  whether to discard it. */
+  keepsWhatIsTyped?: boolean;
   children: ReactNode;
 }
 
@@ -790,9 +793,16 @@ const useFormKeeping = ({
   missing,
   onSubmit,
   pending,
+  keepsWhatIsTyped = true,
 }: Pick<
   FormPanelProps,
-  "open" | "onOpenChange" | "ready" | "missing" | "onSubmit" | "pending"
+  | "open"
+  | "onOpenChange"
+  | "ready"
+  | "missing"
+  | "onSubmit"
+  | "pending"
+  | "keepsWhatIsTyped"
 >) => {
   const { t } = useLanguage();
   const form = useRef<HTMLFormElement>(null);
@@ -908,7 +918,7 @@ const useFormKeeping = ({
     handleSubmit: submit,
     handleCancel: requestClose,
     handleOpenChange,
-    handleChange: () => setChanged(true),
+    handleChange: () => setChanged(keepsWhatIsTyped),
     stillMissing,
     refused,
     askToDiscard,
@@ -1025,6 +1035,7 @@ export const FormDialog = ({
   ready,
   missing,
   pending,
+  keepsWhatIsTyped,
   children,
   className,
 }: FormPanelProps & { className?: string }) => {
@@ -1047,6 +1058,7 @@ export const FormDialog = ({
     missing,
     onSubmit,
     pending,
+    keepsWhatIsTyped,
   });
   return (
     <Dialog onOpenChange={handleOpenChange} open={open}>

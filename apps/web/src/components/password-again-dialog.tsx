@@ -55,6 +55,7 @@ export const PasswordAgainDialog = () => {
 
   return (
     <FormDialog
+      keepsWhatIsTyped={false}
       description={t("passwordAgain.why")}
       onOpenChange={(opening) => {
         if (!opening) {

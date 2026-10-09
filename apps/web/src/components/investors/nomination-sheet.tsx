@@ -124,7 +124,7 @@ const WayChoice = ({
         >
           <input
             checked={way === one.value}
-            className="mt-0.5"
+            className="sr-only"
             disabled={one.disabled}
             name="nomination-way"
             onChange={() => onWay(one.value)}

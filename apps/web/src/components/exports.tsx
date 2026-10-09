@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { useId } from "react";
 
 import { SUBHEADING } from "@/components/page";
 
@@ -24,19 +25,28 @@ export const ExportRow = ({
   description: ReactNode;
   /** Its ways out: a Print, a CSV, each a button. */
   children: ReactNode;
-}) => (
-  <li className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-    <div className="flex min-w-0 items-start gap-3">
-      <span className="bg-secondary text-secondary-foreground grid size-8 shrink-0 place-items-center rounded-lg">
-        <Icon aria-hidden className="size-4" />
-      </span>
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <p className={SUBHEADING}>{title}</p>
-        <p className="text-muted-foreground text-sm">{description}</p>
+}) => {
+  const titleId = useId();
+  return (
+    <li className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className="bg-secondary text-secondary-foreground grid size-8 shrink-0 place-items-center rounded-lg">
+          <Icon aria-hidden className="size-4" />
+        </span>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <p className={SUBHEADING} id={titleId}>
+            {title}
+          </p>
+          <p className="text-muted-foreground text-sm">{description}</p>
+        </div>
       </div>
-    </div>
-    <div className="flex shrink-0 flex-wrap gap-2 pl-11 sm:pl-0">
-      {children}
-    </div>
-  </li>
-);
+      {/* Named by its line, so "Print" and "Download CSV" are heard as whose they are, beside another line's. */}
+      <fieldset
+        aria-labelledby={titleId}
+        className="flex min-w-0 shrink-0 flex-wrap gap-2 pl-11 sm:pl-0"
+      >
+        {children}
+      </fieldset>
+    </li>
+  );
+};

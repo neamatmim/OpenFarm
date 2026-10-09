@@ -388,6 +388,7 @@ const PersonCard = ({ person }: { person: Person }) => {
   );
 };
 
+/** One person's draws as a phone reads them, for the list's card. */
 const personCard = (person: Person) => <PersonCard person={person} />;
 
 /** A person a row on a desk — who, their oldest draw, how many, and what they still owe — each opening to the draws

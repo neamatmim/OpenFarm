@@ -124,7 +124,7 @@ export const BackLink: LinkComponent<typeof BackAnchor> = (props) => (
 
 /** How far apart the letters of a code stand — a one-time code, a PIN, a Pay-in Code — typed or shown, so each can be
  *  checked against the paper or the message it came on: the same spacing on every screen that has one. */
-export const CODE_SPACING = "tracking-[0.3em]";
+export const CODE_SPACING = "tracking-[0.2em]";
 
 /** The card of a flow — signing in, joining, setting the farm up, a step of the Shed Phone's door or of a piece of
  *  work: one card in a column in the middle, one thing asked of whoever is holding it, spaced the same on every door. */

@@ -591,7 +591,7 @@ export const TheVentureMonthAsCsv = ({
       variant="outline"
     >
       <FileSpreadsheet aria-hidden data-icon="inline-start" />
-      {t("months.one.csv")}
+      {t("exports.csv")}
     </Button>
   );
 };
