@@ -21,6 +21,7 @@ export const ALERT_KINDS = [
   "reimbursement_due",
   "day_not_turning",
   "backup_overdue",
+  "server_failing",
   "lot_expiring",
   "lot_expired",
   "medicine_low_stock",

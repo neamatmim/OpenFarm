@@ -1,13 +1,15 @@
 import type { Database } from "@OpenFarm/db";
 
 import type { Tx } from "./audit";
+import { failuresInTheLastHour } from "./failures-seen";
 import type { Raised } from "./notice";
 import { tell } from "./notice";
 
 /**
- * Telling the Owner that the farm's own machinery has gone quiet: the Day Turning no longer turning whole, or no
- * copy of the farm succeeding. Nobody on the farm would notice either — no work raised looks like a quiet morning,
- * and no copy taken looks like nothing at all — and the Owner is the one who holds the credentials to put them right.
+ * Telling the Owner that the farm's own machinery has gone quiet: the Day Turning no longer turning whole, no
+ * copy of the farm succeeding, or the server itself failing to answer. Nobody on the farm would notice — no work
+ * raised looks like a quiet morning, no copy taken looks like nothing at all, and a call the server drops looks, from
+ * a shed, like no signal — and the Owner is the one who holds the credentials to put them right.
  *
  * Asked by the server's own timer and nowhere else. It is the server watching itself; somebody opening the app is
  * not a reason to look, and a farm whose timer has stopped is one whose Owner hears about it the moment it starts
@@ -23,10 +25,38 @@ const TURNING_GRACE_MS = 30 * 60 * 1000;
 
 /** One thing to tell, filed under an id that names this stretch of it, so it is told once however often it is found. */
 export interface Quiet {
-  kind: "backup_overdue" | "day_not_turning" | "monthly_copy_failed";
+  kind:
+    | "backup_overdue"
+    | "day_not_turning"
+    | "monthly_copy_failed"
+    | "server_failing";
   id: string;
   since: Date;
+  /** How many times, for the kind that is counted rather than dated alone. */
+  count?: number;
 }
+
+/** Failures in an hour that are a server failing rather than a server that failed once: a database that blinked
+ *  costs one or two, and the phones send theirs again; this many is every call going wrong. */
+export const FAILURES_THAT_ARE_A_FAULT = 10;
+
+/**
+ * Whether the server has been failing to answer this last hour. Counted on the process, so a restart — which is
+ * also what mends most of what makes one fail — starts it clean. The stretch is named by its first failure: one
+ * notice for as long as the hour keeps that failure, and a fresh one if it starts again later.
+ */
+export const serverFailing = (now: Date): Quiet | null => {
+  const { count, since } = failuresInTheLastHour(now);
+  if (since === null || count < FAILURES_THAT_ARE_A_FAULT) {
+    return null;
+  }
+  return {
+    kind: "server_failing",
+    id: `failing:${since.toISOString()}`,
+    since,
+    count,
+  };
+};
 
 /**
  * Whether the farm has gone too long without a good copy.
@@ -154,7 +184,10 @@ export const tellTheOwnerAboutTheMachinery = async (
       {
         kind: one.kind,
         about: { id: one.id },
-        facts: { since: one.since.toISOString() },
+        facts: {
+          since: one.since.toISOString(),
+          ...(one.count === undefined ? {} : { count: one.count }),
+        },
       },
       now
     );

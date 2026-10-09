@@ -16,6 +16,8 @@ const IMPORT_FREE = new Set([
   "@OpenFarm/api/registers/rows",
   // How an error is written to the log, less what it was sent: it imports nothing.
   "@OpenFarm/api/thrown",
+  // The server's failures counted on the process: it imports nothing.
+  "@OpenFarm/api/failures-seen",
 ]);
 
 /** Files that run on the server alone: the API's own routes, the server entry, and the isomorphic client whose

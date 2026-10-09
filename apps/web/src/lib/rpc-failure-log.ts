@@ -1,3 +1,4 @@
+import { aFailureWasSeen } from "@OpenFarm/api/failures-seen";
 import { asLogged } from "@OpenFarm/api/thrown";
 import { ORPCError, ValidationError } from "@orpc/server";
 
@@ -47,7 +48,16 @@ export const logLineOf = (failure: unknown): Record<string, unknown> => {
   };
 };
 
-/** The one way the farm's API handlers write a failure to the log. */
+/** Whether a failure is the server's own — something thrown that nothing expected, answered as a 500 — rather than
+ *  the farm refusing what it was sent, which is the farm working. */
+export const isTheServersOwn = (failure: unknown): boolean =>
+  !(failure instanceof ORPCError) || failure.code === "INTERNAL_SERVER_ERROR";
+
+/** The one way the farm's API handlers write a failure to the log. The server's own are also counted, for its timer
+ *  to tell the Owner when there are too many in an hour. */
 export const logTheFailure = (failure: unknown): void => {
   console.error("rpc failure", logLineOf(failure));
+  if (isTheServersOwn(failure)) {
+    aFailureWasSeen();
+  }
 };

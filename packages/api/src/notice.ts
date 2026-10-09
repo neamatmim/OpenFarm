@@ -121,6 +121,9 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   day_not_turning: { audience: [theOwner], entity: "scheduler_state" },
   backup_overdue: { audience: [theOwner], entity: "backup_run" },
   monthly_copy_failed: { audience: [theOwner], entity: "backup_run" },
+  // The server failing to answer is counted on the process, not on any row: filed with the schedule, as the day not
+  // turning is.
+  server_failing: { audience: [theOwner], entity: "scheduler_state" },
   // The late work itself is on the Overdue list: this is the one thing said of it after a silence.
   work_missed: { audience: [theManagers, theOwner], entity: "sop_instance" },
   // Who signs in to the farm, and whether somebody is guessing at it, is the Owner's.

@@ -1,8 +1,12 @@
 import { inspect } from "node:util";
 
+import {
+  failuresInTheLastHour,
+  forgetEveryFailure,
+} from "@OpenFarm/api/failures-seen";
 import { onError, os } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import { logTheFailure } from "./rpc-failure-log";
@@ -97,5 +101,23 @@ describe("a failed call's line in the log", () => {
 
     expect(line).toContain("the database went away");
     expect(line).toContain("rpc-failure-log.test.ts");
+  });
+});
+
+describe("what a failed call counts for", () => {
+  // The lines above this made the server fail on purpose; this question starts from none.
+  beforeEach(() => {
+    forgetEveryFailure();
+  });
+
+  it("counts the server's own failure, and not the farm refusing what it was sent", async () => {
+    await logged("join", {
+      phone: "01712345678",
+      code: "AB",
+      password: PASSWORD,
+    });
+    expect(failuresInTheLastHour(new Date()).count).toBe(0);
+    await logged("broken");
+    expect(failuresInTheLastHour(new Date()).count).toBe(1);
   });
 });

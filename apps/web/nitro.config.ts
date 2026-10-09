@@ -20,6 +20,7 @@ export default defineConfig({
     here("server/plugins/refuse-an-old-database.ts"),
     here("server/plugins/print-the-setup-code.ts"),
     here("server/plugins/evlog-drain.ts"),
+    here("server/plugins/count-the-failures.ts"),
   ],
   experimental: {
     asyncContext: true,

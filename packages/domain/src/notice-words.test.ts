@@ -88,6 +88,7 @@ const EXAMPLE: NoticeFacts = {
   entry_rejected: { count: 2, reason: "পশুটি আর খামারে নেই", why: "wrong" },
   day_not_turning: { since: "2038-03-01T00:00:00.000Z" },
   backup_overdue: { since: "2038-03-01T00:00:00.000Z" },
+  server_failing: { count: 12, since: "2038-03-01T06:00:00.000Z" },
   monthly_copy_failed: { since: "2038-03-01T00:00:00.000Z" },
   work_missed: { count: 35, since: "2038-03-01T12:00:00.000Z" },
   taken_back: { was: "diagnosis", tag: "D-0042", disease: "তড়কা" },

@@ -15,6 +15,7 @@ import {
   backupGap,
   monthlyCopyFailed,
   dayNotTurning,
+  serverFailing,
   tellTheOwnerAboutTheMachinery,
   untold,
 } from "./the-machinery-notices";
@@ -161,6 +162,7 @@ const turnFarmDay = async ({
         dayNotTurning({ failed: turnError !== null, lastOkAt, now: startedAt }),
         await backupGap(db, startedAt),
         await monthlyCopyFailed(db, startedAt),
+        serverFailing(startedAt),
       ]);
       if (turnError) {
         throw new Error(turnError);

@@ -1880,6 +1880,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "digest.registrationRenewal": "নিবন্ধন নবায়নের সময় হয়েছে",
   "digest.dayNotTurning": "খামারের সময়সূচি থেমে গেছে",
   "digest.backupOverdue": "খামারের কপি নেওয়া হচ্ছে না",
+  "digest.serverFailing": "সার্ভার উত্তর দিতে পারছে না",
   "digest.workMissed": "খামার বন্ধ থাকার সময় {count}টি কাজ দেরি হয়েছে",
   "push.takenBackTitle": "ফিরিয়ে নেওয়া হয়েছে",
   "digest.takenBack": "{count}টি ভুল ফিরিয়ে নেওয়া হয়েছে",
@@ -1928,6 +1929,9 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "push.backupOverdueTitle": "খামারের কপি নেওয়া হচ্ছে না",
   "push.backupOverdueBody":
     "দেড় দিনের বেশি কোনো কপি সফল হয়নি। কারণ দেখতে খামারের কপি পাতা খুলুন।",
+  "push.serverFailingTitle": "সার্ভার উত্তর দিতে পারছে না",
+  "push.serverFailingBody":
+    "গত এক ঘণ্টা ধরে কল পড়ে যাচ্ছে; ফোনগুলো কাজ জমিয়ে রাখছে। দেখতে খামারের কপি পাতা খুলুন।",
   "push.monthlyCopyFailedTitle": "মাসিক কপি সফল হয়নি",
   "push.monthlyCopyFailedBody":
     "বহু বছর রাখার কপিটি সফল হয়নি। কারণ দেখতে খামারের কপি পাতা খুলুন।",

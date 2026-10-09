@@ -107,6 +107,7 @@ const LEADS = {
   reimbursement_due: "reimbursing",
   day_not_turning: TO_THE_BACKUPS,
   backup_overdue: TO_THE_BACKUPS,
+  server_failing: TO_THE_BACKUPS,
   // A Lot of feed near its day is in the feed store, not among the medicines (`whereANoticeLeads`).
   lot_expiring: TO_THE_MEDICINES,
   lot_expired: TO_THE_MEDICINES,

@@ -21,6 +21,7 @@ import { pregnancyTimesOf, retimeEveryCalving } from "../breeding-store";
 import type { CalvingWorkFollowed } from "../calving-work";
 import type { Context } from "../context";
 import { dataKeepersInput, readKeepers } from "../data-keepers";
+import { failuresInTheLastHour } from "../failures-seen";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
 import { retimePregnancyChecks } from "../instances-store";
@@ -320,7 +321,10 @@ export const farmRouter = {
    *  failing — so a silent schedule is something the Owner can see rather than discover. */
   schedule: protectedProcedure
     .use(requireRole("owner", "manager"))
-    .handler(({ context }) => scheduleStatus(context.db)),
+    .handler(async ({ context }) => ({
+      ...(await scheduleStatus(context.db)),
+      failuresInTheLastHour: failuresInTheLastHour(context.clock.now()).count,
+    })),
 
   bootstrap: protectedProcedure
     .input(z.object({ name: z.string().trim().min(1) }))

@@ -10,7 +10,11 @@ import { overdueKey, overdueReceivable } from "./receivable-store";
 import { soresStillSeen } from "./sores-store";
 import { lowStockNoticeId, runningLow } from "./stock-store";
 import type { Turning } from "./the-day-turns";
-import { backupGap, monthlyCopyFailed } from "./the-machinery-notices";
+import {
+  backupGap,
+  monthlyCopyFailed,
+  serverFailing,
+} from "./the-machinery-notices";
 
 // A notice whose cause has gone says something no longer true: late work since done, an animal since Found, a backup
 // taken since. Left up, it is tapped away by hand or it pushes what is still true off the list. Each sweep clears what
@@ -111,6 +115,16 @@ const stillMissing: StillSo = async (context, open) => {
 /** A backup still late: no good copy since. */
 const backupStillLate: StillSo = async (context, open, now) =>
   (await backupGap(context.db, now)) === null ? [] : open.map(keyOf);
+
+/** The server still failing: this hour's failures still reach the mark, and still began where the notice says. */
+const serverStillFailing: StillSo = (_context, open, now) => {
+  const failing = serverFailing(now);
+  return Promise.resolve(
+    failing === null
+      ? []
+      : open.filter((one) => one.entityId === failing.id).map(keyOf)
+  );
+};
 
 /** The day still not turning: no whole turn since the alarm was raised. */
 const dayStillNotTurning: StillSo = async (context, open) => {
@@ -268,6 +282,7 @@ const QUESTIONS = {
   animal_missing: stillMissing,
   backup_overdue: backupStillLate,
   day_not_turning: dayStillNotTurning,
+  server_failing: serverStillFailing,
   needs_review: async (context, open) => {
     const unresolved = await context.db.query.needsReview.findMany({
       where: {

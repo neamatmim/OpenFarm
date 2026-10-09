@@ -66,6 +66,11 @@ is the part that is easy to believe was done and was not:
 - [ ] The proxy passes the **Host** the browser asked for (nginx: `proxy_set_header Host $host;`).
       The app tells the farm's address from the Investor Portal's by it; a proxy that sends
       `127.0.0.1` makes every request the farm's.
+- [ ] **The journal keeps three months and no more than 2 GB** — `deploy/journald-openfarm.conf` is
+      installed (see [Installing the app service once](#installing-the-app-service-once)) and
+      `journalctl --disk-usage` answers. The app's log goes nowhere but the journal; when the app says the
+      server is failing, this is where the reason is, and a journal left to its defaults may have dropped it
+      — or filled the disk the database lives on.
 - [ ] `/api/health` returns 200 and `/api/ready` returns 200 through the public hostname.
 - [ ] `OPENFARM_OWNER_EMAIL` is the Owner's own address. Until a Farm exists, whoever opens
       the first account and creates the Farm becomes its Owner, so only this address may; left
@@ -198,6 +203,10 @@ echo 'openfarm ALL=(root) NOPASSWD: /usr/bin/systemctl restart openfarm, /usr/bi
 # The first release, by the steps under "Every deploy", before the service is started.
 sudo install -o root -g root -m 0600 /path/to/app.env /etc/openfarm/app.env
 sudo install -o root -g root -m 0644 deploy/openfarm.service /etc/systemd/system/openfarm.service
+# The journal's limits: three months of the app's log, 2 GB at most (deploy/journald-openfarm.conf says why).
+sudo install -d -o root -g root -m 0755 /etc/systemd/journald.conf.d
+sudo install -o root -g root -m 0644 deploy/journald-openfarm.conf /etc/systemd/journald.conf.d/openfarm.conf
+sudo systemctl restart systemd-journald
 sudo systemctl daemon-reload
 sudo systemctl enable --now openfarm
 systemctl status openfarm
