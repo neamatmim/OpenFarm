@@ -14,6 +14,8 @@ export type ExportedReport =
   | "accountant_export"
   | "movement_log"
   | "monthly_report"
+  // A blank, filed under no record: nobody is written on it when it is printed.
+  | "investor_details_form"
   | InspectorRegister;
 
 /**

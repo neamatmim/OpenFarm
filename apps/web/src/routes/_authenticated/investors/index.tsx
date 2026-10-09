@@ -7,6 +7,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { BadgeCheck, IdCard, Search, Users } from "lucide-react";
 import { useState } from "react";
 
+import { DetailsFormAct } from "@/components/investors/details-form";
 import { InvestorSheet } from "@/components/investors/investor-sheet";
 import type { Investor } from "@/components/investors/investor-types";
 import { matching } from "@/components/investors/investor-types";
@@ -136,10 +137,14 @@ const InvestorsPage = () => {
     <Page>
       <PageHeader
         actions={
-          <Button onClick={() => setRecording(true)} type="button">
-            <Users aria-hidden data-icon="inline-start" />
-            {t("investors.record")}
-          </Button>
+          <>
+            {/* The blank to fill in with somebody at the first meeting, beside the sheet it is typed into. */}
+            <DetailsFormAct />
+            <Button onClick={() => setRecording(true)} type="button">
+              <Users aria-hidden data-icon="inline-start" />
+              {t("investors.record")}
+            </Button>
+          </>
         }
         description={t("investors.subtitle")}
         title={t("investors.title")}

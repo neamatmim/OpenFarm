@@ -107,6 +107,39 @@ const Blank = ({ said, value }: { said: Said; value?: Worded }) => {
   );
 };
 
+/** Lines to fill in by hand, two to a row — the label above, the line beneath, what to write in small beneath that —
+ *  in the order the screen asks the same things. */
+const Blanks = ({
+  section,
+}: {
+  section: Extract<PaperSection, { kind: "blanks" }>;
+}) => {
+  const say = useSay();
+  return (
+    <>
+      <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2 print:grid-cols-2">
+        {section.blanks.map((blank) => (
+          <div
+            className={`flex break-inside-avoid flex-col gap-1 ${blank.wide ? "sm:col-span-2 print:col-span-2" : ""}`}
+            key={blank.name}
+          >
+            <span className="text-sm font-medium">{say(blank.label)}</span>
+            <div className={`${LOOK.writeOn} ${blank.tall ? "h-20" : "h-8"}`} />
+            {blank.hint ? (
+              <span className="text-muted-foreground text-xs">
+                {say(blank.hint)}
+              </span>
+            ) : null}
+          </div>
+        ))}
+      </div>
+      {section.note ? (
+        <p className={`${LOOK.note} mt-4`}>{say(section.note)}</p>
+      ) : null}
+    </>
+  );
+};
+
 /** The lines printed under a party, below what the farm writes of it — an Investor's nominee lines; nothing where
  *  there are none. */
 const PartyLines = ({ lines }: { lines: Said[] }) => {
@@ -402,6 +435,9 @@ const SectionBody = ({ section }: { section: PaperSection }) => {
     }
     case "records": {
       return <Records section={section} />;
+    }
+    case "blanks": {
+      return <Blanks section={section} />;
     }
     case "table": {
       return <Table section={section} />;

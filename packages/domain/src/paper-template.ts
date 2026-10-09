@@ -648,6 +648,18 @@ export interface PaperParties {
   investors: readonly [PaperInvestor, ...PaperInvestor[]];
 }
 
+/** One line of a paper filled in by hand: named for the box on the screen it is typed into afterwards, so a test can
+ *  hold the paper to the screen; labelled and, where a box needs saying, hinted as the screen's is. */
+export interface FormBlank {
+  name: string;
+  label: Said;
+  hint?: Said;
+  /** Room for several lines — an address, a bank account. */
+  tall?: boolean;
+  /** Across the whole page rather than half of it. */
+  wide?: boolean;
+}
+
 /** A part of the paper as printed: the Owner's wording with the farm's facts in it. */
 export type PaperSection =
   | {
@@ -684,6 +696,14 @@ export type PaperSection =
       rows: Worded[][];
       /** A last line set apart — a total — or nothing. */
       foot: Worded[] | null;
+      note: Said | null;
+    }
+  | {
+      kind: "blanks";
+      heading: Said;
+      /** Lines to write on by hand, in the order the screen asks the same things. */
+      blanks: FormBlank[];
+      /** What it says beneath them, or nothing. */
       note: Said | null;
     }
   | {

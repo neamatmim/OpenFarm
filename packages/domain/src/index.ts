@@ -183,6 +183,10 @@ export {
 } from "./papers";
 export type { NotifiableLetter } from "./letter";
 export { notifiableLetterPaper } from "./letter";
+export {
+  DETAILS_FORM_PARTS,
+  investorDetailsForm,
+} from "./investor-details-form";
 export type { TagPrefix } from "./tag-number";
 export {
   TAG_PREFIXES,
@@ -848,6 +852,7 @@ export type {
   PrintedOnly,
   ReadPart,
   PaperSection,
+  FormBlank,
   TemplateContent,
   TemplateField,
   TemplateKind,

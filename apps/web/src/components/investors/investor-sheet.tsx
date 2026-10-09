@@ -3,6 +3,8 @@ import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
+import type { Draft } from "@/components/investors/investor-fields";
+import { NOBODY_YET } from "@/components/investors/investor-fields";
 import type { Investor } from "@/components/investors/investor-types";
 import { SegmentedControl } from "@/components/page";
 import { FormField, FormSection, FormSheet } from "@/components/page-kit";
@@ -10,45 +12,6 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
-
-type Kind = Investor["kind"];
-
-/** Everything the form holds, for either kind: what a person has, what an Organization and its Signatory have. */
-interface Draft {
-  kind: Kind;
-  name: string;
-  phone: string;
-  email: string;
-  address: string;
-  nid: string;
-  bankAccount: string;
-  tradeLicense: string;
-  rjscNumber: string;
-  tin: string;
-  authority: string;
-  authorityOn: string;
-  signatoryName: string;
-  signatoryNid: string;
-  signatoryRole: string;
-}
-
-const NOBODY_YET: Draft = {
-  kind: "person",
-  name: "",
-  phone: "",
-  email: "",
-  address: "",
-  nid: "",
-  bankAccount: "",
-  tradeLicense: "",
-  rjscNumber: "",
-  tin: "",
-  authority: "",
-  authorityOn: "",
-  signatoryName: "",
-  signatoryNid: "",
-  signatoryRole: "",
-};
 
 /** A field left blank is a field the Owner did not answer, not an empty answer. */
 const orNothing = (value: string) => (value.trim() === "" ? undefined : value);

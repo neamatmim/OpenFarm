@@ -1522,6 +1522,10 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "investors.copyAccount": "কপি করুন",
   "investors.copied": "কপি হয়েছে",
   "investors.edit": "সম্পাদনা করুন",
+  "investors.detailsForm": "খালি ফর্ম ছাপুন",
+  "investors.detailsFormTitle": "বিনিয়োগকারীর তথ্য ফর্ম",
+  "investors.detailsFormHint":
+    "প্রথম সাক্ষাতে তাঁর সঙ্গে বসে, এনআইডি ও ব্যাংকের কাগজ দেখে পূরণ করুন; তারপর এই কাগজ থেকেই, একই ক্রমে, তাঁকে যোগ করুন। এতে কিছু সই হয় না।",
   "investors.dataCopy": "খামারে তাঁর তথ্য",
   "investors.dataCopyTitle": "খামারে {name}-এর তথ্য",
   "investors.dataCopyHint":
