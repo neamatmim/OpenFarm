@@ -39,25 +39,24 @@ const TONE_ICON: Record<Tone, LucideIcon> = {
   info: Info,
 };
 
-/** Every working page runs the width beside the sidebar, so its title stands in the same place on every page and a
- *  wide screen is used rather than left as two empty bands — up to 1584px, Carbon's widest grid, past which a row of
- *  figures is too long to read across; it stays left-aligned there, so the title does not move as a window grows.
- *  Only a single card of a flow — joining, setting up, a step of the day's work — keeps to a column in the middle,
- *  where one line of it is read at a time. */
+/** Every working page runs the whole width beside the sidebar, the same space standing in on either side, so its
+ *  title stands in the same place on every page and a wide screen is used rather than left as an empty band. Only a
+ *  single card of a flow — joining, setting up, a step of the day's work — keeps to a column in the middle, where one
+ *  line of it is read at a time. */
 const WIDTH = {
   narrow: "mx-auto max-w-2xl",
   // A person's own settings: a few short parts, each read as a whole, kept to a width a form is read at (Polaris's
   // settings pages are its small width). Left-aligned, so the title stands where every other page's does.
   settings: "max-w-5xl",
-  default: "max-w-[99rem]",
+  default: "",
 } as const;
 
 /** A page's sides: how far its content stands in from the edge beside the sidebar. */
 const PAGE_SIDES = "px-4 md:px-8";
 
 /** The line a page's content runs between, for whatever stands over every page — the top bar — so its first and last
- *  controls end where the page's title and its widest table do, rather than out at the window's own edges. */
-export const PAGE_LINE = cn("w-full", WIDTH.default, PAGE_SIDES);
+ *  controls stand in as far as the page's title and its widest table do. */
+export const PAGE_LINE = cn("w-full", PAGE_SIDES);
 
 /** A page's own title, the one line that says what the page is: larger on a desk, where there is room for it. */
 export const PAGE_TITLE = "text-xl font-semibold md:text-2xl";
