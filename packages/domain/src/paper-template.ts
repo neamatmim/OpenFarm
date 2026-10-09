@@ -668,8 +668,9 @@ export type PaperSection =
   | {
       kind: "table";
       heading: Said;
-      /** Each column's heading, and whether it holds figures, which stand to the right. */
-      columns: { label: Said; figures?: boolean }[];
+      /** Each column's heading, whether it holds figures, which stand to the right on one line, and whether its cells are
+       *  short codes or times kept whole as figures are, broken only where they were written broken. */
+      columns: { label: Said; figures?: boolean; whole?: boolean }[];
       /** One line each, a cell to a column. */
       rows: Worded[][];
       /** A last line set apart — a total — or nothing. */

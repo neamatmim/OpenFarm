@@ -1,3 +1,4 @@
+import type { PaperDocument } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -7,7 +8,7 @@ import { FileDown, Printer } from "lucide-react";
 import { useState } from "react";
 
 import { FilterBar, FormField } from "@/components/page-kit";
-import { Paper } from "@/components/paper";
+import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { saveCsv } from "@/lib/save-csv";
@@ -22,11 +23,11 @@ export const MilkRecordsTab = () => {
   const refused = useRefused();
   const [from, setFrom] = useState(() => farmDayOf(new Date()));
   const [to, setTo] = useState(() => farmDayOf(new Date()));
-  const [paper, setPaper] = useState<string | null>(null);
+  const [paper, setPaper] = useState<PaperDocument | null>(null);
   const onError = refused;
   const dispatchRecord = useMutation(
     orpc.reports.milkDispatchRecord.mutationOptions({
-      onSuccess: ({ text }) => setPaper(text ?? null),
+      onSuccess: ({ document }) => setPaper(document ?? null),
       onError,
     })
   );
@@ -115,7 +116,12 @@ export const MilkRecordsTab = () => {
           </Button>
         </div>
       </div>
-      {paper ? <Paper id="milk-dispatch-record" text={paper} /> : null}
+      <PaperDialog
+        onClose={() => setPaper(null)}
+        paper={paper}
+        title={t("dispatch.recordPaper")}
+        wording={null}
+      />
     </div>
   );
 };

@@ -48,7 +48,15 @@ const sectionLines = (
       return [
         section.columns.map((column) => say(column.label)).join(" · "),
         ...section.rows.map((row) => row.map(say).join(" · ")),
-        ...(section.foot ? [section.foot.map(say).join(" · ")] : []),
+        // A total stands under the columns it adds; the blanks beside it under the others say nothing.
+        ...(section.foot
+          ? [
+              section.foot
+                .map(say)
+                .filter((cell) => cell.trim() !== "")
+                .join(" · "),
+            ]
+          : []),
         ...(section.note ? [say(section.note)] : []),
       ];
     }

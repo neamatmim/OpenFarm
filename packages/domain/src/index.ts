@@ -170,8 +170,6 @@ export {
 } from "./ready";
 export type {
   AnimalPassport,
-  DispatchLine,
-  MilkDispatchRecord,
   DoseGiven,
   HealthRegister,
   InspectorRegister,
@@ -201,7 +199,6 @@ export {
   registerPaper,
   herdSummary,
   registrationRecord,
-  milkDispatchRecord,
   saleReceipt,
   transportCard,
   withdrawalSummary,
@@ -1051,3 +1048,5 @@ export {
 } from "./investor-statements";
 export type { AccountantSummaryFacts } from "./accountant-summary-paper";
 export { accountantSummaryPaper } from "./accountant-summary-paper";
+export type { DispatchOnPaper, MilkDispatchFacts } from "./milk-dispatch-paper";
+export { milkDispatchPaper } from "./milk-dispatch-paper";

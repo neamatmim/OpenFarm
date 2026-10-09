@@ -11,7 +11,6 @@ export type PaperId =
   | "animal-passport"
   | "withdrawal-summary"
   | "dls-letter"
-  | "milk-dispatch-record"
   | "registration-record"
   | "herd-summary"
   | "vaccination-register"

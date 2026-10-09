@@ -212,17 +212,26 @@ const Table = ({
   section: Extract<PaperSection, { kind: "table" }>;
 }) => {
   const say = useSay();
-  const align = (at: number) =>
-    section.columns[at]?.figures ? "text-right tabular-nums" : "text-left";
+  // A figure stands to the right and never breaks; nor does a short code or a time a column keeps whole, though it keeps
+  // the line breaks it was written with, as every paper's cell does.
+  const align = (at: number) => {
+    const column = section.columns[at];
+    if (column?.figures) {
+      return "px-3 py-2 align-top text-right tabular-nums whitespace-nowrap";
+    }
+    return column?.whole
+      ? "px-3 py-2 align-top text-left whitespace-pre"
+      : `${LOOK.td} text-left`;
+  };
   return (
     <>
       <div className={LOOK.tableBox}>
         <table className={LOOK.table}>
           <thead className={LOOK.tableHead}>
             <tr>
-              {section.columns.map((column, at) => (
+              {section.columns.map((column) => (
                 <th
-                  className={`${LOOK.th} ${align(at)}`}
+                  className={`${LOOK.th} ${column.figures ? "text-right" : "text-left"}`}
                   key={column.label.en || column.label.bn}
                 >
                   {say(column.label)}
@@ -240,7 +249,7 @@ const Table = ({
               >
                 {line.map((cell, at) => (
                   <td
-                    className={`${LOOK.td} ${align(at)}`}
+                    className={align(at)}
                     // oxlint-disable-next-line react/no-array-index-key
                     key={at}
                   >
@@ -255,7 +264,7 @@ const Table = ({
               <tr className="bg-muted/30 border-t font-semibold">
                 {section.foot.map((cell, at) => (
                   <td
-                    className={`${LOOK.td} ${align(at)}`}
+                    className={align(at)}
                     // oxlint-disable-next-line react/no-array-index-key
                     key={at}
                   >
