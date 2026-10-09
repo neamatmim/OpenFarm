@@ -376,6 +376,8 @@ export type { CheckSummary, WorkToCheck } from "./check-summary";
 export { checkSummaryOf } from "./check-summary";
 export type { Growth, GrowthHolding } from "./fattening-growth";
 export { growthOf } from "./fattening-growth";
+export type { Between, VentureHolding } from "./venture-herd-as-of";
+export { headsAt, herdBetween } from "./venture-herd-as-of";
 export type {
   CowStay,
   DairyTurnover,

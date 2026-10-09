@@ -1,4 +1,4 @@
-import type { GrowthHolding } from "@OpenFarm/domain";
+import type { GrowthHolding, VentureHolding } from "@OpenFarm/domain";
 import {
   farmDayOf,
   growthOf,
@@ -256,6 +256,7 @@ const everyOneTheyHeld = async (
       id: true,
       tagNumber: true,
       state: true,
+      stateChangedAt: true,
       photoUpdatedAt: true,
     },
     with: {
@@ -435,4 +436,120 @@ export const theirProgress = async (
     ),
     animals,
   };
+};
+
+/**
+ * Each stretch one Animal was one Venture's, in order: off the lorry where it bought her, and from every Internal Sale
+ * that brought her to it, each to the Internal Sale that took her off it again, or to however she left the farm — or
+ * still going. One sold across and later bought back is two stretches, not her last alone: a month inside the first is
+ * told with her in it. Whose she was before any Internal Sale is the first one's seller, or her owner today where none
+ * moved her.
+ */
+const stretchesOf = (
+  one: {
+    intake: { arrivedAt: Date; weightKg: string } | null;
+    sale: { soldAt: Date; weightKg: string } | null;
+    state: Parameters<typeof isExitState>[0];
+    stateChangedAt: Date;
+  },
+  hers: readonly {
+    fromVentureId: string | null;
+    toVentureId: string | null;
+    soldOn: string;
+    weightKg: string;
+  }[],
+  came: Date | undefined,
+  ventureId: string
+): Omit<VentureHolding, "animalId" | "tagNumber" | "readings">[] => {
+  type Open = Pick<VentureHolding, "from" | "cameBy" | "cameKg">;
+  const stretches: Omit<
+    VentureHolding,
+    "animalId" | "tagNumber" | "readings"
+  >[] = [];
+  const [first] = hers;
+  // Bought by this Venture: theirs from the lorry, until an Internal Sale took her off — or for good.
+  const boughtByThem = first ? first.fromVentureId === ventureId : true;
+  let open: Open | null =
+    boughtByThem && one.intake
+      ? {
+          from: one.intake.arrivedAt,
+          cameBy: "intake",
+          cameKg: Number(one.intake.weightKg),
+        }
+      : null;
+  for (const sale of hers) {
+    const at = handedOverAt(sale.soldOn, came);
+    if (open && sale.fromVentureId === ventureId) {
+      stretches.push({
+        ...open,
+        until: at,
+        wentBy: "internal_sale",
+        soldKg: null,
+      });
+      open = null;
+    }
+    if (sale.toVentureId === ventureId) {
+      open = {
+        from: at,
+        cameBy: "internal_sale",
+        cameKg: Number(sale.weightKg),
+      };
+    }
+  }
+  if (open) {
+    // Still theirs when she left the farm, if she has: to a buyer at her Sale, else dead, culled or lost on its day.
+    const exited = isExitState(one.state) ? one.state : null;
+    stretches.push({
+      ...open,
+      until: exited ? (one.sale?.soldAt ?? one.stateChangedAt) : null,
+      wentBy: exited,
+      soldKg: exited === "sold" && one.sale ? Number(one.sale.weightKg) : null,
+    });
+  }
+  return stretches;
+};
+
+/**
+ * Every animal a Venture has held, each as a past moment asks of her (`VentureHolding`): from the day she became its —
+ * off the lorry, or by the Internal Sale that last brought her — to the day she stopped being, and how: to a buyer, across
+ * to another owner, dead, culled or lost. With every Weigh-in the farm did not doubt, not the latest few a rate needs —
+ * a month long past is read from readings the latest few no longer reach — so a month can be told as it stood
+ * (`herdBetween`), whatever she has done since. Whose she was is the Internal Sales', as every Venture sum asks it.
+ */
+export const ventureHoldingsOf = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  ventureId: string
+): Promise<VentureHolding[]> => {
+  const { rows, handed, came } = await everyOneTheyHeld(tx, farmId, ventureId);
+  const readings =
+    rows.length === 0
+      ? []
+      : await tx.query.weighIn.findMany({
+          where: {
+            farmId,
+            animalId: { in: rows.map((one) => one.id) },
+            flaggedNote: { isNull: true },
+          },
+          columns: { animalId: true, weightKg: true, weighedAt: true },
+        });
+  const readingsOf = new Map<string, { kg: number; at: Date }[]>();
+  for (const reading of readings) {
+    const hers = readingsOf.get(reading.animalId) ?? [];
+    hers.push({ kg: Number(reading.weightKg), at: reading.weighedAt });
+    readingsOf.set(reading.animalId, hers);
+  }
+  return rows.flatMap((one) =>
+    stretchesOf(
+      one,
+      handed.filter((sale) => sale.animalId === one.id),
+      came.get(one.id),
+      ventureId
+    ).map((stretch) => ({
+      animalId: one.id,
+      tagNumber: one.tagNumber,
+      ...stretch,
+      readings: readingsOf.get(one.id) ?? [],
+    }))
+  );
 };
