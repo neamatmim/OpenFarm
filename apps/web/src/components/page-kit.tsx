@@ -40,6 +40,7 @@ import type { ComponentProps, FormEvent, ReactNode } from "react";
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -78,13 +79,15 @@ export interface Figure {
   selected?: boolean;
 }
 
-/** How loud a figure's value is: a term among many, an ordinary figure, a range set above the facts about it, and the
- *  figures beside the one that matters most. */
+/** How loud a figure's value is: a term among many, an ordinary figure, a range set above the facts about it, the
+ *  figures beside the one that matters most, and the counts a home panel is read by — large on a phone, larger where
+ *  there is room. */
 const FIGURE_SIZE = {
   sm: "text-sm font-medium",
   md: "font-medium",
   lg: "text-lg font-semibold",
   xl: "text-xl font-semibold",
+  panel: "text-lg font-semibold sm:text-xl",
 } as const;
 
 /**
@@ -102,7 +105,7 @@ export const FigureTerm = ({
   label: string;
   children: ReactNode;
   hint?: string;
-  tone?: "neutral" | "warning";
+  tone?: Tone;
   size?: keyof typeof FIGURE_SIZE;
   /** Where it sits in the grid around it — a sentence of a term may want the whole row. */
   className?: string;
@@ -115,7 +118,7 @@ export const FigureTerm = ({
       className={cn(
         FIGURE_SIZE[size],
         "break-words tabular-nums",
-        tone === "warning" && "text-warning"
+        TONE_TEXT[tone]
       )}
     >
       {children}
@@ -468,6 +471,39 @@ export const FilterBar = ({
   </div>
 );
 
+/**
+ * Carbon's batch bar: over a list while rows of it are ticked, how many are ticked, a way to let them all go, and what
+ * to do with them (`children`). One bar on every list that ticks rows, so it is found in the same place on each.
+ */
+export const BatchBar = ({
+  said,
+  onClear,
+  busy = false,
+  children,
+}: {
+  /** How many are ticked, in words: read out as it changes. */
+  said: ReactNode;
+  onClear: () => void;
+  /** While what was asked of them is being done, letting them go waits. */
+  busy?: boolean;
+  children: ReactNode;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <div className="bg-accent text-accent-foreground flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-2">
+      <span aria-live="polite" className="text-sm font-medium">
+        {said}
+      </span>
+      <div className="flex items-center gap-2">
+        <Button disabled={busy} onClick={onClear} type="button" variant="ghost">
+          {t("common.clearSelection")}
+        </Button>
+        {children}
+      </div>
+    </div>
+  );
+};
+
 export interface RowAction {
   label: string;
   icon?: LucideIcon;
@@ -506,14 +542,21 @@ const RowActionItem = ({ action }: { action: RowAction }) => {
  * The one act a row can do, as a button of its own: a menu that only ever opens onto one item is a click to find
  * a button that could have been on the row.
  */
-const RowActionButton = ({ action }: { action: RowAction }) => {
+const RowActionButton = ({
+  action,
+  size = "sm",
+}: {
+  action: RowAction;
+  /** A row's button is small; a page header's stands as tall as the buttons beside it. */
+  size?: "sm" | "default";
+}) => {
   const Icon = action.icon;
   return (
     <Button
       className={cn(action.destructive && "text-danger hover:text-danger")}
       disabled={action.disabled}
       onClick={action.handleSelect}
-      size="sm"
+      size={size}
       title={action.hint}
       type="button"
       variant="outline"
@@ -521,6 +564,26 @@ const RowActionButton = ({ action }: { action: RowAction }) => {
       {Icon ? <Icon aria-hidden data-icon="inline-start" /> : null}
       {action.label}
     </Button>
+  );
+};
+
+/** The acts of a menu, the safe ones first and those that take something away after a line, one look in a row's menu
+ *  and a header's. */
+const ActsMenuContent = ({ actions }: { actions: RowAction[] }) => {
+  const safe = actions.filter((action) => !action.destructive);
+  const destructive = actions.filter((action) => action.destructive);
+  return (
+    <DropdownMenuContent align="end" className="w-56">
+      {safe.map((action) => (
+        <RowActionItem action={action} key={action.label} />
+      ))}
+      {safe.length > 0 && destructive.length > 0 ? (
+        <DropdownMenuSeparator />
+      ) : null}
+      {destructive.map((action) => (
+        <RowActionItem action={action} key={action.label} />
+      ))}
+    </DropdownMenuContent>
   );
 };
 
@@ -546,8 +609,6 @@ export const RowMenu = ({
   if (actions.length === 1 && only) {
     return <RowActionButton action={only} />;
   }
-  const safe = actions.filter((action) => !action.destructive);
-  const destructive = actions.filter((action) => action.destructive);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -573,17 +634,43 @@ export const RowMenu = ({
           )
         }
       />
-      <DropdownMenuContent align="end" className="w-56">
-        {safe.map((action) => (
-          <RowActionItem action={action} key={action.label} />
-        ))}
-        {safe.length > 0 && destructive.length > 0 ? (
-          <DropdownMenuSeparator />
-        ) : null}
-        {destructive.map((action) => (
-          <RowActionItem action={action} key={action.label} />
-        ))}
-      </DropdownMenuContent>
+      <ActsMenuContent actions={actions} />
+    </DropdownMenu>
+  );
+};
+
+/**
+ * Everything else that may be done to the one thing a page is about — an animal, a Venture — behind a "More" button in
+ * its header, as tall as the buttons beside it: the header's RowMenu. Nothing is drawn when there is nothing to do, and
+ * one act is a button with its own name rather than "More" opening onto a list of one.
+ */
+export const HeaderMenu = ({
+  label,
+  actions,
+}: {
+  /** What the menu is for, for a screen reader: usually the record's name. */
+  label: string;
+  actions: RowAction[];
+}) => {
+  const { t } = useLanguage();
+  if (actions.length === 0) {
+    return null;
+  }
+  const [only] = actions;
+  if (actions.length === 1 && only) {
+    return <RowActionButton action={only} size="default" />;
+  }
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button aria-label={label} type="button" variant="outline">
+            <EllipsisVertical aria-hidden data-icon="inline-start" />
+            {t("common.more")}
+          </Button>
+        }
+      />
+      <ActsMenuContent actions={actions} />
     </DropdownMenu>
   );
 };
@@ -1116,3 +1203,56 @@ export const UnitInput = ({
     </span>
   </div>
 );
+
+/**
+ * The period a page reads, as two days side by side with their names over them — on a phone as much as at a desk, so
+ * whatever they are the period for is never far from them — and whatever goes with them after: the shortcuts to a
+ * year, a way to clear them. Drawn bare, wherever it stands: over a page's figures, or at the top of a part of a page.
+ */
+export const PeriodFilter = ({
+  label,
+  fromLabel,
+  toLabel,
+  from,
+  to,
+  onFrom,
+  onTo,
+  children,
+}: {
+  label: string;
+  fromLabel: string;
+  toLabel: string;
+  from: string;
+  to: string;
+  onFrom: (day: string) => void;
+  onTo: (day: string) => void;
+  children?: ReactNode;
+}) => {
+  const id = useId();
+  return (
+    <fieldset className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
+      <legend className="sr-only">{label}</legend>
+      <FormField id={`${id}-from`} label={fromLabel}>
+        <Input
+          className="sm:w-44"
+          id={`${id}-from`}
+          onChange={(event) => onFrom(event.target.value)}
+          type="date"
+          value={from}
+        />
+      </FormField>
+      <FormField id={`${id}-to`} label={toLabel}>
+        <Input
+          className="sm:w-44"
+          id={`${id}-to`}
+          onChange={(event) => onTo(event.target.value)}
+          type="date"
+          value={to}
+        />
+      </FormField>
+      {children ? (
+        <div className="col-span-2 flex flex-wrap gap-2">{children}</div>
+      ) : null}
+    </fieldset>
+  );
+};

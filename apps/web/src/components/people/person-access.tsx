@@ -20,7 +20,7 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { Section, StatusBadge } from "@/components/page";
+import { CODE_SPACING, Section, StatusBadge } from "@/components/page";
 import { ConfirmDialog, FormDialog, FormField } from "@/components/page-kit";
 import { RoleChoice, toggled } from "@/components/role-choice";
 import { useLanguage, useT } from "@/i18n/language-provider";
@@ -503,7 +503,7 @@ const PinDialog = ({
       >
         <Input
           autoComplete="off"
-          className="w-40 font-mono text-lg tracking-[0.4em] md:text-lg"
+          className={cn("w-40 font-mono text-lg md:text-lg", CODE_SPACING)}
           id="their-pin"
           inputMode="numeric"
           maxLength={4}

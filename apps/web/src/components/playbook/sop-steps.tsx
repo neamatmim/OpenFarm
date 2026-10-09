@@ -306,7 +306,7 @@ const StepEditor = ({
   const { t, language } = useLanguage();
   return (
     <li
-      className="surface flex scroll-mt-20 flex-col gap-4 p-4"
+      className="surface flex scroll-mt-20 flex-col gap-4 p-4 md:p-5"
       id={stepAnchor(position)}
     >
       <div className="flex items-center gap-3">

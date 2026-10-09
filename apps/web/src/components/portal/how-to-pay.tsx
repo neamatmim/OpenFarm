@@ -1,10 +1,11 @@
 import type { MonthlySum } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
 import { translate } from "@OpenFarm/i18n";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { ShieldAlert } from "lucide-react";
 
 import { SaidDate } from "@/components/list-cells";
-import { Notice, Section } from "@/components/page";
+import { CODE_SPACING, Notice, Section } from "@/components/page";
 import { useTheirRecord } from "@/components/portal/portal-source";
 import { VentureAccountDetails } from "@/components/ventures/venture-account-details";
 import { useLanguage } from "@/i18n/language-provider";
@@ -138,7 +139,7 @@ export const HowToPay = ({
             <dt className="text-muted-foreground text-sm">
               {t("portal.pay.code")}
             </dt>
-            <dd className="font-mono text-lg font-semibold tracking-wide">
+            <dd className={cn("font-mono text-lg font-semibold", CODE_SPACING)}>
               {paying.payInCode}
             </dd>
             <dd className="text-muted-foreground text-xs">

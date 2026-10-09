@@ -147,7 +147,7 @@ const BandFields = ({
       <p
         className={cn(
           "text-xs",
-          wrong ? "text-destructive" : "text-muted-foreground"
+          wrong ? "text-danger font-medium" : "text-muted-foreground"
         )}
         id={idFor("band-said")}
       >
@@ -397,7 +397,7 @@ const RationDialog = ({
                   </Label>
                   {/* A retired feed still in the Ration stops it being saved: said here, beside the line to empty. */}
                   {item.retiredAt && Number(kg[item.id] ?? "") > 0 ? (
-                    <p className="text-destructive basis-full text-xs">
+                    <p className="text-danger basis-full text-xs font-medium">
                       {t("feed.retiredLine")}
                     </p>
                   ) : null}
@@ -452,7 +452,7 @@ const RationDialog = ({
                   </div>
                   {overTheMost(item.id) ? (
                     <p
-                      className="text-destructive w-full text-xs"
+                      className="text-danger w-full text-xs font-medium"
                       id={idFor(`${item.id}-most`)}
                     >
                       {t("feed.atMostADay", {
@@ -590,7 +590,10 @@ const FeedingTarget = ({ penId }: { penId: string }) => {
       {byWeight && herd ? <HerdWeight herd={herd} /> : null}
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((line) => (
-          <li className="surface flex flex-col gap-1 p-3" key={line.feedItemId}>
+          <li
+            className="surface flex flex-col gap-1 p-4 md:p-5"
+            key={line.feedItemId}
+          >
             <span className="text-muted-foreground text-sm">
               {namesIn(line, language).shown}
             </span>
@@ -723,7 +726,10 @@ const RationCard = ({
   const farmGains = useFarmGains(mayEdit);
   return (
     <article
-      className={cn("surface flex flex-col gap-3 p-4", retired && "opacity-75")}
+      className={cn(
+        "surface flex flex-col gap-3 p-4 md:p-5",
+        retired && "opacity-75"
+      )}
     >
       <header className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col">

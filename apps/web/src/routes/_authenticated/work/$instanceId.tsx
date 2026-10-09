@@ -6,13 +6,14 @@ import {
   nothingToNoteOf,
 } from "@OpenFarm/domain";
 import { buttonVariants } from "@OpenFarm/ui/components/button";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ClipboardList } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { AssignWork } from "@/components/assign-work";
-import { Page } from "@/components/page";
+import { FLOW_CARD, FlowHead, Page } from "@/components/page";
 import { EvidenceSheet } from "@/components/work/evidence-sheet";
 import { PassTheRestWell } from "@/components/work/pass-the-rest-well";
 import {
@@ -289,20 +290,17 @@ const WorkPage = () => {
       <Page width="narrow">
         <div className="mx-auto flex w-full max-w-md flex-col gap-3">
           <BackToToday />
-          <div className="surface flex w-full flex-col items-center gap-5 p-6 text-center sm:p-8">
+          <div className={cn(FLOW_CARD, "w-full items-center text-center")}>
             <span className="bg-secondary text-secondary-foreground grid size-16 place-items-center rounded-xl">
               <ClipboardList aria-hidden className="size-8" />
             </span>
-            <div className="flex flex-col items-center gap-1.5">
-              <h1 className="text-2xl font-semibold">
-                <SopName name={content.name} />
-              </h1>
+            <FlowHead centered title={<SopName name={content.name} />}>
               <PlaceLine pen={pen} />
               <AboutHerLines about={instance.data} className="items-center" />
               <p className="text-muted-foreground mt-1 text-sm text-balance">
                 {t("work.claimHint")}
               </p>
-            </div>
+            </FlowHead>
             <ClaimOrWhose
               onClaim={() => claim.mutate()}
               someoneElse={someoneElse}

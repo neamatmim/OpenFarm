@@ -5,6 +5,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -13,7 +14,7 @@ import { z } from "zod";
 import { PasswordInput } from "@/components/auth/password-input";
 import { sayAuthRefusal } from "@/components/auth/refused-notice";
 import { BackToSignIn } from "@/components/door-screen";
-import { Notice } from "@/components/page";
+import { CODE_SPACING, FLOW_CARD, FlowHead, Notice } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 import { useNoFarmYet } from "@/lib/farm-name";
@@ -84,15 +85,11 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
   });
 
   return (
-    <div className="surface flex flex-col gap-6 p-6 sm:p-8">
-      <div className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-semibold">
-          {t(firstFarm ? "auth.firstFarmTitle" : "auth.createAccount")}
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          {t(firstFarm ? "auth.firstFarmHint" : "auth.signUpHint")}
-        </p>
-      </div>
+    <div className={FLOW_CARD}>
+      <FlowHead
+        hint={t(firstFarm ? "auth.firstFarmHint" : "auth.signUpHint")}
+        title={t(firstFarm ? "auth.firstFarmTitle" : "auth.createAccount")}
+      />
 
       <form
         onSubmit={(e) => {
@@ -223,7 +220,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                   aria-describedby={`${field.name}-hint`}
                   autoCapitalize="characters"
                   autoComplete="one-time-code"
-                  className="font-mono tracking-wider"
+                  className={cn("font-mono", CODE_SPACING)}
                   id={field.name}
                   name={field.name}
                   onBlur={field.handleBlur}

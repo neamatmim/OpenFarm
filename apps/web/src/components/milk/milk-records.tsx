@@ -1,7 +1,6 @@
 import type { PaperDocument } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
-import { Input } from "@OpenFarm/ui/components/input";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
 import { FileDown, Milk, Printer, Truck } from "lucide-react";
@@ -9,7 +8,7 @@ import { useState } from "react";
 
 import { ExportList, ExportRow } from "@/components/exports";
 import { Section } from "@/components/page";
-import { FormField } from "@/components/page-kit";
+import { PeriodFilter } from "@/components/page-kit";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -54,26 +53,15 @@ export const MilkRecordsTab = () => {
         description={t("dispatch.reportsHint")}
         title={t("dispatch.reports")}
       >
-        <div className="grid grid-cols-2 gap-3 sm:flex">
-          <FormField id="milk-records-from" label={t("dispatch.from")}>
-            <Input
-              className="sm:w-44"
-              id="milk-records-from"
-              onChange={(event) => setFrom(event.target.value)}
-              type="date"
-              value={from}
-            />
-          </FormField>
-          <FormField id="milk-records-to" label={t("dispatch.to")}>
-            <Input
-              className="sm:w-44"
-              id="milk-records-to"
-              onChange={(event) => setTo(event.target.value)}
-              type="date"
-              value={to}
-            />
-          </FormField>
-        </div>
+        <PeriodFilter
+          from={from}
+          fromLabel={t("dispatch.from")}
+          label={t("dispatch.reports")}
+          onFrom={setFrom}
+          onTo={setTo}
+          to={to}
+          toLabel={t("dispatch.to")}
+        />
         <div className="border-t pt-4">
           <ExportList>
             <ExportRow

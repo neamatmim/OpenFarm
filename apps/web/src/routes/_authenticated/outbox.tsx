@@ -102,7 +102,7 @@ const HeldCard = ({
     : undefined;
   const Icon = tone === "danger" ? Undo2 : Eye;
   return (
-    <li className="surface flex flex-col gap-3 p-4">
+    <li className="surface flex flex-col gap-3 p-4 md:p-5">
       <div className="flex items-start gap-3">
         <span
           className={cn(

@@ -2,25 +2,9 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
 
 import { Section } from "@/components/page";
+import { FigureTerm } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
-
-/** One figure, labeled, with what it is made of beneath. */
-const Figure = ({
-  label,
-  value,
-  under,
-}: {
-  label: string;
-  value: string;
-  under?: string;
-}) => (
-  <div className="flex min-w-0 flex-col gap-0.5">
-    <dt className="text-muted-foreground text-xs">{label}</dt>
-    <dd className="text-lg font-semibold tabular-nums sm:text-xl">{value}</dd>
-    {under ? <dd className="text-muted-foreground text-xs">{under}</dd> : null}
-  </div>
-);
 
 /**
  * The dairy herd's year beside its deaths: every way a cow left the milking herd and the heifers that joined it, over
@@ -46,30 +30,32 @@ export const HerdHealthSection = () => {
   return (
     <Section description={t("herd.healthHint")} title={t("herd.healthTitle")}>
       <dl className="grid grid-cols-2 gap-4">
-        <Figure
-          label={t("herd.leftTheHerd")}
-          under={t("herd.leftCounts", {
+        <FigureTerm
+          hint={t("herd.leftCounts", {
             died: n(turnover.died),
             culled: n(turnover.culled),
             sold: n(turnover.sold),
             crossed: n(turnover.crossed),
             lost: n(turnover.lost),
           })}
-          value={rate(turnover.leftPerHundred)}
-        />
-        <Figure
+          label={t("herd.leftTheHerd")}
+          size="panel"
+        >
+          {rate(turnover.leftPerHundred)}
+        </FigureTerm>
+        <FigureTerm
+          hint={t("herd.joinedCount", { count: n(turnover.replacements) })}
           label={t("herd.joinedTheHerd")}
-          under={t("herd.joinedCount", { count: n(turnover.replacements) })}
-          value={rate(turnover.replacementsPerHundred)}
-        />
-        <Figure
-          label={t("herd.sickDairy")}
-          value={rate(sickness.dairyPerHundred)}
-        />
-        <Figure
-          label={t("herd.mastitis")}
-          value={rate(sickness.mastitisPerHundredCows)}
-        />
+          size="panel"
+        >
+          {rate(turnover.replacementsPerHundred)}
+        </FigureTerm>
+        <FigureTerm label={t("herd.sickDairy")} size="panel">
+          {rate(sickness.dairyPerHundred)}
+        </FigureTerm>
+        <FigureTerm label={t("herd.mastitis")} size="panel">
+          {rate(sickness.mastitisPerHundredCows)}
+        </FigureTerm>
       </dl>
       {sickness.diseases.length > 0 ? (
         <p className="text-muted-foreground text-sm">

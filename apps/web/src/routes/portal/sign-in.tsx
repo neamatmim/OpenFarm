@@ -15,7 +15,7 @@ import { PasswordInput } from "@/components/auth/password-input";
 import type { SignInRefusal } from "@/components/auth/refused-notice";
 import { RefusedNotice, refusalOf } from "@/components/auth/refused-notice";
 import { DOOR_LINK, DoorLinks, DoorRow } from "@/components/door-screen";
-import { Notice } from "@/components/page";
+import { FLOW_CARD, FlowHead, Notice } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { PortalDoor } from "@/components/portal/portal-door";
 import { getUser } from "@/functions/get-user";
@@ -64,19 +64,17 @@ const PortalLogin = () => {
   return (
     <PortalDoor>
       <form
-        className="surface flex flex-col gap-5 p-6 sm:p-8"
+        className={FLOW_CARD}
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
           void signIn();
         }}
       >
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-2xl font-semibold">{t("portal.signInTitle")}</h1>
-          <p className="text-muted-foreground text-sm">
-            {t("portal.signInHint")}
-          </p>
-        </div>
+        <FlowHead
+          hint={t("portal.signInHint")}
+          title={t("portal.signInTitle")}
+        />
         {ended && !refused ? (
           <Notice title={t("portal.endedTitle")} tone="info">
             {t("portal.endedHint")}

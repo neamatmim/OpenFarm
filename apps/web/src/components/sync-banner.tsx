@@ -211,7 +211,7 @@ export const SyncBanner = () => {
     <output
       aria-live="polite"
       className={cn(
-        "inline-flex max-w-full min-w-0 items-center gap-2 rounded-2xl border px-3 py-1 text-sm lg:rounded-full",
+        "inline-flex max-w-full min-w-0 items-center gap-2 rounded-xl border px-3 py-1 text-sm lg:rounded-full",
         attention
           ? "border-warning/30 bg-warning-surface text-warning"
           : "bg-muted/60 text-muted-foreground border-transparent"

@@ -8,6 +8,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -25,6 +26,7 @@ import { PasswordInput } from "@/components/auth/password-input";
 import { NomineeList } from "@/components/investors/nominees";
 import { phoneLink } from "@/components/investors/phone-link";
 import {
+  CODE_SPACING,
   Loaded,
   Notice,
   Page,
@@ -284,7 +286,7 @@ const ConfirmTheirEmail = ({ me }: { me: Me }) => {
               <FormField id="account-email-code" label={t("portal.email.code")}>
                 <Input
                   autoComplete="one-time-code"
-                  className="max-w-40 tracking-widest tabular-nums"
+                  className={cn("max-w-40 tabular-nums", CODE_SPACING)}
                   id="account-email-code"
                   inputMode="numeric"
                   maxLength={12}

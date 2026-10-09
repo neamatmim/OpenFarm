@@ -341,10 +341,7 @@ const InspectorPage = () => {
   if (!view.data) {
     return (
       <Page>
-        <PageHeader
-          eyebrow={t("nav.group.compliance")}
-          title={t("nav.inspector")}
-        />
+        <PageHeader title={t("nav.inspector")} />
         {view.isError ? (
           <Notice title={t("common.loadFailed")} tone="danger" />
         ) : (
@@ -422,7 +419,6 @@ const InspectorPage = () => {
     <Page>
       <PageHeader
         description={t("inspector.subtitle")}
-        eyebrow={t("nav.group.compliance")}
         title={t("nav.inspector")}
       />
 
