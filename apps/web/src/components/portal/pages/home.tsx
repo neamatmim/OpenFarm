@@ -1,7 +1,7 @@
 import { hasEnded } from "@OpenFarm/domain";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, Handshake } from "lucide-react";
+import { ChevronRight, Handshake, Sprout } from "lucide-react";
 
 import { MORE_LINK } from "@/components/home/queue";
 import type { TheirAgreements } from "@/components/investors/investor-agreements";
@@ -174,9 +174,7 @@ const Portfolio = ({ theirs }: { theirs: TheirAgreements }) => {
             ))}
           </ul>
         ) : (
-          <p className="text-muted-foreground text-sm">
-            {t("portal.ventures.noneRunning")}
-          </p>
+          <EmptyState icon={Sprout} title={t("portal.ventures.noneRunning")} />
         )}
       </Section>
     </>

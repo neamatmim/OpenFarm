@@ -16,6 +16,7 @@ import {
   ListX,
   Store,
   TrendingDown,
+  Wallet,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -27,7 +28,7 @@ import { standingOf, valueOf } from "@/components/feed/feed-types";
 import { MORE_LINK } from "@/components/home/queue";
 import { categoryName } from "@/components/money";
 import type { Tone } from "@/components/page";
-import { Section } from "@/components/page";
+import { EmptyState, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import { moneyTotals } from "@/lib/money-totals";
@@ -99,7 +100,7 @@ const MONEY_LINE =
   "flex-row items-baseline justify-between gap-3 sm:flex-col sm:items-start";
 
 /** A panel still waiting for the farm's answer. */
-const Waiting = () => <Skeleton className="h-24 rounded-lg" />;
+const Waiting = () => <Skeleton className="h-24 rounded-xl" />;
 
 /** A line that says all is well, in words and color both. */
 const AllWell = ({ children }: { children: ReactNode }) => (
@@ -200,7 +201,7 @@ export const MoneyMonth = () => {
             </div>
           ) : null}
           {rows.length === 0 ? (
-            <p className="text-muted-foreground text-sm">{t("money.none")}</p>
+            <EmptyState compact icon={Wallet} title={t("money.none")} />
           ) : null}
           {/* This month is one of twelve: how it stands beside the months before it is a page of its own. */}
           <Link
@@ -330,9 +331,7 @@ export const HerdPanel = ({
                   })}
             </p>
           ) : (
-            <p className="text-muted-foreground text-sm">
-              {t("owner.noLosses")}
-            </p>
+            <EmptyState compact title={t("owner.noLosses")} />
           )}
           {lostYear && lostYear.count > 0 ? (
             <p className="text-danger text-sm">
@@ -422,9 +421,7 @@ export const FatteningPanel = () => {
               <ChevronRight aria-hidden className="size-4 shrink-0" />
             </Link>
           ) : (
-            <p className="text-muted-foreground text-sm">
-              {t("owner.noneToSell")}
-            </p>
+            <EmptyState compact icon={Store} title={t("owner.noneToSell")} />
           )}
           {costsMore > 0 ? (
             <Link

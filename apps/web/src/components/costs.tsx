@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import { HerCull } from "@/components/culling/cull-list";
 import { HerPrice } from "@/components/fattening/animal-prices";
 import { categoryName, useReadsMoney } from "@/components/money";
-import { Notice, SUBHEADING } from "@/components/page";
+import { Loaded, Notice, SUBHEADING } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { usePerHeadPerDay, useMoney, useMoneyRate } from "@/lib/money";
@@ -94,8 +94,19 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
     ...orpc.costs.forAnimal.queryOptions({ input: { tagNumber } }),
     enabled: readsMoney,
   });
-  if (!costs.data) {
+  if (!readsMoney) {
     return null;
+  }
+  if (!costs.data) {
+    // Her card's place held while the farm works her costs out, or why it could not, with a way to ask again.
+    return (
+      <Loaded
+        query={costs}
+        skeleton={<Skeleton aria-hidden className="h-64 rounded-xl" />}
+      >
+        {null}
+      </Loaded>
+    );
   }
   const her = costs.data;
   const orDash = (amount: number | null) =>

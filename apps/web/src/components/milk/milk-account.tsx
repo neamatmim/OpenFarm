@@ -1,8 +1,10 @@
 import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 
+import { Loaded } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -36,7 +38,14 @@ export const MilkAccountCard = () => {
   const { t, language } = useLanguage();
   const account = useQuery(orpc.milk.account.queryOptions());
   if (!account.data) {
-    return null;
+    return (
+      <Loaded
+        query={account}
+        skeleton={<Skeleton aria-hidden className="h-48 rounded-xl" />}
+      >
+        {null}
+      </Loaded>
+    );
   }
   const week = account.data;
   const calvesDrank = week.calves.litersADay > 0;

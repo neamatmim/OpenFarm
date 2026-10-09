@@ -6,7 +6,13 @@ import { Smartphone, SmartphoneNfc } from "lucide-react";
 import { useState } from "react";
 
 import { PhoneTable } from "@/components/devices/phone-table";
-import { EmptyState, Loaded, Page, PageHeader } from "@/components/page";
+import {
+  EmptyState,
+  Loaded,
+  Page,
+  PageHeader,
+  TableSkeleton,
+} from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
 import { OneTimeCode } from "@/components/people/one-time-code";
 import { useLanguage } from "@/i18n/language-provider";
@@ -110,7 +116,14 @@ const DevicesPage = () => {
         title={t("nav.devices")}
       />
 
-      <Loaded query={phones}>
+      <Loaded
+        query={phones}
+        skeleton={
+          <div className="surface p-4 md:p-5">
+            <TableSkeleton />
+          </div>
+        }
+      >
         {phones.data?.length ? (
           <div className="surface p-4 md:p-5">
             <PhoneTable

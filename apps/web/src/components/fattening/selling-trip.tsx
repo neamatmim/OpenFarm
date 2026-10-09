@@ -287,7 +287,7 @@ export const SellingTripForm = () => {
           </legend>
           <Loaded
             query={offered}
-            skeleton={<Skeleton className="h-16 rounded-lg" />}
+            skeleton={<Skeleton className="h-16 rounded-xl" />}
           >
             <WhoWent
               offered={offered.data ?? []}

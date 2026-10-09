@@ -17,6 +17,7 @@ import {
   RecordList,
   RecordRow,
   Section,
+  TableSkeleton,
 } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -235,7 +236,7 @@ export const SignInsTab = ({ userId }: { userId: string }) => {
       description={t("people.signInsWhy")}
       title={t("people.signedInOn")}
     >
-      <Loaded query={where}>
+      <Loaded query={where} skeleton={<TableSkeleton />}>
         {where.data?.length ? (
           <SignInTable
             rows={where.data}

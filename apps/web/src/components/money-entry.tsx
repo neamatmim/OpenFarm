@@ -463,7 +463,7 @@ export const EnterMoneySheet = ({
           <ReceiptField id="entry-receipt" onChange={setReceipt} />
         </>
       ) : null}
-      {categories.data ? null : <Skeleton className="h-64 rounded-lg" />}
+      {categories.data ? null : <Skeleton className="h-64 rounded-xl" />}
       <LooksEnteredDialog
         onOpenChange={(opening) => {
           if (!opening) {
@@ -516,7 +516,7 @@ export const ReceiptLink = ({ id }: { id: string }) => {
               src={`data:${receipt.data.contentType};base64,${receipt.data.data}`}
             />
           ) : (
-            <Skeleton className="h-72 rounded-lg" />
+            <Skeleton className="h-72 rounded-xl" />
           )}
         </DialogContent>
       </Dialog>

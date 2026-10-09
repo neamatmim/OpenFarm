@@ -1,6 +1,5 @@
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Archive,
@@ -25,11 +24,12 @@ import {
 import { RetiredBadge, nameTone, retiredLast } from "@/components/list-cells";
 import { useIsOwner, categoryName } from "@/components/money";
 import {
-  SECTION_TITLE,
   EmptyState,
   Loaded,
+  SECTION_TITLE,
   SegmentedControl,
   StatusBadge,
+  TableSkeleton,
 } from "@/components/page";
 import {
   ConfirmDialog,
@@ -398,10 +398,7 @@ export const CategoriesTab = () => {
           {t("byHand.newCategory")}
         </Button>
       </div>
-      <Loaded
-        query={categories}
-        skeleton={<Skeleton className="h-40 rounded-lg" />}
-      >
+      <Loaded query={categories} skeleton={<TableSkeleton />}>
         {categories.data?.length === 0 ? (
           <EmptyState bare icon={Tags} title={t("byHand.noCategories")} />
         ) : null}

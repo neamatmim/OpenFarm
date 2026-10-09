@@ -3,10 +3,11 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Landmark } from "lucide-react";
 import { useState } from "react";
 
 import { useIsOwner } from "@/components/money";
-import { Section } from "@/components/page";
+import { EmptyState, Loaded, Section } from "@/components/page";
 import { ConfirmDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { RenameDialog } from "@/components/rename-dialog";
 import { BankCheckSheet } from "@/components/ventures/bank-check-sheet";
@@ -237,74 +238,80 @@ export const FarmAccounts = ({ id }: { id: string }) => {
       id={id}
       title={t("farmAccounts.title")}
     >
-      {accounts.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          {t("farmAccounts.none")}
-        </p>
-      ) : (
-        <ul className="divide-y">
-          {accounts.map((one) => (
-            <li
-              className="flex flex-wrap items-center justify-between gap-2 py-2"
-              key={one.id}
-            >
-              <div className={one.retired ? "text-muted-foreground" : ""}>
-                <p className="text-sm font-medium">
-                  {one.name}
-                  {one.retired ? ` · ${t("farmAccounts.retired")}` : ""}
-                </p>
-                <p className="text-muted-foreground text-xs tabular-nums">
-                  {t(
-                    one.kind === "mobile_money"
-                      ? "money.method.mobile_money"
-                      : "money.method.bank"
-                  )}{" "}
-                  · {one.number}
-                  {one.bank ? ` · ${one.bank}` : ""}
-                  {one.branch ? `, ${one.branch}` : ""}
-                </p>
-                {isOwner ? <StandingLine standing={one.standing} /> : null}
-              </div>
-              {isOwner && !one.retired ? (
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => setRenaming({ id: one.id, name: one.name })}
-                    size="sm"
-                    variant="outline"
-                  >
-                    {t("list.rename")}
-                  </Button>
-                  <Button
-                    onClick={() => setChecking({ id: one.id, name: one.name })}
-                    size="sm"
-                    variant="outline"
-                  >
-                    {t("farmAccounts.check")}
-                  </Button>
-                  <Button
-                    disabled={retire.isPending}
-                    onClick={() => setRetiring({ id: one.id, name: one.name })}
-                    size="sm"
-                    variant="outline"
-                  >
-                    {t("farmAccounts.retire")}
-                  </Button>
+      <Loaded query={listed}>
+        {accounts.length === 0 ? (
+          <EmptyState compact icon={Landmark} title={t("farmAccounts.none")} />
+        ) : (
+          <ul className="divide-y">
+            {accounts.map((one) => (
+              <li
+                className="flex flex-wrap items-center justify-between gap-2 py-2"
+                key={one.id}
+              >
+                <div className={one.retired ? "text-muted-foreground" : ""}>
+                  <p className="text-sm font-medium">
+                    {one.name}
+                    {one.retired ? ` · ${t("farmAccounts.retired")}` : ""}
+                  </p>
+                  <p className="text-muted-foreground text-xs tabular-nums">
+                    {t(
+                      one.kind === "mobile_money"
+                        ? "money.method.mobile_money"
+                        : "money.method.bank"
+                    )}{" "}
+                    · {one.number}
+                    {one.bank ? ` · ${one.bank}` : ""}
+                    {one.branch ? `, ${one.branch}` : ""}
+                  </p>
+                  {isOwner ? <StandingLine standing={one.standing} /> : null}
                 </div>
-              ) : null}
-              {isOwner && one.retired ? (
-                <Button
-                  disabled={bringBack.isPending}
-                  onClick={() => bringBack.mutate({ id: one.id })}
-                  size="sm"
-                  variant="outline"
-                >
-                  {t("farmAccounts.bringBack")}
-                </Button>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      )}
+                {isOwner && !one.retired ? (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() =>
+                        setRenaming({ id: one.id, name: one.name })
+                      }
+                      size="sm"
+                      variant="outline"
+                    >
+                      {t("list.rename")}
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        setChecking({ id: one.id, name: one.name })
+                      }
+                      size="sm"
+                      variant="outline"
+                    >
+                      {t("farmAccounts.check")}
+                    </Button>
+                    <Button
+                      disabled={retire.isPending}
+                      onClick={() =>
+                        setRetiring({ id: one.id, name: one.name })
+                      }
+                      size="sm"
+                      variant="outline"
+                    >
+                      {t("farmAccounts.retire")}
+                    </Button>
+                  </div>
+                ) : null}
+                {isOwner && one.retired ? (
+                  <Button
+                    disabled={bringBack.isPending}
+                    onClick={() => bringBack.mutate({ id: one.id })}
+                    size="sm"
+                    variant="outline"
+                  >
+                    {t("farmAccounts.bringBack")}
+                  </Button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Loaded>
       {isOwner ? <AddAccount /> : null}
       <RenameDialog
         bn={renaming?.name ?? ""}

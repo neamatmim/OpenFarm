@@ -36,7 +36,14 @@ import {
   MovementLog,
   RegisterPeriod,
 } from "@/components/health-registers";
-import { Notice, Page, PageHeader, Section, TagChip } from "@/components/page";
+import {
+  EmptyState,
+  Notice,
+  Page,
+  PageHeader,
+  Section,
+  TagChip,
+} from "@/components/page";
 import type { Tone } from "@/components/page";
 import type { Figure, PageTab } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
@@ -217,10 +224,7 @@ const RegistrationTab = ({
             src={`data:${photo.contentType};base64,${photo.data}`}
           />
         ) : (
-          <p className="text-muted-foreground bg-muted/60 flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm">
-            <ImageOff aria-hidden className="size-4 shrink-0" />
-            {t("certificate.none")}
-          </p>
+          <EmptyState icon={ImageOff} title={t("certificate.none")} />
         )}
       </Section>
 

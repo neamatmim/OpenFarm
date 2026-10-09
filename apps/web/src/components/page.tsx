@@ -541,7 +541,7 @@ const SKELETON_ROWS = 6;
  */
 export const TableSkeleton = ({ rows = SKELETON_ROWS }: { rows?: number }) => (
   <div aria-hidden>
-    <Skeleton className="h-20 rounded-lg md:hidden" />
+    <Skeleton className="h-20 rounded-xl md:hidden" />
     <div className="hidden flex-col md:flex">
       <Skeleton className="h-9 rounded-md" />
       {Array.from({ length: rows }, (_, row) => (
@@ -586,7 +586,7 @@ export const Loaded = ({
     return (
       <output className="block">
         <span className="sr-only">{t("common.loading")}</span>
-        {skeleton ?? <Skeleton aria-hidden className="h-20 rounded-lg" />}
+        {skeleton ?? <Skeleton aria-hidden className="h-20 rounded-xl" />}
       </output>
     );
   }

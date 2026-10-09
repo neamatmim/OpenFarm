@@ -45,7 +45,7 @@ const CowsInSession = ({ instanceId }: { instanceId: string }) => {
     orpc.milk.session.queryOptions({ input: { instanceId } })
   );
   if (!session.data) {
-    return <Skeleton className="h-20 rounded-lg" />;
+    return <Skeleton className="h-20 rounded-xl" />;
   }
   return (
     <ul className="max-h-[50vh] divide-y overflow-y-auto rounded-lg border text-sm">

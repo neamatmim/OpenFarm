@@ -1,5 +1,4 @@
 import { formatNumber } from "@OpenFarm/i18n";
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Truck } from "lucide-react";
 
@@ -12,7 +11,7 @@ import {
 import type { BoardRow } from "@/components/fattening/fattening-types";
 import { StateBadge, TagLink } from "@/components/fattening/fattening-words";
 import { Nothing } from "@/components/list-cells";
-import { EmptyState, Loaded, Section } from "@/components/page";
+import { EmptyState, Loaded, Section, TableSkeleton } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -143,7 +142,7 @@ export const RecentIntakes = () => {
       id="intake-recent"
       title={t("intake.recent")}
     >
-      <Loaded query={board} skeleton={<Skeleton className="h-32 rounded-lg" />}>
+      <Loaded query={board} skeleton={<TableSkeleton />}>
         {recent.length === 0 ? (
           <EmptyState bare icon={Truck} title={t("intake.recentEmpty")} />
         ) : (
