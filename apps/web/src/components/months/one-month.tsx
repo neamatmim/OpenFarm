@@ -34,8 +34,11 @@ export type OneMonth = Awaited<ReturnType<typeof client.monthlyReport.month>>;
 type Figures = OneMonth["figures"];
 /** A month's figures as the phone may hold them: an answer kept from before the management figures (ADR 0023) has
  *  neither what each Side came to nor where the Farm stood at the month's end. */
-export type KeptFigures = Omit<Figures, "results" | "atEnd" | "cashFlow"> &
-  Partial<Pick<Figures, "results" | "atEnd" | "cashFlow">>;
+export type KeptFigures = Omit<
+  Figures,
+  "results" | "atEnd" | "cashFlow" | "monthsReturn"
+> &
+  Partial<Pick<Figures, "results" | "atEnd" | "cashFlow" | "monthsReturn">>;
 
 /** One month of the farm, the Owner's alone, beside the month before. */
 export const useOneMonth = (month: string, asked = true) =>
@@ -230,6 +233,38 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
         true
       ),
     ],
+    capital: [
+      ...(
+        [
+          ["months.one.dairyHerd", "dairyMoney"],
+          ["months.one.fatteningAnimals", "fatteningMoney"],
+          ["months.one.inVentures", "venturesMoney"],
+          ["months.one.theStore", "storeMoney"],
+          ["months.one.owedByBuyers", "receivablesMoney"],
+        ] as const
+      ).map(([label, key]) =>
+        both(t(label), (one) =>
+          one.atEnd ? asMoney(one.atEnd.capital[key]) : null
+        )
+      ),
+      both(
+        t("months.one.capitalInAll"),
+        (one) => (one.atEnd ? asMoney(one.atEnd.capital.totalMoney) : null),
+        true
+      ),
+    ],
+    monthsReturn: (
+      [
+        ["animals.side.dairy", "dairyPer100"],
+        ["animals.side.fattening", "fatteningPer100"],
+        ["months.one.farmVenturesApart", "farmPer100"],
+      ] as const
+    ).map(([label, key]) =>
+      both(t(label), (one) => {
+        const made = one.monthsReturn?.[key] ?? null;
+        return made === null ? null : t("months.one.per100", { amount: made });
+      })
+    ),
     store: [
       both(t("months.one.feed"), (one) =>
         one.atEnd ? asMoney(one.atEnd.store.feedMoney) : null
@@ -441,6 +476,7 @@ export const LeftOut = ({ figures }: { figures: KeptFigures }) => {
     figures.dairy.uncostedDoses + figures.fattening.uncostedDoses;
   const unpricedInStore = figures.atEnd?.store.unpriced ?? 0;
   const accountsNotRead = figures.atEnd?.cash.accountsNotRead ?? 0;
+  const unpricedDairy = figures.atEnd?.capital.unpricedDairy ?? 0;
   const said = [
     figures.money.awaitingCount > 0 ? t("months.awaiting") : null,
     unpricedKg > 0 ? t("costs.unpricedNote", { amount: unpricedKg }) : null,
@@ -452,6 +488,9 @@ export const LeftOut = ({ figures }: { figures: KeptFigures }) => {
       : null,
     accountsNotRead > 0
       ? t("months.one.accountsNotRead", { amount: accountsNotRead })
+      : null,
+    unpricedDairy > 0
+      ? t("months.one.unpricedDairy", { amount: unpricedDairy })
       : null,
   ].filter((line) => line !== null);
   if (said.length === 0) {

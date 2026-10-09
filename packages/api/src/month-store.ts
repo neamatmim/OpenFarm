@@ -1,10 +1,12 @@
 import type { Database } from "@OpenFarm/db";
 import type {
+  CapitalEmployed,
   FinancialYear,
   PenHistoryLine,
   YearRules,
 } from "@OpenFarm/domain";
 import {
+  capitalEmployedOf,
   cashFlowOf,
   cashPositionOf,
   farmDayOf,
@@ -18,6 +20,7 @@ import {
   monthsEndingIn,
   monthsFromTo,
   monthsOfFinancialYear,
+  monthsReturnOf,
   receivablesByAge,
   roundMoney,
   sideResultsOf,
@@ -28,6 +31,8 @@ import {
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
+import type { CapitalBooks } from "./capital-store";
+import { animalsAt, capitalBooksOf, venturesCapitalAt } from "./capital-store";
 import { handsHeldAt } from "./cash-store";
 import {
   chargedOf,
@@ -232,13 +237,14 @@ const cashAt = async (db: Database, farmId: string, at: Date) => {
 
 /**
  * Where the Farm stood at the end of a stretch — or now, for one still going (ADR 0023): what buyers owed, by age, what
- * the store held, in taka, and the Farm's own money.
+ * the store held, in taka, the Farm's own money, and what it had tied up, at cost.
  */
 const atTheEndOf = async (
   db: Database,
   farm: EndFarm,
-  { until }: { from: Date; until: Date },
-  now: Date
+  until: Date,
+  now: Date,
+  books: CapitalBooks
 ) => {
   const end = until < now ? until : now;
   // Its last moment, and the farm day it ended on: its last, or today.
@@ -251,22 +257,49 @@ const atTheEndOf = async (
     bookAt(db, farm.id, last, ""),
     cashAt(db, farm.id, end),
   ]);
+  const receivables = receivablesByAge(
+    buyers.flatMap((buyer) => buyer.kinds.flatMap((kind) => kind.items)),
+    lastDay,
+    farm.receivableDays
+  );
+  const store = storeValueOf({
+    feed: [...feed.values()].map((movements) => stockLedger(movements, last)),
+    medicine: [...medicine.values()],
+  });
   return {
     /** What buyers owed at its end, by the days since each Sale or Dispatch left, and what of it was overdue. */
-    receivables: receivablesByAge(
-      buyers.flatMap((buyer) => buyer.kinds.flatMap((kind) => kind.items)),
-      lastDay,
-      farm.receivableDays
-    ),
+    receivables,
     /** What the store held at its end: the feed at its average price, the medicine at a dose's. */
-    store: storeValueOf({
-      feed: [...feed.values()].map((movements) => stockLedger(movements, last)),
-      medicine: [...medicine.values()],
+    store,
+    /** What the Farm had tied up at its end, at cost: its animals by Side, its capital in Ventures, the store, the
+     *  Receivables. */
+    capital: capitalEmployedOf({
+      at: last,
+      animals: animalsAt(books, last),
+      venturesMoney: venturesCapitalAt(books, end),
+      storeMoney: store.totalMoney,
+      receivablesMoney: receivables.owingMoney,
     }),
     /** The Farm's own money at its end: in the hands, less the Ventures', and in its Farm Accounts. */
     cash,
   };
 };
+
+/** What a stretch's capital made, each Side's Result after Overheads over its capital where it began and ended. */
+const returnOver = (
+  results: ReturnType<typeof figuresOver>["results"],
+  began: { capital: CapitalEmployed },
+  ended: { capital: CapitalEmployed }
+) =>
+  monthsReturnOf(
+    {
+      dairy: results.dairy.afterOverheadsMoney,
+      fattening: results.fattening.afterOverheadsMoney,
+      farm: results.farm.afterOverheadsMoney,
+    },
+    began.capital,
+    ended.capital
+  );
 
 /** The day the Farm's purse first moved a taka, or today for a farm whose purse has moved nothing yet. */
 const firstDayKept = async (db: Database, farmId: string, today: string) => {
@@ -401,14 +434,17 @@ export const monthByMonth = async (
     until: rangeOf(months.at(-1) ?? "").until,
   };
   const ranges = months.map(rangeOf);
+  const books = await capitalBooksOf(db, farm.id);
   const [read, ventures, financialYears, ends, opening] = await Promise.all([
     readOver(db, farm.id, span, now),
     venturesAgainstPlan(db, farm, now),
     financialYearsKept(db, farm.id, rules, today),
     Promise.all(
-      [...ranges, span].map((range) => atTheEndOf(db, farm, range, now))
+      [...ranges, span].map((range) =>
+        atTheEndOf(db, farm, range.until, now, books)
+      )
     ),
-    cashAt(db, farm.id, span.from),
+    atTheEndOf(db, farm, span.from, now, books),
   ]);
   // Each month's charges sorted out of the year's once, rather than every month reading all of them.
   const narrowed = narrowedToEach(read.costs, [...ranges, span]);
@@ -425,12 +461,13 @@ export const monthByMonth = async (
     // A month begins where the one before it ended; the first, and the year, where the year began.
     const began =
       index > 0 && index < months.length
-        ? (ends[index - 1]?.cash ?? opening)
+        ? (ends[index - 1] ?? opening)
         : opening;
     return {
       ...figures,
       atEnd,
-      cashFlow: cashFlowOf(began, atEnd.cash, figures.money),
+      cashFlow: cashFlowOf(began.cash, atEnd.cash, figures.money),
+      monthsReturn: returnOver(figures.results, began, atEnd),
     };
   };
   return {
@@ -503,14 +540,15 @@ export const aMonth = async (
   const range = rangeOf(month);
   const earlier = rangeOf(before);
   const span = { from: earlier.from, until: range.until };
+  const books = await capitalBooksOf(db, farm.id);
   const [read, ventures, firstDay, end, endBefore, beganBefore] =
     await Promise.all([
       readOver(db, farm.id, span, now),
       venturesRunningIn(db, farm.id, range),
       firstDayKept(db, farm.id, today),
-      atTheEndOf(db, farm, range, now),
-      atTheEndOf(db, farm, earlier, now),
-      cashAt(db, farm.id, earlier.from),
+      atTheEndOf(db, farm, range.until, now, books),
+      atTheEndOf(db, farm, earlier.until, now, books),
+      atTheEndOf(db, farm, earlier.from, now, books),
     ]);
   const [thisMonth, monthBefore] = narrowedToEach(read.costs, [range, earlier]);
   // One for each range, always: a month falling back on the whole stretch's costs would say two months as one.
@@ -535,11 +573,17 @@ export const aMonth = async (
       ...figures,
       atEnd: end,
       cashFlow: cashFlowOf(endBefore.cash, end.cash, figures.money),
+      monthsReturn: returnOver(figures.results, endBefore, end),
     },
     figuresBefore: {
       ...figuresBefore,
       atEnd: endBefore,
-      cashFlow: cashFlowOf(beganBefore, endBefore.cash, figuresBefore.money),
+      cashFlow: cashFlowOf(
+        beganBefore.cash,
+        endBefore.cash,
+        figuresBefore.money
+      ),
+      monthsReturn: returnOver(figuresBefore.results, beganBefore, endBefore),
     },
     /** The month's money as the accountant adds it: by Category, and by Side. */
     moneyBy: { category: money.byCategory, side: money.bySide },

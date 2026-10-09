@@ -128,6 +128,22 @@ const TheMonth = ({ one }: { one: OneMonth }) => {
           <MonthPart {...at} lines={lines.store} />
         </Section>
       ) : null}
+      {kept.atEnd ? (
+        <Section
+          description={t("months.one.capitalHint")}
+          title={t("months.one.capital")}
+        >
+          <MonthPart {...at} lines={lines.capital} />
+        </Section>
+      ) : null}
+      {kept.monthsReturn ? (
+        <Section
+          description={t("months.one.monthsReturnHint")}
+          title={t("months.one.monthsReturn")}
+        >
+          <MonthPart {...at} lines={lines.monthsReturn} />
+        </Section>
+      ) : null}
       <LeftOut figures={one.figures} />
       <Section title={t("months.one.venturesTitle")}>
         <VenturesThatRan month={one.month} ventures={one.ventures} />

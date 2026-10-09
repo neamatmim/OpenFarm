@@ -83,7 +83,17 @@ const FIGURES = {
       accountsNotRead: 1,
       farmsOwnMoney: 246_900,
     },
+    capital: {
+      dairyMoney: 3000,
+      fatteningMoney: 0,
+      venturesMoney: 100_000,
+      storeMoney: 45_000,
+      receivablesMoney: 36_000,
+      totalMoney: 184_000,
+      unpricedDairy: 1,
+    },
   },
+  monthsReturn: { dairyPer100: -6.7, fatteningPer100: null, farmPer100: 59.3 },
   cashFlow: {
     openingMoney: 300_000,
     inMoney: 57_000,
@@ -151,7 +161,17 @@ const NOTHING = {
       accountsNotRead: 0,
       farmsOwnMoney: 0,
     },
+    capital: {
+      dairyMoney: 0,
+      fatteningMoney: 0,
+      venturesMoney: 0,
+      storeMoney: 0,
+      receivablesMoney: 0,
+      totalMoney: 0,
+      unpricedDairy: 0,
+    },
   },
+  monthsReturn: { dairyPer100: null, fatteningPer100: null, farmPer100: null },
   cashFlow: {
     openingMoney: 0,
     inMoney: 0,
@@ -388,6 +408,38 @@ describe("the farm's own money, on paper", () => {
     expect(text).toContain(
       "১টি খামারের হিসাব এখনো একবারও বিবরণীর সাথে মেলানো হয়নি; তা শূন্য ধরা হয়েছে।"
     );
+  });
+});
+
+describe("what the farm had tied up, and what it made on it, on paper", () => {
+  it("sets the capital at cost by where it was, beside the month before's", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("Capital employed at the month's end, at cost");
+    expect(text).toContain("The dairy herd · 3,000 taka · 0 taka");
+    expect(text).toContain("In ventures · 100,000 taka · 0 taka");
+    expect(text).toContain("Capital in all · 184,000 taka · 0 taka");
+    expect(text).toContain(
+      "1 dairy animal was never priced, and counts in the capital at its charges alone."
+    );
+  });
+
+  it("says what each side made on every hundred taka of it, and the ventures' as theirs at settlement", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("What the capital made this month");
+    expect(text).toContain("Dairy · -6.7 taka on every 100 · —");
+    expect(text).toContain("Fattening · — · —");
+    expect(text).toContain(
+      "Whole farm, ventures apart · 59.3 taka on every 100 · —"
+    );
+  });
+
+  it("says it in Bangla", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "bn");
+
+    expect(text).toContain("মাস শেষে খাটানো পুঁজি, খরচের হিসাবে");
+    expect(text).toContain("প্রতি ১০০ টাকায় ৫৯.৩ টাকা");
   });
 });
 

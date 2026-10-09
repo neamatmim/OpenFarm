@@ -1056,3 +1056,9 @@ export type { StoreValue } from "./store-value";
 export { storeValueOf } from "./store-value";
 export type { CashFlow, CashPosition } from "./cash-position";
 export { cashFlowOf, cashPositionOf } from "./cash-position";
+export type {
+  CapitalAnimal,
+  CapitalEmployed,
+  MonthsReturn,
+} from "./capital-employed";
+export { capitalEmployedOf, monthsReturnOf } from "./capital-employed";

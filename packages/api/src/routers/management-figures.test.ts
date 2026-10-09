@@ -26,6 +26,11 @@ import { appRouter } from "./index";
 // bank. The Owner banked ৳20,000 of notes on the 25th, which moves nothing of the Farm's own. May ended with the hands
 // at ৳128,900 (the Owner ৳168,900, the Manager ৳40,000 short) and the bank at ৳115,000: ৳243,900, ৳7,000 less than
 // the money in and out says. On 2 June the Venture's bull is sold for ৳90,000 cash, not yet deposited: the Venture's.
+//
+// What the Farm had tied up. The Farm paid ৳100,000 from the bank on 25 April for two of the Venture's ten Units, before
+// the April statement that reads ৳100,000. At May's end it stood with the heifer — registered born with no dam, so
+// here before the books and never priced, at nothing but the ৳3,000 of spray — the Farm's capital in the Venture, the
+// store's ৳45,000 and the ৳36,000 owed: ৳184,000. At April's end, before either animal came, the Venture's ৳100,000.
 
 const as = (role: "owner" | "manager" | "vet", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
@@ -108,9 +113,22 @@ beforeAll(async () => {
     unitPriceMoney: 50_000,
     units: 10,
   });
+  // The Farm takes two of the ten Units with its own money, from the bank, before anybody signs.
+  const farms = await owner.client.ventures.agreements.farmTakes({
+    ventureId: venture.id,
+    units: 2,
+  });
+  await owner.client.ventures.takeCapital({
+    agreementId: farms.id,
+    amountMoney: 100_000,
+    movedOn: "2046-04-25",
+    paymentMethod: "bank",
+    farmAccountId: bankId,
+    reference: "FARM-UNITS",
+  });
   await putCapitalIn(
     owner.client,
-    { id: venture.id, units: 10, unitPriceMoney: 50_000 },
+    { id: venture.id, units: 8, unitPriceMoney: 50_000 },
     "management",
     "2046-04-25"
   );
@@ -397,6 +415,39 @@ describe("the Farm's own money at the end of May, and how it got there", () => {
       outMoney: 0,
       differenceMoney: 0,
       closingMoney: 246_900,
+    });
+  });
+});
+
+describe("what the Farm had tied up at the end of May, and what it made on it", () => {
+  it("is its animals at cost by Side, its capital in the Venture, the store and what it was owed", async () => {
+    const { client: owner } = await as("owner", NOW);
+    const { figures, figuresBefore } = await owner.monthlyReport.month({
+      month: "2046-05",
+    });
+
+    expect(figures.atEnd.capital).toEqual({
+      dairyMoney: 3000,
+      fatteningMoney: 0,
+      venturesMoney: 100_000,
+      storeMoney: 45_000,
+      receivablesMoney: 36_000,
+      totalMoney: 184_000,
+      unpricedDairy: 1,
+    });
+    expect(figuresBefore.atEnd.capital.totalMoney).toBe(100_000);
+  });
+
+  it("is each Side's result after overheads over its capital where the month began and ended, the Venture's apart", async () => {
+    const { client: owner } = await as("owner", NOW);
+    const { figures } = await owner.monthlyReport.month({ month: "2046-05" });
+
+    // The dairy's ৳100 short over a mean of ৳1,500; the bull bought and sold inside the month left no capital at
+    // either end; the Farm's ৳24,900 over a mean of ৳42,000 of its own.
+    expect(figures.monthsReturn).toEqual({
+      dairyPer100: -6.7,
+      fatteningPer100: null,
+      farmPer100: 59.3,
     });
   });
 });

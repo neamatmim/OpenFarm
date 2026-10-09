@@ -3628,6 +3628,22 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.farmsOwn": "খামারের নিজের মোট",
   "months.one.accountsNotRead":
     "{amount}টি খামারের হিসাব এখনো একবারও বিবরণীর সাথে মেলানো হয়নি; তা শূন্য ধরা হয়েছে",
+  "months.one.capital": "মাস শেষে খাটানো পুঁজি, খরচের হিসাবে",
+  "months.one.capitalHint":
+    "মাসের শেষ দিনে খামারের নিজের যত টাকা আটকে ছিল, নগদ বাদে: মোটাতাজাকরণের প্রতিটি পশু তার দাম আর তার সব খরচসহ; দুগ্ধের প্রতিটি পশু তার দাম আর প্রথম বাছুর দেওয়া পর্যন্ত তার খরচসহ; চলমান ভেঞ্চারে খামারের পুঁজি; ভান্ডার; ক্রেতাদের কাছে বাকি। আজকের দামে কত, তা রিটার্ন পাতায়।",
+  "months.one.dairyHerd": "দুগ্ধ পাল",
+  "months.one.fatteningAnimals": "মোটাতাজাকরণের পশু",
+  "months.one.inVentures": "ভেঞ্চারে",
+  "months.one.theStore": "ভান্ডার",
+  "months.one.owedByBuyers": "ক্রেতাদের কাছে বাকি",
+  "months.one.capitalInAll": "মোট পুঁজি",
+  "months.one.unpricedDairy":
+    "{amount}টি দুগ্ধ পশুর কোনো দাম দেওয়া হয়নি; পুঁজিতে শুধু তার খরচ ধরা হয়েছে",
+  "months.one.monthsReturn": "এই মাসে পুঁজিতে যা এল",
+  "months.one.monthsReturnHint":
+    "প্রতিটি বিভাগের পরিচালন খরচের পরের ফল, মাসের শুরু আর শেষে তার পুঁজির গড়ের ওপর। ভেঞ্চারের রিটার্ন আসে তার নিষ্পত্তিতে, কোনো মাসে নয়; মাসের ভেতরেই কেনা আর বেচা পশু দুই প্রান্তের কোনোটিতেই পুঁজি রাখে না।",
+  "months.one.farmVenturesApart": "পুরো খামার, ভেঞ্চার বাদে",
+  "months.one.per100": "প্রতি ১০০ টাকায় {amount} টাকা",
   "months.one.venturesTitle": "ভেঞ্চার",
   "months.one.ventures":
     "প্রতিটি ভেঞ্চার নিজের হিসাব নিজে রাখে, তাই ওপরে নেই; প্রতিটির নিজের পাতা আছে।",

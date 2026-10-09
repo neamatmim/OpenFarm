@@ -31,7 +31,8 @@ money each Side ties up and what it earns on it.
     counts at nothing and is said.
   - Farm Capital in Ventures: capital out less capital back, for Ventures neither settled nor called off.
   - The store and the Receivables, at their own figures below.
-  - Today's price, low and high, beside the animals — the month still going only, as no past price is kept.
+  - Not today's price: Returns already sets each Season and the herd at it, and the capital's note points there
+    (decided while building 06: the price machinery is Returns', and a past month has no past price).
   - **Return a month**: a Side's Result after Overheads over the mean of its capital at the month's start and end, per
     100 taka. The Ventures': "at Settlement", never a month's. The Farm's: over every capital but the Ventures'.
 - **Cash Position** (CONTEXT.md) at a moment: the Farm's own notes in every hand (all notes less a Venture's sale cash

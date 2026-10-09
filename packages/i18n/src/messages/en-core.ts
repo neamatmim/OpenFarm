@@ -3901,6 +3901,22 @@ export const enCore = {
   "months.one.farmsOwn": "The farm's own in all",
   "months.one.accountsNotRead":
     "{amount, plural, one {# farm account was not yet read once against its statement, and counts nothing} other {# farm accounts were not yet read once against their statements, and count nothing}}",
+  "months.one.capital": "Capital employed at the month's end, at cost",
+  "months.one.capitalHint":
+    "The farm's own money tied up on the month's last day, cash apart: each fattening animal at her price and every charge to her; each dairy animal at her entry price and her keep until she first calved; the farm's capital in ventures still running; the store; what buyers owe. What they would fetch today is on Returns.",
+  "months.one.dairyHerd": "The dairy herd",
+  "months.one.fatteningAnimals": "Fattening animals",
+  "months.one.inVentures": "In ventures",
+  "months.one.theStore": "The store",
+  "months.one.owedByBuyers": "Owed by buyers",
+  "months.one.capitalInAll": "Capital in all",
+  "months.one.unpricedDairy":
+    "{amount, plural, one {# dairy animal was never priced, and counts in the capital at its charges alone} other {# dairy animals were never priced, and count in the capital at their charges alone}}",
+  "months.one.monthsReturn": "What the capital made this month",
+  "months.one.monthsReturnHint":
+    "Each side's result after overheads over the mean of its capital where the month began and ended. A ventures' return comes at its settlement, never in a month; an animal bought and sold inside the month leaves no capital at either end.",
+  "months.one.farmVenturesApart": "Whole farm, ventures apart",
+  "months.one.per100": "{amount} taka on every 100",
   "months.one.venturesTitle": "Ventures",
   "months.one.ventures":
     "Each venture keeps its own accounts, so none are above; each has its own page.",
