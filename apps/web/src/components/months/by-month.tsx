@@ -16,7 +16,12 @@ import { EmptyState, Notice, StatusBadge } from "@/components/page";
 import { NativeSelect, SummaryFigures } from "@/components/page-kit";
 import { StateBadge } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
-import { usePerHeadPerDay, useMoney, useMoneyRate } from "@/lib/money";
+import {
+  saidAsSigned,
+  usePerHeadPerDay,
+  useMoney,
+  useMoneyRate,
+} from "@/lib/money";
 import { financialYearName, saidMonth } from "@/lib/months";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
@@ -409,7 +414,7 @@ const AfterOverheadsCell = ({ row }: MonthCell) => {
         ? asMoney(afterOverheadsMoney)
         : t("months.pair", {
             first: asMoney(afterOverheadsMoney),
-            second: `${formatNumber(marginAfterPercent, language)}%`,
+            second: `${saidAsSigned(marginAfterPercent, language)}%`,
           })}
     </span>
   );

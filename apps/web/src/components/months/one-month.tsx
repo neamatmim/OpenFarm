@@ -23,7 +23,13 @@ import { EmptyState } from "@/components/page";
 import { NativeSelect } from "@/components/page-kit";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
-import { usePerHeadPerDay, useMoney, useMoneyRate } from "@/lib/money";
+import {
+  saidAsSigned,
+  usePercent,
+  usePerHeadPerDay,
+  useMoney,
+  useMoneyRate,
+} from "@/lib/money";
 import { saidMonth } from "@/lib/months";
 import { useRefused } from "@/lib/refused";
 import { saveCsv } from "@/lib/save-csv";
@@ -140,6 +146,7 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
   const asMoney = useMoney();
   const perLiter = useMoneyRate();
   const perHead = usePerHeadPerDay();
+  const percent = usePercent();
   const liters = (amount: number | null | undefined) =>
     amount === null || amount === undefined
       ? null
@@ -189,7 +196,7 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
       {
         ...both(t("months.one.marginAfter"), (one) => {
           const margin = one.results?.farm.marginAfterPercent ?? null;
-          return margin === null ? null : `${formatNumber(margin, language)}%`;
+          return margin === null ? null : percent(margin);
         }),
         change: null,
       },
@@ -337,7 +344,9 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
     ).map(([label, key]) =>
       both(t(label), (one) => {
         const made = one.monthsReturn?.[key] ?? null;
-        return made === null ? null : t("months.one.per100", { amount: made });
+        return made === null
+          ? null
+          : t("months.one.per100", { amount: saidAsSigned(made, language) });
       })
     ),
     store: [
@@ -416,17 +425,20 @@ type SideResult = Figures["results"]["farm"];
 
 /** What each Side came to this month, before and after its share of the overheads, the farm's as the total (ADR 0023). */
 export const SideResults = ({ results }: { results: Figures["results"] }) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const asMoney = useMoney();
-  const percent = (amount: number | null) =>
-    amount === null ? null : `${formatNumber(amount, language)}%`;
+  const percent = usePercent();
   const cells = (result: SideResult) => [
     asMoney(result.broughtInMoney),
     asMoney(result.beforeOverheadsMoney),
-    percent(result.marginBeforePercent),
+    result.marginBeforePercent === null
+      ? null
+      : percent(result.marginBeforePercent),
     asMoney(result.overheadsMoney),
     asMoney(result.afterOverheadsMoney),
-    percent(result.marginAfterPercent),
+    result.marginAfterPercent === null
+      ? null
+      : percent(result.marginAfterPercent),
   ];
   const rows: {
     key: string;
