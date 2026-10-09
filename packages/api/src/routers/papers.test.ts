@@ -1,8 +1,16 @@
+import type { PaperDocument } from "@OpenFarm/domain";
+import { paperText } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
+
+/** A paper as its reader reads it: in Bangla unless English is asked for. */
+const read = (
+  paper: { document: PaperDocument },
+  language: "bn" | "en" = "bn"
+) => paperText(paper.document, language);
 
 // The two papers a buyer leaves with: what they bought, and what the lorry carries.
 
@@ -98,13 +106,13 @@ describe("the papers a buyer leaves with", () => {
 
     const receipt = await seller.client.papers.receipt({ saleId: sold });
     // Both animals, both weights, both prices, and the total nobody had to add up.
-    expect(receipt.text).toContain(tagOf(0));
-    expect(receipt.text).toContain(tagOf(1));
-    expect(receipt.text).toContain(BUYER.name);
+    expect(read(receipt)).toContain(tagOf(0));
+    expect(read(receipt)).toContain(tagOf(1));
+    expect(read(receipt)).toContain(BUYER.name);
     expect(receipt.animals).toHaveLength(2);
     expect(receipt.totalMoney).toBe(277_000);
     // And the farm it came from, which is what makes it a receipt rather than a note.
-    expect(receipt.text).toContain("শিমুলিয়া");
+    expect(read(receipt)).toContain("শিমুলিয়া");
   });
 
   it("gives the lorry a card with the farm of origin on it", async () => {
@@ -113,16 +121,16 @@ describe("the papers a buyer leaves with", () => {
 
     // Meat Rules 2021 r.18: farm of origin with its registration, the animals, where they are
     // going, and who is driving.
-    expect(card.text).toContain("DLS/SAV/2026/০৪২");
-    expect(card.text).toContain("শিমুলিয়া");
-    expect(card.text).toContain(LORRY.destination);
-    expect(card.text).toContain(LORRY.driver);
-    expect(card.text).toContain(LORRY.vehicle);
+    expect(read(card)).toContain("DLS/SAV/2026/০৪২");
+    expect(read(card)).toContain("শিমুলিয়া");
+    expect(read(card)).toContain(LORRY.destination);
+    expect(read(card)).toContain(LORRY.driver);
+    expect(read(card)).toContain(LORRY.vehicle);
     expect(card.animalCount).toBe(2);
-    // The whole card is in Bangla, the count included — and every label carries its English
-    // alongside, so a clerk from outside the district can read the form.
-    expect(card.text).toContain("পশুর সংখ্যা / Animals: ২");
-    expect(card.text).toContain(tagOf(0));
+    // Read in Bangla the count is in Bangla too, and a clerk from outside the district is handed it in English.
+    expect(read(card)).toContain("পশুর সংখ্যা: ২");
+    expect(read(card, "en")).toContain("Animals: 2");
+    expect(read(card)).toContain(tagOf(0));
   });
 
   it("gives each lorry its own card, even to one buyer on one day", async () => {
@@ -166,7 +174,7 @@ describe("the papers a buyer leaves with", () => {
       saleId: other.id,
     });
     expect(secondLorry.tagNumbers).toEqual([third.tagNumber]);
-    expect(secondLorry.text).toContain("রফিক");
+    expect(read(secondLorry)).toContain("রফিক");
 
     // The receipt, though, is one sheet for everything he took that morning.
     const receipt = await manager.client.papers.receipt({ saleId: sold });

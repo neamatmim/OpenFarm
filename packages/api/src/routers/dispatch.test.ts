@@ -2,6 +2,7 @@ import { and, eq, inArray } from "@OpenFarm/db/operators";
 import { animal, penAssignment } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
+import { paperText } from "@OpenFarm/domain";
 import type { SopContent } from "@OpenFarm/domain";
 import {
   FakeClock,
@@ -346,10 +347,12 @@ describe("the milk dispatch", () => {
       ...period,
       format: "paper",
     });
-    expect(paper.text).toContain(buyer.name);
-    expect(paper.text).toContain(buyer.address);
-    expect(paper.text).toContain("CH-0412");
-    expect(paper.text).toContain(REGISTRATION);
+    // Laid out on the letterhead, read in either language.
+    const text = paper.document ? paperText(paper.document, "en") : "";
+    expect(text).toContain(buyer.name);
+    expect(text).toContain(buyer.address);
+    expect(text).toContain("CH-0412");
+    expect(text).toContain(REGISTRATION);
     expect(paper.csv).toBeUndefined();
 
     const sheet = await owner.client.reports.milkDispatchRecord({

@@ -75,7 +75,6 @@ export {
 export type { FarmIdentity } from "./farm";
 export type { RegistrationStanding } from "./farm";
 export {
-  farmOfOriginLines,
   goodUntilOf,
   identityView,
   registrationStanding,
@@ -169,47 +168,21 @@ export {
   windowHasClosed,
 } from "./ready";
 export type {
-  AnimalPassport,
-  DispatchLine,
-  MilkDispatchRecord,
-  AccountantSummary,
-  DoseGiven,
   HealthRegister,
   InspectorRegister,
-  HerdSummary,
-  HerdSummaryLine,
-  RegisterPaper,
-  RegisterPaperField,
-  RegisterPaperRow,
-  RegistrationRecord,
-  PenSpellLine,
   PaperOrganization,
-  ShortenedHold,
-  SaleReceipt,
-  SoldAnimal,
   DocumentRow,
   Said,
-  TransportCard,
   Worded,
-  WithdrawalSummary,
 } from "./papers";
 export {
   INSPECTOR_REGISTERS,
-  accountantSummary,
-  animalPassport,
   NO_GUARANTEE,
   NO_GUARANTEE_LINES,
   inLanguage,
-  registerPaper,
-  herdSummary,
-  registrationRecord,
-  milkDispatchRecord,
-  saleReceipt,
-  transportCard,
-  withdrawalSummary,
 } from "./papers";
 export type { NotifiableLetter } from "./letter";
-export { notifiableLetter } from "./letter";
+export { notifiableLetterPaper } from "./letter";
 export type { TagPrefix } from "./tag-number";
 export {
   TAG_PREFIXES,
@@ -1051,3 +1024,27 @@ export {
   progressStatementPaper,
   settlementStatementPaper,
 } from "./investor-statements";
+export type { AccountantSummaryFacts } from "./accountant-summary-paper";
+export { accountantSummaryPaper } from "./accountant-summary-paper";
+export type { DispatchOnPaper, MilkDispatchFacts } from "./milk-dispatch-paper";
+export { milkDispatchPaper } from "./milk-dispatch-paper";
+export type {
+  HerdLine,
+  HerdSummaryFacts,
+  RegisterFacts,
+  RegistrationFacts,
+} from "./inspector-papers";
+export {
+  herdSummaryPaper,
+  registerDocument,
+  registrationPaper,
+} from "./inspector-papers";
+export type {
+  DoseOnPaper,
+  PassportFacts,
+  WithdrawalStanding,
+  WithdrawalSummaryFacts,
+} from "./animal-papers";
+export { animalPassportPaper, withdrawalSummaryPaper } from "./animal-papers";
+export type { SaleReceiptFacts, TransportCardFacts } from "./sale-papers";
+export { saleReceiptPaper, transportCardPaper } from "./sale-papers";

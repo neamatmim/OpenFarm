@@ -2,17 +2,15 @@ import type { Database } from "@OpenFarm/db";
 import type { FarmIdentity } from "@OpenFarm/domain";
 import {
   WITHDRAWAL_LOOK_BACK_DAYS,
-  withdrawalEndsAt,
-  animalPassport,
+  animalPassportPaper,
   farmDayOf,
   roundMoney,
-  saleReceipt,
+  saleReceiptPaper,
   startOfFarmDay,
-  transportCard,
-  withdrawalSummary,
+  transportCardPaper,
+  withdrawalEndsAt,
+  withdrawalSummaryPaper,
 } from "@OpenFarm/domain";
-import type { Language } from "@OpenFarm/i18n";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -23,16 +21,14 @@ import { exportedPaper } from "../export-store";
 import { farmDay } from "../farm-clock";
 import { meatDaysOf, milkDaysOf } from "../health-store";
 import { protectedProcedure } from "../index";
+import { madeOn } from "../paper-values";
 import {
-  ageWords,
-  doseWords,
-  herWithdrawalWords,
-  leftWords,
-  penSpellWords,
-  sexWords,
-  sourceWords,
+  boughtFromOf,
+  doseOnPaper,
+  herWithdrawalStanding,
+  leftOf,
+  penSpellsOf,
 } from "../paper-words";
-import { languageOf } from "../reader-language";
 import { owingNowOf } from "../receivable-store";
 import { requireRole } from "../roles";
 import { requireLookUp } from "../scope";
@@ -47,19 +43,16 @@ const tagInput = z.string().trim().min(1).max(32);
 const LOAD_LIMIT = 200;
 
 /**
- * What the buyer paid that day and still owed, for the paper he signs, or nothing when he paid in full. One promised
- * day is said as it is; several are said beside the tags they were promised for, since a paper that gave one day for
- * two promises would hold him to the wrong one.
+ * What the buyer paid that day and still owed, for the paper he signs, or nothing when he paid in full: the day he
+ * promised for each tag he still owed on, which the paper says once where it is one day.
  */
 const receivableOnTheReceipt = (
   rows: readonly {
-    priceMoney: number;
     receivableMoney: number;
     promisedBy: string | null;
     animal: { tagNumber: string };
   }[],
-  totalMoney: number,
-  language: Language
+  totalMoney: number
 ) => {
   const owing = rows.filter((row) => row.receivableMoney > 0);
   if (owing.length === 0) {
@@ -68,19 +61,13 @@ const receivableOnTheReceipt = (
   const owedMoney = roundMoney(
     owing.reduce((sum, row) => sum + row.receivableMoney, 0)
   );
-  const dayOf = (day: string | null) =>
-    day === null ? "—" : formatDate(startOfFarmDay(day), language, "date");
-  const days = new Set(owing.map((row) => row.promisedBy));
-  const [onlyDay] = days;
   return {
-    paid: formatNumber(roundMoney(totalMoney - owedMoney), language),
-    owed: formatNumber(owedMoney, language),
-    toBePaidBy:
-      days.size === 1
-        ? dayOf(onlyDay ?? null)
-        : owing
-            .map((row) => `${row.animal.tagNumber} ${dayOf(row.promisedBy)}`)
-            .join("; "),
+    paidMoney: roundMoney(totalMoney - owedMoney),
+    owedMoney,
+    toBePaidBy: owing.map((row) => ({
+      tagNumber: row.animal.tagNumber,
+      day: row.promisedBy,
+    })),
   };
 };
 
@@ -184,7 +171,6 @@ export const papersRouter = {
     .input(z.object({ tagNumber: tagInput }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const language = await languageOf(context.db, context.actor.id);
       const her = await herRecord(
         context.db,
         context.farm.id,
@@ -192,35 +178,41 @@ export const papersRouter = {
         now
       );
       requireLookUp(context.scope, her);
-      const text = animalPassport({
+      const document = animalPassportPaper({
         farm: context.farm,
         tagNumber: her.tagNumber,
-        sex: sexWords(her.sex),
-        // The passport is the farm's Bangla paper with English labels, so the breed goes on it in Bangla.
-        breed: her.breed?.nameBn ?? null,
-        age: ageWords(her, language),
-        source: sourceWords(her),
+        sex: her.sex === "female" ? "female" : "male",
+        // A breed given no English is read in its Bangla (ADR 0021): nothing goes blank.
+        breed: her.breed
+          ? {
+              bn: her.breed.nameBn,
+              en: her.breed.nameEn?.trim() || her.breed.nameBn,
+            }
+          : null,
+        // Her age as the farm can say it: from her birth date if it knows one, and otherwise from what the seller said
+        // at Intake, which is a judgment and is labeled as one.
+        born: her.birthDate ? farmDayOf(her.birthDate) : null,
+        estimatedAgeMonths: her.intake?.estimatedAgeMonths ?? null,
+        boughtFrom: boughtFromOf(her),
         // The day the Intake says she came, which is not the day she was written down: an animal bought last
         // week and entered today arrived last week. A calf born here has no arrival line.
-        arrived: her.intake
-          ? formatDate(her.intake.arrivedAt, language, "date")
-          : null,
+        arrivedOn: her.intake ? farmDayOf(her.intake.arrivedAt) : null,
         // Her Pen Spells as her record works them out: the last one ends when she left, so the paper never says a
         // cow who has gone stands in a Pen still.
-        pens: penSpellWords(her.penSpells, language),
-        doses: her.doses.map((dose) => doseWords(dose, language)),
-        ...herWithdrawalWords(her.withdrawal, language),
+        pens: penSpellsOf(her.penSpells),
+        doses: her.doses.map(doseOnPaper),
+        withdrawal: herWithdrawalStanding(her.withdrawal),
         moreThanShown: her.moreThanShown,
         weighIns: her.weighIns.map((one) => ({
-          weight: formatNumber(Number(one.weightKg), language),
-          on: formatDate(one.weighedAt, language, "date"),
+          kg: Number(one.weightKg),
+          on: farmDayOf(one.weighedAt),
         })),
         // Where she went, not who took her: R7 names the destination, and one buyer's name is
         // not the next holder's business.
         leftFor: her.sale?.destination ?? null,
-        left: leftWords(her.exit, language),
+        left: leftOf(her.exit),
+        producedAt: madeOn(now),
         producedBy: context.actor.name,
-        producedAt: formatDate(now, language, "dateTime"),
       });
       await audited(context).write(
         {
@@ -233,7 +225,7 @@ export const papersRouter = {
         },
         () => Promise.resolve()
       );
-      return { text, tagNumber: her.tagNumber };
+      return { document, tagNumber: her.tagNumber };
     }),
 
   /**
@@ -248,7 +240,6 @@ export const papersRouter = {
     .input(z.object({ tagNumber: tagInput }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const language = await languageOf(context.db, context.actor.id);
       const her = await herRecord(
         context.db,
         context.farm.id,
@@ -271,17 +262,17 @@ export const papersRouter = {
       const lately = her.doses.filter(
         (dose) => dose.givenAt >= since || stillHolds(dose)
       );
-      const held = herWithdrawalWords(her.withdrawal, language);
-      const doses = lately.map((dose) => doseWords(dose, language));
-      const text = withdrawalSummary({
+      const held = herWithdrawalStanding(her.withdrawal);
+      const doses = lately.map(doseOnPaper);
+      const document = withdrawalSummaryPaper({
         farm: context.farm,
         tagNumber: her.tagNumber,
-        asOf: formatDate(now, language, "date"),
-        ...held,
+        asOf: farmDayOf(now),
+        withdrawal: held,
         doses,
-        lookBackDays: formatNumber(WITHDRAWAL_LOOK_BACK_DAYS, language),
+        lookBackDays: WITHDRAWAL_LOOK_BACK_DAYS,
+        producedAt: madeOn(now),
         producedBy: context.actor.name,
-        producedAt: formatDate(now, language, "dateTime"),
       });
       await audited(context).write(
         {
@@ -302,7 +293,7 @@ export const papersRouter = {
         },
         () => Promise.resolve()
       );
-      return { text, clear: held.clear, doses };
+      return { document, clear: held.clear, doses };
     }),
 
   /**
@@ -381,26 +372,24 @@ export const papersRouter = {
         input.saleId,
         false
       );
-      // The receipt is the farm's own paper, so it reads in the language of whoever is making
-      // it. The transport card does not get that choice: r.18 is a form for an authority.
-      const language = await languageOf(context.db, context.actor.id);
       const animals = rows.map((row) => ({
         tagNumber: row.animal.tagNumber,
-        weight: formatNumber(Number(row.weightKg), language),
-        price: formatNumber(row.priceMoney, language),
+        weightKg: Number(row.weightKg),
+        priceMoney: row.priceMoney,
       }));
       const totalMoney = rows.reduce((sum, row) => sum + row.priceMoney, 0);
-      const text = saleReceipt({
-        receivable: receivableOnTheReceipt(rows, totalMoney, language),
+      const document = saleReceiptPaper({
         farm: context.farm,
-        buyerName: first.buyer.name,
-        buyerAddress: first.buyer.address,
-        buyerPhone: first.buyer.phone,
-        day: formatDate(day, language, "date"),
+        buyer: {
+          name: first.buyer.name,
+          address: first.buyer.address,
+          phone: first.buyer.phone,
+        },
+        day: farmDayOf(day),
         animals,
-        total: formatNumber(totalMoney, language),
+        receivable: receivableOnTheReceipt(rows, totalMoney),
+        producedAt: madeOn(now),
         producedBy: context.actor.name,
-        producedAt: formatDate(now, language, "dateTime"),
       });
       const tagNumbers = animals.map((one) => one.tagNumber);
       await audited(context).write(
@@ -414,7 +403,7 @@ export const papersRouter = {
         },
         () => Promise.resolve()
       );
-      return { text, animals: tagNumbers, totalMoney };
+      return { document, animals: tagNumbers, totalMoney };
     }),
 
   /**
@@ -446,19 +435,16 @@ export const papersRouter = {
         true
       );
       const tagNumbers = rows.map((row) => row.animal.tagNumber);
-      // Bangla throughout, whoever is printing it: this is an authority's form, and the labels
-      // carry their English alongside rather than swapping for it.
-      const text = transportCard({
+      const document = transportCardPaper({
         farm: context.farm,
         buyerName: first.buyer.name,
         destination: first.destination,
         vehicle: first.vehicle,
         driver: first.driver,
-        when: formatDate(day, "bn", "dateTime"),
+        at: day,
         tagNumbers,
-        count: formatNumber(tagNumbers.length, "bn"),
+        producedAt: madeOn(now),
         producedBy: context.actor.name,
-        producedAt: formatDate(now, "bn", "dateTime"),
       });
       await audited(context).write(
         {
@@ -472,6 +458,6 @@ export const papersRouter = {
         },
         () => Promise.resolve()
       );
-      return { text, animalCount: tagNumbers.length, tagNumbers };
+      return { document, animalCount: tagNumbers.length, tagNumbers };
     }),
 };

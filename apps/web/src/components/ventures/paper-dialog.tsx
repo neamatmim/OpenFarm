@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 import { useId, useState } from "react";
 
 import { SegmentedControl } from "@/components/page";
+import type { PaperAttachment } from "@/components/ventures/paper-document";
 import {
   PAPER_DOCUMENT_ID,
   PaperDocumentView,
@@ -141,6 +142,7 @@ export const PaperDialog = ({
   description,
   notice,
   action,
+  attached,
   onClose,
 }: {
   paper: PaperDocument | null;
@@ -151,6 +153,8 @@ export const PaperDialog = ({
   notice?: ReactNode;
   /** What the reader does once the paper is printed, beside Print: never printed itself. */
   action?: ReactNode;
+  /** A photograph printed whole beneath the paper, where the paper is about it. */
+  attached?: PaperAttachment | null;
   onClose: () => void;
 }) => {
   const { t, language: reads } = useLanguage();
@@ -184,7 +188,11 @@ export const PaperDialog = ({
         />
         {paper ? (
           <PaperDesk>
-            <PaperDocumentView document={paper} language={language} />
+            <PaperDocumentView
+              attached={attached}
+              document={paper}
+              language={language}
+            />
           </PaperDesk>
         ) : null}
       </DialogContent>

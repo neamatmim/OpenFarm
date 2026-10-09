@@ -1,18 +1,19 @@
+import type { PaperDocument } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
 import { FileDown, Printer } from "lucide-react";
 import { useState } from "react";
 
-import { Paper } from "@/components/paper";
+import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { saveCsv } from "@/lib/save-csv";
 import { orpc } from "@/utils/orpc";
 
 /**
- * The accountant's export for the dates the page is showing: the summary to print, and every Money Event
- * as a CSV. Each is an Export on the trail.
+ * The accountant's export for the dates the page is showing: the summary laid out on the letterhead, to read in
+ * Bangla or English and print, and every Money Event as a CSV. Each is an Export on the trail.
  */
 export const AccountantExport = ({
   from,
@@ -23,10 +24,10 @@ export const AccountantExport = ({
 }) => {
   const { t } = useLanguage();
   const onError = useRefused();
-  const [paper, setPaper] = useState<string | null>(null);
+  const [paper, setPaper] = useState<PaperDocument | null>(null);
   const summary = useMutation(
     orpc.reports.accountantExport.mutationOptions({
-      onSuccess: ({ text }) => setPaper(text ?? null),
+      onSuccess: ({ document }) => setPaper(document ?? null),
       onError,
     })
   );
@@ -38,7 +39,7 @@ export const AccountantExport = ({
     })
   );
   return (
-    <div className="flex flex-col gap-4">
+    <>
       <div className="surface flex flex-col gap-4 p-4 md:p-5">
         <p className="text-muted-foreground text-sm">{t("accountant.hint")}</p>
         <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:flex-wrap">
@@ -70,7 +71,12 @@ export const AccountantExport = ({
           </Button>
         </div>
       </div>
-      {paper ? <Paper id="accountant-summary" text={paper} /> : null}
-    </div>
+      <PaperDialog
+        onClose={() => setPaper(null)}
+        paper={paper}
+        title={t("accountant.summary")}
+        wording={null}
+      />
+    </>
   );
 };

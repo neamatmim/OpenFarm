@@ -1,3 +1,4 @@
+import type { PaperDocument } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { ReceiptText, Truck } from "lucide-react";
 import { useState } from "react";
@@ -12,12 +13,11 @@ import {
 import { TagLink } from "@/components/fattening/fattening-words";
 import { EmptyState } from "@/components/page";
 import { RowMenu } from "@/components/page-kit";
-import type { PaperId } from "@/components/paper";
-import { Paper } from "@/components/paper";
 import { ReceivableOwed } from "@/components/receivable-fields";
 import { SaleCorrection } from "@/components/sale-correction";
 import { useSalePapers } from "@/components/sale/sale-papers";
 import { useShrinkWords } from "@/components/sale/shrink-words";
+import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import type { orpc } from "@/utils/orpc";
 
@@ -269,19 +269,9 @@ export const TodaysSales = ({
   sold: Sold[];
   mayCorrect: boolean;
 }) => {
-  const { t } = useLanguage();
-  const [paper, setPaper] = useState<{ id: PaperId; text: string } | null>(
-    null
-  );
-  const shown = (id: PaperId, text: string) => {
-    setPaper({ id, text });
-    requestAnimationFrame(() =>
-      document
-        .querySelector(`#${id}`)
-        ?.scrollIntoView({ behavior: "smooth", block: "start" })
-    );
-  };
-  const { askReceipt, askCard, busy } = useSalePapers(shown);
+  const { t, language } = useLanguage();
+  const [paper, setPaper] = useState<PaperDocument | null>(null);
+  const { askReceipt, askCard, busy } = useSalePapers(setPaper);
 
   if (sold.length === 0) {
     return (
@@ -306,7 +296,12 @@ export const TodaysSales = ({
         </p>
         <SoldTable papers={papers} sold={sold} />
       </div>
-      {paper ? <Paper id={paper.id} text={paper.text} /> : null}
+      <PaperDialog
+        onClose={() => setPaper(null)}
+        paper={paper}
+        title={paper ? paper.title[language] : ""}
+        wording={null}
+      />
     </div>
   );
 };

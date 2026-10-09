@@ -1,6 +1,7 @@
 import { eq, inArray } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
+import { paperText } from "@OpenFarm/domain";
 import type { SopContent } from "@OpenFarm/domain";
 import {
   FakeClock,
@@ -293,20 +294,20 @@ describe("the vaccination register", () => {
 
   it("prints the vaccination register and gives it as a CSV, each an Export", async () => {
     const manager = await as("manager", "2045-06-01T04:00:00.000Z");
-    // A paper is in its producer's language, and other files choose the Manager's.
-    await manager.client.language.set({ language: "bn" });
     const [first] = world.cows;
     const paper = await manager.client.inspectorView.print({
       register: "vaccination_register",
       ...MAY,
     });
-    expect(paper.text).toContain("টিকার রেজিস্টার / Vaccination register");
-    expect(paper.text).toContain(
+    // Laid out on the letterhead, read in either language: here in Bangla.
+    const text = paper.document ? paperText(paper.document, "bn") : "";
+    expect(text).toContain("টিকার রেজিস্টার");
+    expect(text).toContain(
       [
         `${first.tagNumber}`,
-        `  টিকা / Vaccine: এফএমডি টিকা ${suffix}`,
-        "  তারিখ / Date: ৩ মে, ২০৪৫",
-        "  লট নম্বর / Lot number: FMD-2045-A2",
+        `টিকা: এফএমডি টিকা ${suffix}`,
+        "তারিখ: ৩ মে, ২০৪৫",
+        "লট নম্বর: FMD-2045-A2",
       ].join("\n")
     );
 

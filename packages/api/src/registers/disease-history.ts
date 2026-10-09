@@ -68,9 +68,9 @@ const diagnosesBetween = async (
 const outcomeSaid = (row: DiagnosisRow, saying: Saying): string => {
   const { outcome } = row;
   if (outcome.kind === "on_the_farm") {
-    return saying.both("inspector.onTheFarm");
+    return saying.word("inspector.onTheFarm");
   }
-  const gone = saying.both(`state.${outcome.kind}`);
+  const gone = saying.word(`state.${outcome.kind}`);
   return outcome.on ? `${gone} ${saying.day(outcome.on)}` : gone;
 };
 

@@ -2,6 +2,7 @@ import { and, eq, inArray } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
+import { paperText } from "@OpenFarm/domain";
 import type { SopContent } from "@OpenFarm/domain";
 import {
   FakeClock,
@@ -372,27 +373,28 @@ describe("the mortality register", () => {
       `${tags.stillborn},2046-02-10,died,stillbirth,awaiting,,,0\r\n`
     );
 
-    await manager.client.language.set({ language: "bn" });
     const paper = await manager.client.inspectorView.print({
       register: "mortality_register",
       ...FEBRUARY,
     });
-    expect(paper.text).toContain("মৃত্যুর রেজিস্টার / Mortality register");
-    expect(paper.text).toContain(
+    // Laid out on the letterhead, read in either language: here in Bangla.
+    const text = paper.document ? paperText(paper.document, "bn") : "";
+    expect(text).toContain("মৃত্যুর রেজিস্টার");
+    expect(text).toContain(
       [
         tags.heifer,
-        "  তারিখ / Date: ৭ ফেব্রুয়ারি, ২০৪৬",
-        "  কারণ / Cause: তড়কা",
-        "  নিষ্পত্তি / Disposal: পোড়ানো হয়েছে / Burned — খামারের পেছনে, পশু হাসপাতালের লোক",
-        "  ডিএলএস রেফারেন্স / DLS reference: ULO/2046/০১২",
+        "তারিখ: ৭ ফেব্রুয়ারি, ২০৪৬",
+        "কারণ: তড়কা",
+        "নিষ্পত্তি: পোড়ানো হয়েছে — খামারের পেছনে, পশু হাসপাতালের লোক",
+        "ডিএলএস রেফারেন্স: ULO/2046/০১২",
       ].join("\n")
     );
-    expect(paper.text).toContain(
+    expect(text).toContain(
       [
         tags.stillborn,
-        "  তারিখ / Date: ১০ ফেব্রুয়ারি, ২০৪৬",
-        "  কারণ / Cause: মৃত জন্ম / Stillbirth",
-        "  নিষ্পত্তি / Disposal: অপেক্ষমাণ / Awaiting",
+        "তারিখ: ১০ ফেব্রুয়ারি, ২০৪৬",
+        "কারণ: মৃত জন্ম",
+        "নিষ্পত্তি: অপেক্ষমাণ",
       ].join("\n")
     );
   });

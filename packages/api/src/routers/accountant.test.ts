@@ -1,3 +1,4 @@
+import { paperText } from "@OpenFarm/domain";
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -175,10 +176,12 @@ describe("the accountant's export", () => {
 
   it("sums income against expense by Category, by Counterparty and by Side, headed by the farm", async () => {
     const manager = await as("manager", "2040-04-01T04:00:00.000Z");
-    const { text, summary } = await manager.client.reports.accountantExport({
-      ...MARCH,
-      format: "paper",
-    });
+    const { document, summary } = await manager.client.reports.accountantExport(
+      {
+        ...MARCH,
+        format: "paper",
+      }
+    );
     // March 2040 is the only month this file books anything in, so the farm's month is this file's work.
     // The bull's 900 of Market toll is part of what he cost, so it is in his Category, his Side and the month.
     expect(summary).toMatchObject({
@@ -216,9 +219,12 @@ describe("the accountant's export", () => {
       { side: "fattening", inMoney: 35_000, outMoney: 31_900 },
       { side: null, inMoney: 0, outMoney: 16_000 },
     ]);
+    // Laid out on the letterhead, read in either language.
+    const text = document ? paperText(document, "en") : "";
     expect(text).toContain(REGISTRATION);
-    expect(text).toContain("আয় ও ব্যয় / Income and expense");
+    expect(text).toContain("Income and expense");
     expect(text).toContain(`গাবতলী ${suffix}`);
+    expect(document ? paperText(document, "bn") : "").toContain("আয় ও ব্যয়");
 
     // Each Export on the trail, naming the report, the format and the period: this file's own.
     const exports = await scratchDb().query.auditEvent.findMany({

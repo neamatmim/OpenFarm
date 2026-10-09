@@ -38,6 +38,17 @@ const sectionLines = (
         ...(section.note ? [say(section.note)] : []),
       ];
     }
+    case "records": {
+      return [
+        ...section.records.flatMap((record) => [
+          say(record.heading),
+          ...record.fields.map(
+            (field) => `${say(field.label)}: ${say(field.value)}`
+          ),
+        ]),
+        ...(section.note ? [say(section.note)] : []),
+      ];
+    }
     case "clauses": {
       return section.clauses.map(
         (clause, index) =>
@@ -48,7 +59,15 @@ const sectionLines = (
       return [
         section.columns.map((column) => say(column.label)).join(" · "),
         ...section.rows.map((row) => row.map(say).join(" · ")),
-        ...(section.foot ? [section.foot.map(say).join(" · ")] : []),
+        // A total stands under the columns it adds; the blanks beside it under the others say nothing.
+        ...(section.foot
+          ? [
+              section.foot
+                .map(say)
+                .filter((cell) => cell.trim() !== "")
+                .join(" · "),
+            ]
+          : []),
         ...(section.note ? [say(section.note)] : []),
       ];
     }

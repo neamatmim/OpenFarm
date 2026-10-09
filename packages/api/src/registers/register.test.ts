@@ -1,3 +1,4 @@
+import { paperText } from "@OpenFarm/domain";
 import { describe, expect, it } from "vitest";
 
 import { DISEASE_HISTORY } from "./disease-history";
@@ -5,7 +6,7 @@ import type { DeathRow } from "./mortality";
 import { MORTALITY_REGISTER } from "./mortality";
 import { MOVEMENT_LOG } from "./movement-log";
 import type { Register } from "./register";
-import { csvOf, hasCsv, paperOf, periodCovered, sayingIn } from "./register";
+import { csvOf, hasCsv, paperOf, periodCovered } from "./register";
 import { TREATMENT_REGISTER } from "./treatment";
 import { VACCINATION_REGISTER } from "./vaccination";
 
@@ -22,7 +23,7 @@ const FARM = {
 const produced = {
   farm: FARM,
   by: "ম্যানেজার",
-  at: "১ মার্চ, ২০৪৬ ১০:০০",
+  at: { bn: "১ মার্চ, ২০৪৬ ১০:০০", en: "1 March 2046 10:00" },
 };
 
 const aDeath = (death: Partial<DeathRow> = {}): DeathRow => ({
@@ -98,37 +99,33 @@ describe("a register's period", () => {
 });
 
 describe("a register as a paper", () => {
-  const saying = sayingIn("en");
-
-  it("heads each row and leaves out the lines that row has nothing for", () => {
-    const paper = paperOf(
-      LEDGER,
-      [
-        { what: "one", note: "said" },
-        { what: "two", note: null },
-      ],
-      { from: "2046-02-01", to: "2046-02-28" },
-      produced,
-      saying
-    );
-
-    expect(paper).toContain("one\n  টীকা / Note: said\ntwo\n");
-    expect(paper).not.toContain("two\n  টীকা");
-  });
-
-  it("says so in both languages when the period holds nothing", () => {
-    expect(
+  const PERIOD = { from: "2046-02-01", to: "2046-02-28" };
+  it("heads each entry and leaves out the fields that entry has nothing for", () => {
+    const paper = paperText(
       paperOf(
         LEDGER,
-        [],
-        { from: "2046-02-01", to: "2046-02-28" },
-        produced,
-        saying
-      )
-    ).toContain("কিছু নেই / Nothing here");
+        [
+          { what: "one", note: "said" },
+          { what: "two", note: null },
+        ],
+        PERIOD,
+        produced
+      ),
+      "en"
+    );
+
+    expect(paper).toContain("2 entries\none\nNote: said\ntwo\n");
+    expect(paper).not.toContain("two\nNote");
   });
 
-  it("writes the mortality register as the report set has it", () => {
+  it("says so in either language when the period holds nothing", () => {
+    const empty = paperOf(LEDGER, [], PERIOD, produced);
+
+    expect(paperText(empty, "bn")).toContain("কিছু নেই");
+    expect(paperText(empty, "en")).toContain("Nothing here");
+  });
+
+  it("writes the mortality register as the report set has it, in each language", () => {
     const paper = paperOf(
       MORTALITY_REGISTER,
       [
@@ -142,42 +139,42 @@ describe("a register as a paper", () => {
           reportReference: null,
         }),
       ],
-      { from: "2046-02-01", to: "2046-02-28" },
-      produced,
-      saying
+      PERIOD,
+      produced
     );
 
-    expect(paper).toBe(
+    expect(paperText(paper, "en")).toContain(
       [
-        "খামার: সাভার ডেইরি",
-        "নিবন্ধন নম্বর: DLS/SAV/2026/০৪২",
-        "",
-        "মৃত্যুর রেজিস্টার / Mortality register",
-        "সময়কাল / Period: 1 February 2046 — 28 February 2046",
-        "",
+        "Mortality register",
+        "From 1 February 2046 to 28 February 2046.",
+        "2 entries",
         "BD-0001",
-        "  তারিখ / Date: 7 February 2046",
-        "  কারণ / Cause: তড়কা",
-        "  নিষ্পত্তি / Disposal: পোড়ানো হয়েছে / Burned — খামারের পেছনে",
-        "  ডিএলএস রেফারেন্স / DLS reference: ULO/2046/০১২",
+        "Date: 7 February 2046",
+        "Cause: তড়কা",
+        "Disposal: Burned — খামারের পেছনে",
+        "DLS reference: ULO/2046/০১২",
         "BD-0002",
-        "  তারিখ / Date: 7 February 2046",
-        "  কারণ / Cause: মৃত জন্ম / Stillbirth",
-        "  নিষ্পত্তি / Disposal: অপেক্ষমাণ / Awaiting",
-        "",
-        "১ মার্চ, ২০৪৬ ১০:০০ · ম্যানেজার",
+        "Date: 7 February 2046",
+        "Cause: Stillbirth",
+        "Disposal: Awaiting",
+        "1 March 2046 10:00 · ম্যানেজার",
       ].join("\n")
+    );
+    expect(paperText(paper, "bn")).toContain(
+      "নিষ্পত্তি: পোড়ানো হয়েছে — খামারের পেছনে"
     );
   });
 
   it("leaves the DLS line out for a death with no reference, blank or missing", () => {
     const written = (reportReference: string | null) =>
-      paperOf(
-        MORTALITY_REGISTER,
-        [aDeath({ reportReference })],
-        { from: "2046-02-01", to: "2046-02-28" },
-        produced,
-        saying
+      paperText(
+        paperOf(
+          MORTALITY_REGISTER,
+          [aDeath({ reportReference })],
+          PERIOD,
+          produced
+        ),
+        "en"
       );
 
     expect(written(null)).not.toContain("DLS reference");

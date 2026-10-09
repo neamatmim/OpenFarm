@@ -664,12 +664,22 @@ export type PaperSection =
       }[];
     }
   | { kind: "facts"; heading: Said; rows: DocumentRow[]; note: Said | null }
+  | {
+      kind: "records";
+      heading: Said;
+      /** Entries of a register, each headed by what identifies it — a day, a tag — with its fields beneath: one layout
+       *  for a register of any width, which a table of ten columns would not fit across a page. */
+      records: { heading: Worded; fields: DocumentRow[] }[];
+      /** What it says where it has no entries, or beneath them. */
+      note: Said | null;
+    }
   | { kind: "clauses"; heading: Said; clauses: Said[] }
   | {
       kind: "table";
       heading: Said;
-      /** Each column's heading, and whether it holds figures, which stand to the right. */
-      columns: { label: Said; figures?: boolean }[];
+      /** Each column's heading, whether it holds figures, which stand to the right on one line, and whether its cells are
+       *  short codes or times kept whole as figures are, broken only where they were written broken. */
+      columns: { label: Said; figures?: boolean; whole?: boolean }[];
       /** One line each, a cell to a column. */
       rows: Worded[][];
       /** A last line set apart — a total — or nothing. */

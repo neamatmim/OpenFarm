@@ -1,3 +1,4 @@
+import { paperText } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -301,17 +302,18 @@ describe("the accountant's export", () => {
     // The trader's two payments and the shop's two.
     expect(paymentLines).toHaveLength(4);
 
-    await owner.client.language.set({ language: "en" });
     const reader = await as("owner", "2049-05-31T12:00:00.000Z");
     // Read as at the fourth, before anybody had paid: the trader's thirty thousand and the shop's 5,250.
-    const { text = "" } = await reader.client.reports.accountantExport({
+    const { document } = await reader.client.reports.accountantExport({
       from: "2049-05-01",
       to: "2049-05-04",
       format: "paper",
     });
+    const text = document ? paperText(document, "en") : "";
     expect(text).toContain("Owed to the farm at the period's end");
-    expect(text).toContain(`${TRADER}: ৳30,000`);
-    expect(text).toContain(`${SHOP}: ৳5,250`);
-    expect(text).toContain("নিট / Net");
+    expect(text).toContain(`${TRADER} · 30,000 taka`);
+    expect(text).toContain(`${SHOP} · 5,250 taka`);
+    expect(text).toContain("Total · 35,250 taka");
+    expect(text).toContain("Net · ");
   });
 });

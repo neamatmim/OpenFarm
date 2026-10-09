@@ -12,7 +12,6 @@ import { useMutation } from "@tanstack/react-query";
 import { Download, FileText, Printer, Scale } from "lucide-react";
 import { useState } from "react";
 
-import type { PaperId } from "@/components/paper";
 import {
   PaperDesk,
   PaperDialog,
@@ -64,7 +63,7 @@ const PAPER_ID = {
   joining: "investor-joining-letter",
   progress: "investor-progress",
   settlement: "investor-settlement",
-} as const satisfies Record<StatementKind, PaperId>;
+} as const satisfies Record<StatementKind, string>;
 
 /** What each of the three is called, and its mark, in the order an Investor meets the papers. */
 export const PAPER_KINDS: readonly {

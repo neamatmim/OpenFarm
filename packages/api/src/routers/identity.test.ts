@@ -1,3 +1,4 @@
+import { paperText } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
@@ -62,9 +63,10 @@ describe("the farm's own identity", () => {
     const letter = await manager.client.notifiableDiseases.letter({
       diagnosisId: made.id,
     });
-    expect(letter.text).toContain("শিমুলিয়া");
-    expect(letter.text).toContain("+8801711000099");
-    expect(letter.text).toContain("DLS/SAV/2026/০৪২");
+    const text = paperText(letter.document, "bn");
+    expect(text).toContain("শিমুলিয়া");
+    expect(text).toContain("+8801711000099");
+    expect(text).toContain("DLS/SAV/2026/০৪২");
 
     // And what it said before the Manager wrote it: these are the words on documents the farm
     // has already sent out, so "what did the card say in March" has an answer.
