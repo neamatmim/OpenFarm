@@ -382,8 +382,8 @@ export type {
   VentureHolding,
 } from "./venture-herd-as-of";
 export { headsAt, herdBetween } from "./venture-herd-as-of";
-export type { VentureMonthFacts } from "./venture-month-paper";
-export { ventureMonthPaper } from "./venture-month-paper";
+export type { VentureMonthFacts, VentureMonthRow } from "./venture-month-paper";
+export { ventureMonthPaper, ventureMonthRows } from "./venture-month-paper";
 export type {
   CowStay,
   DairyTurnover,
