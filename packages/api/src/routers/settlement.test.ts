@@ -1,5 +1,6 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
+import { paperText } from "@OpenFarm/domain";
 import {
   FakeClock,
   scratchDb,
@@ -544,6 +545,61 @@ describe("what a Settlement is", () => {
     expect(march.sold).toEqual([]);
     expect(march.account).toMatchObject({ openingMoney: 0, closingMoney: 0 });
     expect(march.months).toEqual(["2047-03"]);
+  });
+
+  it("prints a month on the letterhead in either language, an Export naming the Venture and the days it covers", async () => {
+    const owner = await as("owner", "2047-03-25T04:00:00.000Z");
+    // Refused while the farm's DLS registration is not written down, as every Export is.
+    await expect(
+      owner.client.ventures.monthPaper({ ventureId, month: "2047-03" })
+    ).rejects.toMatchObject({ data: { refusal: "farm_identity_incomplete" } });
+    // Every Export carries the farm's DLS registration; this file's farm writes it down here.
+    await owner.client.farm.setIdentity({
+      address: `সাভার, ঢাকা ${suffix}`,
+      phone: "+8801711000097",
+      registrationNumber: `DLS/SAV/2047/${suffix}`,
+      registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
+      registrationExpiresOn: "2049-03-31",
+    });
+    // Signed in again, so the farm it reads is the one with the number.
+    const printing = await as("owner", "2047-03-25T04:00:00.000Z");
+
+    const { document } = await printing.client.ventures.monthPaper({
+      ventureId,
+      month: "2047-03",
+    });
+
+    const en = paperText(document, "en");
+    expect(en).toContain("Monthly report — ");
+    expect(en).toContain("March 2047");
+    // The Settlement's lines as the Owner's own screens word them, not as an Investor's paper does.
+    expect(en).toContain("Feed · 4,000 taka · 44,000 taka");
+    expect(en).toContain("Bought for · 0 taka · 160,000 taka");
+    expect(en).not.toContain("Haat");
+    expect(en).toContain("+ A buyer took her away · 405,005 taka");
+    expect(en).toContain("so far, to 25 March 2047");
+    const bn = paperText(document, "bn");
+    expect(bn).toContain("মাসিক প্রতিবেদন — ");
+    expect(bn).toContain("১২,৫০,০০৫");
+    const exports = await scratchDb().query.auditEvent.findMany({
+      where: { entity: "report", action: "export" },
+    });
+    expect(
+      exports.map((one) => one.after as Record<string, unknown> | null)
+    ).toContainEqual(
+      expect.objectContaining({
+        report: "monthly_report",
+        format: "paper",
+        ventureId,
+        month: "2047-03",
+        from: "2047-03-01",
+        to: "2047-03-25",
+      })
+    );
+    const manager = await as("manager", "2047-03-25T04:00:00.000Z");
+    await expect(
+      manager.client.ventures.monthPaper({ ventureId, month: "2047-03" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("adds up exactly once nothing at all is owed", async () => {

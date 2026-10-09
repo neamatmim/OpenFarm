@@ -12,6 +12,7 @@ import {
   roundMoney,
   RUNNING_STATES,
   startOfFarmDay,
+  ventureMonthPaper,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -24,6 +25,7 @@ import {
   whyItStands,
 } from "../../corrections/venture-movement";
 import { economicsOfHerd, farmCosts } from "../../cost-store";
+import { assertRegistered, recordExport } from "../../export-store";
 import { farmsOwnOf } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
 import { tagsOfHerRecords } from "../../herd-store";
@@ -39,7 +41,7 @@ import {
 } from "../../roles";
 import { actOnVenture, assertNotSettledUp, ours } from "../../venture-act";
 import { theirProgress } from "../../venture-herd-store";
-import { ventureMonth } from "../../venture-month-store";
+import { ventureMonth, ventureMonthFacts } from "../../venture-month-store";
 import type { VentureRow } from "../../venture-store";
 import {
   balanceAtMonthEnd,
@@ -185,6 +187,39 @@ export const booksProcedures = {
         context.clock.now()
       )
     ),
+
+  /**
+   * One month of one Venture laid out on paper (`ventureMonthPaper`), for the Owner to print or save: on the Farm
+   * Identity letterhead, read in Bangla or English. An **Export** naming the Venture, the month, the days it covers and
+   * the format, and refused without the farm's DLS registration number, as every Export is. The Owner's alone.
+   */
+  monthPaper: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string(), month: monthInput }))
+    .handler(async ({ context, input }) => {
+      assertRegistered(context.farm, "a Venture's monthly report");
+      const now = context.clock.now();
+      const one = await ventureMonth(
+        context.db,
+        context.farm,
+        input.ventureId,
+        input.month,
+        now
+      );
+      const { facts, days } = ventureMonthFacts(one, context.farm, {
+        at: now,
+        by: context.actor.name,
+      });
+      // Laid out first: an Export on the trail is a paper that was made.
+      const document = ventureMonthPaper(facts);
+      await recordExport(context, "monthly_report", days, {
+        format: "paper",
+        month: one.month,
+        ventureId: one.venture.id,
+      });
+      return { document };
+    }),
 
   /**
    * What the farm thinks a Venture Account held at a month's end, so the Owner has something to hold the
