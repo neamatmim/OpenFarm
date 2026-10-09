@@ -22,7 +22,7 @@ import {
 import { SideField } from "@/components/money/side-field";
 import type { SideChoice } from "@/components/money/side-field";
 import { EmptyState, Loaded, Section, TableSkeleton } from "@/components/page";
-import { FormField, FormSheet } from "@/components/page-kit";
+import { FormField, FormSheet, WorkedOut } from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
 import {
   accountSent,
@@ -472,7 +472,7 @@ export const WageDrawsNote = ({
   const carried = person.openMoney - taken;
   const carriesOver = carried > 0;
   return (
-    <p className="bg-muted rounded-md px-3 py-2 text-sm tabular-nums">
+    <WorkedOut>
       {t("wageDraw.atPayday", {
         owed: asMoney(person.openMoney),
         taken: asMoney(taken),
@@ -481,6 +481,6 @@ export const WageDrawsNote = ({
       {carriesOver
         ? ` ${t("wageDraw.carried", { amount: asMoney(carried) })}`
         : ""}
-    </p>
+    </WorkedOut>
   );
 };

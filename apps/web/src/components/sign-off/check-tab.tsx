@@ -189,7 +189,7 @@ const ApproveTheClean = ({
     <div className="bg-accent text-accent-foreground flex flex-col gap-2 rounded-lg px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <span className="text-sm">{t("signOff.approveCleanHint")}</span>
       <Button
-        className="h-12 sm:h-9"
+        className="h-12 md:h-9"
         disabled={pending}
         onClick={handleApprove}
         type="button"

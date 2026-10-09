@@ -24,6 +24,7 @@ import {
   FigureTerm,
   FormField,
   FormSheet,
+  InsetPanel,
   UnitInput,
 } from "@/components/page-kit";
 import { useLineBreedName } from "@/components/ventures/line-breed";
@@ -389,7 +390,10 @@ const PlanSum = ({
   const over = totals.overBudgetMoney > 0;
   const figure = "text-base font-semibold tabular-nums";
   return (
-    <dl className="bg-muted/40 grid grid-cols-[auto_1fr_1fr] gap-x-4 gap-y-3 rounded-lg border p-3">
+    <InsetPanel
+      as="dl"
+      className="grid grid-cols-[auto_1fr_1fr] gap-x-4 gap-y-3"
+    >
       <div className="flex flex-col gap-0.5">
         <dt className="text-muted-foreground text-xs">
           {t("plan.sum.animals")}
@@ -422,7 +426,7 @@ const PlanSum = ({
         </dt>
         <dd className={figure}>{weight(totals.saleKg)}</dd>
       </div>
-    </dl>
+    </InsetPanel>
   );
 };
 

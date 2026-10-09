@@ -7,7 +7,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { productName } from "@/components/drugs/drug-types";
-import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import {
+  FormField,
+  FormSheet,
+  InsetPanel,
+  NativeSelect,
+  WorkedOut,
+} from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { courseDaysOf, courseTimesOf } from "@/lib/course-times";
 import { toast } from "@/lib/toast";
@@ -26,9 +32,9 @@ const DosesToCome = ({ times, days }: { times: string; days: string }) => {
   }
   const count = each.length * many;
   return (
-    <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
+    <WorkedOut>
       {t("prescribe.dosesPreview", { doses: formatNumber(count, language) })}
-    </p>
+    </WorkedOut>
   );
 };
 
@@ -106,10 +112,10 @@ export const PrescribeSheet = ({
       title={t("prescribe.write")}
     >
       {made ? (
-        <div className="bg-muted/60 flex flex-wrap items-center gap-2 rounded-lg border p-3 text-sm">
+        <InsetPanel className="flex flex-wrap items-center gap-2 text-sm">
           <AnimalLink tagNumber={made.tagNumber} />
           <span className="font-medium">{made.disease}</span>
-        </div>
+        </InsetPanel>
       ) : null}
 
       <FormField id={`product-${idPrefix}`} label={t("prescribe.product")}>

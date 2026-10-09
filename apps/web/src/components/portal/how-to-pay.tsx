@@ -5,6 +5,7 @@ import { ShieldAlert } from "lucide-react";
 
 import { SaidDate } from "@/components/list-cells";
 import { Notice, Section } from "@/components/page";
+import { InsetPanel } from "@/components/page-kit";
 import { useTheirRecord } from "@/components/portal/portal-source";
 import { VentureAccountDetails } from "@/components/ventures/venture-account-details";
 import { useLanguage } from "@/i18n/language-provider";
@@ -164,14 +165,13 @@ export const HowToPay = ({
           </p>
         ) : null}
         {account ? (
-          <VentureAccountDetails
-            account={account}
-            className="bg-muted/50 rounded-lg p-3"
-          />
+          <InsetPanel>
+            <VentureAccountDetails account={account} />
+          </InsetPanel>
         ) : (
-          <p className="bg-muted/50 rounded-lg p-3 text-sm font-medium">
+          <InsetPanel as="p" className="text-sm font-medium">
             {t("portal.pay.noAccount")}
-          </p>
+          </InsetPanel>
         )}
         <TheWarning hasAccount={account !== null} phone={phone} />
       </div>

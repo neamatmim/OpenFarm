@@ -35,8 +35,13 @@ import {
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
-import { ChevronDown, EllipsisVertical } from "lucide-react";
-import type { ComponentProps, FormEvent, ReactNode } from "react";
+import { Camera, ChevronDown, EllipsisVertical } from "lucide-react";
+import type {
+  ComponentProps,
+  FormEvent,
+  HTMLAttributes,
+  ReactNode,
+} from "react";
 import {
   useCallback,
   useEffect,
@@ -1115,4 +1120,110 @@ export const UnitInput = ({
       {unit}
     </span>
   </div>
+);
+
+/** What a quiet box may be, for what it holds: a part of a page, a line of words, a list's item, its terms, a set of
+ *  fields. */
+type InsetTag = "div" | "dl" | "fieldset" | "li" | "p";
+
+/**
+ * A quiet box inside a card or a sheet — what a figure was read from, one step of a list, the fields that belong to
+ * one person — set off from what is around it by a light fill and a hairline. One fill, one border and one corner
+ * wherever it is, so two of them side by side never look like two different things.
+ */
+export const InsetPanel = ({
+  as: Tag = "div",
+  className,
+  ...props
+}: HTMLAttributes<HTMLElement> & { as?: InsetTag }) => (
+  <Tag
+    className={cn("bg-muted/40 rounded-lg border p-3", className)}
+    {...props}
+  />
+);
+
+/**
+ * A figure the form works out as it is typed — what a kilo fetched, the doses to come, what is owed at payday — in a
+ * quiet box under the boxes it came from: said, not asked for, so nobody tries to type into it.
+ */
+export const WorkedOut = ({ children }: { children: ReactNode }) => (
+  <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
+    {children}
+  </p>
+);
+
+/**
+ * One thing to tick, drawn as a box the whole of which is pressable — "some of it is still owed", "she was stolen" —
+ * and tinted while it is ticked. The `Checkbox` and its words go inside; `htmlFor` is the checkbox's id. As tall as a
+ * button beside it: a thumb's 44px on a phone, 36px at a desk.
+ */
+export const ChoiceCard = ({
+  htmlFor,
+  children,
+}: {
+  htmlFor: string;
+  children: ReactNode;
+}) => (
+  <label
+    className="has-data-checked:border-primary/40 has-data-checked:bg-primary/5 hover:bg-muted/50 flex h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm md:h-9"
+    htmlFor={htmlFor}
+  >
+    {children}
+  </label>
+);
+
+/**
+ * A button that takes a photograph or picks a picture, in the farm's own words: the browser's own file button speaks the
+ * browser's language — "Choose file", "No file chosen" — whatever the app is read in. The file input is inside it,
+ * hidden but still in reach of the keyboard and a screen reader. Drawn as every other button is, and as tall: an
+ * outline unless it is the one thing the part is for, as the certificate's is.
+ *
+ * The input keeps `capture="environment"` unless told `fromCamera={false}`, which is what makes a phone open its
+ * camera rather than its files: almost every one of these is a photograph somebody takes standing in front of the
+ * thing.
+ */
+export const UploadButton = ({
+  id,
+  label,
+  busy = false,
+  disabled = false,
+  primary = false,
+  fromCamera = true,
+  onChange,
+}: {
+  id: string;
+  label: ReactNode;
+  /** While what was taken is being kept: a turning mark in place of the camera, and nothing more to take. */
+  busy?: boolean;
+  disabled?: boolean;
+  /** Drawn as the part's main act, filled, rather than as an outline. */
+  primary?: boolean;
+  /** False for a picture somebody already has — a screenshot of a transfer — which a phone told to open its camera
+   *  would not let them choose. */
+  fromCamera?: boolean;
+  onChange: NonNullable<ComponentProps<"input">["onChange"]>;
+}) => (
+  <label
+    className={cn(
+      buttonVariants({ variant: primary ? "default" : "outline" }),
+      "has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring w-fit cursor-pointer has-[:disabled]:pointer-events-none has-[:disabled]:opacity-50 has-[:focus-visible]:ring-2"
+    )}
+    htmlFor={id}
+  >
+    {busy ? (
+      <Spinner data-icon="inline-start" />
+    ) : (
+      <Camera aria-hidden data-icon="inline-start" />
+    )}
+    {label}
+    <input
+      accept="image/*"
+      capture={fromCamera ? "environment" : undefined}
+      className="sr-only"
+      disabled={busy || disabled}
+      id={id}
+      onChange={onChange}
+      type="file"
+    />
+  </label>
 );

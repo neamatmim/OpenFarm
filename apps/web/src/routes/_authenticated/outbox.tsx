@@ -137,7 +137,7 @@ const HeldCard = ({
         </p>
       </div>
       <Button
-        className="h-12 w-full sm:h-9 sm:w-auto sm:self-end"
+        className="h-12 w-full sm:w-auto sm:self-end md:h-9"
         onClick={() => onDiscard(entry.id)}
         variant="outline"
       >

@@ -18,9 +18,11 @@ import { DeathPhotoField } from "@/components/animal/death-photo";
 import { MoveDialog } from "@/components/animal/move-dialog";
 import { Notice } from "@/components/page";
 import {
+  ChoiceCard,
   FormDialog,
   FormField,
   FormSheet,
+  InsetPanel,
   NativeSelect,
 } from "@/components/page-kit";
 import { FarmAccountField } from "@/components/payment-method";
@@ -775,17 +777,14 @@ const WriteOffDialog = ({ detail, open, onOpenChange }: ActProps) => {
           value={cause}
         />
       </FormField>
-      <label
-        className="has-data-checked:border-primary/40 has-data-checked:bg-primary/5 hover:bg-muted/50 flex h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm md:h-9"
-        htmlFor="write-off-stolen"
-      >
+      <ChoiceCard htmlFor="write-off-stolen">
         <Checkbox
           checked={stolen}
           id="write-off-stolen"
           onCheckedChange={setStolen}
         />
         {t("animals.writeOffStolen")}
-      </label>
+      </ChoiceCard>
       {stolen ? (
         <FormField id="write-off-gd" label={t("animals.writeOffGd")}>
           <Input
@@ -799,11 +798,11 @@ const WriteOffDialog = ({ detail, open, onOpenChange }: ActProps) => {
       {venture ? (
         <>
           {toMakeGood.data ? (
-            <p className="bg-muted/50 rounded-lg p-3 text-sm">
+            <InsetPanel as="p" className="text-sm">
               {t("animals.madeGoodAmount", {
                 amount: asMoney(toMakeGood.data.amountMoney),
               })}
-            </p>
+            </InsetPanel>
           ) : null}
           <FormField
             hint={t("animals.madeGoodReferenceHint")}

@@ -3,7 +3,12 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import {
+  FormField,
+  FormSheet,
+  NativeSelect,
+  WorkedOut,
+} from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import { useMoney } from "@/lib/money";
@@ -174,13 +179,13 @@ export const CountFloatSheet = ({
         </NativeSelect>
       </FormField>
       {chosen ? (
-        <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
+        <WorkedOut>
           {t("ventures.floatSum", {
             went: formatNumber(went, language),
             bought: formatNumber(bought, language),
             back: formatNumber(shouldBeBack, language),
           })}
-        </p>
+        </WorkedOut>
       ) : null}
       <FormField
         hint={t("ventures.cashBackHint")}

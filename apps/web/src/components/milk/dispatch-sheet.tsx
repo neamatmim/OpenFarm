@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import type { ComponentProps } from "react";
 import { useState } from "react";
 
-import { FormField, FormSheet } from "@/components/page-kit";
+import { FormField, FormSheet, WorkedOut } from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
 import {
   accountSent,
@@ -87,13 +87,13 @@ const Worth = ({ form }: { form: Typed }) => {
     return null;
   }
   return (
-    <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
+    <WorkedOut>
       {t("dispatch.worth", {
         liters,
         price,
         amount: worthOf(liters, price),
       })}
-    </p>
+    </WorkedOut>
   );
 };
 

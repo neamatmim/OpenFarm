@@ -143,7 +143,7 @@ const StandardStep = () => {
         </p>
         <div className="flex flex-col gap-2 sm:flex-row-reverse">
           <Button
-            className="h-12 text-base sm:flex-1 md:h-10"
+            className="h-12 text-base sm:flex-1 md:h-9 md:text-sm"
             disabled={start.isPending}
             type="submit"
           >
@@ -151,7 +151,7 @@ const StandardStep = () => {
             {t("setup.standard.start")}
           </Button>
           <Button
-            className="h-12 text-base sm:flex-1 md:h-10"
+            className="h-12 text-base sm:flex-1 md:h-9 md:text-sm"
             disabled={start.isPending}
             onClick={goOn}
             type="button"
@@ -216,7 +216,7 @@ const SetupPage = () => {
           </span>
           <p className="text-lg font-semibold">{t("setup.done")}</p>
           <Button
-            className="h-12 w-full text-base md:h-10"
+            className="h-12 w-full text-base md:h-9 md:text-sm"
             onClick={() => navigate({ to: "/" })}
           >
             {t("setup.goOn")}
@@ -251,7 +251,7 @@ const SetupPage = () => {
           />
         </div>
         <Button
-          className="h-12 text-base md:h-10"
+          className="h-12 text-base md:h-9 md:text-sm"
           disabled={bootstrap.isPending}
           type="submit"
         >

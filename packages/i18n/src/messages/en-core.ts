@@ -1016,7 +1016,7 @@ export const enCore = {
   "nominees.nid": "NID number",
   "nominees.birthRegistration": "Birth registration number",
   "nominees.phone": "Phone",
-  "nominees.sharePercent": "Share (%)",
+  "nominees.sharePercent": "Share",
   "nominees.receiverHeading": "Under eighteen: who collects for them",
   "nominees.receiverName": "Receiver's name",
   "nominees.receiverRelation": "Relation to the Nominee",
@@ -1152,7 +1152,7 @@ export const enCore = {
   "breeds.gain.hint":
     "An animal of this breed is judged at this share of its ration's expected gain, in place of the deshi share. A cow or heifer is still judged at the female share on top. From 30% to 120%.",
   "breeds.gain.between": "From {least}% to {most}%",
-  "breeds.gain.label": "Share of the ration's expected gain (%)",
+  "breeds.gain.label": "Share of the ration's expected gain",
   "breeds.gain.farmHint":
     "{figure}. From bulls only — a cow or heifer carries the female share too.",
   "breeds.gain.noFigure":
@@ -1946,8 +1946,8 @@ export const enCore = {
     "How much a day — for each animal, or for every 100 kg it weighs",
   "feed.basis.head": "a head",
   "feed.band": "For animals weighing",
-  "feed.bandFrom": "From (kg)",
-  "feed.bandTo": "Up to (kg)",
+  "feed.bandFrom": "From",
+  "feed.bandTo": "Up to",
   "feed.bandHint":
     "Leave both empty for a ration that suits any weight. A bull outside the band is pointed out on the Fattening page.",
   "feed.bandWrong": "Both weights above nothing, and From below Up to",
@@ -2058,7 +2058,7 @@ export const enCore = {
   "feed.assigned": "This pen is on it",
   "feed.english": "English (optional)",
   "feed.unit": "Unit",
-  "feed.bagSize": "Bag size (kg)",
+  "feed.bagSize": "Bag size",
   "feed.bagOf": "{kg} kg bags",
   "feed.setBagSize": "Bag size",
   "feed.bagSizeHint":
@@ -2103,7 +2103,7 @@ export const enCore = {
   "stock.noStock": "Nothing in the store — add a feed item first",
   "stock.adjustment": "expected {expected}, counted {counted}",
   "stock.averagePrice": "{currencySign}{amount} per {unit}",
-  "stock.weighed": "Weighed on the farm's scale (kg)",
+  "stock.weighed": "Weighed on the farm's scale",
   "stock.weighedHint":
     "Optional. Weigh the lot as it comes: the scale is what goes into the store, and the slip is kept beside it.",
   "stock.scaleShort":
@@ -4120,6 +4120,7 @@ export const enCore = {
     "Apart from these, {amount} of capital refunded when a venture was canceled",
   "money.refundedHint": "When a Venture was canceled",
   "units.kg": "{kg} kg",
+  "units.kgShort": "kg",
   "units.kgADay": "{kg} kg a day",
   "units.liters": "{liters} L",
   "alerts.animalMissing": "{tag} was not found on the round in {pen}, {since}",

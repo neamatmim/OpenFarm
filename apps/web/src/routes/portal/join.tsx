@@ -181,7 +181,7 @@ const PortalJoin = () => {
           <Check met={again !== "" && same}>{t("portal.passwordsMatch")}</Check>
         </ul>
         <Button
-          className="h-12 w-full text-base md:h-10"
+          className="h-12 w-full text-base md:h-9 md:text-sm"
           disabled={join.isPending}
           type="submit"
         >

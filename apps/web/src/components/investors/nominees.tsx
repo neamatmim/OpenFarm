@@ -8,6 +8,7 @@ import { useState } from "react";
 import type { Investor } from "@/components/investors/investor-types";
 import { standingOf } from "@/components/investors/portal-access";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
+import { InsetPanel } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
@@ -251,7 +252,7 @@ const OfferedInTheApp = ({ investorId }: { investorId: string }) => {
     formatDate(new Date(at), language, "dateTime");
   const busy = approving.isPending || withdrawing.isPending;
   return (
-    <div className="flex flex-col gap-2 rounded-md border p-3">
+    <InsetPanel className="flex flex-col gap-2">
       <p className="text-sm">
         {agreed && offer.agreedAt
           ? t("nominees.offerAgreed", { on: when(offer.agreedAt) })
@@ -304,7 +305,7 @@ const OfferedInTheApp = ({ investorId }: { investorId: string }) => {
           </Button>
         ) : null}
       </span>
-    </div>
+    </InsetPanel>
   );
 };
 

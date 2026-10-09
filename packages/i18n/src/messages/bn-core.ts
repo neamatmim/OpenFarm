@@ -912,7 +912,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "nominees.nid": "এনআইডি নম্বর",
   "nominees.birthRegistration": "জন্ম নিবন্ধন নম্বর",
   "nominees.phone": "ফোন",
-  "nominees.sharePercent": "অংশ (%)",
+  "nominees.sharePercent": "অংশ",
   "nominees.receiverHeading": "আঠারোর কম: তাঁর হয়ে কে সংগ্রহ করবেন",
   "nominees.receiverName": "গ্রহণকারীর নাম",
   "nominees.receiverRelation": "নমিনির সঙ্গে সম্পর্ক",
@@ -1045,7 +1045,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "breeds.gain.hint":
     "এই জাতের পশু তার রেশনের প্রত্যাশিত বৃদ্ধির এই ভাগে মাপা হবে, দেশির হারের বদলে। গাভী বা বকনার বেলায় স্ত্রী পশুর হারও এর ওপর ধরা হবে। ৩০% থেকে ১২০%।",
   "breeds.gain.between": "{least}% থেকে {most}%",
-  "breeds.gain.label": "রেশনের প্রত্যাশিত বৃদ্ধির কত ভাগ (%)",
+  "breeds.gain.label": "রেশনের প্রত্যাশিত বৃদ্ধির কত ভাগ",
   "breeds.gain.farmHint": "{figure}। শুধু ষাঁড় থেকে — গাভী বা বকনায় স্ত্রী পশুর হারও থাকে।",
   "breeds.gain.noFigure":
     "প্রত্যাশিত বৃদ্ধি লেখা রেশনে যথেষ্ট দিন ওজন নেওয়া এর ষাঁড় পাঁচটির কম, তাই এখনো বলা যায় না।",
@@ -1786,8 +1786,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "feed.kgPerAnimal": "দিনে কতটা — প্রতি পশুকে, না প্রতি ১০০ কেজি ওজনে",
   "feed.basis.head": "প্রতি পশু",
   "feed.band": "কত ওজনের পশুর জন্য",
-  "feed.bandFrom": "থেকে (কেজি)",
-  "feed.bandTo": "পর্যন্ত (কেজি)",
+  "feed.bandFrom": "থেকে",
+  "feed.bandTo": "পর্যন্ত",
   "feed.bandHint":
     "যে কোনো ওজনে চললে দুটোই ফাঁকা রাখুন। এই সীমার বাইরের ষাঁড় মোটাতাজাকরণ পাতায় দেখানো হবে।",
   "feed.bandWrong": "দুটো ওজনই শূন্যের বেশি, আর «থেকে» «পর্যন্ত»-এর চেয়ে কম হতে হবে",
@@ -1892,7 +1892,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "feed.assigned": "এই পেনে চলছে",
   "feed.english": "ইংরেজি (ঐচ্ছিক)",
   "feed.unit": "একক",
-  "feed.bagSize": "বস্তার ওজন (কেজি)",
+  "feed.bagSize": "বস্তার ওজন",
   "feed.bagOf": "{kg} কেজির বস্তা",
   "feed.setBagSize": "বস্তার ওজন",
   "feed.bagSizeHint":
@@ -1936,7 +1936,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "stock.noStock": "গুদামে কিছু নেই — আগে খাদ্য উপাদান যোগ করুন",
   "stock.adjustment": "থাকার কথা {expected}, গোনা হয়েছে {counted}",
   "stock.averagePrice": "প্রতি {unit} {currencySign}{amount}",
-  "stock.weighed": "খামারের পাল্লায় ওজন (কেজি)",
+  "stock.weighed": "খামারের পাল্লায় ওজন",
   "stock.weighedHint":
     "ইচ্ছা হলে দিন। মাল আসার সময় ওজন দিলে পাল্লার ওজন গুদামে যাবে, রশিদের ওজন পাশে থাকবে।",
   "stock.scaleShort":
@@ -3835,6 +3835,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "এর বাইরে, ভেঞ্চার বাতিল হওয়ায় {amount} মূলধন ফেরত দেওয়া হয়েছে",
   "money.refundedHint": "ভেঞ্চার বাতিল হওয়ায়",
   "units.kg": "{kg} কেজি",
+  "units.kgShort": "কেজি",
   "units.kgADay": "দিনে {kg} কেজি",
   "units.liters": "{liters} লিটার",
   "alerts.animalMissing": "{since}: রাউন্ডে {pen}-এ {tag} পাওয়া যায়নি",

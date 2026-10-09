@@ -534,7 +534,7 @@ export const StepsSection = ({
         </ol>
       )}
       <Button
-        className="h-12 w-full border-dashed md:h-12"
+        className="w-full border-dashed"
         onClick={add}
         type="button"
         variant="outline"

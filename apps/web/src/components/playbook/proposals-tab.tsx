@@ -23,7 +23,7 @@ import {
 } from "@/components/data-table";
 import { SaidDate } from "@/components/list-cells";
 import { EmptyState, Notice, StatusBadge } from "@/components/page";
-import { RowMenu } from "@/components/page-kit";
+import { InsetPanel, RowMenu } from "@/components/page-kit";
 import { ChangeLines } from "@/components/work/work-notices";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidIn } from "@/lib/names-in";
@@ -315,10 +315,7 @@ const ProposalSheet = ({
               </h3>
               <ol className="flex flex-col gap-2">
                 {content.steps.map((step, index) => (
-                  <li
-                    className="flex gap-3 rounded-lg border p-3"
-                    key={step.id}
-                  >
+                  <InsetPanel as="li" className="flex gap-3" key={step.id}>
                     <span className="bg-secondary text-secondary-foreground grid size-6 shrink-0 place-items-center rounded-full text-xs font-semibold tabular-nums">
                       {formatNumber(index + 1, language)}
                     </span>
@@ -333,7 +330,7 @@ const ProposalSheet = ({
                           : ""}
                       </span>
                     </div>
-                  </li>
+                  </InsetPanel>
                 ))}
               </ol>
             </section>

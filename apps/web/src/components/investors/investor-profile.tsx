@@ -20,7 +20,7 @@ import {
   standingOf,
 } from "@/components/investors/portal-access";
 import { Section } from "@/components/page";
-import { ConfirmDialog } from "@/components/page-kit";
+import { ConfirmDialog, InsetPanel } from "@/components/page-kit";
 import { KIND_WORDS } from "@/components/ventures/request-parts";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -118,7 +118,7 @@ const BankAccount = ({ account }: { account: string }) => {
     }
   };
   return (
-    <div className="bg-muted/60 flex items-start justify-between gap-3 rounded-lg border p-3">
+    <InsetPanel className="flex items-start justify-between gap-3">
       <p className="min-w-0 text-sm break-words whitespace-pre-line tabular-nums select-all">
         {account}
       </p>
@@ -130,7 +130,7 @@ const BankAccount = ({ account }: { account: string }) => {
         )}
         {copied ? t("investors.copied") : t("investors.copyAccount")}
       </Button>
-    </div>
+    </InsetPanel>
   );
 };
 

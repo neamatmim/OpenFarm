@@ -24,7 +24,7 @@ import {
   Section,
   StatusBadge,
 } from "@/components/page";
-import { ConfirmDialog, FormField } from "@/components/page-kit";
+import { ConfirmDialog, FormField, InsetPanel } from "@/components/page-kit";
 import type { OpenVenture } from "@/components/portal/open-ventures";
 import { ListSkeleton } from "@/components/portal/portal-skeletons";
 import {
@@ -640,9 +640,9 @@ const RequestCard = ({
         </div>
       ) : null}
       {one.state === "waiting" || one.state === "withdrawn" ? null : (
-        <div className="bg-muted/50 rounded-lg p-3">
+        <InsetPanel>
           <TheAnswer one={one} />
-        </div>
+        </InsetPanel>
       )}
       <RequestHistory one={one} />
       {live ? (

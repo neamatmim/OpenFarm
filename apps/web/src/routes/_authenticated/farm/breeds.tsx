@@ -51,6 +51,7 @@ import {
   FormDialog,
   FormField,
   RowMenu,
+  UnitInput,
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
@@ -416,16 +417,20 @@ const GainDialog = ({
         id="breed-gain-percent"
         label={t("breeds.gain.label")}
       >
-        <Input
-          className="max-w-32"
-          id="breed-gain-percent"
-          inputMode="numeric"
-          max={BREED_GAIN_PERCENT.most}
-          min={BREED_GAIN_PERCENT.least}
-          onChange={(event) => setTyped(event.target.value)}
-          type="number"
-          value={typed}
-        />
+        {/* Narrow as the figure is, with its unit inside the box: the width is the box's own, or the sign would sit
+            at the far end of the row. */}
+        <div className="max-w-32">
+          <UnitInput
+            id="breed-gain-percent"
+            inputMode="numeric"
+            max={BREED_GAIN_PERCENT.most}
+            min={BREED_GAIN_PERCENT.least}
+            onChange={(event) => setTyped(event.target.value)}
+            type="number"
+            unit="%"
+            value={typed}
+          />
+        </div>
       </FormField>
       {hasOwn ? (
         <Button
