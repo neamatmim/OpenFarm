@@ -505,9 +505,7 @@ export const ReceiptLink = ({ id }: { id: string }) => {
       <Dialog onOpenChange={setOpen} open={open}>
         <DialogContent className="sm:max-w-xl" closeLabel={t("common.close")}>
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold">
-              {t("byHand.receipt")}
-            </DialogTitle>
+            <DialogTitle>{t("byHand.receipt")}</DialogTitle>
           </DialogHeader>
           {receipt.data ? (
             <img

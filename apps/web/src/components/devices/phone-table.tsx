@@ -1,14 +1,4 @@
 import { formatDate } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@OpenFarm/ui/components/dialog";
 import { Ban, Clock, Hourglass, Smartphone, Wifi } from "lucide-react";
 import { useState } from "react";
 
@@ -21,7 +11,7 @@ import {
 } from "@/components/data-table";
 import type { Tone } from "@/components/page";
 import { StatusBadge } from "@/components/page";
-import { RowMenu } from "@/components/page-kit";
+import { ConfirmDialog, RowMenu } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import type { orpc } from "@/utils/orpc";
 
@@ -218,33 +208,19 @@ const RevokeDialog = ({
 }) => {
   const t = useT();
   return (
-    <Dialog onOpenChange={onOpenChange} open={phone !== null}>
-      <DialogContent closeLabel={t("common.close")}>
-        <DialogHeader>
-          <DialogTitle>
-            {t("device.revokeTitle", { name: phone?.name ?? "" })}
-          </DialogTitle>
-          <DialogDescription>{t("device.revokeWhy")}</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>
-            {t("common.cancel")}
-          </DialogClose>
-          <Button
-            onClick={() => {
-              if (phone) {
-                onRevoke(phone);
-              }
-              onOpenChange(false);
-            }}
-            variant="destructive"
-          >
-            <Ban aria-hidden data-icon="inline-start" />
-            {t("device.revoke")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDialog
+      confirmLabel={t("device.revoke")}
+      description={t("device.revokeWhy")}
+      onConfirm={() => {
+        if (phone) {
+          onRevoke(phone);
+        }
+        onOpenChange(false);
+      }}
+      onOpenChange={onOpenChange}
+      open={phone !== null}
+      title={t("device.revokeTitle", { name: phone?.name ?? "" })}
+    />
   );
 };
 

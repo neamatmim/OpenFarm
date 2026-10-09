@@ -1,21 +1,11 @@
-import { Button } from "@OpenFarm/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@OpenFarm/ui/components/dialog";
-import { Label } from "@OpenFarm/ui/components/label";
-import { Spinner } from "@OpenFarm/ui/components/spinner";
-import type { FormEvent } from "react";
 import { useId, useState, useSyncExternalStore } from "react";
 
 import { PasswordInput } from "@/components/auth/password-input";
+import { FormDialog, FormField } from "@/components/page-kit";
 import { useT } from "@/i18n/language-provider";
 import { answerTheAsking, isAsking, onAsking } from "@/lib/password-again";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
+import { sayWhy, wordOf } from "@/lib/saying";
 import { client } from "@/utils/orpc";
 
 const PASSWORD_WORDS = {
@@ -26,84 +16,68 @@ const PASSWORD_WORDS = {
 /**
  * Asks for the password again when an act that pays money out, approves money, opens the portal or copies an
  * Investor's data was refused for want of it; given, the act is sent again as it was. Drawn once, in the shell.
+ *
+ * The kit's form dialog: a wrong password is said under the box it is about, and anything else the farm says — too
+ * many tries — at the dialog's top.
  */
 export const PasswordAgainDialog = () => {
   const t = useT();
+  const refused = useRefused(PASSWORD_WORDS);
   const asking = useSyncExternalStore(onAsking, isAsking, () => false);
   const [password, setPassword] = useState("");
-  const [why, setWhy] = useState<string | null>(null);
+  const [wrong, setWrong] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const field = useId();
 
   const close = (given: boolean) => {
     setPassword("");
-    setWhy(null);
+    setWrong(null);
     answerTheAsking(given);
   };
 
-  const give = async (event: FormEvent) => {
-    event.preventDefault();
+  const give = async () => {
     setSending(true);
-    const refused = await client.people
-      .givePassword({ password })
-      .then(() => null)
-      .catch((error: unknown) => sayWhy(error, t, PASSWORD_WORDS));
-    setSending(false);
-    if (refused) {
-      setWhy(refused);
+    setWrong(null);
+    try {
+      await client.people.givePassword({ password });
+    } catch (error) {
+      setSending(false);
+      if (wordOf(error) === "password_wrong") {
+        setWrong(sayWhy(error, t, PASSWORD_WORDS));
+      } else {
+        refused(error);
+      }
       return;
     }
+    setSending(false);
     close(true);
   };
 
   return (
-    <Dialog
+    <FormDialog
+      description={t("passwordAgain.why")}
       onOpenChange={(opening) => {
         if (!opening) {
           close(false);
         }
       }}
+      onSubmit={give}
       open={asking}
+      pending={sending}
+      ready={password !== ""}
+      submitLabel={t("passwordAgain.give")}
+      title={t("passwordAgain.title")}
     >
-      <DialogContent closeLabel={t("common.close")}>
-        <DialogHeader>
-          <DialogTitle>{t("passwordAgain.title")}</DialogTitle>
-          <DialogDescription>{t("passwordAgain.why")}</DialogDescription>
-        </DialogHeader>
-        <form className="flex flex-col gap-4" onSubmit={give}>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={field}>{t("passwordAgain.label")}</Label>
-            <PasswordInput
-              aria-describedby={why ? `${field}-why` : undefined}
-              aria-invalid={why ? true : undefined}
-              autoComplete="current-password"
-              autoFocus
-              id={field}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              value={password}
-            />
-            {why ? (
-              <p className="text-destructive text-sm" id={`${field}-why`}>
-                {why}
-              </p>
-            ) : null}
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={() => close(false)}
-              type="button"
-              variant="outline"
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button disabled={sending || password === ""} type="submit">
-              {sending ? <Spinner /> : null}
-              {t("passwordAgain.give")}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <FormField error={wrong} id={field} label={t("passwordAgain.label")}>
+        <PasswordInput
+          autoComplete="current-password"
+          autoFocus
+          id={field}
+          onChange={(event) => setPassword(event.target.value)}
+          required
+          value={password}
+        />
+      </FormField>
+    </FormDialog>
   );
 };

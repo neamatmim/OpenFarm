@@ -1,7 +1,9 @@
 import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
+import { Label } from "@OpenFarm/ui/components/label";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Banknote, HandCoins } from "lucide-react";
@@ -16,8 +18,14 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { Nothing } from "@/components/list-cells";
-import { EmptyState } from "@/components/page";
-import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
+import {
+  EmptyState,
+  Loaded,
+  Section,
+  TableSkeleton,
+  TagChip,
+} from "@/components/page";
+import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
@@ -42,8 +50,9 @@ const endChosen = (
   return to === BANK ? { bank: true } : { userId: to };
 };
 
-/** Cash passed from one hand to another person's, or into the bank with its slip. */
-const HandOverDialog = ({
+/** Cash passed from one hand to another person's, or into the bank with its slip. A record of money, in a sheet as
+ *  every money record is. */
+const HandOverSheet = ({
   from,
   open,
   onOpenChange,
@@ -98,7 +107,7 @@ const HandOverDialog = ({
   );
   const slipSaid = reference.trim() !== "";
   return (
-    <FormDialog
+    <FormSheet
       description={t("cash.handOverHint")}
       onOpenChange={onOpenChange}
       onSubmit={() =>
@@ -186,7 +195,7 @@ const HandOverDialog = ({
           value={note}
         />
       </FormField>
-    </FormDialog>
+    </FormSheet>
   );
 };
 
@@ -208,9 +217,9 @@ const ventureShares = (held: readonly HeldSale[]) => {
 
 /**
  * A Venture's sale cash banked into its Venture Account from the hand that took it: the Sales it carries, ticked, the
- * slip and the day. The amount is theirs to the taka, so it is shown, not typed.
+ * slip and the day. The amount is theirs to the taka, so it is shown, not typed. A record of money, in a sheet.
  */
-const DepositDialog = ({
+const DepositSheet = ({
   from,
   ventureId,
   ventureName,
@@ -247,7 +256,7 @@ const DepositDialog = ({
     })
   );
   return (
-    <FormDialog
+    <FormSheet
       description={t("cash.depositHint")}
       onOpenChange={onOpenChange}
       onSubmit={() =>
@@ -269,23 +278,25 @@ const DepositDialog = ({
       submitLabel={t("cash.deposit")}
       title={t("cash.depositTitle", { venture: ventureName })}
     >
-      <fieldset className="flex flex-col gap-2">
+      <fieldset className="flex flex-col">
         {sales.map((one) => (
-          <label className="flex items-center gap-2 text-sm" key={one.saleId}>
-            <input
+          <Label
+            className="flex min-h-11 cursor-pointer items-center gap-2 font-normal md:min-h-8"
+            key={one.saleId}
+          >
+            <Checkbox
               checked={ticked.includes(one.saleId)}
-              onChange={(event) =>
+              onCheckedChange={(on) =>
                 setTicked((was) =>
-                  event.target.checked
+                  on
                     ? [...was, one.saleId]
                     : was.filter((saleId) => saleId !== one.saleId)
                 )
               }
-              type="checkbox"
             />
-            <span className="font-mono">{one.tagNumber}</span>
+            <TagChip>{one.tagNumber}</TagChip>
             <span className="tabular-nums">{asMoney(one.amount)}</span>
-          </label>
+          </Label>
         ))}
       </fieldset>
       <p className="text-sm font-medium">
@@ -308,7 +319,7 @@ const DepositDialog = ({
           value={day}
         />
       </FormField>
-    </FormDialog>
+    </FormSheet>
   );
 };
 
@@ -346,7 +357,7 @@ const VentureShare = ({
             <Banknote aria-hidden data-icon="inline-start" />
             {t("cash.deposit")}
           </Button>
-          <DepositDialog
+          <DepositSheet
             from={hand}
             onOpenChange={setDepositing}
             open={depositing}
@@ -397,26 +408,13 @@ const VoidHandover = ({ id }: { id: string }) => {
   );
 };
 
-/** What moved cash into or out of one hand, newest first: the money that named it, and every Handover. */
-const Movements = ({ hand }: { hand: Hand }) => {
-  const { t, language } = useLanguage();
+/** The movements themselves, newest first, each with what it was, its day and note, and the money in or out. */
+const MovementList = ({ movements }: { movements: Movement[] }) => {
+  const { language } = useLanguage();
   const asMoney = useMoney();
-  const moved = useQuery(
-    orpc.cash.movements.queryOptions({ input: { userId: hand.userId } })
-  );
-  if (!moved.data) {
-    return null;
-  }
-  if (moved.data.length === 0) {
-    return (
-      <p className="text-muted-foreground px-1 py-2 text-sm">
-        {t("cash.none")}
-      </p>
-    );
-  }
   return (
     <ul className="divide-y">
-      {moved.data.map((one) => (
+      {movements.map((one) => (
         <li
           className="flex items-baseline justify-between gap-3 py-2 text-sm"
           key={one.id}
@@ -444,6 +442,27 @@ const Movements = ({ hand }: { hand: Hand }) => {
         </li>
       ))}
     </ul>
+  );
+};
+
+/** What moved cash into or out of one hand, newest first: the money that named it, and every Handover. "None" only
+ *  once the farm has said so. */
+const Movements = ({ hand }: { hand: Hand }) => {
+  const { t } = useLanguage();
+  const moved = useQuery(
+    orpc.cash.movements.queryOptions({ input: { userId: hand.userId } })
+  );
+  const movements = moved.data ?? [];
+  return (
+    <Loaded query={moved}>
+      {movements.length === 0 ? (
+        <p className="text-muted-foreground px-1 py-2 text-sm">
+          {t("cash.none")}
+        </p>
+      ) : (
+        <MovementList movements={movements} />
+      )}
+    </Loaded>
   );
 };
 
@@ -486,21 +505,40 @@ const LastCount = ({ hand }: { hand: Hand }) => {
   );
 };
 
-/** One hand: what it holds, its Handover, and what moved through it once opened. */
-const HandLine = ({
-  hand,
-  mayHandOver,
-}: {
+/** A hand's Handover: the button, and the sheet it opens. */
+const HandOverButton = ({ hand }: { hand: Hand }) => {
+  const { t } = useLanguage();
+  const [handing, setHanding] = useState(false);
+  return (
+    <>
+      <Button
+        onClick={() => setHanding(true)}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        <HandCoins aria-hidden data-icon="inline-start" />
+        {t("cash.handOver")}
+      </Button>
+      <HandOverSheet from={hand} onOpenChange={setHanding} open={handing} />
+    </>
+  );
+};
+
+/** One hand as the desk's table reads it, with whether the reader may move its cash. */
+interface HandRow {
   hand: Hand;
   mayHandOver: boolean;
-}) => {
-  const { t } = useLanguage();
+}
+
+/** One hand on a phone: what it holds, its Handover, and what moved through it once opened. */
+const HandCard = ({ row }: { row: HandRow }) => {
   const asMoney = useMoney();
+  const { hand, mayHandOver } = row;
   const [open, setOpen] = useState(false);
-  const [handing, setHanding] = useState(false);
   const overdrawn = hand.amount < 0;
   return (
-    <li className="flex flex-col gap-2 py-3">
+    <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         <button
           aria-expanded={open}
@@ -519,17 +557,7 @@ const HandLine = ({
           </span>
           <LastCount hand={hand} />
         </button>
-        {mayHandOver ? (
-          <Button
-            onClick={() => setHanding(true)}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            <HandCoins aria-hidden data-icon="inline-start" />
-            {t("cash.handOver")}
-          </Button>
-        ) : null}
+        {mayHandOver ? <HandOverButton hand={hand} /> : null}
       </div>
       {/* A Venture's sale cash in this hand, until it is deposited — missing from an answer cached before it was said. */}
       {ventureShares(hand.ventures ?? []).map((share) => (
@@ -541,17 +569,19 @@ const HandLine = ({
         />
       ))}
       {open ? <Movements hand={hand} /> : null}
-      {mayHandOver ? (
-        <HandOverDialog from={hand} onOpenChange={setHanding} open={handing} />
-      ) : null}
-    </li>
+    </div>
   );
 };
 
+const handCard = (row: HandRow) => <HandCard row={row} />;
+
 type Float = Awaited<ReturnType<typeof orpc.cash.tripFloats.call>>[number];
 
-/** The Owner counts a float home: the cash brought back, which must make the float balance to the taka. */
-const CountHomeDialog = ({
+/**
+ * The Owner counts a float home: the cash brought back, which must make the float balance to the taka. Counting a
+ * float home is a piece of work of its own, in a sheet — as a Venture's Float is counted home on the Venture's page.
+ */
+const CountHomeSheet = ({
   float,
   open,
   onOpenChange,
@@ -578,7 +608,7 @@ const CountHomeDialog = ({
   const typed = Number(back);
   const saysAnAmount = back.trim() !== "" && !(typed < 0);
   return (
-    <FormDialog
+    <FormSheet
       description={t("cash.countHomeHint", { name: float.carrierName ?? "" })}
       onOpenChange={onOpenChange}
       onSubmit={() =>
@@ -600,18 +630,51 @@ const CountHomeDialog = ({
           value={back}
         />
       </FormField>
-    </FormDialog>
+    </FormSheet>
   );
 };
 
-/** One float still out: where it went, who carried it, what went out, what it bought, and what is to come back. */
-const FloatLine = ({ float, isOwner }: { float: Float; isOwner: boolean }) => {
+/** A float's count home: the button, and the sheet it opens. */
+const CountHomeButton = ({ float }: { float: Float }) => {
+  const { t } = useLanguage();
+  const [counting, setCounting] = useState(false);
+  return (
+    <>
+      <Button
+        onClick={() => setCounting(true)}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        {t("cash.countHome")}
+      </Button>
+      <CountHomeSheet
+        float={float}
+        key={counting ? "counting" : "shut"}
+        onOpenChange={setCounting}
+        open={counting}
+      />
+    </>
+  );
+};
+
+interface FloatRow {
+  float: Float;
+  isOwner: boolean;
+}
+
+/** What a float still has to bring back: what went out, less what it bought and what is back already. */
+const dueOf = (float: Float) =>
+  float.handedMoney - float.boughtMoney - float.backMoney;
+
+/** One float still out on a phone: where it went, who carried it, what went out, what it bought, and what is to come
+ *  back. */
+const FloatCard = ({ row }: { row: FloatRow }) => {
   const { t, language } = useLanguage();
   const asMoney = useMoney();
-  const [counting, setCounting] = useState(false);
-  const due = float.handedMoney - float.boughtMoney - float.backMoney;
+  const { float, isOwner } = row;
   return (
-    <li className="flex items-center justify-between gap-3 py-3">
+    <div className="flex items-center justify-between gap-3">
       <span className="flex min-w-0 flex-col">
         <span className="font-medium">
           {float.wentTo} ·{" "}
@@ -622,43 +685,20 @@ const FloatLine = ({ float, isOwner }: { float: Float; isOwner: boolean }) => {
             name: float.carrierName ?? "",
             handed: asMoney(float.handedMoney),
             bought: asMoney(float.boughtMoney),
-            due: asMoney(due),
+            due: asMoney(dueOf(float)),
           })}
         </span>
       </span>
-      {isOwner ? (
-        <>
-          <Button
-            onClick={() => setCounting(true)}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            {t("cash.countHome")}
-          </Button>
-          <CountHomeDialog
-            float={float}
-            key={counting ? "counting" : "shut"}
-            onOpenChange={setCounting}
-            open={counting}
-          />
-        </>
-      ) : null}
-    </li>
+      {isOwner ? <CountHomeButton float={float} /> : null}
+    </div>
   );
 };
 
-interface FloatRow {
-  float: Float;
-  isOwner: boolean;
-}
+const floatCard = (row: FloatRow) => <FloatCard row={row} />;
 
 interface FloatCell {
   row: { original: FloatRow };
 }
-
-const dueOf = (float: Float) =>
-  float.handedMoney - float.boughtMoney - float.backMoney;
 
 const FloatTripCell = ({ row }: FloatCell) => {
   const { language } = useLanguage();
@@ -689,32 +729,8 @@ const FloatDueCell = ({ row }: FloatCell) => (
     <FloatMoneyCell amount={dueOf(row.original.float)} />
   </span>
 );
-const FloatCountCell = ({ row }: FloatCell) => {
-  const { t } = useLanguage();
-  const [counting, setCounting] = useState(false);
-  const { float, isOwner } = row.original;
-  if (!isOwner) {
-    return null;
-  }
-  return (
-    <>
-      <Button
-        onClick={() => setCounting(true)}
-        size="sm"
-        type="button"
-        variant="outline"
-      >
-        {t("cash.countHome")}
-      </Button>
-      <CountHomeDialog
-        float={float}
-        key={counting ? "counting" : "shut"}
-        onOpenChange={setCounting}
-        open={counting}
-      />
-    </>
-  );
-};
+const FloatCountCell = ({ row }: FloatCell) =>
+  row.original.isOwner ? <CountHomeButton float={row.original.float} /> : null;
 
 const floatColumn = createListColumns<FloatRow>();
 const floatColumns = floatColumn.columns([
@@ -754,16 +770,18 @@ const floatColumns = floatColumn.columns([
   }),
 ]);
 
+/** The floats out as a table on a desk, a card a float on a phone. */
 const FloatsTable = ({ rows }: { rows: FloatRow[] }) => {
   const table = useListTable({
     columns: floatColumns,
     data: rows,
     getRowId: (row) => row.float.tripId,
   });
-  return <DataTable table={table} />;
+  return <DataTable card={floatCard} table={table} />;
 };
 
-/** The Buying Floats the Farm handed out for its own outings and has not yet counted home. Nothing while none is out. */
+/** The Buying Floats the Farm handed out for its own outings and has not yet counted home. Nothing while none is out —
+ *  nor while the farm is asked, since a part that is there only when something is out has no place to hold. */
 const FloatsOut = ({ isOwner }: { isOwner: boolean }) => {
   const { t } = useLanguage();
   const floats = useQuery(orpc.cash.tripFloats.queryOptions());
@@ -771,25 +789,11 @@ const FloatsOut = ({ isOwner }: { isOwner: boolean }) => {
     return null;
   }
   return (
-    <section className="surface flex flex-col p-4 md:p-5">
-      <h3 className="text-base font-semibold">{t("cash.floatsOut")}</h3>
-      <ul className="divide-y md:hidden">
-        {floats.data.map((float) => (
-          <FloatLine float={float} isOwner={isOwner} key={float.tripId} />
-        ))}
-      </ul>
-      <div className="hidden pt-2 md:block">
-        <FloatsTable rows={floats.data.map((float) => ({ float, isOwner }))} />
-      </div>
-    </section>
+    <Section title={t("cash.floatsOut")}>
+      <FloatsTable rows={floats.data.map((float) => ({ float, isOwner }))} />
+    </Section>
   );
 };
-
-/** One hand as the desk's table reads it, with whether the reader may move its cash. */
-interface HandRow {
-  hand: Hand;
-  mayHandOver: boolean;
-}
 
 interface HandCell {
   row: { original: HandRow };
@@ -824,28 +828,8 @@ const HandVentureCell = ({ row }: HandCell) => {
   const amount = ventureCashOf(row.original.hand);
   return amount > 0 ? <span>{asMoney(amount)}</span> : <Nothing />;
 };
-const HandOverCell = ({ row }: HandCell) => {
-  const { t } = useLanguage();
-  const [handing, setHanding] = useState(false);
-  const { hand, mayHandOver } = row.original;
-  if (!mayHandOver) {
-    return null;
-  }
-  return (
-    <>
-      <Button
-        onClick={() => setHanding(true)}
-        size="sm"
-        type="button"
-        variant="outline"
-      >
-        <HandCoins aria-hidden data-icon="inline-start" />
-        {t("cash.handOver")}
-      </Button>
-      <HandOverDialog from={hand} onOpenChange={setHanding} open={handing} />
-    </>
-  );
-};
+const HandOverCell = ({ row }: HandCell) =>
+  row.original.mayHandOver ? <HandOverButton hand={row.original.hand} /> : null;
 
 const handColumn = createListColumns<HandRow>();
 const handColumns = handColumn.columns([
@@ -895,7 +879,7 @@ const HandDetail = ({ row }: { row: HandRow }) => (
 );
 
 /** On a desk, the hands as a table — who, last counted, what of it is a Venture's, and what is in hand — each opening
- *  to what moved through it (Polaris's index table, Carbon's expandable rows). */
+ *  to what moved through it (Polaris's index table, Carbon's expandable rows); on a phone, a card a hand. */
 const HandsTable = ({ rows }: { rows: HandRow[] }) => {
   const table = useListTable({
     columns: handColumns,
@@ -903,13 +887,18 @@ const HandsTable = ({ rows }: { rows: HandRow[] }) => {
     getRowId: (row) => row.hand.userId,
   });
   return (
-    <DataTable renderDetail={(row) => <HandDetail row={row} />} table={table} />
+    <DataTable
+      card={handCard}
+      renderDetail={(row) => <HandDetail row={row} />}
+      table={table}
+    />
   );
 };
 
 /**
  * Who holds the farm's cash: each Owner and Manager and what is in their hand, from the cash money that named it and
  * the Handovers that moved it on. The Owner sees and moves every hand; a Manager sees and hands over their own.
+ * "Nobody holds it" is said only once the farm has answered.
  */
 export const CashTab = ({
   isOwner,
@@ -920,35 +909,24 @@ export const CashTab = ({
 }) => {
   const { t } = useLanguage();
   const hands = useQuery(orpc.cash.inHand.queryOptions());
-  if (!hands.data) {
-    return null;
-  }
-  if (hands.data.length === 0) {
-    return <EmptyState icon={Banknote} title={t("cash.nobody")} />;
-  }
+  const held = hands.data ?? [];
   return (
-    <div className="flex flex-col gap-6">
-      <section className="surface flex flex-col p-4 md:p-5">
-        <p className="text-muted-foreground pb-2 text-xs">{t("cash.hint")}</p>
-        <ul className="divide-y md:hidden">
-          {hands.data.map((hand) => (
-            <HandLine
-              hand={hand}
-              key={hand.userId}
-              mayHandOver={isOwner || hand.userId === myId}
+    <Loaded query={hands} skeleton={<TableSkeleton rows={3} />}>
+      {held.length === 0 ? (
+        <EmptyState icon={Banknote} title={t("cash.nobody")} />
+      ) : (
+        <div className="flex flex-col gap-6">
+          <Section description={t("cash.hint")} title={t("cash.hands")}>
+            <HandsTable
+              rows={held.map((hand) => ({
+                hand,
+                mayHandOver: isOwner || hand.userId === myId,
+              }))}
             />
-          ))}
-        </ul>
-        <div className="hidden md:block">
-          <HandsTable
-            rows={hands.data.map((hand) => ({
-              hand,
-              mayHandOver: isOwner || hand.userId === myId,
-            }))}
-          />
+          </Section>
+          <FloatsOut isOwner={isOwner} />
         </div>
-      </section>
-      <FloatsOut isOwner={isOwner} />
-    </div>
+      )}
+    </Loaded>
   );
 };

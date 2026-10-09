@@ -3146,6 +3146,8 @@ export const enCore = {
   "signOff.sentBack": "Sent back",
   "signOff.closedMissed": "Closed as missed",
   "correct.why": "Why is it being changed?",
+  "correct.whyMissing": "Say why it is being changed.",
+  "correct.nothingChanged": "Nothing has been changed that can be saved yet.",
   "correct.save": "Save correction",
   "correct.open": "Correct",
   "correct.saved": "Corrected — the original stays in the trail",
@@ -4182,6 +4184,7 @@ export const enCore = {
   "wageDraw.col.owed": "Still owed",
   "wageDraw.col.draws": "Draws",
   "wageDraw.col.oldest": "Oldest draw",
+  "wageDraw.owing": "Draws still owed",
   "wageDraw.listHint":
     "What each person has drawn ahead and still owes. Their next wage takes it off, the oldest first.",
   "wageDraw.atPayday":
@@ -4199,6 +4202,7 @@ export const enCore = {
   "cash.hint":
     "What each person holds of the farm's cash: the cash money that named their hand, less what they paid out and handed over. Mobile money and the bank name nobody. Open a hand to see what moved.",
   "cash.nobody": "Nobody holds the farm's cash yet",
+  "cash.hands": "What each hand holds",
   "cash.col.hand": "Whose hand",
   "cash.col.lastCount": "Last counted",
   "cash.col.ventures": "Ventures' sale cash",
