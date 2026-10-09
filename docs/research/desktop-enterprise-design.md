@@ -502,6 +502,9 @@ Steps 1–3 are the ones that matter most for "enterprise". Steps 5–8 are the 
    - _Recommendation:_ tell us the real screen. Until then, treat 1366×768 as the smallest desk and check every step at 1280 too.
 2. **Should a very wide monitor use all of its width, or stop at 1584px?**
    - _Recommendation:_ stop at 1584px, left-aligned, as Carbon does. Below 1920 nothing changes.
+   - _Answered 2026-10-09:_ use all of it. The cap was built, but left-aligned it left a wider margin on the right than
+     the left, which read as the page not lining up with the top bar. The Owner chose the whole width with the same
+     32px on both sides over a centered, capped frame.
 3. **Is there a job you do to many rows at once?** For example: signing off several Steps, marking several animals Ready for Sale, or approving several money entries.
    - _Recommendation:_ build row selection and a batch-action bar (Carbon's pattern) only for a job you name. The Sign-off queue is the likeliest. Do not add checkboxes to every table.
 4. **Would a "go to Tag Number" box in the top bar help?** It would work from any page, with a keyboard shortcut such as Ctrl+K.

@@ -65,7 +65,7 @@ const UserMenu = () => {
           render={
             <Button
               aria-label={t("auth.myAccount")}
-              className="gap-2 ps-1.5 pe-2"
+              className="gap-2 ps-1.5 pe-2 md:ps-1.5 md:pe-2"
               variant="ghost"
             />
           }
@@ -124,7 +124,7 @@ const UserMenu = () => {
         render={
           <Button
             aria-label={t("auth.myAccount")}
-            className="gap-2 ps-1.5 pe-2"
+            className="gap-2 ps-1.5 pe-2 md:ps-1.5 md:pe-2"
             variant="ghost"
           />
         }
