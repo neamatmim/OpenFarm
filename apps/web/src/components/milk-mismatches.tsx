@@ -131,9 +131,7 @@ const SessionDialog = ({
         {session ? (
           <div className="flex flex-col gap-4">
             <DialogHeader>
-              <DialogTitle className="text-base font-semibold">
-                {penOf(session)}
-              </DialogTitle>
+              <DialogTitle>{penOf(session)}</DialogTitle>
               <DialogDescription>
                 {formatDate(new Date(session.dueAt), language, "dateTime")}
               </DialogDescription>

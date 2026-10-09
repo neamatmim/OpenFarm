@@ -3003,6 +3003,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "signOff.sentBack": "ফেরত পাঠানো হয়েছে",
   "signOff.closedMissed": "বাদ পড়া হিসেবে বন্ধ করা হয়েছে",
   "correct.why": "কেন বদলাচ্ছেন?",
+  "correct.whyMissing": "কেন বদলাচ্ছেন তা লিখুন।",
+  "correct.nothingChanged": "সংরক্ষণ করার মতো কিছু এখনো বদলানো হয়নি।",
   "correct.save": "সংশোধন সংরক্ষণ",
   "correct.open": "সংশোধন",
   "correct.saved": "সংশোধন হয়েছে — আগের তথ্য অডিট লগে থাকছে",
@@ -4014,6 +4016,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "wageDraw.col.owed": "এখনও বাকি",
   "wageDraw.col.draws": "অগ্রিম",
   "wageDraw.col.oldest": "সবচেয়ে পুরনো অগ্রিম",
+  "wageDraw.owing": "এখনো বাকি অগ্রিম",
   "wageDraw.listHint":
     "কে বেতনের আগে কত নিয়েছেন আর এখনো বাকি। পরের বেতন থেকে কাটা যায়, আগেরটা আগে।",
   "wageDraw.atPayday":
@@ -4029,6 +4032,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "cash.hint":
     "খামারের নগদ কার হাতে কত: যে নগদ {currencyIn} তার নাম লেখা, তা থেকে যা খরচ ও হাতবদল করেছেন বাদে। বিকাশ আর ব্যাংকে কারও নাম থাকে না। কী কী এসেছে-গেছে দেখতে হাতটি খুলুন।",
   "cash.nobody": "খামারের নগদ এখনো কারও হাতে নেই",
+  "cash.hands": "কার হাতে কত নগদ",
   "cash.col.hand": "কার হাতে",
   "cash.col.lastCount": "শেষ গোনা",
   "cash.col.ventures": "ভেঞ্চারের বিক্রির টাকা",

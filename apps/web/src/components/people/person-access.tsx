@@ -4,15 +4,6 @@ import { formatDate, formatDayField, numberAsTyped } from "@OpenFarm/i18n";
 import { Badge } from "@OpenFarm/ui/components/badge";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@OpenFarm/ui/components/dialog";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
@@ -30,7 +21,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Section, StatusBadge } from "@/components/page";
-import { FormDialog, FormField } from "@/components/page-kit";
+import { ConfirmDialog, FormDialog, FormField } from "@/components/page-kit";
 import { RoleChoice, toggled } from "@/components/role-choice";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -614,29 +605,17 @@ const RemoveAccessDialog = ({
 }) => {
   const t = useT();
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent closeLabel={t("common.close")}>
-        <DialogHeader>
-          <DialogTitle>{t("people.disableTitle", { name })}</DialogTitle>
-          <DialogDescription>{t("people.disableWhy")}</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>
-            {t("common.cancel")}
-          </DialogClose>
-          <Button
-            onClick={() => {
-              onOpenChange(false);
-              onRemove();
-            }}
-            variant="destructive"
-          >
-            <UserX aria-hidden data-icon="inline-start" />
-            {t("people.disable")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDialog
+      confirmLabel={t("people.disable")}
+      description={t("people.disableWhy")}
+      onConfirm={() => {
+        onOpenChange(false);
+        onRemove();
+      }}
+      onOpenChange={onOpenChange}
+      open={open}
+      title={t("people.disableTitle", { name })}
+    />
   );
 };
 
