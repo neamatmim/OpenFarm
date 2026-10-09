@@ -13,6 +13,7 @@ import {
   RUNNING_STATES,
   startOfFarmDay,
   ventureMonthPaper,
+  ventureMonthRows,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -25,6 +26,8 @@ import {
   whyItStands,
 } from "../../corrections/venture-movement";
 import { economicsOfHerd, farmCosts } from "../../cost-store";
+import { toCsv } from "../../csv";
+import { stampedFileName } from "../../export-name";
 import { assertRegistered, recordExport } from "../../export-store";
 import { farmsOwnOf } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
@@ -167,6 +170,30 @@ const whatItsAnimalsConsumed = async (
 const idOfTheMonth = (farmId: string, ventureId: string, month: string) =>
   `${farmId}:${ventureId}:${month}`;
 
+/**
+ * One month of one Venture as an Export is made from it: refused first without the farm's DLS registration number,
+ * then the month, its facts for the paper and the CSV alike, and the days it covers.
+ */
+const monthToExport = async (
+  context: Context & { actor: { name: string } },
+  input: { ventureId: string; month: string }
+) => {
+  assertRegistered(context.farm, "a Venture's monthly report");
+  const now = context.clock.now();
+  const one = await ventureMonth(
+    context.db,
+    context.farm,
+    input.ventureId,
+    input.month,
+    now
+  );
+  const { facts, days } = ventureMonthFacts(one, context.farm, {
+    at: now,
+    by: context.actor.name,
+  });
+  return { one, facts, days, now };
+};
+
 export const booksProcedures = {
   /**
    * One month of one Venture (`ventureMonth`), named "YYYY-MM": the month beside the run to its end — its animals, its
@@ -198,19 +225,7 @@ export const booksProcedures = {
     .use(requirePersonalSession())
     .input(z.object({ ventureId: z.string(), month: monthInput }))
     .handler(async ({ context, input }) => {
-      assertRegistered(context.farm, "a Venture's monthly report");
-      const now = context.clock.now();
-      const one = await ventureMonth(
-        context.db,
-        context.farm,
-        input.ventureId,
-        input.month,
-        now
-      );
-      const { facts, days } = ventureMonthFacts(one, context.farm, {
-        at: now,
-        by: context.actor.name,
-      });
+      const { one, facts, days } = await monthToExport(context, input);
       // Laid out first: an Export on the trail is a paper that was made.
       const document = ventureMonthPaper(facts);
       await recordExport(context, "monthly_report", days, {
@@ -219,6 +234,58 @@ export const booksProcedures = {
         ventureId: one.venture.id,
       });
       return { document };
+    }),
+
+  /**
+   * The same month of one Venture as a CSV (`ventureMonthRows`): a row a figure, the paper's own parts and lines in
+   * Bangla and English, its figures plain numbers, each row naming the Venture — a Bangla name does not survive a file
+   * name. Saved under a name stamped with the farm, the days and when it was made, and an **Export** naming the Venture
+   * as the paper is, refused as the paper is. The Owner's alone.
+   */
+  monthCsv: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string(), month: monthInput }))
+    .handler(async ({ context, input }) => {
+      const { one, facts, days, now } = await monthToExport(context, input);
+      const csv = toCsv(
+        [
+          "venture",
+          "part",
+          "part_en",
+          "line",
+          "line_en",
+          "way",
+          "this_month",
+          "to_month_end",
+          "note",
+        ],
+        ventureMonthRows(facts).map((row) => [
+          facts.ventureName,
+          row.part.bn,
+          row.part.en,
+          row.line.bn,
+          row.line.en,
+          row.way,
+          row.thisMonth,
+          row.toMonthEnd,
+          row.note,
+        ])
+      );
+      await recordExport(context, "monthly_report", days, {
+        format: "csv",
+        month: one.month,
+        ventureId: one.venture.id,
+      });
+      return {
+        csv,
+        fileName: stampedFileName(
+          context.farm,
+          "venture-monthly-report",
+          days,
+          now
+        ),
+      };
     }),
 
   /**

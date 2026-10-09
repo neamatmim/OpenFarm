@@ -14,6 +14,7 @@ import {
 import {
   PrintTheVentureMonth,
   TheVentureMonth,
+  TheVentureMonthAsCsv,
   useVentureMonth,
 } from "@/components/ventures/venture-month";
 import { useLanguage } from "@/i18n/language-provider";
@@ -59,14 +60,17 @@ const VentureMonthPage = () => {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {one.data ? (
-              <PrintTheVentureMonth
-                month={month}
-                title={t("ventures.month.title", {
-                  venture: one.data.venture.name,
-                  month: saidMonth(month, language),
-                })}
-                ventureId={ventureId}
-              />
+              <>
+                <PrintTheVentureMonth
+                  month={month}
+                  title={t("ventures.month.title", {
+                    venture: one.data.venture.name,
+                    month: saidMonth(month, language),
+                  })}
+                  ventureId={ventureId}
+                />
+                <TheVentureMonthAsCsv month={month} ventureId={ventureId} />
+              </>
             ) : null}
             <MonthPicker
               chosen={month}

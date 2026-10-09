@@ -9,6 +9,7 @@ import {
 } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { parseCsv } from "../csv";
 import { theirHerdStory } from "../investor-statement-store";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
@@ -600,6 +601,89 @@ describe("what a Settlement is", () => {
     await expect(
       manager.client.ventures.monthPaper({ ventureId, month: "2047-03" })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("saves a month as a CSV, a row a figure as its page says it, under the farm's stamped name and as an Export", async () => {
+    const owner = await as("owner", "2047-03-25T04:00:00.000Z");
+    const march = await owner.client.ventures.month({
+      ventureId,
+      month: "2047-03",
+    });
+
+    const { csv, fileName } = await owner.client.ventures.monthCsv({
+      ventureId,
+      month: "2047-03",
+    });
+
+    // After the mark that tells a spreadsheet the file is UTF-8, so the Bangla reads.
+    const [head, ...lines] = parseCsv(csv.replace(/^\uFEFF/u, "")).map(
+      (one) => one.values
+    );
+    expect(head?.join(",")).toBe(
+      "venture,part,part_en,line,line_en,way,this_month,to_month_end,note"
+    );
+    // Each row names the Venture, as a Bangla name does not survive a file name.
+    expect(lines.every((one) => one[0] === march.venture.name)).toBe(true);
+    const row = (part: string, line: string) =>
+      lines
+        .map((one) => one.slice(1))
+        .find((one) => one[1] === part && one[3] === line);
+    expect(row("Charges", "Feed")?.slice(5, 7)).toEqual([
+      String(lineOf(march, "feed")?.monthMoney),
+      String(lineOf(march, "feed")?.toEndMoney),
+    ]);
+    expect(row("Animals", "At the month's start")?.[5]).toBe(
+      String(march.herd.atStart)
+    );
+    expect(row("Venture account", "At the month's end")?.[5]).toBe(
+      String(march.account.closingMoney)
+    );
+    expect(
+      row("Venture account", "A buyer took her away")?.slice(4, 6)
+    ).toEqual(["in", "405005"]);
+    const [first] = march.sold;
+    expect(
+      row("Sold this month", `${first?.tagNumber} — Price less cost`)
+    ).toEqual(expect.arrayContaining([String(first?.lessCostMoney)]));
+
+    expect(fileName).toContain("2047-03-25-1000");
+    expect(fileName).toContain("venture-monthly-report-2047-03-01-2047-03-25");
+    const exports = await scratchDb().query.auditEvent.findMany({
+      where: { entity: "report", action: "export" },
+    });
+    expect(
+      exports.map((one) => one.after as Record<string, unknown> | null)
+    ).toContainEqual(
+      expect.objectContaining({
+        report: "monthly_report",
+        format: "csv",
+        ventureId,
+        month: "2047-03",
+        from: "2047-03-01",
+        to: "2047-03-25",
+      })
+    );
+    const manager = await as("manager", "2047-03-25T04:00:00.000Z");
+    await expect(
+      manager.client.ventures.monthCsv({ ventureId, month: "2047-03" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("refuses a month's CSV while the farm's DLS registration number is not written down", async () => {
+    const owner = await as("owner", "2047-03-25T04:00:00.000Z");
+    const { registrationNumber } = await owner.client.farm.identity();
+    await owner.client.farm.setIdentity({ registrationNumber: null });
+    try {
+      // Signed in again, so the farm it reads is the one without the number.
+      const unregistered = await as("owner", "2047-03-25T04:00:00.000Z");
+      await expect(
+        unregistered.client.ventures.monthCsv({ ventureId, month: "2047-03" })
+      ).rejects.toMatchObject({
+        data: { refusal: "farm_identity_incomplete" },
+      });
+    } finally {
+      await owner.client.farm.setIdentity({ registrationNumber });
+    }
   });
 
   it("adds up exactly once nothing at all is owed", async () => {
