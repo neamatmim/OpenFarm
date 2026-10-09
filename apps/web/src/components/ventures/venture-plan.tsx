@@ -12,6 +12,7 @@ import type { ChangeEvent } from "react";
 import { useState } from "react";
 
 import { BreedField, useBreeds } from "@/components/breed-field";
+import { COLUMN_HEADING } from "@/components/data-table";
 import { expectedGainSaid } from "@/components/feed/band-words";
 import {
   EmptyState,
@@ -693,28 +694,28 @@ const PlanTable = ({ version }: { version: Version }) => {
   const asMoney = useMoney();
   const kg = (value: number) => formatNumber(value, language);
   const weight = useKg();
-  const head = "text-muted-foreground px-2 py-1.5 text-xs font-medium";
+  const head = `${COLUMN_HEADING} px-2 pt-1.5 font-medium`;
   return (
     <div className="-mx-4 overflow-x-auto md:-mx-5">
       <table className="w-full min-w-[36rem] text-sm">
         <thead className="border-b">
           <tr>
-            <th className={`${head} ps-4 text-start md:ps-5`} scope="col">
+            <th className={`${head} pl-4 text-left md:pl-5`} scope="col">
               {t("plan.col.band")}
             </th>
-            <th className={`${head} text-end`} scope="col">
+            <th className={`${head} text-right`} scope="col">
               {t("plan.col.animals")}
             </th>
-            <th className={`${head} text-end`} scope="col">
+            <th className={`${head} text-right`} scope="col">
               {t("plan.col.price")}
             </th>
-            <th className={`${head} text-end`} scope="col">
+            <th className={`${head} text-right`} scope="col">
               {t("plan.col.cost")}
             </th>
-            <th className={`${head} text-end`} scope="col">
+            <th className={`${head} text-right`} scope="col">
               {t("plan.col.gain")}
             </th>
-            <th className={`${head} pe-4 text-end md:pe-5`} scope="col">
+            <th className={`${head} pr-4 text-right md:pr-5`} scope="col">
               {t("plan.col.sale")}
             </th>
           </tr>
@@ -722,25 +723,25 @@ const PlanTable = ({ version }: { version: Version }) => {
         <tbody className="divide-y">
           {version.lines.map((line, at) => (
             <tr key={`${line.fromKg}-${line.toKg}-${at}`}>
-              <td className="px-2 py-2 ps-4 md:ps-5">
+              <td className="px-2 py-2 pl-4 md:pl-5">
                 {t("plan.band", { from: kg(line.fromKg), to: kg(line.toKg) })}
                 <span className="text-muted-foreground block text-xs">
                   {breedOfLine(line.breedId)}
                 </span>
               </td>
-              <td className="px-2 py-2 text-end tabular-nums">
+              <td className="px-2 py-2 text-right tabular-nums">
                 {formatNumber(line.animals, language)}
               </td>
-              <td className="px-2 py-2 text-end tabular-nums">
+              <td className="px-2 py-2 text-right tabular-nums">
                 {asMoney(line.buyMoneyPerKg)}
               </td>
-              <td className="px-2 py-2 text-end tabular-nums">
+              <td className="px-2 py-2 text-right tabular-nums">
                 {asMoney(version.totals.lines[at]?.costMoney ?? 0)}
               </td>
-              <td className="px-2 py-2 text-end tabular-nums">
+              <td className="px-2 py-2 text-right tabular-nums">
                 {weight(line.dailyGainKg)}
               </td>
-              <td className="px-2 py-2 pe-4 text-end tabular-nums md:pe-5">
+              <td className="px-2 py-2 pr-4 text-right tabular-nums md:pr-5">
                 {weight(version.totals.lines[at]?.saleKgEach ?? 0)}
               </td>
             </tr>
@@ -748,25 +749,25 @@ const PlanTable = ({ version }: { version: Version }) => {
         </tbody>
         <tfoot className="border-t font-medium">
           <tr>
-            <td className="px-2 py-2 ps-4 md:ps-5">{t("plan.total")}</td>
-            <td className="px-2 py-2 text-end tabular-nums">
+            <td className="px-2 py-2 pl-4 md:pl-5">{t("plan.total")}</td>
+            <td className="px-2 py-2 text-right tabular-nums">
               {formatNumber(version.totals.animals, language)}
             </td>
             {/* What a kilo costs across every band, and what a head puts on, each weighted as bought. */}
-            <td className="px-2 py-2 text-end tabular-nums">
+            <td className="px-2 py-2 text-right tabular-nums">
               {asMoney(
                 version.totals.boughtKg > 0
                   ? version.totals.costMoney / version.totals.boughtKg
                   : 0
               )}
             </td>
-            <td className="px-2 py-2 text-end tabular-nums">
+            <td className="px-2 py-2 text-right tabular-nums">
               {asMoney(version.totals.costMoney)}
             </td>
-            <td className="px-2 py-2 text-end tabular-nums">
+            <td className="px-2 py-2 text-right tabular-nums">
               {weight(averageGainOf(version))}
             </td>
-            <td className="px-2 py-2 pe-4 text-end tabular-nums md:pe-5">
+            <td className="px-2 py-2 pr-4 text-right tabular-nums md:pr-5">
               {weight(version.totals.saleKg)}
             </td>
           </tr>

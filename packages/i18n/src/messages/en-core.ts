@@ -3834,7 +3834,6 @@ export const enCore = {
   "months.one.subtitle":
     "How the farm did in one month, beside the month before: the farm's own money, the milk, fattening and overheads.",
   "months.one.csv": "The month (CSV)",
-  "months.one.print": "Print",
   "months.one.whichMonth": "Which month",
   "months.one.line": "Figure",
   "months.one.money": "The farm's money",

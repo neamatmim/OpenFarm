@@ -22,6 +22,7 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { COLUMN_HEADING } from "@/components/data-table";
 import { Nothing } from "@/components/list-cells";
 import { EmptyState, Section } from "@/components/page";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
@@ -87,9 +88,14 @@ const Part = ({
       </colgroup>
       <TableHeader>
         <TableRow>
-          <TableHead>{t("months.one.line")}</TableHead>
+          <TableHead className={COLUMN_HEADING}>
+            {t("months.one.line")}
+          </TableHead>
           {headings.map((heading) => (
-            <TableHead className="text-right" key={heading}>
+            <TableHead
+              className={cn(COLUMN_HEADING, "text-right")}
+              key={heading}
+            >
               {heading}
             </TableHead>
           ))}
@@ -356,15 +362,19 @@ const TheSold = ({ sold }: { sold: VentureMonth["sold"] }) => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t("ventures.month.tag")}</TableHead>
-              <TableHead>{t("ventures.month.day")}</TableHead>
-              <TableHead className="text-right">
+              <TableHead className={COLUMN_HEADING}>
+                {t("ventures.month.tag")}
+              </TableHead>
+              <TableHead className={COLUMN_HEADING}>
+                {t("ventures.month.day")}
+              </TableHead>
+              <TableHead className={cn(COLUMN_HEADING, "text-right")}>
                 {t("ventures.month.price")}
               </TableHead>
-              <TableHead className="text-right">
+              <TableHead className={cn(COLUMN_HEADING, "text-right")}>
                 {t("ventures.month.cost")}
               </TableHead>
-              <TableHead className="text-right">
+              <TableHead className={cn(COLUMN_HEADING, "text-right")}>
                 {t("ventures.month.lessCost")}
               </TableHead>
             </TableRow>
@@ -544,7 +554,7 @@ export const PrintTheVentureMonth = ({
         variant="outline"
       >
         <Printer aria-hidden data-icon="inline-start" />
-        {t("months.one.print")}
+        {t("common.print")}
       </Button>
       <PaperDialog
         onClose={() => setPaper(null)}

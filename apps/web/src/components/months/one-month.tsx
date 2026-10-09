@@ -16,6 +16,7 @@ import { Briefcase, FileSpreadsheet, Printer, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { COLUMN_HEADING } from "@/components/data-table";
 import { Nothing } from "@/components/list-cells";
 import { EmptyState } from "@/components/page";
 import { NativeSelect } from "@/components/page-kit";
@@ -79,11 +80,15 @@ export const MonthPart = ({
       </colgroup>
       <TableHeader>
         <TableRow>
-          <TableHead>{firstHeading ?? t("months.one.line")}</TableHead>
-          <TableHead className="text-right">
+          <TableHead className={COLUMN_HEADING}>
+            {firstHeading ?? t("months.one.line")}
+          </TableHead>
+          <TableHead className={cn(COLUMN_HEADING, "text-right")}>
             {saidMonth(month, language)}
           </TableHead>
-          <TableHead className="text-muted-foreground text-right">
+          <TableHead
+            className={cn(COLUMN_HEADING, "text-muted-foreground text-right")}
+          >
             {saidMonth(before, language)}
           </TableHead>
         </TableRow>
@@ -197,9 +202,13 @@ export const MoneyBy = ({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>{heading}</TableHead>
-          <TableHead className="text-right">{t("money.totalIn")}</TableHead>
-          <TableHead className="text-right">{t("money.totalOut")}</TableHead>
+          <TableHead className={COLUMN_HEADING}>{heading}</TableHead>
+          <TableHead className={cn(COLUMN_HEADING, "text-right")}>
+            {t("money.totalIn")}
+          </TableHead>
+          <TableHead className={cn(COLUMN_HEADING, "text-right")}>
+            {t("money.totalOut")}
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -343,7 +352,7 @@ export const PrintTheMonth = ({ month }: { month: string }) => {
         variant="outline"
       >
         <Printer aria-hidden data-icon="inline-start" />
-        {t("months.one.print")}
+        {t("common.print")}
       </Button>
       <PaperDialog
         onClose={() => setPaper(null)}

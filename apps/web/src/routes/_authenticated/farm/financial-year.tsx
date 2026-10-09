@@ -16,6 +16,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CalendarRange, Undo2 } from "lucide-react";
 import { useState } from "react";
 
+import { COLUMN_HEADING } from "@/components/data-table";
 import { useIsOwner } from "@/components/money";
 import {
   EmptyState,
@@ -97,9 +98,15 @@ const YearsTable = ({ years }: { years: Years }) => {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>{t("years.col.year")}</TableHead>
-          <TableHead>{t("years.col.runs")}</TableHead>
-          <TableHead className="text-right">{t("years.col.months")}</TableHead>
+          <TableHead className={COLUMN_HEADING}>
+            {t("years.col.year")}
+          </TableHead>
+          <TableHead className={COLUMN_HEADING}>
+            {t("years.col.runs")}
+          </TableHead>
+          <TableHead className={`${COLUMN_HEADING} text-right`}>
+            {t("years.col.months")}
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

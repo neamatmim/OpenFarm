@@ -132,6 +132,11 @@ export const ActionsHeader = () => (
   <span className="sr-only">{useT()("common.col.actions")}</span>
 );
 
+/** How a column of figures or words is headed, on a list and on a statement alike: muted, small, on one line, at the
+ *  foot of its cell as far above the rule as a row's words sit below it. */
+export const COLUMN_HEADING =
+  "text-muted-foreground pb-2.5 align-bottom text-xs whitespace-nowrap";
+
 /**
  * One cell of a row. Cells start at their top, so a row of several lines reads across from its first. A column of
  * buttons (one headed by `ActionsHeader`) is drawn a little higher, so the words on a button sit on the row's first
@@ -438,7 +443,8 @@ export const DataTable = <TData extends object>({
                         // they were capitals, which pushed the Ventures table off its card; the table scrolls sideways
                         // on its own rather than the page, where one is still too wide.)
                         // At the foot of the cell, as far above the rule as a row's words sit below it.
-                        "text-muted-foreground pb-2.5 align-bottom text-xs whitespace-nowrap first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
+                        COLUMN_HEADING,
+                        "first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
                         look?.align === "end" && "text-right",
                         look?.className,
                         // Last, so a column that lets its figures wrap does not wrap its heading with them.
