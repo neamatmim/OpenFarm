@@ -71,6 +71,15 @@ const sectionLines = (
         ...(section.note ? [say(section.note)] : []),
       ];
     }
+    case "blanks": {
+      return [
+        ...section.blanks.map(
+          (blank) =>
+            `${say(blank.label)}${blank.hint ? ` (${say(blank.hint)})` : ""}: ____________`
+        ),
+        ...(section.note ? [say(section.note)] : []),
+      ];
+    }
     case "stamp": {
       return section.blanks.map(
         (blank, at) =>

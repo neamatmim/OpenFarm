@@ -1629,6 +1629,10 @@ export const enDesk = {
   "investors.copyAccount": "Copy",
   "investors.copied": "Copied",
   "investors.edit": "Edit",
+  "investors.detailsForm": "Print a blank form",
+  "investors.detailsFormTitle": "Investor details form",
+  "investors.detailsFormHint":
+    "Fill it in with them at the first meeting, from their NID and bank papers; then record them from the sheet, part by part, in the same order. Nothing is signed on it.",
   "investors.dataCopy": "Their data held by the farm",
   "investors.dataCopyTitle": "What the farm holds about {name}",
   "investors.dataCopyHint":

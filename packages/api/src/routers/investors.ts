@@ -6,7 +6,7 @@ import type {
   PORTAL_TAKEN_AWAY_WHY,
 } from "@OpenFarm/db/schema/venture";
 import { investor } from "@OpenFarm/db/schema/venture";
-import { farmDayOf } from "@OpenFarm/domain";
+import { farmDayOf, investorDetailsForm } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -14,6 +14,7 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { dataCopyOf } from "../data-copy";
+import { recordExport } from "../export-store";
 import { farmDay } from "../farm-clock";
 import type { FarmList } from "../farm-list";
 import { bringBackToList, retireFromList } from "../farm-list";
@@ -44,6 +45,7 @@ import {
   nominationPhoto,
   recordNomination,
 } from "../nominations";
+import { producedAt } from "../paper-values";
 import { assertPasswordGiven, requirePasswordGiven } from "../password-again";
 import { closePayInNotes } from "../pay-in-notes";
 import { photoInput } from "../photo-input";
@@ -958,6 +960,28 @@ export const investorsRouter = {
             .where(eq(farm.id, context.farm.id))
       );
       return { shown: input.shown };
+    }),
+
+  /**
+   * The Investor Details Form, «বিনিয়োগকারীর তথ্য ফর্ম»: the blank the Owner fills in with somebody at the first
+   * meeting and types in from afterwards — the record sheet's boxes as lines to write on. An Export, though it names
+   * nobody; the Owner's alone, as the sheet it follows is.
+   */
+  detailsForm: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .handler(async ({ context }) => {
+      const now = context.clock.now();
+      await recordExport(context, "investor_details_form", null, {});
+      return {
+        document: investorDetailsForm({
+          farm: context.farm,
+          produced: {
+            bn: `${producedAt(now, "bn")} · ${context.actor.name}`,
+            en: `${producedAt(now, "en")} · ${context.actor.name}`,
+          },
+        }),
+      };
     }),
 
   /**
