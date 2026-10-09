@@ -183,7 +183,7 @@ export {
   inLanguage,
 } from "./papers";
 export type { NotifiableLetter } from "./letter";
-export { notifiableLetter } from "./letter";
+export { notifiableLetterPaper } from "./letter";
 export type { TagPrefix } from "./tag-number";
 export {
   TAG_PREFIXES,

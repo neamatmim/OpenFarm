@@ -1,3 +1,4 @@
+import { paperText } from "@OpenFarm/domain";
 import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -223,11 +224,13 @@ describe("the letter that goes without delay", () => {
     });
     expect(made.notifiable).toBe(true);
 
-    const { text } = await manager.client.notifiableDiseases.letter({
+    const { document } = await manager.client.notifiableDiseases.letter({
       diagnosisId: made.id,
     });
     // Addressed to the office, naming the animal, the disease, the Vet who found it and the
     // law it is written under — nothing the Manager has to type.
+    // Laid out on the letterhead, read in either language: here in Bangla.
+    const text = paperText(document, "bn");
     expect(text).toContain("উপজেলা প্রাণিসম্পদ কর্মকর্তা");
     expect(text).toContain(cow.tagNumber);
     expect(text).toContain(disease);
@@ -385,7 +388,7 @@ describe("the letter that goes without delay", () => {
     const letter = await manager.client.notifiableDiseases.letter({
       diagnosisId: made.id,
     });
-    expect(letter.text).toContain(disease);
+    expect(paperText(letter.document, "bn")).toContain(disease);
   });
 
   it("takes the duty back when a Correction says it was something else", async () => {
@@ -457,7 +460,7 @@ describe("the letter that goes without delay", () => {
     const letter = await manager.client.notifiableDiseases.letter({
       diagnosisId: made.id,
     });
-    expect(letter.text).toContain(disease);
+    expect(paperText(letter.document, "bn")).toContain(disease);
 
     await scratchDb()
       .update(sopDefinition)

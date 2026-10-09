@@ -1,15 +1,16 @@
 // What a piece of work says above its board: what raised it, the letter it delivers, what changed, the doses owed.
 
-import type { SopChange, SopContent } from "@OpenFarm/domain";
+import type { PaperDocument, SopChange, SopContent } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, timeInDigits } from "@OpenFarm/i18n";
 import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { useState } from "react";
 
 import { Notice, Page } from "@/components/page";
-import { Paper } from "@/components/paper";
+import { PaperDialog } from "@/components/ventures/paper-dialog";
 import type { BulkOutcome, Changed } from "@/components/work/work-types";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -101,8 +102,10 @@ const TheLetter = ({
 }) => {
   const { t } = useLanguage();
   const refused = useRefused();
+  const [paper, setPaper] = useState<PaperDocument | null>(null);
   const letter = useMutation(
     orpc.notifiableDiseases.letter.mutationOptions({
+      onSuccess: ({ document }) => setPaper(document),
       onError: refused,
     })
   );
@@ -117,20 +120,23 @@ const TheLetter = ({
           </span>
         ) : null}
       </div>
-      {letter.data ? (
-        // A paper like every other the farm prints: the line breaks are the letter, and it prints alone — only the
-        // letter on the page, not the work board around it.
-        <Paper id="dls-letter" text={letter.data.text} />
-      ) : (
-        <Button
-          onClick={() => letter.mutate({ diagnosisId: report.diagnosisId })}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          {t("notifiable.letter")}
-        </Button>
-      )}
+      <Button
+        disabled={letter.isPending}
+        onClick={() => letter.mutate({ diagnosisId: report.diagnosisId })}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        {t("notifiable.letter")}
+      </Button>
+      {/* A paper like every other the farm prints, laid out on the letterhead and printed alone — only the letter on
+          the page, not the work board around it. */}
+      <PaperDialog
+        onClose={() => setPaper(null)}
+        paper={paper}
+        title={t("notifiable.letterTitle")}
+        wording={null}
+      />
     </section>
   );
 };

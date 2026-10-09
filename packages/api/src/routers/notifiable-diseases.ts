@@ -2,8 +2,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import { notifiableDisease } from "@OpenFarm/db/schema/health";
 import type { FarmIdentity } from "@OpenFarm/domain";
-import { notifiableLetter } from "@OpenFarm/domain";
-import { formatDate } from "@OpenFarm/i18n";
+import { farmDayOf, notifiableLetterPaper } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -13,6 +12,7 @@ import { exportedPaper } from "../export-store";
 import type { FarmList } from "../farm-list";
 import { assertNameFree, bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
+import { madeOn } from "../paper-values";
 import { requireRole } from "../roles";
 
 const name = z.object({
@@ -54,7 +54,7 @@ const DISEASES = {
 } satisfies FarmList & Parameters<typeof assertNameFree>[2];
 
 /**
- * The letter itself, in Bangla, from what the farm already knows.
+ * The letter itself, laid out on the letterhead to read in Bangla or English, from what the farm already knows.
  *
  * Producing it is an Audit Event of its own — an export — because a letter that went to the
  * office is the farm's evidence, and "who printed it, and when" is part of that. The Vet may
@@ -75,7 +75,7 @@ const buildLetter = async (
       report: { columns: { id: true, withdrawnAt: true } },
       /** What has been given for it, so the letter can say what the farm has already done. */
       prescriptions: {
-        with: { product: { columns: { nameBn: true } } },
+        with: { product: { columns: { nameBn: true, nameEn: true } } },
       },
     },
   });
@@ -92,18 +92,26 @@ const buildLetter = async (
   const now = context.clock.now();
   return {
     reportId: found.report.id,
-    text: notifiableLetter({
+    document: notifiableLetterPaper({
       farm: context.farm,
       tagNumber: found.animal.tagNumber,
       disease: found.disease,
-      diagnosedOn: formatDate(found.diagnosedAt, "bn", "date"),
+      diagnosedOn: farmDayOf(found.diagnosedAt),
       vetName: found.vet.name,
-      // What the farm has already done about it, which is what the office asks next.
+      // What the farm has already done about it, which is what the office asks next: each product once.
       treatedWith: [
-        ...new Set(found.prescriptions.map((one) => one.product.nameBn)),
+        ...new Map(
+          found.prescriptions.map((one) => [
+            one.product.nameBn,
+            {
+              bn: one.product.nameBn,
+              en: one.product.nameEn?.trim() || one.product.nameBn,
+            },
+          ])
+        ).values(),
       ],
       reportedByName: context.actor.name,
-      reportedOn: formatDate(now, "bn", "date"),
+      reportedAt: madeOn(now),
     }),
   };
 };
@@ -120,7 +128,10 @@ export const notifiableDiseasesRouter = {
     .use(requireRole("owner", "manager", "vet"))
     .input(z.object({ diagnosisId: z.string() }))
     .handler(async ({ context, input }) => {
-      const { reportId, text } = await buildLetter(context, input.diagnosisId);
+      const { reportId, document } = await buildLetter(
+        context,
+        input.diagnosisId
+      );
       await audited(context).write(
         {
           entity: "dls_report",
@@ -133,7 +144,7 @@ export const notifiableDiseasesRouter = {
         },
         () => Promise.resolve()
       );
-      return { text };
+      return { document };
     }),
 
   /**

@@ -571,7 +571,7 @@ const PaperBody = ({
       ) : null}
 
       {say(document.preamble).trim() ? (
-        <p className="text-sm">{say(document.preamble)}</p>
+        <p className="text-sm whitespace-pre-line">{say(document.preamble)}</p>
       ) : null}
 
       {document.sections.map((section, index) => (
