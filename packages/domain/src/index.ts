@@ -75,7 +75,6 @@ export {
 export type { FarmIdentity } from "./farm";
 export type { RegistrationStanding } from "./farm";
 export {
-  farmOfOriginLines,
   goodUntilOf,
   identityView,
   registrationStanding,
