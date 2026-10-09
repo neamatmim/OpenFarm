@@ -1,6 +1,7 @@
 import type { Language } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
+import type { CashFlow, CashPosition } from "./cash-position";
 import type { FarmIdentity } from "./farm";
 import { startOfFarmDay } from "./farm-clock";
 import { producedSaid } from "./investor-statements";
@@ -49,7 +50,13 @@ export interface MonthFigures {
   /** What each Side came to, before and after its share of the Overheads, and the Farm with them (ADR 0023). */
   results: SideResults;
   /** Where the Farm stood at the stretch's end — or now, for one still going. */
-  atEnd: { receivables: ReceivablesByAge; store: StoreValue };
+  atEnd: {
+    receivables: ReceivablesByAge;
+    store: StoreValue;
+    cash: CashPosition;
+  };
+  /** The Farm's own money from where the stretch began to where it ended, with what moved besides. */
+  cashFlow: CashFlow;
 }
 
 /** The money moved in a month, one way of adding it, as the accountant's summary does. */
@@ -300,6 +307,79 @@ const RECEIVABLES: Part = {
   ],
 };
 
+/** The Farm's own money through the month: where it began, in, out, what moved besides, and where it ended. */
+const CASH_FLOW: Part = {
+  heading: { bn: "নগদের হিসাব", en: "Cash flow" },
+  lines: [
+    {
+      label: { bn: "মাসের শুরুতে", en: "Where the month began" },
+      kind: "sum",
+      of: (one) => one.cashFlow.openingMoney,
+    },
+    {
+      label: { bn: "আয়", en: "Money in" },
+      kind: "sum",
+      of: (one) => one.cashFlow.inMoney,
+    },
+    {
+      label: { bn: "ব্যয়", en: "Money out" },
+      kind: "sum",
+      of: (one) => one.cashFlow.outMoney,
+    },
+    {
+      label: {
+        bn: "হাত বা হিসাবের বাইরে নড়েছে",
+        en: "Moved without a hand or an account",
+      },
+      kind: "sum",
+      of: (one) => one.cashFlow.differenceMoney,
+    },
+    {
+      label: { bn: "মাসের শেষে", en: "Where the month ended" },
+      kind: "sum",
+      of: (one) => one.cashFlow.closingMoney,
+    },
+  ],
+};
+
+/** Where the Farm's own money was at the month's end: the hands' notes, the Ventures' among them, and the accounts. */
+const CASH: Part = {
+  heading: {
+    bn: "মাস শেষে খামারের নিজের টাকা",
+    en: "The farm's own money at the month's end",
+  },
+  lines: [
+    {
+      label: { bn: "হাতে মোট নগদ", en: "Notes in the hands" },
+      kind: "sum",
+      of: (one) => one.atEnd.cash.inHandsMoney,
+    },
+    {
+      label: { bn: "এর মধ্যে ভেঞ্চারের", en: "Of it the ventures'" },
+      kind: "sum",
+      of: (one) => one.atEnd.cash.venturesInHandsMoney,
+    },
+    {
+      label: { bn: "হাতে খামারের নিজের", en: "The farm's own in the hands" },
+      kind: "sum",
+      of: (one) => one.atEnd.cash.farmsInHandsMoney,
+    },
+    {
+      label: {
+        bn: "খামারের হিসাবে (ব্যাংক ও মোবাইল)",
+        en: "In the farm's accounts",
+      },
+      kind: "sum",
+      of: (one) => one.atEnd.cash.inAccountsMoney,
+    },
+    {
+      label: { bn: "খামারের নিজের মোট", en: "The farm's own in all" },
+      kind: "sum",
+      of: (one) => one.atEnd.cash.farmsOwnMoney,
+    },
+  ],
+};
+
 /** What the store held at the month's end, in taka: the feed at its average price, the medicine at a dose's. */
 const STORE: Part = {
   heading: { bn: "মাস শেষে ভান্ডার", en: "The store at the month's end" },
@@ -515,6 +595,7 @@ const leftOut = (figures: MonthFigures): Said[] => {
   const doses = uncostedDosesOf(figures);
   const waiting = figures.money.awaitingCount;
   const { unpriced } = figures.atEnd.store;
+  const { accountsNotRead } = figures.atEnd.cash;
   return [
     kg > 0
       ? {
@@ -526,6 +607,12 @@ const leftOut = (figures: MonthFigures): Said[] => {
       ? {
           bn: `${formatNumber(doses, "bn")}টি ডোজ এই মাসে খামারে না-কেনা ওষুধের; খরচ ধরা হয়নি।`,
           en: `${formatNumber(doses, "en")} ${doses === 1 ? "dose was" : "doses were"} of medicine the farm had not bought this month, and ${doses === 1 ? "is" : "are"} not costed.`,
+        }
+      : null,
+    accountsNotRead > 0
+      ? {
+          bn: `${formatNumber(accountsNotRead, "bn")}টি খামারের হিসাব এখনো একবারও বিবরণীর সাথে মেলানো হয়নি; তা শূন্য ধরা হয়েছে।`,
+          en: `${formatNumber(accountsNotRead, "en")} farm ${accountsNotRead === 1 ? "account was" : "accounts were"} not yet read once against ${accountsNotRead === 1 ? "its statement" : "their statements"}, and ${accountsNotRead === 1 ? "counts" : "count"} nothing.`,
         }
       : null,
     unpriced > 0
@@ -601,6 +688,8 @@ export const monthlyReportPaper = (
       partOf(FATTENING, facts),
       partOf(OVERHEADS, facts),
       resultsPart(facts),
+      partOf(CASH_FLOW, facts),
+      partOf(CASH, facts),
       partOf(RECEIVABLES, facts),
       partOf(STORE, facts),
     ],
@@ -761,6 +850,8 @@ export const monthlyReportRows = (
     ...rowsOf(FATTENING),
     ...rowsOf(OVERHEADS),
     ...resultsRows(facts),
+    ...rowsOf(CASH_FLOW),
+    ...rowsOf(CASH),
     ...rowsOf(RECEIVABLES),
     ...rowsOf(STORE),
     ...rowsOf(LEFT_OUT),

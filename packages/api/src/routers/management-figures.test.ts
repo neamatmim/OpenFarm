@@ -1,4 +1,4 @@
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { PAID_FROM_THE_ACCOUNT, putCapitalIn } from "../test/bought-by-bank";
@@ -18,6 +18,14 @@ import { appRouter } from "./index";
 //
 // Into the store on the 2nd: 1,000 kg of concentrate for ৳40,000, and on the 4th ten doses of a wormer for ৳5,000.
 // Nothing is fed or dosed from them in May, so at May's end the store is worth ৳45,000; at April's, nothing.
+//
+// The cash. The Owner put ৳200,000 of their own notes into the farm on 28 April, and the bank account's April statement
+// read ৳100,000: May began with ৳300,000. In May ৳57,000 came in — the bull's ৳50,000 at the gate, and ৳7,000 by mobile
+// money with no mobile money account listed, so in no hand and no account — and ৳106,100 went out: the Farm's bull
+// ৳50,000, the rent ৳8,100, the spray ৳3,000 and the concentrate ৳40,000 from the hands, the wormer ৳5,000 from the
+// bank. The Owner banked ৳20,000 of notes on the 25th, which moves nothing of the Farm's own. May ended with the hands
+// at ৳128,900 (the Owner ৳168,900, the Manager ৳40,000 short) and the bank at ৳115,000: ৳243,900, ৳7,000 less than
+// the money in and out says. On 2 June the Venture's bull is sold for ৳90,000 cash, not yet deposited: the Venture's.
 
 const as = (role: "owner" | "manager" | "vet", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
@@ -37,14 +45,17 @@ const spend = async (entry: {
   amountMoney: number;
   occurredOn: string;
   side?: "dairy" | "fattening";
+  paymentMethod?: "cash" | "mobile_money";
 }) => {
   const owner = await as("owner", `${entry.occurredOn}T04:00:00.000Z`);
   await owner.client.money.enter({
+    paymentMethod: "cash",
     ...entry,
     counterparty: { name: "দোকান" },
-    paymentMethod: "cash",
   });
 };
+
+let bankId = "";
 
 beforeAll(async () => {
   const owner = await as("owner", "2046-04-25T04:00:00.000Z");
@@ -60,6 +71,23 @@ beforeAll(async () => {
   await owner.client.money.categories.setChargedToAnimals({
     categoryId: spray.id,
     chargedToAnimals: true,
+  });
+  const ownersMoney = await owner.client.money.categories.create({
+    nameBn: "মালিকের টাকা",
+    direction: "in",
+  });
+  const bank = await owner.client.farmAccounts.create({
+    kind: "bank",
+    name: "সোনালী চলতি",
+    number: "0123456789",
+    bank: "সোনালী ব্যাংক",
+    branch: "সাভার",
+  });
+  bankId = bank.id;
+  await spend({
+    categoryId: ownersMoney.id,
+    amountMoney: 200_000,
+    occurredOn: "2046-04-28",
   });
   const shed = await owner.client.sheds.create({ name: "খামার" });
   const bulls = await owner.client.sheds.pens.create({
@@ -108,7 +136,7 @@ beforeAll(async () => {
     arrivedAt: new Date(FIRST_OF_MAY),
     ...WINDOW,
   });
-  await atMidnight.client.intakes.record({
+  const venturesBull = await atMidnight.client.intakes.record({
     penId: bulls.id,
     sex: "male",
     seller: { name: "ব্যাপারী" },
@@ -121,6 +149,12 @@ beforeAll(async () => {
     ...WINDOW,
   });
 
+  const reading = await as("owner", "2046-05-02T04:00:00.000Z");
+  await reading.client.farmAccounts.check({
+    id: bankId,
+    month: "2046-04",
+    readMoney: 100_000,
+  });
   const storekeeper = await as("manager", "2046-05-02T04:00:00.000Z");
   const concentrate = await storekeeper.client.feed.items.create({
     name: { bn: "দানাদার" },
@@ -149,6 +183,9 @@ beforeAll(async () => {
     purchasedOn: "2046-05-04",
     lotNumber: "ALB-1",
     expiresOn: "2047-05-04",
+    paymentMethod: "bank",
+    farmAccountId: bankId,
+    reference: "CHQ-1",
   });
 
   await spend({
@@ -161,6 +198,19 @@ beforeAll(async () => {
     amountMoney: 3000,
     occurredOn: "2046-05-05",
     side: "dairy",
+  });
+  await spend({
+    categoryId: ownersMoney.id,
+    amountMoney: 7000,
+    occurredOn: "2046-05-15",
+    paymentMethod: "mobile_money",
+  });
+  const banking = await as("owner", "2046-05-25T04:00:00.000Z");
+  await banking.client.cash.handOver({
+    from: { userId: thePerson("owner").id },
+    to: { farmAccountId: bankId },
+    amountMoney: 20_000,
+    reference: "SLIP-1",
   });
   const sending = await as("manager", "2046-05-10T04:00:00.000Z");
   await sending.client.milk.dispatch({
@@ -190,6 +240,20 @@ beforeAll(async () => {
     weightKg: 260,
     paidNowMoney: 50_000,
     promisedBy: "2046-06-05",
+  });
+  const sellingTheirs = await as("manager", "2046-06-02T04:00:00.000Z");
+  await sellingTheirs.client.sales.record({
+    tagNumber: venturesBull.tagNumber,
+    buyer: {
+      name: "রহিম কসাই",
+      address: "গাবতলী, ঢাকা",
+      phone: "+8801711000058",
+    },
+    destination: "গাবতলী পশুর হাট",
+    vehicle: "ঢাকা মেট্রো-ট ১১-২২৩৬",
+    driver: "সোহেল",
+    priceMoney: 90_000,
+    weightKg: 270,
   });
   const paying = await as("manager", "2046-06-03T04:00:00.000Z");
   await paying.client.receivables.pay({
@@ -283,5 +347,56 @@ describe("what the store was worth at the end of May", () => {
       unpriced: 0,
     });
     expect(figuresBefore.atEnd.store.totalMoney).toBe(0);
+  });
+});
+
+describe("the Farm's own money at the end of May, and how it got there", () => {
+  it("is the notes in the hands less the Ventures', and the bank's worked-out balance", async () => {
+    const { client: owner } = await as("owner", NOW);
+    const { figures, figuresBefore } = await owner.monthlyReport.month({
+      month: "2046-05",
+    });
+
+    expect(figures.atEnd.cash).toEqual({
+      inHandsMoney: 128_900,
+      venturesInHandsMoney: 0,
+      farmsInHandsMoney: 128_900,
+      inAccountsMoney: 115_000,
+      accountsNotRead: 0,
+      farmsOwnMoney: 243_900,
+    });
+    expect(figuresBefore.atEnd.cash.farmsOwnMoney).toBe(300_000);
+  });
+
+  it("goes from where May began to where it ended, the mobile money that landed nowhere as the difference", async () => {
+    const { client: owner } = await as("owner", NOW);
+    const { figures } = await owner.monthlyReport.month({ month: "2046-05" });
+
+    expect(figures.cashFlow).toEqual({
+      openingMoney: 300_000,
+      inMoney: 57_000,
+      outMoney: 106_100,
+      differenceMoney: -7000,
+      closingMoney: 243_900,
+    });
+  });
+
+  it("keeps the Venture's sale cash in a hand apart from the Farm's own", async () => {
+    const { client: owner } = await as("owner", NOW);
+    const { figures } = await owner.monthlyReport.month({ month: "2046-06" });
+
+    expect(figures.atEnd.cash).toMatchObject({
+      inHandsMoney: 221_900,
+      venturesInHandsMoney: 90_000,
+      farmsInHandsMoney: 131_900,
+      farmsOwnMoney: 246_900,
+    });
+    expect(figures.cashFlow).toEqual({
+      openingMoney: 243_900,
+      inMoney: 3000,
+      outMoney: 0,
+      differenceMoney: 0,
+      closingMoney: 246_900,
+    });
   });
 });

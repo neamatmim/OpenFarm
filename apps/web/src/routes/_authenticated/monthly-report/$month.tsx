@@ -96,6 +96,22 @@ const TheMonth = ({ one }: { one: OneMonth }) => {
           <SideResults results={kept.results} />
         </Section>
       ) : null}
+      {kept.cashFlow ? (
+        <Section
+          description={t("months.one.cashFlowHint")}
+          title={t("months.one.cashFlow")}
+        >
+          <MonthPart {...at} lines={lines.cashFlow} />
+        </Section>
+      ) : null}
+      {kept.atEnd ? (
+        <Section
+          description={t("months.one.cashHint")}
+          title={t("months.one.cash")}
+        >
+          <MonthPart {...at} lines={lines.cash} />
+        </Section>
+      ) : null}
       {kept.atEnd ? (
         <Section
           description={t("months.one.receivablesHint")}

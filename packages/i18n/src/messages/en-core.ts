@@ -3885,6 +3885,22 @@ export const enCore = {
   "months.one.storeInAll": "The store in all",
   "months.one.storeUnpriced":
     "{amount, plural, one {# feed or medicine was in the store at the month's end with no price, and is not in its worth} other {# feeds or medicines were in the store at the month's end with no price, and are not in its worth}}",
+  "months.one.cashFlow": "Cash flow",
+  "months.one.cashFlowHint":
+    "The farm's own money, from where the month began to where it ended. What moved without passing a hand or an account the farm names — a cash count's difference, money booked to nobody's hand, an account read for the first time — is said, so the lines add up.",
+  "months.one.began": "Where the month began",
+  "months.one.movedBesides": "Moved without a hand or an account",
+  "months.one.ended": "Where the month ended",
+  "months.one.cash": "The farm's own money at the month's end",
+  "months.one.cashHint":
+    "Every note in the hands, less a venture's sale cash not yet deposited and its buying floats, which are the ventures' and never the farm's to spend; and each farm account's balance worked out from its statements.",
+  "months.one.inHands": "Notes in the hands",
+  "months.one.venturesInHands": "Of it the ventures'",
+  "months.one.farmsInHands": "The farm's own in the hands",
+  "months.one.inAccounts": "In the farm's accounts",
+  "months.one.farmsOwn": "The farm's own in all",
+  "months.one.accountsNotRead":
+    "{amount, plural, one {# farm account was not yet read once against its statement, and counts nothing} other {# farm accounts were not yet read once against their statements, and count nothing}}",
   "months.one.venturesTitle": "Ventures",
   "months.one.ventures":
     "Each venture keeps its own accounts, so none are above; each has its own page.",

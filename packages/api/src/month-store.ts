@@ -5,6 +5,8 @@ import type {
   YearRules,
 } from "@OpenFarm/domain";
 import {
+  cashFlowOf,
+  cashPositionOf,
   farmDayOf,
   financialYearStarting,
   headDaysBySide,
@@ -26,6 +28,7 @@ import {
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
+import { handsHeldAt } from "./cash-store";
 import {
   chargedOf,
   costsBySide,
@@ -34,6 +37,7 @@ import {
   boughtInOf,
   theFarmsOwn,
 } from "./cost-store";
+import { farmAccountsHeldAt } from "./farm-account-store";
 import { bookAt } from "./medicine-stock";
 import { moneyForTheAccountant } from "./money-export-store";
 import { THE_FARMS_PURSE } from "./money-store";
@@ -216,9 +220,19 @@ interface EndFarm {
   receivableDays: number;
 }
 
+/** What the Farm held of its own money at a moment: the hands' notes less the Ventures', and its Farm Accounts. */
+const cashAt = async (db: Database, farmId: string, at: Date) => {
+  const [hands, accounts] = await Promise.all([
+    // A hand holds what moved up to and at the moment before; an account what moved before it.
+    handsHeldAt(db, farmId, new Date(at.getTime() - 1)),
+    farmAccountsHeldAt(db, farmId, at),
+  ]);
+  return cashPositionOf({ hands, accounts });
+};
+
 /**
- * Where the Farm stood at the end of a stretch — or now, for one still going (ADR 0023): what buyers owed, by age, and
- * what the store held, in taka.
+ * Where the Farm stood at the end of a stretch — or now, for one still going (ADR 0023): what buyers owed, by age, what
+ * the store held, in taka, and the Farm's own money.
  */
 const atTheEndOf = async (
   db: Database,
@@ -230,11 +244,12 @@ const atTheEndOf = async (
   // Its last moment, and the farm day it ended on: its last, or today.
   const last = new Date(end.getTime() - 1);
   const lastDay = farmDayOf(last);
-  const [buyers, feed, medicine] = await Promise.all([
+  const [buyers, feed, medicine, cash] = await Promise.all([
     receivableOfBuyers(db, farm.id, { asOf: lastDay }),
     movementsByItem(db, farm.id),
     // Every count up to then set against it: no count is being put right.
     bookAt(db, farm.id, last, ""),
+    cashAt(db, farm.id, end),
   ]);
   return {
     /** What buyers owed at its end, by the days since each Sale or Dispatch left, and what of it was overdue. */
@@ -248,6 +263,8 @@ const atTheEndOf = async (
       feed: [...feed.values()].map((movements) => stockLedger(movements, last)),
       medicine: [...medicine.values()],
     }),
+    /** The Farm's own money at its end: in the hands, less the Ventures', and in its Farm Accounts. */
+    cash,
   };
 };
 
@@ -384,13 +401,14 @@ export const monthByMonth = async (
     until: rangeOf(months.at(-1) ?? "").until,
   };
   const ranges = months.map(rangeOf);
-  const [read, ventures, financialYears, ends] = await Promise.all([
+  const [read, ventures, financialYears, ends, opening] = await Promise.all([
     readOver(db, farm.id, span, now),
     venturesAgainstPlan(db, farm, now),
     financialYearsKept(db, farm.id, rules, today),
     Promise.all(
       [...ranges, span].map((range) => atTheEndOf(db, farm, range, now))
     ),
+    cashAt(db, farm.id, span.from),
   ]);
   // Each month's charges sorted out of the year's once, rather than every month reading all of them.
   const narrowed = narrowedToEach(read.costs, [...ranges, span]);
@@ -400,9 +418,19 @@ export const monthByMonth = async (
     if (!atEnd) {
       throw new Error("Expected the end of every stretch read");
     }
+    const figures = figuresOver(range, {
+      ...read,
+      costs: narrowed[index] ?? read.costs,
+    });
+    // A month begins where the one before it ended; the first, and the year, where the year began.
+    const began =
+      index > 0 && index < months.length
+        ? (ends[index - 1]?.cash ?? opening)
+        : opening;
     return {
-      ...figuresOver(range, { ...read, costs: narrowed[index] ?? read.costs }),
+      ...figures,
       atEnd,
+      cashFlow: cashFlowOf(began, atEnd.cash, figures.money),
     };
   };
   return {
@@ -475,18 +503,22 @@ export const aMonth = async (
   const range = rangeOf(month);
   const earlier = rangeOf(before);
   const span = { from: earlier.from, until: range.until };
-  const [read, ventures, firstDay, end, endBefore] = await Promise.all([
-    readOver(db, farm.id, span, now),
-    venturesRunningIn(db, farm.id, range),
-    firstDayKept(db, farm.id, today),
-    atTheEndOf(db, farm, range, now),
-    atTheEndOf(db, farm, earlier, now),
-  ]);
+  const [read, ventures, firstDay, end, endBefore, beganBefore] =
+    await Promise.all([
+      readOver(db, farm.id, span, now),
+      venturesRunningIn(db, farm.id, range),
+      firstDayKept(db, farm.id, today),
+      atTheEndOf(db, farm, range, now),
+      atTheEndOf(db, farm, earlier, now),
+      cashAt(db, farm.id, earlier.from),
+    ]);
   const [thisMonth, monthBefore] = narrowedToEach(read.costs, [range, earlier]);
   // One for each range, always: a month falling back on the whole stretch's costs would say two months as one.
   if (!(thisMonth && monthBefore)) {
     throw new Error("Expected the month's costs and the month before's");
   }
+  const figures = figuresOver(range, { ...read, costs: thisMonth });
+  const figuresBefore = figuresOver(earlier, { ...read, costs: monthBefore });
   const within = (at: Date) => at >= range.from && at < range.until;
   const money = summarizeMoney(
     read.money.filter((one) => within(one.occurredAt))
@@ -500,12 +532,14 @@ export const aMonth = async (
     /** This month, still going: its figures are what it has come to so far. */
     soFar: range.until > now,
     figures: {
-      ...figuresOver(range, { ...read, costs: thisMonth }),
+      ...figures,
       atEnd: end,
+      cashFlow: cashFlowOf(endBefore.cash, end.cash, figures.money),
     },
     figuresBefore: {
-      ...figuresOver(earlier, { ...read, costs: monthBefore }),
+      ...figuresBefore,
       atEnd: endBefore,
+      cashFlow: cashFlowOf(beganBefore, endBefore.cash, figuresBefore.money),
     },
     /** The month's money as the accountant adds it: by Category, and by Side. */
     moneyBy: { category: money.byCategory, side: money.bySide },

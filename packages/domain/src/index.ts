@@ -1054,3 +1054,5 @@ export type { ReceivableAge, ReceivablesByAge } from "./receivable-ages";
 export { RECEIVABLE_AGES, receivablesByAge } from "./receivable-ages";
 export type { StoreValue } from "./store-value";
 export { storeValueOf } from "./store-value";
+export type { CashFlow, CashPosition } from "./cash-position";
+export { cashFlowOf, cashPositionOf } from "./cash-position";

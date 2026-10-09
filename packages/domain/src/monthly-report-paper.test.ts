@@ -75,6 +75,21 @@ const FIGURES = {
       totalMoney: 45_000,
       unpriced: 1,
     },
+    cash: {
+      inHandsMoney: 221_900,
+      venturesInHandsMoney: 90_000,
+      farmsInHandsMoney: 131_900,
+      inAccountsMoney: 115_000,
+      accountsNotRead: 1,
+      farmsOwnMoney: 246_900,
+    },
+  },
+  cashFlow: {
+    openingMoney: 300_000,
+    inMoney: 57_000,
+    outMoney: 106_100,
+    differenceMoney: -7000,
+    closingMoney: 243_900,
   },
 };
 
@@ -128,6 +143,21 @@ const NOTHING = {
       ],
     },
     store: { feedMoney: 0, medicineMoney: 0, totalMoney: 0, unpriced: 0 },
+    cash: {
+      inHandsMoney: 0,
+      venturesInHandsMoney: 0,
+      farmsInHandsMoney: 0,
+      inAccountsMoney: 0,
+      accountsNotRead: 0,
+      farmsOwnMoney: 0,
+    },
+  },
+  cashFlow: {
+    openingMoney: 0,
+    inMoney: 0,
+    outMoney: 0,
+    differenceMoney: 0,
+    closingMoney: 0,
   },
 };
 
@@ -322,6 +352,41 @@ describe("what the store was worth at the month's end, on paper", () => {
     expect(text).toContain("মাস শেষে ভান্ডার");
     expect(text).toContain(
       "১টি খাদ্য বা ওষুধ মাস শেষে ভান্ডারে ছিল যার কোনো দাম নেই; ভান্ডারের হিসাবে তা ধরা হয়নি।"
+    );
+  });
+});
+
+describe("the farm's own money, on paper", () => {
+  it("goes from where the month began to where it ended, the difference said, never hidden", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("Cash flow");
+    expect(text).toContain("Where the month began · 300,000 taka · 0 taka");
+    expect(text).toContain(
+      "Moved without a hand or an account · -7,000 taka · 0 taka"
+    );
+    expect(text).toContain("Where the month ended · 243,900 taka · 0 taka");
+  });
+
+  it("sets the hands' notes apart from the Ventures', and the accounts, at the month's end", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("The farm's own money at the month's end");
+    expect(text).toContain("Notes in the hands · 221,900 taka · 0 taka");
+    expect(text).toContain("Of it the ventures' · 90,000 taka · 0 taka");
+    expect(text).toContain("The farm's own in all · 246,900 taka · 0 taka");
+    expect(text).toContain(
+      "1 farm account was not yet read once against its statement, and counts nothing."
+    );
+  });
+
+  it("says it in Bangla", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "bn");
+
+    expect(text).toContain("নগদের হিসাব");
+    expect(text).toContain("মাস শেষে খামারের নিজের টাকা");
+    expect(text).toContain(
+      "১টি খামারের হিসাব এখনো একবারও বিবরণীর সাথে মেলানো হয়নি; তা শূন্য ধরা হয়েছে।"
     );
   });
 });

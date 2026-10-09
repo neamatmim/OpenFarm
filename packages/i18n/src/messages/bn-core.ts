@@ -3612,6 +3612,22 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.storeInAll": "মোট ভান্ডার",
   "months.one.storeUnpriced":
     "{amount}টি খাদ্য বা ওষুধ মাস শেষে ভান্ডারে ছিল যার কোনো দাম নেই; ভান্ডারের হিসাবে তা ধরা হয়নি",
+  "months.one.cashFlow": "নগদের হিসাব",
+  "months.one.cashFlowHint":
+    "খামারের নিজের টাকা, মাসের শুরু থেকে শেষ পর্যন্ত। যা কোনো হাত বা খামারের হিসাব দিয়ে যায়নি — নগদ গোনার পার্থক্য, কারো হাতে না-লেখা টাকা, প্রথমবার মেলানো হিসাব — তা আলাদা বলা আছে, যাতে লাইনগুলো মেলে।",
+  "months.one.began": "মাসের শুরুতে",
+  "months.one.movedBesides": "হাত বা হিসাবের বাইরে নড়েছে",
+  "months.one.ended": "মাসের শেষে",
+  "months.one.cash": "মাস শেষে খামারের নিজের টাকা",
+  "months.one.cashHint":
+    "হাতে থাকা সব নোট, তার থেকে ভেঞ্চারের জমা-না-দেওয়া বিক্রির টাকা আর কেনার অগ্রিম বাদ — তা ভেঞ্চারের, খামারের খরচের নয়; আর বিবরণী থেকে হিসাব করা প্রতিটি খামারের হিসাবের জমা।",
+  "months.one.inHands": "হাতে মোট নগদ",
+  "months.one.venturesInHands": "এর মধ্যে ভেঞ্চারের",
+  "months.one.farmsInHands": "হাতে খামারের নিজের",
+  "months.one.inAccounts": "খামারের হিসাবে (ব্যাংক ও মোবাইল)",
+  "months.one.farmsOwn": "খামারের নিজের মোট",
+  "months.one.accountsNotRead":
+    "{amount}টি খামারের হিসাব এখনো একবারও বিবরণীর সাথে মেলানো হয়নি; তা শূন্য ধরা হয়েছে",
   "months.one.venturesTitle": "ভেঞ্চার",
   "months.one.ventures":
     "প্রতিটি ভেঞ্চার নিজের হিসাব নিজে রাখে, তাই ওপরে নেই; প্রতিটির নিজের পাতা আছে।",

@@ -34,8 +34,8 @@ export type OneMonth = Awaited<ReturnType<typeof client.monthlyReport.month>>;
 type Figures = OneMonth["figures"];
 /** A month's figures as the phone may hold them: an answer kept from before the management figures (ADR 0023) has
  *  neither what each Side came to nor where the Farm stood at the month's end. */
-export type KeptFigures = Omit<Figures, "results" | "atEnd"> &
-  Partial<Pick<Figures, "results" | "atEnd">>;
+export type KeptFigures = Omit<Figures, "results" | "atEnd" | "cashFlow"> &
+  Partial<Pick<Figures, "results" | "atEnd" | "cashFlow">>;
 
 /** One month of the farm, the Owner's alone, beside the month before. */
 export const useOneMonth = (month: string, asked = true) =>
@@ -190,6 +190,44 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
       ),
       both(t("months.one.ofItOverdue"), (one) =>
         one.atEnd ? asMoney(one.atEnd.receivables.overdueMoney) : null
+      ),
+    ],
+    cashFlow: [
+      both(t("months.one.began"), (one) =>
+        one.cashFlow ? asMoney(one.cashFlow.openingMoney) : null
+      ),
+      both(t("money.totalIn"), (one) =>
+        one.cashFlow ? asMoney(one.cashFlow.inMoney) : null
+      ),
+      both(t("money.totalOut"), (one) =>
+        one.cashFlow ? asMoney(one.cashFlow.outMoney) : null
+      ),
+      both(t("months.one.movedBesides"), (one) =>
+        one.cashFlow ? asMoney(one.cashFlow.differenceMoney) : null
+      ),
+      both(
+        t("months.one.ended"),
+        (one) => (one.cashFlow ? asMoney(one.cashFlow.closingMoney) : null),
+        true
+      ),
+    ],
+    cash: [
+      both(t("months.one.inHands"), (one) =>
+        one.atEnd ? asMoney(one.atEnd.cash.inHandsMoney) : null
+      ),
+      both(t("months.one.venturesInHands"), (one) =>
+        one.atEnd ? asMoney(one.atEnd.cash.venturesInHandsMoney) : null
+      ),
+      both(t("months.one.farmsInHands"), (one) =>
+        one.atEnd ? asMoney(one.atEnd.cash.farmsInHandsMoney) : null
+      ),
+      both(t("months.one.inAccounts"), (one) =>
+        one.atEnd ? asMoney(one.atEnd.cash.inAccountsMoney) : null
+      ),
+      both(
+        t("months.one.farmsOwn"),
+        (one) => (one.atEnd ? asMoney(one.atEnd.cash.farmsOwnMoney) : null),
+        true
       ),
     ],
     store: [
@@ -402,6 +440,7 @@ export const LeftOut = ({ figures }: { figures: KeptFigures }) => {
   const uncostedDoses =
     figures.dairy.uncostedDoses + figures.fattening.uncostedDoses;
   const unpricedInStore = figures.atEnd?.store.unpriced ?? 0;
+  const accountsNotRead = figures.atEnd?.cash.accountsNotRead ?? 0;
   const said = [
     figures.money.awaitingCount > 0 ? t("months.awaiting") : null,
     unpricedKg > 0 ? t("costs.unpricedNote", { amount: unpricedKg }) : null,
@@ -410,6 +449,9 @@ export const LeftOut = ({ figures }: { figures: KeptFigures }) => {
       : null,
     unpricedInStore > 0
       ? t("months.one.storeUnpriced", { amount: unpricedInStore })
+      : null,
+    accountsNotRead > 0
+      ? t("months.one.accountsNotRead", { amount: accountsNotRead })
       : null,
   ].filter((line) => line !== null);
   if (said.length === 0) {
