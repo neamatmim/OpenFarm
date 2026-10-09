@@ -16,7 +16,12 @@ import { EmptyState, Notice, StatusBadge } from "@/components/page";
 import { NativeSelect, SummaryFigures } from "@/components/page-kit";
 import { StateBadge } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
-import { usePerHeadPerDay, useMoney, useMoneyRate } from "@/lib/money";
+import {
+  usePercent,
+  usePerHeadPerDay,
+  useMoney,
+  useMoneyRate,
+} from "@/lib/money";
 import { financialYearName, saidMonth } from "@/lib/months";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
@@ -393,6 +398,29 @@ const OverheadsCell = ({ row }: MonthCell) => {
   );
 };
 
+/** What the month came to after the overheads, and its margin — missing from an answer a phone kept from before the
+ *  management figures (ADR 0023). */
+const AfterOverheadsCell = ({ row }: MonthCell) => {
+  const { t } = useLanguage();
+  const asMoney = useMoney();
+  const percent = usePercent();
+  const { results } = row.original;
+  if (!results) {
+    return <Nothing />;
+  }
+  const { afterOverheadsMoney, marginAfterPercent } = results.farm;
+  return (
+    <span className="tabular-nums">
+      {marginAfterPercent === null
+        ? asMoney(afterOverheadsMoney)
+        : t("months.pair", {
+            first: asMoney(afterOverheadsMoney),
+            second: percent(marginAfterPercent),
+          })}
+    </span>
+  );
+};
+
 const column = createListColumns<Month>();
 const monthColumns = column.columns([
   column.accessor("month", {
@@ -460,6 +488,12 @@ const monthColumns = column.columns([
     id: "overheads",
     header: listHeader("months.col.overheads"),
     cell: OverheadsCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((row) => row.results?.farm.afterOverheadsMoney, {
+    id: "afterOverheads",
+    header: listHeader("months.col.afterOverheads"),
+    cell: AfterOverheadsCell,
     meta: { align: "end" },
   }),
 ]);

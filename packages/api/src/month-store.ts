@@ -5,8 +5,12 @@ import type {
   YearRules,
 } from "@OpenFarm/domain";
 import {
+  capitalEmployedOf,
+  cashFlowOf,
+  cashPositionOf,
   farmDayOf,
   financialYearStarting,
+  headDaysBySide,
   financialYearsBack,
   litersPerCowMilked,
   milkPriceOf,
@@ -15,12 +19,20 @@ import {
   monthsEndingIn,
   monthsFromTo,
   monthsOfFinancialYear,
+  monthsReturnOf,
+  receivablesByAge,
   roundMoney,
+  sideResultsOf,
   startOfFarmDay,
+  stockLedger,
+  storeValueOf,
   summarizeMoney,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
+import type { CapitalBooks } from "./capital-store";
+import { animalsAt, capitalBooksOf, venturesCapitalAt } from "./capital-store";
+import { handsHeldAt } from "./cash-store";
 import {
   chargedOf,
   costsBySide,
@@ -29,14 +41,21 @@ import {
   boughtInOf,
   theFarmsOwn,
 } from "./cost-store";
+import { farmAccountsHeldAt } from "./farm-account-store";
+import { bookAt } from "./medicine-stock";
 import { moneyForTheAccountant } from "./money-export-store";
 import { THE_FARMS_PURSE } from "./money-store";
 import type { OverheadMoneyOn } from "./overhead-store";
 import { overheadMoneyIn, overheadsOf } from "./overhead-store";
-import { fetchedPerLiter, writtenOffByItem } from "./receivable-store";
+import {
+  fetchedPerLiter,
+  receivableOfBuyers,
+  writtenOffByItem,
+} from "./receivable-store";
 import { approvedSettlementOf } from "./settlement-store";
+import { movementsByItem } from "./stock-store";
 import { planAgainstActual } from "./venture-plan-store";
-import { ownedThenByOf } from "./venture-store";
+import { ownedThenByOf, ownersOverTime } from "./venture-store";
 import { yearRulesOf } from "./year-store";
 
 /** How far back the Owner reads the farm month by month: a year, this month among them. */
@@ -96,6 +115,10 @@ interface Read {
   /** Where every Animal stood, the Ventures' too: the place and the people keep them all, so an Overhead a head a day
    *  is over all of them, where the Sides' figures are over the Farm's own. */
   everyAnimal: PenHistoryLine[];
+  /** Whose each Animal was from each moment on: the Farm's (null) or a Venture's. */
+  ownersOf: (
+    animalId: string
+  ) => readonly { from: Date; ventureId: string | null }[];
   now: Date;
 }
 
@@ -114,6 +137,7 @@ const figuresOver = (
     writtenOff,
     overheadMoney,
     everyAnimal,
+    ownersOf,
     now,
   }: Read
 ) => {
@@ -135,6 +159,24 @@ const figuresOver = (
     { from, until },
     now
   );
+  const results = sideResultsOf({
+    dairy: {
+      broughtInMoney: milk?.amount ?? 0,
+      chargedMoney: roundMoney(chargedOf(sides.dairy)),
+    },
+    fattening: {
+      broughtInMoney: roundMoney(
+        sold.reduce((sum, one) => sum + (one.saleMoney ?? 0), 0)
+      ),
+      marginMoney: sold.length === 0 ? null : sides.soldFattening.marginMoney,
+    },
+    overheadsMoney: overheads.totalMoney,
+    // Over the same days the Overheads a head a day are: up to now and no further.
+    headDays: headDaysBySide(everyAnimal, ownersOf, {
+      from,
+      until: until < now ? until : now,
+    }),
+  });
   return {
     money: {
       inMoney: cash.incomeMoney,
@@ -171,8 +213,102 @@ const figuresOver = (
       amount: overheads.totalMoney,
       perHeadPerDayMoney: overheads.perHeadPerDayMoney,
     },
+    /** What each Side came to, before and after its share of the Overheads, and the Farm with them (ADR 0023). */
+    results,
   };
 };
+
+/** The farm the end of a stretch is read for: its own days before a Receivable that names none is overdue. */
+interface EndFarm {
+  id: string;
+  receivableDays: number;
+}
+
+/** What the Farm held of its own money at a moment: the hands' notes less the Ventures', and its Farm Accounts. */
+const cashAt = async (db: Database, farmId: string, at: Date) => {
+  const [hands, accounts] = await Promise.all([
+    // A hand holds what moved up to and at the moment before; an account what moved before it.
+    handsHeldAt(db, farmId, new Date(at.getTime() - 1)),
+    farmAccountsHeldAt(db, farmId, at),
+  ]);
+  return cashPositionOf({ hands, accounts });
+};
+
+/**
+ * Where the Farm stood at the end of a stretch — or now, for one still going (ADR 0023): what buyers owed, by age, what
+ * the store held, in taka, the Farm's own money, and what it had tied up, at cost.
+ */
+const atTheEndOf = async (
+  db: Database,
+  farm: EndFarm,
+  until: Date,
+  now: Date,
+  books: CapitalBooks
+) => {
+  const end = until < now ? until : now;
+  // Its last moment, and the farm day it ended on: its last, or today.
+  const last = new Date(end.getTime() - 1);
+  const lastDay = farmDayOf(last);
+  const [buyers, feed, medicine, cash] = await Promise.all([
+    receivableOfBuyers(db, farm.id, { asOf: lastDay }),
+    movementsByItem(db, farm.id),
+    // Every count up to then set against it: no count is being put right.
+    bookAt(db, farm.id, last, ""),
+    cashAt(db, farm.id, end),
+  ]);
+  const receivables = receivablesByAge(
+    buyers.flatMap((buyer) => buyer.kinds.flatMap((kind) => kind.items)),
+    lastDay,
+    farm.receivableDays
+  );
+  const store = storeValueOf({
+    feed: [...feed.values()].map((movements) => stockLedger(movements, last)),
+    medicine: [...medicine.values()],
+  });
+  return {
+    /** What buyers owed at its end, by the days since each Sale or Dispatch left, and what of it was overdue. */
+    receivables,
+    /** What the store held at its end: the feed at its average price, the medicine at a dose's. */
+    store,
+    /** What the Farm had tied up at its end, at cost: its animals by Side, its capital in Ventures, the store, the
+     *  Receivables. */
+    capital: capitalEmployedOf({
+      at: last,
+      animals: animalsAt(books, last),
+      venturesMoney: venturesCapitalAt(books, end),
+      storeMoney: store.totalMoney,
+      receivablesMoney: receivables.owingMoney,
+    }),
+    /** The Farm's own money at its end: in the hands, less the Ventures', and in its Farm Accounts. */
+    cash,
+  };
+};
+
+/** Where the Farm stood at a stretch's end (`atTheEndOf`). */
+type AtTheEnd = Awaited<ReturnType<typeof atTheEndOf>>;
+
+/**
+ * A month's figures with where the Farm stood as it began and ended (ADR 0023): its end, the cash flow between the two,
+ * and what its capital made — each Side's Result after Overheads over its capital at the two ends.
+ */
+const withItsEnds = (
+  figures: ReturnType<typeof figuresOver>,
+  began: AtTheEnd,
+  ended: AtTheEnd
+) => ({
+  ...figures,
+  atEnd: ended,
+  cashFlow: cashFlowOf(began.cash, ended.cash, figures.money),
+  monthsReturn: monthsReturnOf(
+    {
+      dairy: figures.results.dairy.afterOverheadsMoney,
+      fattening: figures.results.fattening.afterOverheadsMoney,
+      farm: figures.results.farm.afterOverheadsMoney,
+    },
+    began.capital,
+    ended.capital
+  ),
+});
 
 /** The day the Farm's purse first moved a taka, or today for a farm whose purse has moved nothing yet. */
 const firstDayKept = async (db: Database, farmId: string, today: string) => {
@@ -241,7 +377,7 @@ const readOver = async (
   span: { from: Date; until: Date },
   now: Date
 ): Promise<Read> => {
-  const [costs, ownedThenBy, money, dispatched, overheadMoney] =
+  const [costs, ownedThenBy, money, dispatched, overheadMoney, changed, owned] =
     await Promise.all([
       farmCosts(db, farmId),
       ownedThenByOf(db, farmId),
@@ -259,7 +395,13 @@ const readOver = async (
         },
       }),
       overheadMoneyIn(db, farmId, span),
+      ownersOverTime(db, farmId),
+      db.query.animal.findMany({
+        where: { farmId },
+        columns: { id: true, ownerVentureId: true },
+      }),
     ]);
+  const ownsNow = new Map(owned.map((one) => [one.id, one.ownerVentureId]));
   return {
     costs: theFarmsOwn(costs, ownedThenBy, await boughtInOf(db, farmId)),
     money,
@@ -267,6 +409,11 @@ const readOver = async (
     writtenOff: await writtenOffByItem(db, farmId),
     overheadMoney,
     everyAnimal: costs.history,
+    // Never sold between purses, she has had one owner throughout: her owner now.
+    ownersOf: (animalId) =>
+      changed.get(animalId) ?? [
+        { from: new Date(0), ventureId: ownsNow.get(animalId) ?? null },
+      ],
     now,
   };
 };
@@ -360,7 +507,7 @@ const venturesRunningIn = async (
  */
 export const aMonth = async (
   db: Database,
-  farm: { id: string },
+  farm: EndFarm,
   now: Date,
   month: string
 ) => {
@@ -375,16 +522,23 @@ export const aMonth = async (
   const range = rangeOf(month);
   const earlier = rangeOf(before);
   const span = { from: earlier.from, until: range.until };
-  const [read, ventures, firstDay] = await Promise.all([
-    readOver(db, farm.id, span, now),
-    venturesRunningIn(db, farm.id, range),
-    firstDayKept(db, farm.id, today),
-  ]);
+  const books = await capitalBooksOf(db, farm.id);
+  const [read, ventures, firstDay, end, endBefore, beganBefore] =
+    await Promise.all([
+      readOver(db, farm.id, span, now),
+      venturesRunningIn(db, farm.id, range),
+      firstDayKept(db, farm.id, today),
+      atTheEndOf(db, farm, range.until, now, books),
+      atTheEndOf(db, farm, earlier.until, now, books),
+      atTheEndOf(db, farm, earlier.from, now, books),
+    ]);
   const [thisMonth, monthBefore] = narrowedToEach(read.costs, [range, earlier]);
   // One for each range, always: a month falling back on the whole stretch's costs would say two months as one.
   if (!(thisMonth && monthBefore)) {
     throw new Error("Expected the month's costs and the month before's");
   }
+  const figures = figuresOver(range, { ...read, costs: thisMonth });
+  const figuresBefore = figuresOver(earlier, { ...read, costs: monthBefore });
   const within = (at: Date) => at >= range.from && at < range.until;
   const money = summarizeMoney(
     read.money.filter((one) => within(one.occurredAt))
@@ -397,8 +551,8 @@ export const aMonth = async (
     before,
     /** This month, still going: its figures are what it has come to so far. */
     soFar: range.until > now,
-    figures: figuresOver(range, { ...read, costs: thisMonth }),
-    figuresBefore: figuresOver(earlier, { ...read, costs: monthBefore }),
+    figures: withItsEnds(figures, endBefore, end),
+    figuresBefore: withItsEnds(figuresBefore, beganBefore, endBefore),
     /** The month's money as the accountant adds it: by Category, and by Side. */
     moneyBy: { category: money.byCategory, side: money.bySide },
     /** The months there are to read, newest first: this one back to the month of the first taka the purse moved. */

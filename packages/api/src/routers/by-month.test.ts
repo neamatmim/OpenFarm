@@ -64,6 +64,31 @@ const charged = (costs: {
   costs.tripMoney +
   costs.herdMoney;
 
+/** Every figure of a month as the year's own month says it: all but its name and whether it is still going. */
+const figuresOf = (
+  month:
+    | ({ month: string; soFar: boolean } & Record<string, unknown>)
+    | undefined
+) => {
+  const {
+    month: _named,
+    soFar: _going,
+    ...figures
+  } = month ?? {
+    month: "",
+    soFar: false,
+  };
+  return figures;
+};
+
+/** A month's figures less what only a month's own page reads: where it began and ended (ADR 0023). */
+const withoutItsEnds = ({
+  atEnd: _atEnd,
+  cashFlow: _cashFlow,
+  monthsReturn: _monthsReturn,
+  ...figures
+}: Record<string, unknown>) => figures;
+
 let plannedId = "";
 let fundedId = "";
 let farmsBull = "";
@@ -480,15 +505,8 @@ describe("one month of the farm", () => {
     expect(one.month).toBe("2044-03");
     expect(one.before).toBe("2044-02");
     expect(one.soFar).toBe(true);
-    const { money, dairy, fattening, overheads } = months.at(-1) ?? {};
-    expect(one.figures).toEqual({ money, dairy, fattening, overheads });
-    const february = months.at(-2);
-    expect(one.figuresBefore).toEqual({
-      money: february?.money,
-      dairy: february?.dairy,
-      fattening: february?.fattening,
-      overheads: february?.overheads,
-    });
+    expect(withoutItsEnds(one.figures)).toEqual(figuresOf(months.at(-1)));
+    expect(withoutItsEnds(one.figuresBefore)).toEqual(figuresOf(months.at(-2)));
   });
 
   it("says its money by Category and by Side as the accountant's summary of the same days", async () => {

@@ -9,11 +9,12 @@ import {
   MonthPart,
   MonthPicker,
   PrintTheMonth,
+  SideResultsTable,
   VenturesThatRan,
   useMonthLines,
   useOneMonth,
 } from "@/components/months/one-month";
-import type { OneMonth } from "@/components/months/one-month";
+import type { KeptFigures, OneMonth } from "@/components/months/one-month";
 import {
   BackLink,
   Notice,
@@ -30,14 +31,25 @@ import { sayWhy, wordOf } from "@/lib/saying";
 /** The refusal this page meets: a month in the address that has not begun. */
 const REFUSALS = { month_not_begun: "months.one.notBegun" } as const;
 
-/** The month's parts, once its figures are here: money, the dairy, the fattening side, the overheads, what they leave
- *  out, and the Ventures that kept their own accounts beside it. */
+/** The month's parts, once its figures are here: the month at a glance, money, the dairy, the fattening side, the
+ *  overheads, what each Side came to after them, the cash, what buyers owed, the store, the capital and what it made,
+ *  what they leave out, and the Ventures that kept their own accounts beside it. */
 const TheMonth = ({ one }: { one: OneMonth }) => {
   const { t, language } = useLanguage();
   const lines = useMonthLines(one.figures, one.figuresBefore);
+  // An answer kept on the phone from before the management figures holds none of them: drawn without those parts.
+  const kept: KeptFigures = one.figures;
   const at = { month: one.month, before: one.before };
   return (
     <>
+      {kept.results && kept.atEnd ? (
+        <Section
+          description={t("months.one.glanceHint")}
+          title={t("months.one.glance")}
+        >
+          <MonthPart {...at} lines={lines.glance} />
+        </Section>
+      ) : null}
       <Section
         description={t("months.one.moneyHint")}
         title={t("months.one.money")}
@@ -85,6 +97,62 @@ const TheMonth = ({ one }: { one: OneMonth }) => {
       >
         <MonthPart {...at} lines={lines.overheads} />
       </Section>
+      {kept.results ? (
+        <Section
+          description={t("months.one.resultsHint")}
+          title={t("months.one.results")}
+        >
+          <SideResultsTable results={kept.results} />
+        </Section>
+      ) : null}
+      {kept.cashFlow ? (
+        <Section
+          description={t("months.one.cashFlowHint")}
+          title={t("months.one.cashFlow")}
+        >
+          <MonthPart {...at} lines={lines.cashFlow} />
+        </Section>
+      ) : null}
+      {kept.atEnd ? (
+        <Section
+          description={t("months.one.cashHint")}
+          title={t("months.one.cash")}
+        >
+          <MonthPart {...at} lines={lines.cash} />
+        </Section>
+      ) : null}
+      {kept.atEnd ? (
+        <Section
+          description={t("months.one.receivablesHint")}
+          title={t("months.one.receivables")}
+        >
+          <MonthPart {...at} lines={lines.receivables} />
+        </Section>
+      ) : null}
+      {kept.atEnd ? (
+        <Section
+          description={t("months.one.storeHint")}
+          title={t("months.one.store")}
+        >
+          <MonthPart {...at} lines={lines.store} />
+        </Section>
+      ) : null}
+      {kept.atEnd ? (
+        <Section
+          description={t("months.one.capitalHint")}
+          title={t("months.one.capital")}
+        >
+          <MonthPart {...at} lines={lines.capital} />
+        </Section>
+      ) : null}
+      {kept.monthsReturn ? (
+        <Section
+          description={t("months.one.monthsReturnHint")}
+          title={t("months.one.monthsReturn")}
+        >
+          <MonthPart {...at} lines={lines.monthsReturn} />
+        </Section>
+      ) : null}
       <LeftOut figures={one.figures} />
       <Section title={t("months.one.venturesTitle")}>
         <VenturesThatRan month={one.month} ventures={one.ventures} />

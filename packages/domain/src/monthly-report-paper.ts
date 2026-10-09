@@ -1,17 +1,24 @@
 import type { Language } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
+import type { CapitalEmployed, MonthsReturn } from "./capital-employed";
+import type { CashFlow, CashPosition } from "./cash-position";
 import type { FarmIdentity } from "./farm";
 import { startOfFarmDay } from "./farm-clock";
 import { producedSaid } from "./investor-statements";
 import { moneySaid } from "./joining-letter";
 import type { Side } from "./lifecycle";
 import { roundMoney } from "./money";
+import { changeBetween } from "./month-change";
 import { daySaid } from "./nominees";
 import { letterheadOf } from "./paper-template";
 import type { PaperDocument, PaperSection } from "./paper-template";
 import type { Said, Worded } from "./papers";
 import { SIDE_LABEL } from "./papers";
+import type { ReceivableAge, ReceivablesByAge } from "./receivable-ages";
+import { RECEIVABLE_AGES } from "./receivable-ages";
+import type { SideResult, SideResults } from "./side-results";
+import type { StoreValue } from "./store-value";
 
 /** One stretch's figures as the monthly report works them (`figuresOver`): the Farm's own money, milk, fattening and
  *  overheads. */
@@ -42,6 +49,19 @@ export interface MonthFigures {
   };
   /** A head a day is nothing where no animal stood. */
   overheads: { amount: number; perHeadPerDayMoney: number | null };
+  /** What each Side came to, before and after its share of the Overheads, and the Farm with them (ADR 0023). */
+  results: SideResults;
+  /** Where the Farm stood at the stretch's end — or now, for one still going. */
+  atEnd: {
+    receivables: ReceivablesByAge;
+    store: StoreValue;
+    cash: CashPosition;
+    capital: CapitalEmployed;
+  };
+  /** What its capital made, each Side's over its own, for every hundred taka. */
+  monthsReturn: MonthsReturn;
+  /** The Farm's own money from where the stretch began to where it ended, with what moved besides. */
+  cashFlow: CashFlow;
 }
 
 /** The money moved in a month, one way of adding it, as the accountant's summary does. */
@@ -97,9 +117,27 @@ const litersSaid = (amount: number | null): Said =>
         en: `${formatNumber(amount, "en")} ${amount === 1 ? "liter" : "liters"}`,
       };
 
+/** A percentage, to the one decimal it was worked to, or the dash where there was none. */
+const percentSaid = (amount: number | null): Said =>
+  amount === null
+    ? NONE
+    : {
+        bn: `${formatNumber(amount, "bn")}%`,
+        en: `${formatNumber(amount, "en")}%`,
+      };
+
+/** Taka made on every hundred, to the one decimal it was worked to, or the dash where there was none. */
+const per100Said = (amount: number | null): Said =>
+  amount === null
+    ? NONE
+    : {
+        bn: `প্রতি ১০০ টাকায় ${formatNumber(amount, "bn")} টাকা`,
+        en: `${formatNumber(amount, "en")} taka on every 100`,
+      };
+
 /** What kind of figure a line holds, which says how it is written: a sum in whole taka, a rate to the paisa, liters,
- *  kilogrammes, or a count. */
-type Kind = "sum" | "rate" | "liters" | "kg" | "count";
+ *  kilogrammes, a count, a percentage, or taka on every hundred. */
+type Kind = "sum" | "rate" | "liters" | "kg" | "count" | "percent" | "per100";
 
 /** One line of a part: its name, what kind of figure it is, and where a month's figures keep it — nothing where the
  *  month made none. */
@@ -140,6 +178,12 @@ const figureSaid = (kind: Kind, amount: number | null): Said => {
         ? NONE
         : { bn: formatNumber(amount, "bn"), en: formatNumber(amount, "en") };
     }
+    case "percent": {
+      return percentSaid(amount);
+    }
+    case "per100": {
+      return per100Said(amount);
+    }
     default: {
       return kind satisfies never;
     }
@@ -157,6 +201,111 @@ const figurePlain = (kind: Kind, amount: number | null): number | null => {
   }
   return kind === "rate" ? roundMoney(amount) : amount;
 };
+
+/** The month at a glance: what came in and what it came to, then where the Farm stood at its end. */
+const SUMMARY: Part = {
+  heading: { bn: "এক নজরে মাস", en: "The month at a glance" },
+  lines: [
+    {
+      label: { bn: "আয়", en: "Brought in" },
+      kind: "sum",
+      of: (one) => one.results.farm.broughtInMoney,
+    },
+    {
+      label: { bn: "পরিচালন খরচের আগে", en: "Before overheads" },
+      kind: "sum",
+      of: (one) => one.results.farm.beforeOverheadsMoney,
+    },
+    {
+      label: { bn: "পরিচালন খরচ", en: "Overheads" },
+      kind: "sum",
+      of: (one) => one.overheads.amount,
+    },
+    {
+      label: { bn: "পরিচালন খরচের পরে", en: "After overheads" },
+      kind: "sum",
+      of: (one) => one.results.farm.afterOverheadsMoney,
+    },
+    {
+      label: { bn: "পরিচালন খরচের পরে মার্জিন", en: "Margin after overheads" },
+      kind: "percent",
+      of: (one) => one.results.farm.marginAfterPercent,
+    },
+    {
+      label: { bn: "দুগ্ধ, পরিচালন খরচের পরে", en: "Dairy, after overheads" },
+      kind: "sum",
+      of: (one) => one.results.dairy.afterOverheadsMoney,
+    },
+    {
+      label: {
+        bn: "মোটাতাজাকরণ, পরিচালন খরচের পরে",
+        en: "Fattening, after overheads",
+      },
+      kind: "sum",
+      of: (one) => one.results.fattening.afterOverheadsMoney,
+    },
+    {
+      label: { bn: "ক্রেতাদের কাছে বাকি", en: "Owed by buyers" },
+      kind: "sum",
+      of: (one) => one.atEnd.receivables.owingMoney,
+    },
+    {
+      label: { bn: "ভান্ডার", en: "The store" },
+      kind: "sum",
+      of: (one) => one.atEnd.store.totalMoney,
+    },
+    {
+      label: { bn: "খামারের নিজের টাকা", en: "The farm's own money" },
+      kind: "sum",
+      of: (one) => one.atEnd.cash.farmsOwnMoney,
+    },
+  ],
+};
+
+/** The change from the month before to this one (`changeBetween`), with its sign: a sum in taka, a margin in points;
+ *  the dash for anything else, or where either month has nothing. */
+const changeSaid = (kind: Kind, now: number | null, before: number | null) => {
+  if (kind !== "sum" && kind !== "percent") {
+    return NONE;
+  }
+  const change = changeBetween(kind, now, before);
+  if (change === null) {
+    return NONE;
+  }
+  const said: Said =
+    kind === "sum"
+      ? sumSaid(change)
+      : {
+          bn: `${formatNumber(change, "bn")} পয়েন্ট`,
+          en: `${formatNumber(change, "en")} ${Math.abs(change) === 1 ? "point" : "points"}`,
+        };
+  return change > 0 ? { bn: `+${said.bn}`, en: `+${said.en}` } : said;
+};
+
+/** The month at a glance as a table: each line, the month, the month before, and the change between them. */
+const summaryPart = ({
+  month,
+  before,
+  figures,
+  figuresBefore,
+}: MonthlyReportFacts): PaperSection => ({
+  kind: "table",
+  heading: SUMMARY.heading,
+  columns: [
+    { label: { bn: "হিসাব", en: "Figure" } },
+    { label: monthSaid(month), figures: true },
+    { label: monthSaid(before), figures: true },
+    { label: { bn: "পরিবর্তন", en: "Change" }, figures: true },
+  ],
+  rows: SUMMARY.lines.map((line) => [
+    line.label,
+    figureSaid(line.kind, line.of(figures)),
+    figureSaid(line.kind, line.of(figuresBefore)),
+    changeSaid(line.kind, line.of(figures), line.of(figuresBefore)),
+  ]),
+  foot: null,
+  note: null,
+});
 
 /** The farm's own money in the month: in, out, and what was left. */
 const MONEY: Part = {
@@ -240,6 +389,203 @@ const FATTENING: Part = {
       label: { bn: "তাদের মার্জিন", en: "Their margins" },
       kind: "sum",
       of: (one) => one.fattening.marginMoney,
+    },
+  ],
+};
+
+/** An age of what buyers owe, in days, in each language's numerals. */
+const AGE_SAID: Record<ReceivableAge, Said> = {
+  "0-7": { bn: "০–৭ দিন", en: "0–7 days" },
+  "8-15": { bn: "৮–১৫ দিন", en: "8–15 days" },
+  "16-30": { bn: "১৬–৩০ দিন", en: "16–30 days" },
+  "31-60": { bn: "৩১–৬০ দিন", en: "31–60 days" },
+  "over-60": { bn: "৬০ দিনের বেশি", en: "Over 60 days" },
+};
+
+/** What buyers owed at the month's end, by the days since it left, the whole, and what of it was overdue. */
+const RECEIVABLES: Part = {
+  heading: {
+    bn: "মাস শেষে বাকি, কত দিনের",
+    en: "Owed at the month's end, by age",
+  },
+  lines: [
+    ...RECEIVABLE_AGES.map(({ age }) => ({
+      label: AGE_SAID[age],
+      kind: "sum" as const,
+      of: (one: MonthFigures) =>
+        one.atEnd.receivables.ages.find((each) => each.age === age)
+          ?.owingMoney ?? 0,
+    })),
+    {
+      label: { bn: "মোট বাকি", en: "Owed in all" },
+      kind: "sum",
+      of: (one) => one.atEnd.receivables.owingMoney,
+    },
+    {
+      label: { bn: "এর মধ্যে মেয়াদ পেরোনো", en: "Of it overdue" },
+      kind: "sum",
+      of: (one) => one.atEnd.receivables.overdueMoney,
+    },
+  ],
+};
+
+/** The Farm's own money through the month: where it began, in, out, what moved besides, and where it ended. */
+const CASH_FLOW: Part = {
+  heading: { bn: "নগদের হিসাব", en: "Cash flow" },
+  lines: [
+    {
+      label: { bn: "মাসের শুরুতে", en: "Where the month began" },
+      kind: "sum",
+      of: (one) => one.cashFlow.openingMoney,
+    },
+    {
+      label: { bn: "আয়", en: "Money in" },
+      kind: "sum",
+      of: (one) => one.cashFlow.inMoney,
+    },
+    {
+      label: { bn: "ব্যয়", en: "Money out" },
+      kind: "sum",
+      of: (one) => one.cashFlow.outMoney,
+    },
+    {
+      label: {
+        bn: "হাত বা হিসাবের বাইরে নড়েছে",
+        en: "Moved without a hand or an account",
+      },
+      kind: "sum",
+      of: (one) => one.cashFlow.differenceMoney,
+    },
+    {
+      label: { bn: "মাসের শেষে", en: "Where the month ended" },
+      kind: "sum",
+      of: (one) => one.cashFlow.closingMoney,
+    },
+  ],
+};
+
+/** Where the Farm's own money was at the month's end: the hands' notes, the Ventures' among them, and the accounts. */
+const CASH: Part = {
+  heading: {
+    bn: "মাস শেষে খামারের নিজের টাকা",
+    en: "The farm's own money at the month's end",
+  },
+  lines: [
+    {
+      label: { bn: "হাতে মোট নগদ", en: "Notes in the hands" },
+      kind: "sum",
+      of: (one) => one.atEnd.cash.inHandsMoney,
+    },
+    {
+      label: { bn: "এর মধ্যে ভেঞ্চারের", en: "Of it the ventures'" },
+      kind: "sum",
+      of: (one) => one.atEnd.cash.venturesInHandsMoney,
+    },
+    {
+      label: { bn: "হাতে খামারের নিজের", en: "The farm's own in the hands" },
+      kind: "sum",
+      of: (one) => one.atEnd.cash.farmsInHandsMoney,
+    },
+    {
+      label: {
+        bn: "খামারের হিসাবে (ব্যাংক ও মোবাইল)",
+        en: "In the farm's accounts",
+      },
+      kind: "sum",
+      of: (one) => one.atEnd.cash.inAccountsMoney,
+    },
+    {
+      label: { bn: "খামারের নিজের মোট", en: "The farm's own in all" },
+      kind: "sum",
+      of: (one) => one.atEnd.cash.farmsOwnMoney,
+    },
+  ],
+};
+
+/** What the Farm had tied up at the month's end, at cost, by where it was. */
+const CAPITAL: Part = {
+  heading: {
+    bn: "মাস শেষে খাটানো পুঁজি, খরচের হিসাবে",
+    en: "Capital employed at the month's end, at cost",
+  },
+  lines: [
+    {
+      label: { bn: "দুগ্ধ পাল", en: "The dairy herd" },
+      kind: "sum",
+      of: (one) => one.atEnd.capital.dairyMoney,
+    },
+    {
+      label: { bn: "মোটাতাজাকরণের পশু", en: "Fattening animals" },
+      kind: "sum",
+      of: (one) => one.atEnd.capital.fatteningMoney,
+    },
+    {
+      label: { bn: "ভেঞ্চারে", en: "In ventures" },
+      kind: "sum",
+      of: (one) => one.atEnd.capital.venturesMoney,
+    },
+    {
+      label: { bn: "ভান্ডার", en: "The store" },
+      kind: "sum",
+      of: (one) => one.atEnd.capital.storeMoney,
+    },
+    {
+      label: { bn: "ক্রেতাদের কাছে বাকি", en: "Owed by buyers" },
+      kind: "sum",
+      of: (one) => one.atEnd.capital.receivablesMoney,
+    },
+    {
+      label: { bn: "মোট পুঁজি", en: "Capital in all" },
+      kind: "sum",
+      of: (one) => one.atEnd.capital.totalMoney,
+    },
+  ],
+};
+
+/** What the capital made in the month: each Side's result after overheads over its own, the Farm's over all but the
+ *  Ventures', whose return comes at Settlement. */
+const MONTHS_RETURN: Part = {
+  heading: {
+    bn: "এই মাসে পুঁজিতে যা এল",
+    en: "What the capital made this month",
+  },
+  lines: [
+    {
+      label: { bn: "দুগ্ধ", en: "Dairy" },
+      kind: "per100",
+      of: (one) => one.monthsReturn.dairyPer100,
+    },
+    {
+      label: { bn: "মোটাতাজাকরণ", en: "Fattening" },
+      kind: "per100",
+      of: (one) => one.monthsReturn.fatteningPer100,
+    },
+    {
+      label: { bn: "পুরো খামার, ভেঞ্চার বাদে", en: "Whole farm, ventures apart" },
+      kind: "per100",
+      of: (one) => one.monthsReturn.farmPer100,
+    },
+  ],
+};
+
+/** What the store held at the month's end, in taka: the feed at its average price, the medicine at a dose's. */
+const STORE: Part = {
+  heading: { bn: "মাস শেষে ভান্ডার", en: "The store at the month's end" },
+  lines: [
+    {
+      label: { bn: "খাদ্য", en: "Feed" },
+      kind: "sum",
+      of: (one) => one.atEnd.store.feedMoney,
+    },
+    {
+      label: { bn: "ওষুধ", en: "Medicine" },
+      kind: "sum",
+      of: (one) => one.atEnd.store.medicineMoney,
+    },
+    {
+      label: { bn: "মোট ভান্ডার", en: "The store in all" },
+      kind: "sum",
+      of: (one) => one.atEnd.store.totalMoney,
     },
   ],
 };
@@ -332,6 +678,104 @@ const sideSaid = (side: Side | null): Said => {
   return { bn, en };
 };
 
+/** The heading of what each Side came to. */
+const RESULTS: Said = { bn: "প্রতিটি বিভাগের ফল", en: "What each side came to" };
+/** Each figure of a Side's result, said the same on the paper and in the CSV; the share of the overheads is the one
+ *  figure the Ventures' animals' days have. */
+const RESULT_FIGURES: readonly {
+  label: Said;
+  kind: Kind;
+  of: (result: SideResult) => number | null;
+  share?: true;
+}[] = [
+  {
+    label: { bn: "আয়", en: "Brought in" },
+    kind: "sum",
+    of: (one) => one.broughtInMoney,
+  },
+  {
+    label: { bn: "পরিচালন খরচের আগে", en: "Before overheads" },
+    kind: "sum",
+    of: (one) => one.beforeOverheadsMoney,
+  },
+  {
+    label: { bn: "মার্জিন", en: "Margin" },
+    kind: "percent",
+    of: (one) => one.marginBeforePercent,
+  },
+  {
+    label: { bn: "পরিচালন খরচের ভাগ", en: "Share of overheads" },
+    kind: "sum",
+    of: (one) => one.overheadsMoney,
+    share: true,
+  },
+  {
+    label: { bn: "পরিচালন খরচের পরে", en: "After overheads" },
+    kind: "sum",
+    of: (one) => one.afterOverheadsMoney,
+  },
+  {
+    label: { bn: "পরিচালন খরচের পরে মার্জিন", en: "Margin after overheads" },
+    kind: "percent",
+    of: (one) => one.marginAfterPercent,
+  },
+];
+/** The one figure of a Side's result the Ventures' animals' days have: their share of the overheads. */
+const SHARE = RESULT_FIGURES.find((one) => one.share) ?? {
+  label: { bn: "পরিচালন খরচের ভাগ", en: "Share of overheads" },
+};
+
+/** The Overheads the Ventures' animals' days come to, which the Farm bears: a share and nothing else. */
+const VENTURES_DAYS: Said = {
+  bn: "ভেঞ্চারের পশুর দিন",
+  en: "The ventures' animals' days",
+};
+/** The rows of what each Side came to, a Side's figures to a row; the Ventures' days hold their share alone. */
+const resultRows = (results: SideResults) => {
+  const sides = [
+    { name: sideSaid("dairy"), result: results.dairy },
+    { name: sideSaid("fattening"), result: results.fattening },
+  ];
+  return {
+    sides,
+    rest: results.restOfOverheadsMoney,
+    farm: { name: sideSaid(null), result: results.farm },
+  };
+};
+
+/** What each Side came to this month, before and after its share of the overheads, with the farm's as the total. */
+const resultsPart = ({ figures }: MonthlyReportFacts): PaperSection => {
+  const { sides, rest, farm } = resultRows(figures.results);
+  const row = (name: Said, result: SideResult) => [
+    name,
+    ...RESULT_FIGURES.map((one) => figureSaid(one.kind, one.of(result))),
+  ];
+  return {
+    kind: "table",
+    heading: { bn: `${RESULTS.bn}, এই মাসে`, en: `${RESULTS.en}, this month` },
+    columns: [
+      { label: { bn: "বিভাগ", en: "Side" } },
+      ...RESULT_FIGURES.map((one) => ({
+        label:
+          one.kind === "percent" ? { bn: "মার্জিন", en: "Margin" } : one.label,
+        figures: true,
+      })),
+    ],
+    rows: [
+      ...sides.map((one) => row(one.name, one.result)),
+      [
+        VENTURES_DAYS,
+        ...RESULT_FIGURES.map((one) => (one.share ? sumSaid(rest) : NONE)),
+      ],
+    ],
+    foot: row(farm.name, farm.result),
+    note: {
+      bn: "দুগ্ধের আয় বিক্রি করা দুধ, মোটাতাজাকরণের আয় বিক্রি হওয়া পশুর দাম; পরিচালন খরচ ভাগ হয়েছে প্রতিটি বিভাগে খামারের নিজের পশু যত দিন ছিল সেই হিসাবে। এটি খামারের মুনাফা নয়: তা হিসাবরক্ষকের পূর্ণ হিসাব বলবে।",
+      en: "The dairy brought in the milk it sold, the fattening side the prices of the animals it sold; the overheads are shared by the days the farm's own animals stood on each side. Not the farm's profit, which its accountant's full books say.",
+    },
+  };
+};
+
 /** The fodder fed at no price, both Sides together, in kilogrammes: left out of every cost above. */
 const unpricedKgOf = (figures: MonthFigures) =>
   figures.dairy.unpricedKg + figures.fattening.unpricedKg;
@@ -345,6 +789,9 @@ const leftOut = (figures: MonthFigures): Said[] => {
   const kg = unpricedKgOf(figures);
   const doses = uncostedDosesOf(figures);
   const waiting = figures.money.awaitingCount;
+  const { unpriced } = figures.atEnd.store;
+  const { accountsNotRead } = figures.atEnd.cash;
+  const { unpriced: unpricedAnimals } = figures.atEnd.capital;
   return [
     kg > 0
       ? {
@@ -356,6 +803,24 @@ const leftOut = (figures: MonthFigures): Said[] => {
       ? {
           bn: `${formatNumber(doses, "bn")}টি ডোজ এই মাসে খামারে না-কেনা ওষুধের; খরচ ধরা হয়নি।`,
           en: `${formatNumber(doses, "en")} ${doses === 1 ? "dose was" : "doses were"} of medicine the farm had not bought this month, and ${doses === 1 ? "is" : "are"} not costed.`,
+        }
+      : null,
+    unpricedAnimals > 0
+      ? {
+          bn: `${formatNumber(unpricedAnimals, "bn")}টি পশুর কোনো দাম দেওয়া হয়নি; পুঁজিতে শুধু তার খরচ ধরা হয়েছে।`,
+          en: `${formatNumber(unpricedAnimals, "en")} ${unpricedAnimals === 1 ? "animal was" : "animals were"} never priced, and ${unpricedAnimals === 1 ? "counts" : "count"} in the capital at ${unpricedAnimals === 1 ? "its" : "their"} charges alone.`,
+        }
+      : null,
+    accountsNotRead > 0
+      ? {
+          bn: `${formatNumber(accountsNotRead, "bn")}টি খামারের হিসাব এখনো একবারও বিবরণীর সাথে মেলানো হয়নি; তা শূন্য ধরা হয়েছে।`,
+          en: `${formatNumber(accountsNotRead, "en")} farm ${accountsNotRead === 1 ? "account was" : "accounts were"} not yet read once against ${accountsNotRead === 1 ? "its statement" : "their statements"}, and ${accountsNotRead === 1 ? "counts" : "count"} nothing.`,
+        }
+      : null,
+    unpriced > 0
+      ? {
+          bn: `${formatNumber(unpriced, "bn")}টি খাদ্য বা ওষুধ মাস শেষে ভান্ডারে ছিল যার কোনো দাম নেই; ভান্ডারের হিসাবে তা ধরা হয়নি।`,
+          en: `${formatNumber(unpriced, "en")} ${unpriced === 1 ? "feed or medicine was" : "feeds or medicines were"} in the store at the month's end with no price, and ${unpriced === 1 ? "is" : "are"} not in its worth.`,
         }
       : null,
     waiting > 0
@@ -402,6 +867,7 @@ export const monthlyReportPaper = (
           en: "The month's figures, beside the month before.",
         },
     sections: [
+      summaryPart(facts),
       partOf(MONEY, facts),
       moneyByPart(
         BY_CATEGORY,
@@ -424,6 +890,13 @@ export const monthlyReportPaper = (
       partOf(DAIRY, facts),
       partOf(FATTENING, facts),
       partOf(OVERHEADS, facts),
+      resultsPart(facts),
+      partOf(CASH_FLOW, facts),
+      partOf(CASH, facts),
+      partOf(RECEIVABLES, facts),
+      partOf(STORE, facts),
+      partOf(CAPITAL, facts),
+      partOf(MONTHS_RETURN, facts),
     ],
     closing: [...leftOut(facts.figures), VENTURES_KEEP_THEIR_OWN],
     produced: producedSaid(facts.producedAt, facts.producedBy),
@@ -460,6 +933,49 @@ const moneyByRows = (
       monthBefore: null,
     }))
   );
+
+/** A row of a Side's figure: whose, then which. */
+const named = (who: Said, what: Said): Said => ({
+  bn: `${who.bn} — ${what.bn}`,
+  // Sentence case runs on past the dash: "Dairy — margin after overheads".
+  en: `${who.en} — ${what.en.charAt(0).toLowerCase()}${what.en.slice(1)}`,
+});
+
+/** What each Side came to, a row a figure — this month and the month before — and the Ventures' days' share. */
+const resultsRows = ({
+  figures,
+  figuresBefore,
+}: MonthlyReportFacts): MonthlyReportRow[] => {
+  const now = resultRows(figures.results);
+  const before = resultRows(figuresBefore.results);
+  const whose = [
+    ...now.sides.map((one, index) => ({
+      name: one.name,
+      now: one.result,
+      before: before.sides[index]?.result ?? null,
+    })),
+    { name: now.farm.name, now: now.farm.result, before: before.farm.result },
+  ];
+  return [
+    ...whose.flatMap(({ name, now: result, before: earlier }) =>
+      RESULT_FIGURES.map((one) => ({
+        part: RESULTS,
+        line: named(name, one.label),
+        way: null,
+        thisMonth: figurePlain(one.kind, one.of(result)),
+        monthBefore:
+          earlier === null ? null : figurePlain(one.kind, one.of(earlier)),
+      }))
+    ),
+    {
+      part: RESULTS,
+      line: named(VENTURES_DAYS, SHARE.label),
+      way: null,
+      thisMonth: figurePlain("sum", now.rest),
+      monthBefore: figurePlain("sum", before.rest),
+    },
+  ];
+};
 
 /** What a month's figures leave out, each a figure of its own: the fodder fed at no price, and the doses not costed. */
 const LEFT_OUT: Part = {
@@ -515,6 +1031,7 @@ export const monthlyReportRows = (
       monthBefore: figurePlain(line.kind, line.of(facts.figuresBefore)),
     }));
   return [
+    ...rowsOf(SUMMARY),
     ...rowsOf(MONEY),
     ...moneyByRows(
       BY_CATEGORY,
@@ -535,6 +1052,13 @@ export const monthlyReportRows = (
     ...rowsOf(DAIRY),
     ...rowsOf(FATTENING),
     ...rowsOf(OVERHEADS),
+    ...resultsRows(facts),
+    ...rowsOf(CASH_FLOW),
+    ...rowsOf(CASH),
+    ...rowsOf(RECEIVABLES),
+    ...rowsOf(STORE),
+    ...rowsOf(CAPITAL),
+    ...rowsOf(MONTHS_RETURN),
     ...rowsOf(LEFT_OUT),
     ...rowsOf(AWAITING),
   ];

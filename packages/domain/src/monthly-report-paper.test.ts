@@ -30,6 +30,87 @@ const FIGURES = {
     uncostedDoses: 0,
   },
   overheads: { amount: 6000, perHeadPerDayMoney: 12.5 },
+  results: {
+    dairy: {
+      broughtInMoney: 9300,
+      beforeOverheadsMoney: 5200,
+      overheadsMoney: 3000,
+      afterOverheadsMoney: 2200,
+      marginBeforePercent: 55.9,
+      marginAfterPercent: 23.7,
+    },
+    fattening: {
+      broughtInMoney: 80_000,
+      beforeOverheadsMoney: 24_500,
+      overheadsMoney: 2000,
+      afterOverheadsMoney: 22_500,
+      marginBeforePercent: 30.6,
+      marginAfterPercent: 28.1,
+    },
+    restOfOverheadsMoney: 1000,
+    farm: {
+      broughtInMoney: 89_300,
+      beforeOverheadsMoney: 29_700,
+      overheadsMoney: 6000,
+      afterOverheadsMoney: 23_700,
+      marginBeforePercent: 33.3,
+      marginAfterPercent: 26.5,
+    },
+  },
+  atEnd: {
+    receivables: {
+      owingMoney: 36_000,
+      overdueMoney: 6000,
+      ages: [
+        { age: "0-7" as const, owingMoney: 0 },
+        { age: "8-15" as const, owingMoney: 30_000 },
+        { age: "16-30" as const, owingMoney: 6000 },
+        { age: "31-60" as const, owingMoney: 0 },
+        { age: "over-60" as const, owingMoney: 0 },
+      ],
+    },
+    store: {
+      feedMoney: 40_000,
+      medicineMoney: 5000,
+      totalMoney: 45_000,
+      unpriced: 1,
+    },
+    cash: {
+      inHandsMoney: 221_900,
+      venturesInHandsMoney: 90_000,
+      farmsInHandsMoney: 131_900,
+      inAccountsMoney: 115_000,
+      accountsNotRead: 1,
+      farmsOwnMoney: 246_900,
+    },
+    capital: {
+      dairyMoney: 3000,
+      fatteningMoney: 0,
+      venturesMoney: 100_000,
+      storeMoney: 45_000,
+      receivablesMoney: 36_000,
+      totalMoney: 184_000,
+      unpriced: 1,
+    },
+  },
+  monthsReturn: { dairyPer100: -6.7, fatteningPer100: null, farmPer100: 59.3 },
+  cashFlow: {
+    openingMoney: 300_000,
+    inMoney: 57_000,
+    outMoney: 106_100,
+    differenceMoney: -7000,
+    closingMoney: 243_900,
+  },
+};
+
+/** A Side's month with nothing in it. */
+const NO_RESULT = {
+  broughtInMoney: 0,
+  beforeOverheadsMoney: 0,
+  overheadsMoney: 0,
+  afterOverheadsMoney: 0,
+  marginBeforePercent: null,
+  marginAfterPercent: null,
 };
 
 const NOTHING = {
@@ -53,6 +134,51 @@ const NOTHING = {
     uncostedDoses: 0,
   },
   overheads: { amount: 0, perHeadPerDayMoney: null },
+  results: {
+    dairy: NO_RESULT,
+    fattening: NO_RESULT,
+    restOfOverheadsMoney: 0,
+    farm: NO_RESULT,
+  },
+  atEnd: {
+    receivables: {
+      owingMoney: 0,
+      overdueMoney: 0,
+      ages: [
+        { age: "0-7" as const, owingMoney: 0 },
+        { age: "8-15" as const, owingMoney: 0 },
+        { age: "16-30" as const, owingMoney: 0 },
+        { age: "31-60" as const, owingMoney: 0 },
+        { age: "over-60" as const, owingMoney: 0 },
+      ],
+    },
+    store: { feedMoney: 0, medicineMoney: 0, totalMoney: 0, unpriced: 0 },
+    cash: {
+      inHandsMoney: 0,
+      venturesInHandsMoney: 0,
+      farmsInHandsMoney: 0,
+      inAccountsMoney: 0,
+      accountsNotRead: 0,
+      farmsOwnMoney: 0,
+    },
+    capital: {
+      dairyMoney: 0,
+      fatteningMoney: 0,
+      venturesMoney: 0,
+      storeMoney: 0,
+      receivablesMoney: 0,
+      totalMoney: 0,
+      unpriced: 0,
+    },
+  },
+  monthsReturn: { dairyPer100: null, fatteningPer100: null, farmPer100: null },
+  cashFlow: {
+    openingMoney: 0,
+    inMoney: 0,
+    outMoney: 0,
+    differenceMoney: 0,
+    closingMoney: 0,
+  },
 };
 
 const FACTS: MonthlyReportFacts = {
@@ -183,6 +309,193 @@ describe("the Monthly Report of one month, on paper", () => {
   });
 });
 
+describe("what each Side came to, on paper", () => {
+  it("sets each Side's month before and after its share of the overheads, its margins, the Ventures' share and the farm's", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("What each side came to, this month");
+    expect(text).toContain(
+      "Dairy · 9,300 taka · 5,200 taka · 55.9% · 3,000 taka · 2,200 taka · 23.7%"
+    );
+    expect(text).toContain(
+      "The ventures' animals' days · — · — · — · 1,000 taka · — · —"
+    );
+    expect(text).toContain(
+      "Whole farm · 89,300 taka · 29,700 taka · 33.3% · 6,000 taka · 23,700 taka · 26.5%"
+    );
+  });
+
+  it("says it in Bangla, a margin nobody made as nothing", () => {
+    const text = paperText(
+      monthlyReportPaper({ ...FACTS, figures: NOTHING }),
+      "bn"
+    );
+
+    expect(text).toContain("প্রতিটি বিভাগের ফল, এই মাসে");
+    expect(text).toContain("দুগ্ধ · ০ টাকা · ০ টাকা · — · ০ টাকা · ০ টাকা · —");
+  });
+});
+
+describe("what buyers owed at the month's end, on paper", () => {
+  it("sets each age beside the month before's, the whole and what of it was overdue", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("Owed at the month's end, by age");
+    expect(text).toContain("8–15 days · 30,000 taka · 0 taka");
+    expect(text).toContain("Over 60 days · 0 taka · 0 taka");
+    expect(text).toContain("Owed in all · 36,000 taka · 0 taka");
+    expect(text).toContain("Of it overdue · 6,000 taka · 0 taka");
+  });
+
+  it("says the ages in Bangla", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "bn");
+
+    expect(text).toContain("মাস শেষে বাকি, কত দিনের");
+    expect(text).toContain("১৬–৩০ দিন · ৬,০০০ টাকা · ০ টাকা");
+    expect(text).toContain("৬০ দিনের বেশি");
+  });
+});
+
+describe("what the store was worth at the month's end, on paper", () => {
+  it("sets the feed, the medicine and the whole beside the month before's", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("The store at the month's end");
+    expect(text).toContain("Feed · 40,000 taka · 0 taka");
+    expect(text).toContain("Medicine · 5,000 taka · 0 taka");
+    expect(text).toContain("The store in all · 45,000 taka · 0 taka");
+  });
+
+  it("says a kind held at no price adds nothing", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "bn");
+
+    expect(text).toContain("মাস শেষে ভান্ডার");
+    expect(text).toContain(
+      "১টি খাদ্য বা ওষুধ মাস শেষে ভান্ডারে ছিল যার কোনো দাম নেই; ভান্ডারের হিসাবে তা ধরা হয়নি।"
+    );
+  });
+});
+
+describe("the farm's own money, on paper", () => {
+  it("goes from where the month began to where it ended, the difference said, never hidden", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("Cash flow");
+    expect(text).toContain("Where the month began · 300,000 taka · 0 taka");
+    expect(text).toContain(
+      "Moved without a hand or an account · -7,000 taka · 0 taka"
+    );
+    expect(text).toContain("Where the month ended · 243,900 taka · 0 taka");
+  });
+
+  it("sets the hands' notes apart from the Ventures', and the accounts, at the month's end", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("The farm's own money at the month's end");
+    expect(text).toContain("Notes in the hands · 221,900 taka · 0 taka");
+    expect(text).toContain("Of it the ventures' · 90,000 taka · 0 taka");
+    expect(text).toContain("The farm's own in all · 246,900 taka · 0 taka");
+    expect(text).toContain(
+      "1 farm account was not yet read once against its statement, and counts nothing."
+    );
+  });
+
+  it("says it in Bangla", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "bn");
+
+    expect(text).toContain("নগদের হিসাব");
+    expect(text).toContain("মাস শেষে খামারের নিজের টাকা");
+    expect(text).toContain(
+      "১টি খামারের হিসাব এখনো একবারও বিবরণীর সাথে মেলানো হয়নি; তা শূন্য ধরা হয়েছে।"
+    );
+  });
+});
+
+describe("what the farm had tied up, and what it made on it, on paper", () => {
+  it("sets the capital at cost by where it was, beside the month before's", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("Capital employed at the month's end, at cost");
+    expect(text).toContain("The dairy herd · 3,000 taka · 0 taka");
+    expect(text).toContain("In ventures · 100,000 taka · 0 taka");
+    expect(text).toContain("Capital in all · 184,000 taka · 0 taka");
+    expect(text).toContain(
+      "1 animal was never priced, and counts in the capital at its charges alone."
+    );
+  });
+
+  it("says what each side made on every hundred taka of it, and the ventures' as theirs at settlement", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("What the capital made this month");
+    expect(text).toContain("Dairy · -6.7 taka on every 100 · —");
+    expect(text).toContain("Fattening · — · —");
+    expect(text).toContain(
+      "Whole farm, ventures apart · 59.3 taka on every 100 · —"
+    );
+  });
+
+  it("says it in Bangla", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "bn");
+
+    expect(text).toContain("মাস শেষে খাটানো পুঁজি, খরচের হিসাবে");
+    expect(text).toContain("প্রতি ১০০ টাকায় ৫৯.৩ টাকা");
+  });
+});
+
+describe("the month at a glance, on paper", () => {
+  it("comes first, each figure beside the month before's and the change between them", () => {
+    const text = paperText(
+      monthlyReportPaper({
+        ...FACTS,
+        figuresBefore: FIGURES,
+        figures: NOTHING,
+      }),
+      "en"
+    );
+
+    expect(text.indexOf("The month at a glance")).toBeLessThan(
+      text.indexOf("The farm's money")
+    );
+    expect(text).toContain("Figure · March 2044 · February 2044 · Change");
+    expect(text).toContain("Brought in · 0 taka · 89,300 taka · -89,300 taka");
+    expect(text).toContain(
+      "After overheads · 0 taka · 23,700 taka · -23,700 taka"
+    );
+    expect(text).toContain("Margin after overheads · — · 26.5% · —");
+    expect(text).toContain(
+      "The farm's own money · 0 taka · 246,900 taka · -246,900 taka"
+    );
+  });
+
+  it("says a margin's change in points", () => {
+    const before = {
+      ...FIGURES,
+      results: {
+        ...FIGURES.results,
+        farm: { ...FIGURES.results.farm, marginAfterPercent: 24.4 },
+      },
+    };
+    const facts = { ...FACTS, figuresBefore: before };
+
+    expect(paperText(monthlyReportPaper(facts), "en")).toContain(
+      "Margin after overheads · 26.5% · 24.4% · +2.1 points"
+    );
+    expect(paperText(monthlyReportPaper(facts), "bn")).toContain("+২.১ পয়েন্ট");
+  });
+
+  it("says a rise with its sign", () => {
+    const text = paperText(
+      monthlyReportPaper({ ...FACTS, figuresBefore: NOTHING }),
+      "en"
+    );
+
+    expect(text).toContain(
+      "Owed by buyers · 36,000 taka · 0 taka · +36,000 taka"
+    );
+  });
+});
+
 describe("the Monthly Report of one month, a row a figure", () => {
   it("says each figure of the month and the month before as a number: whole taka, rates to the paisa, nothing for none", () => {
     const rows = monthlyReportRows(FACTS);
@@ -244,6 +557,49 @@ describe("the Monthly Report of one month, a row a figure", () => {
     ]);
   });
 
+  it("says each Side's figures this month and the month before, its margins as percentages", () => {
+    const rows = monthlyReportRows(FACTS);
+
+    expect(rows).toContainEqual({
+      part: {
+        bn: "প্রতিটি বিভাগের ফল",
+        en: "What each side came to",
+      },
+      line: {
+        bn: "দুগ্ধ — পরিচালন খরচের পরে মার্জিন",
+        en: "Dairy — margin after overheads",
+      },
+      way: null,
+      thisMonth: 23.7,
+      monthBefore: null,
+    });
+    expect(rows).toContainEqual(
+      expect.objectContaining({
+        line: {
+          bn: "ভেঞ্চারের পশুর দিন — পরিচালন খরচের ভাগ",
+          en: "The ventures' animals' days — share of overheads",
+        },
+        thisMonth: 1000,
+        monthBefore: 0,
+      })
+    );
+  });
+
+  it("says what buyers owed at each month's end by age", () => {
+    const rows = monthlyReportRows(FACTS);
+
+    expect(rows).toContainEqual({
+      part: {
+        bn: "মাস শেষে বাকি, কত দিনের",
+        en: "Owed at the month's end, by age",
+      },
+      line: { bn: "১৬–৩০ দিন", en: "16–30 days" },
+      way: null,
+      thisMonth: 6000,
+      monthBefore: 0,
+    });
+  });
+
   it("holds every line of the paper's figures, each named as the paper names it", () => {
     const text = paperText(monthlyReportPaper(FACTS), "en");
 
@@ -251,6 +607,7 @@ describe("the Monthly Report of one month, a row a figure", () => {
       (row) =>
         row.way === null &&
         row.part.en !== "Left out" &&
+        row.part.en !== "What each side came to" &&
         !row.part.en.startsWith("Awaiting")
     )) {
       expect(text).toContain(`${one.line.en ?? ""} · `);

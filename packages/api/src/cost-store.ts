@@ -913,7 +913,7 @@ export const boughtInOf = async (
  * price; else, where the owner's own buying brought her in, from the day she came off the lorry at her price; else, for
  * the Farm, one bred or crossed here, from the start at nothing paid. Nothing for an owner who never paid for her.
  */
-const takenOnBy = (
+export const takenOnBy = (
   animal: Pick<FarmAnimal, "id" | "intake">,
   owner: string | null,
   ownedThenBy: OwnedThenBy,

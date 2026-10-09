@@ -157,11 +157,12 @@ export interface HandHolds {
   lastCount: { at: Date; counted: number; expected: number } | null;
 }
 
-/** One movement of cash into or out of one hand, and when it moved. */
+/** One movement of cash into or out of one hand, when it moved, and whose money it was: the Farm's, or a Venture's. */
 interface HandMovement {
   userId: string;
   at: Date;
   amount: number;
+  ventureId: string | null;
 }
 
 /**
@@ -233,14 +234,25 @@ const floatMovementsOf = async (
       continue;
     }
     const userId = float.heldBy;
-    moved.push({ userId, at: float.createdAt, amount: float.amountMoney });
+    const { ventureId } = float;
+    moved.push({
+      userId,
+      at: float.createdAt,
+      amount: float.amountMoney,
+      ventureId,
+    });
     for (const one of spent) {
       const onThisOuting =
         one.source === "intake"
           ? tripOfIntake.get(one.sourceId) === float.buyingTripId
           : one.sourceId === float.buyingTripId;
       if (onThisOuting && one.purseVentureId === float.ventureId) {
-        moved.push({ userId, at: one.occurredAt, amount: -one.amountMoney });
+        moved.push({
+          userId,
+          at: one.occurredAt,
+          amount: -one.amountMoney,
+          ventureId,
+        });
       }
     }
     const home = homecomings.find((one) => one.refundsId === float.id);
@@ -250,6 +262,7 @@ const floatMovementsOf = async (
         userId,
         at: float.reconciledAt,
         amount: -(home.amountMoney + short),
+        ventureId,
       });
     }
   }
@@ -302,6 +315,7 @@ const handMovementsOf = async (
       columns: {
         sourceId: true,
         heldBy: true,
+        purseVentureId: true,
         amountMoney: true,
         occurredAt: true,
       },
@@ -341,6 +355,7 @@ const handMovementsOf = async (
         userId: one.heldBy,
         at: one.occurredAt,
         amount: one.direction === "in" ? one.amountMoney : -one.amountMoney,
+        ventureId: null,
       });
     }
   }
@@ -350,6 +365,7 @@ const handMovementsOf = async (
         userId: one.fromUserId,
         at: one.handedAt,
         amount: -one.amountMoney,
+        ventureId: null,
       });
     }
     if (one.toUserId) {
@@ -357,6 +373,7 @@ const handMovementsOf = async (
         userId: one.toUserId,
         at: one.handedAt,
         amount: one.amountMoney,
+        ventureId: null,
       });
     }
   }
@@ -371,12 +388,14 @@ const handMovementsOf = async (
       userId: one.heldBy,
       at: one.occurredAt,
       amount: one.amountMoney,
+      ventureId: one.purseVentureId,
     });
     if (bankedThen) {
       moved.push({
         userId: one.heldBy,
         at: bankedThen,
         amount: -one.amountMoney,
+        ventureId: one.purseVentureId,
       });
     }
   }
@@ -384,31 +403,26 @@ const handMovementsOf = async (
   return moved;
 };
 
-/**
- * What every hand holds of the Farm's cash — and a Venture's sale cash not yet banked — at a moment, now unless said:
- * what its latest Cash Count found, and every movement since. The count wins, as the store's does: cash written up
- * after it but spent before it was already gone when the notes were counted, and is not taken off again. A count being
- * recorded again is left out of what it is compared against, and so is everything that moved after it.
- */
-const handsOf = async (
-  db: Db,
-  farmId: string,
-  { excludingCount, asOf }: { excludingCount?: string; asOf?: Date } = {}
-): Promise<Map<string, number>> => {
-  const [moved, counts] = await Promise.all([
-    handMovementsOf(db, farmId),
-    db.query.cashCount.findMany({
-      where: { farmId },
-      columns: {
-        id: true,
-        userId: true,
-        completionId: true,
-        counted: true,
-        countedAt: true,
-      },
-      orderBy: { countedAt: "asc", id: "asc" },
-    }),
-  ]);
+/** Every Cash Count the farm has made, oldest first. */
+const countsOf = (db: Db, farmId: string) =>
+  db.query.cashCount.findMany({
+    where: { farmId },
+    columns: {
+      id: true,
+      userId: true,
+      completionId: true,
+      counted: true,
+      countedAt: true,
+    },
+    orderBy: { countedAt: "asc", id: "asc" },
+  });
+
+/** What each hand holds, from its latest count by then and every movement after it (`handsOf`). */
+const holdsOf = (
+  moved: readonly HandMovement[],
+  counts: Awaited<ReturnType<typeof countsOf>>,
+  { excludingCount, asOf }: { excludingCount?: string; asOf?: Date }
+): Map<string, number> => {
   const until = asOf ?? null;
   // Each hand's latest count by then: what it found, and from when everything else is added on.
   const lastCount = new Map<string, { counted: number; at: Date }>();
@@ -433,6 +447,51 @@ const handsOf = async (
     }
   }
   return holds;
+};
+
+/**
+ * What every hand holds of the Farm's cash — and a Venture's sale cash not yet banked — at a moment, now unless said:
+ * what its latest Cash Count found, and every movement since. The count wins, as the store's does: cash written up
+ * after it but spent before it was already gone when the notes were counted, and is not taken off again. A count being
+ * recorded again is left out of what it is compared against, and so is everything that moved after it.
+ */
+const handsOf = async (
+  db: Db,
+  farmId: string,
+  asked: { excludingCount?: string; asOf?: Date } = {}
+): Promise<Map<string, number>> => {
+  const [moved, counts] = await Promise.all([
+    handMovementsOf(db, farmId),
+    countsOf(db, farmId),
+  ]);
+  return holdsOf(moved, counts, asked);
+};
+
+/**
+ * What the hands held at a moment, all together, and of it the Ventures' — their sale cash not yet deposited and their
+ * Buying Floats still out — which is never the Farm's to spend (CONTEXT.md: **Cash Position**; ADR 0023). The Ventures'
+ * part is theirs whole, whatever a count found: a hand short is short of the Farm's own.
+ */
+export const handsHeldAt = async (
+  db: Db,
+  farmId: string,
+  at: Date
+): Promise<{ allMoney: number; venturesMoney: number }> => {
+  const [moved, counts] = await Promise.all([
+    handMovementsOf(db, farmId),
+    countsOf(db, farmId),
+  ]);
+  const holds = holdsOf(moved, counts, { asOf: at });
+  return {
+    allMoney: roundMoney(
+      [...holds.values()].reduce((sum, one) => sum + one, 0)
+    ),
+    venturesMoney: roundMoney(
+      moved
+        .filter((one) => one.ventureId !== null && one.at <= at)
+        .reduce((sum, one) => sum + one.amount, 0)
+    ),
+  };
 };
 
 /**

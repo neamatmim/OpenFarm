@@ -32,6 +32,21 @@ export const saidAsMoney = (amount: number, language: Language): string =>
 export const saidAsMoneyRate = (amount: number, language: Language): string =>
   said(amount, language, Math.abs(roundMoney(amount)));
 
+/**
+ * A figure worked to its tenth — a margin, taka on every hundred — with the same minus a sum takes, in front: a figure
+ * gone the wrong way reads as `−৪.৭`, never `-৪.৭` beside a `−৳…` on the same page.
+ */
+export const saidAsSigned = (amount: number, language: Language): string => {
+  const figure = Math.abs(Math.round(amount * 10) / 10);
+  return `${amount < 0 && figure > 0 ? "−" : ""}${formatNumber(figure, language)}`;
+};
+
+/** A percentage as the reader reads it, its minus as a sum's. */
+export const usePercent = () => {
+  const { language } = useLanguage();
+  return (amount: number) => `${saidAsSigned(amount, language)}%`;
+};
+
 /** A sum, for a screen that need not ask who is reading. */
 export const useMoney = () => {
   const { language } = useLanguage();
