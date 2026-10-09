@@ -12,7 +12,6 @@ export type PaperId =
   | "withdrawal-summary"
   | "dls-letter"
   | "milk-dispatch-record"
-  | "accountant-summary"
   | "registration-record"
   | "herd-summary"
   | "vaccination-register"

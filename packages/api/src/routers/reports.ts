@@ -1,6 +1,6 @@
 import type { MoneySummary } from "@OpenFarm/domain";
 import {
-  accountantSummary,
+  accountantSummaryPaper,
   farmDayOf,
   farmTimeOf,
   milkDispatchRecord,
@@ -8,7 +8,7 @@ import {
   startOfFarmDay,
   summarizeMoney,
 } from "@OpenFarm/domain";
-import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { z } from "zod";
 
 import type { Context } from "../context";
@@ -20,6 +20,7 @@ import { assertRegistered, recordExport } from "../export-store";
 import { protectedProcedure } from "../index";
 import type { ExportedMoney } from "../money-export-store";
 import { moneyForTheAccountant } from "../money-export-store";
+import { madeOn } from "../paper-values";
 import { periodInput, periodOf } from "../period";
 import { languageOf } from "../reader-language";
 import { receivableOfBuyers } from "../receivable-store";
@@ -27,31 +28,30 @@ import { requirePersonalSession, requireRole } from "../roles";
 
 type FarmContext = Context & { farm: NonNullable<Context["farm"]> };
 
-/** The accountant's summary as a paper, in the language of whoever is producing it. */
+/** The accountant's summary laid out on paper, read in Bangla or English: the period's money added up, and who still
+ *  owed the farm what on its last day. */
 const accountantPaper = async (
-  context: FarmContext & { actor: { id: string; name: string } },
+  context: FarmContext & { actor: { name: string } },
   period: { from: string; to: string },
   summary: MoneySummary
 ) => {
-  const language = await languageOf(context.db, context.actor.id);
   // Who still owed what on the period's last day, as the buyers' payments up to then had left it.
   const book = await receivableOfBuyers(context.db, context.farm.id, {
     asOf: period.to,
   });
-  return accountantSummary({
+  return accountantSummaryPaper({
     farm: context.farm,
-    from: formatDate(startOfFarmDay(period.from), language),
-    to: formatDate(startOfFarmDay(period.to), language),
+    from: period.from,
+    to: period.to,
     summary,
-    asMoney: (amount) => `${currencySign()}${formatNumber(amount, language)}`,
     receivableAtTheEnd: book
       .filter((buyer) => buyer.owingMoney > 0)
       .map((buyer) => ({ name: buyer.name, owingMoney: buyer.owingMoney }))
       .toSorted(
         (a, b) => b.owingMoney - a.owingMoney || a.name.localeCompare(b.name)
       ),
+    producedAt: madeOn(context.clock.now()),
     producedBy: context.actor.name,
-    producedAt: formatDate(context.clock.now(), language, "dateTime"),
   });
 };
 
@@ -297,7 +297,7 @@ export const reportsRouter = {
         input.format === "paper"
           ? {
               summary,
-              text: await accountantPaper(context, input, summary),
+              document: await accountantPaper(context, input, summary),
             }
           : {
               csv: accountantCsv(money),

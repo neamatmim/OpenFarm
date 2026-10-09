@@ -172,7 +172,6 @@ export type {
   AnimalPassport,
   DispatchLine,
   MilkDispatchRecord,
-  AccountantSummary,
   DoseGiven,
   HealthRegister,
   InspectorRegister,
@@ -195,7 +194,6 @@ export type {
 } from "./papers";
 export {
   INSPECTOR_REGISTERS,
-  accountantSummary,
   animalPassport,
   NO_GUARANTEE,
   NO_GUARANTEE_LINES,
@@ -1051,3 +1049,5 @@ export {
   progressStatementPaper,
   settlementStatementPaper,
 } from "./investor-statements";
+export type { AccountantSummaryFacts } from "./accountant-summary-paper";
+export { accountantSummaryPaper } from "./accountant-summary-paper";

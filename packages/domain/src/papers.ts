@@ -4,7 +4,6 @@ import { currencyWords } from "@OpenFarm/i18n";
 import type { FarmIdentity, RegistrationStanding } from "./farm";
 import { farmOfOriginLines } from "./farm";
 import type { Side } from "./lifecycle";
-import type { MoneySummary } from "./money-summary";
 
 /**
  * The papers the farm hands somebody: the receipt for what a buyer bought, the card the lorry
@@ -441,96 +440,10 @@ export const milkDispatchRecord = (record: MilkDispatchRecord): string =>
     .filter((line) => line !== null)
     .join("\n");
 
-/** The accountant's summary as it is written: the farm, the period, its money added up, and who asked for it
- *  when. */
-export interface AccountantSummary {
-  farm: FarmIdentity;
-  from: string;
-  to: string;
-  summary: MoneySummary;
-  /** Taka as the reader reads it. */
-  asMoney: (amount: number) => string;
-  /** Who still owed the farm what on the period's last day — its **Receivable** — biggest first. The money list is cash as
-   *  it came; this is what had not come yet. */
-  receivableAtTheEnd: readonly { name: string; owingMoney: number }[];
-  producedBy: string;
-  producedAt: string;
-}
-
 /** Each Side by its name, in Bangla and English, as the farm's papers print it. */
 export const SIDE_LABEL: Record<Side, [string, string]> = {
   dairy: ["দুগ্ধ", "Dairy"],
   fattening: ["মোটাতাজাকরণ", "Fattening"],
-};
-
-/**
- * The accountant's summary: a period's income against expense, and the same by Category, by Counterparty
- * and by Side, with the money the Owner has not approved said apart. The farm does not keep books; its
- * accountant keeps them from this and the CSV that goes with it.
- */
-export const accountantSummary = (paper: AccountantSummary): string => {
-  const { summary, asMoney } = paper;
-  const inAndOut = (line: { inMoney: number; outMoney: number }) =>
-    `আয় / in ${asMoney(line.inMoney)} · ব্যয় / out ${asMoney(line.outMoney)}`;
-  return [
-    ...farmOfOriginLines(paper.farm),
-    "",
-    "আয় ও ব্যয় / Income and expense",
-    field("সময়কাল", "Period", `${paper.from} — ${paper.to}`),
-    "",
-    field("মোট আয়", "Income", asMoney(summary.incomeMoney)),
-    field("মোট ব্যয়", "Expense", asMoney(summary.expenseMoney)),
-    field("নিট", "Net", asMoney(summary.netMoney)),
-    summary.awaiting.count > 0
-      ? field(
-          "মালিকের অনুমোদনের অপেক্ষায়",
-          "Awaiting the Owner's approval",
-          `${summary.awaiting.count} · ${inAndOut(summary.awaiting)}`
-        )
-      : null,
-    "",
-    "খাত অনুযায়ী / By Category",
-    ...summary.byCategory.map(
-      (line) =>
-        `  ${line.nameBn}${line.nameEn ? ` / ${line.nameEn}` : ""}: ${inAndOut(line)}`
-    ),
-    "",
-    "যার সাথে লেনদেন / By Counterparty",
-    ...summary.byCounterparty.map(
-      (line) => `  ${line.name ?? "—"}: ${inAndOut(line)}`
-    ),
-    "",
-    "দিক অনুযায়ী / By Side",
-    ...summary.bySide.map((line) => {
-      const [bn, en] = line.side
-        ? SIDE_LABEL[line.side]
-        : ["পুরো খামার", "Whole farm"];
-      return `  ${bn} / ${en}: ${inAndOut(line)}`;
-    }),
-    "",
-    ...(paper.receivableAtTheEnd.length > 0
-      ? [
-          "সময়কালের শেষে বাকি / Owed to the farm at the period's end",
-          ...paper.receivableAtTheEnd.map(
-            (line) => `  ${line.name}: ${asMoney(line.owingMoney)}`
-          ),
-          field(
-            "মোট বাকি",
-            "Total owed",
-            asMoney(
-              paper.receivableAtTheEnd.reduce(
-                (sum, line) => sum + line.owingMoney,
-                0
-              )
-            )
-          ),
-          "",
-        ]
-      : []),
-    `${paper.producedAt} · ${paper.producedBy}`,
-  ]
-    .filter((line) => line !== null)
-    .join("\n");
 };
 
 /** The Registration register (R1) as it is written: the farm, its registration, and who produced it when.
