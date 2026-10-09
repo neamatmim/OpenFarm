@@ -7,6 +7,7 @@ import {
   MoneyBy,
   MonthPart,
   MonthPicker,
+  PrintTheMonth,
   VenturesThatRan,
   useMonthLines,
   useOneMonth,
@@ -113,17 +114,20 @@ const MonthPage = () => {
       </BackLink>
       <PageHeader
         actions={
-          <MonthPicker
-            chosen={month}
-            months={one.data?.monthsKept ?? []}
-            onChoose={(chosen) =>
-              navigate({
-                params: { month: chosen },
-                search: year === undefined ? {} : { year },
-                to: "/monthly-report/$month",
-              })
-            }
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            {one.data ? <PrintTheMonth month={month} /> : null}
+            <MonthPicker
+              chosen={month}
+              months={one.data?.monthsKept ?? []}
+              onChoose={(chosen) =>
+                navigate({
+                  params: { month: chosen },
+                  search: year === undefined ? {} : { year },
+                  to: "/monthly-report/$month",
+                })
+              }
+            />
+          </div>
         }
 
         description={t("months.one.subtitle")}

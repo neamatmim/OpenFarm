@@ -457,7 +457,8 @@ export interface AccountantSummary {
   producedAt: string;
 }
 
-const SIDE_LABEL: Record<Side, [string, string]> = {
+/** Each Side by its name, in Bangla and English, as the farm's papers print it. */
+export const SIDE_LABEL: Record<Side, [string, string]> = {
   dairy: ["দুগ্ধ", "Dairy"],
   fattening: ["মোটাতাজাকরণ", "Fattening"],
 };
