@@ -9,6 +9,16 @@ export const enCore = {
   "language.bn": "বাংলা",
   "language.en": "English",
   "language.switch": "Change language",
+  "language.loadFailed":
+    "Could not download this language. Your current language is still available.",
+  "common.dataUpdated": "Last updated {at}",
+  "common.dataOffline": "Offline · {updated}",
+  "common.dataRefreshFailed": "Could not refresh · {updated}",
+  "common.dataRefreshing": "Refreshing · {updated}",
+  "common.dataIncomplete": "Some data has not loaded · {updated}",
+  "outbox.details": "Sync details",
+  "outbox.herdNever": "The herd has not been downloaded yet",
+  "owner.milkSoFar": "Recorded so far",
   "auth.openAccountHint":
     "With the address the owner or a manager invited, and the code they gave you.",
   "auth.formIncomplete": "Fill in every field first.",

@@ -168,6 +168,9 @@ export const overviewRouter = {
       // is what somebody means by "yesterday's milk".
       const byDay = new Map<string, { bulk: number; discard: number }>();
       for (const session of week) {
+        if (session.records.length === 0) {
+          continue;
+        }
         const day = farmDayOf(session.dueAt);
         const tally = byDay.get(day) ?? { bulk: 0, discard: 0 };
         tally.bulk = roundLiters(
@@ -280,6 +283,8 @@ export const overviewRouter = {
           registrationRenewal: await renewalDue(context.db, context.farm, now),
         },
         tiles: {
+          /** A recorded zero is a reading; a session still awaiting its records is not. */
+          milkRecordedToday: byDay.has(farmDayOf(now)),
           bulkToday: todaysMilk.bulk,
           discardToday: todaysMilk.discard,
           /** What the farm has been sending to the tank, a day at a time, oldest first —

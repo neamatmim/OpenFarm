@@ -22,6 +22,7 @@ import { stillHeld } from "@/components/animal/animal-words";
 import { GroupMove, useHerdTicking } from "@/components/animal/group-move";
 import type { HerdRow } from "@/components/animal/herd-list";
 import { HerdTable } from "@/components/animal/herd-list";
+import { DataFreshness } from "@/components/data-freshness";
 import {
   EmptyState,
   Page,
@@ -286,6 +287,7 @@ const AnimalsPage = () => {
       <PageHeader
         actions={runsTheFarm ? <RegisterAnimal /> : null}
         description={t("animals.subtitle")}
+        freshness={<DataFreshness reads={[animals]} />}
         title={t("animals.title")}
       />
 

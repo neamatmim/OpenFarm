@@ -96,6 +96,7 @@ describe("the Owner's home", () => {
 
     // The liters are the farm's own record, not a figure anybody typed on a dashboard.
     expect(home.tiles.bulkToday).toBeGreaterThanOrEqual(12);
+    expect(home.tiles.milkRecordedToday).toBe(true);
     // A day of the farm's milk, not a row per Pen: what somebody means by "today's milk".
     expect(home.tiles.days.length).toBeGreaterThanOrEqual(1);
     expect(home.tiles.days.at(-1)?.liters).toBeGreaterThanOrEqual(12);
@@ -153,6 +154,7 @@ describe("the Owner's home", () => {
     expect(Array.isArray(home.needsYou.overdue)).toBe(true);
     expect(home.tiles.workRaised).toBe(0);
     expect(home.tiles.bulkToday).toBe(0);
+    expect(home.tiles.milkRecordedToday).toBe(false);
   });
 
   it("adds the liters up the way the farm would, and no other way", async () => {
@@ -179,6 +181,51 @@ describe("the Owner's home", () => {
     // Discarded milk never reached the tank, so it is not in what the tank got — the tile
     // is the farm's record of where the milk went, not of how much was drawn.
     expect(home.tiles.bulkToday).toBe(0);
+    expect(home.tiles.milkRecordedToday).toBe(true);
+  });
+
+  it("leaves an unrecorded day out of the milk chart and average, but includes a recorded zero", async () => {
+    const milk = async (instant: string, liters?: number) => {
+      const owner = await createTestClient(appRouter, {
+        as: "owner",
+        clock: new FakeClock(instant),
+      });
+      await owner.client.work.ensureDue();
+      const today = await owner.client.work.today({ penId: world.pen.id });
+      const morning = today.find(
+        (row) => row.definitionId === world.sop.definitionId
+      );
+      if (!morning) {
+        throw new Error("expected the morning milking");
+      }
+      await owner.client.work.claim({ id: morning.id });
+      if (liters !== undefined) {
+        await owner.client.work.completeStep({
+          instanceId: morning.id,
+          stepId: "milk",
+          animalTag: world.cow.tagNumber,
+          evidence: [liters],
+        });
+      }
+      return owner;
+    };
+    await milk("2098-05-10T03:30:00.000Z", 12);
+    const unrecorded = await milk("2098-05-11T03:30:00.000Z");
+    const before = await unrecorded.client.overview.get();
+    expect(before.tiles.milkRecordedToday).toBe(false);
+    expect(before.tiles.days).not.toContainEqual({
+      day: "2098-05-11",
+      liters: 0,
+    });
+    expect(before.tiles.averageBulk).toBe(12);
+
+    const zero = await milk("2098-05-12T03:30:00.000Z", 0);
+    const after = await zero.client.overview.get();
+    expect(after.tiles.milkRecordedToday).toBe(true);
+    expect(after.tiles.bulkToday).toBe(0);
+    expect(after.tiles.days).toContainEqual({ day: "2098-05-12", liters: 0 });
+    expect(after.tiles.days.map((day) => day.day)).not.toContain("2098-05-11");
+    expect(after.tiles.averageBulk).toBe(12);
   });
 
   it("puts work the Owner is the checker of in front of them", async () => {

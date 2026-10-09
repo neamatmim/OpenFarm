@@ -5,6 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { CircleCheck, Hourglass, Milk, Scale, Tractor } from "lucide-react";
 
+import { DataFreshness } from "@/components/data-freshness";
+import type { FreshnessRead } from "@/components/data-freshness";
 import { AdultDeathsSection } from "@/components/home/adult-deaths";
 import { CalfLossesSection } from "@/components/home/calf-losses";
 import { EarlyLossesSection } from "@/components/home/early-losses";
@@ -70,17 +72,25 @@ const useMilkFigure = (tiles: OwnerAnswer["tiles"]): Figure => {
   const average = formatNumber(tiles.averageBulk, language, {
     maximumFractionDigits: 1,
   });
+  const comparison = yesterdays
+    ? t("owner.milkHint", {
+        yesterday: formatNumber(yesterdays.liters, language),
+        average,
+      })
+    : t("owner.average", { liters: average });
   return {
     label: t("owner.bulkToday"),
-    value: t("owner.liters", {
-      liters: formatNumber(tiles.bulkToday, language),
-    }),
-    hint: yesterdays
-      ? t("owner.milkHint", {
-          yesterday: formatNumber(yesterdays.liters, language),
-          average,
-        })
-      : t("owner.average", { liters: average }),
+    value: tiles.milkRecordedToday ? (
+      <>
+        {t("owner.liters", { liters: formatNumber(tiles.bulkToday, language) })}
+        <span className="text-muted-foreground mt-1 block text-xs font-normal">
+          {t("owner.milkSoFar")}
+        </span>
+      </>
+    ) : (
+      t("owner.noRecord")
+    ),
+    hint: comparison,
     icon: Milk,
   };
 };
@@ -88,7 +98,9 @@ const useMilkFigure = (tiles: OwnerAnswer["tiles"]): Figure => {
 /** The four figures the Owner judges the farm by: the milk, the month's money, the herd, and the money waiting on
  *  their word. Each is worked out from what was recorded; the two from other lists wait for them without holding up
  *  the rest. */
-const useFarmFigures = (data: OwnerAnswer): Figure[] => {
+const useFarmFigures = (
+  data: OwnerAnswer
+): { figures: Figure[]; reads: FreshnessRead[] } => {
   const { t, language } = useLanguage();
   const asMoney = useMoney();
   const milk = useMilkFigure(data.tiles);
@@ -102,7 +114,7 @@ const useFarmFigures = (data: OwnerAnswer): Figure[] => {
   const net = sum("in") - sum("out");
   const herd = animals.data ?? [];
   const awaiting = moneyAwaitingCount(data.needsYou);
-  return [
+  const figures: Figure[] = [
     milk,
     {
       label: t("owner.monthNet"),
@@ -157,6 +169,7 @@ const useFarmFigures = (data: OwnerAnswer): Figure[] => {
       tone: awaiting > 0 ? "warning" : "neutral",
     },
   ];
+  return { figures, reads: [money, animals] };
 };
 
 /** A figure that is a way to the list it counts. */
@@ -178,7 +191,7 @@ const OwnerHome = () => {
 
   // Cached first, error second. A phone with no signal has the farm as it last knew it,
   // and a screen that throws that away to show the word "error" has taken away the only
-  // thing it had — the sync banner above already says how old it is.
+  // thing it had — the page keeps the time of its last answer beside its title.
   if (!home.data) {
     return (
       <Page>
@@ -191,7 +204,7 @@ const OwnerHome = () => {
       </Page>
     );
   }
-  return <OwnerDay data={home.data} />;
+  return <OwnerDay data={home.data} read={home} />;
 };
 
 /** The week's milk, with what the week averages and what today could not send to the tank. */
@@ -221,9 +234,11 @@ const MilkPanel = ({ tiles }: { tiles: OwnerAnswer["tiles"] }) => {
         </span>
         <span className={tiles.discardToday > 0 ? "text-warning" : undefined}>
           {t("owner.discardToday")}:{" "}
-          {t("owner.liters", {
-            liters: formatNumber(tiles.discardToday, language),
-          })}
+          {tiles.milkRecordedToday
+            ? t("owner.liters", {
+                liters: formatNumber(tiles.discardToday, language),
+              })
+            : t("owner.noRecord")}
         </span>
       </div>
     </Section>
@@ -245,10 +260,16 @@ const AllFine = ({ shown }: { shown: boolean }) => {
 };
 
 /** The Owner's day once the farm has answered. */
-const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
+const OwnerDay = ({
+  data,
+  read,
+}: {
+  data: OwnerAnswer;
+  read: FreshnessRead;
+}) => {
   const { t, language } = useLanguage();
   const { needsYou, tiles } = data;
-  const figures = useFarmFigures(data);
+  const { figures, reads } = useFarmFigures(data);
   const { needs, onFarm } = Route.useSearch();
   const navigate = Route.useNavigate();
   // Asked here rather than folded into `overview.get`, because whether a Wind-up Period has run out is
@@ -273,6 +294,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
       <PageHeader
         description={t("owner.subtitle")}
         eyebrow={formatDate(new Date(), language, "date")}
+        freshness={<DataFreshness reads={[read, ventures, ...reads]} />}
         meta={
           waiting > 0 ? (
             <StatusBadge tone="warning">

@@ -197,6 +197,7 @@ export const PageHeader = ({
   actions,
   meta,
   leading,
+  freshness,
 }: {
   title: ReactNode;
   description?: ReactNode;
@@ -204,6 +205,7 @@ export const PageHeader = ({
   actions?: ReactNode;
   meta?: ReactNode;
   leading?: ReactNode;
+  freshness?: ReactNode;
 }) => (
   <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div className="flex min-w-0 items-start gap-4">
@@ -225,6 +227,7 @@ export const PageHeader = ({
             {meta}
           </div>
         ) : null}
+        {freshness}
       </div>
     </div>
     {actions ? (

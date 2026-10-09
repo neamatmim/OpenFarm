@@ -1,10 +1,23 @@
 import { farmDayOf } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@OpenFarm/ui/components/dialog";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { CloudCheck, CloudOff, CloudUpload, RefreshCw } from "lucide-react";
+import {
+  CloudCheck,
+  CloudOff,
+  CloudUpload,
+  Info,
+  RefreshCw,
+} from "lucide-react";
 import { useEffect } from "react";
 
 import { useLanguage } from "@/i18n/language-provider";
@@ -115,7 +128,7 @@ export const useOutboxSender = () => {
 
 /**
  * What this phone is still holding, on every screen a Staff member works from — a calm pill in the top bar: all
- * sent, a count waiting, or what needs the person (signed out, work sent back). Its title carries when the phone
+ * sent, a count waiting, or what needs the person (signed out, work sent back). Its details carry when the phone
  * last sent and, separately, when it last refreshed the herd: sending and fresh data are different questions.
  * The sending itself is `useOutboxSender`'s.
  */
@@ -199,7 +212,7 @@ export const SyncBanner = () => {
     ? t("outbox.herdFresh", {
         ago: formatDate(herdKeptAt, language, "dateTime"),
       })
-    : null;
+    : t("outbox.herdNever");
   let Icon = CloudCheck;
   if (waiting) {
     Icon = CloudOff;
@@ -234,6 +247,28 @@ export const SyncBanner = () => {
         )}
         <span className="truncate text-xs opacity-80">{sent}</span>
       </span>
+      <Dialog>
+        <DialogTrigger
+          aria-label={t("outbox.details")}
+          render={
+            <Button
+              className="-mr-2 size-11 shrink-0 rounded-full md:size-7"
+              size="icon-sm"
+              variant="ghost"
+            />
+          }
+        >
+          <Info aria-hidden />
+        </DialogTrigger>
+        <DialogContent closeLabel={t("common.close")}>
+          <DialogHeader>
+            <DialogTitle>{t("outbox.details")}</DialogTitle>
+          </DialogHeader>
+          <p>{label}</p>
+          <p className="text-muted-foreground">{sent}</p>
+          <p className="text-muted-foreground">{fresh}</p>
+        </DialogContent>
+      </Dialog>
       {waiting ? (
         <Link
           className="font-medium underline underline-offset-2"

@@ -29,6 +29,7 @@ import {
 } from "@/components/animal/money-papers-tab";
 import { OverviewTab } from "@/components/animal/overview-tab";
 import { WeightMovesTab } from "@/components/animal/weight-moves-tab";
+import { DataFreshness } from "@/components/data-freshness";
 import { BackLink, EmptyState, Page } from "@/components/page";
 import type { PageTab } from "@/components/page-kit";
 import { PageTabs } from "@/components/page-kit";
@@ -66,7 +67,7 @@ const AnimalPage = () => {
   );
   const powers = useAnimalPowers(animal.data);
 
-  if (animal.isError) {
+  if (animal.isError && !animal.data) {
     return (
       <Page>
         <EmptyState
@@ -141,7 +142,10 @@ const AnimalPage = () => {
     <Page>
       <BackLink to="/animals">{t("nav.animals")}</BackLink>
 
-      <AnimalProfile detail={detail} onAct={setAct} powers={powers} />
+      <div className="flex flex-col gap-3">
+        <AnimalProfile detail={detail} onAct={setAct} powers={powers} />
+        <DataFreshness reads={[animal]} />
+      </div>
 
       <PageTabs
         onChange={(value) =>

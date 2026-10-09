@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 
+import { DataFreshness } from "@/components/data-freshness";
 import { AdultDeathsSection } from "@/components/home/adult-deaths";
 import { CalfLossesSection } from "@/components/home/calf-losses";
 import { HerdHealthSection } from "@/components/home/herd-health";
@@ -89,7 +90,7 @@ const ManagerHome = () => {
 
   // Cached first, error second. A phone with no signal has the farm as it last knew it,
   // and a screen that throws that away to show the word "error" has taken away the only
-  // thing it had — the sync status above already says how old it is.
+  // thing it had — the page keeps the time of its last answer beside its title.
   if (!home.data) {
     return (
       <Page>
@@ -163,6 +164,7 @@ const ManagerHome = () => {
       <PageHeader
         description={t("home.subtitle")}
         eyebrow={formatDate(new Date(), language, "date")}
+        freshness={<DataFreshness reads={[home, sheds]} />}
         title={t("nav.theDay")}
       />
 

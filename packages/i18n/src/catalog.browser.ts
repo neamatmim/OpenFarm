@@ -41,8 +41,13 @@ const FETCH: Record<
 const held = new Map<string, Promise<void>>();
 
 const fetchHalf = async (language: Language, part: CatalogPart) => {
-  const words = await FETCH[language][part]();
-  CATALOGS[language] = { ...CATALOGS[language], ...words };
+  try {
+    const words = await FETCH[language][part]();
+    CATALOGS[language] = { ...CATALOGS[language], ...words };
+  } catch (error) {
+    held.delete(`${language}:${part}`);
+    throw error;
+  }
 };
 
 /**
@@ -70,7 +75,7 @@ export const loadDeskWords = async (): Promise<void> => {
       try {
         await loadMessages(language, "desk");
       } catch {
-        held.delete(`${language}:desk`);
+        // The loader forgets failed downloads; the words already held stay readable.
       }
     })
   );

@@ -26,6 +26,7 @@ import { orpc } from "@/utils/orpc";
 /** The device's own note of the reader's language: the same name as the cookie the server reads it from. */
 const STORAGE_KEY = LANGUAGE_COOKIE;
 const STORAGE_EVENT = "openfarm:language";
+const DOWNLOAD_TOAST = "language-download";
 
 interface LanguageContextValue {
   language: Language;
@@ -98,12 +99,22 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const { data: session } = authClient.useSession();
   const stored = useSyncExternalStore(subscribeStored, readStored, () => null);
   const [chosen, setChosen] = useState<Language | null>(null);
+  const [wordAttempt, setWordAttempt] = useState(0);
+  const retryWords = useCallback(
+    () => setWordAttempt((attempt) => attempt + 1),
+    []
+  );
 
   const wanted: Language =
     chosen ??
     (session?.user
       ? resolveLanguage(session.user)
       : (stored ?? pageLanguage()));
+  // A retry of the same language is still a new request.
+  const wordRequest = useMemo(
+    () => ({ language: wanted, attempt: wordAttempt }),
+    [wanted, wordAttempt]
+  );
   // The page is drawn in the language whose words this browser has: one wanted but not yet fetched is drawn once it
   // is, rather than in its keys.
   const [shownLanguage, setShownLanguage] = useState<Language>(pageLanguage);
@@ -111,18 +122,38 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let current = true;
     const fetchItsWords = async () => {
-      // Both halves of the language: switching is a reader's own act, on whatever page they are on.
-      await loadMessages(wanted);
-      await loadDeskWords();
-      if (current) {
-        setShownLanguage(wanted);
+      // A switch needs both halves. The current language's optional desk words can wait for signal on a Shed Phone.
+      try {
+        await loadMessages(wordRequest.language);
+        await (wordRequest.language === shownLanguage
+          ? loadDeskWords()
+          : loadMessages(wordRequest.language, "desk"));
+        if (current) {
+          setShownLanguage(wordRequest.language);
+          toast.dismiss(DOWNLOAD_TOAST);
+        }
+      } catch {
+        if (current) {
+          toast.error(translate(shownLanguage, "language.loadFailed"), {
+            id: DOWNLOAD_TOAST,
+            action: {
+              label: translate(shownLanguage, "common.retry"),
+              onClick: retryWords,
+            },
+          });
+        }
       }
     };
     void fetchItsWords();
     return () => {
       current = false;
     };
-  }, [wanted]);
+  }, [wordRequest, shownLanguage, retryWords]);
+
+  useEffect(() => {
+    window.addEventListener("online", retryWords);
+    return () => window.removeEventListener("online", retryWords);
+  }, [retryWords]);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -137,16 +168,17 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const setLanguage = useCallback(
     async (next: Language) => {
       setChosen(next);
+      retryWords();
       writeStored(next);
       if (session?.user) {
         try {
           await orpc.language.set.call({ language: next });
         } catch {
-          toast.error(translate(next, "common.error"));
+          toast.error(translate(language, "common.error"));
         }
       }
     },
-    [session?.user]
+    [session?.user, language, retryWords]
   );
 
   const value = useMemo<LanguageContextValue>(
