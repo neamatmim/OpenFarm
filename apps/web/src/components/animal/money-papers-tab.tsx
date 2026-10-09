@@ -1,4 +1,4 @@
-import type { PaymentMethod } from "@OpenFarm/domain";
+import type { PaperDocument, PaymentMethod } from "@OpenFarm/domain";
 import { PAYMENT_METHODS, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -15,8 +15,6 @@ import {
 } from "@/components/correction-dialog";
 import { WhatSheCost } from "@/components/costs";
 import { Section } from "@/components/page";
-import type { PaperId } from "@/components/paper";
-import { Paper } from "@/components/paper";
 import type { AccountTyped } from "@/components/payment-method";
 import {
   FarmAccountField,
@@ -26,6 +24,7 @@ import { ReceivableOwed } from "@/components/receivable-fields";
 import { DairyReturnsPanel } from "@/components/returns/dairy-returns";
 import { SaleCorrection } from "@/components/sale-correction";
 import { useSalePapers } from "@/components/sale/sale-papers";
+import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import type { Answer, Answers } from "@/lib/correcting";
 import {
@@ -580,7 +579,7 @@ const HerSalePapers = ({
   onPaper,
 }: {
   saleId: string;
-  onPaper: (id: PaperId, text: string) => void;
+  onPaper: (document: PaperDocument) => void;
 }) => {
   const { t } = useLanguage();
   const { askReceipt, askCard, busy } = useSalePapers(onPaper);
@@ -622,20 +621,18 @@ const HerPapers = ({
   /** Her Sale, where she was sold and the reader may print its papers. */
   saleId: string | null;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const refused = useRefused();
-  const [paper, setPaper] = useState<{ id: PaperId; text: string } | null>(
-    null
-  );
+  const [paper, setPaper] = useState<PaperDocument | null>(null);
   const passport = useMutation(
     orpc.papers.passport.mutationOptions({
-      onSuccess: ({ text }) => setPaper({ id: "animal-passport", text }),
+      onSuccess: ({ document }) => setPaper(document),
       onError: refused,
     })
   );
   const summary = useMutation(
     orpc.papers.withdrawalSummary.mutationOptions({
-      onSuccess: ({ text }) => setPaper({ id: "withdrawal-summary", text }),
+      onSuccess: ({ document }) => setPaper(document),
       onError: refused,
     })
   );
@@ -669,14 +666,14 @@ const HerPapers = ({
           )}
           {t("papers.withdrawalSummary")}
         </Button>
-        {saleId ? (
-          <HerSalePapers
-            onPaper={(id, text) => setPaper({ id, text })}
-            saleId={saleId}
-          />
-        ) : null}
+        {saleId ? <HerSalePapers onPaper={setPaper} saleId={saleId} /> : null}
       </div>
-      {paper ? <Paper id={paper.id} text={paper.text} /> : null}
+      <PaperDialog
+        onClose={() => setPaper(null)}
+        paper={paper}
+        title={paper ? paper.title[language] : ""}
+        wording={null}
+      />
     </Section>
   );
 };

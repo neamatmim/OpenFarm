@@ -1,6 +1,6 @@
+import type { PaperDocument } from "@OpenFarm/domain";
 import { useMutation } from "@tanstack/react-query";
 
-import type { PaperId } from "@/components/paper";
 import { useRefused } from "@/lib/refused";
 import type { OwnWords } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
@@ -15,19 +15,19 @@ const PAPER_WORDS: OwnWords = {
  * day's list the morning she went or from her own page any day after. The paper comes back to whoever asked, to be
  * drawn where they are.
  */
-export const useSalePapers = (onPaper: (id: PaperId, text: string) => void) => {
+export const useSalePapers = (onPaper: (document: PaperDocument) => void) => {
   // The one refusal these papers have their own words for — a transport card the office can use needs the farm's
   // registration — and the farm's own words for every other.
   const onError = useRefused(PAPER_WORDS);
   const receipt = useMutation(
     orpc.papers.receipt.mutationOptions({
-      onSuccess: ({ text }) => onPaper("sale-receipt", text),
+      onSuccess: ({ document }) => onPaper(document),
       onError,
     })
   );
   const card = useMutation(
     orpc.papers.transportCard.mutationOptions({
-      onSuccess: ({ text }) => onPaper("transport-card", text),
+      onSuccess: ({ document }) => onPaper(document),
       onError,
     })
   );

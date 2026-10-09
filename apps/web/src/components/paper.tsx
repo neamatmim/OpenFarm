@@ -6,10 +6,6 @@ import { printAlone } from "@/lib/print-alone";
 
 /** The papers the farm prints as text, each by its own name on the page. */
 export type PaperId =
-  | "sale-receipt"
-  | "transport-card"
-  | "animal-passport"
-  | "withdrawal-summary"
   | "dls-letter"
   | "investor-joining-letter"
   | "investor-progress"

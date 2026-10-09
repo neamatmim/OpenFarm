@@ -1,9 +1,17 @@
+import type { PaperDocument } from "@OpenFarm/domain";
+import { paperText } from "@OpenFarm/domain";
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { PAID_FROM_THE_ACCOUNT, putCapitalIn } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
+
+/** A paper as its reader reads it: in Bangla unless English is asked for. */
+const read = (
+  paper: { document: PaperDocument },
+  language: "bn" | "en" = "bn"
+) => paperText(paper.document, language);
 
 /**
  * Receivable at the gate: a buyer who takes a bull or the milk and pays part of it, or none, now. Only what was paid is money
@@ -367,12 +375,11 @@ describe("the receipt", () => {
       priceMoney: 90_000,
     });
     const owner = await as("owner", "2048-03-14T07:00:00.000Z");
-    await owner.client.language.set({ language: "en" });
     const receipt = await owner.client.papers.receipt({ saleId: sold.id });
-    expect(receipt.text).toContain("Total: 190,000");
-    expect(receipt.text).toContain("Paid: 160,000");
-    expect(receipt.text).toContain("Still owed: 30,000");
-    expect(receipt.text).toMatch(/To be paid by: .*21/u);
+    expect(read(receipt, "en")).toContain("Total · 190,000 taka");
+    expect(read(receipt, "en")).toContain("Paid: 160,000 taka");
+    expect(read(receipt, "en")).toContain("Still owed: 30,000 taka");
+    expect(read(receipt, "en")).toMatch(/To be paid by: .*21/u);
   });
 
   it("says nothing of Receivable to a buyer who paid in full", async () => {
@@ -385,7 +392,7 @@ describe("the receipt", () => {
       priceMoney: 100_000,
     });
     const receipt = await manager.client.papers.receipt({ saleId: sold.id });
-    expect(receipt.text).not.toContain("Still owed");
+    expect(read(receipt, "en")).not.toContain("Still owed");
   });
 });
 

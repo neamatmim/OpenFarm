@@ -169,30 +169,18 @@ export {
   windowHasClosed,
 } from "./ready";
 export type {
-  AnimalPassport,
-  DoseGiven,
   HealthRegister,
   InspectorRegister,
-  PenSpellLine,
   PaperOrganization,
-  ShortenedHold,
-  SaleReceipt,
-  SoldAnimal,
   DocumentRow,
   Said,
-  TransportCard,
   Worded,
-  WithdrawalSummary,
 } from "./papers";
 export {
   INSPECTOR_REGISTERS,
-  animalPassport,
   NO_GUARANTEE,
   NO_GUARANTEE_LINES,
   inLanguage,
-  saleReceipt,
-  transportCard,
-  withdrawalSummary,
 } from "./papers";
 export type { NotifiableLetter } from "./letter";
 export { notifiableLetter } from "./letter";
@@ -1052,3 +1040,12 @@ export {
   registerDocument,
   registrationPaper,
 } from "./inspector-papers";
+export type {
+  DoseOnPaper,
+  PassportFacts,
+  WithdrawalStanding,
+  WithdrawalSummaryFacts,
+} from "./animal-papers";
+export { animalPassportPaper, withdrawalSummaryPaper } from "./animal-papers";
+export type { SaleReceiptFacts, TransportCardFacts } from "./sale-papers";
+export { saleReceiptPaper, transportCardPaper } from "./sale-papers";

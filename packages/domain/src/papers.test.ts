@@ -9,8 +9,6 @@ import {
   settlementStatementPaper,
 } from "./investor-statements";
 import { paperText } from "./paper-text";
-import type { SaleReceipt } from "./papers";
-import { saleReceipt } from "./papers";
 
 const FARM = {
   name: "সবুজ খামার",
@@ -299,45 +297,5 @@ describe("the অগ্রগতি read in either language", () => {
     expect(paperText(document, "bn")).toContain("এখনো কোনো পশু নেই");
     expect(paperText(document, "bn")).not.toContain("ট্যাগ · শুরুর ওজন");
     expect(paperText(document, "en")).toContain("None yet");
-  });
-});
-
-const receipt = (receivable: SaleReceipt["receivable"]): SaleReceipt => ({
-  farm: {
-    name: "সবুজ খামার",
-    address: "সাভার",
-    phone: "01711-000000",
-    registrationNumber: "DLS/SAV/1",
-    registrationOffice: null,
-    registrationIssuedOn: null,
-    registrationExpiresOn: null,
-  },
-  buyerName: "করিম ব্যাপারী",
-  buyerAddress: null,
-  buyerPhone: null,
-  day: "১৬ জুন",
-  animals: [{ tagNumber: "F-0012", weight: "৩৩০", price: "১,২০,০০০" }],
-  total: "১,২০,০০০",
-  receivable,
-  producedBy: "ম্যানেজার",
-  producedAt: "১৬ জুন",
-});
-
-// A trader who took a bull and still owes on it signs for what he owes: the paper is what the farm can hold him to.
-describe("the receipt of a buyer who still owes", () => {
-  it("says what he paid, what he owes and the day he promised, above his signature", () => {
-    const text = saleReceipt(
-      receipt({ paid: "১,০০,০০০", owed: "২০,০০০", toBePaidBy: "২৩ জুন" })
-    );
-    expect(text).toContain("পরিশোধ / Paid: ১,০০,০০০ টাকা");
-    expect(text).toContain("বাকি / Still owed: ২০,০০০ টাকা");
-    expect(text).toContain("পরিশোধের তারিখ / To be paid by: ২৩ জুন");
-    expect(text.indexOf("Still owed")).toBeLessThan(text.indexOf("Buyer: _"));
-  });
-
-  it("says nothing of it for a buyer who paid in full", () => {
-    const text = saleReceipt(receipt(null));
-    expect(text).not.toContain("Still owed");
-    expect(text).not.toContain("To be paid by");
   });
 });

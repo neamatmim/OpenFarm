@@ -1,5 +1,6 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
-import type { SopContent } from "@OpenFarm/domain";
+import type { PaperDocument, SopContent } from "@OpenFarm/domain";
+import { paperText } from "@OpenFarm/domain";
 import {
   FakeClock,
   scratchDb,
@@ -11,6 +12,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createTestClient } from "../test/client";
 import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
+
+/** A paper as its reader reads it: in Bangla unless English is asked for. */
+const read = (
+  paper: { document: PaperDocument },
+  language: "bn" | "en" = "bn"
+) => paperText(paper.document, language);
 
 // The passport and the withdrawal summary: everything the farm knows about one animal, for
 // whoever asks — a buyer before they buy, a slaughter vet afterwards.
@@ -185,14 +192,14 @@ describe("the passport and the withdrawal summary", () => {
       tagNumber: tagOf(0),
     });
     // What she is, where she came from, where she has stood, and what she has had.
-    expect(passport.text).toContain(tagOf(0));
-    expect(passport.text).toContain("শাহীওয়াল");
-    expect(passport.text).toContain(`হাট ${suffix}`);
-    expect(passport.text).toContain(`পেন ক ${suffix}`);
-    expect(passport.text).toContain(`পেন খ ${suffix}`);
-    expect(passport.text).toContain(`ক্ষুরারোগ টিকা ${suffix}`);
+    expect(read(passport)).toContain(tagOf(0));
+    expect(read(passport)).toContain("শাহীওয়াল");
+    expect(read(passport)).toContain(`হাট ${suffix}`);
+    expect(read(passport)).toContain(`পেন ক ${suffix}`);
+    expect(read(passport)).toContain(`পেন খ ${suffix}`);
+    expect(read(passport)).toContain(`ক্ষুরারোগ টিকা ${suffix}`);
     // And the farm that vouches for it.
-    expect(passport.text).toContain("খামার");
+    expect(read(passport)).toContain("খামার");
   });
 
   it("says she was bought and when she came, not when she was written down", async () => {
@@ -210,10 +217,10 @@ describe("the passport and the withdrawal summary", () => {
     const paper = await manager.client.papers.passport({
       tagNumber: late.tagNumber,
     });
-    expect(paper.text).toContain("bought from");
-    expect(paper.text).toContain(`দেরির হাট ${suffix}`);
+    expect(read(paper, "en")).toContain("Bought from");
+    expect(read(paper)).toContain(`দেরির হাট ${suffix}`);
     // The day the Intake says she came.
-    expect(paper.text).toContain("২০ জুন, ২০২৭");
+    expect(read(paper)).toContain("২০ জুন, ২০২৭");
 
     // An animal the farm wrote into its opening register was bought all the same, and her paper says so.
     const already = await manager.client.animals.register({
@@ -227,8 +234,8 @@ describe("the passport and the withdrawal summary", () => {
     const hers = await manager.client.papers.passport({
       tagNumber: already.tagNumber,
     });
-    expect(hers.text).toContain("কেনা / bought");
-    expect(hers.text).not.toContain("born here");
+    expect(read(hers)).toContain("উৎস: কেনা");
+    expect(read(hers)).not.toContain("খামারে জন্ম");
   });
 
   it("answers the sharp question: clear, or not clear, and until when", async () => {
@@ -239,7 +246,7 @@ describe("the passport and the withdrawal summary", () => {
     });
     expect(held.clear).toBe(false);
     expect(held.doses).toHaveLength(1);
-    expect(held.text).toContain("২৩ জুলাই");
+    expect(read(held)).toContain("২৩ জুলাই");
 
     // Twenty-one days later she is clear, and the paper says so.
     const after = await asManager("2027-07-24");
@@ -269,9 +276,9 @@ describe("the passport and the withdrawal summary", () => {
     const passport = await after.client.papers.passport({
       tagNumber: tagOf(0),
     });
-    expect(passport.text).toContain(tagOf(0));
+    expect(read(passport)).toContain(tagOf(0));
     // Where she went is part of what she is; who took her is not the next holder's business.
-    expect(passport.text).toContain("গাবতলী");
+    expect(read(passport)).toContain("গাবতলী");
 
     const summary = await after.client.papers.withdrawalSummary({
       tagNumber: tagOf(0),
@@ -299,15 +306,15 @@ describe("the passport and the withdrawal summary", () => {
     });
     // Clear — but the farm says on whose word, and what the doses alone would have held her to.
     expect(summary.clear).toBe(true);
-    expect(summary.text).toContain("ভেট অপেক্ষমাণ সময় কমিয়েছেন");
-    expect(summary.text).toContain("২৩ জুলাই");
-    expect(summary.text).toContain("টিকার ব্যাচ বদলেছে");
+    expect(read(summary)).toContain("ভেট অপেক্ষমাণ সময় কমিয়েছেন");
+    expect(read(summary)).toContain("২৩ জুলাই");
+    expect(read(summary)).toContain("টিকার ব্যাচ বদলেছে");
 
     // And her passport says it too, so the two papers cannot tell a buyer different things.
     const passport = await manager.client.papers.passport({
       tagNumber: tagOf(1),
     });
-    expect(passport.text).toContain("ভেট অপেক্ষমাণ সময় কমিয়েছেন");
+    expect(read(passport)).toContain("ভেট অপেক্ষমাণ সময় কমিয়েছেন");
   });
 
   it("is the Vet's to produce as well, and never a milker's", async () => {
@@ -355,10 +362,11 @@ describe("the passport and the withdrawal summary", () => {
     const passport = await after.client.papers.passport({
       tagNumber: tagOf(1),
     });
-    const lastPen = passport.text
+    const lastPen = read(passport)
       .split("\n")
       .find((line) => line.includes(`পেন খ ${suffix}`));
-    // A spell with an end, as a sold animal's has: a line ending on its dash would say she is in that Pen today.
-    expect(lastPen).toMatch(/ – \S/u);
+    // A spell with an end, as a sold animal's has: one still there would say she is in that Pen today.
+    expect(lastPen).not.toContain("এখনো আছে");
+    expect(lastPen?.split(" · ")).toHaveLength(3);
   });
 });
