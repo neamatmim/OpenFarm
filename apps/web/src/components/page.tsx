@@ -644,6 +644,35 @@ export const ProgressBar = ({
   />
 );
 
+/**
+ * One word in a row of them, pressed or not: the row wraps, so it holds as many words as the farm has — the words its
+ * rounds have used, the ways a Season opens out, the days of a week — and one pressed again lets go. A fixed handful
+ * that is always one choice, and fits on a line, is a SegmentedControl instead.
+ */
+export const Chip = ({
+  chosen,
+  label,
+  onChoose,
+}: {
+  chosen: boolean;
+  label: string;
+  onChoose: () => void;
+}) => (
+  <button
+    aria-pressed={chosen}
+    className={cn(
+      "focus-visible:ring-ring inline-flex h-11 items-center rounded-full border px-4 text-sm font-medium transition-colors duration-150 outline-none focus-visible:ring-2 md:h-8 md:px-3",
+      chosen
+        ? "border-primary bg-primary text-primary-foreground"
+        : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+    )}
+    onClick={onChoose}
+    type="button"
+  >
+    {label}
+  </button>
+);
+
 /** A handful of mutually exclusive choices side by side — real radio buttons, drawn as a segmented control. */
 export const SegmentedControl = <T extends string>({
   name,

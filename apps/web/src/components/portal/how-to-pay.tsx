@@ -4,7 +4,7 @@ import { translate } from "@OpenFarm/i18n";
 import { ShieldAlert } from "lucide-react";
 
 import { SaidDate } from "@/components/list-cells";
-import { Section } from "@/components/page";
+import { Notice, Section } from "@/components/page";
 import { useTheirRecord } from "@/components/portal/portal-source";
 import { VentureAccountDetails } from "@/components/ventures/venture-account-details";
 import { useLanguage } from "@/i18n/language-provider";
@@ -51,13 +51,9 @@ const TheWarning = ({
   // The other language's words are fetched before its line is shown: until then it would read as the English twice.
   const otherHeld = useWordsIn(other);
   return (
-    <div className="border-warning/35 bg-warning-surface/40 flex items-start gap-2 rounded-md border p-3 text-sm">
-      <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
-      <div className="flex flex-col gap-1">
-        <p className="font-medium">{said(language)}</p>
-        {otherHeld ? <p lang={other}>{said(other)}</p> : null}
-      </div>
-    </div>
+    <Notice icon={ShieldAlert} title={said(language)} tone="warning">
+      {otherHeld ? <p lang={other}>{said(other)}</p> : null}
+    </Notice>
   );
 };
 

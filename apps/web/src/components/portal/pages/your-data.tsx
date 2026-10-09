@@ -1,9 +1,13 @@
 import type { Language } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { Link } from "@tanstack/react-router";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
-import { EmptyState, SECTION_TITLE } from "@/components/page";
+import {
+  BackLink,
+  EmptyState,
+  PageHeader,
+  SECTION_TITLE,
+} from "@/components/page";
 import {
   usePortalPlaces,
   useTheNotice,
@@ -25,10 +29,7 @@ const TheNotice = ({
   language: Language;
 }) => (
   <article className="flex max-w-3xl flex-col gap-5" lang={language}>
-    <header className="flex flex-col gap-2">
-      <h1 className="text-2xl font-semibold text-balance">{notice.title}</h1>
-      <p className="text-muted-foreground">{notice.preamble}</p>
-    </header>
+    <PageHeader description={notice.preamble} title={notice.title} />
     {notice.parts.map((part) => (
       <section className="flex flex-col gap-2" key={part.heading}>
         <h2 className={SECTION_TITLE}>{part.heading}</h2>
@@ -93,14 +94,9 @@ export const YourData = () => {
   const { home } = usePortalPlaces();
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        className="text-muted-foreground hover:text-foreground flex w-fit items-center gap-1 text-sm"
-        params={home.link.params}
-        to={home.link.to}
-      >
-        <ArrowLeft aria-hidden className="size-4" />
+      <BackLink params={home.link.params} to={home.link.to}>
         {t("portal.yourData.back")}
-      </Link>
+      </BackLink>
       <WhatIsRead />
     </div>
   );

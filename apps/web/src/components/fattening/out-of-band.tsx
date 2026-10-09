@@ -7,7 +7,7 @@ import { useState } from "react";
 import type { PenChoice } from "@/components/animal/animal-types";
 import { MoveDialog } from "@/components/animal/move-dialog";
 import { bandSaid } from "@/components/feed/band-words";
-import { Section, StatusBadge } from "@/components/page";
+import { Section, StatusBadge, TagChip } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -98,7 +98,7 @@ const OutOfBandGroupLine = ({
               variant="outline"
             >
               <ArrowRightLeft aria-hidden data-icon="inline-start" />
-              <span className="font-mono">{row.tagNumber}</span>
+              <TagChip>{row.tagNumber}</TagChip>
               <span className="text-muted-foreground tabular-nums">
                 {t("intake.kg", { kg: formatNumber(row.weightKg, language) })}
               </span>

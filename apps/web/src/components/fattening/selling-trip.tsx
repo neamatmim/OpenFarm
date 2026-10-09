@@ -10,7 +10,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { CircleCheck } from "lucide-react";
 import { useState } from "react";
 
-import { Loaded, Section } from "@/components/page";
+import { Loaded, Section, TagChip } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
 import {
@@ -84,7 +84,7 @@ const BeastTile = ({
         id={`took-${one.tagNumber}`}
         onCheckedChange={onTaken}
       />
-      <span className="font-mono text-xs font-medium">{one.tagNumber}</span>
+      <TagChip>{one.tagNumber}</TagChip>
       {one.ready ? (
         <span className="text-success ms-auto flex">
           <CircleCheck aria-hidden className="size-3.5" />

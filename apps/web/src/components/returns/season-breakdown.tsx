@@ -11,14 +11,13 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { bandSaid } from "@/components/feed/band-words";
-import { EmptyState } from "@/components/page";
+import { Chip, EmptyState, Notice } from "@/components/page";
 import {
   CAME_WORD,
   JOINED_WORD,
   LEFT_WORD,
   ShareSaid,
 } from "@/components/returns/return-words";
-import { Chip } from "@/components/saw-filter";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { useMoney } from "@/lib/money";
@@ -242,9 +241,10 @@ export const SeasonBreakdown = ({ seasonKey }: { seasonKey: string }) => {
         ))}
       </div>
       {by !== null && opened.error ? (
-        <p className="text-danger text-sm">
-          {wordedRefusal(opened.error, t) ?? t("returns.breakdownFailed")}
-        </p>
+        <Notice
+          title={wordedRefusal(opened.error, t) ?? t("returns.breakdownFailed")}
+          tone="danger"
+        />
       ) : null}
       {by !== null && opened.data ? (
         <>
@@ -299,9 +299,10 @@ export const AcrossSeasons = () => {
         ))}
       </div>
       {by !== null && opened.error ? (
-        <p className="text-danger text-sm">
-          {wordedRefusal(opened.error, t) ?? t("returns.breakdownFailed")}
-        </p>
+        <Notice
+          title={wordedRefusal(opened.error, t) ?? t("returns.breakdownFailed")}
+          tone="danger"
+        />
       ) : null}
       {by !== null && opened.data ? (
         <>
