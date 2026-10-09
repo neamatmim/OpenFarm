@@ -780,7 +780,7 @@ export const ownersOverTime = async (
 };
 
 /** The last day a month has, as the farm writes a day. */
-const lastDayOf = (month: string) => {
+export const lastDayOf = (month: string) => {
   const { until } = monthOf(startOfFarmDay(`${month}-01`));
   return farmDayOf(new Date(until.getTime() - 1));
 };

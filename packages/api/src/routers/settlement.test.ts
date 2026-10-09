@@ -65,6 +65,18 @@ const intakeIds: string[] = [];
 const theSettlement = async (owner: Owner, which = ventureId) =>
   await owner.client.ventures.settlement.get({ ventureId: which });
 
+/** One of a Venture month's charge lines, by the Settlement's word for it. */
+const lineOf = (
+  one: {
+    charges: readonly {
+      line: string;
+      monthMoney: number;
+      toEndMoney: number;
+    }[];
+  },
+  word: string
+) => one.charges.find((charge) => charge.line === word);
+
 const wordsOf = (blocks: readonly { word: string }[]) =>
   blocks.map((one) => one.word);
 
@@ -369,6 +381,169 @@ describe("what a Settlement is", () => {
     // that through would promise the Investors money the account still has to part with.
     expect(wordsOf(settlement.blocks)).toEqual(["a_reimbursement_is_owed"]);
     expect(settlement.blocks[0]).toMatchObject({ months: ["2047-03"] });
+  });
+
+  it("tells each month of the run, and the run to March's end is the Settlement's charges to the taka", async () => {
+    const owner = await as("owner", "2047-03-25T04:00:00.000Z");
+    const month = (which: string) =>
+      owner.client.ventures.month({ ventureId, month: which });
+    const settlement = await theSettlement(owner);
+    const [january, february, march] = await Promise.all([
+      month("2047-01"),
+      month("2047-02"),
+      month("2047-03"),
+    ]);
+
+    // January: both bulls bought for 160,000, the outing's 5,000, and 1,000 kg fed at 40 a kilo.
+    expect(lineOf(january, "bought")?.monthMoney).toBe(160_000);
+    expect(lineOf(january, "trips")?.monthMoney).toBe(5000);
+    expect(lineOf(january, "feed")?.monthMoney).toBe(40_000);
+    // February: nothing eaten. March: 100 kg.
+    expect(february.charges.every((one) => one.monthMoney === 0)).toBe(true);
+    expect(lineOf(march, "feed")?.monthMoney).toBe(4000);
+    // To March's end, line for line, what the Settlement charges the run.
+    for (const one of settlement.charges) {
+      expect(lineOf(march, one.word)?.toEndMoney).toBe(one.amount);
+    }
+    // And the three months, line for line, add up to the same.
+    for (const one of settlement.charges) {
+      const summed = [january, february, march].reduce(
+        (sum, each) => sum + (lineOf(each, one.word)?.monthMoney ?? 0),
+        0
+      );
+      expect(summed).toBeCloseTo(one.amount, 2);
+    }
+  });
+
+  it("follows the account from each month's end to the next, beside the Bank Check read against it", async () => {
+    const owner = await as("owner", "2047-03-25T04:00:00.000Z");
+    const month = (which: string) =>
+      owner.client.ventures.month({ ventureId, month: which });
+
+    const january = await month("2047-01");
+    expect(january.account).toMatchObject({
+      openingMoney: 0,
+      closingMoney: 800_000,
+      bankCheck: { readMoney: 800_000, matched: true, stale: false },
+    });
+    // February: the Float's 35,000 home and the Owner's 50,000 advance in, January's 40,000 of feed repaid out.
+    const february = await month("2047-02");
+    expect(february.account.openingMoney).toBe(800_000);
+    expect(february.account.closingMoney).toBe(845_000);
+    const moved = (kind: string) =>
+      february.account.moved.find((one) => one.kind === kind);
+    expect(moved("float_back")).toMatchObject({
+      direction: "in",
+      amountMoney: 35_000,
+    });
+    expect(moved("advance")).toMatchObject({
+      direction: "in",
+      amountMoney: 50_000,
+    });
+    expect(moved("reimbursement")).toMatchObject({
+      direction: "out",
+      amountMoney: 40_000,
+    });
+    // January's feed, repaid in February: owed nothing more.
+    expect(january.reimbursement).toMatchObject({
+      comesToMoney: 40_000,
+      paidMoney: 40_000,
+      stillOwedMoney: 0,
+    });
+    // March: both bulls' money in, and no Bank Check read for it yet.
+    const march = await month("2047-03");
+    expect(march.account.closingMoney).toBe(1_250_005);
+    expect(march.account.bankCheck).toBeNull();
+    // Each month's movements, in and out, carry its opening to its closing.
+    for (const one of [january, february, march]) {
+      const net = one.account.moved.reduce(
+        (sum, moving) =>
+          sum + (moving.direction === "in" ? 1 : -1) * moving.amountMoney,
+        0
+      );
+      expect(one.account.openingMoney + net).toBeCloseTo(
+        one.account.closingMoney,
+        2
+      );
+    }
+  });
+
+  it("tells the herd as it stood, and each bull sold in it against what he cost the Venture", async () => {
+    const owner = await as("owner", "2047-03-25T04:00:00.000Z");
+
+    const january = await owner.client.ventures.month({
+      ventureId,
+      month: "2047-01",
+    });
+    expect(january.herd).toMatchObject({
+      atStart: 0,
+      atEnd: 2,
+      came: { bought: 2, boughtAcross: 0 },
+    });
+    const march = await owner.client.ventures.month({
+      ventureId,
+      month: "2047-03",
+    });
+    expect(march.herd).toMatchObject({
+      atStart: 2,
+      atEnd: 0,
+      went: { sold: 2, soldAcross: 0, died: 0, lost: 0 },
+    });
+    // Each cost 80,000, half the outing's 5,000 and half of 1,100 kg at 40: 104,500.
+    expect(
+      march.sold.map((one) => [
+        one.priceMoney,
+        one.costMoney,
+        one.lessCostMoney,
+      ])
+    ).toEqual([
+      [202_505, 104_500, 98_005],
+      [202_500, 104_500, 98_000],
+    ]);
+  });
+
+  it("reads its latest month when asked for none, a month before it opened as nothing, and refuses a month to come and anybody but the Owner", async () => {
+    const owner = await as("owner", "2047-03-25T04:00:00.000Z");
+    const latest = await owner.client.ventures.month({ ventureId });
+    expect(latest.month).toBe("2047-03");
+    expect(latest.months).toEqual(["2047-03", "2047-02", "2047-01"]);
+
+    const before = await owner.client.ventures.month({
+      ventureId,
+      month: "2046-12",
+    });
+    expect(before.herd).toMatchObject({ atStart: 0, atEnd: 0 });
+    expect(before.account).toMatchObject({
+      openingMoney: 0,
+      moved: [],
+      closingMoney: 0,
+    });
+    await expect(
+      owner.client.ventures.month({ ventureId, month: "2047-04" })
+    ).rejects.toMatchObject({ data: { refusal: "month_not_begun" } });
+    const manager = await as("manager", "2047-03-25T04:00:00.000Z");
+    await expect(
+      manager.client.ventures.month({ ventureId, month: "2047-03" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("tells a month of a Venture still gathering its capital as money alone: no animals, no charges", async () => {
+    const owner = await as("owner", "2047-03-25T04:00:00.000Z");
+    const gathering = await owner.client.ventures.open({
+      name: `জমা হচ্ছে ${suffix}`,
+      ...plan,
+    });
+
+    const march = await owner.client.ventures.month({
+      ventureId: gathering.id,
+      month: "2047-03",
+    });
+
+    expect(march.herd).toMatchObject({ atStart: 0, atEnd: 0, notWeighed: [] });
+    expect(march.charges.every((one) => one.monthMoney === 0)).toBe(true);
+    expect(march.sold).toEqual([]);
+    expect(march.account).toMatchObject({ openingMoney: 0, closingMoney: 0 });
+    expect(march.months).toEqual(["2047-03"]);
   });
 
   it("adds up exactly once nothing at all is owed", async () => {

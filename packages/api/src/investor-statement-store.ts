@@ -301,7 +301,12 @@ const meanMoney = (values: number[]) =>
     : roundMoney(values.reduce((sum, one) => sum + one, 0) / values.length);
 
 /** The charge words that are the Running Budget's: what the animals cost while they stand here. */
-const KEEPING_THEM = new Set<ChargeWord>(["feed", "medicine", "vet", "herd"]);
+export const KEEPING_THEM = new Set<ChargeWord>([
+  "feed",
+  "medicine",
+  "vet",
+  "herd",
+]);
 
 /**
  * Where a Venture's money has gone so far, and what is left of each budget.

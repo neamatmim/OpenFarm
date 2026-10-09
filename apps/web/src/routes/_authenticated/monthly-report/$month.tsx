@@ -87,7 +87,7 @@ const TheMonth = ({ one }: { one: OneMonth }) => {
       </Section>
       <LeftOut figures={one.figures} />
       <Section title={t("months.one.venturesTitle")}>
-        <VenturesThatRan ventures={one.ventures} />
+        <VenturesThatRan month={one.month} ventures={one.ventures} />
       </Section>
     </>
   );

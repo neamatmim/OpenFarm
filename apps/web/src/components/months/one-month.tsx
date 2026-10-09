@@ -276,12 +276,15 @@ export const LeftOut = ({ figures }: { figures: Figures }) => {
   );
 };
 
-/** That each Venture keeps its own accounts, said whether or not any ran; and the ones that ran in the month, a link
- *  to each. */
+/** That each Venture keeps its own accounts, said whether or not any ran; and the ones that ran in the month, each a
+ *  link to its own month. */
 export const VenturesThatRan = ({
   ventures,
+  month,
 }: {
   ventures: OneMonth["ventures"];
+  /** The month they ran in, which each link opens. */
+  month: string;
 }) => {
   const { t } = useLanguage();
   return (
@@ -296,8 +299,8 @@ export const VenturesThatRan = ({
             <li key={venture.id}>
               <Link
                 className="underline-offset-4 hover:underline"
-                params={{ ventureId: venture.id }}
-                to="/ventures/$ventureId"
+                params={{ ventureId: venture.id, month }}
+                to="/ventures/$ventureId/months/$month"
               >
                 {venture.name}
               </Link>

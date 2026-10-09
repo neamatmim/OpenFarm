@@ -39,6 +39,7 @@ import {
 } from "../../roles";
 import { actOnVenture, assertNotSettledUp, ours } from "../../venture-act";
 import { theirProgress } from "../../venture-herd-store";
+import { ventureMonth } from "../../venture-month-store";
 import type { VentureRow } from "../../venture-store";
 import {
   balanceAtMonthEnd,
@@ -165,6 +166,26 @@ const idOfTheMonth = (farmId: string, ventureId: string, month: string) =>
   `${farmId}:${ventureId}:${month}`;
 
 export const booksProcedures = {
+  /**
+   * One month of one Venture (`ventureMonth`), named "YYYY-MM": the month beside the run to its end — its animals, its
+   * charges by the Settlement's own lines, its account and Bank Check, the Reimbursement it owes, each animal sold
+   * against her cost, its plan to date and its Monthly Sums; asked for none, its latest. Refused for a month to come, or
+   * one after its run ended. The Owner's alone, as a Venture's money is.
+   */
+  month: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string(), month: monthInput.optional() }))
+    .handler(({ context, input }) =>
+      ventureMonth(
+        context.db,
+        context.farm,
+        input.ventureId,
+        input.month,
+        context.clock.now()
+      )
+    ),
+
   /**
    * What the farm thinks a Venture Account held at a month's end, so the Owner has something to hold the
    * bank's statement against before she writes anything down.
