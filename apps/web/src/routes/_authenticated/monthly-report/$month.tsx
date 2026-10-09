@@ -3,6 +3,7 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 import {
+  TheMonthAsCsv,
   LeftOut,
   MoneyBy,
   MonthPart,
@@ -115,7 +116,12 @@ const MonthPage = () => {
       <PageHeader
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            {one.data ? <PrintTheMonth month={month} /> : null}
+            {one.data ? (
+              <>
+                <PrintTheMonth month={month} />
+                <TheMonthAsCsv month={month} />
+              </>
+            ) : null}
             <MonthPicker
               chosen={month}
               months={one.data?.monthsKept ?? []}

@@ -649,3 +649,110 @@ describe("one month of the farm on paper", () => {
     }
   });
 });
+
+describe("one month of the farm as a CSV", () => {
+  it("is a row a figure, Bangla bare and English beside it as the accountant's own file, its figures numbers", async () => {
+    const { client: owner } = await as("owner");
+
+    const { csv } = await owner.monthlyReport.monthCsv({ month: "2044-03" });
+
+    // After the mark that tells a spreadsheet the file is UTF-8, so the Bangla reads.
+    const [head, ...lines] = csv
+      .replace(/^\uFEFF/u, "")
+      .trim()
+      .split(/\r?\n/u);
+    expect(head).toBe("part,part_en,line,line_en,way,this_month,month_before");
+    expect(lines).toContain("খামারের টাকা,The farm's money,আয়,Money in,,89300,0");
+    expect(lines).toContain("দুগ্ধ,Dairy,লিটারে পাওয়া,Fetched a liter,,62,");
+  });
+
+  it("says each figure as the month's page does", async () => {
+    const { client: owner } = await as("owner");
+    const one = await owner.monthlyReport.month({ month: "2044-03" });
+
+    const { csv } = await owner.monthlyReport.monthCsv({ month: "2044-03" });
+
+    const lines = csv.split(/\r?\n/u);
+    const figure = (en: string) =>
+      lines.find((line) => line.split(",")[3] === en)?.split(",")[5];
+    expect(figure("Money in")).toBe(
+      String(Math.round(one.figures.money.inMoney))
+    );
+    expect(figure("Money out")).toBe(
+      String(Math.round(one.figures.money.outMoney))
+    );
+    expect(figure("Milk sold")).toBe(
+      String(Math.round(one.figures.dairy.milkSoldMoney))
+    );
+    expect(figure("Liters sold")).toBe(String(one.figures.dairy.litersSold));
+    expect(figure("Animals sold")).toBe(String(one.figures.fattening.sold));
+  });
+
+  it("is saved under a name stamped with the farm, the days it covers and when it was made", async () => {
+    const { client: owner } = await as("owner");
+
+    const { fileName } = await owner.monthlyReport.monthCsv({
+      month: "2044-03",
+    });
+
+    expect(fileName).toContain(`DLS-SAV-2044-${suffix}`);
+    expect(fileName).toContain("2044-03-20-1000");
+    expect(fileName).toContain("monthly-report-2044-03-01-2044-03-20");
+    expect(fileName).toMatch(/\.csv$/u);
+  });
+
+  it("is an Export on the trail, the format csv and the days it covers", async () => {
+    const { client: owner } = await as("owner");
+
+    await owner.monthlyReport.monthCsv({ month: "2044-03" });
+
+    const exports = await scratchDb().query.auditEvent.findMany({
+      where: { entity: "report", action: "export" },
+    });
+    expect(
+      exports
+        .map((one) => one.after as Record<string, unknown> | null)
+        .filter(
+          (after) =>
+            after?.report === "monthly_report" &&
+            after.registrationNumber === `DLS/SAV/2044/${suffix}`
+        )
+    ).toContainEqual(
+      expect.objectContaining({
+        format: "csv",
+        month: "2044-03",
+        from: "2044-03-01",
+        to: "2044-03-20",
+      })
+    );
+  });
+
+  it("is the Owner's alone", async () => {
+    const { client: manager } = await as("manager");
+    await expect(
+      manager.monthlyReport.monthCsv({ month: "2044-03" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("is refused while the farm's DLS registration number is not written down", async () => {
+    const db = scratchDb();
+    const { id } = theFarm();
+    await db
+      .update(farm)
+      .set({ registrationNumber: null })
+      .where(eq(farm.id, id));
+    try {
+      const { client: owner } = await as("owner");
+      await expect(
+        owner.monthlyReport.monthCsv({ month: "2044-03" })
+      ).rejects.toMatchObject({
+        data: { refusal: "farm_identity_incomplete" },
+      });
+    } finally {
+      await db
+        .update(farm)
+        .set({ registrationNumber: `DLS/SAV/2044/${suffix}` })
+        .where(eq(farm.id, id));
+    }
+  });
+});

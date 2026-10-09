@@ -12,7 +12,7 @@ import {
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Printer } from "lucide-react";
+import { FileSpreadsheet, Printer } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -23,6 +23,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { usePerHeadPerDay, useMoney, useMoneyRate } from "@/lib/money";
 import { saidMonth } from "@/lib/months";
 import { useRefused } from "@/lib/refused";
+import { saveCsv } from "@/lib/save-csv";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -346,5 +347,29 @@ export const PrintTheMonth = ({ month }: { month: string }) => {
         wording={null}
       />
     </>
+  );
+};
+
+/** The month as a CSV for the accountant, saved to this computer under the name the farm stamped it with; an Export as
+ *  the paper is. */
+export const TheMonthAsCsv = ({ month }: { month: string }) => {
+  const { t } = useLanguage();
+  const refused = useRefused(PAPER_REFUSALS);
+  const saving = useMutation(
+    orpc.monthlyReport.monthCsv.mutationOptions({
+      onError: refused,
+      onSuccess: ({ csv, fileName }) => saveCsv(fileName, csv),
+    })
+  );
+  return (
+    <Button
+      disabled={saving.isPending}
+      onClick={() => saving.mutate({ month })}
+      type="button"
+      variant="outline"
+    >
+      <FileSpreadsheet aria-hidden data-icon="inline-start" />
+      {t("months.one.csv")}
+    </Button>
   );
 };

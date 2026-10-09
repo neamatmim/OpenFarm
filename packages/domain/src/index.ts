@@ -1023,8 +1023,12 @@ export type {
 } from "./farm-parameters";
 export type { JoiningLetterFacts } from "./joining-letter";
 export { countSaid, joiningLetterPaper, moneySaid } from "./joining-letter";
-export type { MonthFigures, MonthlyReportFacts } from "./monthly-report-paper";
-export { monthlyReportPaper } from "./monthly-report-paper";
+export type {
+  MonthFigures,
+  MonthlyReportFacts,
+  MonthlyReportRow,
+} from "./monthly-report-paper";
+export { monthlyReportPaper, monthlyReportRows } from "./monthly-report-paper";
 export { paperText } from "./paper-text";
 export type {
   ChargeLine,
