@@ -5,12 +5,13 @@ import { animal } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
-import { paperText } from "@OpenFarm/domain";
+import { headsAt, herdBetween, paperText } from "@OpenFarm/domain";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { A_DEATH_PHOTO } from "../test/death-photo";
+import { ventureHoldingsOf } from "../venture-herd-store";
 import { whatSheLastWeighed } from "../venture-store";
 import { appRouter } from "./index";
 
@@ -969,5 +970,69 @@ describe("a Venture whose Target Window an Amendment moved", () => {
       ventureId: secondVenture,
     });
     expect(itsPlan.daysOnFeed).toBe(119);
+  });
+});
+
+describe("a Venture's herd as a past month tells it", () => {
+  /** February 2052 on the farm's clock, Asia/Dhaka. */
+  const FEBRUARY = {
+    from: new Date("2052-01-31T18:00:00.000Z"),
+    until: new Date("2052-02-29T18:00:00.000Z"),
+  };
+  const holdings = () =>
+    ventureHoldingsOf(scratchDb(), theFarm().id, firstVenture);
+
+  it("counts the heads it had at a moment: none before the lorry, all six, then one fewer as each went", async () => {
+    const herd = await holdings();
+
+    expect(headsAt(herd, new Date("2052-01-04T04:00:00.000Z"))).toBe(0);
+    expect(headsAt(herd, FEBRUARY.from)).toBe(6);
+    // Dead on the 5th, sold across on the 10th, to a buyer on the 18th.
+    expect(headsAt(herd, new Date("2052-02-06T00:00:00.000Z"))).toBe(5);
+    expect(headsAt(herd, new Date("2052-02-11T00:00:00.000Z"))).toBe(4);
+    expect(headsAt(herd, FEBRUARY.until)).toBe(3);
+  });
+
+  it("tells February as it stood: what came and went, the herd at its end, and who was not weighed in it", async () => {
+    const february = herdBetween(await holdings(), FEBRUARY);
+
+    expect(february).toMatchObject({
+      atStart: 6,
+      atEnd: 3,
+      came: { bought: 0, boughtAcross: 0 },
+      went: { sold: 1, soldAcross: 1, died: 1, lost: 0 },
+    });
+    // Standing at its end and weighed by then: the first at 228, the fifth at 221 — his doubted 400 read by nobody. The
+    // second, never weighed, is in neither.
+    expect(february.atEndKg).toEqual({ averageKg: 224.5, animals: 2 });
+    expect(february.weighed).toBe(5);
+    expect(february.notWeighed).toEqual([tags[1]]);
+  });
+
+  it("counts the six it bought in January, off the lorry", async () => {
+    const january = herdBetween(await holdings(), {
+      from: new Date("2051-12-31T18:00:00.000Z"),
+      until: FEBRUARY.from,
+    });
+
+    expect(january).toMatchObject({
+      atStart: 0,
+      atEnd: 6,
+      came: { bought: 6, boughtAcross: 0 },
+    });
+  });
+
+  it("counts the bull bought across on the Venture that bought him, from that day, his readings before it not theirs", async () => {
+    const theirs = await ventureHoldingsOf(
+      scratchDb(),
+      theFarm().id,
+      secondVenture
+    );
+
+    const february = herdBetween(theirs, FEBRUARY);
+    expect(february.came).toEqual({ bought: 0, boughtAcross: 1 });
+    // Weighed on 1 February under the first Venture, and not since: weighed by nobody while he was theirs.
+    expect(february.atEndKg).toBeNull();
+    expect(february.notWeighed).toEqual([tags[3]]);
   });
 });
