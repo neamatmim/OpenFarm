@@ -4,13 +4,16 @@ import { env } from "@OpenFarm/env/server";
 import { scratchDb } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
-// Sign-in is counted per address, so a script guessing passwords is stopped. The phones on a farm's Wi-Fi share
-// one address, though, and every screen they open asks whether they are still signed in: those questions are not
-// guesses, and counting them locked the whole shed out on a busy morning.
+// Sign-in is counted per account, so a script guessing one password is slowed whatever addresses it comes from, and
+// per address, so one spraying many accounts is stopped. The phones on a farm's Wi-Fi share one address, though:
+// every screen they open asks whether they are still signed in — those questions are not guesses, and counting them
+// locked the whole shed out on a busy morning — and the Owner, the Manager and the Vet mistyping on the same morning
+// must not lock each other out either.
 
 const auth = createAuth();
 const AUTH = `${env.BETTER_AUTH_URL}/api/auth`;
 const WRONG_PASSWORDS_ALLOWED = 5;
+const SIGN_INS_FROM_ONE_ADDRESS = 20;
 const A_BUSY_MINUTE_OF_SESSION_CHECKS = 110;
 
 /** A fresh address per test run: the counters live in the database, which every test file shares. */
@@ -42,10 +45,13 @@ describe("how often the farm's sign-in will answer one address", () => {
     expect(statuses.filter((status) => status === 429)).toHaveLength(0);
   });
 
-  it("still stops a sixth wrong password inside a minute", async () => {
+  it("takes the farm's own mistakes from one address, and still stops a script spraying accounts from it", async () => {
     const guesser = anAddress();
-    const statuses = await statusesOf(WRONG_PASSWORDS_ALLOWED + 1, () =>
-      auth.handler(
+    // A different account each time: the same one would be slowed by its own count long before the address is.
+    let tried = 0;
+    const statuses = await statusesOf(SIGN_INS_FROM_ONE_ADDRESS + 1, () => {
+      tried += 1;
+      return auth.handler(
         new Request(`${AUTH}/sign-in/email`, {
           method: "POST",
           headers: {
@@ -54,13 +60,16 @@ describe("how often the farm's sign-in will answer one address", () => {
             "x-forwarded-for": guesser,
           },
           body: JSON.stringify({
-            email: "nobody@test.openfarm",
+            email: `nobody-${tried}@test.openfarm`,
             password: "not-the-password-at-all",
           }),
         })
-      )
-    );
-    expect(statuses).toEqual([401, 401, 401, 401, 401, 429]);
+      );
+    });
+    expect(statuses).toEqual([
+      ...Array.from({ length: SIGN_INS_FROM_ONE_ADDRESS }, () => 401),
+      429,
+    ]);
   });
 });
 
