@@ -2067,8 +2067,11 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "dispatch.from": "থেকে",
   "dispatch.to": "পর্যন্ত",
   "dispatch.recordPaper": "দুধ হস্তান্তরের রেকর্ড",
-  "dispatch.recordCsv": "দুধ হস্তান্তরের রেকর্ড (CSV)",
-  "dispatch.productionCsv": "দুধ উৎপাদন (CSV)",
+  "dispatch.recordHint":
+    "প্রতিটি হস্তান্তর, ক্রেতার নাম-ঠিকানা আর চালান সহ: প্রসেসর বা বিএফএসএ যা চায়।",
+  "dispatch.production": "দুধ উৎপাদন",
+  "dispatch.productionHint":
+    "দিন, বেলা, পেন আর গন্তব্য অনুযায়ী লিটার, উইথড্রয়ালে ফেলে দেওয়া দুধ আলাদা, আপনার নিজের স্প্রেডশিটের জন্য।",
   "dispatch.recordAction": "দুধ দেওয়া রেকর্ড করুন",
   "dispatch.sheetDescription":
     "ট্যাংকের দুধ ক্রেতাকে দেওয়া। দাম {currencyOf} হিসাবে যায়।",
@@ -2079,8 +2082,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "dispatch.tab.mismatches": "ট্যাংকের হিসাব মেলেনি",
   "dispatch.kpi.handedOverHint": "{count}টি হস্তান্তর · {currencySign}{amount}",
   "dispatch.kpi.mismatchesHint": "আপনার দেখার অপেক্ষায়",
-  "dispatch.reportsHint":
-    "তারিখ বেছে নিন, তারপর প্রসেসর বা বিএফএসএ যে হস্তান্তরের রেকর্ড চায় তা প্রিন্ট করুন, বা হিসাব CSV ফাইলে রাখুন।",
+  "dispatch.reportsHint": "তারিখ বেছে নিন; নিচের প্রতিটি রেকর্ড সেই সময়ের।",
   "refusal.dispatchedInTheFuture": "দুধ এখনের পরে যেতে পারে না",
   "refusal.periodTooLong":
     "একটি রেকর্ডে দুই বছরের বেশি থাকে না: খামারের সবচেয়ে লম্বা বছরও এর মধ্যে",
@@ -2356,9 +2358,13 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "costs.soldInPeriod": "এই সময়ে বিক্রি হওয়া মোটাতাজা পশু, প্রত্যেকের পুরো সময়ের হিসাব",
   "accountant.title": "হিসাবরক্ষকের জন্য",
   "accountant.summary": "আয় ও ব্যয়",
-  "accountant.csv": "সব {currencyOf} হিসাব (CSV)",
-  "accountant.hint":
-    "ওপরে বেছে নেওয়া সময়ের জন্য: প্রিন্ট করার আয়-ব্যয়ের হিসাব, আর হিসাবরক্ষকের খাতার জন্য সব {currencyOf} হিসাব CSV ফাইলে।",
+  "accountant.csv": "সব {currencyOf} হিসাব",
+  "accountant.hint": "ওপরে বেছে নেওয়া সময়ের, হিসাবরক্ষকের খাতার জন্য।",
+  "accountant.summaryHint":
+    "খাত, লেনদেনকারী ও বিভাগ অনুযায়ী আয় আর ব্যয়, আর সময়কালের শেষে খামারের পাওনা, খামারের প্যাডে প্রিন্ট বা PDF করার জন্য।",
+  "accountant.csvHint":
+    "প্রতিটি {currencyOf} হিসাব এক সারিতে, পেছনের রেকর্ড, বিভাগ, অ্যাকাউন্ট আর অনুমোদন হয়েছে কি না সহ, হিসাবরক্ষকের স্প্রেডশিটের জন্য।",
+  "exports.csv": "CSV ডাউনলোড",
   "costs.bySideHint":
     "ওপরে বেছে নেওয়া সময়ে প্রতিটি দিকের পশুর খাদ্য, ওষুধ আর ভেট ভিজিটের খরচ, আর সেই সময়ে বিক্রি হওয়া মোটাতাজা পশু।",
   "work.wholeFarm": "পুরো খামার",

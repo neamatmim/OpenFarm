@@ -2250,8 +2250,11 @@ export const enCore = {
   "dispatch.from": "From",
   "dispatch.to": "To",
   "dispatch.recordPaper": "Dispatch record",
-  "dispatch.recordCsv": "Dispatch record (CSV)",
-  "dispatch.productionCsv": "Production (CSV)",
+  "dispatch.recordHint":
+    "Every dispatch with the buyer's name and address and the delivery note: what a processor or BFSA asks for.",
+  "dispatch.production": "Milk production",
+  "dispatch.productionHint":
+    "Liters by day, session, pen and destination, with milk poured away under a withdrawal shown apart, for your own spreadsheet.",
   "dispatch.recordAction": "Record milk handed over",
   "dispatch.sheetDescription":
     "Milk from the tank handed to a buyer. Its price goes to the money register.",
@@ -2263,8 +2266,7 @@ export const enCore = {
   "dispatch.kpi.handedOverHint":
     "{count, plural, one {# dispatch} other {# dispatches}} · {currencySign}{amount}",
   "dispatch.kpi.mismatchesHint": "Waiting for you to look",
-  "dispatch.reportsHint":
-    "Choose the dates, then print the dispatch record a processor or BFSA asks for, or save the figures as a CSV.",
+  "dispatch.reportsHint": "Choose the dates; each record below covers them.",
   "refusal.dispatchedInTheFuture": "Milk cannot have left later than now",
   "refusal.periodTooLong":
     "One report covers two years at most: the longest year the farm can have",
@@ -2554,9 +2556,13 @@ export const enCore = {
     "Fattening animals sold in this period, each over her whole life",
   "accountant.title": "For the accountant",
   "accountant.summary": "Income and expense",
-  "accountant.csv": "Every money event (CSV)",
-  "accountant.hint":
-    "For the period chosen above: the income and expense to print, and every money event as a CSV for the accountant's books.",
+  "accountant.csv": "Every money event",
+  "accountant.hint": "For the period chosen above, for the accountant's books.",
+  "accountant.summaryHint":
+    "Income against expense by category, counterparty and side, and who owed the farm at the period's end, on the farm's letterhead to print or save as a PDF.",
+  "accountant.csvHint":
+    "One row to each money event, with the record behind it, its side and account, and whether it is approved, for the accountant's spreadsheet.",
+  "exports.csv": "Download CSV",
   "costs.bySideHint":
     "What each side's animals were fed, dosed and visited for in the period chosen above, and the fattening animals sold in it.",
   "work.wholeFarm": "The whole farm",

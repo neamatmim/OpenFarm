@@ -2,9 +2,11 @@ import type { PaperDocument } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
-import { FileDown, Printer } from "lucide-react";
+import { FileDown, FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { useState } from "react";
 
+import { ExportList, ExportRow } from "@/components/exports";
+import { Section } from "@/components/page";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -40,37 +42,48 @@ export const AccountantExport = ({
   );
   return (
     <>
-      <div className="surface flex flex-col gap-4 p-4 md:p-5">
-        <p className="text-muted-foreground text-sm">{t("accountant.hint")}</p>
-        <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:flex-wrap">
-          <Button
-            disabled={summary.isPending}
-            onClick={() => summary.mutate({ from, to, format: "paper" })}
-            type="button"
-            variant="outline"
+      <Section description={t("accountant.hint")} title={t("accountant.title")}>
+        <ExportList>
+          <ExportRow
+            description={t("accountant.summaryHint")}
+            icon={FileText}
+            title={t("accountant.summary")}
           >
-            {summary.isPending ? (
-              <Spinner />
-            ) : (
-              <Printer aria-hidden data-icon="inline-start" />
-            )}
-            {t("accountant.summary")}
-          </Button>
-          <Button
-            disabled={sheet.isPending}
-            onClick={() => sheet.mutate({ from, to, format: "csv" })}
-            type="button"
-            variant="outline"
+            <Button
+              disabled={summary.isPending}
+              onClick={() => summary.mutate({ from, to, format: "paper" })}
+              type="button"
+              variant="outline"
+            >
+              {summary.isPending ? (
+                <Spinner />
+              ) : (
+                <Printer aria-hidden data-icon="inline-start" />
+              )}
+              {t("common.print")}
+            </Button>
+          </ExportRow>
+          <ExportRow
+            description={t("accountant.csvHint")}
+            icon={FileSpreadsheet}
+            title={t("accountant.csv")}
           >
-            {sheet.isPending ? (
-              <Spinner />
-            ) : (
-              <FileDown aria-hidden data-icon="inline-start" />
-            )}
-            {t("accountant.csv")}
-          </Button>
-        </div>
-      </div>
+            <Button
+              disabled={sheet.isPending}
+              onClick={() => sheet.mutate({ from, to, format: "csv" })}
+              type="button"
+              variant="outline"
+            >
+              {sheet.isPending ? (
+                <Spinner />
+              ) : (
+                <FileDown aria-hidden data-icon="inline-start" />
+              )}
+              {t("exports.csv")}
+            </Button>
+          </ExportRow>
+        </ExportList>
+      </Section>
       <PaperDialog
         onClose={() => setPaper(null)}
         paper={paper}
