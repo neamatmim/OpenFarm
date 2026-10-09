@@ -14,7 +14,12 @@ import {
 } from "@/components/fattening/window-choice";
 import type { WindowPick } from "@/components/fattening/window-choice";
 import { Notice } from "@/components/page";
-import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import {
+  FormField,
+  FormSheet,
+  NativeSelect,
+  WorkedOut,
+} from "@/components/page-kit";
 import { FarmAccountField } from "@/components/payment-method";
 import type { PickerOption } from "@/components/searchable-picker";
 import { SearchablePicker } from "@/components/searchable-picker";
@@ -299,12 +304,12 @@ export const InternalSaleSheet = ({
         </FormField>
       </div>
       {weightKg === 0 ? null : (
-        <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
+        <WorkedOut>
           {t("ventures.priceFromWeight", {
             weight: formatNumber(weightKg, language),
             price: formatNumber(priceMoney, language),
           })}
-        </p>
+        </WorkedOut>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
         <FarmAccountField

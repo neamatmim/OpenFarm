@@ -12,6 +12,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Notice } from "@/components/page";
+import { InsetPanel } from "@/components/page-kit";
 import { useT } from "@/i18n/language-provider";
 
 /** How long "copied" stays on the button before it offers to copy again. */
@@ -32,7 +33,7 @@ const CodeBox = ({ code }: { code: string }) => {
     }
   };
   return (
-    <div className="bg-muted/60 flex flex-col items-center gap-3 rounded-xl border p-4 sm:flex-row sm:justify-between">
+    <InsetPanel className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
       <output
         aria-live="polite"
         className="font-mono text-3xl font-semibold tracking-[0.25em] break-all tabular-nums select-all"
@@ -52,7 +53,7 @@ const CodeBox = ({ code }: { code: string }) => {
         )}
         {copied ? t("people.copied") : t("people.copy")}
       </Button>
-    </div>
+    </InsetPanel>
   );
 };
 

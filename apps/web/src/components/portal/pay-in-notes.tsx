@@ -18,6 +18,7 @@ import {
   ConfirmDialog,
   FormField,
   FormSheet,
+  InsetPanel,
   NativeSelect,
 } from "@/components/page-kit";
 import { PhotoField } from "@/components/photo-field";
@@ -359,7 +360,7 @@ const NoteCard = ({
   );
   const waiting = note.state === "waiting";
   return (
-    <li className="flex flex-col gap-2 rounded-lg border p-3">
+    <InsetPanel as="li" className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-medium tabular-nums">
           {t("portal.payIn.said", {
@@ -420,7 +421,7 @@ const NoteCard = ({
         pending={withdraw.isPending}
         title={t("portal.payIn.withdrawTitle")}
       />
-    </li>
+    </InsetPanel>
   );
 };
 

@@ -4,7 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
-import { FormField, FormSheet } from "@/components/page-kit";
+import { FormField, FormSheet, InsetPanel } from "@/components/page-kit";
 import { FarmAccountField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
@@ -137,10 +137,7 @@ export const CallOffSheet = ({
         </p>
       ) : (
         took.map((one) => (
-          <div
-            className="flex flex-col gap-3 rounded-lg border p-3"
-            key={one.id}
-          >
+          <InsetPanel className="flex flex-col gap-3" key={one.id}>
             <p className="text-sm font-medium">
               {`${nameOf(one.investorId)} · ${asMoney(one.amountMoney)} · ${one.reference}`}
             </p>
@@ -172,7 +169,7 @@ export const CallOffSheet = ({
                 />
               </FormField>
             </div>
-          </div>
+          </InsetPanel>
         ))
       )}
     </FormSheet>

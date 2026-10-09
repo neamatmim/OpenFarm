@@ -18,6 +18,7 @@ import {
   StatusBadge,
   SECTION_TITLE,
 } from "@/components/page";
+import { InsetPanel } from "@/components/page-kit";
 import { Gaps } from "@/components/returns/gaps";
 import type {
   BankRateSaid,
@@ -200,7 +201,7 @@ const VentureExtras = ({
       ) : null}
       <SinceSettlement amount={venture.sinceSettlementMoney} />
       {venture.returnOnCapital ? (
-        <div className="bg-muted/50 flex flex-col gap-1 rounded-md p-3">
+        <InsetPanel className="flex flex-col gap-1">
           <p className="text-sm font-medium">{t("returns.capitalTitle")}</p>
           <ReturnLines
             bank={venture.capitalBankRate}
@@ -211,7 +212,7 @@ const VentureExtras = ({
           <p className="text-muted-foreground text-xs">
             {t("returns.capitalHint")}
           </p>
-        </div>
+        </InsetPanel>
       ) : null}
       {venture.farmsShareMoney === null ? null : (
         <p className="text-muted-foreground text-sm tabular-nums">

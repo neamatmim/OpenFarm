@@ -11,7 +11,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { SUBHEADING, Section } from "@/components/page";
-import { FormField, NativeSelect } from "@/components/page-kit";
+import { FormField, InsetPanel, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import type { DraftSection, Keyed } from "@/lib/template-draft";
 import { moved, newClause, newFactLine } from "@/lib/template-draft";
@@ -106,8 +106,9 @@ const SaidList = ({
             ? `${printedOn} · ${t("templates.signingClause")}`
             : printedOn;
           return (
-            <li
-              className="flex items-start gap-2 rounded-md border p-3"
+            <InsetPanel
+              as="li"
+              className="flex items-start gap-2"
               key={item.key}
             >
               <div className="min-w-0 flex-1">
@@ -132,7 +133,7 @@ const SaidList = ({
                 onMove={(by) => onChange(moved(items, index, by))}
                 onRemove={() => onChange(items.filter((_, at) => at !== index))}
               />
-            </li>
+            </InsetPanel>
           );
         })}
       </ol>
@@ -287,10 +288,7 @@ const FactsBody = ({
     <>
       <ol className="flex flex-col gap-3">
         {section.rows.map((line, index) => (
-          <li
-            className="flex items-start gap-2 rounded-md border p-3"
-            key={line.key}
-          >
+          <InsetPanel as="li" className="flex items-start gap-2" key={line.key}>
             <FactLineFields
               line={line}
               onChange={(next) => lineAt(index, next)}
@@ -311,7 +309,7 @@ const FactsBody = ({
                 })
               }
             />
-          </li>
+          </InsetPanel>
         ))}
       </ol>
       <Button

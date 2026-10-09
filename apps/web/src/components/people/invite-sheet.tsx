@@ -6,7 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { StatusBadge } from "@/components/page";
-import { FormField, FormSheet } from "@/components/page-kit";
+import { FormField, FormSheet, InsetPanel } from "@/components/page-kit";
 import { RoleChoice, roleKey, toggled } from "@/components/role-choice";
 import { useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -66,7 +66,7 @@ const ShedPhoneOnlyChoice = ({
 }) => {
   const t = useT();
   return (
-    <div className="bg-muted/40 flex flex-col gap-1 rounded-lg border p-3">
+    <InsetPanel className="flex flex-col gap-1">
       <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium md:min-h-8">
         <Checkbox
           checked={shedPhoneOnly}
@@ -77,7 +77,7 @@ const ShedPhoneOnlyChoice = ({
       <p className="text-muted-foreground text-sm">
         {t("people.shedPhoneOnlyHint")}
       </p>
-    </div>
+    </InsetPanel>
   );
 };
 
@@ -116,7 +116,7 @@ const VisitChoice = ({
 }) => {
   const t = useT();
   return (
-    <div className="bg-muted/40 flex flex-col gap-3 rounded-lg border p-3">
+    <InsetPanel className="flex flex-col gap-3">
       <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium md:min-h-8">
         <Checkbox
           checked={visiting}
@@ -140,7 +140,7 @@ const VisitChoice = ({
           />
         </FormField>
       ) : null}
-    </div>
+    </InsetPanel>
   );
 };
 

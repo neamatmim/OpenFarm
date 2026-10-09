@@ -84,7 +84,7 @@ const JoinPage = () => {
             </p>
           ) : null}
           <Button
-            className="mt-1 h-12 w-full text-base md:h-10"
+            className="mt-1 h-12 w-full text-base md:h-9 md:text-sm"
             disabled={accept.isPending}
             type="submit"
           >

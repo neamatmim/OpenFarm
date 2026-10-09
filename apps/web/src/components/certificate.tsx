@@ -1,9 +1,9 @@
 import { formatDate } from "@OpenFarm/i18n";
-import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Camera, ImageOff } from "lucide-react";
+import { ImageOff } from "lucide-react";
 
 import { Section, StatusBadge } from "@/components/page";
+import { UploadButton } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { photoProblem, shrink } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
@@ -65,37 +65,23 @@ export const Certificate = ({
         </div>
       )}
       <div className="flex justify-end border-t pt-4">
-        {/* The camera's own picker behind a button: the input stays in reach of the keyboard and a screen reader. */}
-        <label
-          className="bg-primary text-primary-foreground hover:bg-primary/90 has-[:focus-visible]:ring-ring inline-flex h-11 cursor-pointer items-center gap-2 rounded-md px-4 text-sm font-medium shadow-xs has-[:disabled]:opacity-50 has-[:focus-visible]:ring-2 md:h-9 md:px-3.5"
-          htmlFor="certificate-photo"
-        >
-          {take.isPending ? (
-            <Spinner />
-          ) : (
-            <Camera aria-hidden className="size-4" />
-          )}
-          {t("certificate.take")}
-          <input
-            accept="image/*"
-            capture="environment"
-            className="sr-only"
-            disabled={take.isPending}
-            id="certificate-photo"
-            onChange={async (event) => {
-              const file = event.target.files?.[0];
-              if (!file) {
-                return;
-              }
-              try {
-                take.mutate(await shrink(file));
-              } catch (error) {
-                toast.error(t(photoProblem(error)));
-              }
-            }}
-            type="file"
-          />
-        </label>
+        <UploadButton
+          busy={take.isPending}
+          id="certificate-photo"
+          label={t("certificate.take")}
+          onChange={async (event) => {
+            const file = event.target.files?.[0];
+            if (!file) {
+              return;
+            }
+            try {
+              take.mutate(await shrink(file));
+            } catch (error) {
+              toast.error(t(photoProblem(error)));
+            }
+          }}
+          primary
+        />
       </div>
     </Section>
   );

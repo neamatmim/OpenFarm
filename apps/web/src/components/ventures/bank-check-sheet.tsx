@@ -5,7 +5,7 @@ import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { FormField, FormSheet } from "@/components/page-kit";
+import { FormField, FormSheet, WorkedOut } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import { lastMonth } from "@/lib/months";
@@ -230,13 +230,13 @@ export const BankCheckSheet = ({
           value={month}
         />
       </FormField>
-      <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
+      <WorkedOut>
         {whatTheFarmThinks(said, {
           beforeFirst,
           firstReading,
           expectedMoney,
         })}
-      </p>
+      </WorkedOut>
       {already ? (
         <p className="text-muted-foreground text-sm">
           {t("ventures.alreadyChecked", {

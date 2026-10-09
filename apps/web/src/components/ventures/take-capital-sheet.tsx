@@ -6,7 +6,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
-import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import {
+  FormField,
+  FormSheet,
+  InsetPanel,
+  NativeSelect,
+} from "@/components/page-kit";
 import { FarmAccountField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { paperOnFile } from "@/lib/agreed-in-app";
@@ -236,9 +241,9 @@ export const TakeCapitalSheet = ({
       title={t("ventures.takeCapital")}
     >
       {fromNote ? (
-        <p className="bg-muted/50 rounded-lg p-3 text-sm">
+        <InsetPanel as="p" className="text-sm">
           {t("ventures.payIn.fromNote", { investor: fromNote.investor })}
-        </p>
+        </InsetPanel>
       ) : null}
       <FormField
         hint={t("ventures.referenceHint")}

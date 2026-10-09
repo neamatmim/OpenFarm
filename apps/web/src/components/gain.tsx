@@ -3,6 +3,7 @@ import { formatNumber } from "@OpenFarm/i18n";
 
 import { Nothing } from "@/components/list-cells";
 import { ProgressBar, Section } from "@/components/page";
+import { InsetPanel } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 
 /**
@@ -22,14 +23,14 @@ export const GainColumn = ({
   const { t, language } = useLanguage();
   if (!basis) {
     return (
-      <div className="bg-muted/40 flex flex-col gap-1 rounded-lg border p-3">
+      <InsetPanel className="flex flex-col gap-1">
         <p className="text-muted-foreground text-sm">{label}</p>
         <p className="text-muted-foreground text-sm">{t("gain.needsTwo")}</p>
-      </div>
+      </InsetPanel>
     );
   }
   return (
-    <div className="bg-muted/40 flex flex-col gap-1 rounded-lg border p-3">
+    <InsetPanel className="flex flex-col gap-1">
       <p className="text-muted-foreground text-sm">{label}</p>
       <p className="text-lg font-semibold tabular-nums">
         {t("gain.perDay", { kg: formatNumber(basis.dailyGainKg, language) })}
@@ -52,7 +53,7 @@ export const GainColumn = ({
           })}
         </p>
       )}
-    </div>
+    </InsetPanel>
   );
 };
 

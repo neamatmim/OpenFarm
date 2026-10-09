@@ -30,6 +30,7 @@ import {
   FormField,
   NativeSelect,
   RowMenu,
+  UnitInput,
 } from "@/components/page-kit";
 import { useRetireConfirm } from "@/components/retire-confirm";
 import { useLanguage } from "@/i18n/language-provider";
@@ -222,7 +223,7 @@ const BagSizeDialog = ({
       title={item ? `${t("feed.setBagSize")} — ${item.nameBn}` : ""}
     >
       <FormField id="feed-bag-size" label={t("feed.bagSize")}>
-        <Input
+        <UnitInput
           id="feed-bag-size"
           inputMode="decimal"
           max={200}
@@ -230,6 +231,7 @@ const BagSizeDialog = ({
           onChange={(event) => setTyped(event.target.value)}
           step="0.1"
           type="number"
+          unit={t("units.kgShort")}
           value={typed}
         />
       </FormField>
@@ -317,7 +319,7 @@ const AddItemDialog = ({
         {/* A bag is kilos: feed counted in liters or bundles is not bought by it. */}
         {unit === "kg" ? (
           <FormField id="feed-bag" label={t("feed.bagSize")}>
-            <Input
+            <UnitInput
               id="feed-bag"
               inputMode="decimal"
               max={200}
@@ -325,6 +327,7 @@ const AddItemDialog = ({
               onChange={(event) => setBagSize(event.target.value)}
               step="0.1"
               type="number"
+              unit={t("units.kgShort")}
               value={bagSize}
             />
           </FormField>

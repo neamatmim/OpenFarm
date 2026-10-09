@@ -40,6 +40,7 @@ import {
   FormField,
   NativeSelect,
   RowMenu,
+  UnitInput,
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { namesIn } from "@/lib/names-in";
@@ -124,7 +125,7 @@ const BandFields = ({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor={idFor("from")}>{t("feed.bandFrom")}</Label>
-          <Input
+          <UnitInput
             aria-describedby={idFor("band-said")}
             aria-invalid={wrong}
             id={idFor("from")}
@@ -132,12 +133,13 @@ const BandFields = ({
             min={0}
             onChange={(event) => onFromKg(event.target.value)}
             type="number"
+            unit={t("units.kgShort")}
             value={fromKg}
           />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor={idFor("to")}>{t("feed.bandTo")}</Label>
-          <Input
+          <UnitInput
             aria-describedby={idFor("band-said")}
             aria-invalid={wrong}
             id={idFor("to")}
@@ -145,6 +147,7 @@ const BandFields = ({
             min={0}
             onChange={(event) => onToKg(event.target.value)}
             type="number"
+            unit={t("units.kgShort")}
             value={toKg}
           />
         </div>

@@ -14,7 +14,7 @@ import { Clock, Plus, Trash2, Zap } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Chip, SUBHEADING, Section } from "@/components/page";
-import { FormField, NativeSelect } from "@/components/page-kit";
+import { FormField, InsetPanel, NativeSelect } from "@/components/page-kit";
 import { FigureBox } from "@/components/playbook/figure-box";
 import { ListInput } from "@/components/playbook/list-input";
 import { useLanguage, useT } from "@/i18n/language-provider";
@@ -201,8 +201,8 @@ const TriggerFields = ({
         </p>
       ) : null}
       {happenings.map((happening, index) => (
-        <div
-          className="bg-muted/40 flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:flex-wrap sm:items-center"
+        <InsetPanel
+          className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center"
           key={`${happening.kind}-${index}`}
         >
           <NativeSelect
@@ -243,7 +243,7 @@ const TriggerFields = ({
           >
             <Trash2 aria-hidden />
           </Button>
-        </div>
+        </InsetPanel>
       ))}
       <Button
         className="self-start"
@@ -345,7 +345,7 @@ export const WhenSection = ({
       id="sop-when"
       title={t("sop.editor.when")}
     >
-      <div className="flex flex-col gap-4 rounded-lg border p-4">
+      <InsetPanel className="flex flex-col gap-4">
         <h3 className={cn("flex items-center gap-2", SUBHEADING)}>
           <Clock aria-hidden className="text-muted-foreground size-4" />
           {t("sop.editor.clock")}
@@ -395,10 +395,10 @@ export const WhenSection = ({
             </span>
           </label>
         </div>
-      </div>
-      <div className="rounded-lg border p-4">
+      </InsetPanel>
+      <InsetPanel>
         <TriggerFields content={content} onChange={onChange} />
-      </div>
+      </InsetPanel>
     </Section>
   );
 };

@@ -15,7 +15,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { Notice, SegmentedControl } from "@/components/page";
-import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import {
+  FormField,
+  FormSheet,
+  NativeSelect,
+  UnitInput,
+  WorkedOut,
+} from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
 import {
   accountSent,
@@ -274,7 +280,7 @@ const ScaleField = ({
         id="receive-weighed"
         label={t("stock.weighed")}
       >
-        <Input
+        <UnitInput
           aria-invalid={weighedIsWrong(draft)}
           id="receive-weighed"
           inputMode="decimal"
@@ -282,6 +288,7 @@ const ScaleField = ({
           onChange={(event) => onChange(event.target.value)}
           step="0.1"
           type="number"
+          unit={t("units.kgShort")}
           value={draft.weighed}
         />
       </FormField>
@@ -338,11 +345,7 @@ const LotSummary = ({
   if (parts.length === 0) {
     return null;
   }
-  return (
-    <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
-      {parts.join(" · ")}
-    </p>
-  );
+  return <WorkedOut>{parts.join(" · ")}</WorkedOut>;
 };
 
 /**

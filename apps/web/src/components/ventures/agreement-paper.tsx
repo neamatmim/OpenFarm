@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
-import { Camera } from "lucide-react";
 
+import { UploadButton } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { photoProblem, shrink } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
@@ -32,34 +32,21 @@ export const AgreementPaperButton = ({
   );
   const id = `${idPrefix}-paper-${agreementId}`;
   return (
-    <>
-      {/* The farm's own words on the button, as everywhere else a photograph is taken. */}
-      <label
-        className="border-input bg-card hover:bg-muted has-[:focus-visible]:ring-ring flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium whitespace-nowrap transition-colors has-[:focus-visible]:ring-2 md:min-h-8"
-        htmlFor={id}
-      >
-        <Camera aria-hidden className="size-4" />
-        {t("ventures.paperTake")}
-      </label>
-      <input
-        accept="image/*"
-        capture="environment"
-        className="sr-only"
-        disabled={keeping.isPending}
-        id={id}
-        onChange={async (event) => {
-          const file = event.target.files?.[0];
-          if (!file) {
-            return;
-          }
-          try {
-            keeping.mutate({ agreementId, ...(await shrink(file)) });
-          } catch (error) {
-            toast.error(t(photoProblem(error)));
-          }
-        }}
-        type="file"
-      />
-    </>
+    <UploadButton
+      busy={keeping.isPending}
+      id={id}
+      label={t("ventures.paperTake")}
+      onChange={async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) {
+          return;
+        }
+        try {
+          keeping.mutate({ agreementId, ...(await shrink(file)) });
+        } catch (error) {
+          toast.error(t(photoProblem(error)));
+        }
+      }}
+    />
   );
 };

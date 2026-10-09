@@ -34,6 +34,7 @@ import {
   FormField,
   FormSheet,
   NativeSelect,
+  WorkedOut,
 } from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
 import {
@@ -98,10 +99,10 @@ const EntrySummary = ({
     return null;
   }
   return (
-    <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
+    <WorkedOut>
       {t(direction === "in" ? "byHand.in" : "byHand.out")} · {currencySign()}
       {formatNumber(entered, language)}
-    </p>
+    </WorkedOut>
   );
 };
 

@@ -124,7 +124,7 @@ const PortalLogin = () => {
           />
         </div>
         <Button
-          className="h-12 w-full text-base md:h-10"
+          className="h-12 w-full text-base md:h-9 md:text-sm"
           disabled={pending}
           type="submit"
         >

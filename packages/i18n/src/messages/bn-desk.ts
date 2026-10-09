@@ -930,7 +930,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "ventures.amend": "চুক্তি সংশোধন",
   "ventures.amendHint":
     "একটি কাগজ, {venture}-এর প্রত্যেক বিনিয়োগকারীর সই করা। প্রত্যেকে শুরুতে যা সই করেছিলেন, তা পাশেই থাকবে।",
-  "ventures.amendShare": "বিনিয়োগকারীদের ভাগ (%)",
+  "ventures.amendShare": "বিনিয়োগকারীদের ভাগ",
   "ventures.amendSplitHint": "এখন থেকে মুনাফার কত অংশ তাঁরা পাবেন।",
   "ventures.amendSignedOn": "সবাই যেদিন সই করেছেন",
   "ventures.amendSignedHint":

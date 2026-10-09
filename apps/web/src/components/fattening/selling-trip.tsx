@@ -11,7 +11,7 @@ import { CircleCheck } from "lucide-react";
 import { useState } from "react";
 
 import { Loaded, Section, TagChip } from "@/components/page";
-import { FormField } from "@/components/page-kit";
+import { ChoiceCard, FormField } from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
 import {
   accountSent,
@@ -75,10 +75,7 @@ const BeastTile = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <label
-      className="has-data-checked:border-primary/40 has-data-checked:bg-primary/5 hover:bg-muted/50 flex h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm md:h-9"
-      htmlFor={`took-${one.tagNumber}`}
-    >
+    <ChoiceCard htmlFor={`took-${one.tagNumber}`}>
       <Checkbox
         checked={taken}
         id={`took-${one.tagNumber}`}
@@ -91,7 +88,7 @@ const BeastTile = ({
           <span className="sr-only">{t("state.ready_for_sale")}</span>
         </span>
       ) : null}
-    </label>
+    </ChoiceCard>
   );
 };
 

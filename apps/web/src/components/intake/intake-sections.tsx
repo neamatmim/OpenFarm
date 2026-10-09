@@ -3,11 +3,16 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useQuery } from "@tanstack/react-query";
-import { Camera, CircleCheck, Plus } from "lucide-react";
+import { CircleCheck, Plus } from "lucide-react";
 
 import { BreedField } from "@/components/breed-field";
 import { Section } from "@/components/page";
-import { FormField, NativeSelect } from "@/components/page-kit";
+import {
+  FormField,
+  NativeSelect,
+  UploadButton,
+  WorkedOut,
+} from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { WhoseHandField } from "@/components/whose-hand";
 import { useLanguage } from "@/i18n/language-provider";
@@ -80,13 +85,18 @@ const PhotoField = ({
       <span className="text-sm font-medium">{t("animals.photo")}</span>
       <div className="flex flex-wrap items-center gap-3">
         {/* The browser's own file button speaks the browser's language; this one speaks the farm's. */}
-        <label
-          className="border-input bg-card hover:bg-muted has-[:focus-visible]:ring-ring has-[:focus-visible]:border-ring flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors has-[:focus-visible]:ring-2 md:min-h-9"
-          htmlFor="intake-photo"
-        >
-          <Camera aria-hidden className="size-4" />
-          {t("animals.photoTake")}
-        </label>
+        <UploadButton
+          id="intake-photo"
+          label={t("animals.photoTake")}
+          onChange={(event) => {
+            const file = event.target.files?.[0] ?? null;
+            if (file && file.size > PHOTO_FILE_MAX_BYTES) {
+              toast.error(t("photo.tooLarge"));
+              return;
+            }
+            onPhoto(file);
+          }}
+        />
         <p className="text-muted-foreground inline-flex min-w-0 items-center gap-1.5 text-sm">
           {photoName ? (
             <CircleCheck aria-hidden className="text-success size-4 shrink-0" />
@@ -94,21 +104,6 @@ const PhotoField = ({
           <span className="truncate">{photoName ?? t("intake.noPhoto")}</span>
         </p>
       </div>
-      <input
-        accept="image/*"
-        capture="environment"
-        className="sr-only"
-        id="intake-photo"
-        onChange={(event) => {
-          const file = event.target.files?.[0] ?? null;
-          if (file && file.size > PHOTO_FILE_MAX_BYTES) {
-            toast.error(t("photo.tooLarge"));
-            return;
-          }
-          onPhoto(file);
-        }}
-        type="file"
-      />
     </div>
   );
 };
@@ -318,10 +313,10 @@ const PerKgLine = ({ fields }: { fields: IntakeFields }) => {
     return null;
   }
   return (
-    <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
+    <WorkedOut>
       <PricePerKg fields={fields} />
       <LastBuys price={price} weight={weight} />
-    </p>
+    </WorkedOut>
   );
 };
 

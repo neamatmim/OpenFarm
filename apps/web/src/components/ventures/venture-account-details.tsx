@@ -1,5 +1,4 @@
 import type { MessageKey } from "@OpenFarm/i18n";
-import { cn } from "@OpenFarm/ui/lib/utils";
 
 import { useLanguage } from "@/i18n/language-provider";
 import type { Venture } from "@/lib/ventures";
@@ -28,16 +27,12 @@ export const ACCOUNT_DETAIL_KEYS = Object.keys(
 /** The Venture Account's details, each under its name; one not written yet — a branch, a routing number — is left out. */
 export const VentureAccountDetails = ({
   account,
-  className,
 }: {
   account: VentureAccount;
-  className?: string;
 }) => {
   const { t } = useLanguage();
   return (
-    <dl
-      className={cn("grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2", className)}
-    >
+    <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
       {ACCOUNT_DETAIL_KEYS.map((key) =>
         account[key] ? (
           <div className="flex flex-col" key={key}>
