@@ -17,6 +17,7 @@ import {
   Users,
   Wallet,
   Wheat,
+  CalendarDays,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -194,6 +195,14 @@ const TheVenture = ({
       <PageHeader
         actions={
           <>
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              params={{ ventureId: venture.id }}
+              to="/ventures/$ventureId/months"
+            >
+              <CalendarDays aria-hidden data-icon="inline-start" />
+              {t("ventures.month.open")}
+            </Link>
             <PrimaryActs acts={acts} venture={venture} />
             <RowMenu
               actions={menu}

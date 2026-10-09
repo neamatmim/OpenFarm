@@ -7,7 +7,7 @@ import {
   ventureSettlement,
   ventureSettlementShare,
 } from "@OpenFarm/db/schema/venture-account";
-import type { Split } from "@OpenFarm/domain";
+import type { Costs, Split } from "@OpenFarm/domain";
 import {
   farmDayOf,
   monthsFromTo,
@@ -73,6 +73,21 @@ const chargesAsWritten = (
   );
 
 export type ChargeWord = (typeof CHARGE_WORDS)[number];
+
+/** The words charged to the animals, every one but what they were bought for, which is no charge. */
+export const CHARGED_WORDS = CHARGE_WORDS.filter(
+  (word): word is Exclude<ChargeWord, "bought"> => word !== "bought"
+);
+
+/** Each charged word's line of the costing: the one map from the Settlement's words to what the animals cost. */
+export const CHARGED_LINE = {
+  market_toll: "marketTollMoney",
+  trips: "tripMoney",
+  feed: "feedMoney",
+  medicine: "medicineMoney",
+  vet: "vetMoney",
+  herd: "herdMoney",
+} as const satisfies Record<Exclude<ChargeWord, "bought">, keyof Costs>;
 
 /**
  * Something that makes a Settlement a guess rather than a sum, with the word the reader has for it.
@@ -400,12 +415,10 @@ export const whatItWasCharged = (
   );
   const charges: { word: ChargeWord; amount: number }[] = [
     { word: "bought", amount: purchaseMoney },
-    { word: "market_toll", amount: charged.marketTollMoney },
-    { word: "trips", amount: charged.tripMoney },
-    { word: "feed", amount: charged.feedMoney },
-    { word: "medicine", amount: charged.medicineMoney },
-    { word: "vet", amount: charged.vetMoney },
-    { word: "herd", amount: charged.herdMoney },
+    ...CHARGED_WORDS.map((word) => ({
+      word,
+      amount: charged[CHARGED_LINE[word]],
+    })),
   ];
   // The narrowed shares come back with the lines: a Settlement reads them again for the unpriced feed
   // and the uncosted doses that make it a guess, and summing them twice would be summing them twice.

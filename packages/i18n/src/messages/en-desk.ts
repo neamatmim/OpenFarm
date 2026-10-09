@@ -1168,6 +1168,84 @@ export const enDesk = {
   "ventures.balance": "The account should hold",
   "ventures.drawFloat": "Draw a float",
   "ventures.movements": "Money in and out",
+  "ventures.month.title": "Monthly report — {venture} — {month}",
+  "ventures.month.subtitle":
+    "How the venture did in one month, and over the run to the month's end: animals, charges, the account, what it owes and the plan.",
+  "ventures.month.open": "Monthly report",
+  "ventures.month.notRunning": "The venture did not run in this month.",
+  "ventures.month.noAnimals": "The venture had no animals this month.",
+  "ventures.month.noCharges": "Nothing has been charged yet.",
+  "ventures.month.noMovements": "No money moved this month.",
+  "ventures.month.herd": "Animals",
+  "ventures.month.herdHint":
+    "How many it had at the month's start and end, and what came and went in it.",
+  "ventures.month.heads": "Head",
+  "ventures.month.atStart": "At the month's start",
+  "ventures.month.bought": "Bought",
+  "ventures.month.boughtAcross": "Bought from another owner",
+  "ventures.month.sold": "Sold",
+  "ventures.month.soldAcross": "Sold to another owner",
+  "ventures.month.died": "Died or culled",
+  "ventures.month.lost": "Lost",
+  "ventures.month.atEnd": "At the month's end",
+  "ventures.month.atEndKg":
+    "Averaging {kg} kg at the month's end, over {animals, plural, one {# animal} other {# animals}} weighed.",
+  "ventures.month.noWeight":
+    "None standing at the month's end had been weighed.",
+  "ventures.month.gain":
+    "Gained {kg} kg a day in the month, over {animals, plural, one {# animal} other {# animals}} weighed.",
+  "ventures.month.noGain":
+    "Nobody was weighed in the month, so it has no gain to say.",
+  "ventures.month.notWeighed": "Not weighed in the month: {tags}",
+  "ventures.month.charges": "Charges",
+  "ventures.month.chargesHint":
+    "By the settlement's own lines: the month's, and the run's from its start to the month's end.",
+  "ventures.month.toEnd": "To the month's end",
+  "ventures.month.total": "Total",
+  "ventures.month.account": "Venture account",
+  "ventures.month.accountHint":
+    "From the month before's end to this month's, each kind of movement in it.",
+  "ventures.month.money": "Money",
+  "ventures.month.opening": "At the month's start",
+  "ventures.month.closing": "At the month's end",
+  "ventures.month.bankNotRead":
+    "This month's bank statement has not been checked yet.",
+  "ventures.month.bankMatched": "The bank statement matched: {read}.",
+  "ventures.month.bankDiffers":
+    "The bank statement differs: the bank says {read}, the farm expected {expected}.",
+  "ventures.month.bankStale":
+    "The month has moved since the bank statement ({read}) was checked; check it again.",
+  "ventures.month.reimbursement": "Reimbursement",
+  "ventures.month.reimbursementHint":
+    "What its animals ate and were given of the farm's this month: what it comes to, what was paid, and what is still owed.",
+  "ventures.month.comesTo": "Comes to",
+  "ventures.month.paid": "Paid",
+  "ventures.month.stillOwed": "Still owed",
+  "ventures.month.soldTitle": "Sold this month",
+  "ventures.month.soldHint":
+    "Each animal's price, what she cost the venture, and her price less that cost.",
+  "ventures.month.noneSold": "No animal was sold this month.",
+  "ventures.month.tag": "Tag",
+  "ventures.month.day": "Day",
+  "ventures.month.price": "Price",
+  "ventures.month.cost": "Cost to the venture",
+  "ventures.month.lessCost": "Price less cost",
+  "ventures.month.plan": "Against the plan",
+  "ventures.month.planHint":
+    "To the month's end: buying, running spend and weight, beside the plan.",
+  "ventures.month.planned": "Planned",
+  "ventures.month.actual": "Actual",
+  "ventures.month.cattleMoney": "Money on cattle",
+  "ventures.month.runningMoney": "Running spend",
+  "ventures.month.weight": "Average weight",
+  "ventures.month.kg": "{kg} kg",
+  "ventures.month.sums": "Monthly sums",
+  "ventures.month.sumsHint":
+    "Every agreement together, to the month's end: what was due, what was paid, and what was missed.",
+  "ventures.month.due": "Due",
+  "ventures.month.missed": "Missed",
+  "ventures.month.leftOut":
+    "A month cannot tell profit, a share, a margin, overheads, a return on cost or a projection, so none are here. The books as they stand now: a late cost or a correction can still move a month gone by.",
   "ventures.kind.capitalIn": "Capital in",
   "ventures.kind.refund": "Refunded",
   "ventures.kind.floatOut": "Float to the livestock market",
