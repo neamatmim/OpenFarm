@@ -17,9 +17,9 @@ Two paths. Pick incremental when the app must keep shipping or the tRPC router i
 Install `@orpc/trpc@beta` and convert. The result is a regular oRPC router: expose it through an RPC or OpenAPI handler, or call it with a server-side client, while the tRPC code keeps working untouched.
 
 ```ts
-import { toORPCRouter } from "@orpc/trpc";
+import { toORPCRouter } from '@orpc/trpc'
 
-const orpcRouter = toORPCRouter(trpcRouter);
+const orpcRouter = toORPCRouter(trpcRouter)
 ```
 
 - tRPC error formatting is not supported: tRPC errors arrive wrapped in `ORPCError` with the `TRPCError` as `cause` (and a `ZodError` below that for validation failures). Reshape them in a handler interceptor if consumers need structured errors.
@@ -29,17 +29,17 @@ Then rewrite leaf routers to native oRPC one at a time, mounting each next to th
 
 ### Full rewrite: concept map
 
-| Concept | tRPC | oRPC |
-| --- | --- | --- |
-| Router | `t.router({...})` | plain object |
-| Procedure builder | `t.procedure` | `os` |
-| Context | `initTRPC.context<T>()` | `os.$context<T>()` |
-| Create middleware | `t.middleware(fn)` | `os.middleware(fn)` |
-| Use middleware | `.use(mw)` | `.use(mw)` |
-| Validation | `.input(schema)` / `.output(schema)` | same names |
-| Implementation | `.query()` / `.mutation()` / `.subscription()` | `.handler()` for all three |
-| Errors | `new TRPCError({ code, ... })` | `new ORPCError(code, { ... })` |
-| Serializer | `superjson` transformer | built in, remove `superjson` |
+| Concept           | tRPC                                           | oRPC                           |
+| ----------------- | ---------------------------------------------- | ------------------------------ |
+| Router            | `t.router({...})`                              | plain object                   |
+| Procedure builder | `t.procedure`                                  | `os`                           |
+| Context           | `initTRPC.context<T>()`                        | `os.$context<T>()`             |
+| Create middleware | `t.middleware(fn)`                             | `os.middleware(fn)`            |
+| Use middleware    | `.use(mw)`                                     | `.use(mw)`                     |
+| Validation        | `.input(schema)` / `.output(schema)`           | same names                     |
+| Implementation    | `.query()` / `.mutation()` / `.subscription()` | `.handler()` for all three     |
+| Errors            | `new TRPCError({ code, ... })`                 | `new ORPCError(code, { ... })` |
+| Serializer        | `superjson` transformer                        | built in, remove `superjson`   |
 
 Steps, in order, verifying after each:
 
@@ -47,17 +47,16 @@ Steps, in order, verifying after each:
 2. **Base file.** Port the context factory unchanged, then rebuild the shared procedures. In handlers and middleware, `ctx` becomes `context`:
 
    ```ts
-   import { ORPCError, os } from "@orpc/server";
+   import { ORPCError, os } from '@orpc/server'
 
-   const o = os.$context<Awaited<ReturnType<typeof createContext>>>();
+   const o = os.$context<Awaited<ReturnType<typeof createContext>>>()
 
-   export const publicProcedure = o.use(timingMiddleware);
-   export const protectedProcedure = publicProcedure.use(
-     ({ context, next }) => {
-       if (!context.session?.user) throw new ORPCError("UNAUTHORIZED");
-       return next({ context: { session: context.session } });
-     }
-   );
+   export const publicProcedure = o.use(timingMiddleware)
+   export const protectedProcedure = publicProcedure.use(({ context, next }) => {
+     if (!context.session?.user)
+       throw new ORPCError('UNAUTHORIZED')
+     return next({ context: { session: context.session } })
+   })
    ```
 
 3. **Procedures.** Replace `.query`/`.mutation`/`.subscription` with `.handler`; `.input` and `.output` carry over as is.
@@ -65,30 +64,27 @@ Steps, in order, verifying after each:
 5. **Server.** Replace the tRPC adapter with an oRPC handler for the runtime (fetch shown; other adapters exist for Node, Fastify, AWS Lambda, WebSocket):
 
    ```ts
-   import { RPCHandler } from "@orpc/server/fetch";
+   import { RPCHandler } from '@orpc/server/fetch'
 
-   const handler = new RPCHandler(appRouter);
+   const handler = new RPCHandler(appRouter)
 
    const { response } = await handler.handle(request, {
-     prefix: "/api/orpc",
+     prefix: '/api/orpc',
      context: await createContext({ headers: request.headers }),
-   });
+   })
    ```
 
 6. **Client.** `RPCLink` plus `createORPCClient`, typed by `RouterClient`. Call sites drop the `.query()`/`.mutate()` suffixes:
 
    ```ts
-   import type { RouterClient } from "@orpc/server";
-   import { createORPCClient } from "@orpc/client";
-   import { RPCLink } from "@orpc/client/fetch";
+   import type { RouterClient } from '@orpc/server'
+   import { createORPCClient } from '@orpc/client'
+   import { RPCLink } from '@orpc/client/fetch'
 
-   const link = new RPCLink({
-     origin: "http://localhost:3000",
-     url: "/api/orpc",
-   });
-   export const client: RouterClient<typeof appRouter> = createORPCClient(link);
+   const link = new RPCLink({ origin: 'http://localhost:3000', url: '/api/orpc' })
+   export const client: RouterClient<typeof appRouter> = createORPCClient(link)
 
-   const { planets } = await client.planet.list({ cursor: 0 });
+   const { planets } = await client.planet.list({ cursor: 0 })
    ```
 
 7. **TanStack Query.** `createTanstackQueryUtils(client)` replaces the provider and `useTRPC` hook entirely; use the utils object directly. Input moves inside an `input` key: `orpc.planet.list.queryOptions({ input: { cursor: 0 } })`, `orpc.planet.create.mutationOptions()`. For infinite queries, `infiniteOptions` takes `input` as a function of the page param.
@@ -104,7 +100,8 @@ Most v1 names still compile through deprecated aliases (strike-through hints, no
    - `RPCLink`: the single `url` split into `origin` plus a path-only `url`.
    - Errors: `status` was removed from `ORPCError` and `.errors` definitions; map codes to HTTP status with `errorStatusMap` on the handler.
    - `safe()`: the third tuple element is now the typed error itself (or `null`) and a fourth `isSuccess` element was added.
-   - Option renames, scoped: handler `rootInterceptors` to `routingInterceptors` (handler `clientInterceptors` still exists, unchanged); link `clientInterceptors` to `transportInterceptors`; on both, `adapterInterceptors` is renamed after the adapter, e.g. `fetchInterceptors` on the fetch adapter. Flat `eventIterator*` options moved under the adapter's request/response mapping: `toFetchResponse.eventStream` on the fetch handler, `sendStandardResponse.eventStream` on Node, `toFetchRequest.eventStream` on the link.
+   - Option renames, scoped: handler `rootInterceptors` to `routingInterceptors` (handler `clientInterceptors` still exists, unchanged); link `clientInterceptors` to `transportInterceptors`. Flat `eventIterator*` options moved under the adapter's request/response mapping: `toFetchResponse.eventStream` on the fetch handler, `sendStandardResponse.eventStream` on Node, `toFetchRequest.eventStream` on the link.
+   - `adapterInterceptors` was removed from handlers and links, because regular interceptors can now customize body parsing behavior.
 3. **Audit silent behavior changes** (compile fine, behave differently):
    - **Wire format changed:** a v1 link cannot talk to a v2 server, in either direction. Deploy the upgraded server and clients together.
    - **Automatic middleware deduplication removed:** middleware applied at both router and procedure level now runs twice, with no warning. Guard shared middleware with the context-flag pattern from the dedupe-middleware recipe.

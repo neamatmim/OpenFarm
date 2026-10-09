@@ -25,14 +25,15 @@ Package map:
 Build a procedure with the `os` builder: describe input with a schema, implement with `.handler`. Zod, Valibot, ArkType, and any other [Standard Schema](https://standardschema.dev/) library work for `.input`, `.output`, and error `data`.
 
 ```ts
-import { os } from "@orpc/server";
-import * as z from "zod";
+import { os } from '@orpc/server'
+import * as z from 'zod'
 
-export const listPlanets = os.handler(async () => [{ id: 1, name: "Earth" }]); // no .input: takes no arguments
+export const listPlanets = os
+  .handler(async () => [{ id: 1, name: 'Earth' }]) // no .input: takes no arguments
 
 export const findPlanet = os
   .input(z.object({ id: z.number() }))
-  .handler(async ({ input }) => ({ id: input.id, name: "Earth" }));
+  .handler(async ({ input }) => ({ id: input.id, name: 'Earth' }))
 ```
 
 `.handler` is the only required step. The full chain, every other step optional:
@@ -44,10 +45,7 @@ const example = os
   .use(requireAuth) // middleware
   .input(z.object({ id: z.number() }))
   .output(z.object({ id: z.number(), name: z.string() })) // optional; also speeds up type checking
-  .handler(async ({ input, context, errors }) => ({
-    id: input.id,
-    name: "Earth",
-  }));
+  .handler(async ({ input, context, errors }) => ({ id: input.id, name: 'Earth' }))
 ```
 
 Every builder step returns a new instance, so share base builders freely: `const authed = os.use(requireAuth)` then build many procedures from `authed`.
@@ -60,8 +58,8 @@ A router is a plain object mapping keys to procedures (or nested routers). Do no
 export const router = {
   planet: { list: listPlanets, find: findPlanet },
   admin: os.use(requireAuth).router({ deletePlanet }), // apply shared middleware to a subtree
-  planetLazy: os.lazy(() => import("./planet")), // code-split; module's default export is a router
-};
+  planetLazy: os.lazy(() => import('./planet')), // code-split; module's default export is a router
+}
 ```
 
 Infer types with `InferRouterInputs` / `InferRouterOutputs` from `@orpc/server`. Applying `.use` at both router and procedure level can run the same middleware twice; see the dedupe pattern below.
@@ -71,17 +69,17 @@ Infer types with `InferRouterInputs` / `InferRouterOutputs` from `@orpc/server`.
 Context comes from two places. Initial context is declared with `.$context` and passed explicitly when serving or calling (environment values: headers, env, db). Injected context is added at runtime by middleware via `next({ context })` (runtime values: the authenticated user).
 
 ```ts
-import { ORPCError, os } from "@orpc/server";
+import { ORPCError, os } from '@orpc/server'
 
-const base = os.$context<{ headers: Headers }>();
+const base = os.$context<{ headers: Headers }>()
 
 const requireAuth = base.middleware(async ({ context, next }) => {
-  const user = await parseUser(context.headers);
+  const user = await parseUser(context.headers)
   if (!user) {
-    throw new ORPCError("UNAUTHORIZED");
+    throw new ORPCError('UNAUTHORIZED')
   }
-  return next({ context: { user } }); // handler now sees context.user, typed non-null
-});
+  return next({ context: { user } }) // handler now sees context.user, typed non-null
+})
 ```
 
 `.use` accepts named middleware or inline functions. Middleware registered before `.input` runs before validation, the rest after. Middleware can also declare typed input (`os.middleware(async ({ next }, id: number) => ...)`); adapt mismatched shapes with `.use(mw.adaptInput(input => input.id))`.
@@ -90,13 +88,11 @@ Best practice, dedupe expensive middleware: the same middleware can run twice in
 
 ```ts
 const authProvider = os
-  .$context<{ headers: Headers; auth?: { id: string }; authLoaded?: boolean }>()
+  .$context<{ headers: Headers, auth?: { id: string }, authLoaded?: boolean }>()
   .middleware(async ({ context, next }) => {
-    const auth = context.authLoaded
-      ? context.auth
-      : await loadAuth(context.headers);
-    return next({ context: { auth, authLoaded: true } });
-  });
+    const auth = context.authLoaded ? context.auth : await loadAuth(context.headers)
+    return next({ context: { auth, authLoaded: true } })
+  })
 ```
 
 ## Typesafe errors
@@ -108,12 +104,12 @@ Define errors with `.errors` so clients can infer each error's shape:
 ```ts
 const find = os
   .errors({
-    NOT_FOUND: { message: "Planet not found" }, // default message
+    NOT_FOUND: { message: 'Planet not found' }, // default message
     RATE_LIMITED: { data: z.object({ retryAfter: z.number() }) },
   })
   .handler(async ({ input, errors }) => {
-    throw errors.NOT_FOUND();
-  });
+    throw errors.NOT_FOUND()
+  })
 ```
 
 `throw new ORPCError('NOT_FOUND')` inside that handler is converted to the matching typed error when code and data match. Convert custom error classes to `ORPCError` in a middleware `try/catch`.
@@ -123,21 +119,21 @@ const find = os
 `RPCHandler` matches requests to procedures, validates input, runs handlers, and encodes results. Pick the adapter for your runtime. Fetch API (Bun, Deno, Cloudflare Workers):
 
 ```ts
-import { onError } from "@orpc/server";
-import { RPCHandler } from "@orpc/server/fetch";
-import { CORSHandlerPlugin } from "@orpc/server/plugins";
+import { onError } from '@orpc/server'
+import { RPCHandler } from '@orpc/server/fetch'
+import { CORSHandlerPlugin } from '@orpc/server/plugins'
 
 const handler = new RPCHandler(router, {
   plugins: [new CORSHandlerPlugin()],
-  interceptors: [onError((error) => console.error(error))],
-});
+  interceptors: [onError(error => console.error(error))],
+})
 
 export async function fetch(request: Request): Promise<Response> {
   const { matched, response } = await handler.handle(request, {
-    prefix: "/rpc",
+    prefix: '/rpc',
     context: { headers: request.headers }, // provide the router's initial context here
-  });
-  return matched ? response : new Response("Not found", { status: 404 });
+  })
+  return matched ? response : new Response('Not found', { status: 404 })
 }
 // Bun.serve({ fetch }) / Deno.serve(fetch) / export default { fetch } on Workers
 ```
@@ -145,22 +141,20 @@ export async function fetch(request: Request): Promise<Response> {
 Node HTTP:
 
 ```ts
-import { createServer } from "node:http";
-import { RPCHandler } from "@orpc/server/node";
+import { createServer } from 'node:http'
+import { RPCHandler } from '@orpc/server/node'
 
-const handler = new RPCHandler(router);
+const handler = new RPCHandler(router)
 
 const server = createServer(async (req, res) => {
-  const { matched } = await handler.handle(req, res, {
-    prefix: "/rpc",
-    context: {},
-  });
-  if (matched) return;
-  res.statusCode = 404;
-  res.end("Not found");
-});
+  const { matched } = await handler.handle(req, res, { prefix: '/rpc', context: {} })
+  if (matched)
+    return
+  res.statusCode = 404
+  res.end('Not found')
+})
 
-server.listen(3000);
+server.listen(3000)
 ```
 
 Unmatched requests fall through to your own handling. By default `RPCHandler` accepts only `POST`, `PUT`, `PATCH`, and `DELETE`; enabling `GET` via `allowMethods` is a CSRF risk with cookie auth, see [RPC Handler](https://orpc.dev/docs/rpc/handler). Handler options also include `interceptors`, `routingInterceptors`, `clientInterceptors`, `plugins`, `filter`, and `errorStatusMap`. Adapters also exist for [AWS Lambda](https://orpc.dev/docs/adapters/aws-lambda), [Fastify](https://orpc.dev/docs/adapters/fastify), [WebSocket](https://orpc.dev/docs/adapters/websocket), [Message Port](https://orpc.dev/docs/adapters/message-port), and [Expo](https://orpc.dev/docs/adapters/expo).
@@ -170,46 +164,47 @@ Unmatched requests fall through to your own handling. By default `RPCHandler` ac
 Server side (same process, no HTTP; also the fastest way to test procedures):
 
 ```ts
-import { call, createRouterClient } from "@orpc/server";
+import { call, createRouterClient } from '@orpc/server'
 
-const planet = await call(findPlanet, { id: 1 }, { context: { headers } });
+const planet = await call(findPlanet, { id: 1 }, { context: { headers } })
 
-const client = createRouterClient(router, { context: { headers } }); // context can be a function
-const planets = await client.planet.list();
+const client = createRouterClient(router, { context: { headers } }) // context can be a function
+const planets = await client.planet.list()
 ```
 
 Client side, `RPCLink` turns calls into HTTP requests. Import the router as a type only so no server code reaches the client bundle:
 
 ```ts
-import type { RouterClient } from "@orpc/server";
-import type { router } from "../server/router";
-import { createORPCClient } from "@orpc/client";
-import { RPCLink } from "@orpc/client/fetch";
+import type { RouterClient } from '@orpc/server'
+import type { router } from '../server/router'
+import { createORPCClient } from '@orpc/client'
+import { RPCLink } from '@orpc/client/fetch'
 
 const link = new RPCLink({
-  origin: "http://127.0.0.1:3000",
-  url: "/rpc", // must match the server's prefix
+  origin: 'http://127.0.0.1:3000',
+  url: '/rpc', // must match the server's prefix
   headers: () => ({ authorization: `Bearer ${token}` }), // options accept functions
-});
+})
 
-export const orpc: RouterClient<typeof router> = createORPCClient(link);
+export const orpc: RouterClient<typeof router> = createORPCClient(link)
 
-const planet = await orpc.planet.find({ id: 1 });
+const planet = await orpc.planet.find({ id: 1 })
 ```
 
 Client error handling: plain `try/catch` works, but `safe` preserves typed error inference:
 
 ```ts
-import { createSafeClient, isDefinedError, safe } from "@orpc/client";
+import { createSafeClient, isDefinedError, safe } from '@orpc/client'
 
-const [error, data] = await safe(orpc.planet.find({ id: 1 }));
+const [error, data] = await safe(orpc.planet.find({ id: 1 }))
 if (isDefinedError(error)) {
-  console.log(error.code, error.data); // typed from the procedure's .errors
-} else if (error) {
+  console.log(error.code, error.data) // typed from the procedure's .errors
+}
+else if (error) {
   // unknown error
 }
 
-const safeClient = createSafeClient(orpc); // every call returns [error, data]
+const safeClient = createSafeClient(orpc) // every call returns [error, data]
 ```
 
 ## Beyond the basics
@@ -237,6 +232,6 @@ Doc map, all under `https://orpc.dev/docs/`:
 - `rpc/*`, `openapi/*`: protocol details, handlers, links; `contract/*`: contract-first (the `orpc-contract` skill)
 - `client/*`: server- and client-side clients, error handling, `DynamicLink`
 - `adapters/*`: per-runtime serving quirks (fetch-api, node-http, aws-lambda, fastify, websocket, message-port, expo)
-- `plugins/*`: twenty handler/link plugins; `helpers/*`: cookie, encryption, form-data, publisher, ratelimit, signing, base64url
+- `plugins/*`: twenty handler/link plugins; `helpers/*`: cookie, encryption, form-data, lock, publisher, ratelimit, signing, base64url
 - `integrations/*`: framework glue; `recipes/*`: guidance (testing, SSR, monorepos, validation)
 - `migrations/from-v1`, `migrations/from-trpc`: upgrades (use the `orpc-migrate` skill)

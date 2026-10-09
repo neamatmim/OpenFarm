@@ -5,8 +5,8 @@
       "source": "evlog.dev",
       "sourceUrl": "https://www.evlog.dev",
       "sourceType": "well-known",
-      "computedHash": "4a04a46743f211420f0844d09110ba4f6219e70f59c89377ba0293650ec12ed4",
-      "wellKnownDigest": "sha256:85611ea5ab31c54e745ad5ebaf994c6aff1405c58a218c26a7ecef02244193b6"
+      "computedHash": "471b0277dec00b1d2788c23bd648a304698d7ba4548f266baa13ecfefcb929b3",
+      "wellKnownDigest": "sha256:bbc766e0a0655fea7825a079f3de7581e7e45b88023f2a38395a4e8f43cb208a"
     },
     "animate": {
       "source": "emilkowalski/skill",
@@ -54,8 +54,8 @@
       "source": "evlog.dev",
       "sourceUrl": "https://www.evlog.dev",
       "sourceType": "well-known",
-      "computedHash": "c10e91d4b8dae0a6c94633393a5dbf8755a4c53f24c8fdc036698aece3d1c81a",
-      "wellKnownDigest": "sha256:7600fc70881807ff82d4f7d2f48e8eac6d1e4edd5d3dc6c5d509dd748c63fcda"
+      "computedHash": "f4e231625b13dd38467916aed00e666bf460a3671768c0c8251f379fd31637f5",
+      "wellKnownDigest": "sha256:dcfb5246d719d3f1822fb5fef5f4b0661f9ed8fd6ca4497b20285236d8e10ae2"
     },
     "email-and-password-best-practices": {
       "source": "better-auth/skills",
@@ -91,7 +91,7 @@
       "source": "middleapi/orpc",
       "sourceType": "github",
       "skillPath": "skills/orpc/SKILL.md",
-      "computedHash": "2146a8fab0a853c3e49f441760ac6b2949b393b593eec25629ae301e03f1e995"
+      "computedHash": "24aeb625eeb54572e2dc862648085a4f2270c9a0a6167162b7fc53290bb3acb2"
     },
     "orpc-contract": {
       "source": "middleapi/orpc",
@@ -103,7 +103,7 @@
       "source": "middleapi/orpc",
       "sourceType": "github",
       "skillPath": "skills/orpc-migrate/SKILL.md",
-      "computedHash": "b8045826a9a78eb51d79b4a0037feca9480b1824aee3095752454fad8bc5d65d"
+      "computedHash": "8bb9839c8b14c657d1e2b4e96bb8e1a3253c80c2de09b59a369e2c04ddb1032b"
     },
     "orpc-openapi": {
       "source": "middleapi/orpc",
@@ -133,8 +133,8 @@
       "source": "evlog.dev",
       "sourceUrl": "https://www.evlog.dev",
       "sourceType": "well-known",
-      "computedHash": "cfaf8a5fe8b8751854afdbf8fc81f864c99f57dac2896251eb3a93ffe3eee564",
-      "wellKnownDigest": "sha256:ecded78fbf0708a43d4a833bf0e90e3b9b1cdb6ffb1e13a02b59db036b9bafc7"
+      "computedHash": "7f883fe916056701c8348f2495f8ef5fffcdbfc24d78ca36c0a39788a4f30b5c",
+      "wellKnownDigest": "sha256:27e7feb7a65f2236f1b8ff681b09158d39ada90aa2df5df8e6c346bc19672794"
     },
     "shadcn": {
       "source": "shadcn/ui",
@@ -146,7 +146,7 @@
       "source": "haydenbleasel/ultracite",
       "sourceType": "github",
       "skillPath": "skills/ultracite/SKILL.md",
-      "computedHash": "e91e1a862cd261060a8d15dca52d3c63e084ceb5ce81ba06cbc9386f622795d2"
+      "computedHash": "684bc4eabab3d9e96ac42a40e75dcd979dbfd856571f8b6f8e09d119d130d286"
     },
     "vercel-composition-patterns": {
       "source": "vercel-labs/agent-skills",
