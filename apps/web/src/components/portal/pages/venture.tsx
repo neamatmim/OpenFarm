@@ -2,9 +2,8 @@ import { hasEnded, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import {
-  ArrowLeft,
   Beef,
   CalendarClock,
   FileText,
@@ -19,11 +18,13 @@ import type { TheirAgreements } from "@/components/investors/investor-agreements
 import { Nothing, SaidDate } from "@/components/list-cells";
 import {
   SUBHEADING,
+  BackLink,
   EmptyState,
   Loaded,
   Page,
   PageHeader,
   Section,
+  TagChip,
 } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
@@ -219,8 +220,8 @@ const HerPhoto = ({
   return (
     <figure className="flex w-28 shrink-0 flex-col gap-1.5">
       {picture}
-      <figcaption className="flex flex-col text-xs">
-        <span className="font-mono font-medium">{one.tagNumber}</span>
+      <figcaption className="flex flex-col gap-1 text-xs">
+        <TagChip>{one.tagNumber}</TagChip>
         <span className="text-muted-foreground">
           <SaidDate at={photoAt} />
         </span>
@@ -269,8 +270,8 @@ const HerRow = ({ one }: { one: HerAnimal }) => {
   const arrived = saidKg(one.intakeKg, said);
   return (
     <li className="flex items-start justify-between gap-3 py-3 text-sm">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="font-mono font-medium">{one.tagNumber}</span>
+      <div className="flex min-w-0 flex-col gap-1">
+        <TagChip>{one.tagNumber}</TagChip>
         <span className="text-muted-foreground flex flex-col text-xs tabular-nums">
           {arrived ? (
             <span>{t("portal.arrivedKg", { kg: arrived })}</span>
@@ -416,8 +417,8 @@ const Herd = ({ today }: { today: Today }) => {
               <tbody className="divide-y">
                 {today.herd.animals.map((one) => (
                   <tr key={one.tagNumber}>
-                    <td className="px-4 py-2 font-mono md:px-5">
-                      {one.tagNumber}
+                    <td className="px-4 py-2 md:px-5">
+                      <TagChip>{one.tagNumber}</TagChip>
                     </td>
                     <td className="px-4 py-2 text-end tabular-nums">
                       {kg(one.intakeKg) ?? <Nothing />}
@@ -642,24 +643,17 @@ const VentureToday = ({
       {/* Back to where it is listed: the portfolio keeps the running ones, and those that have finished are read from
           the list of all their Ventures. */}
       {hasEnded(today.venture.state) ? (
-        <Link
-          className="text-muted-foreground hover:text-foreground -mb-2 inline-flex items-center gap-1 self-start text-sm"
+        <BackLink
           params={places.ventures.link.params}
           search={{ tab: "finished" }}
           to={places.ventures.link.to}
         >
-          <ArrowLeft aria-hidden className="size-4" />
           {t("portal.ventures.all")}
-        </Link>
+        </BackLink>
       ) : (
-        <Link
-          className="text-muted-foreground hover:text-foreground -mb-2 inline-flex items-center gap-1 self-start text-sm"
-          params={places.home.link.params}
-          to={places.home.link.to}
-        >
-          <ArrowLeft aria-hidden className="size-4" />
+        <BackLink params={places.home.link.params} to={places.home.link.to}>
           {t("portal.back")}
-        </Link>
+        </BackLink>
       )}
       <PageHeader
         // "Nothing here is a forecast" is not true of a page that shows a projection: then it says which part is one.

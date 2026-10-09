@@ -1,11 +1,15 @@
 import { farmDayOf } from "@OpenFarm/domain";
-import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useQuery } from "@tanstack/react-query";
 
+import { SegmentedControl } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
+
+/** The years a press away: this financial year up to today, and the whole of the last. */
+const SHORTCUTS = ["this", "last"] as const;
+type Shortcut = (typeof SHORTCUTS)[number];
 
 /**
  * The period the whole money page reads — its figures, its register, its costs and the accountant's export — as two
@@ -27,21 +31,19 @@ export const PeriodBar = ({
   const { t } = useLanguage();
   const years = useQuery(orpc.financialYears.list.queryOptions());
   const today = farmDayOf(new Date());
+  // The two years by their name, so the segment that is the period on the page is the one drawn chosen.
   const shortcuts = years.data
-    ? [
-        {
-          label: t("money.thisFinancialYear"),
-          period: { from: years.data.current.from, to: today },
-        },
-        {
-          label: t("money.lastFinancialYear"),
-          period: {
-            from: years.data.previous.from,
-            to: years.data.previous.to,
-          },
-        },
-      ]
-    : [];
+    ? {
+        this: { from: years.data.current.from, to: today },
+        last: { from: years.data.previous.from, to: years.data.previous.to },
+      }
+    : null;
+  const chosen = shortcuts
+    ? (SHORTCUTS.find(
+        (shortcut) =>
+          shortcuts[shortcut].from === from && shortcuts[shortcut].to === to
+      ) ?? "")
+    : "";
   return (
     <fieldset className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
       <legend className="sr-only">{t("money.period")}</legend>
@@ -63,24 +65,25 @@ export const PeriodBar = ({
           value={to}
         />
       </FormField>
-      {shortcuts.map(({ label, period }) => {
-        const isThePeriod = period.from === from && period.to === to;
-        return (
-          <Button
-            aria-pressed={isThePeriod}
-            className="h-11 md:h-9"
-            key={label}
-            onClick={() => {
-              onFromChange(period.from);
-              onToChange(period.to);
+      {shortcuts ? (
+        <div className="col-span-2 flex sm:col-span-1">
+          <SegmentedControl<Shortcut | "">
+            label={t("money.period")}
+            name="money-period"
+            onChange={(shortcut) => {
+              if (shortcut) {
+                onFromChange(shortcuts[shortcut].from);
+                onToChange(shortcuts[shortcut].to);
+              }
             }}
-            type="button"
-            variant={isThePeriod ? "secondary" : "outline"}
-          >
-            {label}
-          </Button>
-        );
-      })}
+            options={[
+              { value: "this", label: t("money.thisFinancialYear") },
+              { value: "last", label: t("money.lastFinancialYear") },
+            ]}
+            value={chosen}
+          />
+        </div>
+      ) : null}
     </fieldset>
   );
 };

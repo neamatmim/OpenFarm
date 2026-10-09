@@ -13,6 +13,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { TagLink } from "@/components/fattening/fattening-words";
 import { Nothing, SaidDate } from "@/components/list-cells";
 import { StatusBadge } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
@@ -693,14 +694,8 @@ const Calves = ({ calves }: { calves: Calf[] }) => {
   return (
     <ul className="flex flex-wrap gap-x-3 gap-y-1">
       {calves.map((calf) => (
-        <li key={calf.tagNumber}>
-          <Link
-            className="font-mono font-medium underline-offset-4 hover:underline"
-            params={{ tagNumber: calf.tagNumber }}
-            to="/animals/$tagNumber"
-          >
-            {calf.tagNumber}
-          </Link>{" "}
+        <li className="flex items-center gap-1.5" key={calf.tagNumber}>
+          <TagLink tagNumber={calf.tagNumber} />
           <span className="text-muted-foreground">
             {t(`animals.sex.${calf.sex}`)}
             {calf.calfOutcome === "stillborn"

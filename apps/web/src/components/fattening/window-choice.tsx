@@ -1,6 +1,7 @@
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 
+import { SegmentedControl } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 
 /** Which Season an animal joins: the next Eid, which the farm fills in, or a window somebody says. */
@@ -36,38 +37,29 @@ export const WindowChoice = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="mb-1 text-sm font-medium">{t("window.title")}</legend>
-      <label className="flex items-start gap-2 text-sm" htmlFor={`${id}-eid`}>
-        <input
-          checked={pick.kind === "eid"}
-          id={`${id}-eid`}
-          name={id}
-          onChange={() => onPick(NEXT_EID)}
-          type="radio"
-        />
-        <span className="flex flex-col">
-          {t("window.nextEid")}
-          <span className="text-muted-foreground text-xs">
-            {t("window.nextEidHint")}
-          </span>
-        </span>
-      </label>
-      <label
-        className="flex items-center gap-2 text-sm"
-        htmlFor={`${id}-other`}
-      >
-        <input
-          checked={pick.kind === "other"}
-          id={`${id}-other`}
-          name={id}
-          onChange={() => onPick({ kind: "other", start: "", end: "" })}
-          type="radio"
-        />
-        {t("window.other")}
-      </label>
+    <div className="flex flex-col gap-1.5">
+      <span className="text-sm font-medium" data-slot="form-label">
+        {t("window.title")}
+      </span>
+      <SegmentedControl
+        label={t("window.title")}
+        name={id}
+        onChange={(kind) =>
+          onPick(kind === "eid" ? NEXT_EID : { kind, start: "", end: "" })
+        }
+        options={[
+          { value: "eid", label: t("window.nextEid") },
+          { value: "other", label: t("window.other") },
+        ]}
+        value={pick.kind}
+      />
+      {pick.kind === "eid" ? (
+        <p className="text-muted-foreground text-sm">
+          {t("window.nextEidHint")}
+        </p>
+      ) : null}
       {pick.kind === "other" ? (
-        <div className="grid grid-cols-2 gap-2 pl-6">
+        <div className="grid grid-cols-2 gap-2 pt-1">
           <div className="flex flex-col gap-1">
             <Label htmlFor={`${id}-start`}>{t("window.from")}</Label>
             <Input
@@ -90,6 +82,6 @@ export const WindowChoice = ({
           </div>
         </div>
       ) : null}
-    </fieldset>
+    </div>
   );
 };

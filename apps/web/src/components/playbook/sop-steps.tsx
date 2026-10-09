@@ -7,6 +7,7 @@ import type {
 import { EVIDENCE_TYPES, STEP_EFFECT_KINDS, maySkip } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { ArrowDown, ArrowUp, ListOrdered, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -391,14 +392,12 @@ const StepEditor = ({
         />
 
         <label className="inline-flex min-h-11 items-center gap-2 self-start text-sm md:min-h-0">
-          <input
+          <Checkbox
             checked={step.repeatPerAnimal}
-            className="size-4"
             disabled={Boolean(step.effect)}
-            onChange={(e) =>
-              onChange({ ...step, repeatPerAnimal: e.target.checked })
+            onCheckedChange={(checked) =>
+              onChange({ ...step, repeatPerAnimal: checked === true })
             }
-            type="checkbox"
           />
           {t("sop.repeatPerAnimal")}
         </label>

@@ -3,6 +3,7 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
 
 import { TagLink } from "@/components/fattening/fattening-words";
+import { Notice } from "@/components/page";
 import type { Gap } from "@/components/returns/return-figure";
 import { useLanguage } from "@/i18n/language-provider";
 
@@ -87,10 +88,10 @@ export const Gaps = ({
     return null;
   }
   return (
-    <div className="border-warning/30 bg-warning/5 flex flex-col gap-2 rounded-md border p-3">
-      <p className="text-sm font-medium">
-        {t("returns.gapsTitle", { count: gaps.length })}
-      </p>
+    <Notice
+      title={t("returns.gapsTitle", { count: gaps.length })}
+      tone="warning"
+    >
       <ul className="divide-warning/20 flex flex-col divide-y">
         {byWhy(gaps).map(({ first, list }) => {
           // Never weighed is put right on her own page: with several, each tag is the way there.
@@ -117,6 +118,6 @@ export const Gaps = ({
           );
         })}
       </ul>
-    </div>
+    </Notice>
   );
 };

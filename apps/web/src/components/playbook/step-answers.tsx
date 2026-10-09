@@ -1,5 +1,6 @@
 import type { Step } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Plus, Trash2 } from "lucide-react";
 
@@ -67,19 +68,17 @@ export const StepAnswers = ({
                     />
                   )}
                   <label className="inline-flex min-h-11 items-center gap-2 text-sm md:min-h-0">
-                    <input
+                    <Checkbox
                       checked={answer.required}
-                      className="size-4"
                       disabled={fixed}
-                      onChange={(event) =>
+                      onCheckedChange={(checked) =>
                         onChange(
                           withAnswerAt(step, at, {
                             ...answer,
-                            required: event.target.checked,
+                            required: checked === true,
                           })
                         )
                       }
-                      type="checkbox"
                     />
                     {t("sop.required")}
                   </label>
