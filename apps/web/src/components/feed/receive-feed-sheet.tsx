@@ -506,14 +506,10 @@ export const ReceiveFeedSheet = ({
                   : undefined
               }
               id="receive-quantity"
-              label={t("stock.quantity", {
-                unit:
-                  countedIn === "own"
-                    ? feedUnitWord(chosen.unit, language)
-                    : FEED_PACK_WORDS[countedIn][language],
-              })}
+              label={t("stock.howMuch")}
             >
-              <Input
+              {/* The unit it is counted in, inside the box, as the scale's weight below has it. */}
+              <UnitInput
                 id="receive-quantity"
                 inputMode="decimal"
                 min={0}
@@ -521,6 +517,11 @@ export const ReceiveFeedSheet = ({
                 required
                 step="0.1"
                 type="number"
+                unit={
+                  countedIn === "own"
+                    ? feedUnitWord(chosen.unit, language)
+                    : FEED_PACK_WORDS[countedIn][language]
+                }
                 value={draft.quantity}
               />
             </FormField>

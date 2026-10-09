@@ -2126,6 +2126,7 @@ export const enCore = {
   "stock.kind": "Bought or harvested",
   "stock.purchase": "Bought",
   "stock.harvest": "From our own fields",
+  "stock.howMuch": "How much",
   "stock.quantity": "How much ({unit})",
   "stock.maunds": "about {maunds, plural, one {# maund} other {# maunds}}",
   "stock.boughtAs": "bought as {count} {pack}",

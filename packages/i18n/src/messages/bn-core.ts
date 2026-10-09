@@ -1959,6 +1959,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "stock.kind": "কেনা নাকি নিজের জমির",
   "stock.purchase": "কেনা",
   "stock.harvest": "নিজের জমির",
+  "stock.howMuch": "পরিমাণ",
   "stock.quantity": "পরিমাণ ({unit})",
   "stock.maunds": "প্রায় {maunds} মণ",
   "stock.boughtAs": "{count} {pack} হিসেবে কেনা",
