@@ -2611,6 +2611,8 @@ export const enCore = {
   "alerts.openTheOverdue": "Open the overdue list",
   "alerts.backupOverdue":
     "No copy of the farm has succeeded since {since}. See Backups.",
+  "alerts.serverFailing":
+    "The server has failed to answer {count, plural, one {# call} other {# calls}} since {since}. The phones keep their work in the Outbox until it answers again. See Backups.",
   "alerts.monthlyCopyFailed":
     "The monthly copy of the farm, the one kept for years, failed on {since}. See Backups.",
   "alerts.passwordGuessed":
@@ -3385,6 +3387,10 @@ export const enCore = {
     "Whether the farm's records are being copied off this machine, and whether its own clock is running.",
   "schedule.lastRan": "The farm's schedule last ran at {when}",
   "schedule.notYet": "The farm's schedule has not run since the server started",
+  "schedule.failing":
+    "The server failed to answer {count, plural, one {# call} other {# calls}} in the last hour",
+  "schedule.failingWhat":
+    "The phones keep what they record until it answers again. The reason is in the server's log: journalctl -u openfarm.",
   "schedule.what":
     "Every five minutes the server raises the day's work, tells people about late work and ending withdrawals, and carries the digest.",
   "backups.never": "No copy has ever worked",

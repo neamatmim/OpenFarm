@@ -2408,6 +2408,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "alerts.openTheOverdue": "দেরির তালিকা খুলুন",
   "alerts.backupOverdue":
     "{since} থেকে খামারের কোনো কপি সফল হয়নি। খামারের কপি পাতায় দেখুন।",
+  "alerts.serverFailing":
+    "{since} থেকে সার্ভার {count} বার উত্তর দিতে পারেনি। সার্ভার আবার উত্তর দেওয়া পর্যন্ত ফোনগুলোর কাজ আউটবক্সে থাকবে। খামারের কপি পাতায় দেখুন।",
   "alerts.monthlyCopyFailed":
     "খামারের মাসিক কপি, যেটি বহু বছর রাখা হয়, {since}-এ সফল হয়নি। খামারের কপি পাতায় দেখুন।",
   "alerts.passwordGuessed":
@@ -3145,6 +3147,9 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "খামারের রেকর্ড এই মেশিনের বাইরে কপি হচ্ছে কিনা, আর খামারের নিজের ঘড়ি চলছে কিনা।",
   "schedule.lastRan": "খামারের সময়সূচি শেষ চলেছে {when}",
   "schedule.notYet": "সার্ভার চালু হওয়ার পর খামারের সময়সূচি এখনো চলেনি",
+  "schedule.failing": "গত এক ঘণ্টায় সার্ভার {count} বার উত্তর দিতে পারেনি",
+  "schedule.failingWhat":
+    "সার্ভার আবার উত্তর দেওয়া পর্যন্ত ফোনগুলো যা লেখে তা জমিয়ে রাখে। কারণ সার্ভারের লগে আছে: journalctl -u openfarm।",
   "schedule.what":
     "প্রতি পাঁচ মিনিটে সার্ভার দিনের কাজ তোলে, দেরি হওয়া কাজ ও উইথড্রয়াল শেষ হওয়ার খবর দেয়, আর সারসংক্ষেপ পাঠায়।",
   "backups.never": "কোনো কপি কখনো সফল হয়নি",

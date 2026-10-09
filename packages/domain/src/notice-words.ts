@@ -364,6 +364,10 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
   backup_overdue: (facts, language) => ({
     since: saidDate(facts.since, language, "dateTime"),
   }),
+  server_failing: (facts, language) => ({
+    count: Number(facts.count),
+    since: saidDate(facts.since, language, "dateTime"),
+  }),
   monthly_copy_failed: (facts, language) => ({
     since: saidDate(facts.since, language, "dateTime"),
   }),

@@ -307,6 +307,17 @@ const Worries = ({
           {schedule.lastError ?? t("schedule.what")}
         </Notice>
       ) : null}
+      {/* A screen drawn from an answer cached before the server counted its failures has none to show. */}
+      {schedule && (schedule.failuresInTheLastHour ?? 0) > 0 ? (
+        <Notice
+          title={t("schedule.failing", {
+            count: schedule.failuresInTheLastHour,
+          })}
+          tone="warning"
+        >
+          {t("schedule.failingWhat")}
+        </Notice>
+      ) : null}
     </>
   );
 };

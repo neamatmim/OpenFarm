@@ -8,16 +8,19 @@ import {
   theFarm,
   thePerson,
 } from "@OpenFarm/test-harness";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import type { Tx } from "./audit";
+import { aFailureWasSeen, forgetEveryFailure } from "./failures-seen";
 import { settleWhatIsSettled } from "./settled-notices";
 import type { Turning } from "./the-day-turns";
 import type { Quiet } from "./the-machinery-notices";
 import {
+  FAILURES_THAT_ARE_A_FAULT,
   backupGap,
   dayNotTurning,
   monthlyCopyFailed,
+  serverFailing,
   tellTheOwnerAboutTheMachinery,
 } from "./the-machinery-notices";
 
@@ -226,6 +229,79 @@ describe("a Day Turning that has stopped", () => {
           now
         )
       ).toEqual([]);
+    });
+  });
+});
+
+describe("a server failing to answer", () => {
+  afterEach(() => {
+    forgetEveryFailure();
+  });
+
+  it("is nothing to say while the hour's failures are few: a database that blinked, sent again", () => {
+    for (let failed = 0; failed < FAILURES_THAT_ARE_A_FAULT - 1; failed += 1) {
+      aFailureWasSeen(new Date(now.getTime() - 10 * MINUTE));
+    }
+    expect(serverFailing(now)).toBeNull();
+  });
+
+  it("tells the Owner once at the mark, with how many and since when, and settles once the hour has passed", async () => {
+    const first = new Date(now.getTime() - 20 * MINUTE);
+    for (let failed = 0; failed < FAILURES_THAT_ARE_A_FAULT; failed += 1) {
+      aFailureWasSeen(new Date(first.getTime() + failed * MINUTE));
+    }
+    const failing = serverFailing(now);
+    expect(failing).toMatchObject({
+      kind: "server_failing",
+      since: first,
+      count: FAILURES_THAT_ARE_A_FAULT,
+    });
+
+    await inside(async (tx) => {
+      const told = await tellTheOwnerAboutTheMachinery(
+        tx,
+        farmId,
+        failing ? [failing] : [],
+        now
+      );
+      expect(told.map((one) => one.userId)).toEqual([thePerson("owner").id]);
+      const [notice] = await toldTheOwner(tx, "server_failing");
+      expect(notice?.params).toEqual({
+        since: first.toISOString(),
+        count: FAILURES_THAT_ARE_A_FAULT,
+      });
+
+      // Five minutes on, one more failure: the same stretch, nothing more said.
+      aFailureWasSeen(new Date(now.getTime() + 4 * MINUTE));
+      const again = serverFailing(new Date(now.getTime() + 5 * MINUTE));
+      expect(again?.id).toBe(failing?.id);
+
+      const farm = await tx.query.farm.findFirst({ where: { id: farmId } });
+      if (!farm) {
+        throw new Error("expected this file's farm");
+      }
+      const showing = () =>
+        tx.query.alert.findMany({
+          where: {
+            farmId,
+            kind: "server_failing",
+            dismissedAt: { isNull: true },
+          },
+        });
+      // Still failing: the notice stays.
+      await settleWhatIsSettled({
+        db: tx,
+        farm,
+        clock: new FakeClock(new Date(now.getTime() + 5 * MINUTE)),
+      } as unknown as Turning);
+      expect(await showing()).toHaveLength(1);
+      // An hour and more with nothing new: it clears.
+      await settleWhatIsSettled({
+        db: tx,
+        farm,
+        clock: new FakeClock(new Date(now.getTime() + 2 * HOUR)),
+      } as unknown as Turning);
+      expect(await showing()).toEqual([]);
     });
   });
 });

@@ -1998,6 +1998,7 @@ export const enDesk = {
   "digest.registrationRenewal": "The registration is due for renewal",
   "digest.dayNotTurning": "The farm's schedule has stopped",
   "digest.backupOverdue": "The farm is not being copied",
+  "digest.serverFailing": "The server is failing",
   "digest.workMissed":
     "{count, plural, one {# piece} other {# pieces}} of work went late while the farm was not turning",
   "push.takenBackTitle": "Taken back",
@@ -2065,6 +2066,9 @@ export const enDesk = {
   "push.backupOverdueTitle": "The farm is not being copied",
   "push.backupOverdueBody":
     "No copy has succeeded in over a day and a half. Open Backups to see why.",
+  "push.serverFailingTitle": "The server is failing",
+  "push.serverFailingBody":
+    "It has dropped calls for the last hour; the phones are keeping their work. Open Backups to see.",
   "push.monthlyCopyFailedTitle": "The monthly copy failed",
   "push.monthlyCopyFailedBody":
     "The copy kept for years did not succeed. Open Backups to see why.",

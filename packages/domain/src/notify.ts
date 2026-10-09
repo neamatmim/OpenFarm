@@ -77,6 +77,9 @@ export const DELIVERY = {
   // text and not at night: it is not a cow or a deadline, and the records are still there in the morning.
   day_not_turning: { when: "immediate" },
   backup_overdue: { when: "immediate" },
+  // The server failing to answer, over and over: every call it drops is a phone's work waiting in its Outbox, and the
+  // Owner is the one with the server's login. Heard at once, as of the machinery, and not by text.
+  server_failing: { when: "immediate" },
   // Somebody guessing one account's password from many addresses: the Owner hears at once, as of the farm's own
   // machinery, and not by text — the account is already slowed, and the night's guessing waits for the morning.
   password_guessed: { when: "immediate" },
@@ -258,6 +261,11 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
     app: "alerts.backupOverdue",
     push: { title: "push.backupOverdueTitle", body: "push.backupOverdueBody" },
     digest: "digest.backupOverdue",
+  },
+  server_failing: {
+    app: "alerts.serverFailing",
+    push: { title: "push.serverFailingTitle", body: "push.serverFailingBody" },
+    digest: "digest.serverFailing",
   },
   monthly_copy_failed: {
     app: "alerts.monthlyCopyFailed",

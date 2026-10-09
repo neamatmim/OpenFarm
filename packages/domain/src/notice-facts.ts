@@ -264,6 +264,8 @@ export interface NoticeFacts {
   day_not_turning: { since: string };
   /** When a copy last succeeded — or, for a farm whose copies have never once worked, when the first was tried. */
   backup_overdue: { since: string };
+  /** The server failing on its own: how many calls it could not answer in the hour, and when the first of them came. */
+  server_failing: { count: number; since: string };
   /** The monthly copy that failed: when it was tried. */
   monthly_copy_failed: { since: string };
   /** Work that went late while the farm's day was not turning, counted rather than told one by one. */

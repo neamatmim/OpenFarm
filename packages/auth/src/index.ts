@@ -158,6 +158,10 @@ const whyShut = async (
 /** What Better Auth answers a wrong password with. */
 const WRONG_PASSWORD = 401;
 
+/** Sign-ins one address may try in a minute. The farm's office is one address — the Owner, the Manager and the Vet
+ *  behind one Wi-Fi — and each of them mistyping twice on the same morning is not a script; twenty in a minute is. */
+const SIGN_INS_FROM_ONE_ADDRESS = 20;
+
 /**
  * The door: somebody whose Membership has ended does not sign in, and nor does an Investor while the portal is shut
  * or their access is taken away (ADR 0007).
@@ -352,7 +356,10 @@ export const createAuth = (
         // Every screen asks whether its person is still signed in, and the phones on the farm's Wi-Fi share one
         // address: counting those questions locked the shed out on a busy morning. They guess nothing.
         "/get-session": false,
-        "/sign-in/email": { window: 60, max: 5 },
+        // Wrong passwords for one account are counted against the account, from any address (`countTheGuess`), so
+        // the address's own limit is for a script spraying many accounts — and the farm's office, the Owner, the
+        // Manager and the Vet signing in on one Wi-Fi, must not be that script.
+        "/sign-in/email": { window: 60, max: SIGN_INS_FROM_ONE_ADDRESS },
         "/sign-up/email": { window: 60, max: 3 },
         "/request-password-reset": { window: 60, max: 3 },
         "/reset-password": { window: 60, max: 3 },
