@@ -1,13 +1,14 @@
 import type { PaperDocument } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
-import { Input } from "@OpenFarm/ui/components/input";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
-import { FileDown, Printer } from "lucide-react";
+import { FileDown, Milk, Printer, Truck } from "lucide-react";
 import { useState } from "react";
 
-import { FilterBar, FormField } from "@/components/page-kit";
+import { ExportList, ExportRow } from "@/components/exports";
+import { Section } from "@/components/page";
+import { PeriodFilter } from "@/components/page-kit";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -48,74 +49,78 @@ export const MilkRecordsTab = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="surface flex flex-col gap-4 p-4 md:p-5">
+      {/* The tab already names it; the part says only how its dates work. */}
+      <Section>
         <p className="text-muted-foreground text-sm">
           {t("dispatch.reportsHint")}
         </p>
-        <FilterBar className="border-y py-4 sm:items-end">
-          <div className="grid grid-cols-2 gap-3 sm:flex">
-            <FormField id="milk-records-from" label={t("dispatch.from")}>
-              <Input
-                className="sm:w-44"
-                id="milk-records-from"
-                onChange={(event) => setFrom(event.target.value)}
-                type="date"
-                value={from}
-              />
-            </FormField>
-            <FormField id="milk-records-to" label={t("dispatch.to")}>
-              <Input
-                className="sm:w-44"
-                id="milk-records-to"
-                onChange={(event) => setTo(event.target.value)}
-                type="date"
-                value={to}
-              />
-            </FormField>
-          </div>
-        </FilterBar>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          <Button
-            disabled={dispatchRecord.isPending}
-            onClick={() => dispatchRecord.mutate({ from, to, format: "paper" })}
-            type="button"
-            variant="outline"
-          >
-            {dispatchRecord.isPending ? (
-              <Spinner />
-            ) : (
-              <Printer aria-hidden data-icon="inline-start" />
-            )}
-            {t("dispatch.recordPaper")}
-          </Button>
-          <Button
-            disabled={dispatchCsv.isPending}
-            onClick={() => dispatchCsv.mutate({ from, to, format: "csv" })}
-            type="button"
-            variant="outline"
-          >
-            {dispatchCsv.isPending ? (
-              <Spinner />
-            ) : (
-              <FileDown aria-hidden data-icon="inline-start" />
-            )}
-            {t("dispatch.recordCsv")}
-          </Button>
-          <Button
-            disabled={production.isPending}
-            onClick={() => production.mutate({ from, to })}
-            type="button"
-            variant="outline"
-          >
-            {production.isPending ? (
-              <Spinner />
-            ) : (
-              <FileDown aria-hidden data-icon="inline-start" />
-            )}
-            {t("dispatch.productionCsv")}
-          </Button>
+        <PeriodFilter
+          from={from}
+          fromLabel={t("dispatch.from")}
+          label={t("money.period")}
+          onFrom={setFrom}
+          onTo={setTo}
+          to={to}
+          toLabel={t("dispatch.to")}
+        />
+        <div className="border-t pt-4">
+          <ExportList>
+            <ExportRow
+              description={t("dispatch.recordHint")}
+              icon={Truck}
+              title={t("dispatch.recordPaper")}
+            >
+              <Button
+                disabled={dispatchRecord.isPending}
+                onClick={() =>
+                  dispatchRecord.mutate({ from, to, format: "paper" })
+                }
+                type="button"
+                variant="outline"
+              >
+                {dispatchRecord.isPending ? (
+                  <Spinner />
+                ) : (
+                  <Printer aria-hidden data-icon="inline-start" />
+                )}
+                {t("common.print")}
+              </Button>
+              <Button
+                disabled={dispatchCsv.isPending}
+                onClick={() => dispatchCsv.mutate({ from, to, format: "csv" })}
+                type="button"
+                variant="outline"
+              >
+                {dispatchCsv.isPending ? (
+                  <Spinner />
+                ) : (
+                  <FileDown aria-hidden data-icon="inline-start" />
+                )}
+                {t("exports.csv")}
+              </Button>
+            </ExportRow>
+            <ExportRow
+              description={t("dispatch.productionHint")}
+              icon={Milk}
+              title={t("dispatch.production")}
+            >
+              <Button
+                disabled={production.isPending}
+                onClick={() => production.mutate({ from, to })}
+                type="button"
+                variant="outline"
+              >
+                {production.isPending ? (
+                  <Spinner />
+                ) : (
+                  <FileDown aria-hidden data-icon="inline-start" />
+                )}
+                {t("exports.csv")}
+              </Button>
+            </ExportRow>
+          </ExportList>
         </div>
-      </div>
+      </Section>
       <PaperDialog
         onClose={() => setPaper(null)}
         paper={paper}

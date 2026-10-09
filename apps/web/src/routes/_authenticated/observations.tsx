@@ -17,6 +17,7 @@ import {
   Loaded,
   Page,
   PageHeader,
+  TableSkeleton,
   TagChip,
 } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
@@ -208,7 +209,7 @@ const ObservationsPage = () => {
           </div>
         </FilterBar>
 
-        <Loaded query={seen}>
+        <Loaded query={seen} skeleton={<TableSkeleton />}>
           {shown.length ? (
             <SeenTable seen={shown} />
           ) : (

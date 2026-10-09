@@ -36,7 +36,15 @@ import {
   MovementLog,
   RegisterPeriod,
 } from "@/components/health-registers";
-import { Notice, Page, PageHeader, Section, TagChip } from "@/components/page";
+import {
+  EmptyState,
+  Notice,
+  Page,
+  PageHeader,
+  SUBHEADING,
+  Section,
+  TagChip,
+} from "@/components/page";
 import type { Tone } from "@/components/page";
 import type { Figure, PageTab } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
@@ -217,10 +225,7 @@ const RegistrationTab = ({
             src={`data:${photo.contentType};base64,${photo.data}`}
           />
         ) : (
-          <p className="text-muted-foreground bg-muted/60 flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm">
-            <ImageOff aria-hidden className="size-4 shrink-0" />
-            {t("certificate.none")}
-          </p>
+          <EmptyState icon={ImageOff} title={t("certificate.none")} />
         )}
       </Section>
 
@@ -252,7 +257,7 @@ const RegistrationTab = ({
         ) : null}
         {herd.byPen.length ? (
           <div className="flex flex-col gap-1">
-            <h3 className="text-sm font-semibold">{t("inspector.byPen")}</h3>
+            <h3 className={SUBHEADING}>{t("inspector.byPen")}</h3>
             <dl className="divide-border flex flex-col divide-y">
               {herd.byPen.map((line) => (
                 <Line key={line.penId} label={`${line.shed} · ${line.pen}`}>
@@ -337,10 +342,7 @@ const InspectorPage = () => {
   if (!view.data) {
     return (
       <Page>
-        <PageHeader
-          eyebrow={t("nav.group.compliance")}
-          title={t("nav.inspector")}
-        />
+        <PageHeader title={t("nav.inspector")} />
         {view.isError ? (
           <Notice title={t("common.loadFailed")} tone="danger" />
         ) : (
@@ -418,7 +420,6 @@ const InspectorPage = () => {
     <Page>
       <PageHeader
         description={t("inspector.subtitle")}
-        eyebrow={t("nav.group.compliance")}
         title={t("nav.inspector")}
       />
 

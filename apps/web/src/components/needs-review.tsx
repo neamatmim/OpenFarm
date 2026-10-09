@@ -17,7 +17,8 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { Nothing, SaidDate } from "@/components/list-cells";
-import { EmptyState, Loaded, TagChip } from "@/components/page";
+import { EmptyState, Loaded, TableSkeleton, TagChip } from "@/components/page";
+import { ChoiceCard } from "@/components/page-kit";
 import { ReasonDialog } from "@/components/sign-off/reason-dialog";
 import type { Asked, OpenReview } from "@/components/sign-off/sign-off-types";
 import { useLanguage } from "@/i18n/language-provider";
@@ -314,7 +315,7 @@ export const NeedsReview = ({
 
   return (
     <div className="surface p-4 md:p-5">
-      <Loaded query={queue}>
+      <Loaded query={queue} skeleton={<TableSkeleton />}>
         {moreThanShown ? (
           <p className="text-muted-foreground mb-3 text-sm">
             {t("review.oldestOf", {
@@ -359,17 +360,14 @@ export const NeedsReview = ({
         title={t("review.resolve")}
       >
         {aWeight ? (
-          <label
-            className="has-data-checked:border-primary/40 has-data-checked:bg-primary/5 hover:bg-muted/50 flex h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm md:h-9"
-            htmlFor="review-reading-stands"
-          >
+          <ChoiceCard htmlFor="review-reading-stands">
             <Checkbox
               checked={readingStands}
               id="review-reading-stands"
               onCheckedChange={(checked) => setReadingStands(checked === true)}
             />
             {t("review.weightIsRight")}
-          </label>
+          </ChoiceCard>
         ) : null}
       </ReasonDialog>
       <ReasonDialog

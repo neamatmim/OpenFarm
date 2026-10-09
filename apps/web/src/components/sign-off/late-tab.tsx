@@ -13,7 +13,12 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
-import { EmptyState, Loaded, StatusBadge } from "@/components/page";
+import {
+  EmptyState,
+  Loaded,
+  StatusBadge,
+  TableSkeleton,
+} from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useInFlight } from "@/lib/in-flight";
 import { useRefused } from "@/lib/refused";
@@ -185,7 +190,7 @@ export const LateTab = ({ late }: { late: Asked<LateWork> }) => {
   });
   return (
     <div className="surface p-4 md:p-5">
-      <Loaded query={late}>
+      <Loaded query={late} skeleton={<TableSkeleton />}>
         {late.data?.length ? (
           <DataTable
             card={lateCard}

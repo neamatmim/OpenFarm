@@ -28,6 +28,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { COLUMN_HEADING } from "@/components/data-table";
 import { bandSaid, expectedGainSaid } from "@/components/feed/band-words";
 import type { Tone } from "@/components/page";
 import { Page, PageHeader, Section, StatusBadge } from "@/components/page";
@@ -72,12 +73,18 @@ const RationsTable = () => {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>{t("standards.col.ration")}</TableHead>
-          <TableHead>{t("standards.col.band")}</TableHead>
-          <TableHead className="text-right">
+          <TableHead className={COLUMN_HEADING}>
+            {t("standards.col.ration")}
+          </TableHead>
+          <TableHead className={COLUMN_HEADING}>
+            {t("standards.col.band")}
+          </TableHead>
+          <TableHead className={`${COLUMN_HEADING} text-right`}>
             {t("standards.col.gain")}
           </TableHead>
-          <TableHead>{t("standards.col.firmness")}</TableHead>
+          <TableHead className={COLUMN_HEADING}>
+            {t("standards.col.firmness")}
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

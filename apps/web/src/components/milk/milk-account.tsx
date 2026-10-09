@@ -1,8 +1,10 @@
 import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 
+import { Loaded, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -36,41 +38,49 @@ export const MilkAccountCard = () => {
   const { t, language } = useLanguage();
   const account = useQuery(orpc.milk.account.queryOptions());
   if (!account.data) {
-    return null;
+    return (
+      <Loaded
+        query={account}
+        skeleton={<Skeleton aria-hidden className="h-48 rounded-xl" />}
+      >
+        {null}
+      </Loaded>
+    );
   }
   const week = account.data;
   const calvesDrank = week.calves.litersADay > 0;
   const pastTheLine =
     week.notAccounted > 0 && week.notAccountedPercent > week.linePercent;
   return (
-    <section className="surface flex flex-col p-4 md:p-5">
-      <h3 className="text-base font-semibold">{t("milkAccount.title")}</h3>
-      <p className="text-muted-foreground pb-2 text-xs">
-        {t("milkAccount.hint", {
-          since: formatDate(startOfFarmDay(week.since), language, "date"),
-        })}
-      </p>
-      {week.carriedIn > 0 ? (
-        <Line label={t("milkAccount.carriedIn")} liters={week.carriedIn} />
-      ) : null}
-      <Line label={t("milkAccount.toBulk")} liters={week.toBulk} />
-      <Line label={t("milkAccount.dispatched")} liters={week.dispatched} />
-      <Line label={t("milkAccount.stillInTank")} liters={week.stillInTank} />
-      <Line
-        label={`${t("milkAccount.notAccounted")} (${formatNumber(week.notAccountedPercent, language)}%)`}
-        liters={week.notAccounted}
-        loud={pastTheLine}
-      />
-      {/* Only when the calves drank from the pail this week: none recorded is not calves going hungry. */}
-      {calvesDrank && week.calves.perCalf !== null ? (
-        <p className="text-muted-foreground pt-2 text-xs">
-          {t("milkAccount.calves", {
-            liters: formatNumber(week.calves.litersADay, language),
-            calves: week.calves.calves,
-            perCalf: formatNumber(week.calves.perCalf, language),
-          })}
-        </p>
-      ) : null}
-    </section>
+    <Section
+      description={t("milkAccount.hint", {
+        since: formatDate(startOfFarmDay(week.since), language, "date"),
+      })}
+      title={t("milkAccount.title")}
+    >
+      <div className="flex flex-col">
+        {week.carriedIn > 0 ? (
+          <Line label={t("milkAccount.carriedIn")} liters={week.carriedIn} />
+        ) : null}
+        <Line label={t("milkAccount.toBulk")} liters={week.toBulk} />
+        <Line label={t("milkAccount.dispatched")} liters={week.dispatched} />
+        <Line label={t("milkAccount.stillInTank")} liters={week.stillInTank} />
+        <Line
+          label={`${t("milkAccount.notAccounted")} (${formatNumber(week.notAccountedPercent, language)}%)`}
+          liters={week.notAccounted}
+          loud={pastTheLine}
+        />
+        {/* Only when the calves drank from the pail this week: none recorded is not calves going hungry. */}
+        {calvesDrank && week.calves.perCalf !== null ? (
+          <p className="text-muted-foreground pt-2 text-xs">
+            {t("milkAccount.calves", {
+              liters: formatNumber(week.calves.litersADay, language),
+              calves: week.calves.calves,
+              perCalf: formatNumber(week.calves.perCalf, language),
+            })}
+          </p>
+        ) : null}
+      </div>
+    </Section>
   );
 };

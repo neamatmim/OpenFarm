@@ -231,7 +231,6 @@ const IntakePage = () => {
           <Button
             className="w-full sm:w-auto"
             disabled={!ready || pending}
-            size="lg"
             type="submit"
           >
             {pending ? (

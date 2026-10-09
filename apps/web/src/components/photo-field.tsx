@@ -1,6 +1,7 @@
 import type { MessageKey } from "@OpenFarm/i18n";
-import { Camera, CircleCheck } from "lucide-react";
+import { CircleCheck } from "lucide-react";
 
+import { UploadButton } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import type { Photo } from "@/lib/photo";
 import { photoProblem, shrink } from "@/lib/photo";
@@ -39,27 +40,11 @@ export const PhotoField = ({
   const { t } = useLanguage();
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <label
-        className="border-input bg-card hover:bg-muted has-[:focus-visible]:ring-ring has-[:focus-visible]:border-ring flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors has-[:focus-visible]:ring-2 md:min-h-9"
-        htmlFor={id}
-      >
-        <Camera aria-hidden className="size-4" />
-        {t(takeLabel)}
-      </label>
-      <p className="text-muted-foreground inline-flex min-w-0 items-center gap-1.5 text-sm">
-        {chosen ? (
-          <CircleCheck aria-hidden className="text-success size-4 shrink-0" />
-        ) : null}
-        <span className="truncate">
-          {chosen ? t("photo.added") : t("photo.none")}
-        </span>
-      </p>
-      <input
-        accept="image/*"
-        capture={fromCamera ? "environment" : undefined}
-        className="sr-only"
+      <UploadButton
         disabled={disabled}
+        fromCamera={fromCamera}
         id={id}
+        label={t(takeLabel)}
         onChange={async (event) => {
           const file = event.target.files?.[0];
           if (!file) {
@@ -72,8 +57,15 @@ export const PhotoField = ({
             toast.error(t(photoProblem(error)));
           }
         }}
-        type="file"
       />
+      <p className="text-muted-foreground inline-flex min-w-0 items-center gap-1.5 text-sm">
+        {chosen ? (
+          <CircleCheck aria-hidden className="text-success size-4 shrink-0" />
+        ) : null}
+        <span className="truncate">
+          {chosen ? t("photo.added") : t("photo.none")}
+        </span>
+      </p>
     </div>
   );
 };

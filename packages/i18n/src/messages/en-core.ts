@@ -354,8 +354,6 @@ export const enCore = {
   "common.error": "Something went wrong",
   "common.loading": "Loading…",
   "common.loadFailed": "Could not load this — check the connection",
-  "params.title": "Farm parameters",
-  "params.why": "How the farm is tuned. Every change is kept in the audit log.",
   "params.alerts": "Alerts and quiet hours",
   "params.records": "Records",
   "params.pinAutoLock": "Shed phone locks after",
@@ -1016,7 +1014,7 @@ export const enCore = {
   "nominees.nid": "NID number",
   "nominees.birthRegistration": "Birth registration number",
   "nominees.phone": "Phone",
-  "nominees.sharePercent": "Share (%)",
+  "nominees.sharePercent": "Share",
   "nominees.receiverHeading": "Under eighteen: who collects for them",
   "nominees.receiverName": "Receiver's name",
   "nominees.receiverRelation": "Relation to the Nominee",
@@ -1152,7 +1150,7 @@ export const enCore = {
   "breeds.gain.hint":
     "An animal of this breed is judged at this share of its ration's expected gain, in place of the deshi share. A cow or heifer is still judged at the female share on top. From 30% to 120%.",
   "breeds.gain.between": "From {least}% to {most}%",
-  "breeds.gain.label": "Share of the ration's expected gain (%)",
+  "breeds.gain.label": "Share of the ration's expected gain",
   "breeds.gain.farmHint":
     "{figure}. From bulls only — a cow or heifer carries the female share too.",
   "breeds.gain.noFigure":
@@ -1341,7 +1339,7 @@ export const enCore = {
   "animals.ageWholeYears": "{years, plural, one {# year} other {# years}}",
   "animals.ageEstimated": "about {age}",
   "animals.bornAround": "around {month}",
-  "animals.more": "More",
+  "common.more": "More",
   "animals.moreFor": "{tag} — more actions",
   "animals.tab.overview": "At a glance",
   "animals.tab.breeding": "Breeding",
@@ -1946,8 +1944,8 @@ export const enCore = {
     "How much a day — for each animal, or for every 100 kg it weighs",
   "feed.basis.head": "a head",
   "feed.band": "For animals weighing",
-  "feed.bandFrom": "From (kg)",
-  "feed.bandTo": "Up to (kg)",
+  "feed.bandFrom": "From",
+  "feed.bandTo": "Up to",
   "feed.bandHint":
     "Leave both empty for a ration that suits any weight. A bull outside the band is pointed out on the Fattening page.",
   "feed.bandWrong": "Both weights above nothing, and From below Up to",
@@ -2058,7 +2056,7 @@ export const enCore = {
   "feed.assigned": "This pen is on it",
   "feed.english": "English (optional)",
   "feed.unit": "Unit",
-  "feed.bagSize": "Bag size (kg)",
+  "feed.bagSize": "Bag size",
   "feed.bagOf": "{kg} kg bags",
   "feed.setBagSize": "Bag size",
   "feed.bagSizeHint":
@@ -2103,7 +2101,7 @@ export const enCore = {
   "stock.noStock": "Nothing in the store — add a feed item first",
   "stock.adjustment": "expected {expected}, counted {counted}",
   "stock.averagePrice": "{currencySign}{amount} per {unit}",
-  "stock.weighed": "Weighed on the farm's scale (kg)",
+  "stock.weighed": "Weighed on the farm's scale",
   "stock.weighedHint":
     "Optional. Weigh the lot as it comes: the scale is what goes into the store, and the slip is kept beside it.",
   "stock.scaleShort":
@@ -2128,6 +2126,7 @@ export const enCore = {
   "stock.kind": "Bought or harvested",
   "stock.purchase": "Bought",
   "stock.harvest": "From our own fields",
+  "stock.howMuch": "How much",
   "stock.quantity": "How much ({unit})",
   "stock.maunds": "about {maunds, plural, one {# maund} other {# maunds}}",
   "stock.boughtAs": "bought as {count} {pack}",
@@ -2250,8 +2249,11 @@ export const enCore = {
   "dispatch.from": "From",
   "dispatch.to": "To",
   "dispatch.recordPaper": "Dispatch record",
-  "dispatch.recordCsv": "Dispatch record (CSV)",
-  "dispatch.productionCsv": "Production (CSV)",
+  "dispatch.recordHint":
+    "Every dispatch with the buyer's name and address and the delivery note: what a processor or BFSA asks for.",
+  "dispatch.production": "Milk production",
+  "dispatch.productionHint":
+    "Liters by day, session, pen and destination, with milk poured away under a withdrawal shown apart, for your own spreadsheet.",
   "dispatch.recordAction": "Record milk handed over",
   "dispatch.sheetDescription":
     "Milk from the tank handed to a buyer. Its price goes to the money register.",
@@ -2263,8 +2265,7 @@ export const enCore = {
   "dispatch.kpi.handedOverHint":
     "{count, plural, one {# dispatch} other {# dispatches}} · {currencySign}{amount}",
   "dispatch.kpi.mismatchesHint": "Waiting for you to look",
-  "dispatch.reportsHint":
-    "Choose the dates, then print the dispatch record a processor or BFSA asks for, or save the figures as a CSV.",
+  "dispatch.reportsHint": "Choose the dates; each record below covers them.",
   "refusal.dispatchedInTheFuture": "Milk cannot have left later than now",
   "refusal.periodTooLong":
     "One report covers two years at most: the longest year the farm can have",
@@ -2554,9 +2555,13 @@ export const enCore = {
     "Fattening animals sold in this period, each over her whole life",
   "accountant.title": "For the accountant",
   "accountant.summary": "Income and expense",
-  "accountant.csv": "Every money event (CSV)",
-  "accountant.hint":
-    "For the period chosen above: the income and expense to print, and every money event as a CSV for the accountant's books.",
+  "accountant.csv": "Every money event",
+  "accountant.hint": "For the period chosen above.",
+  "accountant.summaryHint":
+    "Income against expense by category, counterparty and side, and who owed the farm at the period's end, on the farm's letterhead to print or save as a PDF.",
+  "accountant.csvHint":
+    "One row to each money event, with the record behind it, its side and account, and whether it is approved, to open in a spreadsheet.",
+  "exports.csv": "Download CSV",
   "costs.bySideHint":
     "What each side's animals were fed, dosed and visited for in the period chosen above, and the fattening animals sold in it.",
   "work.wholeFarm": "The whole farm",
@@ -3218,13 +3223,15 @@ export const enCore = {
   "signOff.line.outOfRange":
     "{count, plural, one {# figure} other {# figures}} out of range",
   "signOff.line.flagged": "Flagged",
-  "signOff.clearSelection": "Clear",
+  "common.clearSelection": "Clear",
   "signOff.approvedMany":
     "{count, plural, one {# approved} other {# approved}}",
   "signOff.select": "Select {work}",
   "signOff.sentBack": "Sent back",
   "signOff.closedMissed": "Closed as missed",
   "correct.why": "Why is it being changed?",
+  "correct.whyMissing": "Say why it is being changed.",
+  "correct.nothingChanged": "Nothing has been changed that can be saved yet.",
   "correct.save": "Save correction",
   "correct.open": "Correct",
   "correct.saved": "Corrected — the original stays in the trail",
@@ -3825,8 +3832,6 @@ export const enCore = {
   "months.one.title": "Monthly report — {month}",
   "months.one.subtitle":
     "How the farm did in one month, beside the month before: the farm's own money, the milk, fattening and overheads.",
-  "months.one.csv": "The month (CSV)",
-  "months.one.print": "Print",
   "months.one.whichMonth": "Which month",
   "months.one.line": "Figure",
   "months.one.money": "The farm's money",
@@ -4051,7 +4056,7 @@ export const enCore = {
   "months.noSuchYear":
     "No financial year begins in that month. Pick one above.",
   "settings.rulesWhy":
-    "How the farm behaves: when its digest goes and its quiet hours, how far a reading may drift, how long late work waits before somebody is told, and when a cow is put on the cull list.",
+    "How the farm behaves: when its digest goes and its quiet hours, how far a reading may drift, how long late work waits before somebody is told, and when a cow is put on the cull list. Every change is kept in the audit log.",
   "settings.moneyWhy":
     "The accounts the farm takes and pays through, the categories every entry is written under, and the market price its own animals are priced at.",
   "identity.why":
@@ -4112,6 +4117,7 @@ export const enCore = {
     "Apart from these, {amount} of capital refunded when a venture was canceled",
   "money.refundedHint": "When a Venture was canceled",
   "units.kg": "{kg} kg",
+  "units.kgShort": "kg",
   "units.kgADay": "{kg} kg a day",
   "units.liters": "{liters} L",
   "alerts.animalMissing": "{tag} was not found on the round in {pen}, {since}",
@@ -4299,6 +4305,7 @@ export const enCore = {
   "wageDraw.col.owed": "Still owed",
   "wageDraw.col.draws": "Draws",
   "wageDraw.col.oldest": "Oldest draw",
+  "wageDraw.owing": "Draws still owed",
   "wageDraw.listHint":
     "What each person has drawn ahead and still owes. Their next wage takes it off, the oldest first.",
   "wageDraw.atPayday":
@@ -4316,6 +4323,7 @@ export const enCore = {
   "cash.hint":
     "What each person holds of the farm's cash: the cash money that named their hand, less what they paid out and handed over. Mobile money and the bank name nobody. Open a hand to see what moved.",
   "cash.nobody": "Nobody holds the farm's cash yet",
+  "cash.hands": "What each hand holds",
   "cash.col.hand": "Whose hand",
   "cash.col.lastCount": "Last counted",
   "cash.col.ventures": "Ventures' sale cash",

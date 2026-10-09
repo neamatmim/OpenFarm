@@ -62,7 +62,7 @@ export const AssignWork = ({
   return (
     <div
       className={cn(
-        "surface flex flex-col gap-2 p-3 md:flex-row md:items-center md:gap-3",
+        "surface flex flex-col gap-2 p-4 md:flex-row md:items-center md:gap-3 md:p-5",
         className
       )}
     >

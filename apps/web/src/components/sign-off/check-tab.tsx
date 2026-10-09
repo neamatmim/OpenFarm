@@ -15,7 +15,8 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { SaidDate } from "@/components/list-cells";
-import { EmptyState, Loaded } from "@/components/page";
+import { EmptyState, Loaded, TableSkeleton } from "@/components/page";
+import { BatchBar } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useInFlight } from "@/lib/in-flight";
 import { useRefused } from "@/lib/refused";
@@ -189,7 +190,7 @@ const ApproveTheClean = ({
     <div className="bg-accent text-accent-foreground flex flex-col gap-2 rounded-lg px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <span className="text-sm">{t("signOff.approveCleanHint")}</span>
       <Button
-        className="h-12 sm:h-9"
+        className="h-12 md:h-9"
         disabled={pending}
         onClick={handleApprove}
         type="button"
@@ -288,7 +289,7 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
   });
   return (
     <div className="surface p-4 md:p-5">
-      <Loaded query={queue}>
+      <Loaded query={queue} skeleton={<TableSkeleton />}>
         {queue.data?.length ? (
           <div className="flex flex-col gap-3">
             {offerTheClean ? (
@@ -300,33 +301,24 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
             ) : null}
             {/* Carbon's batch bar: over the table while rows are ticked, what is ticked and what to do with it. */}
             {chosen.length > 0 ? (
-              <div className="bg-accent text-accent-foreground flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-2">
-                <span aria-live="polite" className="text-sm font-medium">
-                  {t("signOff.selected", { count: chosen.length })}
-                </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    disabled={approvingMany}
-                    onClick={() => setTicked(new Set())}
-                    type="button"
-                    variant="ghost"
-                  >
-                    {t("signOff.clearSelection")}
-                  </Button>
-                  <Button
-                    disabled={approvingMany}
-                    onClick={() => approveAll(chosen)}
-                    type="button"
-                  >
-                    {approvingMany ? (
-                      <Spinner />
-                    ) : (
-                      <Check aria-hidden data-icon="inline-start" />
-                    )}
-                    {t("signOff.approveSelected", { count: chosen.length })}
-                  </Button>
-                </div>
-              </div>
+              <BatchBar
+                busy={approvingMany}
+                onClear={() => setTicked(new Set())}
+                said={t("signOff.selected", { count: chosen.length })}
+              >
+                <Button
+                  disabled={approvingMany}
+                  onClick={() => approveAll(chosen)}
+                  type="button"
+                >
+                  {approvingMany ? (
+                    <Spinner />
+                  ) : (
+                    <Check aria-hidden data-icon="inline-start" />
+                  )}
+                  {t("signOff.approveSelected", { count: chosen.length })}
+                </Button>
+              </BatchBar>
             ) : null}
             <DataTable
               card={checkCard}

@@ -8,7 +8,6 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -45,12 +44,14 @@ import {
   PageHeader,
   Section,
   StatusBadge,
+  TableSkeleton,
 } from "@/components/page";
 import {
   ConfirmDialog,
   FormDialog,
   FormField,
   RowMenu,
+  UnitInput,
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
@@ -416,16 +417,20 @@ const GainDialog = ({
         id="breed-gain-percent"
         label={t("breeds.gain.label")}
       >
-        <Input
-          className="max-w-32"
-          id="breed-gain-percent"
-          inputMode="numeric"
-          max={BREED_GAIN_PERCENT.most}
-          min={BREED_GAIN_PERCENT.least}
-          onChange={(event) => setTyped(event.target.value)}
-          type="number"
-          value={typed}
-        />
+        {/* Narrow as the figure is, with its unit inside the box: the width is the box's own, or the sign would sit
+            at the far end of the row. */}
+        <div className="max-w-32">
+          <UnitInput
+            id="breed-gain-percent"
+            inputMode="numeric"
+            max={BREED_GAIN_PERCENT.most}
+            min={BREED_GAIN_PERCENT.least}
+            onChange={(event) => setTyped(event.target.value)}
+            type="number"
+            unit="%"
+            value={typed}
+          />
+        </div>
       </FormField>
       {hasOwn ? (
         <Button
@@ -552,10 +557,7 @@ const BreedsPage = () => {
       />
 
       <Section>
-        <Loaded
-          query={breeds}
-          skeleton={<Skeleton className="h-40 rounded-lg" />}
-        >
+        <Loaded query={breeds} skeleton={<TableSkeleton />}>
           {breeds.data?.length === 0 ? (
             <EmptyState bare icon={Dna} title={t("breeds.none")} />
           ) : null}

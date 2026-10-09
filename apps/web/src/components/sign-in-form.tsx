@@ -13,6 +13,7 @@ import { PasswordInput } from "@/components/auth/password-input";
 import type { SignInRefusal } from "@/components/auth/refused-notice";
 import { RefusedNotice, refusalOf } from "@/components/auth/refused-notice";
 import { DOOR_LINK } from "@/components/door-screen";
+import { FLOW_CARD, FlowHead } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "@/lib/toast";
@@ -66,11 +67,8 @@ const SignInForm = ({ onForgotPassword }: { onForgotPassword: () => void }) => {
   });
 
   return (
-    <div className="surface flex flex-col gap-6 p-6 sm:p-8">
-      <div className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-semibold">{t("auth.welcomeBack")}</h1>
-        <p className="text-muted-foreground text-sm">{t("auth.formHint")}</p>
-      </div>
+    <div className={FLOW_CARD}>
+      <FlowHead hint={t("auth.formHint")} title={t("auth.welcomeBack")} />
 
       <form
         onSubmit={(e) => {
@@ -171,7 +169,7 @@ const SignInForm = ({ onForgotPassword }: { onForgotPassword: () => void }) => {
           {({ isSubmitting }) => (
             <Button
               type="submit"
-              className="mt-1 h-12 w-full text-base md:h-10"
+              className="mt-1 h-12 w-full text-base md:h-9 md:text-sm"
               disabled={isSubmitting}
             >
               {isSubmitting ? <Spinner /> : null}

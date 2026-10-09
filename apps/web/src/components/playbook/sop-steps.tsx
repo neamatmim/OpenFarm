@@ -7,11 +7,13 @@ import type {
 import { EVIDENCE_TYPES, STEP_EFFECT_KINDS, maySkip } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { ArrowDown, ArrowUp, ListOrdered, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
-import { EmptyState, Section } from "@/components/page";
+import { EmptyState, SECTION_TITLE, Section } from "@/components/page";
 import { ConfirmDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { FigureBox } from "@/components/playbook/figure-box";
 import { ListInput } from "@/components/playbook/list-input";
@@ -305,7 +307,7 @@ const StepEditor = ({
   const { t, language } = useLanguage();
   return (
     <li
-      className="surface flex scroll-mt-20 flex-col gap-4 p-4"
+      className="surface flex scroll-mt-20 flex-col gap-4 p-4 md:p-5"
       id={stepAnchor(position)}
     >
       <div className="flex items-center gap-3">
@@ -316,7 +318,7 @@ const StepEditor = ({
           {formatNumber(position + 1, language)}
         </span>
         {/* Its words after its number, so moving through the Steps by heading says what each is. */}
-        <h3 className="min-w-0 flex-1 truncate font-semibold">
+        <h3 className={cn("min-w-0 flex-1 truncate", SECTION_TITLE)}>
           {t("sop.stepNumber", { number: position + 1 })}
           {step.text.bn ? ` — ${step.text.bn}` : ""}
         </h3>
@@ -391,14 +393,12 @@ const StepEditor = ({
         />
 
         <label className="inline-flex min-h-11 items-center gap-2 self-start text-sm md:min-h-0">
-          <input
+          <Checkbox
             checked={step.repeatPerAnimal}
-            className="size-4"
             disabled={Boolean(step.effect)}
-            onChange={(e) =>
-              onChange({ ...step, repeatPerAnimal: e.target.checked })
+            onCheckedChange={(checked) =>
+              onChange({ ...step, repeatPerAnimal: checked === true })
             }
-            type="checkbox"
           />
           {t("sop.repeatPerAnimal")}
         </label>
@@ -535,7 +535,7 @@ export const StepsSection = ({
         </ol>
       )}
       <Button
-        className="h-12 w-full border-dashed md:h-12"
+        className="w-full border-dashed"
         onClick={add}
         type="button"
         variant="outline"

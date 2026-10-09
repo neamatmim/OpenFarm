@@ -7,7 +7,7 @@ import { FileText } from "lucide-react";
 import { useState } from "react";
 
 import { SegmentedControl } from "@/components/page";
-import { FormField, FormSheet } from "@/components/page-kit";
+import { FormField, FormSheet, UnitInput } from "@/components/page-kit";
 import { PhotoField } from "@/components/photo-field";
 import type { WordingSaid } from "@/components/ventures/paper-dialog";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
@@ -310,11 +310,12 @@ export const AmendSheet = ({
         id="amend-percent"
         label={t("ventures.amendShare")}
       >
-        <Input
+        <UnitInput
           id="amend-percent"
           inputMode="numeric"
           onChange={(event) => setPercent(event.target.value)}
           type="number"
+          unit="%"
           value={percent}
         />
       </FormField>

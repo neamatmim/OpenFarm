@@ -335,8 +335,6 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "common.error": "কিছু একটা ভুল হয়েছে",
   "common.loading": "আনা হচ্ছে…",
   "common.loadFailed": "এটি আনা যায়নি — সংযোগ দেখুন",
-  "params.title": "খামারের প্যারামিটার",
-  "params.why": "খামার কীভাবে চলবে তার মাপ। প্রতিটি পরিবর্তন অডিট লগে থাকে।",
   "params.alerts": "সতর্কবার্তা ও নীরব সময়",
   "params.records": "রেকর্ড",
   "params.pinAutoLock": "শেডের ফোন লক হবে",
@@ -912,7 +910,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "nominees.nid": "এনআইডি নম্বর",
   "nominees.birthRegistration": "জন্ম নিবন্ধন নম্বর",
   "nominees.phone": "ফোন",
-  "nominees.sharePercent": "অংশ (%)",
+  "nominees.sharePercent": "অংশ",
   "nominees.receiverHeading": "আঠারোর কম: তাঁর হয়ে কে সংগ্রহ করবেন",
   "nominees.receiverName": "গ্রহণকারীর নাম",
   "nominees.receiverRelation": "নমিনির সঙ্গে সম্পর্ক",
@@ -1045,7 +1043,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "breeds.gain.hint":
     "এই জাতের পশু তার রেশনের প্রত্যাশিত বৃদ্ধির এই ভাগে মাপা হবে, দেশির হারের বদলে। গাভী বা বকনার বেলায় স্ত্রী পশুর হারও এর ওপর ধরা হবে। ৩০% থেকে ১২০%।",
   "breeds.gain.between": "{least}% থেকে {most}%",
-  "breeds.gain.label": "রেশনের প্রত্যাশিত বৃদ্ধির কত ভাগ (%)",
+  "breeds.gain.label": "রেশনের প্রত্যাশিত বৃদ্ধির কত ভাগ",
   "breeds.gain.farmHint": "{figure}। শুধু ষাঁড় থেকে — গাভী বা বকনায় স্ত্রী পশুর হারও থাকে।",
   "breeds.gain.noFigure":
     "প্রত্যাশিত বৃদ্ধি লেখা রেশনে যথেষ্ট দিন ওজন নেওয়া এর ষাঁড় পাঁচটির কম, তাই এখনো বলা যায় না।",
@@ -1222,7 +1220,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "animals.ageWholeYears": "{years} বছর",
   "animals.ageEstimated": "আনুমানিক {age}",
   "animals.bornAround": "আনুমানিক {month}",
-  "animals.more": "আরও",
+  "common.more": "আরও",
   "animals.moreFor": "{tag} — আরও কাজ",
   "animals.tab.overview": "এক নজরে",
   "animals.tab.breeding": "প্রজনন",
@@ -1786,8 +1784,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "feed.kgPerAnimal": "দিনে কতটা — প্রতি পশুকে, না প্রতি ১০০ কেজি ওজনে",
   "feed.basis.head": "প্রতি পশু",
   "feed.band": "কত ওজনের পশুর জন্য",
-  "feed.bandFrom": "থেকে (কেজি)",
-  "feed.bandTo": "পর্যন্ত (কেজি)",
+  "feed.bandFrom": "থেকে",
+  "feed.bandTo": "পর্যন্ত",
   "feed.bandHint":
     "যে কোনো ওজনে চললে দুটোই ফাঁকা রাখুন। এই সীমার বাইরের ষাঁড় মোটাতাজাকরণ পাতায় দেখানো হবে।",
   "feed.bandWrong": "দুটো ওজনই শূন্যের বেশি, আর «থেকে» «পর্যন্ত»-এর চেয়ে কম হতে হবে",
@@ -1892,7 +1890,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "feed.assigned": "এই পেনে চলছে",
   "feed.english": "ইংরেজি (ঐচ্ছিক)",
   "feed.unit": "একক",
-  "feed.bagSize": "বস্তার ওজন (কেজি)",
+  "feed.bagSize": "বস্তার ওজন",
   "feed.bagOf": "{kg} কেজির বস্তা",
   "feed.setBagSize": "বস্তার ওজন",
   "feed.bagSizeHint":
@@ -1936,7 +1934,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "stock.noStock": "গুদামে কিছু নেই — আগে খাদ্য উপাদান যোগ করুন",
   "stock.adjustment": "থাকার কথা {expected}, গোনা হয়েছে {counted}",
   "stock.averagePrice": "প্রতি {unit} {currencySign}{amount}",
-  "stock.weighed": "খামারের পাল্লায় ওজন (কেজি)",
+  "stock.weighed": "খামারের পাল্লায় ওজন",
   "stock.weighedHint":
     "ইচ্ছা হলে দিন। মাল আসার সময় ওজন দিলে পাল্লার ওজন গুদামে যাবে, রশিদের ওজন পাশে থাকবে।",
   "stock.scaleShort":
@@ -1961,6 +1959,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "stock.kind": "কেনা নাকি নিজের জমির",
   "stock.purchase": "কেনা",
   "stock.harvest": "নিজের জমির",
+  "stock.howMuch": "পরিমাণ",
   "stock.quantity": "পরিমাণ ({unit})",
   "stock.maunds": "প্রায় {maunds} মণ",
   "stock.boughtAs": "{count} {pack} হিসেবে কেনা",
@@ -2067,8 +2066,11 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "dispatch.from": "থেকে",
   "dispatch.to": "পর্যন্ত",
   "dispatch.recordPaper": "দুধ হস্তান্তরের রেকর্ড",
-  "dispatch.recordCsv": "দুধ হস্তান্তরের রেকর্ড (CSV)",
-  "dispatch.productionCsv": "দুধ উৎপাদন (CSV)",
+  "dispatch.recordHint":
+    "প্রতিটি হস্তান্তর, ক্রেতার নাম-ঠিকানা আর চালান সহ: প্রসেসর বা বিএফএসএ যা চায়।",
+  "dispatch.production": "দুধ উৎপাদন",
+  "dispatch.productionHint":
+    "দিন, বেলা, পেন আর গন্তব্য অনুযায়ী লিটার, উইথড্রয়ালে ফেলে দেওয়া দুধ আলাদা, আপনার নিজের স্প্রেডশিটের জন্য।",
   "dispatch.recordAction": "দুধ দেওয়া রেকর্ড করুন",
   "dispatch.sheetDescription":
     "ট্যাংকের দুধ ক্রেতাকে দেওয়া। দাম {currencyOf} হিসাবে যায়।",
@@ -2079,8 +2081,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "dispatch.tab.mismatches": "ট্যাংকের হিসাব মেলেনি",
   "dispatch.kpi.handedOverHint": "{count}টি হস্তান্তর · {currencySign}{amount}",
   "dispatch.kpi.mismatchesHint": "আপনার দেখার অপেক্ষায়",
-  "dispatch.reportsHint":
-    "তারিখ বেছে নিন, তারপর প্রসেসর বা বিএফএসএ যে হস্তান্তরের রেকর্ড চায় তা প্রিন্ট করুন, বা হিসাব CSV ফাইলে রাখুন।",
+  "dispatch.reportsHint": "তারিখ বেছে নিন; নিচের প্রতিটি রেকর্ড সেই সময়ের।",
   "refusal.dispatchedInTheFuture": "দুধ এখনের পরে যেতে পারে না",
   "refusal.periodTooLong":
     "একটি রেকর্ডে দুই বছরের বেশি থাকে না: খামারের সবচেয়ে লম্বা বছরও এর মধ্যে",
@@ -2356,9 +2357,13 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "costs.soldInPeriod": "এই সময়ে বিক্রি হওয়া মোটাতাজা পশু, প্রত্যেকের পুরো সময়ের হিসাব",
   "accountant.title": "হিসাবরক্ষকের জন্য",
   "accountant.summary": "আয় ও ব্যয়",
-  "accountant.csv": "সব {currencyOf} হিসাব (CSV)",
-  "accountant.hint":
-    "ওপরে বেছে নেওয়া সময়ের জন্য: প্রিন্ট করার আয়-ব্যয়ের হিসাব, আর হিসাবরক্ষকের খাতার জন্য সব {currencyOf} হিসাব CSV ফাইলে।",
+  "accountant.csv": "সব {currencyOf} হিসাব",
+  "accountant.hint": "ওপরে বেছে নেওয়া সময়ের।",
+  "accountant.summaryHint":
+    "খাত, লেনদেনকারী ও বিভাগ অনুযায়ী আয় আর ব্যয়, আর সময়কালের শেষে খামারের পাওনা, খামারের প্যাডে প্রিন্ট বা PDF করার জন্য।",
+  "accountant.csvHint":
+    "প্রতিটি {currencyOf} হিসাব এক সারিতে, পেছনের রেকর্ড, বিভাগ, অ্যাকাউন্ট আর অনুমোদন হয়েছে কি না সহ, স্প্রেডশিটে খোলার জন্য।",
+  "exports.csv": "CSV ডাউনলোড",
   "costs.bySideHint":
     "ওপরে বেছে নেওয়া সময়ে প্রতিটি দিকের পশুর খাদ্য, ওষুধ আর ভেট ভিজিটের খরচ, আর সেই সময়ে বিক্রি হওয়া মোটাতাজা পশু।",
   "work.wholeFarm": "পুরো খামার",
@@ -2991,12 +2996,14 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "signOff.approved": "অনুমোদন করা হয়েছে",
   "signOff.selected": "{count}টি বাছা হয়েছে",
   "signOff.approveSelected": "{count}টি অনুমোদন করুন",
-  "signOff.clearSelection": "বাছাই মুছুন",
+  "common.clearSelection": "বাছাই মুছুন",
   "signOff.approvedMany": "{count}টি অনুমোদিত",
   "signOff.select": "{work} বাছুন",
   "signOff.sentBack": "ফেরত পাঠানো হয়েছে",
   "signOff.closedMissed": "বাদ পড়া হিসেবে বন্ধ করা হয়েছে",
   "correct.why": "কেন বদলাচ্ছেন?",
+  "correct.whyMissing": "কেন বদলাচ্ছেন তা লিখুন।",
+  "correct.nothingChanged": "সংরক্ষণ করার মতো কিছু এখনো বদলানো হয়নি।",
   "correct.save": "সংশোধন সংরক্ষণ",
   "correct.open": "সংশোধন",
   "correct.saved": "সংশোধন হয়েছে — আগের তথ্য অডিট লগে থাকছে",
@@ -3552,8 +3559,6 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.title": "মাসিক প্রতিবেদন — {month}",
   "months.one.subtitle":
     "এক মাসে খামার কেমন চলল, আগের মাসের পাশে: খামারের নিজের টাকা, দুধ, মোটাতাজাকরণ আর পরিচালন খরচ।",
-  "months.one.csv": "মাসের হিসাব (CSV)",
-  "months.one.print": "ছাপুন",
   "months.one.whichMonth": "কোন মাস",
   "months.one.line": "হিসাব",
   "months.one.money": "খামারের টাকা",
@@ -3769,7 +3774,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "settings.section.years": "অর্থবছর",
   "months.noSuchYear": "সেই মাসে কোনো অর্থবছর শুরু হয় না। ওপর থেকে একটি বেছে নিন।",
   "settings.rulesWhy":
-    "খামার কীভাবে চলে: দিনের সারসংক্ষেপ কখন যায় আর নীরব সময় কখন, একটি পরিমাপ কতটা সরে যেতে পারে, দেরি হওয়া কাজ কতক্ষণ পরে জানানো হয়, আর কখন একটি গাভী বাদের তালিকায় ওঠে।",
+    "খামার কীভাবে চলে: দিনের সারসংক্ষেপ কখন যায় আর নীরব সময় কখন, একটি পরিমাপ কতটা সরে যেতে পারে, দেরি হওয়া কাজ কতক্ষণ পরে জানানো হয়, আর কখন একটি গাভী বাদের তালিকায় ওঠে। প্রতিটি পরিবর্তন অডিট লগে থাকে।",
   "settings.moneyWhy":
     "যে হিসাবে খামার টাকা নেয় ও দেয়, প্রতিটি লেনদেন যে খাতে লেখা হয়, আর খামারের নিজের পশুর দাম যে বাজারদরে ধরা হয়।",
   "identity.why":
@@ -3827,6 +3832,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "এর বাইরে, ভেঞ্চার বাতিল হওয়ায় {amount} মূলধন ফেরত দেওয়া হয়েছে",
   "money.refundedHint": "ভেঞ্চার বাতিল হওয়ায়",
   "units.kg": "{kg} কেজি",
+  "units.kgShort": "কেজি",
   "units.kgADay": "দিনে {kg} কেজি",
   "units.liters": "{liters} লিটার",
   "alerts.animalMissing": "{since}: রাউন্ডে {pen}-এ {tag} পাওয়া যায়নি",
@@ -4008,6 +4014,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "wageDraw.col.owed": "এখনও বাকি",
   "wageDraw.col.draws": "অগ্রিম",
   "wageDraw.col.oldest": "সবচেয়ে পুরনো অগ্রিম",
+  "wageDraw.owing": "এখনো বাকি অগ্রিম",
   "wageDraw.listHint":
     "কে বেতনের আগে কত নিয়েছেন আর এখনো বাকি। পরের বেতন থেকে কাটা যায়, আগেরটা আগে।",
   "wageDraw.atPayday":
@@ -4023,6 +4030,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "cash.hint":
     "খামারের নগদ কার হাতে কত: যে নগদ {currencyIn} তার নাম লেখা, তা থেকে যা খরচ ও হাতবদল করেছেন বাদে। বিকাশ আর ব্যাংকে কারও নাম থাকে না। কী কী এসেছে-গেছে দেখতে হাতটি খুলুন।",
   "cash.nobody": "খামারের নগদ এখনো কারও হাতে নেই",
+  "cash.hands": "কার হাতে কত নগদ",
   "cash.col.hand": "কার হাতে",
   "cash.col.lastCount": "শেষ গোনা",
   "cash.col.ventures": "ভেঞ্চারের বিক্রির টাকা",

@@ -23,7 +23,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { BackLink, EmptyState, Page, PageHeader } from "@/components/page";
 import type { Figure, RowAction } from "@/components/page-kit";
-import { PageTabs, RowMenu, SummaryFigures } from "@/components/page-kit";
+import { HeaderMenu, PageTabs, SummaryFigures } from "@/components/page-kit";
 import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
 import { StageTrack } from "@/components/ventures/stage-track";
 import { useVentureActs } from "@/components/ventures/use-venture-acts";
@@ -204,7 +204,7 @@ const TheVenture = ({
               {t("ventures.month.open")}
             </Link>
             <PrimaryActs acts={acts} venture={venture} />
-            <RowMenu
+            <HeaderMenu
               actions={menu}
               label={t("ventures.moreFor", { venture: venture.name })}
             />

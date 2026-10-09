@@ -231,7 +231,6 @@ export const IntakeSummary = ({
       <Button
         className="hidden w-full lg:inline-flex"
         disabled={!ready || pending}
-        size="lg"
         type="submit"
       >
         {pending ? (

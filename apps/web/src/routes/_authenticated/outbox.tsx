@@ -102,7 +102,7 @@ const HeldCard = ({
     : undefined;
   const Icon = tone === "danger" ? Undo2 : Eye;
   return (
-    <li className="surface flex flex-col gap-3 p-4">
+    <li className="surface flex flex-col gap-3 p-4 md:p-5">
       <div className="flex items-start gap-3">
         <span
           className={cn(
@@ -137,7 +137,7 @@ const HeldCard = ({
         </p>
       </div>
       <Button
-        className="h-12 w-full sm:h-9 sm:w-auto sm:self-end"
+        className="h-12 w-full sm:w-auto sm:self-end md:h-9"
         onClick={() => onDiscard(entry.id)}
         variant="outline"
       >

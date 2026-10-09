@@ -2,7 +2,6 @@ import { monthsEndingIn, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import {
   Table,
   TableBody,
@@ -17,6 +16,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CalendarRange, Undo2 } from "lucide-react";
 import { useState } from "react";
 
+import { COLUMN_HEADING } from "@/components/data-table";
 import { useIsOwner } from "@/components/money";
 import {
   EmptyState,
@@ -25,6 +25,7 @@ import {
   PageHeader,
   Section,
   StatusBadge,
+  TableSkeleton,
 } from "@/components/page";
 import {
   FormDialog,
@@ -97,9 +98,15 @@ const YearsTable = ({ years }: { years: Years }) => {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>{t("years.col.year")}</TableHead>
-          <TableHead>{t("years.col.runs")}</TableHead>
-          <TableHead className="text-right">{t("years.col.months")}</TableHead>
+          <TableHead className={COLUMN_HEADING}>
+            {t("years.col.year")}
+          </TableHead>
+          <TableHead className={COLUMN_HEADING}>
+            {t("years.col.runs")}
+          </TableHead>
+          <TableHead className={`${COLUMN_HEADING} text-right`}>
+            {t("years.col.months")}
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -379,10 +386,7 @@ const FinancialYearPage = () => {
         title={t("settings.section.years")}
       />
       <Section description={t("years.yearsHint")} title={t("years.yearsTitle")}>
-        <Loaded
-          query={years}
-          skeleton={<Skeleton className="h-40 rounded-lg" />}
-        >
+        <Loaded query={years} skeleton={<TableSkeleton />}>
           {data ? (
             <div className="flex flex-col gap-3">
               <YearsTable years={data} />

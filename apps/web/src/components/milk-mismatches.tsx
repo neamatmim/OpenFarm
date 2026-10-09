@@ -45,7 +45,7 @@ const CowsInSession = ({ instanceId }: { instanceId: string }) => {
     orpc.milk.session.queryOptions({ input: { instanceId } })
   );
   if (!session.data) {
-    return <Skeleton className="h-20 rounded-lg" />;
+    return <Skeleton className="h-20 rounded-xl" />;
   }
   return (
     <ul className="max-h-[50vh] divide-y overflow-y-auto rounded-lg border text-sm">
@@ -131,9 +131,7 @@ const SessionDialog = ({
         {session ? (
           <div className="flex flex-col gap-4">
             <DialogHeader>
-              <DialogTitle className="text-base font-semibold">
-                {penOf(session)}
-              </DialogTitle>
+              <DialogTitle>{penOf(session)}</DialogTitle>
               <DialogDescription>
                 {formatDate(new Date(session.dueAt), language, "dateTime")}
               </DialogDescription>

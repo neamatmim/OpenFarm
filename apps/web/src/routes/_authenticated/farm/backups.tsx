@@ -25,6 +25,7 @@ import {
   PageHeader,
   Section,
   StatusBadge,
+  TableSkeleton,
 } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { SummaryFigures } from "@/components/page-kit";
@@ -342,7 +343,7 @@ const BackupsPage = () => {
         description={t("backups.historyWhy")}
         title={t("backups.history")}
       >
-        <Loaded query={backups}>
+        <Loaded query={backups} skeleton={<TableSkeleton />}>
           {state?.runs.length ? (
             <RunTable runs={state.runs} />
           ) : (

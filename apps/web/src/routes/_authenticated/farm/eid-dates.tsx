@@ -1,5 +1,4 @@
 import { formatDigits, formatNumber } from "@OpenFarm/i18n";
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -31,6 +30,7 @@ import {
   PageHeader,
   Section,
   StatusBadge,
+  TableSkeleton,
 } from "@/components/page";
 import { ConfirmDialog, RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -288,10 +288,7 @@ const EidPage = () => {
       />
 
       <Section>
-        <Loaded
-          query={eids}
-          skeleton={<Skeleton className="h-40 rounded-lg" />}
-        >
+        <Loaded query={eids} skeleton={<TableSkeleton />}>
           {eids.data?.length === 0 ? (
             <EmptyState bare icon={MoonStar} title={t("eid.none")} />
           ) : null}

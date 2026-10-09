@@ -21,8 +21,8 @@ import {
 } from "@/components/data-table";
 import { SideField } from "@/components/money/side-field";
 import type { SideChoice } from "@/components/money/side-field";
-import { EmptyState } from "@/components/page";
-import { FormDialog, FormField } from "@/components/page-kit";
+import { EmptyState, Loaded, Section, TableSkeleton } from "@/components/page";
+import { FormField, FormSheet, WorkedOut } from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
 import {
   accountSent,
@@ -46,8 +46,9 @@ import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
-/** Money a person takes ahead of payday, written down: who, how much, the day, and how it was paid. */
-const DrawDialog = ({
+/** Money a person takes ahead of payday, written down: who, how much, the day, and how it was paid. A record of money
+ *  of its own, with as many fields as any other, so in a sheet as every money record is. */
+const DrawSheet = ({
   open,
   onOpenChange,
 }: {
@@ -80,7 +81,7 @@ const DrawDialog = ({
     })
   );
   return (
-    <FormDialog
+    <FormSheet
       description={t("wageDraw.hint")}
       onOpenChange={onOpenChange}
       onSubmit={() =>
@@ -155,7 +156,7 @@ const DrawDialog = ({
           value={note}
         />
       </FormField>
-    </FormDialog>
+    </FormSheet>
   );
 };
 
@@ -371,8 +372,27 @@ const PersonDraws = ({ person }: { person: Person }) => {
   );
 };
 
-/** On a desk, a person a row — who, their oldest draw, how many, and what they still owe — each opening to the draws
- *  themselves (Polaris's index table, Carbon's expandable rows). */
+/** On a phone, a person a card: their name and what they still owe, and their draws under it. */
+const PersonCard = ({ person }: { person: Person }) => {
+  const asMoney = useMoney();
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="flex items-baseline justify-between gap-3">
+        <span className="font-medium">{person.name}</span>
+        <span className="font-semibold tabular-nums">
+          {asMoney(person.openMoney)}
+        </span>
+      </span>
+      <PersonDraws person={person} />
+    </div>
+  );
+};
+
+/** One person's draws as a phone reads them, for the list's card. */
+const personCard = (person: Person) => <PersonCard person={person} />;
+
+/** A person a row on a desk — who, their oldest draw, how many, and what they still owe — each opening to the draws
+ *  themselves (Polaris's index table, Carbon's expandable rows); a person a card on a phone. */
 const DrawsTable = ({ people }: { people: Person[] }) => {
   const table = useListTable({
     columns: personColumns,
@@ -381,6 +401,7 @@ const DrawsTable = ({ people }: { people: Person[] }) => {
   });
   return (
     <DataTable
+      card={personCard}
       renderDetail={(person) => <PersonDraws person={person} />}
       table={table}
     />
@@ -389,51 +410,36 @@ const DrawsTable = ({ people }: { people: Person[] }) => {
 
 /**
  * Each person's Wage Draws still owed, the most owed first, and the button to write another down. Payday takes them off
- * the month's wage; this is where the Manager sees who has drawn ahead.
+ * the month's wage; this is where the Manager sees who has drawn ahead. "Nobody owes" is said only once the farm has
+ * answered.
  */
 export const WageDrawsTab = () => {
   const { t } = useLanguage();
-  const asMoney = useMoney();
   const [drawing, setDrawing] = useState(false);
   const open = useQuery(orpc.money.openDraws.queryOptions());
   const people = open.data ?? [];
   return (
     <div className="flex flex-col gap-4">
+      {/* Above the list, not in it: a draw can be written down while the list is still loading, or could not be. */}
       <div className="flex justify-end">
         <Button onClick={() => setDrawing(true)} type="button">
           <Plus aria-hidden data-icon="inline-start" />
           {t("wageDraw.record")}
         </Button>
       </div>
-      {people.length === 0 ? (
-        <EmptyState icon={HandCoins} title={t("wageDraw.none")} />
-      ) : (
-        <section className="surface flex flex-col p-4 md:p-5">
-          <p className="text-muted-foreground pb-2 text-xs">
-            {t("wageDraw.listHint")}
-          </p>
-          <ul className="divide-y md:hidden">
-            {people.map((person) => (
-              <li
-                className="flex flex-col gap-1 py-3"
-                key={person.counterpartyId}
-              >
-                <span className="flex items-baseline justify-between gap-3">
-                  <span className="font-medium">{person.name}</span>
-                  <span className="font-semibold tabular-nums">
-                    {asMoney(person.openMoney)}
-                  </span>
-                </span>
-                <PersonDraws person={person} />
-              </li>
-            ))}
-          </ul>
-          <div className="hidden md:block">
+      <Loaded query={open} skeleton={<TableSkeleton rows={4} />}>
+        {people.length === 0 ? (
+          <EmptyState icon={HandCoins} title={t("wageDraw.none")} />
+        ) : (
+          <Section
+            description={t("wageDraw.listHint")}
+            title={t("wageDraw.owing")}
+          >
             <DrawsTable people={people} />
-          </div>
-        </section>
-      )}
-      <DrawDialog onOpenChange={setDrawing} open={drawing} />
+          </Section>
+        )}
+      </Loaded>
+      <DrawSheet onOpenChange={setDrawing} open={drawing} />
     </div>
   );
 };
@@ -467,7 +473,7 @@ export const WageDrawsNote = ({
   const carried = person.openMoney - taken;
   const carriesOver = carried > 0;
   return (
-    <p className="bg-muted rounded-md px-3 py-2 text-sm tabular-nums">
+    <WorkedOut>
       {t("wageDraw.atPayday", {
         owed: asMoney(person.openMoney),
         taken: asMoney(taken),
@@ -476,6 +482,6 @@ export const WageDrawsNote = ({
       {carriesOver
         ? ` ${t("wageDraw.carried", { amount: asMoney(carried) })}`
         : ""}
-    </p>
+    </WorkedOut>
   );
 };

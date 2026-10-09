@@ -2,7 +2,6 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { Beef } from "lucide-react";
 
 import {
@@ -11,6 +10,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { TagLink } from "@/components/fattening/fattening-words";
 import { Nothing } from "@/components/list-cells";
 import { EmptyState, Section } from "@/components/page";
 import { Line } from "@/components/ventures/venture-card";
@@ -58,13 +58,7 @@ const WHERE_ORDER = [
 ] as const;
 
 const TagCell = ({ row }: AnimalCell) => (
-  <Link
-    className="font-mono font-semibold tabular-nums underline-offset-4 hover:underline focus-visible:underline"
-    params={{ tagNumber: row.original.tagNumber }}
-    to="/animals/$tagNumber"
-  >
-    {row.original.tagNumber}
-  </Link>
+  <TagLink tagNumber={row.original.tagNumber} />
 );
 
 const WhereCell = ({ row }: AnimalCell) => {

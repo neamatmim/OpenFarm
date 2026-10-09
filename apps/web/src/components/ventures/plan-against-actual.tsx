@@ -2,8 +2,9 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 
+import { COLUMN_HEADING } from "@/components/data-table";
 import { Nothing } from "@/components/list-cells";
-import { Loaded, Section } from "@/components/page";
+import { Loaded, SUBHEADING, Section } from "@/components/page";
 import { FigureTerm } from "@/components/page-kit";
 import { useLineBreedName } from "@/components/ventures/line-breed";
 import { useLanguage } from "@/i18n/language-provider";
@@ -18,8 +19,8 @@ type Measured = NonNullable<
 >;
 type Heads = Measured["buying"]["outside"];
 
-const HEAD = "text-muted-foreground px-2 py-1.5 text-xs font-medium";
-const CELL = "px-2 py-2 text-end tabular-nums";
+const HEAD = `${COLUMN_HEADING} px-2 pt-1.5`;
+const CELL = "px-2 py-2 text-right tabular-nums";
 
 /** Some animals as a cell: how many, and what a kilo cost where any were bought. */
 const HeadsCell = ({ heads }: { heads: Heads }) => {
@@ -41,24 +42,24 @@ const Buying = ({ measured }: { measured: Measured }) => {
   const { buying } = measured;
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold">{t("plan.vs.buying")}</h3>
+      <h3 className={SUBHEADING}>{t("plan.vs.buying")}</h3>
       <div className="-mx-4 overflow-x-auto md:-mx-5">
         <table className="w-full min-w-[40rem] text-sm">
           <thead className="border-b">
             <tr>
-              <th className={`${HEAD} ps-4 text-start md:ps-5`} scope="col">
+              <th className={`${HEAD} pl-4 text-left md:pl-5`} scope="col">
                 {t("plan.col.band")}
               </th>
-              <th className={`${HEAD} text-end`} scope="col">
+              <th className={`${HEAD} text-right`} scope="col">
                 {t("plan.vs.planned")}
               </th>
-              <th className={`${HEAD} text-end`} scope="col">
+              <th className={`${HEAD} text-right`} scope="col">
                 {t("plan.vs.bought")}
               </th>
-              <th className={`${HEAD} text-end`} scope="col">
+              <th className={`${HEAD} text-right`} scope="col">
                 {t("plan.vs.plannedCost")}
               </th>
-              <th className={`${HEAD} pe-4 text-end md:pe-5`} scope="col">
+              <th className={`${HEAD} pr-4 text-right md:pr-5`} scope="col">
                 {t("plan.vs.cost")}
               </th>
             </tr>
@@ -66,7 +67,7 @@ const Buying = ({ measured }: { measured: Measured }) => {
           <tbody className="divide-y">
             {buying.bands.map((band, at) => (
               <tr key={`band-${band.planned.moneyPerKg}-${at}`}>
-                <td className="px-2 py-2 ps-4 md:ps-5">
+                <td className="px-2 py-2 pl-4 md:pl-5">
                   {t("plan.lineOf", { number: formatNumber(at + 1, language) })}
                   {/* Its weights and Breed, so two Breeds bought at the same weights are told apart; an answer this
                       phone kept from before a band said which line it was says only its number. */}
@@ -94,14 +95,14 @@ const Buying = ({ measured }: { measured: Measured }) => {
                   <HeadsCell heads={band.bought} />
                 </td>
                 <td className={CELL}>{asMoney(band.planned.costMoney)}</td>
-                <td className={`${CELL} pe-4 md:pe-5`}>
+                <td className={`${CELL} pr-4 md:pr-5`}>
                   {asMoney(band.bought.costMoney)}
                 </td>
               </tr>
             ))}
             {buying.outside.animals > 0 ? (
               <tr>
-                <td className="text-warning px-2 py-2 ps-4 md:ps-5">
+                <td className="text-warning px-2 py-2 pl-4 md:pl-5">
                   {t("plan.vs.outside")}
                 </td>
                 <td className={CELL}>
@@ -113,7 +114,7 @@ const Buying = ({ measured }: { measured: Measured }) => {
                 <td className={CELL}>
                   <Nothing />
                 </td>
-                <td className={`${CELL} pe-4 md:pe-5`}>
+                <td className={`${CELL} pr-4 md:pr-5`}>
                   {asMoney(buying.outside.costMoney)}
                 </td>
               </tr>
@@ -121,7 +122,7 @@ const Buying = ({ measured }: { measured: Measured }) => {
           </tbody>
           <tfoot className="border-t font-medium">
             <tr>
-              <td className="px-2 py-2 ps-4 md:ps-5">{t("plan.total")}</td>
+              <td className="px-2 py-2 pl-4 md:pl-5">{t("plan.total")}</td>
               <td className={CELL}>
                 {t("plan.vs.count", {
                   count: buying.bands.reduce(
@@ -136,7 +137,7 @@ const Buying = ({ measured }: { measured: Measured }) => {
               <td className={CELL}>
                 {asMoney(measured.money.plannedCattleMoney)}
               </td>
-              <td className={`${CELL} pe-4 md:pe-5`}>
+              <td className={`${CELL} pr-4 md:pr-5`}>
                 {asMoney(buying.total.costMoney)}
               </td>
             </tr>
@@ -157,7 +158,7 @@ const Growth = ({ measured }: { measured: Measured }) => {
   const behind = actual !== null && actual < growth.plannedKgToday;
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold">{t("plan.vs.growth")}</h3>
+      <h3 className={SUBHEADING}>{t("plan.vs.growth")}</h3>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
         <FigureTerm label={t("plan.vs.plannedToday")}>
           {kg(growth.plannedKgToday)}
@@ -213,18 +214,18 @@ const Money = ({ measured }: { measured: Measured }) => {
   ];
   return (
     <div className="flex flex-col gap-1">
-      <h3 className="mb-1 text-sm font-semibold">{t("plan.vs.money")}</h3>
+      <h3 className={`mb-1 ${SUBHEADING}`}>{t("plan.vs.money")}</h3>
       <div className="-mx-4 overflow-x-auto md:-mx-5">
         <table className="w-full max-w-3xl text-sm">
           <thead className="border-b">
             <tr>
-              <th className={`${HEAD} ps-4 text-start md:ps-5`} scope="col">
+              <th className={`${HEAD} pl-4 text-left md:pl-5`} scope="col">
                 <span className="sr-only">{t("plan.vs.money")}</span>
               </th>
-              <th className={`${HEAD} text-end`} scope="col">
+              <th className={`${HEAD} text-right`} scope="col">
                 {t("plan.vs.col.plan")}
               </th>
-              <th className={`${HEAD} pe-4 text-end md:pe-5`} scope="col">
+              <th className={`${HEAD} pr-4 text-right md:pr-5`} scope="col">
                 {t("plan.vs.col.now")}
               </th>
             </tr>
@@ -233,13 +234,13 @@ const Money = ({ measured }: { measured: Measured }) => {
             {rows.map((row) => (
               <tr key={row.key}>
                 <th
-                  className="px-2 py-2 ps-4 text-start font-normal md:ps-5"
+                  className="px-2 py-2 pl-4 text-left font-normal md:pl-5"
                   scope="row"
                 >
                   {row.label}
                 </th>
                 <td className={CELL}>{row.planned}</td>
-                <td className={`${CELL} pe-4 md:pe-5`}>{row.now}</td>
+                <td className={`${CELL} pr-4 md:pr-5`}>{row.now}</td>
               </tr>
             ))}
           </tbody>

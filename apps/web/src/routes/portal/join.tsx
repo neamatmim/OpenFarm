@@ -15,7 +15,7 @@ import { useState } from "react";
 import { PasswordInput } from "@/components/auth/password-input";
 import { sayAuthRefusal } from "@/components/auth/refused-notice";
 import { BackToSignIn, CODE_FIELD } from "@/components/door-screen";
-import { Notice } from "@/components/page";
+import { FLOW_CARD, FlowHead, Notice } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { PortalDoor } from "@/components/portal/portal-door";
 import { useLanguage } from "@/i18n/language-provider";
@@ -106,7 +106,7 @@ const PortalJoin = () => {
   return (
     <PortalDoor>
       <form
-        className="surface flex flex-col gap-5 p-6 sm:p-8"
+        className={FLOW_CARD}
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
@@ -119,14 +119,10 @@ const PortalJoin = () => {
           join.mutate({ phone, code, password });
         }}
       >
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-2xl font-semibold">
-            {t(forgot ? "portal.resetTitle" : "portal.joinTitle")}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            {t(forgot ? "portal.forgot" : "portal.joinHint")}
-          </p>
-        </div>
+        <FlowHead
+          hint={t(forgot ? "portal.forgot" : "portal.joinHint")}
+          title={t(forgot ? "portal.resetTitle" : "portal.joinTitle")}
+        />
         {refused ? (
           <Notice title={t("auth.refused")} tone="danger">
             {refused}
@@ -181,7 +177,7 @@ const PortalJoin = () => {
           <Check met={again !== "" && same}>{t("portal.passwordsMatch")}</Check>
         </ul>
         <Button
-          className="h-12 w-full text-base md:h-10"
+          className="h-12 w-full text-base md:h-9 md:text-sm"
           disabled={join.isPending}
           type="submit"
         >

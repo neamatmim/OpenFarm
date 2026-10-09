@@ -9,7 +9,7 @@ import { useState } from "react";
 
 import { PasswordInput } from "@/components/auth/password-input";
 import { BackToSignIn, CODE_FIELD } from "@/components/door-screen";
-import { Notice } from "@/components/page";
+import { FLOW_CARD, FlowHead, Notice } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
@@ -49,11 +49,8 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
     newPassword.length >= PASSWORD_MIN_LENGTH;
 
   return (
-    <div className="surface flex flex-col gap-6 p-6 sm:p-8">
-      <div className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-semibold">{t("auth.forgotTitle")}</h1>
-        <p className="text-muted-foreground text-sm">{t("auth.forgotHint")}</p>
-      </div>
+    <div className={FLOW_CARD}>
+      <FlowHead hint={t("auth.forgotHint")} title={t("auth.forgotTitle")} />
 
       <form
         className="flex flex-col gap-4"
@@ -117,7 +114,7 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
           </p>
         </div>
         <Button
-          className="mt-1 h-12 w-full text-base md:h-10"
+          className="mt-1 h-12 w-full text-base md:h-9 md:text-sm"
           disabled={set.isPending}
           type="submit"
         >

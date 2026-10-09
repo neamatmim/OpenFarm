@@ -5,7 +5,7 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { FormField, FormSheet } from "@/components/page-kit";
+import { FormField, FormSheet, InsetPanel } from "@/components/page-kit";
 import { SearchablePicker } from "@/components/searchable-picker";
 import { useLanguage } from "@/i18n/language-provider";
 import { usePenNames } from "@/lib/pen-names";
@@ -33,7 +33,7 @@ const asRecorded = (conclusion: Conclusion) => ({
 const WhatWasSeen = ({ seen }: { seen: Seen }) => {
   const { language } = useLanguage();
   return (
-    <div className="bg-muted/60 flex flex-col gap-1.5 rounded-lg border p-3 text-sm">
+    <InsetPanel className="flex flex-col gap-1.5 text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <AnimalLink tagNumber={seen.tagNumber} />
@@ -47,7 +47,7 @@ const WhatWasSeen = ({ seen }: { seen: Seen }) => {
         <span className="text-muted-foreground text-xs">{seen.seenByName}</span>
       ) : null}
       {seen.note ? <p className="text-foreground/80">“{seen.note}”</p> : null}
-    </div>
+    </InsetPanel>
   );
 };
 

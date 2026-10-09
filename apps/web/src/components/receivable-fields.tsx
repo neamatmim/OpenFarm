@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useDeferredValue } from "react";
 
 import { Notice } from "@/components/page";
-import { FormField } from "@/components/page-kit";
+import { ChoiceCard, FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import type { ReceivableTyped } from "@/lib/receivable";
 import { stillOwes } from "@/lib/receivable";
@@ -35,17 +35,14 @@ export const ReceivableFields = ({
   const owes = stillOwes(typed, worthMoney);
   return (
     <div className="flex flex-col gap-4">
-      <label
-        className="has-data-checked:border-primary/40 has-data-checked:bg-primary/5 hover:bg-muted/50 flex h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm md:h-9"
-        htmlFor={`${idPrefix}-owed`}
-      >
+      <ChoiceCard htmlFor={`${idPrefix}-owed`}>
         <Checkbox
           checked={typed.owed}
           id={`${idPrefix}-owed`}
           onCheckedChange={(owed) => onType({ owed })}
         />
         {t("receivable.someOwed")}
-      </label>
+      </ChoiceCard>
       {typed.owed ? (
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField

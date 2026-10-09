@@ -13,7 +13,12 @@ import {
   usePenChoiceLabel,
 } from "@/components/animal/pen-room";
 import type { RowSelection } from "@/components/data-table";
-import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
+import {
+  BatchBar,
+  FormDialog,
+  FormField,
+  NativeSelect,
+} from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { queueMove, sendOrKeep } from "@/lib/record-offline";
 import { refreshTheScreen } from "@/lib/refresh";
@@ -125,20 +130,12 @@ export const GroupMove = ({
 
   return (
     <>
-      <div className="bg-accent text-accent-foreground flex flex-wrap items-center justify-between gap-2 rounded-lg px-4 py-2">
-        <span aria-live="polite" className="text-sm font-medium">
-          {t("animals.groupChosen", { count })}
-        </span>
-        <div className="flex items-center gap-2">
-          <Button onClick={onClear} type="button" variant="ghost">
-            {t("signOff.clearSelection")}
-          </Button>
-          <Button onClick={() => setOpen(true)} type="button">
-            <ArrowRightLeft aria-hidden data-icon="inline-start" />
-            {t("animals.groupMove", { count })}
-          </Button>
-        </div>
-      </div>
+      <BatchBar onClear={onClear} said={t("animals.groupChosen", { count })}>
+        <Button onClick={() => setOpen(true)} type="button">
+          <ArrowRightLeft aria-hidden data-icon="inline-start" />
+          {t("animals.groupMove", { count })}
+        </Button>
+      </BatchBar>
       <FormDialog
         description={chosen.map((one) => one.tagNumber).join(", ")}
         onOpenChange={setOpen}

@@ -11,7 +11,12 @@ import { useId, useState } from "react";
 
 import { fitOnFrom } from "@/components/fattening/fattening-types";
 import { Notice, SECTION_TITLE } from "@/components/page";
-import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import {
+  FormField,
+  FormSheet,
+  NativeSelect,
+  WorkedOut,
+} from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
 import {
   accountSent,
@@ -256,14 +261,14 @@ const PerKg = ({ answers }: { answers: SaleAnswers }) => {
     return null;
   }
   return (
-    <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
+    <WorkedOut>
       {t("intake.perKg", {
         amount: formatNumber(
           Math.round((price / weight) * 100) / 100,
           language
         ),
       })}
-    </p>
+    </WorkedOut>
   );
 };
 

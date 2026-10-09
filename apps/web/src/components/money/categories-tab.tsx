@@ -1,6 +1,5 @@
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Archive,
@@ -25,11 +24,12 @@ import {
 import { RetiredBadge, nameTone, retiredLast } from "@/components/list-cells";
 import { useIsOwner, categoryName } from "@/components/money";
 import {
-  SECTION_TITLE,
   EmptyState,
   Loaded,
+  Section,
   SegmentedControl,
   StatusBadge,
+  TableSkeleton,
 } from "@/components/page";
 import {
   ConfirmDialog,
@@ -380,28 +380,17 @@ export const CategoriesTab = () => {
     getRowId: (row) => row.id,
   });
   return (
-    <div className="surface flex flex-col gap-4 p-4 md:p-5">
-      <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className={SECTION_TITLE}>{t("byHand.categories")}</h2>
-          <p className="text-muted-foreground text-sm">
-            {t("byHand.newCategoryHint")}
-          </p>
-        </div>
-        <Button
-          className="shrink-0"
-          onClick={() => setAdding(true)}
-          type="button"
-          variant="outline"
-        >
+    <Section
+      action={
+        <Button onClick={() => setAdding(true)} type="button" variant="outline">
           <Plus aria-hidden data-icon="inline-start" />
           {t("byHand.newCategory")}
         </Button>
-      </div>
-      <Loaded
-        query={categories}
-        skeleton={<Skeleton className="h-40 rounded-lg" />}
-      >
+      }
+      description={t("byHand.newCategoryHint")}
+      title={t("byHand.categories")}
+    >
+      <Loaded query={categories} skeleton={<TableSkeleton />}>
         {categories.data?.length === 0 ? (
           <EmptyState bare icon={Tags} title={t("byHand.noCategories")} />
         ) : null}
@@ -451,6 +440,6 @@ export const CategoriesTab = () => {
         pending={retire.isPending}
         title={t("byHand.retireTitle", { name: retiring?.name ?? "" })}
       />
-    </div>
+    </Section>
   );
 };

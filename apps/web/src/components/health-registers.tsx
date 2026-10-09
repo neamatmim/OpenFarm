@@ -23,7 +23,8 @@ import {
 } from "@/components/data-table";
 import { TagLink } from "@/components/fattening/fattening-words";
 import { SaidDate } from "@/components/list-cells";
-import { EmptyState, Notice, PeriodFilter, Section } from "@/components/page";
+import { EmptyState, Loaded, Notice, Section } from "@/components/page";
+import { PeriodFilter } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
@@ -596,16 +597,21 @@ export const HealthRegister = ({
     })
   );
   const sheet = useCsv();
-  if (rows.data === undefined && rows.error) {
-    return (
-      <Notice
-        title={wordedRefusal(rows.error, t) ?? t("common.error")}
-        tone="danger"
-      />
-    );
+  // A period the farm refuses says why — asking again would only be refused again; any other failure is said with a
+  // way to ask again.
+  const refusal = rows.error ? wordedRefusal(rows.error, t) : null;
+  if (rows.data === undefined && refusal) {
+    return <Notice title={refusal} tone="danger" />;
   }
   if (rows.data === undefined) {
-    return <Skeleton className="h-72 rounded-xl" />;
+    return (
+      <Loaded
+        query={rows}
+        skeleton={<Skeleton aria-hidden className="h-72 rounded-xl" />}
+      >
+        {null}
+      </Loaded>
+    );
   }
   const Register = REGISTER_OF[register];
   return (
@@ -689,7 +695,7 @@ export const RegisterPeriod = ({
           </Button>
         ) : null}
       </PeriodFilter>
-      <p className="text-muted-foreground px-1 text-xs">
+      <p className="text-muted-foreground text-xs">
         {t("inspector.periodHint")}
       </p>
     </div>

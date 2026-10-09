@@ -1,11 +1,11 @@
 import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Badge } from "@OpenFarm/ui/components/badge";
-import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Sprout } from "lucide-react";
+import { Sprout } from "lucide-react";
 
 import { SaidDate } from "@/components/list-cells";
 import {
+  BackLink,
   EmptyState,
   Loaded,
   Page,
@@ -124,14 +124,12 @@ export const OpenVenturePage = ({ ventureId }: { ventureId: string }) => {
   const one = (offered.data ?? []).find((each) => each.id === ventureId);
   return (
     <Page>
-      <Link
-        className="text-muted-foreground hover:text-foreground -mb-2 flex w-fit items-center gap-1 text-sm"
+      <BackLink
         params={places.openVentures.link.params}
         to={places.openVentures.link.to}
       >
-        <ArrowLeft aria-hidden className="size-4" />
         {t("portal.open.back")}
-      </Link>
+      </BackLink>
       <Loaded query={offered} skeleton={<OfferSkeleton />}>
         {one ? (
           <>

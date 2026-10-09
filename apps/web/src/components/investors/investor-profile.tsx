@@ -19,8 +19,8 @@ import {
   PortalAccess,
   standingOf,
 } from "@/components/investors/portal-access";
-import { Section } from "@/components/page";
-import { ConfirmDialog } from "@/components/page-kit";
+import { SUBHEADING, Section } from "@/components/page";
+import { ConfirmDialog, InsetPanel } from "@/components/page-kit";
 import { KIND_WORDS } from "@/components/ventures/request-parts";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -118,7 +118,7 @@ const BankAccount = ({ account }: { account: string }) => {
     }
   };
   return (
-    <div className="bg-muted/60 flex items-start justify-between gap-3 rounded-lg border p-3">
+    <InsetPanel className="flex items-start justify-between gap-3">
       <p className="min-w-0 text-sm break-words whitespace-pre-line tabular-nums select-all">
         {account}
       </p>
@@ -130,7 +130,7 @@ const BankAccount = ({ account }: { account: string }) => {
         )}
         {copied ? t("investors.copied") : t("investors.copyAccount")}
       </Button>
-    </div>
+    </InsetPanel>
   );
 };
 
@@ -319,7 +319,7 @@ const PortalActivity = ({ investor }: { investor: Investor }) => {
     at ? formatDate(new Date(at), language, "dateTime") : null;
   return (
     <div className="flex flex-col gap-3 border-t pt-4">
-      <h3 className="text-sm font-semibold">{t("portal.activity.title")}</h3>
+      <h3 className={SUBHEADING}>{t("portal.activity.title")}</h3>
       <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-1">
         <Detail label={t("portal.activity.cameIn")}>
           {when(done.acceptedAt)}

@@ -8,11 +8,13 @@ import {
 } from "@OpenFarm/domain";
 import { timeInDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Checkbox } from "@OpenFarm/ui/components/checkbox";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { Clock, Plus, Trash2, Zap } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { Section } from "@/components/page";
-import { FormField, NativeSelect } from "@/components/page-kit";
+import { Chip, SUBHEADING, Section } from "@/components/page";
+import { FormField, InsetPanel, NativeSelect } from "@/components/page-kit";
 import { FigureBox } from "@/components/playbook/figure-box";
 import { ListInput } from "@/components/playbook/list-input";
 import { useLanguage, useT } from "@/i18n/language-provider";
@@ -199,8 +201,9 @@ const TriggerFields = ({
         </p>
       ) : null}
       {happenings.map((happening, index) => (
+        // A row on the triggers' panel, not a second panel inside it.
         <div
-          className="bg-muted/40 flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:flex-wrap sm:items-center"
+          className="bg-background flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:flex-wrap sm:items-center"
           key={`${happening.kind}-${index}`}
         >
           <NativeSelect
@@ -276,15 +279,15 @@ const ScheduleDays = ({
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="mb-1.5 text-sm font-medium">{t("sop.days")}</legend>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-2">
         {WEEKDAYS.map((day) => {
           const on = days.includes(day);
           return (
-            <Button
-              aria-pressed={on}
-              className="min-w-12"
+            <Chip
+              chosen={on}
               key={day}
-              onClick={() =>
+              label={t(`sop.weekday.${day}`)}
+              onChoose={() =>
                 onChange(
                   withScheduleWeekdays(
                     content,
@@ -292,12 +295,7 @@ const ScheduleDays = ({
                   )
                 )
               }
-              size="sm"
-              type="button"
-              variant={on ? "default" : "outline"}
-            >
-              {t(`sop.weekday.${day}`)}
-            </Button>
+            />
           );
         })}
       </div>
@@ -306,26 +304,22 @@ const ScheduleDays = ({
       </p>
       {days.length > 0 ? (
         <label className="inline-flex min-h-11 items-center gap-2 text-sm md:min-h-0">
-          <input
+          <Checkbox
             checked={scheduleEveryOtherWeek(content)}
-            className="size-4"
-            onChange={(event) =>
-              onChange(withEveryOtherWeek(content, event.target.checked))
+            onCheckedChange={(checked) =>
+              onChange(withEveryOtherWeek(content, checked === true))
             }
-            type="checkbox"
           />
           {t("sop.everyOtherWeek")}
         </label>
       ) : null}
       {days.length > 0 ? (
         <label className="inline-flex min-h-11 items-center gap-2 text-sm md:min-h-0">
-          <input
+          <Checkbox
             checked={scheduleFirstOfTheMonth(content)}
-            className="size-4"
-            onChange={(event) =>
-              onChange(withFirstOfTheMonth(content, event.target.checked))
+            onCheckedChange={(checked) =>
+              onChange(withFirstOfTheMonth(content, checked === true))
             }
-            type="checkbox"
           />
           {t("sop.firstOfTheMonth")}
         </label>
@@ -352,8 +346,8 @@ export const WhenSection = ({
       id="sop-when"
       title={t("sop.editor.when")}
     >
-      <div className="flex flex-col gap-4 rounded-lg border p-4">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
+      <InsetPanel className="flex flex-col gap-4">
+        <h3 className={cn("flex items-center gap-2", SUBHEADING)}>
           <Clock aria-hidden className="text-muted-foreground size-4" />
           {t("sop.editor.clock")}
         </h3>
@@ -384,17 +378,16 @@ export const WhenSection = ({
         </FormField>
         <ScheduleDays content={content} onChange={onChange} />
         <div className="flex min-h-11 items-start gap-2 text-sm md:min-h-0">
-          <input
+          <Checkbox
             checked={content.wholeFarm === true}
-            className="mt-0.5 size-4"
+            className="mt-0.5"
             id="sop-whole-farm"
-            onChange={(event) =>
+            onCheckedChange={(checked) =>
               onChange({
                 ...content,
-                wholeFarm: event.target.checked ? true : undefined,
+                wholeFarm: checked === true ? true : undefined,
               })
             }
-            type="checkbox"
           />
           <label className="flex flex-col gap-0.5" htmlFor="sop-whole-farm">
             {t("sop.wholeFarm")}
@@ -403,10 +396,10 @@ export const WhenSection = ({
             </span>
           </label>
         </div>
-      </div>
-      <div className="rounded-lg border p-4">
+      </InsetPanel>
+      <InsetPanel>
         <TriggerFields content={content} onChange={onChange} />
-      </div>
+      </InsetPanel>
     </Section>
   );
 };

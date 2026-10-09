@@ -2,16 +2,16 @@ import { timeInDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { SlidersHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { FarmShareNote } from "@/components/feed/farm-gains";
 import { useIsOwner } from "@/components/money";
-import { Section } from "@/components/page";
+import { Loaded, Section } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import type { FieldSpec, ParameterKey } from "@/lib/parameter-groups";
 import { PARAMETER_GROUPS, boundsOf } from "@/lib/parameter-groups";
@@ -83,7 +83,7 @@ const FieldRange = ({
     );
   }
   return (
-    <p className="text-destructive text-xs" id={id}>
+    <p className="text-danger text-xs font-medium" id={id}>
       {problem === "notAWholeFigure" ? t("params.notAWholeFigure") : range}
     </p>
   );
@@ -258,12 +258,18 @@ const ParameterGroup = ({
  * The Owner's or the Manager's to turn.
  */
 export const FarmParameters = () => {
-  const t = useT();
   const isOwner = useIsOwner();
   const farm = useQuery(orpc.farm.current.queryOptions());
-
   if (!farm.data) {
-    return null;
+    // The settings' place held under the page's header while the farm is asked, or why it could not answer.
+    return (
+      <Loaded
+        query={farm}
+        skeleton={<Skeleton aria-hidden className="h-64 rounded-xl" />}
+      >
+        {null}
+      </Loaded>
+    );
   }
   const record = farm.data as unknown as Record<ParameterKey, unknown>;
   const saved = Object.fromEntries(
@@ -275,16 +281,6 @@ export const FarmParameters = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1 pt-2">
-        <h2 className="inline-flex items-center gap-2 text-base font-semibold">
-          <SlidersHorizontal
-            aria-hidden
-            className="text-muted-foreground size-5"
-          />
-          {t("params.title")}
-        </h2>
-        <p className="text-muted-foreground text-sm">{t("params.why")}</p>
-      </div>
       {PARAMETER_GROUPS.filter((group) => !group.owner || isOwner).map(
         (group) => (
           <ParameterGroup group={group} key={group.id} saved={saved} />

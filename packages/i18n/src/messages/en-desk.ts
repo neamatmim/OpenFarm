@@ -995,7 +995,7 @@ export const enDesk = {
   "ventures.amend": "Amend the agreements",
   "ventures.amendHint":
     "One paper, signed by every investor in {venture}. What each of them signed at the start is kept beside it.",
-  "ventures.amendShare": "The investors' share (%)",
+  "ventures.amendShare": "The investors' share",
   "ventures.amendSplitHint": "What they take of the profit from now on.",
   "ventures.amendSignedOn": "The day they all signed",
   "ventures.amendSignedHint":

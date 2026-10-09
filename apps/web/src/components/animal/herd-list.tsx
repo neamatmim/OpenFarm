@@ -10,6 +10,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { TagChip } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 
 import { HeldBadges, SideWord, StateBadge, ageWords } from "./animal-words";
@@ -71,14 +72,12 @@ const Likeness = ({ row, size }: { row: HerdRow; size: number }) => {
 /** Her photo small beside her Tag Number, the number a link to her page. */
 const TagCell = ({ row }: { row: { original: HerdRow } }) => (
   <Link
-    className="group flex items-center gap-3 outline-none"
+    className="focus-visible:ring-ring flex w-fit items-center gap-3 rounded-md outline-none hover:underline focus-visible:ring-2"
     params={{ tagNumber: row.original.tagNumber }}
     to="/animals/$tagNumber"
   >
     <Likeness row={row.original} size={TABLE_LIKENESS} />
-    <span className="font-mono font-semibold tabular-nums underline-offset-4 group-hover:underline group-focus-visible:underline">
-      {row.original.tagNumber}
-    </span>
+    <TagChip>{row.original.tagNumber}</TagChip>
   </Link>
 );
 
@@ -163,9 +162,7 @@ const HerdCard = ({ row }: { row: HerdRow }) => {
       <Likeness row={row} size={CARD_LIKENESS} />
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-base font-bold tabular-nums">
-            {row.tagNumber}
-          </span>
+          <TagChip>{row.tagNumber}</TagChip>
           <StateBadge state={row.state} />
         </span>
         <span className="text-muted-foreground flex flex-wrap items-center gap-x-2 text-sm">

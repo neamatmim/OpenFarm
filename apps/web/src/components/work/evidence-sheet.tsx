@@ -15,6 +15,7 @@ import {
   outsideItsRange,
   readsAgainstLast,
 } from "@OpenFarm/domain";
+import type { Language } from "@OpenFarm/i18n";
 import {
   formatDate,
   formatDayField,
@@ -794,7 +795,7 @@ const NumberPad = ({
 }: {
   evidence: Evidence;
   first: boolean;
-  language: string;
+  language: Language;
   value: boolean | number | string | undefined;
   onValue: (value: string) => void;
 }) => {
@@ -815,9 +816,7 @@ const NumberPad = ({
         )}
       >
         {typed !== "" && Number.isFinite(Number(typed))
-          ? new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en-GB").format(
-              Number(typed)
-            )
+          ? formatNumber(Number(typed), language)
           : "০"}{" "}
         <span className="text-muted-foreground text-xl font-semibold">
           {evidence.unit?.bn}
@@ -890,7 +889,7 @@ const EvidenceControl = ({
   /** The sheet's first figure, which takes the keypad as the sheet opens. */
   first: boolean;
   evidence: Evidence;
-  language: string;
+  language: Language;
   value: boolean | number | string | undefined;
   hasPhoto: boolean;
   onValue: (value: string) => void;

@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import type { Tone } from "@/components/page";
-import { RecordList, StatusBadge } from "@/components/page";
+import { RecordList, StatusBadge, SUBHEADING } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 
 /** How many rows a queue shows before the rest wait behind "show all": a screen of one queue hides the queues below. */
@@ -106,7 +106,7 @@ export const QueueGroup = ({
               >
                 <Icon aria-hidden className="size-4" />
               </span>
-              <h3 className="text-sm font-semibold">{label}</h3>
+              <h3 className={SUBHEADING}>{label}</h3>
               <StatusBadge tone={tone}>
                 {formatNumber(rows.length, language)}
               </StatusBadge>

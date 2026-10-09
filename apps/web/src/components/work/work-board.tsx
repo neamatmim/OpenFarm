@@ -24,7 +24,14 @@ import {
 import type { ReactNode } from "react";
 
 import { AnimalPhoto } from "@/components/animal-photo";
-import { BackLink, Notice, StatusBadge, StickyAction } from "@/components/page";
+import {
+  BackLink,
+  LABEL_HEADING,
+  Notice,
+  PAGE_TITLE,
+  StatusBadge,
+  StickyAction,
+} from "@/components/page";
 import type {
   Animal,
   Completion,
@@ -200,7 +207,7 @@ export const BoardPart = ({
   children: ReactNode;
 }) => (
   <section className="flex flex-col gap-2.5">
-    <h2 className="text-muted-foreground text-sm font-semibold">{title}</h2>
+    <h2 className={LABEL_HEADING}>{title}</h2>
     {children}
   </section>
 );
@@ -375,7 +382,7 @@ export const WorkHeader = ({
     <header className="flex flex-col gap-3">
       <BackToToday />
       <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold md:text-2xl">
+        <h1 className={PAGE_TITLE}>
           <SopName name={name} />
         </h1>
         <PlaceLine pen={pen} />

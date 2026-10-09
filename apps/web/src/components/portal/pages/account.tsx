@@ -8,6 +8,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -25,6 +26,8 @@ import { PasswordInput } from "@/components/auth/password-input";
 import { NomineeList } from "@/components/investors/nominees";
 import { phoneLink } from "@/components/investors/phone-link";
 import {
+  CODE_SPACING,
+  LABEL_HEADING,
   Loaded,
   Notice,
   Page,
@@ -85,7 +88,7 @@ const TheirNominees = ({ nominees }: { nominees: PaperNominee[] }) => {
   const { t } = useLanguage();
   return (
     <div className="mt-4 flex flex-col gap-2 border-t pt-4">
-      <h3 className="text-muted-foreground text-xs">{t("nominees.title")}</h3>
+      <h3 className={LABEL_HEADING}>{t("nominees.title")}</h3>
       <NomineeList nominees={nominees} />
     </div>
   );
@@ -284,7 +287,7 @@ const ConfirmTheirEmail = ({ me }: { me: Me }) => {
               <FormField id="account-email-code" label={t("portal.email.code")}>
                 <Input
                   autoComplete="one-time-code"
-                  className="max-w-40 tracking-widest tabular-nums"
+                  className={cn("max-w-40 tabular-nums", CODE_SPACING)}
                   id="account-email-code"
                   inputMode="numeric"
                   maxLength={12}
@@ -515,7 +518,7 @@ const SignedIn = () => {
       {others === 0 ? null : <WhyNot acting={acting} />}
       <Loaded
         query={places}
-        skeleton={<Skeleton className="h-16 rounded-lg" />}
+        skeleton={<Skeleton className="h-16 rounded-xl" />}
       >
         <ul className="flex flex-col divide-y rounded-lg border">
           {(places.data ?? []).map((one) => {

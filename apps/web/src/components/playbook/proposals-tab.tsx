@@ -22,8 +22,8 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { SaidDate } from "@/components/list-cells";
-import { EmptyState, Notice, StatusBadge } from "@/components/page";
-import { RowMenu } from "@/components/page-kit";
+import { EmptyState, Notice, SUBHEADING, StatusBadge } from "@/components/page";
+import { InsetPanel, RowMenu } from "@/components/page-kit";
 import { ChangeLines } from "@/components/work/work-notices";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidIn } from "@/lib/names-in";
@@ -275,7 +275,7 @@ const ProposalSheet = ({
             ) : null}
             {row && row.changes.length > 0 ? (
               <section className="flex flex-col gap-1">
-                <h3 className="font-semibold">
+                <h3 className={SUBHEADING}>
                   {t("sop.whatItChanges", { number: row.inForce ?? 0 })}
                 </h3>
                 <ChangeLines changes={row.changes} />
@@ -309,16 +309,13 @@ const ProposalSheet = ({
               </div>
             </dl>
             <section className="flex flex-col gap-2">
-              <h3 className="font-semibold">
+              <h3 className={SUBHEADING}>
                 {t("sop.steps")} ·{" "}
                 {formatNumber(content.steps.length, language)}
               </h3>
               <ol className="flex flex-col gap-2">
                 {content.steps.map((step, index) => (
-                  <li
-                    className="flex gap-3 rounded-lg border p-3"
-                    key={step.id}
-                  >
+                  <InsetPanel as="li" className="flex gap-3" key={step.id}>
                     <span className="bg-secondary text-secondary-foreground grid size-6 shrink-0 place-items-center rounded-full text-xs font-semibold tabular-nums">
                       {formatNumber(index + 1, language)}
                     </span>
@@ -333,7 +330,7 @@ const ProposalSheet = ({
                           : ""}
                       </span>
                     </div>
-                  </li>
+                  </InsetPanel>
                 ))}
               </ol>
             </section>

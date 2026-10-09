@@ -4,15 +4,6 @@ import { formatDate, formatDayField, numberAsTyped } from "@OpenFarm/i18n";
 import { Badge } from "@OpenFarm/ui/components/badge";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@OpenFarm/ui/components/dialog";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
@@ -29,8 +20,13 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { Section, StatusBadge } from "@/components/page";
-import { FormDialog, FormField } from "@/components/page-kit";
+import {
+  CODE_SPACING,
+  SUBHEADING,
+  Section,
+  StatusBadge,
+} from "@/components/page";
+import { ConfirmDialog, FormDialog, FormField } from "@/components/page-kit";
 import { RoleChoice, toggled } from "@/components/role-choice";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -56,7 +52,7 @@ const AccessRow = ({
 }) => (
   <div className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
     <div className="flex min-w-0 flex-1 flex-col gap-1">
-      <h3 className="font-medium">{title}</h3>
+      <h3 className={SUBHEADING}>{title}</h3>
       {description ? (
         <p className="text-muted-foreground text-sm">{description}</p>
       ) : null}
@@ -512,7 +508,7 @@ const PinDialog = ({
       >
         <Input
           autoComplete="off"
-          className="w-40 font-mono text-lg tracking-[0.4em] md:text-lg"
+          className={cn("w-40 font-mono text-lg md:text-lg", CODE_SPACING)}
           id="their-pin"
           inputMode="numeric"
           maxLength={4}
@@ -614,29 +610,17 @@ const RemoveAccessDialog = ({
 }) => {
   const t = useT();
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent closeLabel={t("common.close")}>
-        <DialogHeader>
-          <DialogTitle>{t("people.disableTitle", { name })}</DialogTitle>
-          <DialogDescription>{t("people.disableWhy")}</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>
-            {t("common.cancel")}
-          </DialogClose>
-          <Button
-            onClick={() => {
-              onOpenChange(false);
-              onRemove();
-            }}
-            variant="destructive"
-          >
-            <UserX aria-hidden data-icon="inline-start" />
-            {t("people.disable")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDialog
+      confirmLabel={t("people.disable")}
+      description={t("people.disableWhy")}
+      onConfirm={() => {
+        onOpenChange(false);
+        onRemove();
+      }}
+      onOpenChange={onOpenChange}
+      open={open}
+      title={t("people.disableTitle", { name })}
+    />
   );
 };
 

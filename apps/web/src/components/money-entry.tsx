@@ -34,6 +34,7 @@ import {
   FormField,
   FormSheet,
   NativeSelect,
+  WorkedOut,
 } from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
 import {
@@ -98,10 +99,10 @@ const EntrySummary = ({
     return null;
   }
   return (
-    <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
+    <WorkedOut>
       {t(direction === "in" ? "byHand.in" : "byHand.out")} · {currencySign()}
       {formatNumber(entered, language)}
-    </p>
+    </WorkedOut>
   );
 };
 
@@ -463,7 +464,7 @@ export const EnterMoneySheet = ({
           <ReceiptField id="entry-receipt" onChange={setReceipt} />
         </>
       ) : null}
-      {categories.data ? null : <Skeleton className="h-64 rounded-lg" />}
+      {categories.data ? null : <Skeleton className="h-64 rounded-xl" />}
       <LooksEnteredDialog
         onOpenChange={(opening) => {
           if (!opening) {
@@ -505,9 +506,7 @@ export const ReceiptLink = ({ id }: { id: string }) => {
       <Dialog onOpenChange={setOpen} open={open}>
         <DialogContent className="sm:max-w-xl" closeLabel={t("common.close")}>
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold">
-              {t("byHand.receipt")}
-            </DialogTitle>
+            <DialogTitle>{t("byHand.receipt")}</DialogTitle>
           </DialogHeader>
           {receipt.data ? (
             <img
@@ -516,7 +515,7 @@ export const ReceiptLink = ({ id }: { id: string }) => {
               src={`data:${receipt.data.contentType};base64,${receipt.data.data}`}
             />
           ) : (
-            <Skeleton className="h-72 rounded-lg" />
+            <Skeleton className="h-72 rounded-xl" />
           )}
         </DialogContent>
       </Dialog>

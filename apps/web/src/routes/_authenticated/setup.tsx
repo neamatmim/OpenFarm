@@ -11,15 +11,16 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BookOpen, ChevronRight, CircleCheck } from "lucide-react";
 import { useState } from "react";
 
 import { SignedInDoor } from "@/components/auth-screen";
-import Loader from "@/components/loader";
-import { Notice } from "@/components/page";
+import { FLOW_CARD, FlowHead, Loaded, Notice } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
@@ -102,7 +103,7 @@ const StandardStep = () => {
   return (
     <SignedInDoor>
       <form
-        className="surface flex flex-col gap-5 p-6 sm:p-8"
+        className={FLOW_CARD}
         onSubmit={(event) => {
           event.preventDefault();
           // Always pressable: nothing chosen is said, and skipping is the button beside it.
@@ -114,15 +115,15 @@ const StandardStep = () => {
           start.mutate({ kinds });
         }}
       >
-        <div className="flex flex-col gap-1.5">
-          <p className="text-success text-sm font-medium">{t("setup.done")}</p>
-          <h1 className="text-2xl font-semibold">
-            {t("setup.standard.title")}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            {t("setup.standard.intro")}
-          </p>
-        </div>
+        <FlowHead
+          above={
+            <p className="text-success text-sm font-medium">
+              {t("setup.done")}
+            </p>
+          }
+          hint={t("setup.standard.intro")}
+          title={t("setup.standard.title")}
+        />
         {noneChosen ? (
           <Notice title={t("setup.standard.chooseOne")} tone="danger" />
         ) : null}
@@ -143,7 +144,7 @@ const StandardStep = () => {
         </p>
         <div className="flex flex-col gap-2 sm:flex-row-reverse">
           <Button
-            className="h-12 text-base sm:flex-1 md:h-10"
+            className="h-12 text-base sm:flex-1 md:h-9 md:text-sm"
             disabled={start.isPending}
             type="submit"
           >
@@ -151,7 +152,7 @@ const StandardStep = () => {
             {t("setup.standard.start")}
           </Button>
           <Button
-            className="h-12 text-base sm:flex-1 md:h-10"
+            className="h-12 text-base sm:flex-1 md:h-9 md:text-sm"
             disabled={start.isPending}
             onClick={goOn}
             type="button"
@@ -190,7 +191,17 @@ const SetupPage = () => {
 
   // Whose the farm is, asked again once it exists: until the answer is in, neither step is right.
   if (current.data && !me.data) {
-    return <Loader />;
+    // The step's card held in its place, as every page holds its own — or, if who they are could not be asked, why.
+    return (
+      <SignedInDoor>
+        <Loaded
+          query={me}
+          skeleton={<Skeleton aria-hidden className="h-96 rounded-xl" />}
+        >
+          {null}
+        </Loaded>
+      </SignedInDoor>
+    );
   }
 
   if (current.data && isOwner) {
@@ -200,13 +211,13 @@ const SetupPage = () => {
   if (current.data) {
     return (
       <SignedInDoor>
-        <div className="surface flex flex-col items-center gap-4 p-8 text-center">
+        <div className={cn(FLOW_CARD, "items-center text-center")}>
           <span className="bg-success-surface text-success grid size-14 place-items-center rounded-xl">
             <CircleCheck aria-hidden className="size-7" />
           </span>
           <p className="text-lg font-semibold">{t("setup.done")}</p>
           <Button
-            className="h-12 w-full text-base md:h-10"
+            className="h-12 w-full text-base md:h-9 md:text-sm"
             onClick={() => navigate({ to: "/" })}
           >
             {t("setup.goOn")}
@@ -220,16 +231,13 @@ const SetupPage = () => {
   return (
     <SignedInDoor>
       <form
-        className="surface flex flex-col gap-5 p-6 sm:p-8"
+        className={FLOW_CARD}
         onSubmit={(event) => {
           event.preventDefault();
           bootstrap.mutate({ name });
         }}
       >
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-2xl font-semibold">{t("setup.title")}</h1>
-          <p className="text-muted-foreground text-sm">{t("setup.intro")}</p>
-        </div>
+        <FlowHead hint={t("setup.intro")} title={t("setup.title")} />
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="farm-name">{t("setup.farmName")}</Label>
           <Input
@@ -241,7 +249,7 @@ const SetupPage = () => {
           />
         </div>
         <Button
-          className="h-12 text-base md:h-10"
+          className="h-12 text-base md:h-9 md:text-sm"
           disabled={bootstrap.isPending}
           type="submit"
         >

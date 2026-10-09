@@ -1,6 +1,8 @@
 import { formatNumber } from "@OpenFarm/i18n";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 
+import { Loaded, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
@@ -54,14 +56,22 @@ export const ScaleBySeller = () => {
   const { t } = useLanguage();
   const sellers = useQuery(orpc.stock.onTheScale.queryOptions());
   if (!sellers.data) {
-    return null;
+    return (
+      <Loaded
+        query={sellers}
+        skeleton={<Skeleton aria-hidden className="h-32 rounded-xl" />}
+      >
+        {null}
+      </Loaded>
+    );
   }
   return (
-    <section className="surface flex flex-col p-4 md:p-5">
-      <h3 className="text-base font-semibold">{t("scale.title")}</h3>
-      <p className="text-muted-foreground pb-2 text-xs">
-        {sellers.data.length === 0 ? t("scale.none") : t("scale.hint")}
-      </p>
+    <Section
+      description={
+        sellers.data.length === 0 ? t("scale.none") : t("scale.hint")
+      }
+      title={t("scale.title")}
+    >
       {sellers.data.length === 0 ? null : (
         <ul className="divide-y">
           {sellers.data.map((seller) => (
@@ -69,6 +79,6 @@ export const ScaleBySeller = () => {
           ))}
         </ul>
       )}
-    </section>
+    </Section>
   );
 };

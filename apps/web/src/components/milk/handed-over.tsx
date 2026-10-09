@@ -19,7 +19,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { Nothing, SaidDate } from "@/components/list-cells";
-import { EmptyState, Loaded } from "@/components/page";
+import { EmptyState, Loaded, TableSkeleton } from "@/components/page";
 import { FilterBar } from "@/components/page-kit";
 import { ReceivableOwed } from "@/components/receivable-fields";
 import { useLanguage } from "@/i18n/language-provider";
@@ -371,7 +371,7 @@ export const HandedOverTab = ({
       <FilterBar className="border-b pb-4">
         <DayPicker day={day} onChange={onDayChange} />
       </FilterBar>
-      <Loaded query={milkDay}>
+      <Loaded query={milkDay} skeleton={<TableSkeleton />}>
         {dispatches.length === 0 ? (
           <EmptyState
             action={

@@ -1,21 +1,12 @@
 import { isExitState, PHOTO_FILE_MAX_BYTES } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@OpenFarm/ui/components/dropdown-menu";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRightLeft,
   Camera,
-  EllipsisVertical,
   Handshake,
   MapPin,
   MapPinOff,
@@ -27,6 +18,7 @@ import {
 
 import { AnimalPhoto } from "@/components/animal-photo";
 import { PageHeader } from "@/components/page";
+import { HeaderMenu } from "@/components/page-kit";
 import type { RowAction } from "@/components/page-kit";
 import { ReportSighting } from "@/components/report-sighting";
 import { useLanguage } from "@/i18n/language-provider";
@@ -47,78 +39,6 @@ import {
 
 /** The camera's file picker, opened from her menu. */
 const PHOTO_INPUT = "animal-photo-input";
-
-/** One act in the header's menu, with its icon; an act that ends her record in the danger color. */
-const ActItem = ({ action }: { action: RowAction }) => {
-  const Icon = action.icon;
-  const { handleSelect } = action;
-  return (
-    <DropdownMenuItem
-      className={cn("min-h-11 md:min-h-8", action.destructive && "text-danger")}
-      disabled={action.disabled}
-      onClick={handleSelect}
-    >
-      {Icon ? <Icon aria-hidden /> : null}
-      {action.label}
-    </DropdownMenuItem>
-  );
-};
-
-/** Everything else that may be done to her, behind a "more" button the size of the buttons beside it — the header's
- *  own RowMenu, drawn for a thumb rather than for the end of a row. */
-const MoreActs = ({
-  label,
-  actions,
-}: {
-  label: string;
-  actions: RowAction[];
-}) => {
-  const { t } = useLanguage();
-  if (actions.length === 0) {
-    return null;
-  }
-  // One act is a button with its own name, not "more" opening onto a list of one.
-  const [only] = actions;
-  if (actions.length === 1 && only) {
-    const Icon = only.icon;
-    return (
-      <Button
-        className={only.destructive ? "text-danger" : undefined}
-        onClick={only.handleSelect}
-        type="button"
-        variant="outline"
-      >
-        {Icon ? <Icon aria-hidden data-icon="inline-start" /> : null}
-        {only.label}
-      </Button>
-    );
-  }
-  const safe = actions.filter((action) => !action.destructive);
-  const destructive = actions.filter((action) => action.destructive);
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button aria-label={label} type="button" variant="outline">
-            <EllipsisVertical aria-hidden data-icon="inline-start" />
-            {t("animals.more")}
-          </Button>
-        }
-      />
-      <DropdownMenuContent align="end" className="w-60">
-        {safe.map((action) => (
-          <ActItem action={action} key={action.label} />
-        ))}
-        {safe.length > 0 && destructive.length > 0 ? (
-          <DropdownMenuSeparator />
-        ) : null}
-        {destructive.map((action) => (
-          <ActItem action={action} key={action.label} />
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-};
 
 interface MenuAct {
   act: AnimalAct;
@@ -315,7 +235,7 @@ export const AnimalProfile = ({
                 {t("animals.move")}
               </Button>
             ) : null}
-            <MoreActs
+            <HeaderMenu
               actions={actions}
               label={t("animals.moreFor", { tag: detail.tagNumber })}
             />

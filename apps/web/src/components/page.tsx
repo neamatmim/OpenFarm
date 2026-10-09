@@ -24,9 +24,9 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import type { AnchorHTMLAttributes, ReactNode, Ref } from "react";
-import { useId } from "react";
 
 import { useT } from "@/i18n/language-provider";
+import { initialsOf } from "@/lib/initials";
 
 /** How loud a thing is: the farm's semantic colors, always with a word and an icon beside them. */
 export type Tone = "neutral" | "success" | "warning" | "danger" | "info";
@@ -52,11 +52,22 @@ const WIDTH = {
   default: "max-w-[99rem]",
 } as const;
 
+/** A page's own title, the one line that says what the page is: larger on a desk, where there is room for it. */
+export const PAGE_TITLE = "text-xl font-semibold md:text-2xl";
+
 /** The title of a part of a page — a Section, a card of its own — at one size and weight everywhere. */
 export const SECTION_TITLE = "text-base font-semibold";
 
 /** A heading inside a part of a page, under its title: smaller, and as heavy. */
 export const SUBHEADING = "text-sm font-semibold";
+
+/** A small, quiet heading over what it names — "What was seen", a person's Nominees, a work board's Steps — that leads
+ *  into it rather than standing as a part of its own. Muted, so what is under it is what is read. */
+export const LABEL_HEADING = "text-muted-foreground text-xs font-medium";
+
+/** The small capitals above a title or over a list of links, naming the group it belongs to: the page's eyebrow, the
+ *  settings' groups, "On this page". Its color is the place's own — the farm's green over a title, muted over links. */
+export const OVERLINE = "text-xs font-semibold tracking-wider uppercase";
 
 /** A page's frame: its width — the full width, or narrow for a single card of a flow — and its rhythm. */
 export const Page = ({
@@ -111,6 +122,65 @@ export const BackLink: LinkComponent<typeof BackAnchor> = (props) => (
   <BackAnchorLink {...props} />
 );
 
+/** How far apart the letters of a code stand — a one-time code, a PIN, a Pay-in Code — typed or shown, so each can be
+ *  checked against the paper or the message it came on: the same spacing on every screen that has one. */
+export const CODE_SPACING = "tracking-[0.2em]";
+
+/** The card of a flow — signing in, joining, setting the farm up, a step of the Shed Phone's door or of a piece of
+ *  work: one card in a column in the middle, one thing asked of whoever is holding it, spaced the same on every door. */
+export const FLOW_CARD = "surface flex flex-col gap-6 p-6 sm:p-8";
+
+/** The head of a flow's card: what this step is, in the flow's own large title, a line of help under it, and anything
+ *  more that belongs with the title (`children`) — set in the middle where the card is. */
+export const FlowHead = ({
+  title,
+  hint,
+  above,
+  centered = false,
+  children,
+}: {
+  title: ReactNode;
+  hint?: ReactNode;
+  /** A word set over the title: what has just been done, before what comes next. */
+  above?: ReactNode;
+  centered?: boolean;
+  children?: ReactNode;
+}) => (
+  <div
+    className={cn(
+      "flex flex-col gap-1.5",
+      centered && "items-center text-center"
+    )}
+  >
+    {above}
+    <h1 className="text-2xl font-semibold">{title}</h1>
+    {hint ? <p className="text-muted-foreground text-sm">{hint}</p> : null}
+    {children}
+  </div>
+);
+
+/** A person's record leads with their initials, as an animal's leads with her photo: whose page it is, at a glance, in
+ *  the user menu's own mark, and on a phone as on a desk. Grayed for one who is no longer here — access off, retired. */
+export const InitialsMark = ({
+  name,
+  faded = false,
+}: {
+  name: string;
+  faded?: boolean;
+}) => (
+  <span
+    aria-hidden
+    className={cn(
+      "grid size-14 shrink-0 place-items-center rounded-full text-lg font-semibold",
+      faded
+        ? "bg-muted text-muted-foreground"
+        : "bg-primary text-primary-foreground"
+    )}
+  >
+    {initialsOf(name)}
+  </span>
+);
+
 /** What the page is, in one line, what it is for, and what can be done from it — and, on the page of one person or
  *  one thing, a mark of whose record it is before the name (`leading`), as a record's header is drawn. */
 export const PageHeader = ({
@@ -133,14 +203,9 @@ export const PageHeader = ({
       {leading}
       <div className="flex min-w-0 flex-col gap-1.5">
         {eyebrow ? (
-          <p className="text-primary text-xs font-semibold tracking-wider uppercase">
-            {eyebrow}
-          </p>
+          <p className={cn("text-primary", OVERLINE)}>{eyebrow}</p>
         ) : null}
-        <h1
-          className="text-xl font-semibold md:text-2xl"
-          data-slot="page-title"
-        >
+        <h1 className={PAGE_TITLE} data-slot="page-title">
           {title}
         </h1>
         {description ? (
@@ -541,7 +606,7 @@ const SKELETON_ROWS = 6;
  */
 export const TableSkeleton = ({ rows = SKELETON_ROWS }: { rows?: number }) => (
   <div aria-hidden>
-    <Skeleton className="h-20 rounded-lg md:hidden" />
+    <Skeleton className="h-20 rounded-xl md:hidden" />
     <div className="hidden flex-col md:flex">
       <Skeleton className="h-9 rounded-md" />
       {Array.from({ length: rows }, (_, row) => (
@@ -586,7 +651,7 @@ export const Loaded = ({
     return (
       <output className="block">
         <span className="sr-only">{t("common.loading")}</span>
-        {skeleton ?? <Skeleton aria-hidden className="h-20 rounded-lg" />}
+        {skeleton ?? <Skeleton aria-hidden className="h-20 rounded-xl" />}
       </output>
     );
   }
@@ -644,6 +709,35 @@ export const ProgressBar = ({
   />
 );
 
+/**
+ * One word in a row of them, pressed or not: the row wraps, so it holds as many words as the farm has — the words its
+ * rounds have used, the ways a Season opens out, the days of a week — and one pressed again lets go. A fixed handful
+ * that is always one choice, and fits on a line, is a SegmentedControl instead.
+ */
+export const Chip = ({
+  chosen,
+  label,
+  onChoose,
+}: {
+  chosen: boolean;
+  label: string;
+  onChoose: () => void;
+}) => (
+  <button
+    aria-pressed={chosen}
+    className={cn(
+      "focus-visible:ring-ring inline-flex h-11 items-center rounded-full border px-4 text-sm font-medium transition-colors duration-150 outline-none focus-visible:ring-2 md:h-8 md:px-3",
+      chosen
+        ? "border-primary bg-primary text-primary-foreground"
+        : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+    )}
+    onClick={onChoose}
+    type="button"
+  >
+    {label}
+  </button>
+);
+
 /** A handful of mutually exclusive choices side by side — real radio buttons, drawn as a segmented control. */
 export const SegmentedControl = <T extends string>({
   name,
@@ -684,62 +778,3 @@ export const SegmentedControl = <T extends string>({
     ))}
   </fieldset>
 );
-
-/** The period a page reads, with its two days labeled where they are typed. */
-export const PeriodFilter = ({
-  label,
-  fromLabel,
-  toLabel,
-  from,
-  to,
-  onFrom,
-  onTo,
-  children,
-}: {
-  label: ReactNode;
-  fromLabel: string;
-  toLabel: string;
-  from: string;
-  to: string;
-  onFrom: (day: string) => void;
-  onTo: (day: string) => void;
-  children?: ReactNode;
-}) => {
-  const id = useId();
-  return (
-    <fieldset className="surface flex flex-wrap items-end gap-3 p-4">
-      <legend className="sr-only">{label}</legend>
-      <label
-        className="flex flex-col gap-1.5 text-sm font-medium"
-        data-slot="form-label"
-        htmlFor={`${id}-from`}
-      >
-        {fromLabel}
-        <input
-          className="bg-card border-input focus-visible:border-ring focus-visible:ring-ring h-11 w-44 rounded-md border px-3 text-base font-normal outline-none focus-visible:ring-2 md:h-9 md:text-sm"
-          id={`${id}-from`}
-          onChange={(event) => onFrom(event.target.value)}
-          type="date"
-          value={from}
-        />
-      </label>
-      <label
-        className="flex flex-col gap-1.5 text-sm font-medium"
-        data-slot="form-label"
-        htmlFor={`${id}-to`}
-      >
-        {toLabel}
-        <input
-          className="bg-card border-input focus-visible:border-ring focus-visible:ring-ring h-11 w-44 rounded-md border px-3 text-base font-normal outline-none focus-visible:ring-2 md:h-9 md:text-sm"
-          id={`${id}-to`}
-          onChange={(event) => onTo(event.target.value)}
-          type="date"
-          value={to}
-        />
-      </label>
-      {children ? (
-        <div className="ml-auto flex flex-wrap gap-2">{children}</div>
-      ) : null}
-    </fieldset>
-  );
-};

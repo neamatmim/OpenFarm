@@ -4,7 +4,12 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { Plus, X } from "lucide-react";
 
-import { FormField, NativeSelect } from "@/components/page-kit";
+import {
+  FormField,
+  InsetPanel,
+  NativeSelect,
+  UnitInput,
+} from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 
 import type { NomineeDraft } from "./nominee-draft";
@@ -91,7 +96,7 @@ const NomineeRowFields = ({
   const id = `nominee-${place}`;
   const minor = minorOn(draft, onDay);
   return (
-    <fieldset className="flex flex-col gap-3 rounded-md border p-3">
+    <InsetPanel as="fieldset" className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <legend className="text-sm font-medium">
           {t("nominees.place", { place })}
@@ -165,7 +170,7 @@ const NomineeRowFields = ({
           />
         </FormField>
         <FormField id={`${id}-share`} label={t("nominees.sharePercent")}>
-          <Input
+          <UnitInput
             id={`${id}-share`}
             inputMode="numeric"
             min={1}
@@ -173,12 +178,14 @@ const NomineeRowFields = ({
               onChange({ ...draft, share: event.target.value })
             }
             type="number"
+            unit="%"
             value={draft.share}
           />
         </FormField>
       </div>
       {minor ? (
-        <div className="bg-muted/50 flex flex-col gap-3 rounded-md p-3">
+        // A part of the Nominee's own box, ruled off from the rest, rather than a second box inside it.
+        <div className="flex flex-col gap-3 border-t pt-3">
           <p className="text-sm font-medium">{t("nominees.receiverHeading")}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <FormField
@@ -240,7 +247,7 @@ const NomineeRowFields = ({
           </div>
         </div>
       ) : null}
-    </fieldset>
+    </InsetPanel>
   );
 };
 
