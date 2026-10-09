@@ -20,7 +20,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { StatusBadge } from "@/components/page";
+import { SECTION_TITLE, StatusBadge } from "@/components/page";
 import type { RowAction } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
@@ -639,7 +639,7 @@ export const VentureCard = ({
     className={cn("flex flex-col gap-3 text-sm", !bare && "surface p-4 md:p-5")}
   >
     <div className="flex items-start justify-between gap-3">
-      <h3 className="text-base font-semibold">
+      <h3 className={SECTION_TITLE}>
         <Link
           className="rounded-md underline-offset-4 outline-none hover:underline focus-visible:ring-2"
           params={{ ventureId: venture.id }}

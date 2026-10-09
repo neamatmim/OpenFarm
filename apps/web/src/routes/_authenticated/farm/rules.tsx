@@ -1,8 +1,9 @@
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { FarmParameters } from "@/components/farm-parameters";
 import { useIsOwner } from "@/components/money";
-import { Page, PageHeader } from "@/components/page";
+import { OVERLINE, Page, PageHeader } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { PARAMETER_SECTIONS } from "@/lib/parameter-groups";
 
@@ -16,7 +17,7 @@ const OnThisPage = () => {
       aria-label={t("identity.onThisPage")}
       className="hidden xl:sticky xl:top-20 xl:block"
     >
-      <p className="text-muted-foreground mb-2 px-3 text-xs font-semibold tracking-wider uppercase">
+      <p className={cn("text-muted-foreground mb-2 px-3", OVERLINE)}>
         {t("identity.onThisPage")}
       </p>
       <ul className="flex flex-col gap-0.5 border-l">

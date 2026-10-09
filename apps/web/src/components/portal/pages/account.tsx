@@ -25,6 +25,7 @@ import { PasswordInput } from "@/components/auth/password-input";
 import { NomineeList } from "@/components/investors/nominees";
 import { phoneLink } from "@/components/investors/phone-link";
 import {
+  LABEL_HEADING,
   Loaded,
   Notice,
   Page,
@@ -85,7 +86,7 @@ const TheirNominees = ({ nominees }: { nominees: PaperNominee[] }) => {
   const { t } = useLanguage();
   return (
     <div className="mt-4 flex flex-col gap-2 border-t pt-4">
-      <h3 className="text-muted-foreground text-xs">{t("nominees.title")}</h3>
+      <h3 className={LABEL_HEADING}>{t("nominees.title")}</h3>
       <NomineeList nominees={nominees} />
     </div>
   );

@@ -19,7 +19,7 @@ import {
 } from "@/components/data-table";
 import { TagLink } from "@/components/fattening/fattening-words";
 import { Nothing } from "@/components/list-cells";
-import { Section, StatusBadge } from "@/components/page";
+import { SUBHEADING, Section, StatusBadge } from "@/components/page";
 import { SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import type { client } from "@/utils/orpc";
@@ -182,7 +182,7 @@ export const DryOffFigures = ({
       />
       {dryOffs.outsideTarget.length > 0 ? (
         <div className="flex flex-col gap-1.5">
-          <h3 className="text-sm font-medium">
+          <h3 className={SUBHEADING}>
             {t("dryOff.outside", {
               low: formatNumber(dryPeriodDays.low, language),
               high: formatNumber(dryPeriodDays.high, language),

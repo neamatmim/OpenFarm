@@ -28,7 +28,12 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { EmptyState, Section, StatusBadge } from "@/components/page";
+import {
+  EmptyState,
+  SECTION_TITLE,
+  Section,
+  StatusBadge,
+} from "@/components/page";
 import type { RowAction } from "@/components/page-kit";
 import {
   FormSheet,
@@ -727,7 +732,7 @@ const RationCard = ({
     >
       <header className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col">
-          <h3 className="font-semibold">
+          <h3 className={SECTION_TITLE}>
             {namesIn(rationNamed(ration), language).shown}
           </h3>
           <OtherName named={rationNamed(ration)} />

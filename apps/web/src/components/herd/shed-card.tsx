@@ -2,6 +2,7 @@ import { stockingOf } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import {
   Archive,
   ArchiveRestore,
@@ -19,7 +20,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
-import { EmptyState, StatusBadge } from "@/components/page";
+import { EmptyState, SECTION_TITLE, StatusBadge } from "@/components/page";
 import { RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 
@@ -273,7 +274,9 @@ export const ShedCard = ({
             <Warehouse aria-hidden className="size-5" />
           </span>
           <div className="flex min-w-0 flex-col gap-1">
-            <h2 className="flex min-w-0 items-center gap-2 text-base font-semibold">
+            <h2
+              className={cn("flex min-w-0 items-center gap-2", SECTION_TITLE)}
+            >
               <span className="truncate">{shed.name}</span>
               {shed.retiredAt ? (
                 <StatusBadge tone="neutral">{t("herd.penRetired")}</StatusBadge>

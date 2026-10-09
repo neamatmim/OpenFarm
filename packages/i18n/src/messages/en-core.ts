@@ -354,8 +354,6 @@ export const enCore = {
   "common.error": "Something went wrong",
   "common.loading": "Loading…",
   "common.loadFailed": "Could not load this — check the connection",
-  "params.title": "Farm parameters",
-  "params.why": "How the farm is tuned. Every change is kept in the audit log.",
   "params.alerts": "Alerts and quiet hours",
   "params.records": "Records",
   "params.pinAutoLock": "Shed phone locks after",
@@ -4059,7 +4057,7 @@ export const enCore = {
   "months.noSuchYear":
     "No financial year begins in that month. Pick one above.",
   "settings.rulesWhy":
-    "How the farm behaves: when its digest goes and its quiet hours, how far a reading may drift, how long late work waits before somebody is told, and when a cow is put on the cull list.",
+    "How the farm behaves: when its digest goes and its quiet hours, how far a reading may drift, how long late work waits before somebody is told, and when a cow is put on the cull list. Every change is kept in the audit log.",
   "settings.moneyWhy":
     "The accounts the farm takes and pays through, the categories every entry is written under, and the market price its own animals are priced at.",
   "identity.why":

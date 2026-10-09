@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import { HerCull } from "@/components/culling/cull-list";
 import { HerPrice } from "@/components/fattening/animal-prices";
 import { categoryName, useReadsMoney } from "@/components/money";
-import { Loaded, Notice, SUBHEADING } from "@/components/page";
+import { Loaded, Notice, SUBHEADING, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { usePerHeadPerDay, useMoney, useMoneyRate } from "@/lib/money";
@@ -116,57 +116,59 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
   const rateOrDash = (amount: number | null) =>
     amount === null ? "—" : rate(amount);
   return (
-    <section className="surface flex flex-col p-4 text-sm md:p-5">
-      <h2 className="mb-2 text-base font-semibold">{t("costs.title")}</h2>
-      <WhatWasSpent costs={her} />
-      {her.side === "fattening" ? (
-        <>
-          <Line label={t("costs.bought")}>{orDash(her.purchaseMoney)}</Line>
-          <Line label={t("costs.sold")}>{orDash(her.saleMoney)}</Line>
-          <Line label={t("costs.margin")}>
-            {her.marginMoney === null
-              ? t("costs.notSold")
-              : asMoney(her.marginMoney)}
-          </Line>
-          <Line label={t("costs.costOfGain")}>
-            {rateOrDash(her.costOfGainMoney)}
-          </Line>
-          {/* What she might fetch now, against all that — the Owner's alone, and only while she is unsold. */}
-          {her.saleMoney === null ? <HerPrice tagNumber={tagNumber} /> : null}
-        </>
-      ) : null}
-      {her.lactation ? (
-        <>
-          <h3 className={cn(SUBHEADING, "pt-4 pb-1")}>
-            {t("costs.thisLactation")}
-          </h3>
-          <WhatWasSpent costs={her.lactation} />
-          <Line label={t("costs.liters")}>
-            {formatNumber(her.lactation.litersToBulk, language)}
-          </Line>
-          <Line label={t("costs.perLiter")}>
-            {rateOrDash(her.lactation.costPerLiterMoney)}
-          </Line>
-        </>
-      ) : null}
-      {/* Whether she gives the farm a reason to let her go — the Owner's alone. */}
-      {her.side === "dairy" ? <HerCull tagNumber={tagNumber} /> : null}
-    </section>
+    <Section title={t("costs.title")}>
+      <div className="flex flex-col text-sm">
+        <WhatWasSpent costs={her} />
+        {her.side === "fattening" ? (
+          <>
+            <Line label={t("costs.bought")}>{orDash(her.purchaseMoney)}</Line>
+            <Line label={t("costs.sold")}>{orDash(her.saleMoney)}</Line>
+            <Line label={t("costs.margin")}>
+              {her.marginMoney === null
+                ? t("costs.notSold")
+                : asMoney(her.marginMoney)}
+            </Line>
+            <Line label={t("costs.costOfGain")}>
+              {rateOrDash(her.costOfGainMoney)}
+            </Line>
+            {/* What she might fetch now, against all that — the Owner's alone, and only while she is unsold. */}
+            {her.saleMoney === null ? <HerPrice tagNumber={tagNumber} /> : null}
+          </>
+        ) : null}
+        {her.lactation ? (
+          <>
+            <h3 className={cn(SUBHEADING, "pt-4 pb-1")}>
+              {t("costs.thisLactation")}
+            </h3>
+            <WhatWasSpent costs={her.lactation} />
+            <Line label={t("costs.liters")}>
+              {formatNumber(her.lactation.litersToBulk, language)}
+            </Line>
+            <Line label={t("costs.perLiter")}>
+              {rateOrDash(her.lactation.costPerLiterMoney)}
+            </Line>
+          </>
+        ) : null}
+        {/* Whether she gives the farm a reason to let her go — the Owner's alone. */}
+        {her.side === "dairy" ? <HerCull tagNumber={tagNumber} /> : null}
+      </div>
+    </Section>
   );
 };
 
-/** One part of the period's costs, on its own card with its name. */
+/** One part of the period's costs, on its own card with its name, what it holds if that needs saying, and its lines. */
 const CostCard = ({
   title,
+  hint,
   children,
 }: {
   title: string;
+  hint?: string;
   children: ReactNode;
 }) => (
-  <section className="surface flex flex-col p-4 text-sm md:p-5">
-    <h3 className="mb-1 text-base font-semibold">{title}</h3>
-    {children}
-  </section>
+  <Section description={hint} title={title}>
+    <div className="flex flex-col text-sm">{children}</div>
+  </Section>
 );
 
 type Overheads = Awaited<
@@ -183,10 +185,7 @@ const OverheadsCard = ({ overheads }: { overheads: Overheads }) => {
   const asMoney = useMoney();
   const perHead = usePerHeadPerDay();
   return (
-    <CostCard title={t("costs.overheads")}>
-      <p className="text-muted-foreground pb-1 text-xs">
-        {t("costs.overheadsHint")}
-      </p>
+    <CostCard hint={t("costs.overheadsHint")} title={t("costs.overheads")}>
       {overheads.lines.map((line) => (
         <Line key={line.categoryId} label={categoryName(line, language)}>
           {asMoney(line.amount)}
@@ -220,10 +219,10 @@ const StoreShortfallCard = ({ shortfall }: { shortfall: StoreShortfall }) => {
   const { t } = useLanguage();
   const asMoney = useMoney();
   return (
-    <CostCard title={t("costs.storeShortfall")}>
-      <p className="text-muted-foreground pb-1 text-xs">
-        {t("costs.storeShortfallHint")}
-      </p>
+    <CostCard
+      hint={t("costs.storeShortfallHint")}
+      title={t("costs.storeShortfall")}
+    >
       <Line label={t("costs.storeShort")}>
         <span
           className={

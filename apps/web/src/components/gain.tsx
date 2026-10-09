@@ -2,7 +2,7 @@ import type { FatteningView, GainBasis } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 
 import { Nothing } from "@/components/list-cells";
-import { ProgressBar } from "@/components/page";
+import { ProgressBar, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 
 /**
@@ -135,31 +135,34 @@ export const WeightAgainstTarget = ({
 export const TwoProjections = ({ view }: { view: FatteningView }) => {
   const { t, language } = useLanguage();
   return (
-    <section className="surface space-y-2 p-4 md:p-5">
-      <h2 className="text-base font-semibold">{t("gain.title")}</h2>
-      <p className="text-muted-foreground text-sm">
-        {/* Each of these is left out rather than shown blank: an animal born here has no
-            arrival to count days from and nobody has said what it is being fed towards. */}
-        {view.daysOnFeed === null
-          ? null
-          : `${t("gain.daysOnFeed")}: ${t("correct.spanDays", {
-              days: formatNumber(view.daysOnFeed, language),
-            })} · `}
-        {view.latestKg === null
-          ? t("gain.noneYet")
-          : `${t("gain.now")}: ${t("intake.kg", {
-              kg: formatNumber(view.latestKg, language),
-            })}`}
-        {view.targetWeightKg === null
-          ? null
-          : ` · ${t("intake.targetWeight")}: ${t("intake.kg", {
-              kg: formatNumber(view.targetWeightKg, language),
-            })}`}
-      </p>
+    <Section
+      description={
+        <>
+          {/* Each of these is left out rather than shown blank: an animal born here has no
+              arrival to count days from and nobody has said what it is being fed towards. */}
+          {view.daysOnFeed === null
+            ? null
+            : `${t("gain.daysOnFeed")}: ${t("correct.spanDays", {
+                days: formatNumber(view.daysOnFeed, language),
+              })} · `}
+          {view.latestKg === null
+            ? t("gain.noneYet")
+            : `${t("gain.now")}: ${t("intake.kg", {
+                kg: formatNumber(view.latestKg, language),
+              })}`}
+          {view.targetWeightKg === null
+            ? null
+            : ` · ${t("intake.targetWeight")}: ${t("intake.kg", {
+                kg: formatNumber(view.targetWeightKg, language),
+              })}`}
+        </>
+      }
+      title={t("gain.title")}
+    >
       <div className="grid gap-2 sm:grid-cols-2">
         <GainColumn basis={view.sinceIntake} label={t("gain.sinceIntake")} />
         <GainColumn basis={view.recent} label={t("gain.recent")} />
       </div>
-    </section>
+    </Section>
   );
 };

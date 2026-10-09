@@ -4,6 +4,7 @@ import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Plus, Trash2 } from "lucide-react";
 
+import { SUBHEADING } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
 import {
   ADDABLE_ANSWERS,
@@ -34,7 +35,7 @@ export const StepAnswers = ({
     <div className="flex flex-col gap-2">
       {rest.length > 0 ? (
         <>
-          <h4 className="text-sm font-medium">{t("sop.moreAnswers")}</h4>
+          <h4 className={SUBHEADING}>{t("sop.moreAnswers")}</h4>
           <ul className="flex flex-col gap-2">
             {rest.map((answer, index) => {
               const at = index + 1;

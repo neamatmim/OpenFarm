@@ -158,7 +158,7 @@ export const StandardSops = ({
           const named = need ? Boolean(choices[need]) : true;
           return (
             <li
-              className="bg-background flex min-w-0 flex-col gap-3 rounded-xl border p-4"
+              className="flex min-w-0 flex-col gap-3 rounded-lg border p-4"
               key={key}
             >
               <div className="flex min-w-0 flex-col gap-1">

@@ -20,7 +20,7 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { Section, StatusBadge } from "@/components/page";
+import { SUBHEADING, Section, StatusBadge } from "@/components/page";
 import { ConfirmDialog, FormDialog, FormField } from "@/components/page-kit";
 import { RoleChoice, toggled } from "@/components/role-choice";
 import { useLanguage, useT } from "@/i18n/language-provider";
@@ -47,7 +47,7 @@ const AccessRow = ({
 }) => (
   <div className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
     <div className="flex min-w-0 flex-1 flex-col gap-1">
-      <h3 className="font-medium">{title}</h3>
+      <h3 className={SUBHEADING}>{title}</h3>
       {description ? (
         <p className="text-muted-foreground text-sm">{description}</p>
       ) : null}

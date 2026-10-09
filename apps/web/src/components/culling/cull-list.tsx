@@ -18,7 +18,7 @@ import { useIsOwner } from "@/components/fattening/animal-prices";
 import { TagLink } from "@/components/fattening/fattening-words";
 import { Nothing } from "@/components/list-cells";
 import type { Tone } from "@/components/page";
-import { EmptyState, StatusBadge } from "@/components/page";
+import { EmptyState, SUBHEADING, StatusBadge } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { CullListReturn } from "@/components/returns/dairy-returns";
 import { useLanguage } from "@/i18n/language-provider";
@@ -356,7 +356,7 @@ export const HerCull = ({ tagNumber }: { tagNumber: string }) => {
   }
   return (
     <div className="flex flex-col gap-1 pt-4">
-      <h3 className="font-semibold">{t("nav.culling")}</h3>
+      <h3 className={SUBHEADING}>{t("nav.culling")}</h3>
       <ReasonBadges reasons={cow.reasons} />
       <MilkLines align="start" milk={cow.milk} state={cow.state} />
       <CalvingLines cow={cow} />
