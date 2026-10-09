@@ -8,7 +8,6 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -45,6 +44,7 @@ import {
   PageHeader,
   Section,
   StatusBadge,
+  TableSkeleton,
 } from "@/components/page";
 import {
   ConfirmDialog,
@@ -552,10 +552,7 @@ const BreedsPage = () => {
       />
 
       <Section>
-        <Loaded
-          query={breeds}
-          skeleton={<Skeleton className="h-40 rounded-lg" />}
-        >
+        <Loaded query={breeds} skeleton={<TableSkeleton />}>
           {breeds.data?.length === 0 ? (
             <EmptyState bare icon={Dna} title={t("breeds.none")} />
           ) : null}

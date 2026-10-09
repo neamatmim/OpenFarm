@@ -11,6 +11,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -18,8 +19,7 @@ import { BookOpen, ChevronRight, CircleCheck } from "lucide-react";
 import { useState } from "react";
 
 import { SignedInDoor } from "@/components/auth-screen";
-import Loader from "@/components/loader";
-import { Notice } from "@/components/page";
+import { Loaded, Notice } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
@@ -190,7 +190,17 @@ const SetupPage = () => {
 
   // Whose the farm is, asked again once it exists: until the answer is in, neither step is right.
   if (current.data && !me.data) {
-    return <Loader />;
+    // The step's card held in its place, as every page holds its own — or, if who they are could not be asked, why.
+    return (
+      <SignedInDoor>
+        <Loaded
+          query={me}
+          skeleton={<Skeleton aria-hidden className="h-96 rounded-xl" />}
+        >
+          {null}
+        </Loaded>
+      </SignedInDoor>
+    );
   }
 
   if (current.data && isOwner) {

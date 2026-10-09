@@ -376,7 +376,7 @@ const AnimalsPage = () => {
         {animals.isPending && !animals.data ? (
           <div className="flex flex-col gap-3">
             {Array.from({ length: 8 }, (_, n) => (
-              <Skeleton className="h-12 rounded-lg" key={n} />
+              <Skeleton className="h-12 rounded-xl" key={n} />
             ))}
           </div>
         ) : null}

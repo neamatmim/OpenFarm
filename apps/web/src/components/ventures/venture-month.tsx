@@ -11,12 +11,19 @@ import {
 } from "@OpenFarm/ui/components/table";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { FileSpreadsheet, Printer } from "lucide-react";
+import {
+  Beef,
+  FileSpreadsheet,
+  Printer,
+  Receipt,
+  ReceiptText,
+  ScrollText,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Nothing } from "@/components/list-cells";
-import { Section } from "@/components/page";
+import { EmptyState, Section } from "@/components/page";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { KIND_WORD } from "@/components/ventures/venture-money";
 import { useLanguage } from "@/i18n/language-provider";
@@ -125,9 +132,7 @@ const TheHerd = ({ herd }: { herd: VentureMonth["herd"] }) => {
         description={t("ventures.month.herdHint")}
         title={t("ventures.month.herd")}
       >
-        <p className="text-muted-foreground text-sm">
-          {t("ventures.month.noAnimals")}
-        </p>
+        <EmptyState bare icon={Beef} title={t("ventures.month.noAnimals")} />
       </Section>
     );
   }
@@ -213,9 +218,7 @@ const TheCharges = ({
         description={t("ventures.month.chargesHint")}
         title={t("ventures.month.charges")}
       >
-        <p className="text-muted-foreground text-sm">
-          {t("ventures.month.noCharges")}
-        </p>
+        <EmptyState bare icon={Receipt} title={t("ventures.month.noCharges")} />
       </Section>
     );
   }
@@ -285,9 +288,11 @@ const TheAccount = ({ account }: { account: VentureMonth["account"] }) => {
         ]}
       />
       {account.moved.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          {t("ventures.month.noMovements")}
-        </p>
+        <EmptyState
+          compact
+          icon={ScrollText}
+          title={t("ventures.month.noMovements")}
+        />
       ) : null}
       <p className="text-muted-foreground text-sm">{said}</p>
     </Section>
@@ -342,9 +347,11 @@ const TheSold = ({ sold }: { sold: VentureMonth["sold"] }) => {
       title={t("ventures.month.soldTitle")}
     >
       {sold.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          {t("ventures.month.noneSold")}
-        </p>
+        <EmptyState
+          bare
+          icon={ReceiptText}
+          title={t("ventures.month.noneSold")}
+        />
       ) : (
         <Table>
           <TableHeader>

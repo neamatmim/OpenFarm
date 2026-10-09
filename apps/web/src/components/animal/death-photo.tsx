@@ -1,8 +1,10 @@
 import { formatDate } from "@OpenFarm/i18n";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
+import { ImageOff } from "lucide-react";
 import { useState } from "react";
 
-import { Section } from "@/components/page";
+import { EmptyState, Loaded, Section } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
@@ -51,11 +53,19 @@ export const DeathPhotos = ({ tagNumber }: { tagNumber: string }) => {
     orpc.animals.deathPhotos.queryOptions({ input: { tagNumber } })
   );
   if (!photos.data) {
-    return null;
+    // A photograph's place, while the farm sends them.
+    return (
+      <Loaded
+        query={photos}
+        skeleton={<Skeleton aria-hidden className="size-40 rounded-xl" />}
+      >
+        {null}
+      </Loaded>
+    );
   }
   if (photos.data.length === 0) {
     return (
-      <p className="text-muted-foreground text-sm">{t("mortality.noPhoto")}</p>
+      <EmptyState compact icon={ImageOff} title={t("mortality.noPhoto")} />
     );
   }
   return (

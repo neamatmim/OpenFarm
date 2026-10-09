@@ -2,9 +2,8 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-import { Notice, Page } from "@/components/page";
+import { Loaded, Page } from "@/components/page";
 import { useVentureMonth } from "@/components/ventures/venture-month";
-import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 
 /**
@@ -12,7 +11,6 @@ import { onlyFor } from "@/lib/guard";
  * it runs, the month of its last money once it has settled or been called off — and the page goes there.
  */
 const LatestMonth = () => {
-  const { t } = useLanguage();
   const { ventureId } = Route.useParams();
   const navigate = useNavigate();
   const latest = useVentureMonth(ventureId);
@@ -26,13 +24,14 @@ const LatestMonth = () => {
       });
     }
   }, [month, navigate, ventureId]);
+  // The month's place held until the page goes there — or, if the farm could not say which, why, with a way to ask
+  // again.
+  const placeholder = <Skeleton aria-hidden className="h-96 rounded-xl" />;
   return (
     <Page>
-      {latest.isError ? (
-        <Notice title={t("common.loadFailed")} tone="danger" />
-      ) : (
-        <Skeleton className="h-96 rounded-xl" />
-      )}
+      <Loaded query={latest} skeleton={placeholder}>
+        {placeholder}
+      </Loaded>
     </Page>
   );
 };

@@ -15,7 +15,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { SaidDate } from "@/components/list-cells";
-import { EmptyState, Loaded } from "@/components/page";
+import { EmptyState, Loaded, TableSkeleton } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useInFlight } from "@/lib/in-flight";
 import { useRefused } from "@/lib/refused";
@@ -288,7 +288,7 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
   });
   return (
     <div className="surface p-4 md:p-5">
-      <Loaded query={queue}>
+      <Loaded query={queue} skeleton={<TableSkeleton />}>
         {queue.data?.length ? (
           <div className="flex flex-col gap-3">
             {offerTheClean ? (

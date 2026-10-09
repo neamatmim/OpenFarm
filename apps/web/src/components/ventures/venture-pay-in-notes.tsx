@@ -148,7 +148,7 @@ const PhotoDialog = ({
             src={`data:${photo.data.contentType};base64,${photo.data.data}`}
           />
         ) : (
-          <Skeleton className="h-64 rounded-lg" />
+          <Skeleton className="h-64 rounded-xl" />
         )}
       </DialogContent>
     </Dialog>

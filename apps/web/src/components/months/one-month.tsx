@@ -12,11 +12,12 @@ import {
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { FileSpreadsheet, Printer } from "lucide-react";
+import { Briefcase, FileSpreadsheet, Printer, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Nothing } from "@/components/list-cells";
+import { EmptyState } from "@/components/page";
 import { NativeSelect } from "@/components/page-kit";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
@@ -190,9 +191,7 @@ export const MoneyBy = ({
   const { t } = useLanguage();
   const asMoney = useMoney();
   if (rows.length === 0) {
-    return (
-      <p className="text-muted-foreground text-sm">{t("months.one.noMoney")}</p>
-    );
+    return <EmptyState compact icon={Wallet} title={t("months.one.noMoney")} />;
   }
   return (
     <Table>
@@ -289,11 +288,14 @@ export const VenturesThatRan = ({
   const { t } = useLanguage();
   return (
     <div className="flex flex-col gap-2 text-sm">
-      <p className="text-muted-foreground">
-        {t("months.one.ventures")}{" "}
-        {ventures.length === 0 ? t("months.one.noVentures") : null}
-      </p>
-      {ventures.length === 0 ? null : (
+      <p className="text-muted-foreground">{t("months.one.ventures")}</p>
+      {ventures.length === 0 ? (
+        <EmptyState
+          compact
+          icon={Briefcase}
+          title={t("months.one.noVentures")}
+        />
+      ) : (
         <ul className="flex flex-wrap gap-x-4 gap-y-1">
           {ventures.map((venture) => (
             <li key={venture.id}>

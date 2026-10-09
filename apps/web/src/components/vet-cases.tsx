@@ -2,10 +2,16 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Stethoscope, UserPlus } from "lucide-react";
+import { Stethoscope, UserPlus, Users } from "lucide-react";
 import { useId, useState } from "react";
 
-import { EmptyState, RecordList, RecordRow, Section } from "@/components/page";
+import {
+  EmptyState,
+  Loaded,
+  RecordList,
+  RecordRow,
+  Section,
+} from "@/components/page";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -137,38 +143,40 @@ export const VetCases = ({
       description={t("cases.hint")}
       title={t("cases.title")}
     >
-      {cases.data?.length ? (
-        <RecordList>
-          {cases.data.map((row) => (
-            <RecordRow
-              key={row.id}
-              leading={
-                <Stethoscope
-                  aria-hidden
-                  className="text-muted-foreground size-4"
-                />
-              }
-              title={t("cases.by", { vet: row.vetName, reason: row.reason })}
-              trailing={
-                <Button
-                  disabled={close.isPending}
-                  onClick={() => close.mutate({ id: row.id })}
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  {close.isPending ? <Spinner /> : null}
-                  {t("cases.close")}
-                </Button>
-              }
-            />
-          ))}
-        </RecordList>
-      ) : (
-        <EmptyState bare icon={Stethoscope} title={t("cases.none")} />
-      )}
+      <Loaded query={cases}>
+        {cases.data?.length ? (
+          <RecordList>
+            {cases.data.map((row) => (
+              <RecordRow
+                key={row.id}
+                leading={
+                  <Stethoscope
+                    aria-hidden
+                    className="text-muted-foreground size-4"
+                  />
+                }
+                title={t("cases.by", { vet: row.vetName, reason: row.reason })}
+                trailing={
+                  <Button
+                    disabled={close.isPending}
+                    onClick={() => close.mutate({ id: row.id })}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    {close.isPending ? <Spinner /> : null}
+                    {t("cases.close")}
+                  </Button>
+                }
+              />
+            ))}
+          </RecordList>
+        ) : (
+          <EmptyState bare icon={Stethoscope} title={t("cases.none")} />
+        )}
+      </Loaded>
       {mayCall && nobodyToCall ? (
-        <p className="text-muted-foreground text-sm">{t("cases.noVets")}</p>
+        <EmptyState compact icon={Users} title={t("cases.noVets")} />
       ) : null}
       {nobodyToCall ? null : (
         <OpenCaseDialog

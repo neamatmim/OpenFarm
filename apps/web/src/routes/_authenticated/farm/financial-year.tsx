@@ -2,7 +2,6 @@ import { monthsEndingIn, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import {
   Table,
   TableBody,
@@ -25,6 +24,7 @@ import {
   PageHeader,
   Section,
   StatusBadge,
+  TableSkeleton,
 } from "@/components/page";
 import {
   FormDialog,
@@ -379,10 +379,7 @@ const FinancialYearPage = () => {
         title={t("settings.section.years")}
       />
       <Section description={t("years.yearsHint")} title={t("years.yearsTitle")}>
-        <Loaded
-          query={years}
-          skeleton={<Skeleton className="h-40 rounded-lg" />}
-        >
+        <Loaded query={years} skeleton={<TableSkeleton />}>
           {data ? (
             <div className="flex flex-col gap-3">
               <YearsTable years={data} />

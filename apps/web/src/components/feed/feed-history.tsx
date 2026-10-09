@@ -26,7 +26,13 @@ import {
 } from "@/components/data-table";
 import { LotAndExpiry } from "@/components/expiry";
 import { Nothing } from "@/components/list-cells";
-import { EmptyState, SegmentedControl, StatusBadge } from "@/components/page";
+import {
+  EmptyState,
+  Loaded,
+  SegmentedControl,
+  StatusBadge,
+  TableSkeleton,
+} from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import {
@@ -426,6 +432,19 @@ export const ArrivalsTab = ({
   if (arrivals.length === 0) {
     return <EmptyState icon={Truck} title={t("stock.noArrivals")} />;
   }
+  // One feed's arrivals are asked of the farm on their own, so "nothing for this filter" waits for its answer.
+  const list =
+    shown.length === 0 ? (
+      <EmptyState bare icon={Truck} title={t("audit.empty")} />
+    ) : (
+      <DataTable
+        card={arrivalCard}
+        key={`${itemId}:${kind}`}
+        minWidth="52rem"
+        pageSize={HISTORY_PAGE}
+        table={table}
+      />
+    );
   return (
     <div className="flex flex-col gap-6">
       <ScaleBySeller />
@@ -444,16 +463,12 @@ export const ArrivalsTab = ({
             value={kind}
           />
         </FilterBar>
-        {shown.length === 0 ? (
-          <EmptyState bare icon={Truck} title={t("audit.empty")} />
+        {itemId === "" ? (
+          list
         ) : (
-          <DataTable
-            card={arrivalCard}
-            key={`${itemId}:${kind}`}
-            minWidth="52rem"
-            pageSize={HISTORY_PAGE}
-            table={table}
-          />
+          <Loaded query={ofOneFeed} skeleton={<TableSkeleton />}>
+            {list}
+          </Loaded>
         )}
         {olderNotShown ? (
           <p className="text-muted-foreground text-xs">

@@ -2,7 +2,6 @@ import type { LeftoverStanding } from "@OpenFarm/domain";
 import { WASTING_LEFTOVER_PERCENT, feedUnitWord } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Utensils } from "lucide-react";
 import { useState } from "react";
@@ -19,6 +18,7 @@ import {
   Loaded,
   SegmentedControl,
   StatusBadge,
+  TableSkeleton,
 } from "@/components/page";
 import { FilterBar } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -284,10 +284,7 @@ export const LeftoversTab = () => {
           value={String(days)}
         />
       </FilterBar>
-      <Loaded
-        query={leftovers}
-        skeleton={<Skeleton className="h-40 rounded-xl" />}
-      >
+      <Loaded query={leftovers} skeleton={<TableSkeleton />}>
         {rows.length === 0 ? (
           <EmptyState bare icon={Utensils} title={t("leftovers.none")} />
         ) : (

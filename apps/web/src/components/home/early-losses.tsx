@@ -1,7 +1,7 @@
 import type { EarlyLosses } from "@OpenFarm/domain";
 import { useQuery } from "@tanstack/react-query";
 
-import { Section } from "@/components/page";
+import { EmptyState, Loaded, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -45,24 +45,24 @@ const LossList = ({ title, rows }: { title: string; rows: EarlyLosses[] }) =>
 export const EarlyLossesSection = () => {
   const { t } = useLanguage();
   const losses = useQuery(orpc.intakes.earlyLosses.queryOptions());
-  if (!losses.data) {
-    return null;
-  }
-  const { bySeller, byLivestockMarket } = losses.data;
+  const bySeller = losses.data?.bySeller ?? [];
+  const byLivestockMarket = losses.data?.byLivestockMarket ?? [];
   const none = bySeller.length === 0 && byLivestockMarket.length === 0;
   return (
     <Section description={t("early.hint")} title={t("early.title")}>
-      {none ? (
-        <p className="text-muted-foreground text-sm">{t("early.none")}</p>
-      ) : (
-        <div className="flex flex-col gap-4">
-          <LossList rows={bySeller} title={t("early.bySeller")} />
-          <LossList
-            rows={byLivestockMarket}
-            title={t("early.byLivestockMarket")}
-          />
-        </div>
-      )}
+      <Loaded query={losses}>
+        {none ? (
+          <EmptyState bare title={t("early.none")} />
+        ) : (
+          <div className="flex flex-col gap-4">
+            <LossList rows={bySeller} title={t("early.bySeller")} />
+            <LossList
+              rows={byLivestockMarket}
+              title={t("early.byLivestockMarket")}
+            />
+          </div>
+        )}
+      </Loaded>
     </Section>
   );
 };
