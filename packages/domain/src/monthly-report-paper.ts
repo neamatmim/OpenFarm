@@ -15,6 +15,7 @@ import { SIDE_LABEL } from "./papers";
 import type { ReceivableAge, ReceivablesByAge } from "./receivable-ages";
 import { RECEIVABLE_AGES } from "./receivable-ages";
 import type { SideResult, SideResults } from "./side-results";
+import type { StoreValue } from "./store-value";
 
 /** One stretch's figures as the monthly report works them (`figuresOver`): the Farm's own money, milk, fattening and
  *  overheads. */
@@ -48,7 +49,7 @@ export interface MonthFigures {
   /** What each Side came to, before and after its share of the Overheads, and the Farm with them (ADR 0023). */
   results: SideResults;
   /** Where the Farm stood at the stretch's end — or now, for one still going. */
-  atEnd: { receivables: ReceivablesByAge };
+  atEnd: { receivables: ReceivablesByAge; store: StoreValue };
 }
 
 /** The money moved in a month, one way of adding it, as the accountant's summary does. */
@@ -299,6 +300,28 @@ const RECEIVABLES: Part = {
   ],
 };
 
+/** What the store held at the month's end, in taka: the feed at its average price, the medicine at a dose's. */
+const STORE: Part = {
+  heading: { bn: "মাস শেষে ভান্ডার", en: "The store at the month's end" },
+  lines: [
+    {
+      label: { bn: "খাদ্য", en: "Feed" },
+      kind: "sum",
+      of: (one) => one.atEnd.store.feedMoney,
+    },
+    {
+      label: { bn: "ওষুধ", en: "Medicine" },
+      kind: "sum",
+      of: (one) => one.atEnd.store.medicineMoney,
+    },
+    {
+      label: { bn: "মোট ভান্ডার", en: "The store in all" },
+      kind: "sum",
+      of: (one) => one.atEnd.store.totalMoney,
+    },
+  ],
+};
+
 /** What running the place cost, charged to no Side, and a head a day. */
 const OVERHEADS: Part = {
   heading: { bn: "পরিচালন খরচ", en: "Overheads" },
@@ -491,6 +514,7 @@ const leftOut = (figures: MonthFigures): Said[] => {
   const kg = unpricedKgOf(figures);
   const doses = uncostedDosesOf(figures);
   const waiting = figures.money.awaitingCount;
+  const { unpriced } = figures.atEnd.store;
   return [
     kg > 0
       ? {
@@ -502,6 +526,12 @@ const leftOut = (figures: MonthFigures): Said[] => {
       ? {
           bn: `${formatNumber(doses, "bn")}টি ডোজ এই মাসে খামারে না-কেনা ওষুধের; খরচ ধরা হয়নি।`,
           en: `${formatNumber(doses, "en")} ${doses === 1 ? "dose was" : "doses were"} of medicine the farm had not bought this month, and ${doses === 1 ? "is" : "are"} not costed.`,
+        }
+      : null,
+    unpriced > 0
+      ? {
+          bn: `${formatNumber(unpriced, "bn")}টি খাদ্য বা ওষুধ মাস শেষে ভান্ডারে ছিল যার কোনো দাম নেই; ভান্ডারের হিসাবে তা ধরা হয়নি।`,
+          en: `${formatNumber(unpriced, "en")} ${unpriced === 1 ? "feed or medicine was" : "feeds or medicines were"} in the store at the month's end with no price, and ${unpriced === 1 ? "is" : "are"} not in its worth.`,
         }
       : null,
     waiting > 0
@@ -572,6 +602,7 @@ export const monthlyReportPaper = (
       partOf(OVERHEADS, facts),
       resultsPart(facts),
       partOf(RECEIVABLES, facts),
+      partOf(STORE, facts),
     ],
     closing: [...leftOut(facts.figures), VENTURES_KEEP_THEIR_OWN],
     produced: producedSaid(facts.producedAt, facts.producedBy),
@@ -731,6 +762,7 @@ export const monthlyReportRows = (
     ...rowsOf(OVERHEADS),
     ...resultsRows(facts),
     ...rowsOf(RECEIVABLES),
+    ...rowsOf(STORE),
     ...rowsOf(LEFT_OUT),
     ...rowsOf(AWAITING),
   ];

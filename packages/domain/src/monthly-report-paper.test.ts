@@ -69,6 +69,12 @@ const FIGURES = {
         { age: "over-60" as const, owingMoney: 0 },
       ],
     },
+    store: {
+      feedMoney: 40_000,
+      medicineMoney: 5000,
+      totalMoney: 45_000,
+      unpriced: 1,
+    },
   },
 };
 
@@ -121,6 +127,7 @@ const NOTHING = {
         { age: "over-60" as const, owingMoney: 0 },
       ],
     },
+    store: { feedMoney: 0, medicineMoney: 0, totalMoney: 0, unpriced: 0 },
   },
 };
 
@@ -296,6 +303,26 @@ describe("what buyers owed at the month's end, on paper", () => {
     expect(text).toContain("মাস শেষে বাকি, কত দিনের");
     expect(text).toContain("১৬–৩০ দিন · ৬,০০০ টাকা · ০ টাকা");
     expect(text).toContain("৬০ দিনের বেশি");
+  });
+});
+
+describe("what the store was worth at the month's end, on paper", () => {
+  it("sets the feed, the medicine and the whole beside the month before's", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("The store at the month's end");
+    expect(text).toContain("Feed · 40,000 taka · 0 taka");
+    expect(text).toContain("Medicine · 5,000 taka · 0 taka");
+    expect(text).toContain("The store in all · 45,000 taka · 0 taka");
+  });
+
+  it("says a kind held at no price adds nothing", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "bn");
+
+    expect(text).toContain("মাস শেষে ভান্ডার");
+    expect(text).toContain(
+      "১টি খাদ্য বা ওষুধ মাস শেষে ভান্ডারে ছিল যার কোনো দাম নেই; ভান্ডারের হিসাবে তা ধরা হয়নি।"
+    );
   });
 });
 

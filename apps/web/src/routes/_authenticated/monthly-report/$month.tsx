@@ -104,6 +104,14 @@ const TheMonth = ({ one }: { one: OneMonth }) => {
           <MonthPart {...at} lines={lines.receivables} />
         </Section>
       ) : null}
+      {kept.atEnd ? (
+        <Section
+          description={t("months.one.storeHint")}
+          title={t("months.one.store")}
+        >
+          <MonthPart {...at} lines={lines.store} />
+        </Section>
+      ) : null}
       <LeftOut figures={one.figures} />
       <Section title={t("months.one.venturesTitle")}>
         <VenturesThatRan month={one.month} ventures={one.ventures} />

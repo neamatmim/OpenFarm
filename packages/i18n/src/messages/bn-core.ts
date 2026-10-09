@@ -3604,6 +3604,14 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.age.over-60": "৬০ দিনের বেশি",
   "months.one.owedInAll": "মোট বাকি",
   "months.one.ofItOverdue": "এর মধ্যে মেয়াদ পেরোনো",
+  "months.one.store": "মাস শেষে ভান্ডার",
+  "months.one.storeHint":
+    "মাসের শেষ দিনে ভান্ডারে যা ছিল: খাদ্য তার গড় দামে, ওষুধ এক ডোজের দামে — যে দামে পশুর খরচ ধরা হয়।",
+  "months.one.feed": "খাদ্য",
+  "months.one.medicine": "ওষুধ",
+  "months.one.storeInAll": "মোট ভান্ডার",
+  "months.one.storeUnpriced":
+    "{amount}টি খাদ্য বা ওষুধ মাস শেষে ভান্ডারে ছিল যার কোনো দাম নেই; ভান্ডারের হিসাবে তা ধরা হয়নি",
   "months.one.venturesTitle": "ভেঞ্চার",
   "months.one.ventures":
     "প্রতিটি ভেঞ্চার নিজের হিসাব নিজে রাখে, তাই ওপরে নেই; প্রতিটির নিজের পাতা আছে।",

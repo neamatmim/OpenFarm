@@ -1052,3 +1052,5 @@ export type { SideResult, SideResults } from "./side-results";
 export { sideResultsOf } from "./side-results";
 export type { ReceivableAge, ReceivablesByAge } from "./receivable-ages";
 export { RECEIVABLE_AGES, receivablesByAge } from "./receivable-ages";
+export type { StoreValue } from "./store-value";
+export { storeValueOf } from "./store-value";

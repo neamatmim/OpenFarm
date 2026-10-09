@@ -15,8 +15,11 @@ import { appRouter } from "./index";
 // The milk went on credit, promised for the 25th: on 31 May its ৳6,000 is 21 days old and overdue. The bull's buyer paid
 // ৳50,000 at the gate and promised the rest by 5 June: ৳30,000, 11 days old and not yet due. The milk buyer pays
 // ৳3,000 on 3 June, which May's end knows nothing of.
+//
+// Into the store on the 2nd: 1,000 kg of concentrate for ৳40,000, and on the 4th ten doses of a wormer for ৳5,000.
+// Nothing is fed or dosed from them in May, so at May's end the store is worth ৳45,000; at April's, nothing.
 
-const as = (role: "owner" | "manager", instant: string) =>
+const as = (role: "owner" | "manager" | "vet", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 /** Midnight on 1 May on the farm's own clock. */
@@ -116,6 +119,36 @@ beforeAll(async () => {
     ...PAID_FROM_THE_ACCOUNT,
     arrivedAt: new Date(FIRST_OF_MAY),
     ...WINDOW,
+  });
+
+  const storekeeper = await as("manager", "2046-05-02T04:00:00.000Z");
+  const concentrate = await storekeeper.client.feed.items.create({
+    name: { bn: "দানাদার" },
+  });
+  await storekeeper.client.stock.receive({
+    feedItemId: concentrate.id,
+    kind: "purchase",
+    quantity: 1000,
+    priceMoney: 40_000,
+    seller: { name: "রহমান ফিডস" },
+    receivedOn: "2046-05-02",
+  });
+  const vet = await as("vet", "2046-05-04T04:00:00.000Z");
+  const wormer = await vet.client.drugs.create({
+    name: { bn: "আলবেন্ডাজল", en: "Albendazole" },
+    milkWithdrawalDays: 3,
+    meatWithdrawalDays: 14,
+  });
+  const buyingMedicine = await as("manager", "2046-05-04T04:00:00.000Z");
+  await buyingMedicine.client.drugs.purchase({
+    drugProductId: wormer.id,
+    quantity: "১০ ডোজ",
+    doses: 10,
+    priceMoney: 5000,
+    seller: { name: "ফার্মেসি" },
+    purchasedOn: "2046-05-04",
+    lotNumber: "ALB-1",
+    expiresOn: "2047-05-04",
   });
 
   await spend({
@@ -233,5 +266,22 @@ describe("what buyers owed at the end of May", () => {
     // By 10 June the milk buyer has paid ৳3,000 of his ৳6,000, and the bull's buyer is five days past his promise.
     expect(figures.atEnd.receivables.owingMoney).toBe(33_000);
     expect(figures.atEnd.receivables.overdueMoney).toBe(33_000);
+  });
+});
+
+describe("what the store was worth at the end of May", () => {
+  it("is the feed at its average price and the medicine at its dose price, beside April's empty store", async () => {
+    const { client: owner } = await as("owner", NOW);
+    const { figures, figuresBefore } = await owner.monthlyReport.month({
+      month: "2046-05",
+    });
+
+    expect(figures.atEnd.store).toEqual({
+      feedMoney: 40_000,
+      medicineMoney: 5000,
+      totalMoney: 45_000,
+      unpriced: 0,
+    });
+    expect(figuresBefore.atEnd.store.totalMoney).toBe(0);
   });
 });

@@ -192,6 +192,19 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
         one.atEnd ? asMoney(one.atEnd.receivables.overdueMoney) : null
       ),
     ],
+    store: [
+      both(t("months.one.feed"), (one) =>
+        one.atEnd ? asMoney(one.atEnd.store.feedMoney) : null
+      ),
+      both(t("months.one.medicine"), (one) =>
+        one.atEnd ? asMoney(one.atEnd.store.medicineMoney) : null
+      ),
+      both(
+        t("months.one.storeInAll"),
+        (one) => (one.atEnd ? asMoney(one.atEnd.store.totalMoney) : null),
+        true
+      ),
+    ],
     overheads: [
       both(t("months.one.overheadsAmount"), (one) =>
         asMoney(one.overheads.amount)
@@ -383,16 +396,20 @@ export const MonthPicker = ({
 };
 
 /** What the month's figures leave out, and the money still waiting, in the words the monthly report says them with. */
-export const LeftOut = ({ figures }: { figures: Figures }) => {
+export const LeftOut = ({ figures }: { figures: KeptFigures }) => {
   const { t } = useLanguage();
   const unpricedKg = figures.dairy.unpricedKg + figures.fattening.unpricedKg;
   const uncostedDoses =
     figures.dairy.uncostedDoses + figures.fattening.uncostedDoses;
+  const unpricedInStore = figures.atEnd?.store.unpriced ?? 0;
   const said = [
     figures.money.awaitingCount > 0 ? t("months.awaiting") : null,
     unpricedKg > 0 ? t("costs.unpricedNote", { amount: unpricedKg }) : null,
     uncostedDoses > 0
       ? t("costs.uncostedNote", { amount: uncostedDoses })
+      : null,
+    unpricedInStore > 0
+      ? t("months.one.storeUnpriced", { amount: unpricedInStore })
       : null,
   ].filter((line) => line !== null);
   if (said.length === 0) {

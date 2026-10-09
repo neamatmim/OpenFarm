@@ -20,6 +20,8 @@ import {
   roundMoney,
   sideResultsOf,
   startOfFarmDay,
+  stockLedger,
+  storeValueOf,
   summarizeMoney,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -32,6 +34,7 @@ import {
   boughtInOf,
   theFarmsOwn,
 } from "./cost-store";
+import { bookAt } from "./medicine-stock";
 import { moneyForTheAccountant } from "./money-export-store";
 import { THE_FARMS_PURSE } from "./money-store";
 import type { OverheadMoneyOn } from "./overhead-store";
@@ -42,6 +45,7 @@ import {
   writtenOffByItem,
 } from "./receivable-store";
 import { approvedSettlementOf } from "./settlement-store";
+import { movementsByItem } from "./stock-store";
 import { planAgainstActual } from "./venture-plan-store";
 import { ownedThenByOf, ownersOverTime } from "./venture-store";
 import { yearRulesOf } from "./year-store";
@@ -213,7 +217,8 @@ interface EndFarm {
 }
 
 /**
- * Where the Farm stood at the end of a stretch — or now, for one still going (ADR 0023): what buyers owed, by age.
+ * Where the Farm stood at the end of a stretch — or now, for one still going (ADR 0023): what buyers owed, by age, and
+ * what the store held, in taka.
  */
 const atTheEndOf = async (
   db: Database,
@@ -222,9 +227,15 @@ const atTheEndOf = async (
   now: Date
 ) => {
   const end = until < now ? until : now;
-  // The farm day the stretch ended on: its last, or today.
-  const lastDay = farmDayOf(new Date(end.getTime() - 1));
-  const buyers = await receivableOfBuyers(db, farm.id, { asOf: lastDay });
+  // Its last moment, and the farm day it ended on: its last, or today.
+  const last = new Date(end.getTime() - 1);
+  const lastDay = farmDayOf(last);
+  const [buyers, feed, medicine] = await Promise.all([
+    receivableOfBuyers(db, farm.id, { asOf: lastDay }),
+    movementsByItem(db, farm.id),
+    // Every count up to then set against it: no count is being put right.
+    bookAt(db, farm.id, last, ""),
+  ]);
   return {
     /** What buyers owed at its end, by the days since each Sale or Dispatch left, and what of it was overdue. */
     receivables: receivablesByAge(
@@ -232,6 +243,11 @@ const atTheEndOf = async (
       lastDay,
       farm.receivableDays
     ),
+    /** What the store held at its end: the feed at its average price, the medicine at a dose's. */
+    store: storeValueOf({
+      feed: [...feed.values()].map((movements) => stockLedger(movements, last)),
+      medicine: [...medicine.values()],
+    }),
   };
 };
 

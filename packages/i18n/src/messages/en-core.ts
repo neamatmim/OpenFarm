@@ -3877,6 +3877,14 @@ export const enCore = {
   "months.one.age.over-60": "Over 60 days",
   "months.one.owedInAll": "Owed in all",
   "months.one.ofItOverdue": "Of it overdue",
+  "months.one.store": "The store at the month's end",
+  "months.one.storeHint":
+    "What the store held on the month's last day: the feed at its average price, the medicine at what a dose cost — the prices the animals are charged at.",
+  "months.one.feed": "Feed",
+  "months.one.medicine": "Medicine",
+  "months.one.storeInAll": "The store in all",
+  "months.one.storeUnpriced":
+    "{amount, plural, one {# feed or medicine was in the store at the month's end with no price, and is not in its worth} other {# feeds or medicines were in the store at the month's end with no price, and are not in its worth}}",
   "months.one.venturesTitle": "Ventures",
   "months.one.ventures":
     "Each venture keeps its own accounts, so none are above; each has its own page.",
