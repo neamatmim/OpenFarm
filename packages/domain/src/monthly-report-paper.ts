@@ -201,6 +201,102 @@ const figurePlain = (kind: Kind, amount: number | null): number | null => {
   return kind === "rate" ? roundMoney(amount) : amount;
 };
 
+/** The month at a glance: what came in and what it came to, then where the Farm stood at its end. */
+const SUMMARY: Part = {
+  heading: { bn: "এক নজরে মাস", en: "The month at a glance" },
+  lines: [
+    {
+      label: { bn: "আয়", en: "Brought in" },
+      kind: "sum",
+      of: (one) => one.results.farm.broughtInMoney,
+    },
+    {
+      label: { bn: "পরিচালন খরচের আগে", en: "Before overheads" },
+      kind: "sum",
+      of: (one) => one.results.farm.beforeOverheadsMoney,
+    },
+    {
+      label: { bn: "পরিচালন খরচ", en: "Overheads" },
+      kind: "sum",
+      of: (one) => one.overheads.amount,
+    },
+    {
+      label: { bn: "পরিচালন খরচের পরে", en: "After overheads" },
+      kind: "sum",
+      of: (one) => one.results.farm.afterOverheadsMoney,
+    },
+    {
+      label: { bn: "পরিচালন খরচের পরে মার্জিন", en: "Margin after overheads" },
+      kind: "percent",
+      of: (one) => one.results.farm.marginAfterPercent,
+    },
+    {
+      label: { bn: "দুগ্ধ, পরিচালন খরচের পরে", en: "Dairy, after overheads" },
+      kind: "sum",
+      of: (one) => one.results.dairy.afterOverheadsMoney,
+    },
+    {
+      label: {
+        bn: "মোটাতাজাকরণ, পরিচালন খরচের পরে",
+        en: "Fattening, after overheads",
+      },
+      kind: "sum",
+      of: (one) => one.results.fattening.afterOverheadsMoney,
+    },
+    {
+      label: { bn: "ক্রেতাদের কাছে বাকি", en: "Owed by buyers" },
+      kind: "sum",
+      of: (one) => one.atEnd.receivables.owingMoney,
+    },
+    {
+      label: { bn: "ভান্ডার", en: "The store" },
+      kind: "sum",
+      of: (one) => one.atEnd.store.totalMoney,
+    },
+    {
+      label: { bn: "খামারের নিজের টাকা", en: "The farm's own money" },
+      kind: "sum",
+      of: (one) => one.atEnd.cash.farmsOwnMoney,
+    },
+  ],
+};
+
+/** The change from the month before to this one: a sum with its sign, the dash for anything else or where either is
+ *  nothing. */
+const changeSaid = (kind: Kind, now: number | null, before: number | null) => {
+  if (kind !== "sum" || now === null || before === null) {
+    return NONE;
+  }
+  const change = Math.round(now) - Math.round(before);
+  const said = sumSaid(change);
+  return change > 0 ? { bn: `+${said.bn}`, en: `+${said.en}` } : said;
+};
+
+/** The month at a glance as a table: each line, the month, the month before, and the change between them. */
+const summaryPart = ({
+  month,
+  before,
+  figures,
+  figuresBefore,
+}: MonthlyReportFacts): PaperSection => ({
+  kind: "table",
+  heading: SUMMARY.heading,
+  columns: [
+    { label: { bn: "হিসাব", en: "Figure" } },
+    { label: monthSaid(month), figures: true },
+    { label: monthSaid(before), figures: true },
+    { label: { bn: "পরিবর্তন", en: "Change" }, figures: true },
+  ],
+  rows: SUMMARY.lines.map((line) => [
+    line.label,
+    figureSaid(line.kind, line.of(figures)),
+    figureSaid(line.kind, line.of(figuresBefore)),
+    changeSaid(line.kind, line.of(figures), line.of(figuresBefore)),
+  ]),
+  foot: null,
+  note: null,
+});
+
 /** The farm's own money in the month: in, out, and what was left. */
 const MONEY: Part = {
   heading: { bn: "খামারের টাকা", en: "The farm's money" },
@@ -754,6 +850,7 @@ export const monthlyReportPaper = (
           en: "The month's figures, beside the month before.",
         },
     sections: [
+      summaryPart(facts),
       partOf(MONEY, facts),
       moneyByPart(
         BY_CATEGORY,
@@ -920,6 +1017,7 @@ export const monthlyReportRows = (
       monthBefore: figurePlain(line.kind, line.of(facts.figuresBefore)),
     }));
   return [
+    ...rowsOf(SUMMARY),
     ...rowsOf(MONEY),
     ...moneyByRows(
       BY_CATEGORY,

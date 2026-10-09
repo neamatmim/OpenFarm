@@ -31,8 +31,9 @@ import { sayWhy, wordOf } from "@/lib/saying";
 /** The refusal this page meets: a month in the address that has not begun. */
 const REFUSALS = { month_not_begun: "months.one.notBegun" } as const;
 
-/** The month's parts, once its figures are here: money, the dairy, the fattening side, the overheads, what each Side
- *  came to after them, what they leave out, and the Ventures that kept their own accounts beside it. */
+/** The month's parts, once its figures are here: the month at a glance, money, the dairy, the fattening side, the
+ *  overheads, what each Side came to after them, the cash, what buyers owed, the store, the capital and what it made,
+ *  what they leave out, and the Ventures that kept their own accounts beside it. */
 const TheMonth = ({ one }: { one: OneMonth }) => {
   const { t, language } = useLanguage();
   const lines = useMonthLines(one.figures, one.figuresBefore);
@@ -41,6 +42,14 @@ const TheMonth = ({ one }: { one: OneMonth }) => {
   const at = { month: one.month, before: one.before };
   return (
     <>
+      {kept.results && kept.atEnd ? (
+        <Section
+          description={t("months.one.glanceHint")}
+          title={t("months.one.glance")}
+        >
+          <MonthPart {...at} lines={lines.glance} />
+        </Section>
+      ) : null}
       <Section
         description={t("months.one.moneyHint")}
         title={t("months.one.money")}

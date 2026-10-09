@@ -54,6 +54,8 @@ interface Line {
   before: ReactNode;
   /** A total, drawn heavier than the lines it adds. */
   total?: boolean;
+  /** From the month before to this one, where the part says it: the dash where either is nothing. */
+  change?: ReactNode;
 }
 
 /** A figure in a column, lined up with the ones above it; the dash where there is none. */
@@ -78,6 +80,7 @@ export const MonthPart = ({
   firstHeading?: string;
 }) => {
   const { t, language } = useLanguage();
+  const changes = lines.some((line) => line.change !== undefined);
   // The same columns in every part, so the month's figures line up from one part to the next.
   return (
     <Table className="max-w-3xl table-fixed">
@@ -85,6 +88,7 @@ export const MonthPart = ({
         <col />
         <col className="w-28 sm:w-44" />
         <col className="w-28 sm:w-44" />
+        {changes ? <col className="w-28 sm:w-44" /> : null}
       </colgroup>
       <TableHeader>
         <TableRow>
@@ -97,6 +101,11 @@ export const MonthPart = ({
           <TableHead className={cn(COLUMN_HEADING, "text-right")}>
             {saidMonth(before, language)}
           </TableHead>
+          {changes ? (
+            <TableHead className={cn(COLUMN_HEADING, "text-right")}>
+              {t("months.one.change")}
+            </TableHead>
+          ) : null}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -113,6 +122,11 @@ export const MonthPart = ({
             <TableCell className="text-muted-foreground text-right">
               <Figure>{line.before}</Figure>
             </TableCell>
+            {changes ? (
+              <TableCell className="text-muted-foreground text-right">
+                <Figure>{line.change ?? null}</Figure>
+              </TableCell>
+            ) : null}
           </TableRow>
         ))}
       </TableBody>
@@ -135,7 +149,68 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
     say: (figures: KeptFigures) => ReactNode,
     total = false
   ): Line => ({ label, now: say(now), before: say(before), total });
+  /** A sum this month and the month before, and the change between them, a rise with its sign. */
+  const compared = (
+    label: string,
+    of: (figures: KeptFigures) => number | null | undefined,
+    total = false
+  ): Line => {
+    const [is, was] = [of(now) ?? null, of(before) ?? null];
+    const change =
+      is === null || was === null ? null : Math.round(is) - Math.round(was);
+    let said: ReactNode = null;
+    if (change !== null) {
+      said = change > 0 ? `+${asMoney(change)}` : asMoney(change);
+    }
+    return {
+      label,
+      now: is === null ? null : asMoney(is),
+      before: was === null ? null : asMoney(was),
+      change: said,
+      total,
+    };
+  };
   return {
+    glance: [
+      compared(
+        t("months.one.broughtIn"),
+        (one) => one.results?.farm.broughtInMoney
+      ),
+      compared(
+        t("months.one.beforeOverheads"),
+        (one) => one.results?.farm.beforeOverheadsMoney
+      ),
+      compared(t("months.one.overheads"), (one) => one.overheads.amount),
+      compared(
+        t("months.one.afterOverheads"),
+        (one) => one.results?.farm.afterOverheadsMoney,
+        true
+      ),
+      {
+        ...both(t("months.one.marginAfter"), (one) => {
+          const margin = one.results?.farm.marginAfterPercent ?? null;
+          return margin === null ? null : `${formatNumber(margin, language)}%`;
+        }),
+        change: null,
+      },
+      compared(
+        t("months.one.dairyAfter"),
+        (one) => one.results?.dairy.afterOverheadsMoney
+      ),
+      compared(
+        t("months.one.fatteningAfter"),
+        (one) => one.results?.fattening.afterOverheadsMoney
+      ),
+      compared(
+        t("months.one.owedByBuyers"),
+        (one) => one.atEnd?.receivables.owingMoney
+      ),
+      compared(t("months.one.theStore"), (one) => one.atEnd?.store.totalMoney),
+      compared(
+        t("months.one.farmsOwnMoney"),
+        (one) => one.atEnd?.cash.farmsOwnMoney
+      ),
+    ],
     money: [
       both(t("money.totalIn"), (one) => asMoney(one.money.inMoney)),
       both(t("money.totalOut"), (one) => asMoney(one.money.outMoney)),

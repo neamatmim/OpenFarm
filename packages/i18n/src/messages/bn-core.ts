@@ -3644,6 +3644,14 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "প্রতিটি বিভাগের পরিচালন খরচের পরের ফল, মাসের শুরু আর শেষে তার পুঁজির গড়ের ওপর। ভেঞ্চারের রিটার্ন আসে তার নিষ্পত্তিতে, কোনো মাসে নয়; মাসের ভেতরেই কেনা আর বেচা পশু দুই প্রান্তের কোনোটিতেই পুঁজি রাখে না।",
   "months.one.farmVenturesApart": "পুরো খামার, ভেঞ্চার বাদে",
   "months.one.per100": "প্রতি ১০০ টাকায় {amount} টাকা",
+  "months.one.glance": "এক নজরে মাস",
+  "months.one.glanceHint":
+    "কত আয় হলো আর পরিচালন খরচের পরে কী দাঁড়াল, তারপর মাস শেষে খামার কোথায় ছিল — প্রতিটি আগের মাসের পাশে, আর পরিবর্তন।",
+  "months.one.change": "পরিবর্তন",
+  "months.one.marginAfter": "পরিচালন খরচের পরে মার্জিন",
+  "months.one.dairyAfter": "দুগ্ধ, পরিচালন খরচের পরে",
+  "months.one.fatteningAfter": "মোটাতাজাকরণ, পরিচালন খরচের পরে",
+  "months.one.farmsOwnMoney": "খামারের নিজের টাকা",
   "months.one.venturesTitle": "ভেঞ্চার",
   "months.one.ventures":
     "প্রতিটি ভেঞ্চার নিজের হিসাব নিজে রাখে, তাই ওপরে নেই; প্রতিটির নিজের পাতা আছে।",

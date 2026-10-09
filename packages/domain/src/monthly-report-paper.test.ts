@@ -443,6 +443,43 @@ describe("what the farm had tied up, and what it made on it, on paper", () => {
   });
 });
 
+describe("the month at a glance, on paper", () => {
+  it("comes first, each figure beside the month before's and the change between them", () => {
+    const text = paperText(
+      monthlyReportPaper({
+        ...FACTS,
+        figuresBefore: FIGURES,
+        figures: NOTHING,
+      }),
+      "en"
+    );
+
+    expect(text.indexOf("The month at a glance")).toBeLessThan(
+      text.indexOf("The farm's money")
+    );
+    expect(text).toContain("Figure · March 2044 · February 2044 · Change");
+    expect(text).toContain("Brought in · 0 taka · 89,300 taka · -89,300 taka");
+    expect(text).toContain(
+      "After overheads · 0 taka · 23,700 taka · -23,700 taka"
+    );
+    expect(text).toContain("Margin after overheads · — · 26.5% · —");
+    expect(text).toContain(
+      "The farm's own money · 0 taka · 246,900 taka · -246,900 taka"
+    );
+  });
+
+  it("says a rise with its sign", () => {
+    const text = paperText(
+      monthlyReportPaper({ ...FACTS, figuresBefore: NOTHING }),
+      "en"
+    );
+
+    expect(text).toContain(
+      "Owed by buyers · 36,000 taka · 0 taka · +36,000 taka"
+    );
+  });
+});
+
 describe("the Monthly Report of one month, a row a figure", () => {
   it("says each figure of the month and the month before as a number: whole taka, rates to the paisa, nothing for none", () => {
     const rows = monthlyReportRows(FACTS);

@@ -3917,6 +3917,14 @@ export const enCore = {
     "Each side's result after overheads over the mean of its capital where the month began and ended. A ventures' return comes at its settlement, never in a month; an animal bought and sold inside the month leaves no capital at either end.",
   "months.one.farmVenturesApart": "Whole farm, ventures apart",
   "months.one.per100": "{amount} taka on every 100",
+  "months.one.glance": "The month at a glance",
+  "months.one.glanceHint":
+    "What came in and what it came to after the overheads, then where the farm stood at the month's end — each beside the month before, and the change.",
+  "months.one.change": "Change",
+  "months.one.marginAfter": "Margin after overheads",
+  "months.one.dairyAfter": "Dairy, after overheads",
+  "months.one.fatteningAfter": "Fattening, after overheads",
+  "months.one.farmsOwnMoney": "The farm's own money",
   "months.one.venturesTitle": "Ventures",
   "months.one.ventures":
     "Each venture keeps its own accounts, so none are above; each has its own page.",
