@@ -182,8 +182,12 @@ export const papersRouter = {
         farm: context.farm,
         tagNumber: her.tagNumber,
         sex: her.sex === "female" ? "female" : "male",
+        // A breed given no English is read in its Bangla (ADR 0021): nothing goes blank.
         breed: her.breed
-          ? { bn: her.breed.nameBn, en: her.breed.nameEn ?? her.breed.nameBn }
+          ? {
+              bn: her.breed.nameBn,
+              en: her.breed.nameEn?.trim() || her.breed.nameBn,
+            }
           : null,
         // Her age as the farm can say it: from her birth date if it knows one, and otherwise from what the seller said
         // at Intake, which is a judgment and is labeled as one.

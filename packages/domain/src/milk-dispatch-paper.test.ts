@@ -40,7 +40,22 @@ const FACTS: MilkDispatchFacts = {
   producedBy: "মোঃ আব্দুল করিম",
 };
 
+const PAPERS = () => [milkDispatchPaper(FACTS)];
+
 describe("the milk dispatch record, on paper", () => {
+  it("gives every row and every total one cell to each column", () => {
+    for (const section of PAPERS().flatMap((one) => one.sections)) {
+      if (section.kind === "table") {
+        for (const line of [
+          ...section.rows,
+          ...(section.foot ? [section.foot] : []),
+        ]) {
+          expect(line).toHaveLength(section.columns.length);
+        }
+      }
+    }
+  });
+
   it("tables every dispatch with its buyer, address and delivery note, and adds the liters up", () => {
     const text = paperText(milkDispatchPaper(FACTS), "en");
 

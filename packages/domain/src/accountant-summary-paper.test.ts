@@ -42,7 +42,22 @@ const FACTS: AccountantSummaryFacts = {
   producedBy: "মোঃ আব্দুল করিম",
 };
 
+const PAPERS = () => [accountantSummaryPaper(FACTS)];
+
 describe("the accountant's summary, on paper", () => {
+  it("gives every row and every total one cell to each column", () => {
+    for (const section of PAPERS().flatMap((one) => one.sections)) {
+      if (section.kind === "table") {
+        for (const line of [
+          ...section.rows,
+          ...(section.foot ? [section.foot] : []),
+        ]) {
+          expect(line).toHaveLength(section.columns.length);
+        }
+      }
+    }
+  });
+
   it("is headed with the period and sets income, expense and net apart, in English throughout", () => {
     const text = paperText(accountantSummaryPaper(FACTS), "en");
 

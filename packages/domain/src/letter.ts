@@ -17,9 +17,9 @@ export interface NotifiableLetter {
   vetName: string;
   /** What the farm has already given the animal, by product. The office's next question. */
   treatedWith: Said[];
-  /** Who is sending it, and when. */
+  /** Who is sending it, and the farm day it is sent: a letter is dated by its day, not its minute. */
   reportedByName: string;
-  reportedAt: Said;
+  reportedOn: string;
 }
 
 /** Products in one language, run together as a sentence lists them. */
@@ -115,8 +115,8 @@ export const notifiableLetterPaper = (
     ],
     closing: [],
     produced: {
-      bn: `${letter.reportedAt.bn} · ${name}`,
-      en: `${letter.reportedAt.en} · ${name}`,
+      bn: `${daySaid(letter.reportedOn).bn} · ${name}`,
+      en: `${daySaid(letter.reportedOn).en} · ${name}`,
     },
   };
 };

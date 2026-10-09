@@ -138,3 +138,20 @@ describe("the transport card, on paper", () => {
     expect(() => transportCardPaper({ ...CARD, tagNumbers: [] })).toThrow();
   });
 });
+
+const PAPERS = () => [saleReceiptPaper(RECEIPT), transportCardPaper(CARD)];
+
+describe("both papers that go with a buyer", () => {
+  it("gives every row and every total one cell to each column", () => {
+    for (const section of PAPERS().flatMap((one) => one.sections)) {
+      if (section.kind === "table") {
+        for (const line of [
+          ...section.rows,
+          ...(section.foot ? [section.foot] : []),
+        ]) {
+          expect(line).toHaveLength(section.columns.length);
+        }
+      }
+    }
+  });
+});

@@ -1,20 +1,14 @@
 import type { Language } from "@OpenFarm/i18n";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
 import type { FarmIdentity } from "./farm";
 import { producedSaid } from "./investor-statements";
 import { countSaid, moneySaid } from "./joining-letter";
-import { NONE } from "./monthly-report-paper";
 import { daySaid } from "./nominees";
+import type { Produced } from "./paper-saying";
+import { TOTAL, dayOrNone, momentSaid, numberSaid } from "./paper-saying";
 import type { PaperDocument } from "./paper-template";
 import { letterheadOf } from "./paper-template";
 import type { DocumentRow, Said } from "./papers";
-
-/** Who produced a copy of a paper that goes with a buyer, and when: two copies of one receipt can be told apart. */
-interface Produced {
-  producedAt: Said;
-  producedBy: string;
-}
 
 /** What the receipt prints from: every animal one buyer took on one day, and what he still owed for them. */
 export interface SaleReceiptFacts extends Produced {
@@ -32,15 +26,6 @@ export interface SaleReceiptFacts extends Produced {
     toBePaidBy: { tagNumber: string; day: string | null }[];
   } | null;
 }
-
-/** A farm day in each language, or the dash where there is none. */
-const dayOrNone = (day: string | null): Said => (day ? daySaid(day) : NONE);
-
-/** A figure in each language's numerals. */
-const numberSaid = (value: number): Said => ({
-  bn: formatNumber(value, "bn"),
-  en: formatNumber(value, "en"),
-});
 
 /** A row of a paper's facts, left out where it would say nothing. */
 const rowOf = (label: Said, value: string | null): DocumentRow[] =>
@@ -107,7 +92,7 @@ export const saleReceiptPaper = (facts: SaleReceiptFacts): PaperDocument => {
           numberSaid(one.weightKg),
           moneySaid(one.priceMoney),
         ]),
-        foot: [{ bn: "মোট", en: "Total" }, "", moneySaid(total)],
+        foot: [TOTAL, "", moneySaid(total)],
         note: null,
       },
       ...(receivable
@@ -163,12 +148,6 @@ export interface TransportCardFacts extends Produced {
   tagNumbers: string[];
 }
 
-/** A moment in each language, the farm's day and time. */
-const momentSaid = (at: Date): Said => ({
-  bn: formatDate(at, "bn", "dateTime"),
-  en: formatDate(at, "en", "dateTime"),
-});
-
 /**
  * The card the lorry carries, on paper: the farm of origin with its registration number on the letterhead, where the
  * load is going, on what and with whom, and the animals by tag (Meat Rules 2021 r.18), and room for the farm to sign.
@@ -207,7 +186,7 @@ export const transportCardPaper = (
           { label: { bn: "ক্রেতা", en: "Buyer" }, value: facts.buyerName },
           {
             label: { bn: "তারিখ ও সময়", en: "Date and time" },
-            value: momentSaid(facts.at),
+            value: momentSaid(facts.at, "dateTime"),
           },
           { label: { bn: "গাড়ি", en: "Vehicle" }, value: facts.vehicle },
           { label: { bn: "চালক", en: "Driver" }, value: facts.driver },

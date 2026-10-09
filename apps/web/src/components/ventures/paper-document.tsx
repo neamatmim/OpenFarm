@@ -281,6 +281,9 @@ const Table = ({
   );
 };
 
+/** Any space, which a heading's part breaks at; a part without one is a tag or a code. */
+const A_SPACE = /\s/u;
+
 /** An entry's heading, its parts — a day, a tag, a disease — run together by "·", where a part with no space in it, a
  *  tag or a code, never breaks at its hyphen. */
 const EntryHeading = ({ said }: { said: string }) => (
@@ -290,7 +293,7 @@ const EntryHeading = ({ said }: { said: string }) => (
       // oxlint-disable-next-line react/no-array-index-key
       <span key={`${at}-${part}`}>
         {at > 0 ? " · " : null}
-        <span className={/\s/u.test(part) ? undefined : "whitespace-nowrap"}>
+        <span className={A_SPACE.test(part) ? undefined : "whitespace-nowrap"}>
           {part}
         </span>
       </span>

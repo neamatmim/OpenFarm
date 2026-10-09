@@ -1,10 +1,12 @@
 import type { Language } from "@OpenFarm/i18n";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { formatNumber } from "@OpenFarm/i18n";
 
 import type { FarmIdentity } from "./farm";
 import { producedSaid } from "./investor-statements";
+import { roundLiters } from "./milk";
 import { NONE } from "./monthly-report-paper";
 import { daySaid } from "./nominees";
+import { TOTAL, momentSaid, numberSaid } from "./paper-saying";
 import type { PaperDocument, PaperSection } from "./paper-template";
 import { letterheadOf } from "./paper-template";
 import type { Said, Worded } from "./papers";
@@ -32,23 +34,11 @@ export interface MilkDispatchFacts {
   producedBy: string;
 }
 
-/** A figure in each language's numerals. */
-const numberSaid = (value: number): Said => ({
-  bn: formatNumber(value, "bn"),
-  en: formatNumber(value, "en"),
-});
-
 /** Liters in each language — one liter, never "1 liters". */
 const litersSaid = (value: number): Said => ({
   bn: `${formatNumber(value, "bn")} লিটার`,
   en: `${formatNumber(value, "en")} ${value === 1 ? "liter" : "liters"}`,
 });
-
-/** The farm's day or its time a moment fell on, in each language. */
-const momentSaid = (at: Date, style: "date" | "time"): Said => {
-  const said = (language: Language) => formatDate(at, language, style);
-  return { bn: said("bn"), en: said("en") };
-};
 
 /** What a test read of the milk — its fat and its solids not fat — or the dash where it was not tested. */
 const testSaid = (fat: number | null, snf: number | null): Worded => {
@@ -108,14 +98,7 @@ const dispatchesPart = (
       testSaid(one.fatPercent, one.snfPercent),
     ]),
     // Rounded once, to the hundredth the farm measures milk in.
-    foot: [
-      { bn: "মোট", en: "Total" },
-      "",
-      "",
-      "",
-      litersSaid(Math.round(total * 100) / 100),
-      "",
-    ],
+    foot: [TOTAL, "", "", litersSaid(roundLiters(total)), ""],
     note: null,
   };
 };

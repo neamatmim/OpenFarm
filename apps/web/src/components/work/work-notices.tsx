@@ -122,7 +122,12 @@ const TheLetter = ({
       </div>
       <Button
         disabled={letter.isPending}
-        onClick={() => letter.mutate({ diagnosisId: report.diagnosisId })}
+        // Made once, and opened again from there: each letter the farm makes is an Export on the trail.
+        onClick={() =>
+          letter.data
+            ? setPaper(letter.data.document)
+            : letter.mutate({ diagnosisId: report.diagnosisId })
+        }
         size="sm"
         type="button"
         variant="outline"

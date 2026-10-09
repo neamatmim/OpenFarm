@@ -5,15 +5,11 @@ import { producedSaid } from "./investor-statements";
 import { countSaid } from "./joining-letter";
 import { NONE } from "./monthly-report-paper";
 import { daySaid } from "./nominees";
+import type { Produced } from "./paper-saying";
+import { TOTAL, dayOrNone } from "./paper-saying";
 import type { PaperDocument } from "./paper-template";
 import { letterheadOf } from "./paper-template";
 import type { DocumentRow, Said } from "./papers";
-
-/** Who produced a paper for an inspector, and when: on every one, so two copies of a register can be told apart. */
-interface Produced {
-  producedAt: Said;
-  producedBy: string;
-}
 
 /** What one of the Inspector View's registers prints from: what it is, the period it covers, and its entries. */
 export interface RegisterFacts extends Produced {
@@ -80,9 +76,6 @@ export interface RegistrationFacts extends Produced {
   standing: RegistrationStanding;
   certificateTakenOn: string | null;
 }
-
-/** A farm day in each language, or the dash where there is none. */
-const dayOrNone = (day: string | null): Said => (day ? daySaid(day) : NONE);
 
 /**
  * R1, the Registration on paper: the farm's DLS registration as an inspector reads it first — number, office, when it
@@ -178,7 +171,7 @@ const herdTable = (
     countSaid(line.animals),
     statesSaid(line.states),
   ]),
-  foot: [{ bn: "মোট", en: "Total" }, countSaid(total), ""],
+  foot: [TOTAL, countSaid(total), ""],
   note: null,
 });
 

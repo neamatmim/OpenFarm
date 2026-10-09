@@ -12,7 +12,6 @@ import { exportedPaper } from "../export-store";
 import type { FarmList } from "../farm-list";
 import { assertNameFree, bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
-import { madeOn } from "../paper-values";
 import { requireRole } from "../roles";
 
 const name = z.object({
@@ -111,7 +110,7 @@ const buildLetter = async (
         ).values(),
       ],
       reportedByName: context.actor.name,
-      reportedAt: madeOn(now),
+      reportedOn: farmDayOf(now),
     }),
   };
 };

@@ -4,15 +4,11 @@ import type { FarmIdentity } from "./farm";
 import { producedSaid } from "./investor-statements";
 import { NONE } from "./monthly-report-paper";
 import { daySaid } from "./nominees";
+import type { Produced } from "./paper-saying";
+import { dayOrNone } from "./paper-saying";
 import type { PaperDocument, PaperSection } from "./paper-template";
 import { letterheadOf } from "./paper-template";
 import type { DocumentRow, Said, Worded } from "./papers";
-
-/** Who produced a copy of a paper about an animal, and when. */
-interface Produced {
-  producedAt: Said;
-  producedBy: string;
-}
 
 /**
  * Whether her meat may be sold today, and when it may if not, and a Vet's shortening of the hold when there has been
@@ -43,9 +39,6 @@ export interface DoseOnPaper {
   advice: string | null;
   givenBy: string | null;
 }
-
-/** A farm day in each language, or the dash where there is none. */
-const dayOrNone = (day: string | null): Said => (day ? daySaid(day) : NONE);
 
 /** Her standing for meat as one line. */
 const standingSaid = ({ clear, clearOn }: WithdrawalStanding): Said => {
@@ -244,10 +237,11 @@ const identityRows = (facts: PassportFacts): DocumentRow[] => {
   return rows.filter((one) => one !== null);
 };
 
-/** A paper's part saying its earlier records are not on it, where they are not. */
+/** That a list on the paper is longer than the paper, said rather than letting a reader believe they have seen
+ *  everything. */
 const EARLIER_NOT_SHOWN: Said = {
-  bn: "আগের রেকর্ড এই পাতায় আসেনি।",
-  en: "Earlier records are not on this page.",
+  bn: "কিছু আগের রেকর্ড এই পাতায় আসেনি।",
+  en: "Some earlier records are not on this page.",
 };
 
 /**
@@ -311,9 +305,7 @@ export const animalPassportPaper = (facts: PassportFacts): PaperDocument => ({
           kind: "facts",
           heading: { bn: "ওজনের রেকর্ড", en: "Weigh-ins" },
           rows: [],
-          note: facts.moreThanShown
-            ? EARLIER_NOT_SHOWN
-            : { bn: "কোনো ওজন লেখা নেই।", en: "No weigh-in recorded." },
+          note: { bn: "কোনো ওজন লেখা নেই।", en: "No weigh-in recorded." },
         }
       : {
           kind: "table",
@@ -327,10 +319,11 @@ export const animalPassportPaper = (facts: PassportFacts): PaperDocument => ({
             { bn: formatNumber(one.kg, "bn"), en: formatNumber(one.kg, "en") },
           ]),
           foot: null,
-          note: facts.moreThanShown ? EARLIER_NOT_SHOWN : null,
+          note: null,
         },
   ],
-  closing: [],
+  // Said at the foot of the whole paper: a list cut short may be her pens, her doses or her weigh-ins.
+  closing: facts.moreThanShown ? [EARLIER_NOT_SHOWN] : [],
   produced: producedSaid(facts.producedAt, facts.producedBy),
 });
 

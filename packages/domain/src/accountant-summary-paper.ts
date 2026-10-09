@@ -7,6 +7,7 @@ import { roundMoney } from "./money";
 import type { MoneySummary } from "./money-summary";
 import { NONE } from "./monthly-report-paper";
 import { daySaid } from "./nominees";
+import { TOTAL } from "./paper-saying";
 import type { PaperDocument, PaperSection } from "./paper-template";
 import { letterheadOf } from "./paper-template";
 import type { Said, Worded } from "./papers";
@@ -41,8 +42,6 @@ const MONEY: Said = { bn: "টাকা", en: "Money" };
 const MONEY_IN: Said = { bn: "আয়", en: "Money in" };
 /** The heading of the column of money that went out. */
 const MONEY_OUT: Said = { bn: "ব্যয়", en: "Money out" };
-/** The line that adds a table up. */
-const TOTAL: Said = { bn: "মোট", en: "Total" };
 
 /** The period's income against its expense, what it left, and the money still waiting for approval said beneath. */
 const totalsPart = ({ summary }: AccountantSummaryFacts): PaperSection => {
@@ -152,7 +151,8 @@ export const accountantSummaryPaper = (
         { bn: "খাত অনুযায়ী", en: "By category" },
         { bn: "খাত", en: "Category" },
         summary.byCategory.map((line) => ({
-          name: { bn: line.nameBn, en: line.nameEn ?? line.nameBn },
+          // A Category given no English is read in its Bangla (ADR 0021): nothing goes blank.
+          name: { bn: line.nameBn, en: line.nameEn?.trim() || line.nameBn },
           inMoney: line.inMoney,
           outMoney: line.outMoney,
         }))

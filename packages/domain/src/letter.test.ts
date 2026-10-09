@@ -20,7 +20,7 @@ const LETTER: NotifiableLetter = {
   vetName: "ডা. করিম",
   treatedWith: [{ bn: "পেনিসিলিন", en: "Penicillin" }],
   reportedByName: "ম্যানেজার",
-  reportedAt: { bn: "৯ অক্টোবর ২০২৬", en: "9 October 2026" },
+  reportedOn: "2026-10-09",
 };
 
 describe("the letter to the Upazila Livestock Officer, on paper", () => {
@@ -34,6 +34,8 @@ describe("the letter to the Upazila Livestock Officer, on paper", () => {
     expect(bn).toContain("শনাক্তকারী ভেটেরিনারিয়ান: ডা. করিম");
     expect(bn).toContain("গৃহীত ব্যবস্থা: পেনিসিলিন প্রয়োগ করা হয়েছে");
     expect(bn).toContain("বিনীত: ম্যানেজার");
+    // Dated by its day, under the farm's name.
+    expect(bn).toContain("৯ অক্টোবর, ২০২৬ · সবুজ ছায়া ডেইরি");
   });
 
   it("reads in English too, the disease in the vet's own words", () => {

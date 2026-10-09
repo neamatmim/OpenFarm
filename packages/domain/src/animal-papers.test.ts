@@ -87,7 +87,7 @@ describe("the animal passport, on paper", () => {
       "1 June 2026 · Ivermectin · 29 June 2026 · Prescribed by ডা. হাসান · শফিকুল ইসলাম"
     );
     expect(en).toContain("1 June 2026 · 320.5");
-    expect(en).toContain("Earlier records are not on this page.");
+    expect(en).toContain("Some earlier records are not on this page.");
   });
 
   it("says a dose from a campaign, and one advised without a prescription", () => {
@@ -116,7 +116,25 @@ const SUMMARY: WithdrawalSummaryFacts = {
   ...PRODUCED,
 };
 
+const PAPERS = () => [
+  animalPassportPaper(PASSPORT),
+  withdrawalSummaryPaper(SUMMARY),
+];
+
 describe("the withdrawal summary, on paper", () => {
+  it("gives every row and every total one cell to each column", () => {
+    for (const section of PAPERS().flatMap((one) => one.sections)) {
+      if (section.kind === "table") {
+        for (const line of [
+          ...section.rows,
+          ...(section.foot ? [section.foot] : []),
+        ]) {
+          expect(line).toHaveLength(section.columns.length);
+        }
+      }
+    }
+  });
+
   it("answers first, then the doses of the last thirty days", () => {
     const en = paperText(withdrawalSummaryPaper(SUMMARY), "en");
     expect(en).toContain("Treatment and withdrawal summary");
