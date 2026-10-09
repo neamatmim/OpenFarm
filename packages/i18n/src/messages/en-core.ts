@@ -3951,6 +3951,10 @@ export const enCore = {
   "months.nothingProjected": "Nothing projected",
   "months.noVentures": "No ventures yet",
   "months.returnsLink": "What each season and venture returned",
+  "months.col.afterOverheads": "After overheads",
+  "months.returnsTitle": "Return on cost, as it stands today",
+  "months.returnsHint":
+    "A season's, a venture's and the herd's whole run, never a month's: what every hundred taka they cost has made, or is making at today's prices. Read in full on Returns.",
   "nav.returns": "Returns",
   "window.title": "The season she joins",
   "window.nextEid": "The next Eid-ul-Adha",

@@ -3677,6 +3677,10 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.nothingProjected": "কোনো হিসাব নেই",
   "months.noVentures": "এখনো কোনো ভেঞ্চার নেই",
   "months.returnsLink": "প্রতিটি মৌসুম আর ভেঞ্চার কী ফিরিয়েছে",
+  "months.col.afterOverheads": "পরিচালন খরচের পরে",
+  "months.returnsTitle": "খরচে লাভ, আজ যেমন দাঁড়িয়ে",
+  "months.returnsHint":
+    "একটি মৌসুম, একটি ভেঞ্চার আর পালের পুরো সময়ের হিসাব, কোনো মাসের নয়: প্রতি ১০০ টাকা খরচে কত এল, বা আজকের দামে আসছে। পুরোটা রিটার্ন পাতায়।",
   "nav.returns": "খাটানো {currencyOf} ফল",
   "window.title": "যে মৌসুমে যোগ দেবে",
   "window.nextEid": "পরের ঈদুল আযহা",

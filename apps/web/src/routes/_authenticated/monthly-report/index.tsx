@@ -9,7 +9,18 @@ import {
   YearPicker,
   useByMonth,
 } from "@/components/months/by-month";
-import { Notice, Page, PageHeader, Section } from "@/components/page";
+import {
+  Notice,
+  Page,
+  PageHeader,
+  Section,
+  SUBHEADING,
+} from "@/components/page";
+import {
+  FinishedReturns,
+  StillGoing,
+  useReturns,
+} from "@/components/returns/returns-page";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { financialYearNamed, fromTheFirstWithAnything } from "@/lib/months";
@@ -107,7 +118,44 @@ const MonthsPage = () => {
       >
         <VenturesAgainstPlan ventures={ventures} />
       </Section>
+      <ReturnsToday />
     </Page>
+  );
+};
+
+/**
+ * Return on Cost beside the months, as it stands today (ADR 0023): every Season and Venture whose last animal has gone,
+ * and every one still going at today's prices — a whole run's figure, never a month's — as the Returns page reads them.
+ */
+const ReturnsToday = () => {
+  const { t } = useLanguage();
+  const returns = useReturns();
+  if (!returns.data) {
+    return null;
+  }
+  const page = returns.data;
+  return (
+    <Section
+      description={t("months.returnsHint")}
+      title={t("months.returnsTitle")}
+    >
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3">
+          <h3 className={SUBHEADING}>{t("returns.finishedTitle")}</h3>
+          <FinishedReturns page={page} />
+        </div>
+        <div className="flex flex-col gap-3">
+          <h3 className={SUBHEADING}>{t("returns.stillGoingTitle")}</h3>
+          <StillGoing page={page} />
+        </div>
+        <Link
+          className="self-start text-sm underline-offset-4 hover:underline"
+          to="/returns"
+        >
+          {t("returns.seeAll")} →
+        </Link>
+      </div>
+    </Section>
   );
 };
 
