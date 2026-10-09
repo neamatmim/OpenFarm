@@ -1,11 +1,12 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Eye, Handshake, MessageSquareLock, Undo2 } from "lucide-react";
 import { useState } from "react";
 
-import { Notice } from "@/components/page";
+import { CODE_SPACING, Notice } from "@/components/page";
 import { ConfirmDialog } from "@/components/page-kit";
 import { usePreviewing } from "@/components/portal/portal-source";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
@@ -121,7 +122,7 @@ const ReadAndAgree = ({
       <Input
         aria-label={t("agreeInApp.portal.code")}
         autoComplete="one-time-code"
-        className="w-32 tracking-widest tabular-nums"
+        className={cn("w-32 tabular-nums", CODE_SPACING)}
         inputMode="numeric"
         maxLength={12}
         onChange={(event) => setCode(event.target.value)}

@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { ChevronLeft, ChevronRight, Sprout } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { CODE_SPACING } from "@/components/page";
 import { Wordmark } from "@/components/wordmark";
 
 /** What the dark side of a door says: a line, what is behind the door point by point, and a line at its foot. */
@@ -38,7 +39,7 @@ export const DoorScreen = ({
 }) => (
   <div className="grid min-h-svh lg:grid-cols-[1.05fr_1fr]">
     <aside
-      className="relative hidden overflow-hidden bg-[oklch(0.27_0.045_162)] px-10 text-[oklch(0.95_0.015_150)] lg:flex lg:flex-col xl:px-14"
+      className="bg-sidebar text-sidebar-foreground relative hidden overflow-hidden px-10 lg:flex lg:flex-col xl:px-14"
       data-app-chrome
     >
       <div
@@ -154,8 +155,7 @@ export const DOOR_LINK =
 
 /** A one-time code typed from a paper or a screen: letters and digits, spaced so each can be checked. The same field on
  *  every door that asks for one, and as tall at every width. */
-export const CODE_FIELD =
-  "h-14 text-center font-mono text-2xl tracking-[0.2em] uppercase md:h-14 md:text-2xl";
+export const CODE_FIELD = `h-14 text-center font-mono text-2xl uppercase md:h-14 md:text-2xl ${CODE_SPACING}`;
 
 /**
  * The way back to signing in, at the foot of a door's card, the same on every door: a muted link with its chevron, big

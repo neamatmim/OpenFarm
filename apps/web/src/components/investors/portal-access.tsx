@@ -32,7 +32,7 @@ import { useState } from "react";
 import { flushSync } from "react-dom";
 
 import type { Tone } from "@/components/page";
-import { StatusBadge } from "@/components/page";
+import { CODE_SPACING, StatusBadge } from "@/components/page";
 import {
   ConfirmDialog,
   FormDialog,
@@ -574,7 +574,12 @@ const CodeDialog = ({
           <DialogTitle>{t("portal.codeTitle")}</DialogTitle>
           <DialogDescription>{t("portal.codeHint")}</DialogDescription>
         </DialogHeader>
-        <p className="bg-muted rounded-lg py-4 text-center font-mono text-3xl font-semibold tracking-[0.3em]">
+        <p
+          className={cn(
+            "bg-muted rounded-lg py-4 text-center font-mono text-3xl font-semibold",
+            CODE_SPACING
+          )}
+        >
           {given ? inFours(given.code) : null}
         </p>
         <dl className="flex flex-col gap-2 text-sm">

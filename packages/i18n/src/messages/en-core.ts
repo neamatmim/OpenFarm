@@ -1339,7 +1339,7 @@ export const enCore = {
   "animals.ageWholeYears": "{years, plural, one {# year} other {# years}}",
   "animals.ageEstimated": "about {age}",
   "animals.bornAround": "around {month}",
-  "animals.more": "More",
+  "common.more": "More",
   "animals.moreFor": "{tag} — more actions",
   "animals.tab.overview": "At a glance",
   "animals.tab.breeding": "Breeding",
@@ -3223,7 +3223,7 @@ export const enCore = {
   "signOff.line.outOfRange":
     "{count, plural, one {# figure} other {# figures}} out of range",
   "signOff.line.flagged": "Flagged",
-  "signOff.clearSelection": "Clear",
+  "common.clearSelection": "Clear",
   "signOff.approvedMany":
     "{count, plural, one {# approved} other {# approved}}",
   "signOff.select": "Select {work}",

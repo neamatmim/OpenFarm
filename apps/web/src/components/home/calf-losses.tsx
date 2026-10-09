@@ -3,34 +3,12 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 
 import { Section } from "@/components/page";
+import { FigureTerm } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
 /** More than one in ten lost before weaning is too many (DLS NG-GLPP §11.5(a)). */
 const TOO_MANY_LOST = 0.1;
-
-/** One figure of the three, labeled. */
-const Figure = ({
-  label,
-  value,
-  loud = false,
-}: {
-  label: string;
-  value: string;
-  loud?: boolean;
-}) => (
-  <div className="flex min-w-0 flex-col gap-0.5">
-    <dt className="text-muted-foreground text-xs">{label}</dt>
-    <dd
-      className={cn(
-        "text-lg font-semibold tabular-nums sm:text-xl",
-        loud && "text-danger"
-      )}
-    >
-      {value}
-    </dd>
-  </div>
-);
 
 /**
  * What the farm lost in calves over the last year — the figure that says whether its calf care works: born alive, born
@@ -53,19 +31,19 @@ export const CalfLossesSection = () => {
   return (
     <Section description={t("calves.hint")} title={t("calves.title")}>
       <dl className="grid grid-cols-3 gap-4">
-        <Figure
-          label={t("calves.bornAlive")}
-          value={formatNumber(figure.bornAlive, language)}
-        />
-        <Figure
-          label={t("calves.stillborn")}
-          value={formatNumber(figure.stillborn, language)}
-        />
-        <Figure
+        <FigureTerm label={t("calves.bornAlive")} size="panel">
+          {formatNumber(figure.bornAlive, language)}
+        </FigureTerm>
+        <FigureTerm label={t("calves.stillborn")} size="panel">
+          {formatNumber(figure.stillborn, language)}
+        </FigureTerm>
+        <FigureTerm
           label={t("calves.lost")}
-          loud={tooMany}
-          value={formatNumber(figure.diedBeforeWeaning, language)}
-        />
+          size="panel"
+          tone={tooMany ? "danger" : "neutral"}
+        >
+          {formatNumber(figure.diedBeforeWeaning, language)}
+        </FigureTerm>
       </dl>
       {figure.lostShare === null ? null : (
         <p

@@ -7,11 +7,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@OpenFarm/ui/components/dialog";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { Check, Copy, KeyRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { Notice } from "@/components/page";
+import { CODE_SPACING, Notice } from "@/components/page";
 import { InsetPanel } from "@/components/page-kit";
 import { useT } from "@/i18n/language-provider";
 
@@ -36,7 +37,10 @@ const CodeBox = ({ code }: { code: string }) => {
     <InsetPanel className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
       <output
         aria-live="polite"
-        className="font-mono text-3xl font-semibold tracking-[0.25em] break-all tabular-nums select-all"
+        className={cn(
+          "font-mono text-3xl font-semibold break-all tabular-nums select-all",
+          CODE_SPACING
+        )}
       >
         {code}
       </output>

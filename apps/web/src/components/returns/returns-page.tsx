@@ -732,7 +732,7 @@ export const RunningSeasonsStrip = ({
     return null;
   }
   return (
-    <div className={cn("surface flex flex-col gap-3 p-4", className)}>
+    <div className={cn("surface flex flex-col gap-3 p-4 md:p-5", className)}>
       {going.data.map((season) => (
         <div className="flex flex-col gap-2" key={season.key}>
           <p className="font-medium">{named(season)}</p>
@@ -767,7 +767,7 @@ export const VentureReturnsPanel = ({ ventureId }: { ventureId: string }) => {
     return null;
   }
   return (
-    <section className="surface flex flex-col gap-3 p-5">
+    <section className="surface flex flex-col gap-3 p-4 md:p-5">
       <div className="flex flex-col gap-1">
         <h2 className={SECTION_TITLE}>{t("returns.panelTitle")}</h2>
         <p className="text-muted-foreground text-sm">

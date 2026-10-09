@@ -27,8 +27,8 @@ import { standingOf as gainStandingOf } from "@/components/fattening/fattening-t
 import { standingOf, valueOf } from "@/components/feed/feed-types";
 import { MORE_LINK } from "@/components/home/queue";
 import { categoryName } from "@/components/money";
-import type { Tone } from "@/components/page";
-import { EmptyState, Section } from "@/components/page";
+import { EmptyState, SUBHEADING, Section } from "@/components/page";
+import { FigureTerm } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import { moneyTotals } from "@/lib/money-totals";
@@ -43,21 +43,11 @@ const TOP_SPENDING = 4;
 /** How many feeds running low a panel names before the store page says the rest. */
 const LOW_FEEDS_NAMED = 3;
 
-const TONE_TEXT: Record<Tone, string> = {
-  neutral: "",
-  success: "text-success",
-  warning: "text-warning",
-  danger: "text-danger",
-  info: "text-info",
-};
-
 /** The first of this month to today, on the farm's clock: the period an Owner reads money by, and the Money page opens on. */
 export const thisMonth = () => {
   const today = farmDayOf(new Date());
   return { from: `${today.slice(0, "YYYY-MM".length)}-01`, to: today };
 };
-
-/** Taka as the farm writes it, a loss with its minus. */
 
 /** The words on the way from a panel to the page that holds all of it. */
 export const OpenWords = () => {
@@ -69,31 +59,6 @@ export const OpenWords = () => {
     </>
   );
 };
-
-/** One count a panel is read by: its name small, the figure large. */
-const Tally = ({
-  label,
-  value,
-  tone = "neutral",
-  className,
-}: {
-  label: ReactNode;
-  value: ReactNode;
-  tone?: Tone;
-  className?: string;
-}) => (
-  <div className={cn("flex min-w-0 flex-col gap-0.5", className)}>
-    <dt className="text-muted-foreground text-xs">{label}</dt>
-    <dd
-      className={cn(
-        "text-lg font-semibold tabular-nums sm:text-xl",
-        TONE_TEXT[tone]
-      )}
-    >
-      {value}
-    </dd>
-  </div>
-);
 
 /** A sum of money on a line of its own on a phone, and a column where there is room. */
 const MONEY_LINE =
@@ -154,29 +119,33 @@ export const MoneyMonth = () => {
         <>
           {/* Three sums in lakhs do not fit side by side on a phone: there each is a line, its figure at the end. */}
           <dl className="flex flex-col gap-2 sm:grid sm:grid-cols-3 sm:gap-4">
-            <Tally
+            <FigureTerm
               className={MONEY_LINE}
               label={t("money.totalIn")}
+              size="panel"
               tone="success"
-              value={asMoney(moneyIn)}
-            />
-            <Tally
+            >
+              {asMoney(moneyIn)}
+            </FigureTerm>
+            <FigureTerm
               className={MONEY_LINE}
               label={t("money.totalOut")}
-              value={asMoney(moneyOut)}
-            />
-            <Tally
+              size="panel"
+            >
+              {asMoney(moneyOut)}
+            </FigureTerm>
+            <FigureTerm
               className={MONEY_LINE}
               label={t("money.net")}
+              size="panel"
               tone={moneyIn - moneyOut < 0 ? "danger" : "neutral"}
-              value={asMoney(moneyIn - moneyOut)}
-            />
+            >
+              {asMoney(moneyIn - moneyOut)}
+            </FigureTerm>
           </dl>
           {top.length > 0 ? (
             <div className="flex flex-col gap-3 border-t pt-4">
-              <h3 className="text-sm font-semibold">
-                {t("owner.topSpending")}
-              </h3>
+              <h3 className={SUBHEADING}>{t("owner.topSpending")}</h3>
               <ul className="flex flex-col gap-2.5">
                 {top.map((line) => (
                   <li className="flex flex-col gap-1 text-sm" key={line.name}>
@@ -235,7 +204,7 @@ const SideOfHerd = ({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-sm font-semibold">{t(`animals.side.${side}`)}</h3>
+        <h3 className={SUBHEADING}>{t(`animals.side.${side}`)}</h3>
         <span className="text-muted-foreground text-sm tabular-nums">
           {formatNumber(mine.length, language)}
         </span>
@@ -244,15 +213,11 @@ const SideOfHerd = ({
         {states.map((state) => {
           const count = mine.filter((animal) => animal.state === state).length;
           return (
-            <Tally
-              key={state}
-              label={t(`state.${state}`)}
-              value={
-                <span className={cn(count === 0 && "text-muted-foreground")}>
-                  {formatNumber(count, language)}
-                </span>
-              }
-            />
+            <FigureTerm key={state} label={t(`state.${state}`)} size="panel">
+              <span className={cn(count === 0 && "text-muted-foreground")}>
+                {formatNumber(count, language)}
+              </span>
+            </FigureTerm>
           );
         })}
       </dl>
@@ -306,16 +271,20 @@ export const HerdPanel = ({
             <SideOfHerd animals={herd} key={side} side={side} />
           ))}
           <dl className="grid grid-cols-3 gap-4 border-t pt-4">
-            <Tally
+            <FigureTerm
               label={t("animals.milkHeld")}
+              size="panel"
               tone={milkHeld > 0 ? "warning" : "neutral"}
-              value={formatNumber(milkHeld, language)}
-            />
-            <Tally
+            >
+              {formatNumber(milkHeld, language)}
+            </FigureTerm>
+            <FigureTerm
               label={t("animals.meatHeld")}
+              size="panel"
               tone={meatHeld > 0 ? "warning" : "neutral"}
-              value={formatNumber(meatHeld, language)}
-            />
+            >
+              {formatNumber(meatHeld, language)}
+            </FigureTerm>
           </dl>
           {lost > 0 ? (
             <p className="text-danger text-sm">
@@ -392,20 +361,23 @@ export const FatteningPanel = () => {
       {board.data ? (
         <>
           <dl className="grid grid-cols-3 gap-4">
-            <Tally
-              label={t("gain.onSide")}
-              value={formatNumber(rows.length, language)}
-            />
-            <Tally
+            <FigureTerm label={t("gain.onSide")} size="panel">
+              {formatNumber(rows.length, language)}
+            </FigureTerm>
+            <FigureTerm
               label={t("gain.behind")}
+              size="panel"
               tone={behind > 0 ? "warning" : "neutral"}
-              value={formatNumber(behind, language)}
-            />
-            <Tally
+            >
+              {formatNumber(behind, language)}
+            </FigureTerm>
+            <FigureTerm
               label={t("gain.onTrack")}
+              size="panel"
               tone={onTrack > 0 ? "success" : "neutral"}
-              value={formatNumber(onTrack, language)}
-            />
+            >
+              {formatNumber(onTrack, language)}
+            </FigureTerm>
           </dl>
           {maySell > 0 ? (
             <Link
@@ -467,20 +439,23 @@ export const FeedPanel = () => {
       {stock.data ? (
         <>
           <dl className="grid grid-cols-2 gap-4">
-            <Tally
-              label={t("feed.kpi.items")}
-              value={formatNumber(live.length, language)}
-            />
-            <Tally
+            <FigureTerm label={t("feed.kpi.items")} size="panel">
+              {formatNumber(live.length, language)}
+            </FigureTerm>
+            <FigureTerm
               label={t("feed.kpi.low")}
+              size="panel"
               tone={short.length > 0 ? "warning" : "neutral"}
-              value={formatNumber(short.length, language)}
-            />
-            <Tally
+            >
+              {formatNumber(short.length, language)}
+            </FigureTerm>
+            <FigureTerm
               className="col-span-2"
               label={t("feed.kpi.value")}
-              value={asMoney(worth)}
-            />
+              size="panel"
+            >
+              {asMoney(worth)}
+            </FigureTerm>
           </dl>
           {short.length > 0 ? (
             <ul className="flex flex-col gap-1 text-sm">

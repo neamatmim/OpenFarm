@@ -25,7 +25,7 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 
 import { BackToSignIn, CODE_FIELD, DoorScreen } from "@/components/door-screen";
-import { EmptyState, Notice } from "@/components/page";
+import { EmptyState, FLOW_CARD, FlowHead, Notice } from "@/components/page";
 import { PublicHeader } from "@/components/public-header";
 import { useOutboxSender } from "@/components/sync-banner";
 import { useLanguage, useT } from "@/i18n/language-provider";
@@ -74,7 +74,7 @@ const CODE_MAX_LENGTH = 16;
 const BIG_BUTTON = "h-14 w-full text-lg md:h-14 md:text-lg";
 
 /** Every step of the Shed Phone's door is the same card: one thing asked of whoever is holding the phone. */
-const CARD = "surface mx-auto flex w-full max-w-sm flex-col gap-5 p-6 sm:p-8";
+const CARD = cn(FLOW_CARD, "mx-auto w-full max-w-sm");
 
 /** What this step of the door is, with its picture and a line of help. */
 const StepHead = ({
@@ -90,10 +90,7 @@ const StepHead = ({
     <span className="bg-secondary text-secondary-foreground grid size-14 place-items-center rounded-xl">
       {icon}
     </span>
-    <div className="flex flex-col gap-1.5">
-      <h1 className="text-2xl font-semibold">{title}</h1>
-      {hint ? <p className="text-muted-foreground text-sm">{hint}</p> : null}
-    </div>
+    <FlowHead centered hint={hint} title={title} />
   </div>
 );
 
@@ -374,17 +371,14 @@ const DevicePage = () => {
     return (
       <div className={cn(CARD, "items-center text-center")}>
         <Initial name={active.name} size="lg" />
-        <div className="flex flex-col items-center gap-1">
-          <h1 className="text-2xl font-semibold">
-            {t("device.workingAs", { name: active.name })}
-          </h1>
+        <FlowHead centered title={t("device.workingAs", { name: active.name })}>
           {where.data?.device?.name ? (
             <p className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
               <Smartphone aria-hidden className="size-4" />
               {where.data.device.name}
             </p>
           ) : null}
-        </div>
+        </FlowHead>
         <Button
           className={BIG_BUTTON}
           onClick={() => navigate({ to: "/work" })}
@@ -435,7 +429,7 @@ const DevicePage = () => {
         </button>
         <div className="flex flex-col items-center gap-3 text-center">
           <Initial name={chosen.name} size="lg" />
-          <h1 className="text-2xl font-semibold">{chosen.name}</h1>
+          <FlowHead centered title={chosen.name} />
         </div>
         <div className="flex flex-col items-center gap-3">
           <Label htmlFor="pin">{t("device.enterPin")}</Label>

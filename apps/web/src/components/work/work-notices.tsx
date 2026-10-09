@@ -2,7 +2,7 @@
 
 import type { PaperDocument, SopChange, SopContent } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, timeInDigits } from "@OpenFarm/i18n";
+import { formatDate, formatNumber, timeInDigits } from "@OpenFarm/i18n";
 import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -305,9 +305,7 @@ export const WhatChanged = ({ changed }: { changed: Changed }) => {
  *  it in the parlor. */
 export const BulkOutcomeBanner = ({ outcome }: { outcome: BulkOutcome }) => {
   const { t, language } = useLanguage();
-  const liters = new Intl.NumberFormat(
-    language === "bn" ? "bn-BD" : "en-GB"
-  ).format(Math.abs(outcome.differenceLiters));
+  const liters = formatNumber(Math.abs(outcome.differenceLiters), language);
   return (
     <Notice
       title={

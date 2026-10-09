@@ -83,7 +83,7 @@ const FieldRange = ({
     );
   }
   return (
-    <p className="text-destructive text-xs" id={id}>
+    <p className="text-danger text-xs font-medium" id={id}>
       {problem === "notAWholeFigure" ? t("params.notAWholeFigure") : range}
     </p>
   );

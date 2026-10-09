@@ -1,9 +1,8 @@
 import { farmDayOf } from "@OpenFarm/domain";
-import { Input } from "@OpenFarm/ui/components/input";
 import { useQuery } from "@tanstack/react-query";
 
 import { SegmentedControl } from "@/components/page";
-import { FormField } from "@/components/page-kit";
+import { PeriodFilter } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -45,45 +44,32 @@ export const PeriodBar = ({
       ) ?? "")
     : "";
   return (
-    <fieldset className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
-      <legend className="sr-only">{t("money.period")}</legend>
-      <FormField id="money-from" label={t("dispatch.from")}>
-        <Input
-          className="sm:w-44"
-          id="money-from"
-          onChange={(event) => onFromChange(event.target.value)}
-          type="date"
-          value={from}
-        />
-      </FormField>
-      <FormField id="money-to" label={t("dispatch.to")}>
-        <Input
-          className="sm:w-44"
-          id="money-to"
-          onChange={(event) => onToChange(event.target.value)}
-          type="date"
-          value={to}
-        />
-      </FormField>
+    <PeriodFilter
+      from={from}
+      fromLabel={t("dispatch.from")}
+      label={t("money.period")}
+      onFrom={onFromChange}
+      onTo={onToChange}
+      to={to}
+      toLabel={t("dispatch.to")}
+    >
       {shortcuts ? (
-        <div className="col-span-2 flex sm:col-span-1">
-          <SegmentedControl<Shortcut | "">
-            label={t("money.period")}
-            name="money-period"
-            onChange={(shortcut) => {
-              if (shortcut) {
-                onFromChange(shortcuts[shortcut].from);
-                onToChange(shortcuts[shortcut].to);
-              }
-            }}
-            options={[
-              { value: "this", label: t("money.thisFinancialYear") },
-              { value: "last", label: t("money.lastFinancialYear") },
-            ]}
-            value={chosen}
-          />
-        </div>
+        <SegmentedControl<Shortcut | "">
+          label={t("money.period")}
+          name="money-period"
+          onChange={(shortcut) => {
+            if (shortcut) {
+              onFromChange(shortcuts[shortcut].from);
+              onToChange(shortcuts[shortcut].to);
+            }
+          }}
+          options={[
+            { value: "this", label: t("money.thisFinancialYear") },
+            { value: "last", label: t("money.lastFinancialYear") },
+          ]}
+          value={chosen}
+        />
       ) : null}
-    </fieldset>
+    </PeriodFilter>
   );
 };

@@ -24,9 +24,9 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import type { AnchorHTMLAttributes, ReactNode, Ref } from "react";
-import { useId } from "react";
 
 import { useT } from "@/i18n/language-provider";
+import { initialsOf } from "@/lib/initials";
 
 /** How loud a thing is: the farm's semantic colors, always with a word and an icon beside them. */
 export type Tone = "neutral" | "success" | "warning" | "danger" | "info";
@@ -120,6 +120,65 @@ const BackAnchorLink = createLink(BackAnchor);
  */
 export const BackLink: LinkComponent<typeof BackAnchor> = (props) => (
   <BackAnchorLink {...props} />
+);
+
+/** How far apart the letters of a code stand — a one-time code, a PIN, a Pay-in Code — typed or shown, so each can be
+ *  checked against the paper or the message it came on: the same spacing on every screen that has one. */
+export const CODE_SPACING = "tracking-[0.3em]";
+
+/** The card of a flow — signing in, joining, setting the farm up, a step of the Shed Phone's door or of a piece of
+ *  work: one card in a column in the middle, one thing asked of whoever is holding it, spaced the same on every door. */
+export const FLOW_CARD = "surface flex flex-col gap-6 p-6 sm:p-8";
+
+/** The head of a flow's card: what this step is, in the flow's own large title, a line of help under it, and anything
+ *  more that belongs with the title (`children`) — set in the middle where the card is. */
+export const FlowHead = ({
+  title,
+  hint,
+  above,
+  centered = false,
+  children,
+}: {
+  title: ReactNode;
+  hint?: ReactNode;
+  /** A word set over the title: what has just been done, before what comes next. */
+  above?: ReactNode;
+  centered?: boolean;
+  children?: ReactNode;
+}) => (
+  <div
+    className={cn(
+      "flex flex-col gap-1.5",
+      centered && "items-center text-center"
+    )}
+  >
+    {above}
+    <h1 className="text-2xl font-semibold">{title}</h1>
+    {hint ? <p className="text-muted-foreground text-sm">{hint}</p> : null}
+    {children}
+  </div>
+);
+
+/** A person's record leads with their initials, as an animal's leads with her photo: whose page it is, at a glance, in
+ *  the user menu's own mark, and on a phone as on a desk. Grayed for one who is no longer here — access off, retired. */
+export const InitialsMark = ({
+  name,
+  faded = false,
+}: {
+  name: string;
+  faded?: boolean;
+}) => (
+  <span
+    aria-hidden
+    className={cn(
+      "grid size-14 shrink-0 place-items-center rounded-full text-lg font-semibold",
+      faded
+        ? "bg-muted text-muted-foreground"
+        : "bg-primary text-primary-foreground"
+    )}
+  >
+    {initialsOf(name)}
+  </span>
 );
 
 /** What the page is, in one line, what it is for, and what can be done from it — and, on the page of one person or
@@ -719,62 +778,3 @@ export const SegmentedControl = <T extends string>({
     ))}
   </fieldset>
 );
-
-/** The period a page reads, with its two days labeled where they are typed. */
-export const PeriodFilter = ({
-  label,
-  fromLabel,
-  toLabel,
-  from,
-  to,
-  onFrom,
-  onTo,
-  children,
-}: {
-  label: ReactNode;
-  fromLabel: string;
-  toLabel: string;
-  from: string;
-  to: string;
-  onFrom: (day: string) => void;
-  onTo: (day: string) => void;
-  children?: ReactNode;
-}) => {
-  const id = useId();
-  return (
-    <fieldset className="surface flex flex-wrap items-end gap-3 p-4">
-      <legend className="sr-only">{label}</legend>
-      <label
-        className="flex flex-col gap-1.5 text-sm font-medium"
-        data-slot="form-label"
-        htmlFor={`${id}-from`}
-      >
-        {fromLabel}
-        <input
-          className="bg-card border-input focus-visible:border-ring focus-visible:ring-ring h-11 w-44 rounded-md border px-3 text-base font-normal outline-none focus-visible:ring-2 md:h-9 md:text-sm"
-          id={`${id}-from`}
-          onChange={(event) => onFrom(event.target.value)}
-          type="date"
-          value={from}
-        />
-      </label>
-      <label
-        className="flex flex-col gap-1.5 text-sm font-medium"
-        data-slot="form-label"
-        htmlFor={`${id}-to`}
-      >
-        {toLabel}
-        <input
-          className="bg-card border-input focus-visible:border-ring focus-visible:ring-ring h-11 w-44 rounded-md border px-3 text-base font-normal outline-none focus-visible:ring-2 md:h-9 md:text-sm"
-          id={`${id}-to`}
-          onChange={(event) => onTo(event.target.value)}
-          type="date"
-          value={to}
-        />
-      </label>
-      {children ? (
-        <div className="ml-auto flex flex-wrap gap-2">{children}</div>
-      ) : null}
-    </fieldset>
-  );
-};

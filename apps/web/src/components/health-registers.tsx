@@ -23,13 +23,8 @@ import {
 } from "@/components/data-table";
 import { TagLink } from "@/components/fattening/fattening-words";
 import { SaidDate } from "@/components/list-cells";
-import {
-  EmptyState,
-  Loaded,
-  Notice,
-  PeriodFilter,
-  Section,
-} from "@/components/page";
+import { EmptyState, Loaded, Notice, Section } from "@/components/page";
+import { PeriodFilter } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
@@ -700,7 +695,7 @@ export const RegisterPeriod = ({
           </Button>
         ) : null}
       </PeriodFilter>
-      <p className="text-muted-foreground px-1 text-xs">
+      <p className="text-muted-foreground text-xs">
         {t("inspector.periodHint")}
       </p>
     </div>

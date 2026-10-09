@@ -37,6 +37,7 @@ import {
 import {
   BackLink,
   EmptyState,
+  InitialsMark,
   Loaded,
   Page,
   PageHeader,
@@ -46,7 +47,6 @@ import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
-import { initialsOf } from "@/lib/initials";
 import { useMoney } from "@/lib/money";
 import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
@@ -140,12 +140,10 @@ const TheInvestor = ({
         }
         description={investor.address ?? undefined}
         leading={
-          <span
-            aria-hidden
-            className="bg-primary/10 text-primary hidden size-14 shrink-0 place-items-center rounded-full text-lg font-semibold sm:grid"
-          >
-            {initialsOf(investor.name)}
-          </span>
+          <InitialsMark
+            faded={Boolean(investor.retiredAt)}
+            name={investor.name}
+          />
         }
         meta={
           <>
