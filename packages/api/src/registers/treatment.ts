@@ -145,7 +145,7 @@ export const TREATMENT_REGISTER: Register<TreatmentRow> = {
         bn: "পথ",
         en: "Route",
         said: (row, say) =>
-          row.route ? say.both(`route.${row.route}`) : NOTHING,
+          row.route ? say.word(`route.${row.route}`) : NOTHING,
       },
       csv: { header: "route", value: (row) => row.route },
     },

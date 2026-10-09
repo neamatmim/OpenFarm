@@ -173,12 +173,6 @@ export type {
   DoseGiven,
   HealthRegister,
   InspectorRegister,
-  HerdSummary,
-  HerdSummaryLine,
-  RegisterPaper,
-  RegisterPaperField,
-  RegisterPaperRow,
-  RegistrationRecord,
   PenSpellLine,
   PaperOrganization,
   ShortenedHold,
@@ -196,9 +190,6 @@ export {
   NO_GUARANTEE,
   NO_GUARANTEE_LINES,
   inLanguage,
-  registerPaper,
-  herdSummary,
-  registrationRecord,
   saleReceipt,
   transportCard,
   withdrawalSummary,
@@ -1050,3 +1041,14 @@ export type { AccountantSummaryFacts } from "./accountant-summary-paper";
 export { accountantSummaryPaper } from "./accountant-summary-paper";
 export type { DispatchOnPaper, MilkDispatchFacts } from "./milk-dispatch-paper";
 export { milkDispatchPaper } from "./milk-dispatch-paper";
+export type {
+  HerdLine,
+  HerdSummaryFacts,
+  RegisterFacts,
+  RegistrationFacts,
+} from "./inspector-papers";
+export {
+  herdSummaryPaper,
+  registerDocument,
+  registrationPaper,
+} from "./inspector-papers";

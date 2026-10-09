@@ -1,16 +1,22 @@
-import type { InspectorRegister, LiveState } from "@OpenFarm/domain";
+import type {
+  InspectorRegister,
+  LiveState,
+  PaperDocument,
+  Said,
+} from "@OpenFarm/domain";
 import {
   INSPECTOR_REGISTERS,
   LIVE_STATES,
   SIDES,
-  herdSummary,
+  farmDayOf,
+  herdSummaryPaper,
   identityView,
   isLiveState,
-  registrationRecord,
+  registrationPaper,
   registrationStanding,
 } from "@OpenFarm/domain";
-import type { Language } from "@OpenFarm/i18n";
-import { formatDate, formatNumber, translate } from "@OpenFarm/i18n";
+import type { MessageKey } from "@OpenFarm/i18n";
+import { translate } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -18,11 +24,11 @@ import type { Context } from "../context";
 import { stampedFileName } from "../export-name";
 import { assertRegistered, recordExport } from "../export-store";
 import { protectedProcedure } from "../index";
+import { madeOn } from "../paper-values";
 import { periodInput } from "../period";
-import { languageOf } from "../reader-language";
 import { registerNamed } from "../registers/all";
 import type { RegisterName } from "../registers/register";
-import { REGISTER_NAMES, sayingIn } from "../registers/register";
+import { REGISTER_NAMES } from "../registers/register";
 import { rowsAnswer } from "../registers/rows";
 import { certificatesOf } from "../registration-store";
 import { requirePersonalSession, requireRole } from "../roles";
@@ -115,18 +121,21 @@ const herdOf = async (context: Producing) => {
   };
 };
 
-/** A label in both of the farm's languages, as every paper it hands over writes one. */
-const bothLanguages = (key: Parameters<typeof translate>[1]) =>
-  `${translate("bn", key)} / ${translate("en", key)}`;
+/** The farm day a moment fell on, or nothing where there was none. */
+const dayOf = (at: Date | null) => (at ? farmDayOf(at) : null);
 
-/** Each State with its count, in both languages and the reader's digits. */
-const statesSaid = (byState: ByState, language: Language) =>
+/** A word of the farm's in both its languages, for a paper read in either. */
+const bothOf = (key: MessageKey): Said => ({
+  bn: translate("bn", key),
+  en: translate("en", key),
+});
+
+/** Each State with its count, as the herd summary tables it. */
+const statesOf = (byState: ByState) =>
   LIVE_STATES.flatMap((state) => {
     const count = byState[state];
-    return count
-      ? [`${bothLanguages(`state.${state}`)} ${formatNumber(count, language)}`]
-      : [];
-  }).join(" · ");
+    return count ? [{ label: bothOf(`state.${state}`), count }] : [];
+  });
 
 /** A period as a register is asked for it: either day may be left out for the register's own look-back. */
 const askedPeriodInput = z.object({
@@ -135,9 +144,9 @@ const askedPeriodInput = z.object({
 });
 type AskedPeriod = z.infer<typeof askedPeriodInput>;
 
-/** A paper as written: the paper itself, and what the Export keeps of what it said. */
+/** A paper as laid out: the paper itself, and what the Export keeps of what it said. */
 interface Made {
-  text: string;
+  document: PaperDocument;
   kept: Record<string, unknown>;
 }
 
@@ -146,27 +155,22 @@ interface Made {
 type HandWritten = Exclude<InspectorRegister, RegisterName>;
 
 /**
- * The Registration and the herd summary as papers, each in the language of whoever is producing it, with what
- * the paper said for the trail to keep: the Registration it showed, or the herd it counted.
+ * The Registration and the herd summary laid out as papers, read in Bangla or English, with what the paper said for the
+ * trail to keep: the Registration it showed, or the herd it counted.
  */
-const PAPERS: Record<
-  HandWritten,
-  (context: Producing, language: Language) => Promise<Made>
-> = {
-  registration: async (context, language) => {
+const PAPERS: Record<HandWritten, (context: Producing) => Promise<Made>> = {
+  registration: async (context) => {
     const registration = await registrationOf(context);
-    const day = (at: Date | null) =>
-      at ? formatDate(at, language, "date") : null;
     return {
-      text: registrationRecord({
+      document: registrationPaper({
         farm: context.farm,
         office: registration.office,
-        issuedOn: day(registration.issuedOn),
-        expiresOn: day(registration.expiresOn),
+        issuedOn: dayOf(registration.issuedOn),
+        expiresOn: dayOf(registration.expiresOn),
         standing: registration.standing,
-        certificateTakenOn: day(registration.certificate?.takenAt ?? null),
+        certificateTakenOn: dayOf(registration.certificate?.takenAt ?? null),
+        producedAt: madeOn(context.clock.now()),
         producedBy: context.actor.name,
-        producedAt: formatDate(context.clock.now(), language, "dateTime"),
       }),
       kept: {
         expiresOn: registration.expiresOn?.toISOString() ?? null,
@@ -175,14 +179,13 @@ const PAPERS: Record<
       },
     };
   },
-  herd_summary: async (context, language) => {
+  herd_summary: async (context) => {
     const herd = await herdOf(context);
-    const count = (n: number) => formatNumber(n, language);
     return {
-      text: herdSummary({
+      document: herdSummaryPaper({
         farm: context.farm,
-        asOf: formatDate(herd.asOf, language, "date"),
-        total: count(herd.total),
+        asOf: farmDayOf(herd.asOf),
+        total: herd.total,
         bySide: SIDES.flatMap((side) => {
           const lines = herd.bySideAndState.filter(
             (line) => line.side === side
@@ -192,26 +195,23 @@ const PAPERS: Record<
           }
           return [
             {
-              label: bothLanguages(`animals.side.${side}`),
-              animals: count(
-                lines.reduce((sum, line) => sum + line.animals, 0)
-              ),
-              states: statesSaid(
+              label: bothOf(`animals.side.${side}`),
+              animals: lines.reduce((sum, line) => sum + line.animals, 0),
+              states: statesOf(
                 Object.fromEntries(
                   lines.map((line) => [line.state, line.animals])
-                ),
-                language
+                )
               ),
             },
           ];
         }),
         byPen: herd.byPen.map((line) => ({
           label: `${line.shed} / ${line.pen}`,
-          animals: count(line.animals),
-          states: statesSaid(line.byState, language),
+          animals: line.animals,
+          states: statesOf(line.byState),
         })),
+        producedAt: madeOn(context.clock.now()),
         producedBy: context.actor.name,
-        producedAt: formatDate(context.clock.now(), language, "dateTime"),
       }),
       kept: { animals: herd.total, pens: herd.byPen.length },
     };
@@ -264,7 +264,7 @@ const assertCanBeGiven = (register: Printable, format: "paper" | "csv") => {
 /** What an inspector is handed, and what the Export keeps of it: the paper or the CSV, and the period it
  *  covers when it covers one. */
 interface HandedOver {
-  text?: string;
+  document?: PaperDocument;
   csv?: string;
   period: { from: string; to: string } | null;
   kept: Record<string, unknown>;
@@ -272,12 +272,11 @@ interface HandedOver {
 
 const handOver = async (
   context: Producing,
-  asked: AskedPeriod & { register: Printable; format: "paper" | "csv" },
-  language: Language
+  asked: AskedPeriod & { register: Printable; format: "paper" | "csv" }
 ): Promise<HandedOver> => {
   if (!isRegister(asked.register)) {
-    const made = await PAPERS[asked.register](context, language);
-    return { text: made.text, period: null, kept: made.kept };
+    const made = await PAPERS[asked.register](context);
+    return { document: made.document, period: null, kept: made.kept };
   }
   const register = registerNamed(asked.register);
   const found = await register.read(
@@ -292,16 +291,11 @@ const handOver = async (
     return { csv: register.csv(found.rows), period, kept };
   }
   return {
-    text: register.paper(
-      found.rows,
-      period,
-      {
-        farm: context.farm,
-        by: context.actor.name,
-        at: formatDate(context.clock.now(), language, "dateTime"),
-      },
-      sayingIn(language)
-    ),
+    document: register.paper(found.rows, period, {
+      farm: context.farm,
+      by: context.actor.name,
+      at: madeOn(context.clock.now()),
+    }),
     period,
     kept,
   };
@@ -363,8 +357,7 @@ export const inspectorViewRouter = {
     .handler(async ({ context, input }) => {
       assertCanBeGiven(input.register, input.format);
       assertRegistered(context.farm, "a register for an inspector");
-      const language = await languageOf(context.db, context.actor.id);
-      const handed = await handOver(context, input, language);
+      const handed = await handOver(context, input);
       await recordExport(context, input.register, handed.period, {
         format: input.format,
         ...handed.kept,
@@ -381,6 +374,6 @@ export const inspectorViewRouter = {
               context.clock.now()
             ),
           }
-        : { text: handed.text };
+        : { document: handed.document };
     }),
 };

@@ -38,6 +38,17 @@ const sectionLines = (
         ...(section.note ? [say(section.note)] : []),
       ];
     }
+    case "records": {
+      return [
+        ...section.records.flatMap((record) => [
+          say(record.heading),
+          ...record.fields.map(
+            (field) => `${say(field.label)}: ${say(field.value)}`
+          ),
+        ]),
+        ...(section.note ? [say(section.note)] : []),
+      ];
+    }
     case "clauses": {
       return section.clauses.map(
         (clause, index) =>

@@ -1,3 +1,4 @@
+import { paperText } from "@OpenFarm/domain";
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -125,10 +126,11 @@ describe("the Inspector View", () => {
       certificate: { id: world.certificate.id, takenAt: expect.any(Date) },
     });
 
-    const { text } = await manager.client.inspectorView.print({
+    const { document } = await manager.client.inspectorView.print({
       register: "registration",
     });
-    expect(text).toContain("নিবন্ধন / Registration");
+    const text = document ? paperText(document, "en") : "";
+    expect(text).toContain("Registration");
     expect(text).toContain(REGISTRATION);
 
     // On the trail: the Registration it showed, and the certificate photograph it named.
@@ -167,10 +169,11 @@ describe("the Inspector View", () => {
       ])
     );
 
-    const { text } = await owner.client.inspectorView.print({
+    const { document } = await owner.client.inspectorView.print({
       register: "herd_summary",
     });
-    expect(text).toContain("পশুর সারসংক্ষেপ / Herd summary");
+    const text = document ? paperText(document, "en") : "";
+    expect(text).toContain("Herd summary");
     expect(text).toContain(`পরিদর্শন দুধ ${suffix}`);
 
     const exports = await scratchDb().query.auditEvent.findMany({

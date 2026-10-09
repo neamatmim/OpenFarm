@@ -11,12 +11,6 @@ export type PaperId =
   | "animal-passport"
   | "withdrawal-summary"
   | "dls-letter"
-  | "registration-record"
-  | "herd-summary"
-  | "vaccination-register"
-  | "treatment-register"
-  | "disease-history"
-  | "mortality-register"
   | "investor-joining-letter"
   | "investor-progress"
   | "investor-settlement";

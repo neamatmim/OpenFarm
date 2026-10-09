@@ -63,9 +63,9 @@ const deathsBetween = async (
 /** How the carcass went, with where and how beside it — or that the farm is still to say. */
 const disposalSaid = (death: DeathRow, saying: Saying) => {
   if (!death.disposal) {
-    return saying.both("mortality.awaitingDisposal");
+    return saying.word("mortality.awaitingDisposal");
   }
-  const said = saying.both(`mortality.${death.disposal}`);
+  const said = saying.word(`mortality.${death.disposal}`);
   return death.disposalNote ? `${said} — ${death.disposalNote}` : said;
 };
 
@@ -102,10 +102,10 @@ export const MORTALITY_REGISTER: Register<DeathRow> = {
       paper: {
         bn: "কারণ",
         en: "Cause",
-        // A stillbirth in the reader's words; any other cause as whoever recorded it wrote it.
+        // A stillbirth in the paper's words; any other cause as whoever recorded it wrote it.
         said: (row, say) =>
           row.cause === STILLBIRTH
-            ? say.both("mortality.stillbirth")
+            ? say.word("mortality.stillbirth")
             : row.cause,
       },
       csv: { header: "cause", value: (row) => row.cause },

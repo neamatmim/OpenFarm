@@ -1,6 +1,7 @@
 import { eq, inArray } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
+import { paperText } from "@OpenFarm/domain";
 import type { SopContent } from "@OpenFarm/domain";
 import {
   FakeClock,
@@ -373,28 +374,29 @@ describe("the health registers", () => {
 
   it("prints the treatment register and gives it as a CSV in the DLS template's order, each an Export", async () => {
     const manager = await as("manager", "2044-04-10T04:00:00.000Z");
-    // A paper is in its producer's language, and other files choose the Manager's: this one says Bangla.
-    await manager.client.language.set({ language: "bn" });
     const paper = await manager.client.inspectorView.print({
       register: "treatment_register",
       ...MARCH,
     });
-    expect(paper.text).toContain("চিকিৎসার রেজিস্টার / Treatment register");
+    // Laid out on the letterhead, read in either language: here in Bangla.
+    const text = paper.document ? paperText(paper.document, "bn") : "";
+    expect(text).toContain("চিকিৎসার রেজিস্টার");
     // Days and the route written out for the reader; the course and both clear days beside the dose.
-    expect(paper.text).toContain("সময়কাল / Period: ১ মার্চ, ২০৪৪ — ৩১ মার্চ, ২০৪৪");
-    // A line to each field, in the order the CSV has them.
-    expect(paper.text).toContain(
+    expect(text).toContain("১ মার্চ, ২০৪৪ থেকে ৩১ মার্চ, ২০৪৪ পর্যন্ত।");
+    // A field to each line, in the order the CSV has them.
+    expect(text).toContain(
       [
         `১ মার্চ, ২০৪৪ · ${world.mastitisCow.tagNumber}`,
-        "  রোগ / Diagnosis: ওলান প্রদাহ",
-        `  ওষুধ / Drug: অক্সিটেট্রাসাইক্লিন ${suffix}`,
-        "  ডোজ / Dose: ১০ মিলি",
-        "  পথ / Route: মাংসে ইনজেকশন / Intramuscular",
-        "  কোর্স / Course: 1/4",
+        "রোগ: ওলান প্রদাহ",
+        `ওষুধ: অক্সিটেট্রাসাইক্লিন ${suffix}`,
+        "ডোজ: ১০ মিলি",
+        "পথ: মাংসে ইনজেকশন",
+        "কোর্স: 1/4",
       ].join("\n")
     );
-    expect(paper.text).toContain(
-      "  দুধ মুক্ত / Milk clear: ৫ মার্চ, ২০৪৪\n  মাংস মুক্ত / Meat clear: ২২ মার্চ, ২০৪৪"
+    expect(text).toContain("দুধ মুক্ত: ৫ মার্চ, ২০৪৪\nমাংস মুক্ত: ২২ মার্চ, ২০৪৪");
+    expect(paper.document ? paperText(paper.document, "en") : "").toContain(
+      "Route: Intramuscular"
     );
 
     const sheet = await manager.client.inspectorView.print({
@@ -485,21 +487,19 @@ describe("the health registers", () => {
       },
     ]);
 
-    // Other files choose the Owner's language too.
-    await owner.client.language.set({ language: "bn" });
     const paper = await owner.client.inspectorView.print({
       register: "disease_history",
     });
-    expect(paper.text).toContain("রোগের ইতিহাস / Disease history");
-    expect(paper.text).toContain(
-      `১০ মার্চ, ২০৪৪ · ${world.anthraxCow.tagNumber} · ${world.disease} · জ্ঞাপনযোগ্য / Notifiable`
+    // Laid out on the letterhead, read in either language: here in Bangla.
+    const text = paper.document ? paperText(paper.document, "bn") : "";
+    expect(text).toContain("রোগের ইতিহাস");
+    expect(text).toContain(
+      `১০ মার্চ, ২০৪৪ · ${world.anthraxCow.tagNumber} · ${world.disease} · জ্ঞাপনযোগ্য`
     );
-    expect(paper.text).toContain(
-      "ডিএলএস রেফারেন্স / DLS reference: ULO/2044/০০৭"
-    );
-    expect(paper.text).toContain("পরিণতি / Outcome: মৃত / Died ১২ মার্চ, ২০৪৪");
+    expect(text).toContain("ডিএলএস রেফারেন্স: ULO/2044/০০৭");
+    expect(text).toContain("পরিণতি: মৃত ১২ মার্চ, ২০৪৪");
     // The diagnosis the Vet took back is not marked.
-    expect(paper.text).toContain(
+    expect(text).toContain(
       `১৫ মার্চ, ২০৪৪ · ${world.mastitisCow.tagNumber} · জ্বর, কারণ অজানা\n`
     );
     await expect(

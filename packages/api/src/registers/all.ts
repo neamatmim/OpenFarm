@@ -1,13 +1,9 @@
+import type { PaperDocument } from "@OpenFarm/domain";
+
 import { DISEASE_HISTORY } from "./disease-history";
 import { MORTALITY_REGISTER } from "./mortality";
 import { MOVEMENT_LOG } from "./movement-log";
-import type {
-  Db,
-  FarmProducing,
-  Register,
-  RegisterName,
-  Saying,
-} from "./register";
+import type { Db, FarmProducing, Register, RegisterName } from "./register";
 import { csvOf, hasCsv, paperOf, readRegister } from "./register";
 import { TREATMENT_REGISTER } from "./treatment";
 import { VACCINATION_REGISTER } from "./vaccination";
@@ -42,9 +38,8 @@ export interface Paperwork<Row = unknown> {
   paper: (
     rows: unknown[],
     period: { from: string; to: string },
-    produced: FarmProducing,
-    saying: Saying
-  ) => string;
+    produced: FarmProducing
+  ) => PaperDocument;
   csv: (rows: unknown[]) => string;
   /** What the Export keeps of what this register said. */
   kept: (rows: unknown[]) => Record<string, unknown>;
@@ -60,8 +55,8 @@ const paperwork = <Row>(register: Register<Row>): Paperwork<Row> => {
     savesAsCsv: hasCsv(register),
     read: (db, farmId, asked, now) =>
       readRegister(register, db, farmId, asked, now),
-    paper: (rows, period, produced, saying) =>
-      paperOf(register, its(rows), period, produced, saying),
+    paper: (rows, period, produced) =>
+      paperOf(register, its(rows), period, produced),
     csv: (rows) => csvOf(register, its(rows)),
     kept: (rows) => register.kept(its(rows)),
   };

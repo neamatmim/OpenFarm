@@ -281,6 +281,76 @@ const Table = ({
   );
 };
 
+/** An entry's heading, its parts — a day, a tag, a disease — run together by "·", where a part with no space in it, a
+ *  tag or a code, never breaks at its hyphen. */
+const EntryHeading = ({ said }: { said: string }) => (
+  <span>
+    {said.split(" · ").map((part, at) => (
+      // A heading's parts may repeat — two tags alike — so a part's place is part of its key.
+      // oxlint-disable-next-line react/no-array-index-key
+      <span key={`${at}-${part}`}>
+        {at > 0 ? " · " : null}
+        <span className={/\s/u.test(part) ? undefined : "whitespace-nowrap"}>
+          {part}
+        </span>
+      </span>
+    ))}
+  </span>
+);
+
+/**
+ * A register's entries, one to a line as a ledger has them: each numbered and headed on the left by what identifies it,
+ * its fields running on the right, each its label and what it says — two lines an entry for a register of any width,
+ * never broken across two pages.
+ */
+const Records = ({
+  section,
+}: {
+  section: Extract<PaperSection, { kind: "records" }>;
+}) => {
+  const say = useSay();
+  const numeral = useNumeral();
+  return (
+    <>
+      {section.records.length > 0 ? (
+        <ol className="divide-y rounded-md border text-sm">
+          {section.records.map((record, index) => (
+            <li
+              className="grid break-inside-avoid grid-cols-[minmax(0,13.5rem)_minmax(0,1fr)] gap-x-4 px-3 py-2"
+              // Two entries may read alike — one day, one tag — so an entry's place is part of its key.
+              // oxlint-disable-next-line react/no-array-index-key
+              key={`${index}-${say(record.heading)}`}
+            >
+              <p className="flex items-baseline gap-2 font-semibold">
+                <span className="text-muted-foreground font-normal tabular-nums">
+                  {numeral(index + 1)}.
+                </span>
+                <EntryHeading said={say(record.heading)} />
+              </p>
+              <dl className="flex flex-wrap gap-x-4 gap-y-0.5">
+                {record.fields.map((field) => (
+                  <div
+                    className="flex gap-1.5"
+                    key={field.label.en || field.label.bn}
+                  >
+                    <dt className="text-muted-foreground">
+                      {say(field.label)}
+                    </dt>
+                    <dd className="break-words whitespace-pre-line">
+                      {say(field.value)}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      {section.note ? <p className={LOOK.note}>{say(section.note)}</p> : null}
+    </>
+  );
+};
+
 /** What goes under one section's heading, by the kind of section it is. */
 const SectionBody = ({ section }: { section: PaperSection }) => {
   const say = useSay();
@@ -326,6 +396,9 @@ const SectionBody = ({ section }: { section: PaperSection }) => {
     }
     case "clauses": {
       return <Clauses clauses={section.clauses} />;
+    }
+    case "records": {
+      return <Records section={section} />;
     }
     case "table": {
       return <Table section={section} />;
@@ -438,6 +511,13 @@ export interface PaperPhotograph {
   caption: string;
 }
 
+/** A photograph printed whole under a paper's parts, where the paper is about it: the Registration's certificate. */
+export interface PaperAttachment {
+  contentType: string;
+  data: string;
+  alt: string;
+}
+
 /**
  * The photographs a paper carries, inside it rather than beside it: only the paper's own element is printed, so a face
  * laid out next to it would be on the screen and off the page.
@@ -466,9 +546,11 @@ const NO_PHOTOGRAPHS: PaperPhotograph[] = [];
 const PaperBody = ({
   document,
   photographs,
+  attached,
 }: {
   document: PaperDocument;
   photographs: PaperPhotograph[];
+  attached: PaperAttachment | null;
 }) => {
   const say = useSay();
   const produced = say(document.produced);
@@ -506,6 +588,14 @@ const PaperBody = ({
         <Photographs photographs={photographs} />
       ) : null}
 
+      {attached ? (
+        <img
+          alt={attached.alt}
+          className="mx-auto max-h-[140mm] break-inside-avoid rounded-md border"
+          src={`data:${attached.contentType};base64,${attached.data}`}
+        />
+      ) : null}
+
       <footer className="flex flex-col gap-3 border-t pt-4 text-xs">
         {document.copyOf ? (
           <p className="font-semibold">{say(document.copyOf)}</p>
@@ -536,12 +626,14 @@ export const PaperDocumentView = ({
   language,
   id = PAPER_DOCUMENT_ID,
   photographs = NO_PHOTOGRAPHS,
+  attached = null,
 }: {
   document: PaperDocument;
   language: Language;
   /** The id it is printed by, where more than one paper may be on the page at once. */
   id?: string;
   photographs?: PaperPhotograph[];
+  attached?: PaperAttachment | null;
 }) => (
   <PaperLanguage.Provider value={language}>
     <article
@@ -549,7 +641,11 @@ export const PaperDocumentView = ({
       id={id}
       lang={language}
     >
-      <PaperBody document={document} photographs={photographs} />
+      <PaperBody
+        attached={attached}
+        document={document}
+        photographs={photographs}
+      />
     </article>
   </PaperLanguage.Provider>
 );

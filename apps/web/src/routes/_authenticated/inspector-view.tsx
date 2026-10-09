@@ -1,6 +1,7 @@
 import type {
   InspectorRegister,
   LiveState,
+  PaperDocument,
   RegistrationStanding,
   Side,
 } from "@OpenFarm/domain";
@@ -39,21 +40,11 @@ import { Notice, Page, PageHeader, Section, TagChip } from "@/components/page";
 import type { Tone } from "@/components/page";
 import type { Figure, PageTab } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
-import { Paper } from "@/components/paper";
-import type { PaperId } from "@/components/paper";
+import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { TAB_SWITCH } from "@/lib/path-tabs";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
-
-const PAPER_OF: Record<InspectorRegister, PaperId> = {
-  registration: "registration-record",
-  herd_summary: "herd-summary",
-  vaccination_register: "vaccination-register",
-  treatment_register: "treatment-register",
-  disease_history: "disease-history",
-  mortality_register: "mortality-register",
-};
 
 const SIDE_WORD = {
   dairy: "animals.side.dairy",
@@ -129,12 +120,6 @@ const REGISTER_TABS: {
     icon: Skull,
   },
 ];
-
-/** The tab each paper is printed from, and the only one it is drawn under: a vaccination register left beneath the
- *  deaths tab reads as the deaths. A health register's is its own tab; the Registration and the herd share the first. */
-const tabOf = (register: InspectorRegister): Tab =>
-  REGISTER_TABS.find((one) => one.register === register)?.value ??
-  "registration";
 
 type View = Awaited<ReturnType<typeof orpc.inspectorView.get.call>>;
 type CertificatePhoto = Awaited<ReturnType<typeof orpc.farm.certificate.call>>;
@@ -313,7 +298,7 @@ const RegistrationNotices = ({ view }: { view: View }) => {
  * and the herd, and each register in a tab of its own over the period asked. The tab is kept in the address.
  */
 const InspectorPage = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const refused = useRefused();
   const navigate = useNavigate({ from: Route.fullPath });
   const { tab = "registration" } = Route.useSearch();
@@ -332,22 +317,16 @@ const InspectorPage = () => {
   };
   const [paper, setPaper] = useState<{
     register: InspectorRegister;
-    text: string;
+    document: PaperDocument;
   } | null>(null);
   const print = useMutation(
     orpc.inspectorView.print.mutationOptions({
-      onSuccess: ({ text }, { register }) => {
+      onSuccess: ({ document }, { register }) => {
         // The movement log is a spreadsheet and comes back with no paper to show.
-        if (!text || register === "movement_log") {
-          setPaper(null);
-          return;
-        }
-        setPaper({ register, text });
-        // The paper is drawn below the tabs: take the reader to it.
-        requestAnimationFrame(() =>
-          document
-            .querySelector(`#${PAPER_OF[register]}`)
-            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+        setPaper(
+          document && register !== "movement_log"
+            ? { register, document }
+            : null
         );
       },
       onError: refused,
@@ -458,17 +437,17 @@ const InspectorPage = () => {
         value={tab}
       />
 
-      {paper && tabOf(paper.register) === tab ? (
-        <Paper
-          id={PAPER_OF[paper.register]}
-          image={
-            paper.register === "registration" && certificate.data
-              ? { ...certificate.data, alt: t("certificate.title") }
-              : undefined
-          }
-          text={paper.text}
-        />
-      ) : null}
+      <PaperDialog
+        attached={
+          paper?.register === "registration" && certificate.data
+            ? { ...certificate.data, alt: t("certificate.title") }
+            : null
+        }
+        onClose={() => setPaper(null)}
+        paper={paper?.document ?? null}
+        title={paper ? paper.document.title[language] : ""}
+        wording={null}
+      />
     </Page>
   );
 };

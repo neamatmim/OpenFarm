@@ -664,6 +664,15 @@ export type PaperSection =
       }[];
     }
   | { kind: "facts"; heading: Said; rows: DocumentRow[]; note: Said | null }
+  | {
+      kind: "records";
+      heading: Said;
+      /** Entries of a register, each headed by what identifies it — a day, a tag — with its fields beneath: one layout
+       *  for a register of any width, which a table of ten columns would not fit across a page. */
+      records: { heading: Worded; fields: DocumentRow[] }[];
+      /** What it says where it has no entries, or beneath them. */
+      note: Said | null;
+    }
   | { kind: "clauses"; heading: Said; clauses: Said[] }
   | {
       kind: "table";

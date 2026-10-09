@@ -1,6 +1,11 @@
 import type { Database } from "@OpenFarm/db";
-import type { FarmIdentity, HealthRegister } from "@OpenFarm/domain";
-import { farmDayOf, registerPaper, startOfFarmDay } from "@OpenFarm/domain";
+import type {
+  FarmIdentity,
+  HealthRegister,
+  PaperDocument,
+  Said,
+} from "@OpenFarm/domain";
+import { farmDayOf, registerDocument, startOfFarmDay } from "@OpenFarm/domain";
 import type { Language, MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber, translate } from "@OpenFarm/i18n";
 
@@ -27,13 +32,13 @@ export interface Period {
   range: { from: Date; until: Date };
 }
 
-/** How a register's values are said to whoever is producing it. */
+/** How a register's values are said in one of the farm's languages: a paper is written in each, and read in one. */
 export interface Saying {
-  /** A farm day as the reader reads it. */
+  /** A farm day in this language. */
   day: (farmDay: string) => string;
-  /** A label or a word in both of the farm's languages, as every paper the farm hands over writes one. */
-  both: (key: MessageKey) => string;
-  /** A figure in the reader's digits. */
+  /** A label or a word of the farm's in this language. */
+  word: (key: MessageKey) => string;
+  /** A figure in this language's digits. */
   figure: (value: number) => string;
 }
 
@@ -42,8 +47,8 @@ export interface Saying {
  * under that heading, or both.
  *
  * The two faces are declared together and in one order because that is where they disagree, and the
- * disagreement is the point: the paper says "নিষ্পত্তি / Disposal: পোড়ানো হয়েছে — খামারের পেছনে" in the
- * reader's words, and the CSV says `burned` and the note beside it in the DLS template's columns. A column
+ * disagreement is the point: the paper says "Disposal: Burned — খামারের পেছনে" in words, in whichever of the
+ * farm's languages it is read in, and the CSV says `burned` and the note beside it in the DLS template's columns. A column
  * with no paper face is one the CSV alone carries; one with no CSV face is the paper's alone.
  */
 export interface Column<Row> {
@@ -141,50 +146,65 @@ export const readRegister = async <Row>(
   };
 };
 
-/** How the farm says things to a reader of this language. */
+/** How the farm says things in one of its languages. */
 export const sayingIn = (language: Language): Saying => ({
   day: (farmDay) => formatDate(startOfFarmDay(farmDay), language, "date"),
-  both: (key) => `${translate("bn", key)} / ${translate("en", key)}`,
+  word: (key) => translate(language, key),
   figure: (value) => formatNumber(value, language),
 });
+
+/** The farm's two languages' sayings, which every paper is written in. */
+const SAYINGS = { bn: sayingIn("bn"), en: sayingIn("en") };
 
 /** Who produced a paper, on what farm, and when — the stamp the report set asks of every paper the farm
  *  hands over, so that two copies of one register can be told apart. */
 export interface FarmProducing {
   farm: FarmIdentity;
   by: string;
-  at: string;
+  at: Said;
 }
 
-/** A register as the paper an inspector is handed, in the language of whoever produced it. */
+/** A register as the paper an inspector is handed: each entry and each of its fields said in both of the farm's
+ *  languages, read in either; a field a row leaves out is left out in both. */
 export const paperOf = <Row>(
   register: Register<Row>,
   rows: Row[],
   period: { from: string; to: string },
-  produced: FarmProducing,
-  saying: Saying
-): string => {
+  produced: FarmProducing
+): PaperDocument => {
   const shape = register.paper;
   if (!shape) {
     throw new Error(`${register.name} is not a register that prints`);
   }
-  return registerPaper({
+  return registerDocument({
     farm: produced.farm,
     title: shape.title,
-    from: saying.day(period.from),
-    to: saying.day(period.to),
+    from: period.from,
+    to: period.to,
     none: shape.none,
-    rows: rows.map((row) => ({
-      heading: shape.heading(row, saying),
+    records: rows.map((row) => ({
+      heading: {
+        bn: shape.heading(row, SAYINGS.bn),
+        en: shape.heading(row, SAYINGS.en),
+      },
       fields: register.columns.flatMap((column) => {
-        const said = column.paper?.said(row, saying);
-        return column.paper && said !== null && said !== undefined
-          ? [{ bn: column.paper.bn, en: column.paper.en, said }]
-          : [];
+        if (!column.paper) {
+          return [];
+        }
+        const bn = column.paper.said(row, SAYINGS.bn);
+        const en = column.paper.said(row, SAYINGS.en);
+        return bn === null || en === null
+          ? []
+          : [
+              {
+                label: { bn: column.paper.bn, en: column.paper.en },
+                value: { bn, en },
+              },
+            ];
       }),
     })),
-    producedBy: produced.by,
     producedAt: produced.at,
+    producedBy: produced.by,
   });
 };
 
