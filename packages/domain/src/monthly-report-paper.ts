@@ -97,13 +97,181 @@ const litersSaid = (amount: number | null): Said =>
         en: `${formatNumber(amount, "en")} ${amount === 1 ? "liter" : "liters"}`,
       };
 
-/** One line of a part: what it is, and how to say it of a month's figures. */
-type Line = [label: Said, say: (figures: MonthFigures) => Said];
+/** What kind of figure a line holds, which says how it is written: a sum in whole taka, a rate to the paisa, liters,
+ *  kilogrammes, or a count. */
+type Kind = "sum" | "rate" | "liters" | "kg" | "count";
+
+/** One line of a part: its name, what kind of figure it is, and where a month's figures keep it — nothing where the
+ *  month made none. */
+interface Figure {
+  label: Said;
+  kind: Kind;
+  of: (figures: MonthFigures) => number | null;
+}
+
+/** One part of the month: its heading and its lines, said the same on the paper and in the CSV. */
+interface Part {
+  heading: Said;
+  lines: readonly Figure[];
+}
+
+/** A figure as the paper writes it, in each language. */
+const figureSaid = (kind: Kind, amount: number | null): Said => {
+  switch (kind) {
+    case "sum": {
+      return sumSaid(amount);
+    }
+    case "rate": {
+      return rateSaid(amount);
+    }
+    case "liters": {
+      return litersSaid(amount);
+    }
+    case "kg": {
+      return amount === null
+        ? NONE
+        : {
+            bn: `${formatNumber(amount, "bn")} কেজি`,
+            en: `${formatNumber(amount, "en")} kg`,
+          };
+    }
+    case "count": {
+      return amount === null
+        ? NONE
+        : { bn: formatNumber(amount, "bn"), en: formatNumber(amount, "en") };
+    }
+    default: {
+      return kind satisfies never;
+    }
+  }
+};
+
+/** A figure as a spreadsheet takes it: a number — whole taka for a sum, a rate to the paisa — or nothing for none.
+ *  A number, never text: a spreadsheet adds a number, and text beginning with a minus is kept from it as a formula. */
+const figurePlain = (kind: Kind, amount: number | null): number | null => {
+  if (amount === null) {
+    return null;
+  }
+  if (kind === "sum") {
+    return Math.round(amount);
+  }
+  return kind === "rate" ? roundMoney(amount) : amount;
+};
+
+/** The farm's own money in the month: in, out, and what was left. */
+const MONEY: Part = {
+  heading: { bn: "খামারের টাকা", en: "The farm's money" },
+  lines: [
+    {
+      label: { bn: "আয়", en: "Money in" },
+      kind: "sum",
+      of: (one) => one.money.inMoney,
+    },
+    {
+      label: { bn: "ব্যয়", en: "Money out" },
+      kind: "sum",
+      of: (one) => one.money.outMoney,
+    },
+    {
+      label: { bn: "নিট", en: "Net" },
+      kind: "sum",
+      of: (one) => one.money.netMoney,
+    },
+  ],
+};
+
+/** The dairy: milk sold and what a liter fetched, against what the Farm's own cows cost. */
+const DAIRY: Part = {
+  heading: { bn: "দুগ্ধ", en: "Dairy" },
+  lines: [
+    {
+      label: { bn: "দুধ বিক্রি", en: "Milk sold" },
+      kind: "sum",
+      of: (one) => one.dairy.milkSoldMoney,
+    },
+    {
+      label: { bn: "বিক্রি হওয়া দুধ", en: "Liters sold" },
+      kind: "liters",
+      of: (one) => one.dairy.litersSold,
+    },
+    {
+      label: { bn: "লিটারে পাওয়া", en: "Fetched a liter" },
+      kind: "rate",
+      of: (one) => one.dairy.fetchedPerLiterMoney,
+    },
+    {
+      label: { bn: "দুগ্ধ গাভীর খরচ", en: "Dairy cows cost" },
+      kind: "sum",
+      of: (one) => one.dairy.chargedMoney,
+    },
+    {
+      label: { bn: "সংগ্রহে যাওয়া দুধ", en: "Milk to bulk" },
+      kind: "liters",
+      of: (one) => one.dairy.litersToBulk,
+    },
+    {
+      label: { bn: "গাভীপ্রতি দিনে", en: "Per cow, a day" },
+      kind: "liters",
+      of: (one) => one.dairy.litersPerCowMilked,
+    },
+    {
+      label: { bn: "লিটারে খরচ", en: "Cost a liter" },
+      kind: "rate",
+      of: (one) => one.dairy.costPerLiterMoney,
+    },
+  ],
+};
+
+/** The Farm's own fattening animals: what they cost, and the Margins of those sold. */
+const FATTENING: Part = {
+  heading: { bn: "মোটাতাজাকরণ", en: "Fattening" },
+  lines: [
+    {
+      label: { bn: "মোটাতাজাকরণের খরচ", en: "Fattening cost" },
+      kind: "sum",
+      of: (one) => one.fattening.chargedMoney,
+    },
+    {
+      label: { bn: "বিক্রি হওয়া পশু", en: "Animals sold" },
+      kind: "count",
+      of: (one) => one.fattening.sold,
+    },
+    {
+      label: { bn: "তাদের মার্জিন", en: "Their margins" },
+      kind: "sum",
+      of: (one) => one.fattening.marginMoney,
+    },
+  ],
+};
+
+/** What running the place cost, charged to no Side, and a head a day. */
+const OVERHEADS: Part = {
+  heading: { bn: "পরিচালন খরচ", en: "Overheads" },
+  lines: [
+    {
+      label: { bn: "মাসে মোট", en: "In the month" },
+      kind: "sum",
+      of: (one) => one.overheads.amount,
+    },
+    {
+      label: { bn: "মাথাপিছু দিনে", en: "A head a day" },
+      kind: "rate",
+      of: (one) => one.overheads.perHeadPerDayMoney,
+    },
+  ],
+};
+
+/** The heading of the month's money by Category, which holds this month alone. */
+const BY_CATEGORY: Said = {
+  bn: "খাত অনুযায়ী, এই মাসে",
+  en: "By category, this month",
+};
+/** The heading of the month's money by Side, which holds this month alone. */
+const BY_SIDE: Said = { bn: "বিভাগ অনুযায়ী, এই মাসে", en: "By side, this month" };
 
 /** A part of the month as a table: each line, the month beside the month before. */
 const partOf = (
-  heading: Said,
-  lines: readonly Line[],
+  { heading, lines }: Part,
   { month, before, figures, figuresBefore }: MonthlyReportFacts
 ): PaperSection => ({
   kind: "table",
@@ -113,7 +281,11 @@ const partOf = (
     { label: monthSaid(month), figures: true },
     { label: monthSaid(before), figures: true },
   ],
-  rows: lines.map(([label, say]) => [label, say(figures), say(figuresBefore)]),
+  rows: lines.map((line) => [
+    line.label,
+    figureSaid(line.kind, line.of(figures)),
+    figureSaid(line.kind, line.of(figuresBefore)),
+  ]),
   foot: null,
   note: null,
 });
@@ -160,10 +332,18 @@ const sideSaid = (side: Side | null): Said => {
   return { bn, en };
 };
 
+/** The fodder fed at no price, both Sides together, in kilogrammes: left out of every cost above. */
+const unpricedKgOf = (figures: MonthFigures) =>
+  figures.dairy.unpricedKg + figures.fattening.unpricedKg;
+
+/** The doses of medicine the farm had not bought, both Sides together: not costed. */
+const uncostedDosesOf = (figures: MonthFigures) =>
+  figures.dairy.uncostedDoses + figures.fattening.uncostedDoses;
+
 /** What the month's figures leave out, and the money still waiting: said, never shown as nothing. */
 const leftOut = (figures: MonthFigures): Said[] => {
-  const kg = figures.dairy.unpricedKg + figures.fattening.unpricedKg;
-  const doses = figures.dairy.uncostedDoses + figures.fattening.uncostedDoses;
+  const kg = unpricedKgOf(figures);
+  const doses = uncostedDosesOf(figures);
   const waiting = figures.money.awaitingCount;
   return [
     kg > 0
@@ -222,20 +402,9 @@ export const monthlyReportPaper = (
           en: "The month's figures, beside the month before.",
         },
     sections: [
-      partOf(
-        { bn: "খামারের টাকা", en: "The farm's money" },
-        [
-          [{ bn: "আয়", en: "Money in" }, (one) => sumSaid(one.money.inMoney)],
-          [
-            { bn: "ব্যয়", en: "Money out" },
-            (one) => sumSaid(one.money.outMoney),
-          ],
-          [{ bn: "নিট", en: "Net" }, (one) => sumSaid(one.money.netMoney)],
-        ],
-        facts
-      ),
+      partOf(MONEY, facts),
       moneyByPart(
-        { bn: "খাত অনুযায়ী, এই মাসে", en: "By category, this month" },
+        BY_CATEGORY,
         { bn: "খাত", en: "Category" },
         facts.moneyBy.category.map((row) => ({
           name: { bn: row.nameBn, en: row.nameEn ?? row.nameBn },
@@ -244,7 +413,7 @@ export const monthlyReportPaper = (
         }))
       ),
       moneyByPart(
-        { bn: "বিভাগ অনুযায়ী, এই মাসে", en: "By side, this month" },
+        BY_SIDE,
         { bn: "বিভাগ", en: "Side" },
         facts.moneyBy.side.map((row) => ({
           name: sideSaid(row.side),
@@ -252,77 +421,121 @@ export const monthlyReportPaper = (
           outMoney: row.outMoney,
         }))
       ),
-      partOf(
-        { bn: "দুগ্ধ", en: "Dairy" },
-        [
-          [
-            { bn: "দুধ বিক্রি", en: "Milk sold" },
-            (one) => sumSaid(one.dairy.milkSoldMoney),
-          ],
-          [
-            { bn: "বিক্রি হওয়া দুধ", en: "Liters sold" },
-            (one) => litersSaid(one.dairy.litersSold),
-          ],
-          [
-            { bn: "লিটারে পাওয়া", en: "Fetched a liter" },
-            (one) => rateSaid(one.dairy.fetchedPerLiterMoney),
-          ],
-          [
-            { bn: "দুগ্ধ গাভীর খরচ", en: "Dairy cows cost" },
-            (one) => sumSaid(one.dairy.chargedMoney),
-          ],
-          [
-            { bn: "সংগ্রহে যাওয়া দুধ", en: "Milk to bulk" },
-            (one) => litersSaid(one.dairy.litersToBulk),
-          ],
-          [
-            { bn: "গাভীপ্রতি দিনে", en: "Per cow, a day" },
-            (one) => litersSaid(one.dairy.litersPerCowMilked),
-          ],
-          [
-            { bn: "লিটারে খরচ", en: "Cost a liter" },
-            (one) => rateSaid(one.dairy.costPerLiterMoney),
-          ],
-        ],
-        facts
-      ),
-      partOf(
-        { bn: "মোটাতাজাকরণ", en: "Fattening" },
-        [
-          [
-            { bn: "মোটাতাজাকরণের খরচ", en: "Fattening cost" },
-            (one) => sumSaid(one.fattening.chargedMoney),
-          ],
-          [
-            { bn: "বিক্রি হওয়া পশু", en: "Animals sold" },
-            (one) => ({
-              bn: formatNumber(one.fattening.sold, "bn"),
-              en: formatNumber(one.fattening.sold, "en"),
-            }),
-          ],
-          [
-            { bn: "তাদের মার্জিন", en: "Their margins" },
-            (one) => sumSaid(one.fattening.marginMoney),
-          ],
-        ],
-        facts
-      ),
-      partOf(
-        { bn: "পরিচালন খরচ", en: "Overheads" },
-        [
-          [
-            { bn: "মাসে মোট", en: "In the month" },
-            (one) => sumSaid(one.overheads.amount),
-          ],
-          [
-            { bn: "মাথাপিছু দিনে", en: "A head a day" },
-            (one) => rateSaid(one.overheads.perHeadPerDayMoney),
-          ],
-        ],
-        facts
-      ),
+      partOf(DAIRY, facts),
+      partOf(FATTENING, facts),
+      partOf(OVERHEADS, facts),
     ],
     closing: [...leftOut(facts.figures), VENTURES_KEEP_THEIR_OWN],
     produced: producedSaid(facts.producedAt, facts.producedBy),
   };
+};
+
+/** One row of the month for a spreadsheet: its part and line in Bangla and in English — no English where a Category
+ *  was given none, as the accountant's own file leaves it — which way the money went for a row of the month's money
+ *  by Category or by Side, and its figure this month and the month before as numbers: nothing where there was none,
+ *  or where a figure is the month's alone. */
+export interface MonthlyReportRow {
+  part: Said;
+  line: { bn: string; en: string | null };
+  way: "in" | "out" | null;
+  thisMonth: number | null;
+  monthBefore: number | null;
+}
+
+/** The month's money in and out by one way of adding it, a row each way: the month alone. */
+const moneyByRows = (
+  part: Said,
+  rows: readonly {
+    name: { bn: string; en: string | null };
+    inMoney: number;
+    outMoney: number;
+  }[]
+): MonthlyReportRow[] =>
+  rows.flatMap((row) =>
+    (["in", "out"] as const).map((way) => ({
+      part,
+      line: row.name,
+      way,
+      thisMonth: figurePlain("sum", way === "in" ? row.inMoney : row.outMoney),
+      monthBefore: null,
+    }))
+  );
+
+/** What a month's figures leave out, each a figure of its own: the fodder fed at no price, and the doses not costed. */
+const LEFT_OUT: Part = {
+  heading: { bn: "বাদ পড়েছে", en: "Left out" },
+  lines: [
+    {
+      label: { bn: "দাম ছাড়া খাওয়ানো ঘাস", en: "Fodder fed at no price" },
+      kind: "kg",
+      of: unpricedKgOf,
+    },
+    {
+      label: {
+        bn: "না-কেনা ওষুধের ডোজ, খরচ ধরা হয়নি",
+        en: "Doses of medicine not bought, not costed",
+      },
+      kind: "count",
+      of: uncostedDosesOf,
+    },
+  ],
+};
+
+/** The money still waiting for the Owner's approval: counted in every total above, as the accountant's summary counts
+ *  it, and said apart so it is never mistaken for money left out. */
+const AWAITING: Part = {
+  heading: {
+    bn: "অনুমোদনের অপেক্ষায়, যোগফলে ধরা আছে",
+    en: "Awaiting approval, counted in",
+  },
+  lines: [
+    {
+      label: { bn: "টাকার হিসাব", en: "Entries of money" },
+      kind: "count",
+      of: (one) => one.money.awaitingCount,
+    },
+  ],
+};
+
+/**
+ * One month of the **Monthly Report** as a spreadsheet takes it, for the farm's accountant beside the accountant's own
+ * file: a row a figure, from the same parts and lines the paper prints (`monthlyReportPaper`), so the two never say a
+ * month differently — then its money by Category and by Side, a row each way, what its figures leave out, and the
+ * money still waiting, which is counted in.
+ */
+export const monthlyReportRows = (
+  facts: MonthlyReportFacts
+): MonthlyReportRow[] => {
+  const rowsOf = ({ heading, lines }: Part): MonthlyReportRow[] =>
+    lines.map((line) => ({
+      part: heading,
+      line: line.label,
+      way: null,
+      thisMonth: figurePlain(line.kind, line.of(facts.figures)),
+      monthBefore: figurePlain(line.kind, line.of(facts.figuresBefore)),
+    }));
+  return [
+    ...rowsOf(MONEY),
+    ...moneyByRows(
+      BY_CATEGORY,
+      facts.moneyBy.category.map((row) => ({
+        name: { bn: row.nameBn, en: row.nameEn },
+        inMoney: row.inMoney,
+        outMoney: row.outMoney,
+      }))
+    ),
+    ...moneyByRows(
+      BY_SIDE,
+      facts.moneyBy.side.map((row) => ({
+        name: sideSaid(row.side),
+        inMoney: row.inMoney,
+        outMoney: row.outMoney,
+      }))
+    ),
+    ...rowsOf(DAIRY),
+    ...rowsOf(FATTENING),
+    ...rowsOf(OVERHEADS),
+    ...rowsOf(LEFT_OUT),
+    ...rowsOf(AWAITING),
+  ];
 };

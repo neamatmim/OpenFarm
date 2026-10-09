@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MonthlyReportFacts } from "./monthly-report-paper";
-import { monthlyReportPaper } from "./monthly-report-paper";
+import { monthlyReportPaper, monthlyReportRows } from "./monthly-report-paper";
 import { paperText } from "./paper-text";
 
 const FIGURES = {
@@ -180,5 +180,80 @@ describe("the Monthly Report of one month, on paper", () => {
     );
 
     expect(text).not.toContain("so far");
+  });
+});
+
+describe("the Monthly Report of one month, a row a figure", () => {
+  it("says each figure of the month and the month before as a number: whole taka, rates to the paisa, nothing for none", () => {
+    const rows = monthlyReportRows(FACTS);
+    const row = (en: string) => rows.find((one) => one.line.en === en);
+
+    expect(row("Money in")).toEqual({
+      part: { bn: "খামারের টাকা", en: "The farm's money" },
+      line: { bn: "আয়", en: "Money in" },
+      way: null,
+      thisMonth: 89_300,
+      monthBefore: 0,
+    });
+    expect(row("Liters sold")).toMatchObject({
+      thisMonth: 150,
+      monthBefore: 0,
+    });
+    expect(row("Cost a liter")).toMatchObject({
+      thisMonth: 29.29,
+      monthBefore: null,
+    });
+    expect(row("Their margins")).toMatchObject({
+      thisMonth: 24_500,
+      monthBefore: null,
+    });
+  });
+
+  it("adds the month's money by Category and by Side, a row each way, no English where a Category has none", () => {
+    const rows = monthlyReportRows(FACTS);
+
+    expect(rows).toContainEqual({
+      part: { bn: "খাত অনুযায়ী, এই মাসে", en: "By category, this month" },
+      line: { bn: "গরু কেনা", en: null },
+      way: "out",
+      thisMonth: 50_000,
+      monthBefore: null,
+    });
+    expect(rows).toContainEqual(
+      expect.objectContaining({
+        line: { bn: "পুরো খামার", en: "Whole farm" },
+        way: "out",
+        thisMonth: 6000,
+      })
+    );
+  });
+
+  it("says what the month leaves out apart from the money still waiting, which is counted in", () => {
+    const rows = monthlyReportRows(FACTS);
+    const of = (part: string) =>
+      rows
+        .filter((one) => one.part.en === part)
+        .map((one) => [one.line.en, one.thisMonth, one.monthBefore]);
+
+    expect(of("Left out")).toEqual([
+      ["Fodder fed at no price", 120, 0],
+      ["Doses of medicine not bought, not costed", 3, 0],
+    ]);
+    expect(of("Awaiting approval, counted in")).toEqual([
+      ["Entries of money", 2, 0],
+    ]);
+  });
+
+  it("holds every line of the paper's figures, each named as the paper names it", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    for (const one of monthlyReportRows(FACTS).filter(
+      (row) =>
+        row.way === null &&
+        row.part.en !== "Left out" &&
+        !row.part.en.startsWith("Awaiting")
+    )) {
+      expect(text).toContain(`${one.line.en ?? ""} · `);
+    }
   });
 });
