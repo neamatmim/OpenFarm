@@ -52,11 +52,22 @@ const WIDTH = {
   default: "max-w-[99rem]",
 } as const;
 
+/** A page's own title, the one line that says what the page is: larger on a desk, where there is room for it. */
+export const PAGE_TITLE = "text-xl font-semibold md:text-2xl";
+
 /** The title of a part of a page — a Section, a card of its own — at one size and weight everywhere. */
 export const SECTION_TITLE = "text-base font-semibold";
 
 /** A heading inside a part of a page, under its title: smaller, and as heavy. */
 export const SUBHEADING = "text-sm font-semibold";
+
+/** A small, quiet heading over what it names — "What was seen", a person's Nominees, a work board's Steps — that leads
+ *  into it rather than standing as a part of its own. Muted, so what is under it is what is read. */
+export const LABEL_HEADING = "text-muted-foreground text-xs font-medium";
+
+/** The small capitals above a title or over a list of links, naming the group it belongs to: the page's eyebrow, the
+ *  settings' groups, "On this page". Its color is the place's own — the farm's green over a title, muted over links. */
+export const OVERLINE = "text-xs font-semibold tracking-wider uppercase";
 
 /** A page's frame: its width — the full width, or narrow for a single card of a flow — and its rhythm. */
 export const Page = ({
@@ -133,14 +144,9 @@ export const PageHeader = ({
       {leading}
       <div className="flex min-w-0 flex-col gap-1.5">
         {eyebrow ? (
-          <p className="text-primary text-xs font-semibold tracking-wider uppercase">
-            {eyebrow}
-          </p>
+          <p className={cn("text-primary", OVERLINE)}>{eyebrow}</p>
         ) : null}
-        <h1
-          className="text-xl font-semibold md:text-2xl"
-          data-slot="page-title"
-        >
+        <h1 className={PAGE_TITLE} data-slot="page-title">
           {title}
         </h1>
         {description ? (

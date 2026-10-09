@@ -10,7 +10,7 @@ import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { SECTION_TITLE, SUBHEADING } from "@/components/page";
+import { SUBHEADING, Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import type { DraftSection, Keyed } from "@/lib/template-draft";
@@ -465,22 +465,8 @@ export const SectionEditor = ({
   const { t, language } = useLanguage();
   const name = t(`templates.part.${section.kind}`);
   return (
-    <section
-      aria-labelledby={`${section.key}-title`}
-      className="surface flex flex-col gap-4 p-4 md:p-5"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-0.5">
-          <h2 className={SECTION_TITLE} id={`${section.key}-title`}>
-            {t("templates.partNumber", {
-              number: formatDigits(number, language),
-              part: name,
-            })}
-          </h2>
-          <p className="text-muted-foreground text-xs">
-            {t(`templates.partHint.${section.kind}`)}
-          </p>
-        </div>
+    <Section
+      action={
         <ListControls
           first={first}
           label={name}
@@ -488,7 +474,14 @@ export const SectionEditor = ({
           onMove={onMove}
           onRemove={onRemove}
         />
-      </div>
+      }
+      description={t(`templates.partHint.${section.kind}`)}
+      id={section.key}
+      title={t("templates.partNumber", {
+        number: formatDigits(number, language),
+        part: name,
+      })}
+    >
       {problems}
       <SaidField
         id={`${section.key}-heading`}
@@ -497,6 +490,6 @@ export const SectionEditor = ({
         value={section.heading}
       />
       <SectionBody onChange={onChange} section={section} />
-    </section>
+    </Section>
   );
 };

@@ -26,7 +26,7 @@ import { useIsOwner, categoryName } from "@/components/money";
 import {
   EmptyState,
   Loaded,
-  SECTION_TITLE,
+  Section,
   SegmentedControl,
   StatusBadge,
   TableSkeleton,
@@ -380,24 +380,16 @@ export const CategoriesTab = () => {
     getRowId: (row) => row.id,
   });
   return (
-    <div className="surface flex flex-col gap-4 p-4 md:p-5">
-      <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className={SECTION_TITLE}>{t("byHand.categories")}</h2>
-          <p className="text-muted-foreground text-sm">
-            {t("byHand.newCategoryHint")}
-          </p>
-        </div>
-        <Button
-          className="shrink-0"
-          onClick={() => setAdding(true)}
-          type="button"
-          variant="outline"
-        >
+    <Section
+      action={
+        <Button onClick={() => setAdding(true)} type="button" variant="outline">
           <Plus aria-hidden data-icon="inline-start" />
           {t("byHand.newCategory")}
         </Button>
-      </div>
+      }
+      description={t("byHand.newCategoryHint")}
+      title={t("byHand.categories")}
+    >
       <Loaded query={categories} skeleton={<TableSkeleton />}>
         {categories.data?.length === 0 ? (
           <EmptyState bare icon={Tags} title={t("byHand.noCategories")} />
@@ -448,6 +440,6 @@ export const CategoriesTab = () => {
         pending={retire.isPending}
         title={t("byHand.retireTitle", { name: retiring?.name ?? "" })}
       />
-    </div>
+    </Section>
   );
 };

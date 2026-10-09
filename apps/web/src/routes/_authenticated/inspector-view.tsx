@@ -41,6 +41,7 @@ import {
   Notice,
   Page,
   PageHeader,
+  SUBHEADING,
   Section,
   TagChip,
 } from "@/components/page";
@@ -256,7 +257,7 @@ const RegistrationTab = ({
         ) : null}
         {herd.byPen.length ? (
           <div className="flex flex-col gap-1">
-            <h3 className="text-sm font-semibold">{t("inspector.byPen")}</h3>
+            <h3 className={SUBHEADING}>{t("inspector.byPen")}</h3>
             <dl className="divide-border flex flex-col divide-y">
               {herd.byPen.map((line) => (
                 <Line key={line.penId} label={`${line.shed} · ${line.pen}`}>

@@ -3,7 +3,7 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 
 import type { TheirAgreements } from "@/components/investors/investor-agreements";
 import { portfolioOf } from "@/components/investors/investor-agreements";
-import { Section } from "@/components/page";
+import { LABEL_HEADING, Section } from "@/components/page";
 import { FigureTerm } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
@@ -83,10 +83,7 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
     >
       <div className="flex min-w-0 flex-col justify-center gap-3">
         <div className="flex flex-col gap-1">
-          <h2
-            className="text-muted-foreground text-sm font-medium"
-            id="capital-account-title"
-          >
+          <h2 className={LABEL_HEADING} id="capital-account-title">
             {t("portal.heldNow")}
           </h2>
           <p className="text-3xl font-semibold tabular-nums md:text-4xl">

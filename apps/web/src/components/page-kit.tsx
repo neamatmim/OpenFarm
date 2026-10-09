@@ -46,7 +46,7 @@ import {
 } from "react";
 
 import type { Tone } from "@/components/page";
-import { Notice, StatTile } from "@/components/page";
+import { Notice, SECTION_TITLE, StatTile } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import type { RefusalWay } from "@/lib/open-form";
 import { holdOpenForm } from "@/lib/open-form";
@@ -1021,7 +1021,7 @@ export const FormSection = ({
 }) => (
   <div className="border-t pt-5 first:border-t-0 first:pt-0">
     <fieldset>
-      <legend className="text-base font-semibold">{title}</legend>
+      <legend className={SECTION_TITLE}>{title}</legend>
       {description ? (
         <p className="text-muted-foreground mt-1 text-xs">{description}</p>
       ) : null}

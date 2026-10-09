@@ -18,6 +18,7 @@ import {
 import { useEffect, useRef } from "react";
 
 import { useIsOwner } from "@/components/money";
+import { OVERLINE } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
 
 interface SettingsSectionLink {
@@ -99,7 +100,12 @@ export const SettingsNav = () => {
       aria-label={t("nav.identity")}
       className="lg:bg-card/40 border-b lg:w-60 lg:shrink-0 lg:border-e lg:border-b-0"
     >
-      <p className="text-muted-foreground hidden px-6 pt-8 pb-2 text-xs font-semibold tracking-wider uppercase lg:block">
+      <p
+        className={cn(
+          "text-muted-foreground hidden px-6 pt-8 pb-2 lg:block",
+          OVERLINE
+        )}
+      >
         {t("nav.identity")}
       </p>
       <ul

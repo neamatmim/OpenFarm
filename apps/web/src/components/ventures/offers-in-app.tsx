@@ -4,7 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Check, Undo2 } from "lucide-react";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
-import { StatusBadge } from "@/components/page";
+import { SUBHEADING, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
@@ -159,7 +159,7 @@ export const OffersInApp = ({ ventureId }: { ventureId: string }) => {
   }
   return (
     <div className="mt-4 flex flex-col gap-1">
-      <h3 className="text-sm font-medium">{t("agreeInApp.waitingTitle")}</h3>
+      <h3 className={SUBHEADING}>{t("agreeInApp.waitingTitle")}</h3>
       <p className="text-muted-foreground text-sm">
         {t("agreeInApp.waitingHint")}
       </p>
@@ -286,9 +286,7 @@ export const AmendmentOffersInApp = ({ ventureId }: { ventureId: string }) => {
   }
   return (
     <div className="mt-4 flex flex-col gap-1">
-      <h3 className="text-sm font-medium">
-        {t("agreeInApp.amendmentWaitingTitle")}
-      </h3>
+      <h3 className={SUBHEADING}>{t("agreeInApp.amendmentWaitingTitle")}</h3>
       <p className="text-muted-foreground text-sm">
         {t("agreeInApp.amendmentWaitingHint")}
       </p>

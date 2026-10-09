@@ -9,10 +9,11 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { ArrowDown, ArrowUp, ListOrdered, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
-import { EmptyState, Section } from "@/components/page";
+import { EmptyState, SECTION_TITLE, Section } from "@/components/page";
 import { ConfirmDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { FigureBox } from "@/components/playbook/figure-box";
 import { ListInput } from "@/components/playbook/list-input";
@@ -317,7 +318,7 @@ const StepEditor = ({
           {formatNumber(position + 1, language)}
         </span>
         {/* Its words after its number, so moving through the Steps by heading says what each is. */}
-        <h3 className="min-w-0 flex-1 truncate font-semibold">
+        <h3 className={cn("min-w-0 flex-1 truncate", SECTION_TITLE)}>
           {t("sop.stepNumber", { number: position + 1 })}
           {step.text.bn ? ` — ${step.text.bn}` : ""}
         </h3>

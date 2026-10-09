@@ -9,10 +9,11 @@ import {
 import { timeInDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { Clock, Plus, Trash2, Zap } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { Chip, Section } from "@/components/page";
+import { Chip, SUBHEADING, Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { FigureBox } from "@/components/playbook/figure-box";
 import { ListInput } from "@/components/playbook/list-input";
@@ -345,7 +346,7 @@ export const WhenSection = ({
       title={t("sop.editor.when")}
     >
       <div className="flex flex-col gap-4 rounded-lg border p-4">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
+        <h3 className={cn("flex items-center gap-2", SUBHEADING)}>
           <Clock aria-hidden className="text-muted-foreground size-4" />
           {t("sop.editor.clock")}
         </h3>
