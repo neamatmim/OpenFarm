@@ -3428,6 +3428,18 @@ export const enCore = {
   "weighIn.by": "Weighed by {name}",
   "weighIn.col.weight": "Weight",
   "weighIn.col.by": "Weighed by",
+  "weighIn.record": "Add a weigh-in",
+  "weighIn.recordHint":
+    "A reading from the farm's paper, with the day it was taken: for an animal weighed before she was in the app. The scale round still records its own.",
+  "weighIn.weighedAt": "When she was weighed",
+  "weighIn.weightKg": "Weight (kg)",
+  "weighIn.recorded": "Weigh-in added",
+  "weighIn.recordedFlagged":
+    "Weigh-in added and queried: it changed more than she could have",
+  "refusal.weighedInTheFuture":
+    "An animal cannot have been weighed on a day that has not come yet",
+  "refusal.weighedBeforeArrival":
+    "An animal cannot have been weighed here before she arrived",
   "refusal.managerOnly": "This is the manager's to record",
   "refusal.noSuchBull": "There is no bull with that tag on this farm",
   "refusal.serviceNeedsTechnician": "Write who served her for an AI service",

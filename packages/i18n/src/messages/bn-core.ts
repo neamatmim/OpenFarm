@@ -3185,6 +3185,16 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "weighIn.by": "নিয়েছেন {name}",
   "weighIn.col.weight": "ওজন",
   "weighIn.col.by": "কে নিয়েছেন",
+  "weighIn.record": "ওজন যোগ করুন",
+  "weighIn.recordHint":
+    "খামারের খাতা থেকে একটি ওজন, যেদিন নেওয়া হয়েছিল সেই দিনসহ — অ্যাপে ওঠার আগে ওজন নেওয়া পশুর জন্য। ওজনের রাউন্ড নিজের ওজন নিজেই লেখে।",
+  "weighIn.weighedAt": "কখন ওজন নেওয়া হয়েছিল",
+  "weighIn.weightKg": "ওজন (কেজি)",
+  "weighIn.recorded": "ওজন যোগ হলো",
+  "weighIn.recordedFlagged":
+    "ওজন যোগ হলো, তবে প্রশ্ন রইল: যতটা বদলেছে ততটা বদলানো সম্ভব নয়",
+  "refusal.weighedInTheFuture": "যে দিন আসেনি সেদিন ওজন নেওয়া হতে পারে না",
+  "refusal.weighedBeforeArrival": "পশু আসার আগে এখানে তার ওজন নেওয়া হতে পারে না",
   "refusal.managerOnly": "এটি ম্যানেজারের কাজ",
   "refusal.noSuchBull": "এই খামারে এই ট্যাগের কোনো ষাঁড় নেই",
   "refusal.serviceNeedsTechnician": "কৃত্রিম প্রজননে কে দিয়েছেন তা লিখুন",

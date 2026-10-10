@@ -168,7 +168,8 @@ export const WEIGH_METHODS = ["scale"] as const;
  * Kept for ever and never overwritten: the whole of fattening is the difference between two of
  * these, and a farm that keeps only the latest has thrown away everything it was measuring.
  * Keyed on the Step Completion, so a phone replaying its outbox or a Manager correcting an entry
- * replaces the reading rather than adding a second one (ADR 0002).
+ * replaces the reading rather than adding a second one (ADR 0002). One typed on her page, dated —
+ * a reading the farm took on paper before she was in the app — has no Completion to be keyed on.
  */
 export const weighIn = pgTable(
   "weigh_in",
@@ -180,9 +181,8 @@ export const weighIn = pgTable(
     animalId: text("animal_id")
       .notNull()
       .references(() => animal.id),
-    completionId: text("completion_id")
-      .notNull()
-      .references(() => stepCompletion.id),
+    /** Null for a reading typed on her page with its day, which no Step produced. */
+    completionId: text("completion_id").references(() => stepCompletion.id),
     weightKg: numeric("weight_kg", { precision: 7, scale: 2 }).notNull(),
     method: text("method", { enum: WEIGH_METHODS }).notNull().default("scale"),
     /** What the farm found doubtful about this reading, in its own words, and null for one it

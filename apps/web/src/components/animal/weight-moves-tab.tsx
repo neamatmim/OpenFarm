@@ -1,7 +1,9 @@
 import { formatDate } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
+import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation } from "@tanstack/react-query";
-import { Scale, Tag } from "lucide-react";
+import { Plus, Scale, Tag } from "lucide-react";
 import { useState } from "react";
 
 import { MoveTable, WeighInTable } from "@/components/animal-histories";
@@ -14,11 +16,13 @@ import {
 } from "@/components/fattening/window-choice";
 import type { WindowPick } from "@/components/fattening/window-choice";
 import { EmptyState, RecordList, RecordRow, Section } from "@/components/page";
-import { NativeSelect } from "@/components/page-kit";
+import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { momentOfField } from "@/lib/farm-moment";
 import { keptOnThePhone, queueMove, sendOrKeep } from "@/lib/record-offline";
+import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
-import { client } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
 
 import type { AnimalDetail, AnimalPowers, PenChoice } from "./animal-types";
 import { PenOverCapacity, usePenChoiceLabel } from "./pen-room";
@@ -105,6 +109,82 @@ const ChangeSide = ({
 };
 
 /**
+ * A reading from the farm's paper, typed on her page with the moment she was on the scale: for an animal who was being
+ * weighed before she was in the app, so her gain reads from what she really weighed. The Owner's and the Manager's;
+ * the round's own readings are still the scale Step's. Read as the farm's day and time, not the phone's.
+ */
+const WeighInDialog = ({ tagNumber }: { tagNumber: string }) => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  const [open, setOpen] = useState(false);
+  const [weighedAt, setWeighedAt] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const record = useMutation(
+    orpc.animals.weighIn.mutationOptions({
+      onSuccess: (reading) => {
+        if (reading.flaggedNote === null) {
+          toast.success(t("weighIn.recorded"));
+        } else {
+          toast.warning(t("weighIn.recordedFlagged"));
+        }
+        setWeighedAt("");
+        setWeightKg("");
+        setOpen(false);
+      },
+      onError: refused,
+    })
+  );
+  const kg = Number(weightKg);
+  return (
+    <>
+      <Button onClick={() => setOpen(true)} size="sm" variant="outline">
+        <Plus />
+        {t("weighIn.record")}
+      </Button>
+      <FormDialog
+        description={t("weighIn.recordHint")}
+        onOpenChange={setOpen}
+        onSubmit={() =>
+          record.mutate({
+            tagNumber,
+            weightKg: kg,
+            weighedAt: new Date(momentOfField(weighedAt)),
+          })
+        }
+        open={open}
+        pending={record.isPending}
+        ready={weighedAt !== "" && kg > 0}
+        submitLabel={t("weighIn.record")}
+        title={`${t("weighIn.record")} · ${tagNumber}`}
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField id="weigh-in-when" label={t("weighIn.weighedAt")}>
+            <Input
+              id="weigh-in-when"
+              onChange={(event) => setWeighedAt(event.target.value)}
+              required
+              type="datetime-local"
+              value={weighedAt}
+            />
+          </FormField>
+          <FormField id="weigh-in-kg" label={t("weighIn.weightKg")}>
+            <Input
+              id="weigh-in-kg"
+              inputMode="decimal"
+              onChange={(event) => setWeightKg(event.target.value)}
+              required
+              step="0.1"
+              type="number"
+              value={weightKg}
+            />
+          </FormField>
+        </div>
+      </FormDialog>
+    </>
+  );
+};
+
+/**
  * Where she has stood and what she has weighed: every time she has been on the scale, newest first — the whole list,
  * because fattening is the difference between two readings — every Pen she has been in, and the ear tags she has worn.
  */
@@ -119,7 +199,14 @@ export const WeightMovesTab = ({
   const mayCrossSides = powers.mayMove && detail.side === "dairy";
   return (
     <div className="flex flex-col gap-6">
-      <Section title={t("weighIn.title")}>
+      <Section
+        action={
+          powers.runsTheFarm && powers.stillHere ? (
+            <WeighInDialog tagNumber={detail.tagNumber} />
+          ) : undefined
+        }
+        title={t("weighIn.title")}
+      >
         {detail.weighIns.length > 0 ? (
           <WeighInTable readings={detail.weighIns} />
         ) : (

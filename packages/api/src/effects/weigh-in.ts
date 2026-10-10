@@ -17,6 +17,17 @@ import { tell } from "../notice";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
 import { asPublished, numberIn } from "./evidence";
 
+/**
+ * Every reading but the one with this Completion — a reading typed on her page has none, and SQL's "not this one" is
+ * never true of a null, so without the second half her paper readings would stand before nothing.
+ */
+const notThisOne = (completionId: string) => ({
+  OR: [
+    { completionId: { ne: completionId } },
+    { completionId: { isNull: true as const } },
+  ],
+});
+
 type WeighInFacts = Pick<
   EffectInput,
   | "step"
@@ -47,7 +58,7 @@ const judgeHerFirstWeighIn = async (
     where: {
       animalId,
       weighedAt: { lt: reading.weighedAt },
-      completionId: { ne: input.completionId },
+      ...notThisOne(input.completionId),
     },
     columns: { id: true },
   });
@@ -120,7 +131,7 @@ const doubtAbout = async (
     where: {
       animalId: reading.animalId,
       weighedAt: { lt: reading.weighedAt },
-      completionId: { ne: reading.completionId },
+      ...notThisOne(reading.completionId),
       flaggedNote: { isNull: true },
     },
     orderBy: { weighedAt: "desc", id: "desc" },
@@ -415,6 +426,56 @@ const weighHer = async (tx: Tx, input: WeighInFacts): Promise<EffectResult> => {
     eventId: input.eventId,
   });
   return { kind: "weigh_in", weightKg, flagged: flaggedNote !== null };
+};
+
+/**
+ * A reading typed on her page with the day it was taken: the paper weigh-ins of an animal who was on the farm
+ * before she was in the app, so her gain reads from what she really weighed and not from the day she was typed in.
+ *
+ * Judged as a Step's reading is — against her last trusted reading before that day, or what she was bought at — and
+ * kept and flagged, never refused, as ADR 0002 has it. Not asked about as a Needs Review: the Owner or Manager typing
+ * it is the one who would be asked, and reads the flag on her page. Every reading after it is judged again, since it
+ * now stands before them. Nothing is said of the lorry's weight: that notice is about a purchase, and a catch-up is
+ * not the morning the bull was first put on the scale.
+ */
+export const weighHerByHand = async (
+  tx: Tx,
+  input: {
+    farmId: string;
+    animalId: string;
+    weightKg: number;
+    weighedAt: Date;
+    recordedBy: string;
+    now: Date;
+  }
+): Promise<{ id: string; flaggedNote: string | null }> => {
+  const weightKg = roundKg(input.weightKg);
+  const flaggedNote = await doubtAbout(tx, {
+    farmId: input.farmId,
+    animalId: input.animalId,
+    completionId: "",
+    weightKg,
+    weighedAt: input.weighedAt,
+  });
+  const id = uuidv7(input.now);
+  await tx.insert(weighIn).values({
+    id,
+    farmId: input.farmId,
+    animalId: input.animalId,
+    completionId: null,
+    weightKg: weightKg.toFixed(KG_DECIMALS),
+    flaggedNote,
+    weighedAt: input.weighedAt,
+    recordedBy: input.recordedBy,
+    createdAt: input.now,
+  });
+  await judgeAgainAfter(tx, {
+    farmId: input.farmId,
+    animalId: input.animalId,
+    after: input.weighedAt,
+    now: input.now,
+  });
+  return { id, flaggedNote };
 };
 
 /** A Step that weighs an animal. */
