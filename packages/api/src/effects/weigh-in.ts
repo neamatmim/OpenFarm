@@ -429,6 +429,35 @@ const weighHer = async (tx: Tx, input: WeighInFacts): Promise<EffectResult> => {
 };
 
 /**
+ * The moment a reading typed on her page may stand at: never one still to come, and never before she came off the
+ * lorry — a reading of an animal the farm did not have yet is a reading of some other animal.
+ */
+export const assertWeighableAt = async (
+  tx: Tx,
+  her: { farmId: string; animalId: string },
+  weighedAt: Date,
+  now: Date
+): Promise<void> => {
+  if (weighedAt > now) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "An animal cannot have been weighed on a day that has not come yet",
+      data: { refusal: "weighed_in_the_future" },
+    });
+  }
+  const bought = await tx.query.intake.findFirst({
+    where: { farmId: her.farmId, animalId: her.animalId },
+    columns: { arrivedAt: true },
+  });
+  if (bought && weighedAt < bought.arrivedAt) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "An animal cannot have been weighed here before she arrived",
+      data: { refusal: "weighed_before_arrival" },
+    });
+  }
+};
+
+/**
  * A reading typed on her page with the day it was taken: the paper weigh-ins of an animal who was on the farm
  * before she was in the app, so her gain reads from what she really weighed and not from the day she was typed in.
  *
@@ -476,6 +505,48 @@ export const weighHerByHand = async (
     now: input.now,
   });
   return { id, flaggedNote };
+};
+
+/**
+ * A reading typed on her page put right — its weight, its moment, or both — or taken off her record, typed against the
+ * wrong animal or never taken. Refused where a price was struck from it, as a round's reading is. The reading is judged
+ * again where it now stands, and every reading after the earlier of its old and new moments is judged again too: it
+ * stood before them, or stands before them now.
+ */
+export const putRightByHand = async (
+  tx: Tx,
+  row: {
+    id: string;
+    farmId: string;
+    animalId: string;
+    weightKg: string;
+    weighedAt: Date;
+  },
+  to: { weightKg?: number; weighedAt?: Date; voided?: true },
+  now: Date
+): Promise<void> => {
+  await refuseWhatAPriceRestsOn(tx, row.id);
+  const her = { farmId: row.farmId, animalId: row.animalId };
+  if (to.voided) {
+    await tx.delete(weighIn).where(eq(weighIn.id, row.id));
+    await judgeAgainAfter(tx, { ...her, after: row.weighedAt, now });
+    return;
+  }
+  const weighedAt = to.weighedAt ?? row.weighedAt;
+  await assertWeighableAt(tx, her, weighedAt, now);
+  const weightKg = roundKg(to.weightKg ?? Number(row.weightKg));
+  const flaggedNote = await doubtAbout(tx, {
+    ...her,
+    completionId: "",
+    weightKg,
+    weighedAt,
+  });
+  await tx
+    .update(weighIn)
+    .set({ weightKg: weightKg.toFixed(KG_DECIMALS), weighedAt, flaggedNote })
+    .where(eq(weighIn.id, row.id));
+  const earlier = weighedAt < row.weighedAt ? weighedAt : row.weighedAt;
+  await judgeAgainAfter(tx, { ...her, after: earlier, now });
 };
 
 /** A Step that weighs an animal. */

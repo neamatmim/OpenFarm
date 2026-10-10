@@ -3433,6 +3433,9 @@ export const enCore = {
     "A reading from the farm's paper, with the day it was taken: for an animal weighed before she was in the app. The scale round still records its own.",
   "weighIn.weighedAt": "When she was weighed",
   "weighIn.weightKg": "Weight (kg)",
+  "weighIn.correct": "Correct this weigh-in",
+  "weighIn.voidWhy": "Typed against the wrong animal, or never taken",
+  "weighIn.voidIt": "Take it off her record",
   "weighIn.recorded": "Weigh-in added",
   "weighIn.recordedFlagged":
     "Weigh-in added and queried: it changed more than she could have",
