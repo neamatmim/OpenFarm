@@ -3190,6 +3190,9 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "খামারের খাতা থেকে একটি ওজন, যেদিন নেওয়া হয়েছিল সেই দিনসহ — অ্যাপে ওঠার আগে ওজন নেওয়া পশুর জন্য। ওজনের রাউন্ড নিজের ওজন নিজেই লেখে।",
   "weighIn.weighedAt": "কখন ওজন নেওয়া হয়েছিল",
   "weighIn.weightKg": "ওজন (কেজি)",
+  "weighIn.correct": "এই ওজন সংশোধন করুন",
+  "weighIn.voidWhy": "ভুল পশুর নামে লেখা, বা ওজন নেওয়াই হয়নি",
+  "weighIn.voidIt": "তার রেকর্ড থেকে তুলে নিন",
   "weighIn.recorded": "ওজন যোগ হলো",
   "weighIn.recordedFlagged":
     "ওজন যোগ হলো, তবে প্রশ্ন রইল: যতটা বদলেছে ততটা বদলানো সম্ভব নয়",

@@ -208,7 +208,10 @@ export const WeightMovesTab = ({
         title={t("weighIn.title")}
       >
         {detail.weighIns.length > 0 ? (
-          <WeighInTable readings={detail.weighIns} />
+          <WeighInTable
+            mayCorrect={powers.runsTheFarm}
+            readings={detail.weighIns}
+          />
         ) : (
           <EmptyState bare icon={Scale} title={t("gain.noneYet")} />
         )}

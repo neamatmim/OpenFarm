@@ -5,6 +5,7 @@ import type { Table as TableInstance } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 
 import { VoidDoseNotPrescribed } from "@/components/animal/take-it-back";
+import { WeighInCorrection } from "@/components/animal/weigh-in-correction";
 import type { ListFeatures } from "@/components/data-table";
 import {
   ActionsHeader,
@@ -108,7 +109,25 @@ interface WeighInRow extends Dated {
   weighedByName: string | null;
   flagged: boolean;
   flaggedNote: string | null;
+  /** Typed on her page with its day, and so put right there; a round's reading is put right on its Step. */
+  byHand: boolean;
+  /** The Owner or the Manager reading, who may put a typed one right. */
+  mayCorrect: boolean;
 }
+
+/** Put right from her page: a reading typed there, to somebody who may. */
+const correctable = (row: WeighInRow) => row.byHand && row.mayCorrect;
+
+const WeighInActionsCell = ({ row }: { row: { original: WeighInRow } }) =>
+  correctable(row.original) ? (
+    <WeighInCorrection
+      reading={{
+        id: row.original.id,
+        weightKg: row.original.weightKg,
+        weighedAt: new Date(row.original.at),
+      }}
+    />
+  ) : null;
 
 const WeightCell = ({ row }: { row: { original: WeighInRow } }) => {
   const { t, language } = useLanguage();
@@ -152,6 +171,12 @@ const weighInColumns = weighIn.columns([
     header: listHeader("weighIn.flagged"),
     cell: QueriedCell,
   }),
+  weighIn.display({
+    id: "actions",
+    header: ActionsHeader,
+    cell: WeighInActionsCell,
+    meta: { align: "end" },
+  }),
 ]);
 
 /** A reading on a phone: the figure, whether it was doubted, and when and by whom. */
@@ -166,6 +191,17 @@ const WeighInCard = ({ row }: { row: WeighInRow }) => {
             <span>{t("weighIn.by", { name: row.weighedByName })}</span>
           ) : null}
         </>
+      }
+      trailing={
+        correctable(row) ? (
+          <WeighInCorrection
+            reading={{
+              id: row.id,
+              weightKg: row.weightKg,
+              weighedAt: new Date(row.at),
+            }}
+          />
+        ) : null
       }
       title={
         <>
@@ -188,6 +224,7 @@ const weighInCard = (row: WeighInRow) => <WeighInCard row={row} />;
 /** Every time she has been on the scale: the day, the figure, who read it, and whether the farm doubted it. */
 export const WeighInTable = ({
   readings,
+  mayCorrect = false,
 }: {
   readings: Pick<
     RecordOf<"weighIns">,
@@ -197,7 +234,10 @@ export const WeighInTable = ({
     | "weighedByName"
     | "flagged"
     | "flaggedNote"
+    | "byHand"
   >[];
+  /** The Owner or the Manager reading, who may put a typed reading right. */
+  mayCorrect?: boolean;
 }) => {
   const table = useListTable({
     columns: weighInColumns,
@@ -208,6 +248,9 @@ export const WeighInTable = ({
       weighedByName: reading.weighedByName,
       flagged: reading.flagged,
       flaggedNote: reading.flaggedNote,
+      // Missing from a page kept from before the farm said so: taken as a round's.
+      byHand: reading.byHand ?? false,
+      mayCorrect,
     })),
     getRowId: (row) => row.id,
   });

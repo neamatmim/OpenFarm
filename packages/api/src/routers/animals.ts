@@ -57,10 +57,14 @@ import {
   registrationCorrection,
   registrationCorrectionInput,
 } from "../corrections/registration";
+import {
+  weighInByHandCorrection,
+  weighInByHandCorrectionInput,
+} from "../corrections/weigh-in-by-hand";
 import { parseCsvRecords } from "../csv";
 import { tellOfTheDeath } from "../death-notice";
 import { adultDeathsOf, herdHealthOf } from "../deaths-store";
-import { weighHerByHand } from "../effects/weigh-in";
+import { assertWeighableAt, weighHerByHand } from "../effects/weigh-in";
 import { recordNow } from "../entries/entry";
 import { moveEntry, moveInput } from "../entries/move";
 import { farmDay } from "../farm-clock";
@@ -1144,6 +1148,8 @@ export const animalsRouter = {
           flagged: reading.flaggedNote !== null,
           flaggedNote: reading.flaggedNote,
           weighedByName: weigher?.name ?? null,
+          /** Typed on her page with its day, not read on a round: put right from her page. */
+          byHand: reading.completionId === null,
         })),
         ...lactationView(her, now),
         ...withdrawal,
@@ -1192,13 +1198,6 @@ export const animalsRouter = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const tagNumber = input.tagNumber.toUpperCase();
-      if (input.weighedAt > now) {
-        throw new ORPCError("BAD_REQUEST", {
-          message:
-            "An animal cannot have been weighed on a day that has not come yet",
-          data: { refusal: "weighed_in_the_future" },
-        });
-      }
       // Known once the reading is written; the trail entry and its snapshot are read after `apply`.
       let reading = { id: "", flaggedNote: null as string | null };
       await audited(context).write(
@@ -1214,17 +1213,12 @@ export const animalsRouter = {
         },
         async (tx) => {
           const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
-          const bought = await tx.query.intake.findFirst({
-            where: { farmId: context.farm.id, animalId: her.id },
-            columns: { arrivedAt: true },
-          });
-          if (bought && input.weighedAt < bought.arrivedAt) {
-            throw new ORPCError("BAD_REQUEST", {
-              message:
-                "An animal cannot have been weighed here before she arrived",
-              data: { refusal: "weighed_before_arrival" },
-            });
-          }
+          await assertWeighableAt(
+            tx,
+            { farmId: context.farm.id, animalId: her.id },
+            input.weighedAt,
+            now
+          );
           reading = await weighHerByHand(tx, {
             farmId: context.farm.id,
             animalId: her.id,
@@ -1236,6 +1230,17 @@ export const animalsRouter = {
         }
       );
       return reading;
+    }),
+
+  /** A Weigh-in typed on her page put right, or taken off her record (`weighInByHandCorrection`). A round's reading is
+   *  put right on its Step. */
+  correctWeighIn: protectedProcedure
+    .use(requireRole(...weighInByHandCorrection.roles))
+    .use(requirePersonalSession())
+    .input(weighInByHandCorrectionInput)
+    .handler(async ({ context, input }) => {
+      await correct(context, weighInByHandCorrection, input);
+      return { id: input.id };
     }),
 
   /**

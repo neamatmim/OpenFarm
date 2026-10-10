@@ -109,6 +109,8 @@ export const herRecord = async (
           method: true,
           // What the farm found doubtful about a reading, and null for one it did not doubt.
           flaggedNote: true,
+          // None for a reading typed on her page, which is put right there rather than on a Step.
+          completionId: true,
         },
         with: { weigher: { columns: { name: true } } },
       },
