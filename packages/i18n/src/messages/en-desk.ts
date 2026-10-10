@@ -879,6 +879,7 @@ export const enDesk = {
   "ventures.openHintPlain":
     "The floor, the units and the two budgets follow from the farm’s settings unless you say otherwise.",
   "ventures.unitsOwn": "Units (or leave it)",
+  "ventures.floorOwn": "Floor (or leave it)",
   "ventures.cattleBudgetOwn": "For buying cattle (or leave it)",
   "ventures.budgets": "Budgets",
   "ventures.budgetSplit": "{cattle} cattle · {running} keeping them",
