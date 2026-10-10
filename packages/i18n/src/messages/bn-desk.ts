@@ -825,6 +825,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "ventures.openHintPlain":
     "সর্বনিম্ন সীমা, ইউনিট আর দুই বাজেট খামারের সেটিংস থেকেই আসে, যদি না আপনি নিজে লেখেন।",
   "ventures.unitsOwn": "ইউনিট (না লিখলেও চলে)",
+  "ventures.floorOwn": "সর্বনিম্ন সীমা (না লিখলেও চলে)",
   "ventures.cattleBudgetOwn": "গরু কেনার জন্য (না লিখলেও চলে)",
   "ventures.budgets": "বাজেট",
   "ventures.budgetSplit": "{cattle} গরু · {running} খাওয়ানো",

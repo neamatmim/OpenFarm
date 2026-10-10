@@ -16,6 +16,8 @@ interface Plan {
   name: string;
   targetCapitalMoney: string;
   unitPriceMoney: string;
+  /** The least capital this is worth starting on, when the Owner wants a figure of her own. */
+  floorMoney: string;
   /** How many Units there are, when the Owner wants a number of her own. */
   units: string;
   /** What is meant for buying animals, when the Owner wants a figure of her own. */
@@ -29,6 +31,11 @@ interface Plan {
 /** What the farm would work out, shown grayed in the box the Owner may type over. */
 const wouldBe = (amount: number, each: number) =>
   amount > 0 && each > 0 ? String(Math.round(amount / each)) : "";
+
+const wouldStartOn = (amount: number, floorPercent: number | undefined) =>
+  floorPercent === undefined || amount <= 0
+    ? ""
+    : String(Math.round((amount * floorPercent) / 100));
 
 const wouldKeep = (amount: number, runningPercent: number | undefined) =>
   runningPercent === undefined || amount <= 0
@@ -45,6 +52,7 @@ const NOTHING_YET: Plan = {
   name: "",
   targetCapitalMoney: "",
   unitPriceMoney: "",
+  floorMoney: "",
   units: "",
   cattleBudgetMoney: "",
   decideBy: "",
@@ -148,6 +156,7 @@ export const OpenVentureSheet = ({
   const settings =
     farm.data && "ventureFloorPercent" in farm.data ? farm.data : null;
   const running = settings?.ventureRunningPercent;
+  const floor = settings?.ventureFloorPercent;
   const eid = useNextEid();
   const window = {
     start: plan.targetWindowStart || eid?.start || "",
@@ -181,6 +190,8 @@ export const OpenVentureSheet = ({
           targetWindowStart: window.start,
           targetWindowEnd: window.end,
           unitPriceMoney: unit,
+          floorMoney:
+            plan.floorMoney.trim() === "" ? undefined : Number(plan.floorMoney),
           units: plan.units.trim() === "" ? undefined : Number(plan.units),
           cattleBudgetMoney:
             plan.cattleBudgetMoney.trim() === ""
@@ -250,7 +261,19 @@ export const OpenVentureSheet = ({
           />
         </FormField>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <FormField id="venture-floor" label={t("ventures.floorOwn")}>
+          <Input
+            id="venture-floor"
+            inputMode="numeric"
+            onChange={(event) =>
+              setPlan({ ...plan, floorMoney: event.target.value })
+            }
+            placeholder={wouldStartOn(target, floor)}
+            type="number"
+            value={plan.floorMoney}
+          />
+        </FormField>
         <FormField id="venture-units" label={t("ventures.unitsOwn")}>
           <Input
             id="venture-units"
