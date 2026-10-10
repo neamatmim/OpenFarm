@@ -60,6 +60,7 @@ import {
 import { parseCsvRecords } from "../csv";
 import { tellOfTheDeath } from "../death-notice";
 import { adultDeathsOf, herdHealthOf } from "../deaths-store";
+import { weighHerByHand } from "../effects/weigh-in";
 import { recordNow } from "../entries/entry";
 import { moveEntry, moveInput } from "../entries/move";
 import { farmDay } from "../farm-clock";
@@ -1168,6 +1169,73 @@ export const animalsRouter = {
       await recordNow(context, moveEntry, input);
       const moved = await requireAnimal(context.db, context.farm.id, tagNumber);
       return { tagNumber, side: moved.side, state: moved.state };
+    }),
+
+  /**
+   * A Weigh-in typed on her page with the day it was taken: what the farm's paper says an animal weighed before she
+   * was in the app, so an animal brought in months into her fattening has her gain read from her real readings. The
+   * Owner's and the Manager's, from her page — a round's reading is still the scale Step's, and a Shed Phone has no
+   * day to choose. Refused on a day that has not come, and on one before she came off the lorry; a reading no animal
+   * could have put on is taken and flagged, never refused, as a Step's is (ADR 0002).
+   */
+  weighIn: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        tagNumber: tagInput,
+        weightKg: z.number().positive().max(2000),
+        /** The moment she was on the scale, which is the reading's place among the others. */
+        weighedAt: z.coerce.date(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const tagNumber = input.tagNumber.toUpperCase();
+      if (input.weighedAt > now) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "An animal cannot have been weighed on a day that has not come yet",
+          data: { refusal: "weighed_in_the_future" },
+        });
+      }
+      // Known once the reading is written; the trail entry and its snapshot are read after `apply`.
+      let reading = { id: "", flaggedNote: null as string | null };
+      await audited(context).write(
+        {
+          entity: "weigh_in",
+          entityId: () => reading.id,
+          action: "create",
+          after: async (tx) =>
+            (await tx.query.weighIn.findFirst({
+              where: { id: reading.id },
+              columns: { weightKg: true, weighedAt: true, flaggedNote: true },
+            })) ?? null,
+        },
+        async (tx) => {
+          const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
+          const bought = await tx.query.intake.findFirst({
+            where: { farmId: context.farm.id, animalId: her.id },
+            columns: { arrivedAt: true },
+          });
+          if (bought && input.weighedAt < bought.arrivedAt) {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                "An animal cannot have been weighed here before she arrived",
+              data: { refusal: "weighed_before_arrival" },
+            });
+          }
+          reading = await weighHerByHand(tx, {
+            farmId: context.farm.id,
+            animalId: her.id,
+            weightKg: input.weightKg,
+            weighedAt: input.weighedAt,
+            recordedBy: context.actor.id,
+            now,
+          });
+        }
+      );
+      return reading;
     }),
 
   /**

@@ -80,7 +80,15 @@ export const lastFiguresFor = async (
       farmId,
       animalId: { in: [...animalIds] },
       flaggedNote: { isNull: true },
-      ...notThisWork,
+      // A reading typed on her page has no Completion, and "not in" is never true of a null: asked for too.
+      ...(work.completionIds.length > 0
+        ? {
+            OR: [
+              { completionId: { notIn: [...work.completionIds] } },
+              { completionId: { isNull: true as const } },
+            ],
+          }
+        : {}),
     },
     columns: { animalId: true, weightKg: true, weighedAt: true },
     orderBy: { weighedAt: "desc", id: "desc" },
