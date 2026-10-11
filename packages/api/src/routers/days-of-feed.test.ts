@@ -137,6 +137,27 @@ beforeAll(async () => {
 });
 
 describe("days of feed left", () => {
+  it("estimates a month's buying quantity from the same recent daily usage", async () => {
+    const manager = await as("manager", evening(6));
+    const estimate = await manager.client.stock.monthlyEstimate({
+      month: "2069-04",
+      basis: "recent",
+    });
+    expect(
+      estimate.lines.find((line) => line.feedItemId === bran)
+    ).toMatchObject({
+      perDay: 100,
+      required: 3000,
+      available: 500,
+      toBuy: 2500,
+      priceMoney: 30,
+      requiredMoney: 90_000,
+      toBuyMoney: 75_000,
+    });
+    expect(
+      estimate.lines.find((line) => line.feedItemId === hay)
+    ).toMatchObject({ required: null, toBuy: null });
+  });
   it("is the store over what it has been fed a day lately", async () => {
     // Five hundred left at a hundred a day, the 2nd to the 6th counted as five days.
     expect(await lineOf(bran, evening(6))).toMatchObject({

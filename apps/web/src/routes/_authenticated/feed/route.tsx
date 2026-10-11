@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ClipboardList,
+  CalendarDays,
   Coins,
   CookingPot,
   PackagePlus,
@@ -29,6 +30,7 @@ import type {
   StockLine,
 } from "@/components/feed/feed-types";
 import { valueOf } from "@/components/feed/feed-types";
+import { MonthlyEstimateTab } from "@/components/feed/monthly-estimate";
 import { ReceiveFeedSheet } from "@/components/feed/receive-feed-sheet";
 import { Loaded, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
@@ -36,11 +38,13 @@ import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useMoney } from "@/lib/money";
+import { isAMonth } from "@/lib/months";
 import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = [
   "stock",
+  "estimate",
   "feedIn",
   "counts",
   "leftovers",
@@ -52,6 +56,7 @@ type Tab = (typeof TABS)[number];
 /** Each tab at its own address, the first at the page's own. */
 const TAB_PATHS = {
   stock: "/feed",
+  estimate: "/feed/monthly-estimate",
   feedIn: "/feed/feed-in",
   counts: "/feed/stock-counts",
   leftovers: "/feed/leftovers",
@@ -140,6 +145,7 @@ const FeedPage = () => {
   const { t } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
   const tab = useTabOfPath(TAB_PATHS) ?? "stock";
+  const { feedMonth, feedBasis } = Route.useSearch();
   const [receiving, setReceiving] = useState<{ feedItemId?: string } | null>(
     null
   );
@@ -188,7 +194,13 @@ const FeedPage = () => {
       <SummaryFigures figures={figures} />
 
       <PageTabs
-        onChange={(value) => navigate({ ...TAB_SWITCH, to: TAB_PATHS[value] })}
+        onChange={(value) =>
+          navigate({
+            ...TAB_SWITCH,
+            to: TAB_PATHS[value],
+            search: (previous) => previous,
+          })
+        }
         tabs={[
           {
             value: "stock",
@@ -203,6 +215,31 @@ const FeedPage = () => {
                   onReceive={(feedItemId) => setReceiving({ feedItemId })}
                 />
               </Loaded>
+            ),
+          },
+          {
+            value: "estimate",
+            label: t("feed.tab.estimate"),
+            icon: CalendarDays,
+            content: (
+              <MonthlyEstimateTab
+                basis={feedBasis ?? "rations"}
+                month={feedMonth ?? farmDayOf(new Date()).slice(0, 7)}
+                onBasis={(basis) =>
+                  navigate({
+                    ...TAB_SWITCH,
+                    to: TAB_PATHS.estimate,
+                    search: (previous) => ({ ...previous, feedBasis: basis }),
+                  })
+                }
+                onMonth={(month) =>
+                  navigate({
+                    ...TAB_SWITCH,
+                    to: TAB_PATHS.estimate,
+                    search: (previous) => ({ ...previous, feedMonth: month }),
+                  })
+                }
+              />
             ),
           },
           {
@@ -290,6 +327,18 @@ const FeedPage = () => {
 };
 
 export const Route = createFileRoute("/_authenticated/feed")({
+  validateSearch: (
+    search: Record<string, unknown>
+  ): {
+    feedMonth?: string;
+    feedBasis?: "rations" | "recent";
+  } => ({
+    feedMonth: isAMonth(search.feedMonth) ? search.feedMonth : undefined,
+    feedBasis:
+      search.feedBasis === "rations" || search.feedBasis === "recent"
+        ? search.feedBasis
+        : undefined,
+  }),
   /** For those who run the farm: the Owner and the Farm Managers. */
   beforeLoad: onlyFor("runsTheFarm"),
   component: FeedPage,

@@ -2,6 +2,7 @@ import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { FEED_IN_KINDS, FEED_PACKS, feedIn } from "@OpenFarm/db/schema/feed";
 import type { FeedPack, FeedUnit } from "@OpenFarm/domain";
 import { FEED_IN_SHOWN, maundsOf, quantityOfPacks } from "@OpenFarm/domain";
+import { FEED_ESTIMATE_BASES } from "@OpenFarm/domain/feed-estimate";
 import { expiryStanding, expiryWindow } from "@OpenFarm/domain/lots";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -14,10 +15,12 @@ import {
 } from "../corrections/feed-arrival";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
+import { monthlyFeedEstimate } from "../feed-estimate-store";
 import { protectedProcedure } from "../index";
 import { assertNotExpiredWhenBought, lotFields } from "../lot-input";
 import {
   farmAccountIdInput,
+  monthInput,
   paymentMethodInput,
   referenceInput,
 } from "../money-inputs";
@@ -96,6 +99,24 @@ const weighedOnArrival = (
 };
 
 export const stockRouter = {
+  /** Monthly buying quantities and cost estimates are for the people who keep the farm's store. */
+  monthlyEstimate: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(
+      z.object({
+        month: monthInput,
+        basis: z.enum(FEED_ESTIMATE_BASES).default("rations"),
+      })
+    )
+    .handler(({ context, input }) =>
+      monthlyFeedEstimate(
+        context.db,
+        context.farm,
+        context.clock.now(),
+        input.month,
+        input.basis
+      )
+    ),
   /**
    * What is in the store, Feed Item by Feed Item, and what a unit of each cost.
    *
