@@ -1873,6 +1873,43 @@ export const enCore = {
   "feed.subtitle":
     "What is in the store, what came in, and which ration each pen is on.",
   "feed.tab.stock": "Store",
+  "feed.tab.estimate": "Monthly estimate",
+  "feed.estimate.title": "Feed for a month",
+  "feed.estimate.description":
+    "A full month's feed at today's rate, with what the store can cover and what still needs buying or growing.",
+  "feed.estimate.month": "Month to plan",
+  "feed.estimate.basis": "Estimate from",
+  "feed.estimate.rations": "Current rations",
+  "feed.estimate.recent": "Recent feeding",
+  "feed.estimate.rationsHint":
+    "Today's animals and their assigned rations, held steady for the whole month. Weight-based feed uses their latest weights; growth and planned arrivals or sales are not included.",
+  "feed.estimate.recentHint":
+    "Average daily feed given over the last {days, plural, one {# day} other {# days}}, or since the first feeding if newer. Days with no feeding recorded count in the average. Items with no recent feeding have no estimate.",
+  "feed.estimate.days":
+    "{days, plural, one {# calendar day} other {# calendar days}}",
+  "feed.estimate.daily": "Per day",
+  "feed.estimate.required": "Needed for month",
+  "feed.estimate.available": "Available now",
+  "feed.estimate.toBuy": "To buy / grow",
+  "feed.estimate.price": "Price per unit",
+  "feed.estimate.cost": "Estimated supply cost",
+  "feed.estimate.budget": "Full month's feed value",
+  "feed.estimate.budgetHint": "Before subtracting available stock",
+  "feed.estimate.costHint": "For the feed still needed after stock",
+  "feed.estimate.itemsToBuy": "Items still needed",
+  "feed.estimate.itemsHint": "Feed items the store cannot cover",
+  "feed.estimate.partial": "Known amounts only · estimate incomplete",
+  "feed.estimate.incomplete": "Some of the estimate is missing",
+  "feed.estimate.missing":
+    "{demand, plural, one {# feed item has no daily estimate} other {# feed items have no daily estimate}}; {prices, plural, one {# needed item has no price} other {# needed items have no price}}; {animals, plural, one {# animal has no assigned ration} other {# animals have no assigned ration}}. Missing amounts are excluded from the totals.",
+  "feed.estimate.estimatedWeights":
+    "{count, plural, one {# animal's weight is estimated} other {# animals' weights are estimated}} from the average of weighed animals in the same pen.",
+  "feed.estimate.missingWeight": "Weigh the animals in the pen first",
+  "feed.estimate.noRecent": "No recent feeding recorded",
+  "feed.estimate.unpriced": "Not priced",
+  "feed.estimate.none": "Add feed items to start a monthly estimate.",
+  "feed.estimate.stockHint":
+    "Available stock is today's balance, excluding expired feed. Prices are the store's average, or the farm's fodder value where no average is known. Home-grown feed is valued here; its value is not a cash payment. Future deliveries, use before a future month, and expiry during the month are not projected.",
   "feed.tab.feedIn": "Came in",
   "feed.tab.counts": "Counts",
   "feed.tab.rations": "Rations",
