@@ -3569,6 +3569,7 @@ export const enCore = {
     "The outing is written up, and this arrival came home on it",
   "intake.pastTrips": "Buying outings lately",
   "intake.cameHome": "{count} came home",
+  "intake.broughtNothing": "Brought nothing home",
   "intake.newTrip": "New outing",
   "intake.noTrip": "No outing — bought at the farm gate",
   "intake.owner": "Whose animal she is",
@@ -3757,6 +3758,14 @@ export const enCore = {
   "ready.kpi.held": "Held by withdrawal",
   "ready.kpi.heldHint": "Cannot be confirmed or sold yet",
   "nav.sale": "Sales",
+  "nav.trips": "Trips",
+  "trips.subtitle":
+    "Every outing to a livestock market, buying or selling, and what the day cost beyond the animals. A buying trip that brought nothing home is still written up: its cost is counted in what running the farm cost that month.",
+  "trips.buying": "Buying trips",
+  "trips.selling": "Selling trips",
+  "trips.newBuying": "New buying trip",
+  "trips.noneBuying": "No buying trips yet",
+  "trips.recorded": "The outing is written up",
   "nav.culling": "Culling",
   "nav.fertility": "Fertility",
   "fertility.subtitle":

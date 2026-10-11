@@ -46,7 +46,8 @@ export const BuyingTripSheet = ({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onRecorded: (tripId: string) => void;
+  /** The arrival being written up, to put on the outing; nothing where the outing is written up on its own. */
+  onRecorded?: (tripId: string) => void;
 }) => {
   const { t } = useLanguage();
   const refused = useRefused();
@@ -68,8 +69,8 @@ export const BuyingTripSheet = ({
         setWentOnDay(today);
         onOpenChange(false);
         // The arrival being written up came home on it; the ones after pick it from the list.
-        onRecorded(made.id);
-        toast.success(t("intake.tripRecorded"));
+        onRecorded?.(made.id);
+        toast.success(t(onRecorded ? "intake.tripRecorded" : "trips.recorded"));
       },
     })
   );

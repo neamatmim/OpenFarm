@@ -161,6 +161,74 @@ describe("a Vet's fee for a visit that named no animal", () => {
   });
 });
 
+/** The Overheads of a month, as the costs by Side read them. */
+const overheadsIn = async (from: string, to: string) => {
+  const owner = await as("owner", "2073-07-01T04:00:00.000Z");
+  const read = await owner.client.costs.bySide({ from, to });
+  return read.overheads.totalMoney;
+};
+
+describe("an outing that brought nothing home", () => {
+  it("is an Overhead, not a taka lost from every figure", async () => {
+    const manager = await as("manager", "2072-07-10T12:00:00.000Z");
+    const before = await overheadsIn("2072-07-01", "2072-07-31");
+    // Nothing at Gabtoli fetched what it was worth; the lorry came home empty.
+    await manager.client.buyingTrips.record({
+      wentTo: `খালি হাট ${suffix}`,
+      transportMoney: 5000,
+      keepMoney: 500,
+      paymentMethod: "cash",
+    });
+    const after = await overheadsIn("2072-07-01", "2072-07-31");
+    expect(after - before).toBe(5500);
+  });
+
+  it("leaves the Overheads once an animal comes home on it, and is hers", async () => {
+    const manager = await as("manager", "2072-08-10T12:00:00.000Z");
+    const before = await overheadsIn("2072-08-01", "2072-08-31");
+    const trip = await manager.client.buyingTrips.record({
+      wentTo: `ভরা হাট ${suffix}`,
+      transportMoney: 4000,
+      paymentMethod: "cash",
+    });
+    const bought = await manager.client.intakes.record({
+      penId,
+      sex: "male",
+      seller: { name: `ব্যাপারী ${suffix}` },
+      purchasePriceMoney: 50_000,
+      weightKg: 200,
+      estimatedAgeMonths: 20,
+      buyingTripId: trip.id,
+      targetWindowStart: "2072-12-01",
+      targetWindowEnd: "2072-12-05",
+    });
+    expect(await overheadsIn("2072-08-01", "2072-08-31")).toBe(before);
+    const owner = await as("owner", "2072-09-01T04:00:00.000Z");
+    expect(
+      await owner.client.costs.forAnimal({ tagNumber: bought.tagNumber })
+    ).toMatchObject({ tripMoney: 4000 });
+  });
+
+  it("is the Venture's whose Float went on it, never the Farm's Overhead", async () => {
+    const owner = await as("owner", "2073-03-02T12:00:00.000Z");
+    const before = await overheadsIn("2073-03-01", "2073-03-31");
+    const trip = await owner.client.buyingTrips.record({
+      wentTo: `ভেঞ্চারের খালি হাট ${suffix}`,
+      transportMoney: 3000,
+      paymentMethod: "cash",
+    });
+    await owner.client.ventures.floats.draw({
+      ventureId,
+      buyingTripId: trip.id,
+      amountMoney: 100_000,
+      movedOn: "2073-03-02",
+      paymentMethod: "bank",
+      reference: `FLT-${suffix}`,
+    });
+    expect(await overheadsIn("2073-03-01", "2073-03-31")).toBe(before);
+  });
+});
+
 describe("what an animal lost cost the farm", () => {
   it("is what the Farm made good for a Venture's, not her whole life's cost across owners", async () => {
     // The Farm's own bull, ৳60,000 off the lorry, sold across to the Venture at ৳63,000 a week on.

@@ -53,9 +53,12 @@ export const PastOutings = () => {
             <span className="flex flex-col items-end gap-0.5 whitespace-nowrap tabular-nums">
               <span className="font-medium">{asMoney(one.costMoney)}</span>
               <span className="text-muted-foreground text-xs">
-                {t("intake.cameHome", {
-                  count: formatNumber(one.animals, language),
-                })}
+                {/* An outing that brought nothing home still cost its day, and is the place's until one comes home on it. */}
+                {one.animals === 0
+                  ? t("intake.broughtNothing")
+                  : t("intake.cameHome", {
+                      count: formatNumber(one.animals, language),
+                    })}
               </span>
               {/* Put right part by part; an answer kept from before the parts were listed has none to show. */}
               {one.parts ? (

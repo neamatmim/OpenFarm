@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   HeartHandshake,
   ListX,
+  MapPinned,
   Milk,
   PawPrint,
   Pill,
@@ -134,6 +135,12 @@ export const NAV_GROUPS: NavGroup[] = [
         audience: "runsTheFarm",
       },
       { to: "/sales", label: "nav.sale", icon: Store, audience: "runsTheFarm" },
+      {
+        to: "/trips",
+        label: "nav.trips",
+        icon: MapPinned,
+        audience: "runsTheFarm",
+      },
       {
         to: "/fertility",
         label: "nav.fertility",
