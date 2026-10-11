@@ -6,6 +6,7 @@ import {
   farmDayOf,
   isExitState,
   maskedDigits,
+  monthlyPaymentAllocationOf,
   readingOf,
 } from "@OpenFarm/domain";
 import type { PaperNominee, TemplateContent } from "@OpenFarm/domain";
@@ -40,6 +41,7 @@ import { wordingInForce } from "./template-store";
 import { theirAgreements } from "./their-agreements";
 import { theirProgress } from "./venture-herd-store";
 import { openVenturesFor } from "./venture-showing";
+import { paidForBy } from "./venture-store";
 
 // What one Investor reads in the portal, page by page. Asked for by the Investor from their own sign-in, or by the
 // Owner's Portal Preview for them: the answer is the same either way, so each page is read here once, and nothing here
@@ -315,7 +317,17 @@ export const theirVentureToday = async (
   );
   // The Farm's own Units in it, as his Agreement and his progress statement tell him: how many of how many.
   const theFarmsUnits = await farmUnitsOf(db, farm.id, run.id);
+  const { monthly } = paidForBy(run);
   return {
+    paymentAllocation: monthly
+      ? monthlyPaymentAllocationOf({
+          units: standing.agreement.units,
+          unitPriceMoney: run.unitPriceMoney,
+          monthly,
+          paidMoney: standing.capitalMoney,
+          today: farmDayOf(now),
+        })
+      : null,
     agreementId,
     venture: { name: standing.venture.name, state: run.state },
     /** The Farm's own Units in the Venture, where it holds any (ADR 0019); nothing where it holds none. */

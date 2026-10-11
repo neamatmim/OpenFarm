@@ -2,6 +2,7 @@ import type { Language } from "@OpenFarm/i18n";
 import { currencyWords, formatNumber } from "@OpenFarm/i18n";
 
 import type { FarmIdentity } from "./farm";
+import type { MonthlyPaymentAllocation } from "./monthly-sums";
 import { daySaid, nomineeRowOf } from "./nominees";
 import type {
   PaperDocument,
@@ -41,6 +42,8 @@ export interface JoiningLetterFacts {
   terms: { heading: Said; clauses: Said[] }[];
   /** Paid by the month: their Units' Monthly Sums, each its farm day and amount; nothing for any other Venture. */
   monthlySums: { dueOn: string; amountMoney: number }[] | null;
+  /** Confirmed receipts allocated against the original schedule, as of this paper's date. */
+  paymentAllocation?: MonthlyPaymentAllocation | null;
   /** The farm day of the amendment those terms come from, or nothing while the paper stands as it was signed. */
   amendedOn: string | null;
   /** The stamped instrument this paper points at: how its duty was paid, what it came to, the day and its number. */
@@ -157,34 +160,88 @@ const capitalTable = (facts: JoiningLetterFacts): PaperSection => ({
   note: null,
 });
 
-/**
- * A Venture paid by the month: their Units' Monthly Sums, and what the letter acknowledges — in the words the advisers
- * approved on 2026-10-02. Nothing for any other Venture.
- */
+/** The original schedule beside what confirmed payments cover, including sums paid ahead. */
 const monthlySumsTable = (
-  sums: JoiningLetterFacts["monthlySums"]
-): PaperSection[] =>
-  sums && sums.length > 0
+  sums: JoiningLetterFacts["monthlySums"],
+  allocation: JoiningLetterFacts["paymentAllocation"]
+): PaperSection[] => {
+  if (!sums || sums.length === 0) {
+    return [];
+  }
+  const summary: PaperSection[] = allocation
     ? [
         {
-          kind: "table",
-          heading: { bn: "মাসের টাকার তালিকা", en: "Monthly Sums" },
-          columns: [
-            { label: { bn: "তারিখ", en: "Due on" } },
-            { label: { bn: "টাকা", en: "Amount" }, figures: true },
+          kind: "facts",
+          heading: {
+            bn: "প্রাপ্ত টাকার বণ্টন",
+            en: "Allocation of confirmed receipts",
+          },
+          rows: [
+            line(
+              { bn: "গরু কেনার অংশ — প্রাপ্ত", en: "Cattle Part received" },
+              moneySaid(allocation.cattlePaidMoney)
+            ),
+            line(
+              { bn: "মাসের টাকা — প্রাপ্ত", en: "Monthly Sums received" },
+              moneySaid(allocation.monthlyPaidMoney)
+            ),
+            line(
+              {
+                bn: "ভবিষ্যৎ মাসের টাকায় জমা",
+                en: "Allocated to future Monthly Sums",
+              },
+              moneySaid(allocation.advanceMoney)
+            ),
+            line(
+              { bn: "চুক্তির মোট বাকি", en: "Agreement balance remaining" },
+              moneySaid(allocation.owedMoney)
+            ),
           ],
-          rows: sums.map((one) => [
-            daySaid(one.dueOn),
-            moneySaid(one.amountMoney),
-          ]),
-          foot: null,
           note: {
-            bn: "এই পত্র গরু কেনার অংশ প্রাপ্তির স্বীকৃতি; মাসের টাকা এলে তা অগ্রগতি প্রতিবেদনে দেখানো হবে।",
-            en: "This letter acknowledges the Cattle Part received; Monthly Sums, as they come, are shown on the progress statement.",
+            bn: "প্রথমে নিজের গরু কেনার অংশ, এরপর পুরোনো থেকে নতুন মাসের টাকায় টাকা জমা হয়। অগ্রিম পরিশোধে চুক্তির মাসের টাকার নির্ধারিত তারিখ, ইউনিট বা লাভের অনুপাত বদলায় না।",
+            en: "Payments cover this Agreement's Cattle Part first, then Monthly Sums oldest first. Paying ahead does not change the signed due dates, Units or profit split.",
           },
         },
       ]
     : [];
+  return [
+    ...summary,
+    {
+      kind: "table",
+      heading: { bn: "মাসের টাকার তালিকা", en: "Monthly Sums" },
+      columns: [
+        { label: { bn: "তারিখ", en: "Due on" } },
+        { label: { bn: "টাকা", en: "Amount" }, figures: true },
+        ...(allocation
+          ? [
+              { label: { bn: "জমা", en: "Paid" }, figures: true },
+              { label: { bn: "বাকি", en: "Remaining" }, figures: true },
+            ]
+          : []),
+      ],
+      rows: sums.map((one) => {
+        const allocated = allocation?.sums.find(
+          (sum) => sum.dueOn === one.dueOn
+        );
+        return [
+          daySaid(one.dueOn),
+          moneySaid(one.amountMoney),
+          ...(allocation
+            ? [
+                moneySaid(allocated?.paidMoney ?? 0),
+                moneySaid(allocated?.leftMoney ?? one.amountMoney),
+              ]
+            : []),
+        ];
+      }),
+      foot: null,
+      note: {
+        bn: "এই পত্রে ব্যাংকে নিশ্চিত হওয়া গরু কেনার অংশ ও মাসের টাকা প্রাপ্তির স্বীকৃতি দেওয়া হয়েছে। যাচাইয়ের অপেক্ষায় থাকা পরিশোধের তথ্য প্রাপ্ত টাকা হিসেবে গণনা করা হয় না।",
+        en: "This letter acknowledges confirmed receipts for the Cattle Part and Monthly Sums. Payment notes awaiting bank verification are not received capital.",
+      },
+    },
+  ];
+};
 
 /** Who signs the letter: the Investor — or an Organization's Signatory for it — and the Owner for the Farm. */
 const signersOf = (facts: JoiningLetterFacts) => {
@@ -274,7 +331,7 @@ export const joiningLetterPaper = (
         note: null,
       },
       capitalTable(facts),
-      ...monthlySumsTable(facts.monthlySums),
+      ...monthlySumsTable(facts.monthlySums, facts.paymentAllocation),
       ...terms,
       stampPart(facts.stamp),
       {

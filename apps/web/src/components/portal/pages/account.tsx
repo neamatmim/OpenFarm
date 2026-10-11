@@ -10,7 +10,7 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   IdCard,
   LogOut,
@@ -86,10 +86,18 @@ const Held = ({ label, children }: { label: string; children: ReactNode }) => {
  *  ask the Owner in writing to change, by a paper they sign. */
 const TheirNominees = ({ nominees }: { nominees: PaperNominee[] }) => {
   const { t } = useLanguage();
+  const { link } = usePortalPlaces().papers;
   return (
     <div className="mt-4 flex flex-col gap-2 border-t pt-4">
       <h3 className={LABEL_HEADING}>{t("nominees.title")}</h3>
       <NomineeList nominees={nominees} />
+      <Link
+        to={link.to}
+        params={link.params}
+        className="text-primary text-sm underline underline-offset-4"
+      >
+        {t("portal.documents.nominations")}
+      </Link>
     </div>
   );
 };

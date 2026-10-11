@@ -1,4 +1,5 @@
 import { addDays } from "./fattening";
+import { roundMoney } from "./money";
 import { monthsFromTo } from "./venture";
 
 /**
@@ -111,30 +112,22 @@ export const monthlySumsOf = (
   }));
 };
 
-/**
- * What an Agreement may have paid in by now, all told. Its Units' whole price — except while a Venture paid by the
- * month is still gathering its capital, when it is its Units' Cattle Part and no more: the cattle money comes first,
- * the Monthly Sums after the buying starts, and a taka of them taken early would be counted as money for cattle.
- */
+/** An Agreement may pay its whole signed price early. State and paper checks belong to the receiving door. */
 export const capitalItMayHold = (
   units: number,
   venture: {
+    unitPriceMoney: number;
     state: string;
     capitalPaid: CapitalPaid;
-    unitPriceMoney: number;
     cattlePartMoney: number | null;
   }
-) =>
-  venture.capitalPaid === "by_the_month" &&
-  venture.state === "open" &&
-  venture.cattlePartMoney !== null
-    ? units * venture.cattlePartMoney
-    : units * venture.unitPriceMoney;
+) => roundMoney(units * venture.unitPriceMoney);
 
 /**
  * Of what a Venture holds, how much is cattle money. Paid before buying, the capital divides between the two budgets in
  * proportion, as the plan divides it. Paid by the month, the Cattle Part comes first and is all its capital up to
- * every signed Unit's Cattle Part; past that it is Monthly Sums, which keep the animals.
+ * this Agreement's signed Units' Cattle Part; past that it is Monthly Sums, which keep the animals.
+ * Call separately for each Agreement: one person's advance cannot cover another person's missing Cattle Part.
  */
 export const cattleMoneyOf = (
   capitalMoney: number,
@@ -150,7 +143,9 @@ export const cattleMoneyOf = (
     venture.capitalPaid === "by_the_month" &&
     venture.cattlePartMoney !== null
   ) {
-    return Math.min(capitalMoney, signedUnits * venture.cattlePartMoney);
+    return roundMoney(
+      Math.min(Math.max(0, capitalMoney), signedUnits * venture.cattlePartMoney)
+    );
   }
   return venture.targetCapitalMoney > 0
     ? Math.round(
@@ -160,7 +155,7 @@ export const cattleMoneyOf = (
 };
 
 /** The states a Venture paid by the month takes Monthly Sums in: from the buying until the selling starts, after
- *  which a sum not yet paid is not paid (the advisers' answers, 2026-10-02). Open, it takes the Cattle Part. */
+ *  which a sum not yet paid is not paid (the advisers' answers, 2026-10-02). Open, it also takes advance Monthly Sums. */
 export const TAKES_MONTHLY_SUMS = ["buying", "fattening"] as const;
 
 /** Whether a Venture takes capital today: any Venture while Open; one paid by the month while it runs, until it sells. */
@@ -171,6 +166,73 @@ export const takesCapital = (venture: {
   venture.state === "open" ||
   (venture.capitalPaid === "by_the_month" &&
     TAKES_MONTHLY_SUMS.some((one) => one === venture.state));
+
+/** A confirmed payment's allocation against the original schedule, including partially paid sums. */
+export interface MonthlyPaymentAllocation {
+  totalMoney: number;
+  paidMoney: number;
+  owedMoney: number;
+  cattleRequiredMoney: number;
+  cattlePaidMoney: number;
+  monthlyPaidMoney: number;
+  /** Confirmed money allocated to sums whose original due dates are still ahead. */
+  advanceMoney: number;
+  sums: {
+    dueOn: string;
+    amountMoney: number;
+    paidMoney: number;
+    leftMoney: number;
+  }[];
+}
+
+/** Cattle first, then sums oldest first. Early payments change balances, never the signed dates or amounts. */
+export const monthlyPaymentAllocationOf = ({
+  units,
+  unitPriceMoney,
+  monthly,
+  paidMoney,
+  today,
+}: {
+  units: number;
+  unitPriceMoney: number;
+  monthly: { cattlePartMoney: number; sums: readonly MonthlySum[] };
+  paidMoney: number;
+  today: string;
+}): MonthlyPaymentAllocation => {
+  const totalMoney = roundMoney(units * unitPriceMoney);
+  const confirmedMoney = roundMoney(
+    Math.min(totalMoney, Math.max(0, paidMoney))
+  );
+  const cattleRequiredMoney = roundMoney(units * monthly.cattlePartMoney);
+  const cattlePaidMoney = Math.min(confirmedMoney, cattleRequiredMoney);
+  let remaining = roundMoney(confirmedMoney - cattlePaidMoney);
+  const sums = monthly.sums.map((one) => {
+    const amountMoney = roundMoney(units * one.amount);
+    const paid = Math.min(remaining, amountMoney);
+    remaining = roundMoney(remaining - paid);
+    return {
+      dueOn: one.dueOn,
+      amountMoney,
+      paidMoney: paid,
+      leftMoney: roundMoney(amountMoney - paid),
+    };
+  });
+  return {
+    totalMoney,
+    paidMoney: confirmedMoney,
+    owedMoney: roundMoney(totalMoney - confirmedMoney),
+    cattleRequiredMoney,
+    cattlePaidMoney,
+    monthlyPaidMoney: roundMoney(confirmedMoney - cattlePaidMoney),
+    advanceMoney: roundMoney(
+      sums.reduce(
+        (sum, one) => sum + (one.dueOn > today ? one.paidMoney : 0),
+        0
+      )
+    ),
+    sums,
+  };
+};
 
 /** How one Agreement of a Venture paid by the month stands against its schedule on a day. */
 export interface SumsStanding {
@@ -217,17 +279,18 @@ export const sumsStandingOf = ({
         .filter((one) => passed(one.dueOn))
         .reduce((sum, one) => sum + one.amount, 0));
   const missedBefore = addDays(today, -SUM_MISSED_AFTER_DAYS);
-  // Each sum is cleared once everything due up to it is paid: the Cattle Part first, then the sums in their order.
-  let reached = units * monthly.cattlePartMoney;
-  const cleared = monthly.sums.map((one) => {
-    reached += units * one.amount;
-    return {
-      dueOn: one.dueOn,
-      cleared: reached <= paidMoney,
-      // What of it is still unpaid, once everything before it is: none of a sum sent ahead.
-      left: Math.min(units * one.amount, Math.max(0, reached - paidMoney)),
-    };
+  const allocation = monthlyPaymentAllocationOf({
+    units,
+    unitPriceMoney,
+    monthly,
+    paidMoney,
+    today,
   });
+  const cleared = allocation.sums.map((one) => ({
+    dueOn: one.dueOn,
+    cleared: one.leftMoney === 0,
+    left: one.leftMoney,
+  }));
   // The next sum still to pay, not merely the next 10th: a sum sent ahead is not asked for again, and one sent in part
   // asks only for the rest.
   const upcoming = cleared.find((one) => one.dueOn > today && !one.cleared);
@@ -235,11 +298,12 @@ export const sumsStandingOf = ({
     (one) => !one.cleared && one.dueOn < missedBefore
   );
   return {
-    owedMoney: Math.max(0, units * unitPriceMoney - paidMoney),
-    dueMoney: Math.max(0, dueBy((dueOn) => dueOn <= today) - paidMoney),
-    missedMoney: Math.max(
-      0,
-      dueBy((dueOn) => dueOn < missedBefore) - paidMoney
+    owedMoney: roundMoney(Math.max(0, units * unitPriceMoney - paidMoney)),
+    dueMoney: roundMoney(
+      Math.max(0, dueBy((dueOn) => dueOn <= today) - paidMoney)
+    ),
+    missedMoney: roundMoney(
+      Math.max(0, dueBy((dueOn) => dueOn < missedBefore) - paidMoney)
     ),
     next: upcoming ? { dueOn: upcoming.dueOn, amount: upcoming.left } : null,
     sumsPaid: cleared.filter((one) => one.cleared).length,
@@ -250,8 +314,7 @@ export const sumsStandingOf = ({
 
 /**
  * What a Venture counts against its Floor before it starts buying. Paid before buying, what it holds. Paid by the
- * month, the capital its signed Units are for: before the buying it only ever holds their Cattle Parts — the rest comes
- * by the month — and the buying waits on every one of those already, so a Floor read against the cash would be one a
+ * month, the capital its signed Units are for: the buying waits on every Cattle Part independently of advance Monthly Sums, so a Floor read against the cash would be one a
  * Venture paid by the month could never reach.
  */
 export const towardsTheFloor = (venture: {

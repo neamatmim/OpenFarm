@@ -32,6 +32,11 @@ import {
   withdrawPayInNote,
 } from "../pay-in-notes";
 import {
+  documentAsked,
+  theirDocuments,
+  theirDocument,
+} from "../portal-documents";
+import {
   PORTAL_PAPER_KINDS,
   theirOpenVentures,
   theirOwnRequests,
@@ -145,6 +150,16 @@ export const portalRouter = {
   portfolio: investorProcedure.handler(({ context }) =>
     theirPortfolio(context)
   ),
+
+  documents: investorProcedure.handler(({ context }) =>
+    theirDocuments(context)
+  ),
+
+  document: investorProcedure
+    .input(documentAsked)
+    .handler(({ context, input }) =>
+      theirDocument(context, context.investor, input)
+    ),
 
   /** The Ventures raising capital the Owner is showing them (`theirOpenVentures`, ADR 0008). */
   openVentures: investorProcedure.handler(({ context }) =>

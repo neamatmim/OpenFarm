@@ -30,12 +30,16 @@ export const PreviewBand = ({
         {t("portal.preview.bandHint")}
       </p>
       <Button
+        nativeButton={false}
         render={<Link params={{ investorId }} to="/investors/$investorId" />}
+        className="h-auto max-w-full py-2 whitespace-normal"
         size="sm"
         variant="secondary"
       >
         <ArrowLeft aria-hidden data-icon="inline-start" />
-        {t("portal.preview.back", { name })}
+        <span className="min-w-0 break-words">
+          {t("portal.preview.back", { name })}
+        </span>
       </Button>
     </aside>
   );

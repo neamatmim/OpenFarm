@@ -1,4 +1,5 @@
-import { payInCodeIn } from "@OpenFarm/domain";
+import type { MonthlyPaymentAllocation } from "@OpenFarm/domain";
+import { monthlyPaymentAllocationOf, payInCodeIn } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -109,6 +110,84 @@ const whatTheChoiceSays = ({
     : t("ventures.codeNotChosen", named);
 };
 
+/** A preview uses the ledger's allocation; server checks still run behind the Farm lock. */
+const proposedAllocation = (
+  allocation: MonthlyPaymentAllocation | null | undefined,
+  amount: number,
+  today: string
+) => {
+  if (
+    !allocation ||
+    !Number.isFinite(amount) ||
+    amount <= 0 ||
+    amount > allocation.owedMoney
+  ) {
+    return null;
+  }
+  return monthlyPaymentAllocationOf({
+    units: 1,
+    unitPriceMoney: allocation.totalMoney,
+    monthly: {
+      cattlePartMoney: allocation.cattleRequiredMoney,
+      sums: allocation.sums.map((one) => ({
+        dueOn: one.dueOn,
+        amount: one.amountMoney,
+      })),
+    },
+    paidMoney: allocation.paidMoney + amount,
+    today,
+  });
+};
+
+const readyToReceive = (arrival: Arrival, room: number) => {
+  const amount = Number(arrival.amountMoney);
+  const withinLimit = amount <= room;
+  return (
+    arrival.agreementId !== "" &&
+    Number.isFinite(amount) &&
+    amount > 0 &&
+    withinLimit &&
+    arrival.movedOn !== "" &&
+    arrival.reference.trim() !== ""
+  );
+};
+
+const ReceiptAllocationPreview = ({
+  allocation,
+  proposed,
+}: {
+  allocation: MonthlyPaymentAllocation | null | undefined;
+  proposed: MonthlyPaymentAllocation | null;
+}) => {
+  const { t } = useLanguage();
+  const asMoney = useMoney();
+  if (!allocation || !proposed) {
+    return null;
+  }
+  return (
+    <InsetPanel>
+      <p className="text-sm font-semibold">{t("payments.preview")}</p>
+      <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <dt className="text-muted-foreground">{t("payments.cattle")}</dt>
+          <dd className="font-semibold tabular-nums">
+            {asMoney(proposed.cattlePaidMoney - allocation.cattlePaidMoney)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">{t("payments.monthly")}</dt>
+          <dd className="font-semibold tabular-nums">
+            {asMoney(proposed.monthlyPaidMoney - allocation.monthlyPaidMoney)}
+          </dd>
+        </div>
+      </dl>
+      <p className="text-muted-foreground mt-3 text-xs">
+        {t("payments.previewHint")}
+      </p>
+    </InsetPanel>
+  );
+};
+
 /**
  * Capital as it lands: which paper it came against, how much, the day the bank moved it, and the
  * reference on the transfer, check or deposit slip.
@@ -213,11 +292,9 @@ export const TakeCapitalSheet = ({
     t,
   });
   const amount = Number(arrival.amountMoney);
-  const ready =
-    arrival.agreementId !== "" &&
-    amount > 0 &&
-    arrival.movedOn !== "" &&
-    arrival.reference.trim() !== "";
+  const allocation = paper?.paymentAllocation;
+  const proposed = proposedAllocation(allocation, amount, arrival.movedOn);
+  const ready = readyToReceive(arrival, paper?.capitalLeftMoney ?? 0);
   return (
     <FormSheet
       wide
@@ -298,6 +375,9 @@ export const TakeCapitalSheet = ({
         <FormField id="capital-amount" label={t("ventures.amount")}>
           <Input
             id="capital-amount"
+            min={0.01}
+            step="0.01"
+            max={paper?.capitalLeftMoney}
             inputMode="numeric"
             onChange={(event) =>
               setArrival({ ...arrival, amountMoney: event.target.value })
@@ -317,6 +397,7 @@ export const TakeCapitalSheet = ({
           />
         </FormField>
       </div>
+      <ReceiptAllocationPreview allocation={allocation} proposed={proposed} />
       <FarmsOwnAccount
         onChange={(farmAccountId) => setArrival({ ...arrival, farmAccountId })}
         paper={paper}

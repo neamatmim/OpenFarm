@@ -424,7 +424,7 @@ export const feedingPlanDetail = async (
 
 /** All live fattening animals in one read. Feed is pooled across pens so the same stock is never promised twice. */
 export const farmFeedingPlan = async (
-  db: Database,
+  db: Database | Tx,
   farm: PlanningFarm,
   now: Date,
   month: string,

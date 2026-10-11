@@ -69,6 +69,16 @@ export const printAlone = async (
     )
   );
   await inside.fonts.ready;
+  // Saved paper photos must finish decoding before the browser lays out their printed page.
+  await Promise.all(
+    [...inside.images].map(async (photo) => {
+      try {
+        await photo.decode();
+      } catch {
+        // A failed photo stays visible as broken; it must not leave the print dialog waiting forever.
+      }
+    })
+  );
   // Gone once the print dialog is closed — some browsers return from print() at once and some only after, so it is
   // the frame's own afterprint that says when, with a minute's grace for one that never says.
   const gone = () => frame.remove();

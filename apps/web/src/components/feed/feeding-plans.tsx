@@ -28,6 +28,8 @@ import { isAMonth } from "@/lib/months";
 import { namesIn } from "@/lib/names-in";
 import { orpc } from "@/utils/orpc";
 
+import { ForecastPurchasePicker } from "./feed-purchase-request";
+
 export const FeedingPlansTab = ({
   month,
   scenario = "expected",
@@ -149,6 +151,21 @@ export const FeedingPlansTab = ({
               {t("feedPlan.stockHint")}
             </Notice>
             <Section title={t("feedPlan.monthlyPurchases")}>
+              <ForecastPurchasePicker
+                month={month}
+                basis="planning"
+                scenario={scenario}
+                lines={summary.lines
+                  .filter((line) => line.toBuy > 0 && !line.retired)
+                  .map((line) => ({
+                    ...line,
+                    quantity: line.toBuy,
+                    unitPriceMoney:
+                      line.money === null
+                        ? null
+                        : Math.round((line.money / line.toBuy) * 100) / 100,
+                  }))}
+              />
               {summary.lines.length > 0 ? (
                 <Table>
                   <TableHeader>

@@ -10,6 +10,7 @@ import {
   Banknote,
   BookOpen,
   Calculator,
+  CalendarDays,
   Coins,
   HandCoins,
   Hourglass,
@@ -27,6 +28,7 @@ import { PeriodBar } from "@/components/money/period-bar";
 import { ReceivableTab } from "@/components/money/receivable-tab";
 import type { MoneyList } from "@/components/money/register";
 import { RegisterTab } from "@/components/money/register";
+import { SupplierPaymentPlanner } from "@/components/money/supplier-payment-planner";
 import { WageDrawsTab } from "@/components/money/wage-draws";
 import { Notice, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
@@ -43,6 +45,7 @@ const TABS = [
   "cash",
   "draws",
   "receivable",
+  "supplierPayments",
   "costs",
   "accountant",
 ] as const;
@@ -54,6 +57,7 @@ const TAB_PATHS = {
   cash: "/money/cash",
   draws: "/money/wage-draws",
   receivable: "/money/receivables",
+  supplierPayments: "/money/supplier-payments",
   costs: "/money/costs",
   accountant: "/money/accountant",
 } as const satisfies Record<Tab, string>;
@@ -124,7 +128,10 @@ const MoneyPage = () => {
   const [from, setFrom] = useState(() => asked.from ?? firstOfTheMonth());
   const [to, setTo] = useState(() => asked.to ?? farmDayOf(new Date()));
   const [entering, setEntering] = useState(false);
-  const money = useQuery(orpc.money.list.queryOptions({ input: { from, to } }));
+  const money = useQuery({
+    ...orpc.money.list.queryOptions({ input: { from, to } }),
+    enabled: tab !== "supplierPayments",
+  });
   const isOwner = me.data?.roles.includes("owner") ?? false;
   const entersMoney = isOwner || (me.data?.roles.includes("manager") ?? false);
   const figures = useMoneyFigures(money.data);
@@ -136,7 +143,7 @@ const MoneyPage = () => {
     <Page>
       <PageHeader
         actions={
-          entersMoney ? (
+          entersMoney && tab !== "supplierPayments" ? (
             <Button onClick={() => setEntering(true)} type="button">
               <Plus aria-hidden data-icon="inline-start" />
               {t("byHand.title")}
@@ -147,26 +154,28 @@ const MoneyPage = () => {
         title={t("nav.money")}
       />
 
-      <div className="flex flex-col gap-4">
-        <PeriodBar
-          from={from}
-          onFromChange={setFrom}
-          onToChange={setTo}
-          to={to}
-        />
-        {money.data?.more ? (
-          <Notice title={t("money.partialTotals")} tone="info">
-            {t("money.partialHint")}
-          </Notice>
-        ) : null}
-        {money.isError ? (
-          <Notice
-            title={wordedRefusal(money.error, t) ?? t("common.error")}
-            tone="danger"
+      {tab === "supplierPayments" ? null : (
+        <div className="flex flex-col gap-4">
+          <PeriodBar
+            from={from}
+            onFromChange={setFrom}
+            onToChange={setTo}
+            to={to}
           />
-        ) : null}
-        <SummaryFigures figures={figures} />
-      </div>
+          {money.data?.more ? (
+            <Notice title={t("money.partialTotals")} tone="info">
+              {t("money.partialHint")}
+            </Notice>
+          ) : null}
+          {money.isError ? (
+            <Notice
+              title={wordedRefusal(money.error, t) ?? t("common.error")}
+              tone="danger"
+            />
+          ) : null}
+          <SummaryFigures figures={figures} />
+        </div>
+      )}
 
       <PageTabs
         onChange={(value) => navigate({ ...TAB_SWITCH, to: TAB_PATHS[value] })}
@@ -202,6 +211,12 @@ const MoneyPage = () => {
             label: t("receivable.tab"),
             icon: HandCoins,
             content: <ReceivableTab />,
+          },
+          {
+            value: "supplierPayments",
+            label: t("payables.tab"),
+            icon: CalendarDays,
+            content: <SupplierPaymentPlanner owner={isOwner} />,
           },
           {
             value: "costs",

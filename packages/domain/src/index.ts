@@ -956,6 +956,7 @@ export {
   TAKES_MONTHLY_SUMS,
   capitalItMayHold,
   cattleMoneyOf,
+  monthlyPaymentAllocationOf,
   monthlySumsOf,
   monthlyTermsOf,
   sumsStandingOf,
@@ -965,6 +966,7 @@ export {
 export type {
   CapitalPaid,
   MonthlySum,
+  MonthlyPaymentAllocation,
   MonthlyTerms,
   NoMonthlyTerms,
   SumsStanding,

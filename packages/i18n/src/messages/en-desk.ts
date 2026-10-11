@@ -4,6 +4,41 @@
  * screen is drawn, and before any desk or portal page is (`apps/web/src/client.tsx`, the root route).
  */
 export const enDesk = {
+  "payables.tab": "Supplier payments",
+  "payables.title": "Supplier payment plan",
+  "payables.hint":
+    "Unpaid feed invoices, grouped by supplier and ordered by their due date.",
+  "payables.asOf": "As of {date}",
+  "payables.outstanding": "Total outstanding: {money}",
+  "payables.beforeToday": "Due before today",
+  "payables.next7": "Due in the next 7 days",
+  "payables.next30": "Due in the next 30 days",
+  "payables.month": "Due by month-end",
+  "payables.monthHint": "Through {date}, including overdue bills",
+  "payables.windowsHint":
+    "The 7- and 30-day periods include today and exclude overdue bills. The 30-day total includes the 7-day total; these figures should not be added together.",
+  "payables.search": "Search supplier, phone or invoice",
+  "payables.show": "Show bills",
+  "payables.all": "All unpaid bills",
+  "payables.today": "Due today",
+  "payables.shown":
+    "{count, plural, one {# bill shown} other {# bills shown}} · {money} outstanding",
+  "payables.supplierShown": "Outstanding on the bills shown: {money}",
+  "payables.viewInvoice": "View invoice",
+  "payables.viewNamed": "View invoice {number} from {supplier}",
+  "payables.payNamed": "Record payment for invoice {number} from {supplier}",
+  "payables.viewPlan": "View payment plan",
+  "payables.empty": "No unpaid supplier bills",
+  "payables.emptyHint":
+    "Credit and partially paid feed invoices will appear here until their recorded balance is paid.",
+  "payables.noMatches": "No bills match this view",
+  "payables.noMatchesHint":
+    "Change the period or search to see other unpaid bills.",
+  "audit.entity.supplier": "Supplier",
+  "audit.entity.supplier_invoice": "Supplier invoice",
+  "audit.entity.supplier_payment": "Supplier payment",
+
+  "audit.entity.feed_purchase_order": "Feed purchase request / order",
   "portal.account.title": "Your account",
   "portal.account.hint":
     "Your record as the farm holds it, who to ask about it, your password, and where you are signed in.",
@@ -708,9 +743,9 @@ export const enDesk = {
   "portal.runningBudget": "Running budget",
   "portal.budgetLeft": "{left} left of {of}",
   "portal.budgetSpent": "{spent} spent of {of}",
-  "portal.papers": "Your papers",
+  "portal.papers": "My agreements and documents",
   "portal.papersHint":
-    "The same papers the farm prints for you, to read and print.",
+    "Your signed agreements, nomination history, letters and statements. Open them to read, print or save a copy.",
   "portal.paper.joining": "Joining letter",
   "portal.paper.progress": "Progress statement",
   "portal.paper.settlement": "Settlement statement",
@@ -2570,4 +2605,53 @@ export const enDesk = {
     "{pen}: {counted} counted, {expected} on the register. Walk the pen and count again.",
   "digest.headCountDiffers":
     "{count, plural, one {# pen's count} other {# pens' counts}} did not match the register",
+  "portal.documents.statements": "Letters and statements",
+  "portal.documents.agreements": "Signed agreements and amendments",
+  "portal.documents.nominations": "Nomination history",
+  "portal.documents.agreement": "Investment agreement",
+  "portal.documents.amendment": "Agreement amendment",
+  "portal.documents.nomination": "Nomination paper",
+  "portal.documents.current": "Current",
+  "portal.documents.previous": "Previous",
+  "portal.documents.signedOn": "Signed on {day}",
+  "portal.documents.recordedOn": "Recorded on {day}",
+  "portal.documents.inApp": "Agreed in the app",
+  "portal.documents.photo": "Photo of the signed paper",
+  "portal.documents.inAgreement":
+    "These nominees were named in the agreement. Open it to see the signed record.",
+  "portal.documents.carriedOver":
+    "Carried over from an earlier record; no signed nomination paper is on file.",
+  "portal.documents.missing":
+    "No saved copy is on file. Ask the farm to keep a photo of the signed paper.",
+  "portal.documents.changed":
+    "This saved document could not be verified. Please contact the farm.",
+  "portal.documents.printPdf": "Print / save PDF",
+  "portal.documents.pdfHint":
+    "To keep a PDF, choose Save as PDF in the print dialog.",
+  "portal.documents.originalInApp":
+    "The exact document you agreed to in the app, kept with your agreement and the farm’s approval.",
+  "portal.documents.agreedAt": "You agreed: {at}",
+  "portal.documents.approvedAt": "Farm approved: {at}",
+  "portal.documents.emptyAgreements": "No agreements on file yet",
+  "portal.documents.emptyNominations": "No nomination on file yet",
+  "portal.documents.emptyHint":
+    "Once recorded by the farm, your documents will appear here.",
+  "payments.title": "Payment allocation",
+  "payments.hint":
+    "Confirmed bank receipts cover your Cattle Part first, then Monthly Sums oldest first. The original schedule stays the same.",
+  "payments.cattle": "Cattle Part",
+  "payments.monthly": "Monthly Sums",
+  "payments.ahead": "Paid toward future sums",
+  "payments.balance": "Agreement balance remaining",
+  "payments.paid": "Paid",
+  "payments.left": "Remaining",
+  "payments.schedule": "Original payment schedule",
+  "payments.preview": "This receipt will cover",
+  "payments.previewHint":
+    "Verify the bank receipt before recording. Money after this agreement’s cattle part stays in the running budget; it never covers someone else’s unpaid cattle part.",
+  "portal.pay.early":
+    "You may pay early, up to {amount} remaining on this Agreement. Record the actual bank transfer date and reference.",
+  "portal.pay.cattleDeadline":
+    "Your Cattle Part must be received before buying starts. Decision date:",
+  "payments.dueOn": "Due on",
 } as const;

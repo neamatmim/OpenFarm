@@ -30,6 +30,7 @@ import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { FiguresAsAt } from "@/components/portal/figures-as-at";
 import { HowToPay } from "@/components/portal/how-to-pay";
+import { MonthlyPayments } from "@/components/portal/monthly-payments";
 import type { VentureTab } from "@/components/portal/pages/page-search";
 import { PayInNotes, waitingMoneyOf } from "@/components/portal/pay-in-notes";
 import { PortalPapers } from "@/components/portal/portal-papers";
@@ -688,6 +689,7 @@ const VentureToday = ({
       {/* An answer this phone kept from before the portal could say it has none. */}
       <OnTheirCapital returned={mine?.returnOnCapital ?? null} />
       {/* While their capital is owed. An answer this phone kept from before the farm said where to pay has none. */}
+      <MonthlyPayments allocation={today.paymentAllocation ?? null} />
       <HowToPay
         paying={today.howToPay ?? null}
         waitingMoney={waitingMoneyOf(today.payIn)}

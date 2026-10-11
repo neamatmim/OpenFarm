@@ -13,9 +13,12 @@ import {
   feedArrivalCorrection,
   feedArrivalCorrectionInput,
 } from "../corrections/feed-arrival";
-import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { monthlyFeedEstimate } from "../feed-estimate-store";
+import {
+  lockFeedOrder,
+  validateOrderedDelivery,
+} from "../feed-purchasing-store";
 import { protectedProcedure } from "../index";
 import { assertNotExpiredWhenBought, lotFields } from "../lot-input";
 import {
@@ -42,6 +45,14 @@ import {
   scaleBySeller,
   tellIfTheFeedCameDearer,
 } from "../stock-store";
+import {
+  deliveryInvoice,
+  lockSupplierFarm,
+  supplierNamed,
+  supplierRefused,
+  verifyDeliveryInvoice,
+} from "../supplier-store";
+import { seenWhenDone } from "../writes-seen";
 
 /**
  * How much came, in the feed's own unit: as typed, or worked out from the bags or maunds a trader's slip gives — one or
@@ -253,6 +264,7 @@ export const stockRouter = {
     .input(
       z.object({
         id: z.string().uuid().optional(),
+        purchaseOrderId: z.string().uuid().optional(),
         feedItemId: z.string(),
         kind: z.enum(FEED_IN_KINDS),
         /** How much, in the feed's own unit — or, for feed counted in kilos, the bags or maunds it came as. */
@@ -265,6 +277,20 @@ export const stockRouter = {
           .optional(),
         priceMoney: feedPriceInput.optional(),
         seller: sellerInput.optional(),
+        supplierId: z.string().optional(),
+        invoice: z
+          .object({
+            number: z.string().trim().min(1).max(120),
+            invoicedOn: farmDay,
+            dueOn: farmDay,
+          })
+          .optional(),
+        paidAtDeliveryMoney: z
+          .number()
+          .min(0)
+          .max(100_000_000)
+          .multipleOf(0.01)
+          .optional(),
         /** What the farm's scale showed, in kilos, where the lot was weighed as it came: then what the store holds,
          *  and the slip's figure is kept beside it. */
         weighed: quantityInput.optional(),
@@ -289,14 +315,31 @@ export const stockRouter = {
         priced: input.priceMoney !== undefined,
         seller: input.seller !== undefined,
       });
+      if (
+        (input.invoice || input.paidAtDeliveryMoney !== undefined) &&
+        input.kind !== "purchase"
+      ) {
+        supplierRefused("supplier_invoice_purchase");
+      }
+      if (input.paidAtDeliveryMoney !== undefined && !input.invoice) {
+        supplierRefused("supplier_invoice_required");
+      }
+      if ((input.paidAtDeliveryMoney ?? 0) > (input.priceMoney ?? 0)) {
+        supplierRefused("supplier_payment_limit");
+      }
       const receivedOn = receivedDay(input.receivedOn, now);
       assertNotExpiredWhenBought(input.expiresOn, input.receivedOn);
       const id = input.id ?? newId(now);
       const already = await context.db.query.feedIn.findFirst({
         where: { id, farmId: context.farm.id },
-        columns: { id: true },
+        columns: { id: true, purchaseOrderId: true },
       });
       if (already) {
+        if ((already.purchaseOrderId ?? undefined) !== input.purchaseOrderId) {
+          throw new ORPCError("CONFLICT", {
+            data: { refusal: "feed_order_changed" },
+          });
+        }
         return { id };
       }
       const item = await context.db.query.feedItem.findFirst({
@@ -322,22 +365,57 @@ export const stockRouter = {
       const slip = quantityReceived(input, item);
       const weighed = weighedOnArrival(input, item);
       const quantity = weighed ?? slip;
-      await audited(context).write(
-        {
-          entity: "feed_in",
-          entityId: id,
-          action: "create",
-          after: (tx) => readFeedArrival(tx, id),
-        },
-        async (tx) => {
-          const sellerId = input.seller
-            ? await counterpartyNamed(tx, context.farm.id, input.seller, now)
+      await seenWhenDone(
+        context.db.transaction(async (tx) => {
+          await lockSupplierFarm(tx, context.farm.id);
+          const order = input.purchaseOrderId
+            ? await lockFeedOrder(tx, context.farm.id, input.purchaseOrderId)
             : null;
+          // Another tap may have waited behind this order's delivery lock.
+          const existing = await tx.query.feedIn.findFirst({
+            where: { id, farmId: context.farm.id },
+          });
+          if (existing) {
+            if (
+              (existing.purchaseOrderId ?? undefined) !== input.purchaseOrderId
+            ) {
+              throw new ORPCError("CONFLICT", {
+                data: { refusal: "feed_order_changed" },
+              });
+            }
+            return;
+          }
+          const sellerId = input.seller
+            ? await supplierNamed(
+                tx,
+                context.farm.id,
+                input.seller,
+                now,
+                input.supplierId
+              )
+            : null;
+          if (order) {
+            await validateOrderedDelivery(
+              tx,
+              order,
+              { ...input, quantity: Number(quantity.toFixed(1)) },
+              sellerId
+            );
+          }
+          const funding = await deliveryInvoice(
+            tx,
+            context,
+            input,
+            sellerId,
+            now
+          );
           await tx.insert(feedIn).values({
             id,
             farmId: context.farm.id,
             feedItemId: item.id,
             kind: input.kind,
+            purchaseOrderId: order?.id ?? null,
+            ...funding,
             quantity: quantity.toFixed(1),
             slipQuantity: weighed === null ? null : slip.toFixed(1),
             packKind: input.pack?.kind ?? null,
@@ -356,6 +434,11 @@ export const stockRouter = {
             recordedByRole,
             recordedAt: now,
           });
+          await verifyDeliveryInvoice(
+            tx,
+            context.farm.id,
+            funding.supplierInvoiceId
+          );
           await bookPurchaseMoney(
             tx,
             bookingOf(
@@ -368,7 +451,13 @@ export const stockRouter = {
             input.paymentMethod
           );
           await tellIfTheFeedCameDearer(tx, context.farm, id, now);
-        }
+          await audited(context).recordEvent(tx, {
+            entity: "feed_in",
+            entityId: id,
+            action: "create",
+            after: await readFeedArrival(tx, id),
+          });
+        })
       );
       return { id };
     }),

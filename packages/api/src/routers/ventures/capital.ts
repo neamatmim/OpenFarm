@@ -4,6 +4,8 @@ import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import {
   capitalItMayHold,
+  farmDayOf,
+  monthlyPaymentAllocationOf,
   roundMoney,
   startOfFarmDay,
   takesCapital,
@@ -46,16 +48,16 @@ import {
 import {
   assertCattleBudgetHolds,
   lockTheFarm,
+  paidForBy,
   readMovement,
   takenAgainst,
   whatTheFloatBought,
 } from "../../venture-store";
-import type { Context } from "./shared";
 import { assertByBank, money } from "./shared";
 
 const capitalInput = z.object({
   agreementId: z.string(),
-  amountMoney: money.refine((amount) => amount > 0, {
+  amountMoney: money.multipleOf(0.01).refine((amount) => amount > 0, {
     message: "Capital in is money arriving",
   }),
   /** The day the bank moved it, on the farm's own clock. */
@@ -89,7 +91,10 @@ const assertTakesCapital = (
 };
 
 /** This Farm's Investment Agreement, or nothing the caller may move money against. */
-const theAgreement = async (context: Context, id: string) => {
+const theAgreement = async (
+  context: { db: Pick<Tx, "query">; farm: { id: string } },
+  id: string
+) => {
   const row = await context.db.query.investmentAgreement.findFirst({
     where: { id, farmId: context.farm.id },
     columns: { id: true, ventureId: true, units: true, stampKind: true },
@@ -180,16 +185,20 @@ export const capitalProcedures = {
       const agreement = await theAgreement(context, input.agreementId);
       const row = await ours(context, agreement.ventureId);
       assertTakesCapital(row);
-      // Its Units' whole price — or, for a Venture paid by the month, its Units' Cattle Part while it gathers its capital.
-      const owed = capitalItMayHold(agreement.units, row);
-      const cattlePartOnly = owed < agreement.units * row.unitPriceMoney;
       const id = uuidv7(now);
-      await audited(context).write(
+      let allocation: {
+        before: ReturnType<typeof monthlyPaymentAllocationOf>;
+        after: ReturnType<typeof monthlyPaymentAllocationOf>;
+      } | null = null;
+      return await audited(context).write(
         {
           entity: "venture_movement",
           entityId: id,
           action: "create",
-          after: (tx) => readMovement(tx, context.farm.id, id),
+          after: async (tx) => ({
+            ...(await readMovement(tx, context.farm.id, id)),
+            ...(allocation ? { allocation } : {}),
+          }),
         },
         async (tx) => {
           // Counted inside the write's own transaction and behind a lock on the Farm row, as signing
@@ -202,27 +211,45 @@ export const capitalProcedures = {
           const standing = await tx.query.venture.findFirst({
             where: { id: row.id, farmId: context.farm.id },
           });
-          if (standing) {
-            assertTakesCapital(standing);
+          if (!standing) {
+            throw new ORPCError("NOT_FOUND", { message: "No such Venture" });
           }
+          assertTakesCapital(standing);
+          const currentAgreement = await theAgreement(
+            { ...context, db: tx },
+            agreement.id
+          );
+          const owed = capitalItMayHold(currentAgreement.units, standing);
           const paidAlready = await takenAgainst(
             tx,
             context.farm.id,
             agreement.id
           );
-          if (paidAlready + input.amountMoney > owed) {
-            // Paid by the month, the rest comes as Monthly Sums once the buying starts: said as that, not as a paper
-            // that is full, because it is not.
+          const paidNow = roundMoney(paidAlready + input.amountMoney);
+          if (paidNow > owed) {
             throw new ORPCError("BAD_REQUEST", {
-              message: cattlePartOnly
-                ? `This Agreement's Cattle Part is for ${owed - paidAlready} more ${currencyWords("en").sum}; the rest comes by the month`
-                : `This Agreement is for ${owed - paidAlready} more ${currencyWords("en").sum}`,
-              data: {
-                refusal: cattlePartOnly
-                  ? "capital_over_cattle_part"
-                  : "capital_over_units",
-              },
+              message: `This Agreement is for ${Math.max(0, owed - paidAlready)} more ${currencyWords("en").sum}`,
+              data: { refusal: "capital_over_units" },
             });
+          }
+          const { monthly } = paidForBy(standing);
+          if (monthly) {
+            const terms = {
+              units: currentAgreement.units,
+              unitPriceMoney: standing.unitPriceMoney,
+              monthly,
+              today: farmDayOf(now),
+            };
+            allocation = {
+              before: monthlyPaymentAllocationOf({
+                ...terms,
+                paidMoney: paidAlready,
+              }),
+              after: monthlyPaymentAllocationOf({
+                ...terms,
+                paidMoney: paidNow,
+              }),
+            };
           }
           // Asked after the count, which is the order these two were refused in before the count moved
           // inside the lock: a payment that is both unpapered and over its Units hears the same of the
@@ -231,7 +258,7 @@ export const capitalProcedures = {
             where: { agreementId: agreement.id, farmId: context.farm.id },
             columns: { agreementId: true },
           });
-          if (!paperOnFile(agreement, photo !== undefined)) {
+          if (!paperOnFile(currentAgreement, photo !== undefined)) {
             throw new ORPCError("BAD_REQUEST", {
               message: "The stamped Agreement is not on file yet",
               data: { refusal: "agreement_has_no_paper" },
@@ -289,7 +316,7 @@ export const capitalProcedures = {
             });
           }
           // Nothing left owing: a note still waiting is for money the paper cannot take.
-          if (paidAlready + input.amountMoney >= owed) {
+          if (paidNow >= owed) {
             await closePayInNotes(
               tx,
               audited(context).recordEvent,
@@ -299,9 +326,9 @@ export const capitalProcedures = {
               now
             );
           }
+          return { id, allocation };
         }
       );
-      return { id };
     }),
 
   /** The Investors' Pay-in Notes on a Venture, the Owner's to check against the Venture Account (ADR 0018). */
@@ -375,7 +402,7 @@ export const capitalProcedures = {
         z.object({
           ventureId: z.string(),
           buyingTripId: z.string(),
-          amountMoney: money.refine((amount) => amount > 0, {
+          amountMoney: money.multipleOf(0.01).refine((amount) => amount > 0, {
             message: "A Float is money going out",
           }),
           movedOn: farmDay,

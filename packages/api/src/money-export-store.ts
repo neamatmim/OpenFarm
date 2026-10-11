@@ -240,55 +240,67 @@ const recordFactsOf = async (
     farmId,
     idsOf(events, "receivable_payment")
   );
-  const [dispatches, intakes, sales, feedIns, medicines, fees] =
-    await Promise.all([
-      db.query.dispatch.findMany({
-        where: { farmId, id: { in: idsOf(events, "dispatch") } },
-        columns: { id: true, deliveryNote: true },
-      }),
-      db.query.intake.findMany({
-        where: { farmId, id: { in: idsOf(events, "intake") } },
-        columns: { id: true },
-        with: { animal: { columns: { tagNumber: true } } },
-      }),
-      db.query.sale.findMany({
-        where: {
-          farmId,
-          id: {
-            in: [
-              ...idsOf(events, "sale"),
-              ...idsOf(events, "sale_broker"),
-              ...receivable.clearedSaleIds,
-            ],
+  const [
+    dispatches,
+    intakes,
+    sales,
+    feedIns,
+    medicines,
+    fees,
+    supplierPayments,
+  ] = await Promise.all([
+    db.query.dispatch.findMany({
+      where: { farmId, id: { in: idsOf(events, "dispatch") } },
+      columns: { id: true, deliveryNote: true },
+    }),
+    db.query.intake.findMany({
+      where: { farmId, id: { in: idsOf(events, "intake") } },
+      columns: { id: true },
+      with: { animal: { columns: { tagNumber: true } } },
+    }),
+    db.query.sale.findMany({
+      where: {
+        farmId,
+        id: {
+          in: [
+            ...idsOf(events, "sale"),
+            ...idsOf(events, "sale_broker"),
+            ...receivable.clearedSaleIds,
+          ],
+        },
+      },
+      columns: { id: true, soldAt: true },
+      with: {
+        animal: { columns: { id: true, tagNumber: true, side: true } },
+      },
+    }),
+    db.query.feedIn.findMany({
+      where: { farmId, id: { in: idsOf(events, "feed_in") } },
+      columns: { id: true },
+      with: { feedItem: { columns: { nameBn: true } } },
+    }),
+    db.query.medicinePurchase.findMany({
+      where: { farmId, id: { in: idsOf(events, "medicine_purchase") } },
+      columns: { id: true },
+      with: { product: { columns: { nameBn: true } } },
+    }),
+    db.query.vetFee.findMany({
+      where: { farmId, id: { in: idsOf(events, "vet_fee") } },
+      columns: { id: true, visitedOn: true },
+      with: {
+        animals: {
+          with: {
+            animal: { columns: { id: true, tagNumber: true, side: true } },
           },
         },
-        columns: { id: true, soldAt: true },
-        with: {
-          animal: { columns: { id: true, tagNumber: true, side: true } },
-        },
-      }),
-      db.query.feedIn.findMany({
-        where: { farmId, id: { in: idsOf(events, "feed_in") } },
-        columns: { id: true },
-        with: { feedItem: { columns: { nameBn: true } } },
-      }),
-      db.query.medicinePurchase.findMany({
-        where: { farmId, id: { in: idsOf(events, "medicine_purchase") } },
-        columns: { id: true },
-        with: { product: { columns: { nameBn: true } } },
-      }),
-      db.query.vetFee.findMany({
-        where: { farmId, id: { in: idsOf(events, "vet_fee") } },
-        columns: { id: true, visitedOn: true },
-        with: {
-          animals: {
-            with: {
-              animal: { columns: { id: true, tagNumber: true, side: true } },
-            },
-          },
-        },
-      }),
-    ]);
+      },
+    }),
+    db.query.supplierPayment.findMany({
+      where: { farmId, id: { in: idsOf(events, "supplier_payment") } },
+      columns: { id: true },
+      with: { invoice: { columns: { number: true } } },
+    }),
+  ]);
   const animalIds = [
     ...sales.map((one) => one.animal.id),
     ...fees.flatMap((one) => one.animals.map((line) => line.animal.id)),
@@ -352,6 +364,13 @@ const recordFactsOf = async (
         [factKey("sale_broker", one.id), facts] as const,
       ];
     }),
+    ...supplierPayments.map(
+      (one) =>
+        [
+          factKey("supplier_payment", one.id),
+          { reference: one.invoice.number, sides: WHOLE_FARM },
+        ] as const
+    ),
     ...feedIns.map(
       (one) =>
         [

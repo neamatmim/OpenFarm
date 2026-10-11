@@ -1,6 +1,8 @@
+import { sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   index,
+  check,
   integer,
   jsonb,
   numeric,
@@ -16,6 +18,7 @@ import { counterparty } from "./fattening";
 import { pen } from "./herd";
 import { sopInstance, stepCompletion } from "./instance";
 import { numericMoney } from "./numeric-columns";
+import { supplierInvoice } from "./supplier";
 
 /** What a Feed Item is counted in. Its own copy, as `SIDES` and `ANIMAL_STATES` are: this package depends on
  *  nothing, and the domain keeps the rules that read it — a test holds the two the same. */
@@ -221,6 +224,106 @@ export const feeding = pgTable(
   ]
 );
 
+export const FEED_ORDER_STATES = [
+  "requested",
+  "approved",
+  "ordered",
+  "rejected",
+  "cancelled",
+  "closed",
+] as const;
+
+/** One feed per request. Approval fixes its quantity and spending ceiling; corrections to arrivals remain visible
+ * through their live totals. A request or order never creates stock or a money event. */
+export const feedPurchaseOrder = pgTable(
+  "feed_purchase_order",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    feedItemId: text("feed_item_id")
+      .notNull()
+      .references(() => feedItem.id),
+    counterpartyId: text("counterparty_id")
+      .notNull()
+      .references(() => counterparty.id),
+    assignedTo: text("assigned_to")
+      .notNull()
+      .references(() => user.id),
+    quantity: numeric("quantity", { precision: 12, scale: 1 }).notNull(),
+    unitPriceMoney: numericMoney("unit_price_money").notNull(),
+    budgetMoney: numericMoney("budget_money").notNull(),
+    neededOn: text("needed_on").notNull(),
+    leadDays: integer("lead_days").notNull(),
+    bufferDays: integer("buffer_days").notNull(),
+    creditDays: integer("credit_days").notNull().default(0),
+    forecast: jsonb("forecast"),
+    note: text("note"),
+    state: text("state", { enum: FEED_ORDER_STATES })
+      .notNull()
+      .default("requested"),
+    version: integer("version").notNull().default(1),
+    requestedBy: text("requested_by")
+      .notNull()
+      .references(() => user.id),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull(),
+    approvedBy: text("approved_by").references(() => user.id),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    orderedBy: text("ordered_by").references(() => user.id),
+    orderedAt: timestamp("ordered_at", { withTimezone: true }),
+    orderReference: text("order_reference"),
+    deliveryDueOn: text("delivery_due_on"),
+    endedBy: text("ended_by").references(() => user.id),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    endReason: text("end_reason"),
+  },
+  (table) => [
+    check(
+      "feed_purchase_order_quantity_not_negative",
+      sql`${table.quantity} >= 0`
+    ),
+    check(
+      "feed_purchase_order_unit_price_money_not_negative",
+      sql`${table.unitPriceMoney} >= 0`
+    ),
+    check(
+      "feed_purchase_order_budget_money_not_negative",
+      sql`${table.budgetMoney} >= 0`
+    ),
+    check(
+      "feed_purchase_order_lead_days_not_negative",
+      sql`${table.leadDays} >= 0`
+    ),
+    check(
+      "feed_purchase_order_buffer_days_not_negative",
+      sql`${table.bufferDays} >= 0`
+    ),
+    check(
+      "feed_purchase_order_credit_days_not_negative",
+      sql`${table.creditDays} >= 0`
+    ),
+    check(
+      "feed_order_credit_days_check",
+      sql`${table.creditDays} BETWEEN 0 AND 365`
+    ),
+    index("feed_purchase_order_farm_idx").on(
+      table.farmId,
+      table.state,
+      table.neededOn
+    ),
+    index("feed_purchase_order_item_idx").on(table.farmId, table.feedItemId),
+    check(
+      "feed_purchase_order_terms_ck",
+      sql`${table.quantity} > 0 and ${table.unitPriceMoney} > 0 and ${table.budgetMoney} >= round(${table.quantity} * ${table.unitPriceMoney}, 2) and ${table.leadDays} between 0 and 90 and ${table.bufferDays} between 0 and 30`
+    ),
+    check(
+      "feed_purchase_order_state_known",
+      sql`${table.state} in ('requested', 'approved', 'ordered', 'rejected', 'cancelled', 'closed')`
+    ),
+  ]
+);
+
 /** How feed reaches the store: bought from somebody, or cut from the farm's own fields. */
 export const FEED_IN_KINDS = ["purchase", "harvest"] as const;
 
@@ -242,6 +345,15 @@ export const feedIn = pgTable(
       .notNull()
       .references(() => feedItem.id),
     kind: text("kind", { enum: FEED_IN_KINDS }).notNull(),
+    /** An ordered delivery, recorded once through the normal store and spending books. */
+    purchaseOrderId: text("purchase_order_id").references(
+      (): AnyPgColumn => feedPurchaseOrder.id
+    ),
+    supplierInvoiceId: text("supplier_invoice_id").references(
+      () => supplierInvoice.id
+    ),
+    /** Null preserves the historical fully-paid purchase. An invoice records exactly what was paid at delivery, including zero. */
+    paidAtDeliveryMoney: numericMoney("paid_at_delivery_money"),
     /** In the Feed Item's own unit: what the farm's scale showed where it was weighed, else what the slip said. What
      *  the store holds, and what its price per unit is read on. */
     quantity: numeric("quantity", { precision: 12, scale: 1 }).notNull(),
@@ -268,10 +380,20 @@ export const feedIn = pgTable(
     recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
+    check(
+      "feed_in_paid_at_delivery_money_not_negative",
+      sql`${table.paidAtDeliveryMoney} >= 0`
+    ),
     index("feed_in_item_idx").on(
       table.farmId,
       table.feedItemId,
       table.receivedOn
+    ),
+    index("feed_in_order_idx").on(table.farmId, table.purchaseOrderId),
+    index("feed_in_invoice_idx").on(table.farmId, table.supplierInvoiceId),
+    check(
+      "feed_in_payment_check",
+      sql`(${table.supplierInvoiceId} IS NULL AND ${table.paidAtDeliveryMoney} IS NULL) OR (${table.supplierInvoiceId} IS NOT NULL AND ${table.kind} = 'purchase' AND ${table.priceMoney} IS NOT NULL AND ${table.paidAtDeliveryMoney} IS NOT NULL AND ${table.paidAtDeliveryMoney} >= 0 AND ${table.paidAtDeliveryMoney} <= ${table.priceMoney})`
     ),
   ]
 );

@@ -21,6 +21,7 @@ import { useState } from "react";
 import { ArrivalsTab, CountsTab } from "@/components/feed/feed-history";
 import { ItemsTab } from "@/components/feed/feed-items";
 import { LeftoversTab } from "@/components/feed/feed-leftovers";
+import { FeedPurchasesTab } from "@/components/feed/feed-purchases";
 import { RationsTab } from "@/components/feed/feed-rations";
 import { StockTab } from "@/components/feed/feed-stock";
 import type {
@@ -33,6 +34,7 @@ import { valueOf } from "@/components/feed/feed-types";
 import { FeedingPlansTab } from "@/components/feed/feeding-plans";
 import { MonthlyEstimateTab } from "@/components/feed/monthly-estimate";
 import { ReceiveFeedSheet } from "@/components/feed/receive-feed-sheet";
+import { SuppliersTab } from "@/components/feed/suppliers";
 import { Loaded, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
@@ -47,6 +49,8 @@ const TABS = [
   "stock",
   "estimate",
   "planning",
+  "purchases",
+  "suppliers",
   "feedIn",
   "counts",
   "leftovers",
@@ -60,6 +64,8 @@ const TAB_PATHS = {
   stock: "/feed",
   estimate: "/feed/monthly-estimate",
   planning: "/feed/feeding-plans",
+  purchases: "/feed/purchases",
+  suppliers: "/feed/suppliers",
   feedIn: "/feed/feed-in",
   counts: "/feed/stock-counts",
   leftovers: "/feed/leftovers",
@@ -273,6 +279,18 @@ const FeedPage = () => {
                 }
               />
             ),
+          },
+          {
+            value: "purchases",
+            label: t("purchasing.title"),
+            icon: ShoppingCart,
+            content: <FeedPurchasesTab items={feedItems} />,
+          },
+          {
+            value: "suppliers",
+            label: t("suppliers.title"),
+            icon: Truck,
+            content: <SuppliersTab />,
           },
           {
             value: "feedIn",

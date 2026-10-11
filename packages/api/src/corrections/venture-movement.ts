@@ -1,7 +1,7 @@
 import { and, eq } from "@OpenFarm/db/operators";
 import { moneyEvent } from "@OpenFarm/db/schema/money";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
-import { capitalItMayHold, startOfFarmDay } from "@OpenFarm/domain";
+import { capitalItMayHold, roundMoney, startOfFarmDay } from "@OpenFarm/domain";
 import { currencyWords } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -195,7 +195,7 @@ const loadMovement = async (tx: Tx, farmId: string, id: string) => {
  * movement deleted in all but the row.
  */
 export const ventureMovementCorrectionInput = correctionInput({
-  amountMoney: changeOf(amountInput, z.number()),
+  amountMoney: changeOf(amountInput.multipleOf(0.01), z.number()),
   movedOn: changeOf(farmDay, z.string()),
   reference: changeOf(z.string().trim().min(1).max(120), z.string()),
   /** An Investor's capital payment written twice: voided by the Owner with a reason, kept in the trail as voided (the
@@ -281,19 +281,20 @@ const assertWithinItsUnits = async (
     },
     columns: { amountMoney: true },
   });
-  // Its Units' whole price, or their Cattle Part while a Venture paid by the month gathers its capital — as the payment
-  // itself was held to.
+  // The whole signed price, including Monthly Sums paid early, as the receiving door counts it.
   const units = agreement?.units ?? 0;
   const owed = plan ? capitalItMayHold(units, plan) : 0;
-  const cattlePartOnly = plan ? owed < units * plan.unitPriceMoney : false;
-  const already = paid.reduce((sum, one) => sum + one.amountMoney, 0);
-  if (already + amountMoney > owed) {
+  const already = roundMoney(
+    paid.reduce((sum, one) => sum + one.amountMoney, 0)
+  );
+  const paidNow = roundMoney(already + amountMoney);
+  if (paidNow > owed) {
     throw refuse(
       `This Agreement is for ${owed - already} more ${currencyWords("en").sum}`,
-      cattlePartOnly ? "capital_over_cattle_part" : "capital_over_units"
+      "capital_over_units"
     );
   }
-  return { filled: already + amountMoney >= owed };
+  return { filled: paidNow >= owed };
 };
 
 /**

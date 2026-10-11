@@ -12,6 +12,8 @@ import {
 import { useEffect } from "react";
 
 import { DataFreshness } from "@/components/data-freshness";
+import { FeedPurchaseAttention } from "@/components/feed/feed-purchase-attention";
+import { SupplierAttention } from "@/components/feed/supplier-attention";
 import { AdultDeathsSection } from "@/components/home/adult-deaths";
 import { CalfLossesSection } from "@/components/home/calf-losses";
 import { HerdHealthSection } from "@/components/home/herd-health";
@@ -169,6 +171,8 @@ const ManagerHome = () => {
       />
 
       <SummaryFigures figures={figures} />
+      <FeedPurchaseAttention />
+      <SupplierAttention />
 
       {/* One column that shrinks to the phone: a grid's own column grows to its widest unbroken line, and a Tag Number
           beside a long date pushed both cards off the screen. On a wide screen what waits and the Ventures share the

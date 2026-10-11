@@ -50,7 +50,7 @@ type Acting = Context & {
 /** What an Investor says about the money they sent. */
 const said = {
   /** Whole taka or with paisa, as the bank printed it; something, and never more than the capital form takes. */
-  amountMoney: z.number().positive().max(1_000_000_000),
+  amountMoney: z.number().positive().max(1_000_000_000).multipleOf(0.01),
   /** The day it went, on the farm's own clock. */
   sentOn: farmDay,
   way: z.enum(PAY_IN_WAYS),

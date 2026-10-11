@@ -1,3 +1,5 @@
+import { roundMoney } from "./money";
+
 // A Pay-in Note (ADR 0018): an Investor's word, from the portal, that they sent money towards one of their Agreements
 // outside it. It moves no money and records no capital: the Owner checks the Venture Account and records the capital
 // from it, or answers not found. The lists mirror the database's, for the screens; a test holds them together.
@@ -49,4 +51,5 @@ export const roomForANote = (standing: {
   owedMoney: number;
   /** What its notes still waiting say, the one being changed left out. */
   waitingMoney: number;
-}): number => Math.max(0, standing.owedMoney - standing.waitingMoney);
+}): number =>
+  roundMoney(Math.max(0, standing.owedMoney - standing.waitingMoney));

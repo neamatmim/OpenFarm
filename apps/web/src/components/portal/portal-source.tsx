@@ -60,6 +60,30 @@ export const useTheirPortfolio = () => {
   );
 };
 
+/** Saved signed documents, read from the Investor's own archive or the Owner's preview. */
+export const useTheirDocuments = () => {
+  const input = useWhose();
+  return useQuery(
+    usePreviewing()
+      ? orpc.portalPreview.documents.queryOptions({ input })
+      : orpc.portal.documents.queryOptions()
+  );
+};
+
+export const useTheirDocument = (onError: (error: Error) => void) => {
+  const previewing = usePreviewing();
+  return useMutation({
+    mutationFn: (asked: Parameters<typeof client.portal.document>[0]) =>
+      previewing
+        ? client.portalPreview.document({
+            ...asked,
+            investorId: previewing.investorId,
+          })
+        : client.portal.document(asked),
+    onError,
+  });
+};
+
 /** The Ventures raising capital the farm is showing them. */
 export const useTheirOpenVentures = () => {
   const input = useWhose();

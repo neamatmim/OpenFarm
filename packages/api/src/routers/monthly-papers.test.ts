@@ -169,7 +169,9 @@ describe("a signed Agreement paid by the month", () => {
     expect(paperText(document, "en")).toContain(
       "10 February 2077 · 10,000 taka"
     );
-    expect(text).toContain("এই পত্র গরু কেনার অংশ প্রাপ্তির স্বীকৃতি");
+    expect(text).toContain(
+      "এই পত্রে ব্যাংকে নিশ্চিত হওয়া গরু কেনার অংশ ও মাসের টাকা প্রাপ্তির স্বীকৃতি"
+    );
     expect(text).toContain(M1);
   });
 

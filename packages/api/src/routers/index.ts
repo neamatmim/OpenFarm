@@ -18,6 +18,7 @@ import { farmRouter } from "./farm";
 import { farmAccountsRouter } from "./farm-accounts";
 import { fatteningRouter } from "./fattening";
 import { feedRouter } from "./feed";
+import { feedPurchasingRouter } from "./feed-purchasing";
 import { feedingPlansRouter } from "./feeding-plans";
 import { financialYearsRouter } from "./financial-years";
 import { homeRouter } from "./home";
@@ -48,6 +49,7 @@ import { sellingTripsRouter } from "./selling-trips";
 import { shedsRouter } from "./sheds";
 import { sopsRouter } from "./sops";
 import { stockRouter } from "./stock";
+import { suppliersRouter } from "./suppliers";
 import { syncRouter } from "./sync";
 import { templatesRouter } from "./templates";
 import { treatmentsRouter } from "./treatments";
@@ -76,6 +78,7 @@ type AppRouterShape = {
   farmAccounts: typeof farmAccountsRouter;
   fattening: typeof fatteningRouter;
   feed: typeof feedRouter;
+  feedPurchasing: typeof feedPurchasingRouter;
   feedingPlans: typeof feedingPlansRouter;
   sheds: typeof shedsRouter;
   home: typeof homeRouter;
@@ -102,6 +105,7 @@ type AppRouterShape = {
   reports: typeof reportsRouter;
   breeding: typeof breedingRouter;
   stock: typeof stockRouter;
+  suppliers: typeof suppliersRouter;
   reviewQueue: typeof reviewQueueRouter;
   sales: typeof salesRouter;
   buyingTrips: typeof buyingTripsRouter;
@@ -134,6 +138,7 @@ export const appRouter: AppRouterShape = {
   farmAccounts: farmAccountsRouter,
   fattening: fatteningRouter,
   feed: feedRouter,
+  feedPurchasing: feedPurchasingRouter,
   feedingPlans: feedingPlansRouter,
   sheds: shedsRouter,
   home: homeRouter,
@@ -160,6 +165,7 @@ export const appRouter: AppRouterShape = {
   reports: reportsRouter,
   breeding: breedingRouter,
   stock: stockRouter,
+  suppliers: suppliersRouter,
   reviewQueue: reviewQueueRouter,
   sales: salesRouter,
   buyingTrips: buyingTripsRouter,
