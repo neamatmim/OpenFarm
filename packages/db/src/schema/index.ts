@@ -8,6 +8,7 @@ export * from "./device";
 export * from "./farm";
 export * from "./fattening";
 export * from "./feed";
+export * from "./feeding-plan";
 export * from "./health";
 export * from "./herd";
 export * from "./instance";

@@ -18,6 +18,7 @@ import { farmRouter } from "./farm";
 import { farmAccountsRouter } from "./farm-accounts";
 import { fatteningRouter } from "./fattening";
 import { feedRouter } from "./feed";
+import { feedingPlansRouter } from "./feeding-plans";
 import { financialYearsRouter } from "./financial-years";
 import { homeRouter } from "./home";
 import { inspectorViewRouter } from "./inspector-view";
@@ -75,6 +76,7 @@ type AppRouterShape = {
   farmAccounts: typeof farmAccountsRouter;
   fattening: typeof fatteningRouter;
   feed: typeof feedRouter;
+  feedingPlans: typeof feedingPlansRouter;
   sheds: typeof shedsRouter;
   home: typeof homeRouter;
   overview: typeof overviewRouter;
@@ -132,6 +134,7 @@ export const appRouter: AppRouterShape = {
   farmAccounts: farmAccountsRouter,
   fattening: fatteningRouter,
   feed: feedRouter,
+  feedingPlans: feedingPlansRouter,
   sheds: shedsRouter,
   home: homeRouter,
   overview: overviewRouter,

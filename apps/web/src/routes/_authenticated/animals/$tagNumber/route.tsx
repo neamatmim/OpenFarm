@@ -14,6 +14,7 @@ import {
   Scale,
   SearchX,
   Stethoscope,
+  Wheat,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -22,6 +23,7 @@ import { AnimalProfile } from "@/components/animal/animal-profile";
 import type { AnimalAct } from "@/components/animal/animal-types";
 import { useAnimalPowers } from "@/components/animal/animal-types";
 import { BreedingTab, hasBreeding } from "@/components/animal/breeding-tab";
+import { FeedingPlanTab } from "@/components/animal/feeding-plan-tab";
 import { HealthTab } from "@/components/animal/health-tab";
 import {
   MoneyPapersTab,
@@ -37,7 +39,14 @@ import { useLanguage } from "@/i18n/language-provider";
 import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
-const TABS = ["overview", "breeding", "health", "weight", "money"] as const;
+const TABS = [
+  "overview",
+  "breeding",
+  "health",
+  "weight",
+  "feeding",
+  "money",
+] as const;
 type Tab = (typeof TABS)[number];
 
 /** Each tab at its own address, the first at her page's own. */
@@ -46,6 +55,7 @@ const TAB_PATHS = {
   breeding: "/animals/$tagNumber/breeding",
   health: "/animals/$tagNumber/health",
   weight: "/animals/$tagNumber/weigh-ins",
+  feeding: "/animals/$tagNumber/feeding-plan",
   money: "/animals/$tagNumber/money",
 } as const satisfies Record<Tab, string>;
 
@@ -127,6 +137,14 @@ const AnimalPage = () => {
       content: <WeightMovesTab detail={detail} powers={powers} />,
     }
   );
+  if (detail.side === "fattening" && powers.runsTheFarm) {
+    tabs.push({
+      value: "feeding",
+      label: t("feedPlan.title"),
+      icon: Wheat,
+      content: <FeedingPlanTab animal={detail} />,
+    });
+  }
   if (hasMoneyOrPapers(detail, powers)) {
     tabs.push({
       value: "money",

@@ -30,6 +30,7 @@ export const WHOSE_TRAIL = {
   farm_day: "farm",
   feed_in: "farm",
   feed_item: "farm",
+  animal_feed_plan: "farm",
   handover: "farm",
   intake: "farm",
   invite: "farm",
