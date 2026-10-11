@@ -4,6 +4,118 @@ import type { enCore } from "./en-core";
  *  The type forces every English key to exist here; the check script also refuses empty strings and stray keys at
  *  build time. */
 export const bnCore: Record<keyof typeof enCore, string> = {
+  "feedPlan.rationsChanged": "এই পরিকল্পনা অনুমোদনের পর রেশন বদলেছে",
+  "feedPlan.rationsChangedHint":
+    "এই পূর্বাভাসে সংরক্ষিত রেশনের উপকরণ আছে। বর্তমান রেশন ব্যবহার করতে পর্যালোচনা করে সংশোধন রাখুন।",
+  "feedPlan.title": "খাদ্য পরিকল্পনা",
+  "feedPlan.create": "খাদ্য পরিকল্পনা তৈরি করুন",
+  "feedPlan.revise": "পরিকল্পনা সংশোধন করুন",
+  "feedPlan.save": "অনুমোদন করে পরিকল্পনা রাখুন",
+  "feedPlan.saved": "খাদ্য পরিকল্পনা রাখা হয়েছে",
+  "feedPlan.approvalHint":
+    "এই প্রাণীর জন্য যাচাই করা রেশন বেছে নিন। পরিকল্পনা রাখলে পূর্বাভাস সংরক্ষিত হয়; রেশন বরাদ্দ করলেই কেবল পেনের খাবারের নির্দেশনা বদলায়।",
+  "feedPlan.startDay": "পরিকল্পনার শুরুর দিন",
+  "feedPlan.startWeight": "শুরুর ওজন (কেজি)",
+  "feedPlan.saleDay": "বিক্রির পরিকল্পিত দিন",
+  "feedPlan.nineMonths": "শুরু থেকে নয় মাস",
+  "feedPlan.target": "লক্ষ্য ওজন (কেজি)",
+  "feedPlan.adaptationDays": "আসার পর মানিয়ে নেওয়া (দিন)",
+  "feedPlan.adaptationHint":
+    "এই দিনগুলোতে পূর্বাভাসে ওজন বৃদ্ধি ধরা হয় না। মানিয়ে নেওয়ার পর পরিকল্পনা শুরু হলে ০ দিন দিন।",
+  "feedPlan.arrival": "আসার পরের রেশন",
+  "feedPlan.stages": "ওজন বাড়ার সঙ্গে রেশন",
+  "feedPlan.stagesHint":
+    "প্রত্যাশিত ওজন বৃদ্ধিসহ ধারাবাহিক ওজনসীমার রেশন বেছে নিন। একই ওজনের জন্য একাধিক রেশন অনুমোদন করা যায় না।",
+  "feedPlan.transitionDays": "রেশন বদলের সময় (দিন)",
+  "feedPlan.transitionHint":
+    "পূর্বাভাসে এই দিনগুলোতে পুরোনো ও নতুন রেশন ধীরে ধীরে মেশানো হয়। বাস্তবে কীভাবে বদলাবেন তা পুষ্টি পরামর্শকের সঙ্গে ঠিক করুন।",
+  "feedPlan.reviewDays": "ওজন মাপার ব্যবধান (দিন)",
+  "feedPlan.reserve": "বাড়তি খাবার মজুত (%)",
+  "feedPlan.preview": "দ্রুত বৃদ্ধির পূর্বাভাস: বিক্রির দিনে {kg} কেজি।",
+  "feedPlan.checkStages":
+    "অনুমোদনের আগে দিন, পরিমাণ ও রেশনের ওজনসীমা যাচাই করুন। নির্বাচিত রেশনগুলো দ্রুত বৃদ্ধির পূর্বাভাসের পুরো সময়ের জন্য থাকতে হবে।",
+  "feedPlan.manageRations": "রেশন ও পেনে বরাদ্দ দেখুন",
+  "feedPlan.empty": "খাদ্য পরিকল্পনা এখনও নেই",
+  "feedPlan.emptyHint":
+    "এই প্রাণীর ওজন ও খামারের অনুমোদিত রেশন দিয়ে কেনা থেকে বিক্রি পর্যন্ত পরিকল্পনা করুন।",
+  "feedPlan.modelHint":
+    "অনুমোদিত রেশনের সংরক্ষিত তথ্য ও সর্বশেষ নির্ভরযোগ্য ওজন থেকে পূর্বাভাস। ধাপের দিনগুলো পর্যালোচনার জন্য; রেশন নিজে থেকে বদলায় না।",
+  "feedPlan.revisions":
+    "{count, plural, one {#টি সংরক্ষিত সংস্করণ} other {#টি সংরক্ষিত সংস্করণ}}",
+  "feedPlan.scenario": "ওজন বৃদ্ধির পূর্বাভাস",
+  "feedPlan.slow": "ধীর বৃদ্ধি",
+  "feedPlan.expected": "প্রত্যাশিত বৃদ্ধি",
+  "feedPlan.fast": "দ্রুত বৃদ্ধি",
+  "feedPlan.lastWeight": "সর্বশেষ নির্ভরযোগ্য ওজন",
+  "feedPlan.saleWeight": "বিক্রির দিনের সম্ভাব্য ওজন",
+  "feedPlan.targetValue": "লক্ষ্য: {kg} কেজি",
+  "feedPlan.nextWeigh": "পরের ওজন মাপা",
+  "feedPlan.cost": "সম্ভাব্য খাবারের খরচ",
+  "feedPlan.costHint": "আজকের দামে জানা খরচ",
+  "feedPlan.leftFarm":
+    "প্রাণীটি চলে গেছে। পরিকল্পনা তথ্য হিসেবে রাখা আছে, খামারের কেনাকাটায় ধরা হয় না।",
+  "feedPlan.finished": "পরিকল্পিত বিক্রির দিন পেরিয়েছে; পরিকল্পনা দেখুন",
+  "feedPlan.overdue": "ওজন মাপার সময় পেরিয়েছে",
+  "feedPlan.recordWeight": "ওজন মাপা লিখুন",
+  "feedPlan.rationReview": "রেশন পর্যালোচনা দরকার",
+  "feedPlan.rationReviewHint":
+    "লেখা ওজনে পরিকল্পনায় {ration} আছে। পরের ধাপ অনুসরণের আগে প্রাণীর পেন দেখুন এবং ধীরে রেশন বদলের ব্যবস্থা করুন।",
+  "feedPlan.slowGain": "ওজন বৃদ্ধিতে নজর দরকার",
+  "feedPlan.slowGainHint":
+    "দানাদার খাবার বাড়ানোর আগে স্বাস্থ্য, দেওয়া খাবার ও অবশিষ্ট খাবার দেখুন।",
+  "feedPlan.targetRisk": "লক্ষ্য ওজন পাওয়া অনিশ্চিত",
+  "feedPlan.targetRiskHint":
+    "অন্তত একটি পূর্বাভাসে লক্ষ্য পূরণ হচ্ছে না বা উপযুক্ত রেশন নেই। লক্ষ্য ও খাদ্য পরিকল্পনা দেখুন।",
+  "feedPlan.incomplete": "পূর্বাভাস অসম্পূর্ণ",
+  "feedPlan.gap":
+    "{day} দিনে {kg} কেজির জন্য একক নির্বাচিত রেশন নেই। দেখানো পরিমাণ সেখানেই থেমেছে।",
+  "feedPlan.baseline": "মূল পরিকল্পনা ও মাপা অগ্রগতি",
+  "feedPlan.baselineHint":
+    "প্রথম পরিকল্পনা অপরিবর্তিত থাকে। নতুন নির্ভরযোগ্য ওজন বাকি পূর্বাভাস বদলায়; বৃদ্ধির অনুমান কেবল সংরক্ষিত সংশোধনে বদলায়।",
+  "feedPlan.originalWeight": "মূল পরিকল্পনায় বিক্রির ওজন",
+  "feedPlan.difference": "মূল পূর্বাভাস থেকে সর্বশেষ ওজনের পার্থক্য",
+  "feedPlan.actualGain": "মাপা দৈনিক ওজন বৃদ্ধি",
+  "feedPlan.gainValue": "{days} দিনে দৈনিক {kg} কেজি",
+  "feedPlan.timeline": "ওজন বৃদ্ধি ও রেশন পর্যালোচনার সময়সূচি",
+  "feedPlan.timelineHint":
+    "দিনগুলো নির্বাচিত বৃদ্ধির পূর্বাভাসের ওপর নির্ভরশীল। ব্যবস্থা নেওয়ার আগে মাপা ওজন ও পেনের দল দেখুন।",
+  "feedPlan.period": "সময়কাল",
+  "feedPlan.days": "খাওয়ানোর দিন",
+  "feedPlan.weightRange": "শুরু → শেষ ওজন",
+  "feedPlan.quantities": "প্রতিটি খাবারের প্রয়োজন",
+  "feedPlan.quantitiesHint":
+    "তাজা ঘাসসহ প্রতিটি খাবারের লেখা এককে পরিমাণ দেখানো হয়। এগুলো দেওয়ার পরিকল্পিত পরিমাণ, একেক প্রাণীর মাপা খাওয়া নয়।",
+  "feedPlan.remaining": "খাওয়ানোর বাকি সব দিন",
+  "feedPlan.required": "প্রয়োজন",
+  "feedPlan.withReserve": "বাড়তি মজুতসহ",
+  "feedPlan.retired": "খাবার বন্ধ করা হয়েছে; পরিকল্পনা দেখুন",
+  "feedPlan.knownCost": "জানা খাবারের খরচ: {money}",
+  "feedPlan.unpriced":
+    "{count, plural, one {#টি খাবারের দাম নেই} other {#টি খাবারের দাম নেই}}",
+  "feedPlan.farmTitle": "খাদ্য পরিকল্পনা",
+  "feedPlan.farmHint":
+    "পরিকল্পনায় থাকা প্রাণীগুলো বড় হওয়ার সঙ্গে মাসিক প্রয়োজন। কেনা থেকে বিক্রির পরিকল্পনা তৈরি বা দেখতে নিচে প্রাণী খুলুন।",
+  "feedPlan.plannedAnimals": "পরিকল্পনা থাকা প্রাণী",
+  "feedPlan.withoutPlan": "পরিকল্পনা না থাকা প্রাণী",
+  "feedPlan.purchaseCost": "সম্ভাব্য কেনার খরচ",
+  "feedPlan.withoutPlanWarning":
+    "{count, plural, one {পরিকল্পনা না থাকায় #টি প্রাণী বাদ আছে} other {পরিকল্পনা না থাকায় #টি প্রাণী বাদ আছে}}",
+  "feedPlan.incompleteWarning":
+    "{count, plural, one {#টি পরিকল্পনায় রেশনের ওজনসীমা অসম্পূর্ণ} other {#টি পরিকল্পনায় রেশনের ওজনসীমা অসম্পূর্ণ}}",
+  "feedPlan.coverageHint":
+    "প্রয়োজনের হিসাব আংশিক। দুগ্ধের প্রাণী ও ভবিষ্যতের কেনাকাটা এসব মোটাতাজাকরণ পরিকল্পনায় নেই।",
+  "feedPlan.stockAssumption": "সব পরিকল্পিত প্রাণীর জন্য মজুত একসঙ্গে ধরা হয়",
+  "feedPlan.stockHint":
+    "আজ থেকে হিসাব: মেয়াদ শেষ হওয়া মজুত বাদ, আর এই মাসের আগে পরিকল্পিত ব্যবহার কেটে নেওয়া হয়। ভবিষ্যতে মেয়াদ শেষ হওয়া, অন্য প্রাণীর ব্যবহার, আসন্ন সরবরাহ ও নষ্ট হওয়া ধরা হয় না। কেনার আগে লটের মেয়াদ দেখুন।",
+  "feedPlan.monthlyPurchases": "মাসিক খাবার ও কেনার হিসাব",
+  "feedPlan.carriedStock": "আগের ব্যবহার শেষে মজুত",
+  "feedPlan.toBuy": "বাড়তি মজুতসহ কিনতে হবে",
+  "feedPlan.noDemand": "এই মাসে পরিকল্পিত খাওয়ানোর দিন নেই",
+  "feedPlan.animals": "প্রাণীর পরিকল্পনা",
+  "feedPlan.animalsHint":
+    "পূর্বাভাস অনুসরণের আগে সময় পেরোনো ওজন মাপা ও রেশন বদল দেখুন।",
+  "feedPlan.noAnimals": "খামারে মোটাতাজাকরণের প্রাণী নেই",
+  "feedPlan.projectedKg": "পূর্বাভাস: {kg} কেজি",
   "app.name": "OpenFarm",
   "app.tagline": "খামারের হিসাব আর প্লেবুক, এক জায়গায়।",
   "language.bn": "বাংলা",

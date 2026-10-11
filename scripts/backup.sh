@@ -114,7 +114,7 @@ values (:'run_id', :'kind', :'started'::timestamptz, :'destination', 'no',
                   end)
            from unnest(array['farm', 'user', 'animal', 'animal_photo', 'sop_definition', 'sop_version',
                              'sop_instance', 'step_completion', 'completion_photo', 'milking_session',
-                             'milk_record', 'feeding', 'sale', 'audit_event']) as t));
+                             'milk_record', 'feeding', 'animal_feed_plan', 'sale', 'audit_event']) as t));
 SQL
 if ! sql; then
   echo "backup failed before it began: could not write its row to backup_run — is the database reachable, and migrated?" >&2

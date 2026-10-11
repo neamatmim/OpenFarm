@@ -30,6 +30,7 @@ import type {
   StockLine,
 } from "@/components/feed/feed-types";
 import { valueOf } from "@/components/feed/feed-types";
+import { FeedingPlansTab } from "@/components/feed/feeding-plans";
 import { MonthlyEstimateTab } from "@/components/feed/monthly-estimate";
 import { ReceiveFeedSheet } from "@/components/feed/receive-feed-sheet";
 import { Loaded, Page, PageHeader } from "@/components/page";
@@ -45,6 +46,7 @@ import { orpc } from "@/utils/orpc";
 const TABS = [
   "stock",
   "estimate",
+  "planning",
   "feedIn",
   "counts",
   "leftovers",
@@ -57,6 +59,7 @@ type Tab = (typeof TABS)[number];
 const TAB_PATHS = {
   stock: "/feed",
   estimate: "/feed/monthly-estimate",
+  planning: "/feed/feeding-plans",
   feedIn: "/feed/feed-in",
   counts: "/feed/stock-counts",
   leftovers: "/feed/leftovers",
@@ -145,7 +148,8 @@ const FeedPage = () => {
   const { t } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
   const tab = useTabOfPath(TAB_PATHS) ?? "stock";
-  const { feedMonth, feedBasis } = Route.useSearch();
+  const { feedMonth, feedBasis, feedScenario } = Route.useSearch();
+  const shownMonth = feedMonth ?? farmDayOf(new Date()).slice(0, 7);
   const [receiving, setReceiving] = useState<{ feedItemId?: string } | null>(
     null
   );
@@ -224,7 +228,7 @@ const FeedPage = () => {
             content: (
               <MonthlyEstimateTab
                 basis={feedBasis ?? "rations"}
-                month={feedMonth ?? farmDayOf(new Date()).slice(0, 7)}
+                month={shownMonth}
                 onBasis={(basis) =>
                   navigate({
                     ...TAB_SWITCH,
@@ -237,6 +241,34 @@ const FeedPage = () => {
                     ...TAB_SWITCH,
                     to: TAB_PATHS.estimate,
                     search: (previous) => ({ ...previous, feedMonth: month }),
+                  })
+                }
+              />
+            ),
+          },
+          {
+            value: "planning",
+            label: t("feedPlan.farmTitle"),
+            icon: Wheat,
+            content: (
+              <FeedingPlansTab
+                month={shownMonth}
+                scenario={feedScenario}
+                onMonth={(month) =>
+                  navigate({
+                    ...TAB_SWITCH,
+                    to: TAB_PATHS.planning,
+                    search: (previous) => ({ ...previous, feedMonth: month }),
+                  })
+                }
+                onScenario={(scenario) =>
+                  navigate({
+                    ...TAB_SWITCH,
+                    to: TAB_PATHS.planning,
+                    search: (previous) => ({
+                      ...previous,
+                      feedScenario: scenario,
+                    }),
                   })
                 }
               />
@@ -332,8 +364,15 @@ export const Route = createFileRoute("/_authenticated/feed")({
   ): {
     feedMonth?: string;
     feedBasis?: "rations" | "recent";
+    feedScenario?: "slow" | "expected" | "fast";
   } => ({
     feedMonth: isAMonth(search.feedMonth) ? search.feedMonth : undefined,
+    feedScenario:
+      search.feedScenario === "slow" ||
+      search.feedScenario === "expected" ||
+      search.feedScenario === "fast"
+        ? search.feedScenario
+        : undefined,
     feedBasis:
       search.feedBasis === "rations" || search.feedBasis === "recent"
         ? search.feedBasis

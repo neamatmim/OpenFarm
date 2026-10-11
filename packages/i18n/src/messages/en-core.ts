@@ -4,6 +4,120 @@
  * every screen may need, and the only ones a Shed Phone fetches before its first screen is drawn.
  */
 export const enCore = {
+  "feedPlan.rationsChanged":
+    "Rations have changed since this plan was approved",
+  "feedPlan.rationsChangedHint":
+    "This forecast keeps the saved ration contents. Review and save a revision to use the current recipes.",
+  "feedPlan.title": "Feeding plan",
+  "feedPlan.create": "Create feeding plan",
+  "feedPlan.revise": "Revise plan",
+  "feedPlan.save": "Approve and save plan",
+  "feedPlan.saved": "Feeding plan saved",
+  "feedPlan.approvalHint":
+    "Choose rations checked for this animal. Saving a plan keeps a forecast; pen feeding instructions change only when you assign a ration.",
+  "feedPlan.startDay": "Plan start date",
+  "feedPlan.startWeight": "Starting weight (kg)",
+  "feedPlan.saleDay": "Planned sale date",
+  "feedPlan.nineMonths": "Nine months from start",
+  "feedPlan.target": "Target weight (kg)",
+  "feedPlan.adaptationDays": "Arrival adaptation (days)",
+  "feedPlan.adaptationHint":
+    "The forecast assumes no weight gain during these days. Use 0 when this plan starts after adaptation.",
+  "feedPlan.arrival": "Arrival ration",
+  "feedPlan.stages": "Rations as weight increases",
+  "feedPlan.stagesHint":
+    "Choose a continuous set of weight bands with expected gains. Overlapping bands cannot be approved.",
+  "feedPlan.transitionDays": "Ration transition (days)",
+  "feedPlan.transitionHint":
+    "For forecasting, old and new rations blend gradually over these days. Agree the actual change with your nutrition adviser.",
+  "feedPlan.reviewDays": "Weigh again every (days)",
+  "feedPlan.reserve": "Feed reserve (%)",
+  "feedPlan.preview": "Fast growth scenario: {kg} kg at the sale date.",
+  "feedPlan.checkStages":
+    "Check dates, quantities and ration coverage before approving. The selected stages must cover the animal through the fast growth scenario.",
+  "feedPlan.manageRations": "Review rations and pen assignments",
+  "feedPlan.empty": "No feeding plan yet",
+  "feedPlan.emptyHint":
+    "Plan from purchase to sale using this animal’s weights and the farm’s approved rations.",
+  "feedPlan.modelHint":
+    "A forecast from approved ration snapshots and the latest reliable weight. Stage dates are suggestions to review, not automatic ration changes.",
+  "feedPlan.revisions":
+    "{count, plural, one {# saved revision} other {# saved revisions}}",
+  "feedPlan.scenario": "Growth scenario",
+  "feedPlan.slow": "Slower growth",
+  "feedPlan.expected": "Expected growth",
+  "feedPlan.fast": "Faster growth",
+  "feedPlan.lastWeight": "Last reliable weight",
+  "feedPlan.saleWeight": "Projected sale weight",
+  "feedPlan.targetValue": "Target: {kg} kg",
+  "feedPlan.nextWeigh": "Next weigh-in",
+  "feedPlan.cost": "Estimated feed cost",
+  "feedPlan.costHint": "Known costs at today’s prices",
+  "feedPlan.leftFarm":
+    "This animal has left. Its plan is kept for reference and excluded from farm purchases.",
+  "feedPlan.finished": "Planned sale date has passed; review the plan",
+  "feedPlan.overdue": "Weigh-in overdue",
+  "feedPlan.recordWeight": "Record a weigh-in",
+  "feedPlan.rationReview": "Ration review needed",
+  "feedPlan.rationReviewHint":
+    "At the recorded weight the plan uses {ration}. Check the animal’s pen and arrange a gradual change before following the next stage.",
+  "feedPlan.slowGain": "Growth needs attention",
+  "feedPlan.slowGainHint":
+    "Check health, feed offered and leftovers before increasing concentrate.",
+  "feedPlan.targetRisk": "Target weight is uncertain",
+  "feedPlan.targetRiskHint":
+    "At least one growth scenario misses the target or lacks a suitable ration. Review the target and feeding plan.",
+  "feedPlan.incomplete": "Forecast incomplete",
+  "feedPlan.gap":
+    "No single selected ration covers {kg} kg on {day}. Quantities shown stop there.",
+  "feedPlan.baseline": "Original plan and measured progress",
+  "feedPlan.baselineHint":
+    "The first plan stays unchanged. New reliable weigh-ins update the remaining forecast; growth assumptions change only with a saved revision.",
+  "feedPlan.originalWeight": "Original projected sale weight",
+  "feedPlan.difference": "Latest weight versus original forecast",
+  "feedPlan.actualGain": "Measured daily gain",
+  "feedPlan.gainValue":
+    "{kg} kg/day over {days, plural, one {# day} other {# days}}",
+  "feedPlan.timeline": "Growth and ration review timeline",
+  "feedPlan.timelineHint":
+    "Dates depend on the chosen growth scenario. Check measured weight and pen grouping before acting.",
+  "feedPlan.period": "Period",
+  "feedPlan.days": "Feeding days",
+  "feedPlan.weightRange": "Start → end weight",
+  "feedPlan.quantities": "Feed needed by item",
+  "feedPlan.quantitiesHint":
+    "Quantities use the feed’s recorded unit, including fresh fodder. These are planned amounts offered, not measured individual consumption.",
+  "feedPlan.remaining": "All remaining feeding days",
+  "feedPlan.required": "Required",
+  "feedPlan.withReserve": "With reserve",
+  "feedPlan.retired": "Feed retired; review the plan",
+  "feedPlan.knownCost": "Known feed cost: {money}",
+  "feedPlan.unpriced":
+    "{count, plural, one {# item has no price} other {# items have no price}}",
+  "feedPlan.farmTitle": "Feeding plans",
+  "feedPlan.farmHint":
+    "Monthly demand as planned animals grow. Open an animal below to create or review its purchase-to-sale plan.",
+  "feedPlan.plannedAnimals": "Animals with plans",
+  "feedPlan.withoutPlan": "Animals without plans",
+  "feedPlan.purchaseCost": "Estimated purchase cost",
+  "feedPlan.withoutPlanWarning":
+    "{count, plural, one {# animal is excluded because it has no plan} other {# animals are excluded because they have no plans}}",
+  "feedPlan.incompleteWarning":
+    "{count, plural, one {# plan has incomplete ration coverage} other {# plans have incomplete ration coverage}}",
+  "feedPlan.coverageHint":
+    "Demand is partial. Dairy animals and future purchases are outside these fattening plans.",
+  "feedPlan.stockAssumption": "Stock is shared across all planned animals",
+  "feedPlan.stockHint":
+    "From today onward: expired stock is excluded, and earlier months’ planned use is deducted before this month. Future expiry, other herd use, upcoming receipts and spoilage are not included. Check lot dates before ordering.",
+  "feedPlan.monthlyPurchases": "Monthly feed and purchase allowance",
+  "feedPlan.carriedStock": "Stock after earlier use",
+  "feedPlan.toBuy": "To buy with reserve",
+  "feedPlan.noDemand": "No planned feeding days in this month",
+  "feedPlan.animals": "Animal plans",
+  "feedPlan.animalsHint":
+    "Review overdue weights and ration changes before following the forecast.",
+  "feedPlan.noAnimals": "No fattening animals on the farm",
+  "feedPlan.projectedKg": "Projected: {kg} kg",
   "app.name": "OpenFarm",
   "app.tagline": "The farm's records and its Playbook, in one place.",
   "language.bn": "বাংলা",
