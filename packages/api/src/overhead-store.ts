@@ -15,7 +15,8 @@ export type OverheadMoneyOn = OverheadMoney & { occurredAt: Date };
  * against a wage, that no animal carries — a month's wage cost is its Wage Draws and what payday paid, never either
  * alone. A Herd Cost is the animals' — split across those who stood that month — so it is left out; money
  * under a marked Category that named no Side reached no animal, so it is in. A record's money (feed, medicine, cattle)
- * is the animals' by its record, and a Venture's money was never the Farm's.
+ * is the animals' by its record — but for a Vet's visit that named none and a Buying Trip that brought none home,
+ * which are in — and a Venture's money was never the Farm's.
  */
 export const overheadMoneyIn = async (
   db: Db,
@@ -47,39 +48,57 @@ export const overheadMoneyIn = async (
       },
     },
   });
-  // A Vet's own fee for a visit that named no animal reached none — no Side to split it over, nobody to charge — so it
-  // is the place's, as marked money naming no Side is. Left out of both, it was in no figure at all.
+  // Money a record booked that reached no animal — no Side to split it over, nobody to charge — is the place's, as
+  // marked money naming no Side is. Left out of both, it was in no figure at all.
+  const reachedNoAnimal = async (
+    source: "vet_fee" | "buying_trip",
+    ids: string[]
+  ) => {
+    const booked =
+      ids.length === 0
+        ? []
+        : await db.query.moneyEvent.findMany({
+            where: {
+              farmId,
+              purseVentureId: THE_FARMS_PURSE,
+              source,
+              sourceId: { in: ids },
+              direction: "out",
+            },
+            columns: { amountMoney: true, occurredAt: true },
+            with: {
+              category: { columns: { id: true, nameBn: true, nameEn: true } },
+            },
+          });
+    return booked.map((one) => ({
+      categoryId: one.category.id,
+      categoryBn: one.category.nameBn,
+      categoryEn: one.category.nameEn,
+      amount: one.amountMoney,
+      occurredAt: one.occurredAt,
+    }));
+  };
+  // A Vet's own fee for a visit that named no animal.
   const fees = await db.query.vetFee.findMany({
     where: { farmId, visitedOn: { gte: from, lt: until } },
     columns: { id: true },
     with: { animals: { columns: { animalId: true }, limit: 1 } },
   });
-  const noAnimal = fees
-    .filter((one) => one.animals.length === 0)
-    .map((one) => one.id);
-  const unnamed =
-    noAnimal.length === 0
-      ? []
-      : await db.query.moneyEvent.findMany({
-          where: {
-            farmId,
-            purseVentureId: THE_FARMS_PURSE,
-            source: "vet_fee",
-            sourceId: { in: noAnimal },
-            direction: "out",
-          },
-          columns: { amountMoney: true, occurredAt: true },
-          with: {
-            category: { columns: { id: true, nameBn: true, nameEn: true } },
-          },
-        });
-  const visits = unnamed.map((one) => ({
-    categoryId: one.category.id,
-    categoryBn: one.category.nameBn,
-    categoryEn: one.category.nameEn,
-    amount: one.amountMoney,
-    occurredAt: one.occurredAt,
-  }));
+  const visits = await reachedNoAnimal(
+    "vet_fee",
+    fees.filter((one) => one.animals.length === 0).map((one) => one.id)
+  );
+  // A Buying Trip that brought nothing home: the day at the livestock market cost the lorry and the men all the same.
+  // Once an Intake names it, it is that animal's, and leaves here.
+  const trips = await db.query.buyingTrip.findMany({
+    where: { farmId, wentOn: { gte: from, lt: until } },
+    columns: { id: true },
+    with: { intakes: { columns: { id: true }, limit: 1 } },
+  });
+  const emptyOutings = await reachedNoAnimal(
+    "buying_trip",
+    trips.filter((one) => one.intakes.length === 0).map((one) => one.id)
+  );
   // Asked of the one rule that says what a Herd Cost is, so the costing and this can never disagree about a taka.
   const handEntered = rows
     .filter(
@@ -99,7 +118,7 @@ export const overheadMoneyIn = async (
       amount: one.amountMoney,
       occurredAt: one.occurredAt,
     }));
-  return [...handEntered, ...visits];
+  return [...handEntered, ...visits, ...emptyOutings];
 };
 
 /**
