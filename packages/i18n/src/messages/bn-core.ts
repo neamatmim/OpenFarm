@@ -3312,6 +3312,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "intake.tripRecorded": "যাত্রা লেখা হলো, এবং এই গরু সেই যাত্রাতেই এসেছে",
   "intake.pastTrips": "সাম্প্রতিক কেনার যাত্রা",
   "intake.cameHome": "{count}টি এসেছে",
+  "intake.broughtNothing": "খালি ফিরেছে",
   "intake.newTrip": "নতুন যাত্রা",
   "intake.noTrip": "কোনো যাত্রা নয় — খামার থেকেই কেনা",
   "intake.owner": "গরুটি কার",
@@ -3490,6 +3491,14 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "ready.kpi.held": "অপেক্ষমাণ সময়ে আটকে",
   "ready.kpi.heldHint": "এখনো নিশ্চিত বা বিক্রয় করা যাবে না",
   "nav.sale": "বিক্রয়",
+  "nav.trips": "হাটের যাত্রা",
+  "trips.subtitle":
+    "কেনা বা বিক্রির জন্য হাটে প্রতিটি যাত্রা, আর গরুর দাম ছাড়া দিনটার খরচ। কিছু না কিনে ফিরলেও যাত্রাটা লিখুন: তার খরচ মাসের খামার চালানোর খরচে যাবে।",
+  "trips.buying": "কেনার যাত্রা",
+  "trips.selling": "বিক্রির যাত্রা",
+  "trips.newBuying": "নতুন কেনার যাত্রা",
+  "trips.noneBuying": "এখনো কোনো কেনার যাত্রা নেই",
+  "trips.recorded": "যাত্রা লেখা হলো",
   "nav.culling": "ছাঁটাই",
   "nav.fertility": "প্রজনন",
   "fertility.subtitle":
