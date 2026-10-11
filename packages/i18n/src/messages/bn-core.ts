@@ -4,6 +4,18 @@ import type { enCore } from "./en-core";
  *  The type forces every English key to exist here; the check script also refuses empty strings and stray keys at
  *  build time. */
 export const bnCore: Record<keyof typeof enCore, string> = {
+  "refusal.feedPlanAnimalLeft":
+    "এই পশু খামার ছেড়েছে। তার খাদ্য পরিকল্পনা সংশোধন করা যাবে না।",
+  "refusal.feedPlanChanged":
+    "অন্য কেউ পরিকল্পনা বদলেছেন। সংশোধন রাখার আগে পাতা নতুন করে খুলুন।",
+  "refusal.feedPlanStartsInFuture":
+    "পরিকল্পনা শুরুর দিন আজ বা তার আগের দিন বেছে নিন।",
+  "refusal.feedPlanRations":
+    "এই খামারের বর্তমান রেশন বেছে নিন। প্রতিটি ধাপ একবারই বাছুন।",
+  "refusal.feedPlanStages":
+    "শুরুর রেশন দেখুন এবং ফাঁক বা ওভারল্যাপ ছাড়া ওজনের ধাপ বেছে নিন। প্রতিটি বৃদ্ধির রেশনে খাদ্যের পরিমাণ ও প্রত্যাশিত বৃদ্ধি থাকতে হবে।",
+  "refusal.feedPlanCoverage":
+    "দ্রুত বৃদ্ধিসহ বিক্রয়ের দিন পর্যন্ত পশুর সম্ভাব্য ওজনের জন্য উপযুক্ত রেশন যোগ করুন।",
   "feedPlan.rationsChanged": "এই পরিকল্পনা অনুমোদনের পর রেশন বদলেছে",
   "feedPlan.rationsChangedHint":
     "এই পূর্বাভাসে সংরক্ষিত রেশনের উপকরণ আছে। বর্তমান রেশন ব্যবহার করতে পর্যালোচনা করে সংশোধন রাখুন।",

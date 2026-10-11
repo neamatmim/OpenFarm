@@ -115,6 +115,7 @@ export const feedingPlansRouter = {
           if (!locked || !isOnTheFarm(locked)) {
             throw new ORPCError("BAD_REQUEST", {
               message: "An animal that has left cannot have a new feeding plan",
+              data: { refusal: "feed_plan_animal_left" },
             });
           }
           const previous = await tx.query.animalFeedPlan.findFirst({
@@ -124,11 +125,13 @@ export const feedingPlansRouter = {
           if ((previous?.id ?? null) !== input.previousPlanId) {
             throw new ORPCError("CONFLICT", {
               message: "The plan changed. Refresh before saving a revision.",
+              data: { refusal: "feed_plan_changed" },
             });
           }
           if (input.startDay > farmDayOf(now)) {
             throw new ORPCError("BAD_REQUEST", {
               message: "An existing animal's plan starts on or before today",
+              data: { refusal: "feed_plan_starts_in_future" },
             });
           }
           const options = await planningRations(tx, context.farm, animal);
@@ -146,6 +149,7 @@ export const feedingPlansRouter = {
           ) {
             throw new ORPCError("BAD_REQUEST", {
               message: "Choose current rations belonging to this farm",
+              data: { refusal: "feed_plan_rations" },
             });
           }
           const snapshot = {
@@ -165,7 +169,7 @@ export const feedingPlansRouter = {
             throw new ORPCError("BAD_REQUEST", {
               message:
                 "Check the adaptation ration and select non-overlapping stages with feed and expected gain",
-              data: { problems },
+              data: { refusal: "feed_plan_stages", problems },
             });
           }
           const feeds = await tx.query.feedItem.findMany({
@@ -181,7 +185,7 @@ export const feedingPlansRouter = {
           if (incomplete) {
             throw new ORPCError("BAD_REQUEST", {
               message: `Add a ration covering ${incomplete.weightKg} kg before ${incomplete.day}`,
-              data: { incomplete },
+              data: { refusal: "feed_plan_coverage", incomplete },
             });
           }
           await tx.insert(animalFeedPlan).values({

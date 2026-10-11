@@ -74,6 +74,7 @@ export const useVentureActs = (): { acts: VentureActs; sheets: ReactNode } => {
     setStaged({ act, venture });
   const acts: VentureActs = {
     sign: opens("sign"),
+    printAgreement: opens("printAgreement"),
     takeCapital: (venture, agreementId) =>
       setStaged({ act: "takeCapital", venture, agreementId }),
     callOff: opens("callOff"),
@@ -134,7 +135,13 @@ export const useVentureActs = (): { acts: VentureActs; sheets: ReactNode } => {
       <DrawFloatSheet {...staging("drawFloat")} />
       <CallOffSheet {...staging("callOff")} />
       <AmendSheet {...staging("amend")} />
-      <SignAgreementSheet {...staging("sign")} />
+      <SignAgreementSheet
+        {...staging(
+          staged?.act === "printAgreement" ? "printAgreement" : "sign"
+        )}
+        key={staged?.act === "printAgreement" ? "print" : "sign"}
+        purpose={staged?.act === "printAgreement" ? "print" : "sign"}
+      />
     </>
   );
   return { acts, sheets };

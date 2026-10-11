@@ -8,6 +8,7 @@ import {
   Gavel,
   Landmark,
   PenLine,
+  Printer,
   PiggyBank,
   Receipt,
   Scale,
@@ -176,6 +177,7 @@ const termsCanStillMove = (venture: Venture) =>
  *  one line here and one line there rather than a fourth row of buttons. */
 export interface VentureActs {
   sign: (venture: Venture) => void;
+  printAgreement: (venture: Venture) => void;
   /** Capital against the Venture — or, from one Investor's row, against his paper. */
   takeCapital: (venture: Venture, agreementId?: string) => void;
   callOff: (venture: Venture) => void;
@@ -444,6 +446,13 @@ export const primaryActsOf = (
         variant: "outline",
         disabled: unitsLeft(venture) <= 0,
         handleSelect: () => acts.sign(venture),
+      },
+      {
+        label: t("ventures.printDraft"),
+        icon: Printer,
+        variant: "outline",
+        disabled: unitsLeft(venture) <= 0,
+        handleSelect: () => acts.printAgreement(venture),
       },
       {
         label: t("ventures.startBuying"),
