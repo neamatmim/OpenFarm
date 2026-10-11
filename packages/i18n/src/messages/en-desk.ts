@@ -971,6 +971,9 @@ export const enDesk = {
   "ventures.paidOn": "Paid on",
   "ventures.challanNumber": "e-challan no.",
   "ventures.printDraft": "Print the agreement to sign",
+  "ventures.preparePrintHint":
+    "Choose the investor and terms, then preview and print the agreement. Both parties and witnesses sign the printed form. Record it under Sign an agreement after signing.",
+  "ventures.preparePrint": "Preview printable agreement",
   "ventures.printDraftHint":
     "Laid out from these terms, to print onto stamp paper or to go with the e-challan.",
   "ventures.agreementTitle": "The agreement to sign",
@@ -1910,6 +1913,7 @@ export const enDesk = {
   "audit.entity.user": "Person",
   "audit.entity.sop_instance": "Playbook work",
   "audit.entity.animal": "Animal",
+  "audit.entity.animal_feed_plan": "Animal feeding plan",
   "audit.entity.step_completion": "Step recorded",
   "audit.entity.report": "Report",
   "audit.entity.money_event": "Money entry",

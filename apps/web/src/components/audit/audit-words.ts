@@ -17,6 +17,7 @@ export const ENTITIES = [
   "farm",
   "sop_instance",
   "animal",
+  "animal_feed_plan",
   "step_completion",
   "report",
   "money_event",

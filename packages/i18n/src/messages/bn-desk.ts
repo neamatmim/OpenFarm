@@ -911,6 +911,9 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "ventures.paidOn": "পরিশোধের তারিখ",
   "ventures.challanNumber": "ই-চালান নম্বর",
   "ventures.printDraft": "সই করার চুক্তিপত্র ছাপুন",
+  "ventures.preparePrintHint":
+    "বিনিয়োগকারী ও শর্তগুলো বেছে চুক্তিপত্র দেখুন এবং প্রিন্ট করুন। ছাপানো কাগজে দুই পক্ষ ও সাক্ষীরা সই করবেন। সই হলে «চুক্তি সই» থেকে রেকর্ড করুন।",
+  "ventures.preparePrint": "প্রিন্ট করার চুক্তিপত্র দেখুন",
   "ventures.printDraftHint":
     "এই শর্তগুলো থেকে সাজানো হবে — স্ট্যাম্প কাগজে ছাপার জন্য, অথবা ই-চালানের সাথে দেওয়ার জন্য।",
   "ventures.agreementTitle": "সই করার চুক্তিপত্র",
@@ -1795,6 +1798,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "audit.entity.user": "ব্যক্তি",
   "audit.entity.sop_instance": "প্লেবুকের কাজ",
   "audit.entity.animal": "পশু",
+  "audit.entity.animal_feed_plan": "পশুর খাদ্য পরিকল্পনা",
   "audit.entity.step_completion": "ধাপের রেকর্ড",
   "audit.entity.report": "প্রতিবেদন",
   "audit.entity.money_event": "{currencyOf} হিসাব",

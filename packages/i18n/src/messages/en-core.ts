@@ -4,6 +4,18 @@
  * every screen may need, and the only ones a Shed Phone fetches before its first screen is drawn.
  */
 export const enCore = {
+  "refusal.feedPlanAnimalLeft":
+    "This animal has left the farm. Its feeding plan cannot be revised.",
+  "refusal.feedPlanChanged":
+    "Someone changed the plan. Refresh the page before saving a revision.",
+  "refusal.feedPlanStartsInFuture":
+    "Choose a plan start date on or before today.",
+  "refusal.feedPlanRations":
+    "Choose current rations from this farm, selecting each stage once.",
+  "refusal.feedPlanStages":
+    "Check the arrival ration and choose continuous weight bands without overlaps. Each growth ration needs feed quantities and expected gain.",
+  "refusal.feedPlanCoverage":
+    "Add rations that cover the animal's projected weights through the sale date, including faster growth.",
   "feedPlan.rationsChanged":
     "Rations have changed since this plan was approved",
   "feedPlan.rationsChangedHint":
