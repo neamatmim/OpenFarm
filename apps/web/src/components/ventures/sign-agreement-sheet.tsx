@@ -109,36 +109,6 @@ const NOTHING_SIGNED: Terms = {
 const signedOnOf = (terms: Terms, today: string) =>
   terms.signedOn === "" ? today : terms.signedOn;
 
-const typedOrStarting = (
-  typed: string,
-  starting: number | null | undefined
-): string => {
-  if (typed === "" && starting !== null && starting !== undefined) {
-    return String(starting);
-  }
-  return typed;
-};
-
-const sheetPresentation = (
-  purpose: "sign" | "print",
-  inApp: boolean,
-  ventureName: string,
-  t: ReturnType<typeof useLanguage>["t"]
-) => {
-  if (purpose === "print") {
-    return {
-      title: t("ventures.printDraft"),
-      description: t("ventures.preparePrintHint"),
-      submitLabel: t("ventures.preparePrint"),
-    };
-  }
-  return {
-    title: t("ventures.sign"),
-    description: t("ventures.signHint", { venture: ventureName }),
-    submitLabel: inApp ? t("agreeInApp.offer") : t("ventures.sign"),
-  };
-};
-
 /** The day its Nominees are judged on, as the farm judges them: the day it is signed — offered in the app, today. */
 const judgedOn = (terms: Terms, today: string) =>
   terms.inApp ? today : signedOnOf(terms, today);
@@ -199,22 +169,6 @@ const stampMissing = (
   return null;
 };
 
-const sheetMissing = (
-  missingTerms: StillMissing | null,
-  terms: Terms,
-  purpose: "sign" | "print",
-  t: ReturnType<typeof useLanguage>["t"],
-  today: string
-): StillMissing | null => {
-  if (missingTerms) {
-    return missingTerms;
-  }
-  if (purpose === "print" || terms.inApp) {
-    return null;
-  }
-  return stampMissing(terms, t, today);
-};
-
 /**
  * The first thing the paper still needs before it can be signed, in the order the sheet asks for it, and the field it
  * is about — said when "Sign" is pressed too soon, rather than the button standing gray with its reason above it.
@@ -227,6 +181,7 @@ const stillMissing = (
     percent,
     left,
     nominees,
+    today,
   }: {
     units: number;
     /** The split as the box holds it: empty is no split, though it reads as nothing. */
@@ -234,13 +189,14 @@ const stillMissing = (
     percent: number;
     left: number;
     nominees: NomineesProblem | null;
+    today: string;
   },
   { t, language }: Pick<ReturnType<typeof useLanguage>, "t" | "language">
 ): StillMissing | null => {
   if (terms.investorId === "") {
     return { said: t("ventures.missing.investor"), at: "agreement-investor" };
   }
-  if (!Number.isInteger(units) || units < 1) {
+  if (!(units > 0)) {
     return { said: t("ventures.missing.units"), at: "agreement-units" };
   }
   if (units > left) {
@@ -267,7 +223,7 @@ const stillMissing = (
       at: `nominee-${place}-${NOMINEE_FIELD[nominees.code]}`,
     };
   }
-  return null;
+  return terms.inApp ? null : stampMissing(terms, t, today);
 };
 
 /**
@@ -386,8 +342,9 @@ const AnswersRequest = ({
  * never on it. Beside it the dialog offers «আপনার তথ্য», the notice the Agreement's data section points to, to print
  * and hand over with it — in the same dialog, since a page is printed by finding the one paper on the screen.
  */
-const usePrintToSign = ({
+const PrintToSign = ({
   drafting,
+  splitGiven,
   nomineeDrafts,
   today,
 }: {
@@ -398,6 +355,7 @@ const usePrintToSign = ({
     investorsPercent: number;
     arbitrator: string;
   };
+  splitGiven: boolean;
   /** The Nominees it will name, as written on the sheet, judged on the day it is printed. */
   nomineeDrafts: NomineeDraft[];
   today: string;
@@ -421,14 +379,34 @@ const usePrintToSign = ({
       onError: refusedNotice,
     })
   );
-  return {
-    pending: laying.isPending,
-    handlePreview: () =>
-      laying.mutate({
-        ...drafting,
-        nominees: nomineesOf(nomineeDrafts, today),
-      }),
-    dialog: (
+  const mayDraft =
+    draftsProblem(nomineeDrafts, today) === null &&
+    drafting.ventureId !== "" &&
+    drafting.investorId !== "" &&
+    drafting.units > 0 &&
+    splitGiven &&
+    aSplit(drafting.investorsPercent) &&
+    drafting.arbitrator !== "";
+  return (
+    <div className="flex flex-col gap-2">
+      <Button
+        className="self-start"
+        disabled={!mayDraft || laying.isPending}
+        onClick={() =>
+          laying.mutate({
+            ...drafting,
+            nominees: nomineesOf(nomineeDrafts, today),
+          })
+        }
+        type="button"
+        variant="outline"
+      >
+        <FileText aria-hidden data-icon="inline-start" />
+        {t("ventures.printDraft")}
+      </Button>
+      <p className="text-muted-foreground text-sm">
+        {t("ventures.printDraftHint")}
+      </p>
       <PaperDialog
         action={
           notice ? (
@@ -468,33 +446,6 @@ const usePrintToSign = ({
         }
         wording={notice?.wording ?? shown?.wording ?? null}
       />
-    ),
-  };
-};
-
-const PrintToSign = ({
-  ready,
-  printing,
-}: {
-  ready: boolean;
-  printing: ReturnType<typeof usePrintToSign>;
-}) => {
-  const { t } = useLanguage();
-  return (
-    <div className="flex flex-col gap-2">
-      <Button
-        className="self-start"
-        disabled={!ready || printing.pending}
-        onClick={printing.handlePreview}
-        type="button"
-        variant="outline"
-      >
-        <FileText aria-hidden data-icon="inline-start" />
-        {t("ventures.printDraft")}
-      </Button>
-      <p className="text-muted-foreground text-sm">
-        {t("ventures.printDraftHint")}
-      </p>
     </div>
   );
 };
@@ -759,12 +710,10 @@ const useSaving = (paper: Photo | null, done: () => void) => {
  * paper itself, because the paper is what a court would ask for.
  */
 export const SignAgreementSheet = ({
-  purpose = "sign",
   venture,
   open,
   onOpenChange,
 }: {
-  purpose?: "sign" | "print";
   venture: { id: string; name: string; units: number } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -809,11 +758,15 @@ export const SignAgreementSheet = ({
   });
   // Units nobody has typed read as the yes being answered, as an empty split reads as the farm's own: the box shows
   // what would be signed, and clearing it goes back to the yes.
-  const unitsSaid = typedOrStarting(terms.units, yes);
+  const unitsSaid =
+    terms.units === "" && yes !== null ? String(yes) : terms.units;
   const units = Number(unitsSaid);
   // Nothing typed yet reads as the farm's own starting point, so the field always shows the figure that
   // would actually be signed. Clearing it goes back to that rather than to a blank the Owner might miss.
-  const split = typedOrStarting(terms.investorsPercent, startsAt);
+  const split =
+    terms.investorsPercent === "" && startsAt !== undefined
+      ? String(startsAt)
+      : terms.investorsPercent;
   const percent = Number(split);
   const drafting = {
     ventureId: venture?.id ?? "",
@@ -825,180 +778,166 @@ export const SignAgreementSheet = ({
   const nomineesWrong = draftsProblem(nomineeDrafts, stampDay);
   // What "Sign" says it still needs when pressed too soon, and which field it goes to; nothing once it is ready. One
   // answer to both, so a button can never stand pressable with nothing to say why it does nothing.
-  const termsMissing = stillMissing(
+  const missing = stillMissing(
     asOffered,
-    { units, split, percent, left, nominees: nomineesWrong },
+    { units, split, percent, left, nominees: nomineesWrong, today },
     { t, language }
   );
-  const missing = sheetMissing(termsMissing, asOffered, purpose, t, today);
   const ready = venture !== null && missing === null;
-  const printing = usePrintToSign({ drafting, nomineeDrafts, today });
-  const presentation = sheetPresentation(
-    purpose,
-    inApp,
-    venture?.name ?? "",
-    t
-  );
   return (
-    <>
-      <FormSheet
-        {...presentation}
-        onOpenChange={onOpenChange}
-        onSubmit={() => {
-          if (purpose === "print") {
-            printing.handlePreview();
-            return;
-          }
-          const said = {
-            ...drafting,
-            nominees: nomineesOf(nomineeDrafts, stampDay),
-            ...(answering ? { requestId: answering.id } : {}),
-          };
-          if (inApp) {
-            saving.offer(said);
-            return;
-          }
-          saving.sign({
-            ...said,
-            arbitrator: terms.arbitrator,
-            stampKind: terms.stampKind,
-            stampValueMoney: Number(terms.stampValueMoney),
-            stampedOn: terms.stampedOn,
-            stampSerial: terms.stampSerial,
-            signedOn: signedOnOf(terms, today),
-          });
-        }}
-        open={open}
-        pending={printing.pending || saving.pending}
-        missing={missing}
-        ready={ready}
-        wide
+    <FormSheet
+      description={t("ventures.signHint", { venture: venture?.name ?? "" })}
+      onOpenChange={onOpenChange}
+      onSubmit={() => {
+        const said = {
+          ...drafting,
+          nominees: nomineesOf(nomineeDrafts, stampDay),
+          ...(answering ? { requestId: answering.id } : {}),
+        };
+        if (inApp) {
+          saving.offer(said);
+          return;
+        }
+        saving.sign({
+          ...said,
+          arbitrator: terms.arbitrator,
+          stampKind: terms.stampKind,
+          stampValueMoney: Number(terms.stampValueMoney),
+          stampedOn: terms.stampedOn,
+          stampSerial: terms.stampSerial,
+          signedOn: signedOnOf(terms, today),
+        });
+      }}
+      open={open}
+      pending={saving.pending}
+      missing={missing}
+      ready={ready}
+      submitLabel={inApp ? t("agreeInApp.offer") : t("ventures.sign")}
+      title={t("ventures.sign")}
+      wide
+    >
+      <FormField
+        hint={
+          nobodyLeft
+            ? t("ventures.nobodyLeftToSign")
+            : t("ventures.investorHint")
+        }
+        id="agreement-investor"
+        label={t("ventures.investor")}
       >
-        <FormField
-          hint={
-            nobodyLeft
-              ? t("ventures.nobodyLeftToSign")
-              : t("ventures.investorHint")
-          }
+        <NativeSelect
           id="agreement-investor"
-          label={t("ventures.investor")}
+          onChange={(event) => {
+            const chosen = signable.find(
+              (one) => one.id === event.target.value
+            );
+            setTerms({
+              ...terms,
+              investorId: event.target.value,
+              answersNone: false,
+            });
+            setNomineeDrafts(draftsOf(chosen?.nomination?.nominees ?? []));
+          }}
+          value={terms.investorId}
         >
-          <NativeSelect
-            id="agreement-investor"
-            onChange={(event) => {
-              const chosen = signable.find(
-                (one) => one.id === event.target.value
-              );
-              setTerms({
-                ...terms,
-                investorId: event.target.value,
-                answersNone: false,
-              });
-              setNomineeDrafts(draftsOf(chosen?.nomination?.nominees ?? []));
-            }}
-            value={terms.investorId}
-          >
-            <option value="">—</option>
-            {/* A retired Investor is not signed for anything until the Owner brings them back, and somebody who has
+          <option value="">—</option>
+          {/* A retired Investor is not signed for anything until the Owner brings them back, and somebody who has
               signed this Venture already signs no second Agreement for it. */}
-            {signable.map((one) => (
-              <option key={one.id} value={one.id}>
-                {one.name}
-              </option>
-            ))}
-          </NativeSelect>
-        </FormField>
-        {live ? (
-          <AnswersRequest
-            answering={answering !== undefined}
-            live={live}
-            onChange={(answers) =>
-              setTerms({ ...terms, answersNone: !answers })
-            }
-          />
-        ) : null}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField
-            hint={t("ventures.unitsLeft", {
-              left: formatNumber(Math.max(left, 0), language),
-            })}
-            id="agreement-units"
-            label={t("ventures.unitsTaken")}
-          >
-            <Input
-              id="agreement-units"
-              inputMode="numeric"
-              max={Math.max(left, 0)}
-              min={1}
-              onChange={(event) =>
-                setTerms({ ...terms, units: event.target.value })
-              }
-              type="number"
-              value={unitsSaid}
-            />
-          </FormField>
-          <FormField
-            hint={t("ventures.splitHint", {
-              // In the reader's own numerals: the sentence around it is Bangla, and it now shows from the
-              // moment the sheet opens rather than only once somebody has typed.
-              farm: split === "" ? "—" : formatNumber(100 - percent, language),
-            })}
-            id="agreement-percent"
-            label={t("ventures.investorsPercent")}
-          >
-            <Input
-              id="agreement-percent"
-              inputMode="numeric"
-              max={100}
-              min={0}
-              onChange={(event) =>
-                setTerms({ ...terms, investorsPercent: event.target.value })
-              }
-              type="number"
-              value={split}
-            />
-          </FormField>
-        </div>
+          {signable.map((one) => (
+            <option key={one.id} value={one.id}>
+              {one.name}
+            </option>
+          ))}
+        </NativeSelect>
+      </FormField>
+      {live ? (
+        <AnswersRequest
+          answering={answering !== undefined}
+          live={live}
+          onChange={(answers) => setTerms({ ...terms, answersNone: !answers })}
+        />
+      ) : null}
+      <div className="grid gap-4 sm:grid-cols-2">
         <FormField
-          hint={t("ventures.arbitratorHint")}
-          id="agreement-arbitrator"
-          label={t("ventures.arbitrator")}
+          hint={t("ventures.unitsLeft", {
+            left: formatNumber(Math.max(left, 0), language),
+          })}
+          id="agreement-units"
+          label={t("ventures.unitsTaken")}
         >
           <Input
-            autoComplete="off"
-            id="agreement-arbitrator"
+            id="agreement-units"
+            inputMode="numeric"
+            max={Math.max(left, 0)}
+            min={1}
             onChange={(event) =>
-              setTerms({ ...terms, arbitrator: event.target.value })
+              setTerms({ ...terms, units: event.target.value })
             }
-            value={terms.arbitrator}
+            type="number"
+            value={unitsSaid}
           />
         </FormField>
-        <TheNomineesItNames
-          chosen={terms.investorId !== ""}
-          organization={
-            signable.find((one) => one.id === terms.investorId)?.kind ===
-            "organization"
+        <FormField
+          hint={t("ventures.splitHint", {
+            // In the reader's own numerals: the sentence around it is Bangla, and it now shows from the
+            // moment the sheet opens rather than only once somebody has typed.
+            farm: split === "" ? "—" : formatNumber(100 - percent, language),
+          })}
+          id="agreement-percent"
+          label={t("ventures.investorsPercent")}
+        >
+          <Input
+            id="agreement-percent"
+            inputMode="numeric"
+            max={100}
+            min={0}
+            onChange={(event) =>
+              setTerms({ ...terms, investorsPercent: event.target.value })
+            }
+            type="number"
+            value={split}
+          />
+        </FormField>
+      </div>
+      <FormField
+        hint={t("ventures.arbitratorHint")}
+        id="agreement-arbitrator"
+        label={t("ventures.arbitrator")}
+      >
+        <Input
+          autoComplete="off"
+          id="agreement-arbitrator"
+          onChange={(event) =>
+            setTerms({ ...terms, arbitrator: event.target.value })
           }
-          drafts={nomineeDrafts}
-          onChange={setNomineeDrafts}
-          onDay={stampDay}
+          value={terms.arbitrator}
         />
-        {purpose === "sign" ? (
-          <>
-            <PrintToSign ready={termsMissing === null} printing={printing} />
-            <HowItIsMade
-              inApp={inApp}
-              inAppOn={inAppOn}
-              onChange={setTerms}
-              onPaper={setPaper}
-              paper={paper}
-              terms={terms}
-              today={today}
-            />
-          </>
-        ) : null}
-      </FormSheet>
-      {printing.dialog}
-    </>
+      </FormField>
+      <TheNomineesItNames
+        chosen={terms.investorId !== ""}
+        organization={
+          signable.find((one) => one.id === terms.investorId)?.kind ===
+          "organization"
+        }
+        drafts={nomineeDrafts}
+        onChange={setNomineeDrafts}
+        onDay={stampDay}
+      />
+      <PrintToSign
+        drafting={drafting}
+        nomineeDrafts={nomineeDrafts}
+        splitGiven={split !== ""}
+        today={today}
+      />
+      <HowItIsMade
+        inApp={inApp}
+        inAppOn={inAppOn}
+        onChange={setTerms}
+        onPaper={setPaper}
+        paper={paper}
+        terms={terms}
+        today={today}
+      />
+    </FormSheet>
   );
 };
