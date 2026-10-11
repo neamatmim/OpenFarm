@@ -3,6 +3,60 @@ import { defineRelations } from "drizzle-orm";
 import * as schema from "./schema";
 
 export const relations = defineRelations(schema, (r) => ({
+  supplierPayment: {
+    invoice: r.one.supplierInvoice({
+      from: r.supplierPayment.invoiceId,
+      to: r.supplierInvoice.id,
+      optional: false,
+    }),
+  },
+  supplierProfile: {
+    counterparty: r.one.counterparty({
+      from: r.supplierProfile.counterpartyId,
+      to: r.counterparty.id,
+      optional: false,
+    }),
+  },
+  supplierInvoice: {
+    supplier: r.one.counterparty({
+      from: r.supplierInvoice.counterpartyId,
+      to: r.counterparty.id,
+      optional: false,
+    }),
+    deliveries: r.many.feedIn({
+      from: r.supplierInvoice.id,
+      to: r.feedIn.supplierInvoiceId,
+    }),
+    payments: r.many.supplierPayment({
+      from: r.supplierInvoice.id,
+      to: r.supplierPayment.invoiceId,
+    }),
+    photo: r.one.supplierInvoicePhoto({
+      from: r.supplierInvoice.id,
+      to: r.supplierInvoicePhoto.invoiceId,
+    }),
+  },
+  feedPurchaseOrder: {
+    feedItem: r.one.feedItem({
+      from: r.feedPurchaseOrder.feedItemId,
+      to: r.feedItem.id,
+      optional: false,
+    }),
+    supplier: r.one.counterparty({
+      from: r.feedPurchaseOrder.counterpartyId,
+      to: r.counterparty.id,
+      optional: false,
+    }),
+    assignee: r.one.user({
+      from: r.feedPurchaseOrder.assignedTo,
+      to: r.user.id,
+      optional: false,
+    }),
+    receipts: r.many.feedIn({
+      from: r.feedPurchaseOrder.id,
+      to: r.feedIn.purchaseOrderId,
+    }),
+  },
   financialYearChange: {
     recorder: r.one.user({
       from: r.financialYearChange.recordedBy,

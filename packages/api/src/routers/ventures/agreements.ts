@@ -5,7 +5,13 @@ import {
   amendmentPaper,
   STAMPED_KINDS,
 } from "@OpenFarm/db/schema/venture";
-import { capitalItMayHold, farmDayOf, sumsStandingOf } from "@OpenFarm/domain";
+import {
+  capitalItMayHold,
+  farmDayOf,
+  monthlyPaymentAllocationOf,
+  roundMoney,
+  sumsStandingOf,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -115,10 +121,8 @@ export const agreementsProcedures = {
             firstSumDueOn: true,
           },
         });
-        // Paid by the month: where each paper stands against its Monthly Sums today, once the buying has started — the
-        // Owner's to read, never another Investor's.
-        const monthly =
-          run && run.state !== "open" ? paidForBy(run).monthly : null;
+        // The Owner reads each schedule, including confirmed sums paid before buying.
+        const monthly = run ? paidForBy(run).monthly : null;
         const today = farmDayOf(context.clock.now());
         const taken = new Map<string, number>();
         for (const one of await context.db.query.ventureMovement.findMany({
@@ -132,7 +136,7 @@ export const agreementsProcedures = {
           if (one.agreementId) {
             taken.set(
               one.agreementId,
-              (taken.get(one.agreementId) ?? 0) + one.amountMoney
+              roundMoney((taken.get(one.agreementId) ?? 0) + one.amountMoney)
             );
           }
         }
@@ -145,17 +149,27 @@ export const agreementsProcedures = {
           payInCode: one.payInCode,
           /** The Request to Join it answers, if the Investor asked through the portal. */
           requestId: one.requestId,
-          /** Capital this paper may still take: its Units' worth — their Cattle Part, while a Venture paid by the month
-           *  gathers its capital — less what it has taken. */
+          /** The signed price less confirmed receipts, including installments paid early. */
           capitalLeftMoney: Math.max(
             0,
-            (run ? capitalItMayHold(one.units, run) : 0) -
-              (taken.get(one.id) ?? 0)
+            roundMoney(
+              (run ? capitalItMayHold(one.units, run) : 0) -
+                (taken.get(one.id) ?? 0)
+            )
           ),
-          /** Paid by the month and running: how many Monthly Sums are paid of how many, what is due, what is missed and
-           *  the next — or nothing for a Venture paid before buying, or still gathering. */
-          sums: monthly
-            ? sumsStandingOf({
+          /** Monthly Sums standing once buying starts; gathering has its separate cattle readiness check. */
+          sums:
+            monthly && run?.state !== "open"
+              ? sumsStandingOf({
+                  units: one.units,
+                  unitPriceMoney: run?.unitPriceMoney ?? 0,
+                  monthly,
+                  paidMoney: taken.get(one.id) ?? 0,
+                  today,
+                })
+              : null,
+          paymentAllocation: monthly
+            ? monthlyPaymentAllocationOf({
                 units: one.units,
                 unitPriceMoney: run?.unitPriceMoney ?? 0,
                 monthly,

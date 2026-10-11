@@ -7,6 +7,11 @@ import { CircleCheck, Hourglass, Milk, Scale, Tractor } from "lucide-react";
 
 import { DataFreshness } from "@/components/data-freshness";
 import type { FreshnessRead } from "@/components/data-freshness";
+import {
+  FeedPurchaseAttention,
+  purchasesNeedingAttention,
+} from "@/components/feed/feed-purchase-attention";
+import { SupplierAttention } from "@/components/feed/supplier-attention";
 import { AdultDeathsSection } from "@/components/home/adult-deaths";
 import { CalfLossesSection } from "@/components/home/calf-losses";
 import { EarlyLossesSection } from "@/components/home/early-losses";
@@ -276,6 +281,8 @@ const OwnerDay = ({
   // worked out where it is read — a cached `true` would tell her a run is over on the strength of a
   // date that has since moved. Owner-only already, and a farm with no Venture gets an empty list.
   const ventures = useQuery(orpc.ventures.list.queryOptions());
+  const purchases = useQuery(orpc.feedPurchasing.list.queryOptions());
+  const suppliers = useQuery(orpc.suppliers.list.queryOptions());
   const troubled = venturesNeedingHer(ventures.data);
   // Counted into the badge, so "all fine" cannot be said over a Venture that is not — and not claimed
   // at all while the answer is still coming or did not come. An empty list is an answer; no answer is
@@ -283,9 +290,20 @@ const OwnerDay = ({
   const heardAboutVentures = ventures.isSuccess;
   // The badge counts her decisions; "all fine" is said only when nothing at all waits — a missing animal, a store to
   // count or Receivable overdue is no decision of hers, but the farm is not all fine while one waits.
-  const waiting = decisionsWaiting(needsYou) + troubled.length;
+  const purchaseAttention = purchasesNeedingAttention(purchases.data ?? []);
+  const supplierAttention =
+    suppliers.data?.filter((row) => row.overdueMoney > 0).length ?? 0;
+  const waiting =
+    decisionsWaiting(needsYou) + troubled.length + purchaseAttention;
   const allFine =
-    anythingWaiting(needsYou) + troubled.length === 0 && heardAboutVentures;
+    anythingWaiting(needsYou) +
+      troubled.length +
+      purchaseAttention +
+      supplierAttention ===
+      0 &&
+    heardAboutVentures &&
+    purchases.isSuccess &&
+    suppliers.isSuccess;
 
   return (
     <Page>
@@ -294,7 +312,9 @@ const OwnerDay = ({
       <PageHeader
         description={t("owner.subtitle")}
         eyebrow={formatDate(new Date(), language, "date")}
-        freshness={<DataFreshness reads={[read, ventures, ...reads]} />}
+        freshness={
+          <DataFreshness reads={[read, ventures, purchases, ...reads]} />
+        }
         meta={
           waiting > 0 ? (
             <StatusBadge tone="warning">
@@ -312,6 +332,8 @@ const OwnerDay = ({
       {/* Missing from an answer kept from before the overview said what was left to set up. */}
       <SetupLeft steps={data.setupLeft ?? []} />
       <SummaryFigures figures={figures} />
+      <FeedPurchaseAttention />
+      <SupplierAttention />
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-6">

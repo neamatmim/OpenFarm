@@ -160,6 +160,16 @@ export const HowToPay = ({
             </div>
           )}
         </dl>
+        {monthly ? (
+          <p className="text-muted-foreground text-sm">
+            {t("portal.pay.early", { amount: asMoney(paying.owedMoney) })}
+          </p>
+        ) : null}
+        {monthly ? (
+          <p className="text-muted-foreground text-sm">
+            {t("portal.pay.cattleDeadline")} <SaidDate at={paying.decideBy} />
+          </p>
+        ) : null}
         {waitingMoney > 0 ? (
           <p className="text-muted-foreground text-sm">
             {t("portal.payIn.beingChecked", { amount: asMoney(waitingMoney) })}

@@ -5,7 +5,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 // A Venture paid by the month takes each Unit's Cattle Part before the buying, and the buying waits on all of it: the
-// Monthly Sums keep the animals and buy none. Everything that comes in before the buying is cattle money.
+// Monthly Sums keep the animals and buy none, even when paid before buying starts.
 
 const suffix = `${Date.now()}`.slice(-7);
 const AT = "2074-01-05T04:00:00.000Z";
@@ -94,28 +94,29 @@ beforeAll(async () => {
 });
 
 describe("a Venture paid by the month, while it gathers its capital", () => {
-  it("takes an Agreement's Cattle Part and not a taka of its Monthly Sums", async () => {
+  it("takes advance Monthly Sums without counting them as cattle money", async () => {
     const owner = await asOwner();
 
-    await expect(pay(owner, tenUnits, 400_001)).rejects.toMatchObject({
-      data: { refusal: "capital_over_cattle_part" },
+    await pay(owner, tenUnits, 450_000);
+    expect(await listed(owner, monthly)).toMatchObject({
+      cattleBudgetHeldMoney: 400_000,
+      runningBudgetHeldMoney: 50_000,
     });
-    await pay(owner, tenUnits, 400_000);
-    await expect(pay(owner, tenUnits, 1)).rejects.toMatchObject({
-      data: { refusal: "capital_over_cattle_part" },
+    await expect(pay(owner, tenUnits, 50_001)).rejects.toMatchObject({
+      data: { refusal: "capital_over_units" },
     });
   });
 
-  it("tells the Owner's capital form what is left of each Cattle Part", async () => {
+  it("tells the Owner's capital form what is left of each signed price", async () => {
     const owner = await asOwner();
     await pay(owner, threeUnits, 100_000);
 
     const papers = await owner.ventures.agreements.list({ ventureId: monthly });
 
     const left = new Map(papers.map((one) => [one.id, one.capitalLeftMoney]));
-    expect(left.get(tenUnits)).toBe(0);
+    expect(left.get(tenUnits)).toBe(50_000);
     // Three Units' cattle money is 1,20,000; a lakh is in.
-    expect(left.get(threeUnits)).toBe(20_000);
+    expect(left.get(threeUnits)).toBe(50_000);
   });
 
   it("will not start buying while any signed Cattle Part is short, and says how much", async () => {
@@ -128,22 +129,32 @@ describe("a Venture paid by the month, while it gathers its capital", () => {
     ).rejects.toMatchObject({ data: { refusal: "cattle_money_short" } });
   });
 
-  it("will not let a Correction carry a payment past its Cattle Part", async () => {
+  it("allows a Correction into advance sums but refuses exceeding the signed price", async () => {
     const owner = await asOwner();
     const { id } = await pay(owner, threeUnits, 10_000);
 
+    await owner.ventures.movements.correct({
+      id,
+      reason: `বেশি লিখতে চাই ${suffix}`,
+      changes: { amountMoney: { from: 10_000, to: 30_000 } },
+    });
+    expect(await listed(owner, monthly)).toMatchObject({
+      cattleMoneyShortMoney: 0,
+      cattleBudgetHeldMoney: 520_000,
+      runningBudgetHeldMoney: 60_000,
+    });
     await expect(
       owner.ventures.movements.correct({
         id,
-        reason: `বেশি লিখতে চাই ${suffix}`,
-        changes: { amountMoney: { from: 10_000, to: 30_000 } },
+        reason: `সীমার বেশি ${suffix}`,
+        changes: { amountMoney: { from: 30_000, to: 50_001 } },
       })
-    ).rejects.toMatchObject({ data: { refusal: "capital_over_cattle_part" } });
+    ).rejects.toMatchObject({ data: { refusal: "capital_over_units" } });
   });
 });
 
 describe("a Venture paid by the month, once every Cattle Part is in", () => {
-  it("starts buying, holding all its capital as cattle money and none yet to keep them", async () => {
+  it("starts buying, holding only Cattle Parts as cattle money, keeping early sums for running", async () => {
     const owner = await asOwner();
     await pay(owner, threeUnits, 10_000);
 
@@ -156,7 +167,7 @@ describe("a Venture paid by the month, once every Cattle Part is in", () => {
     expect(venture).toMatchObject({
       state: "buying",
       cattleBudgetHeldMoney: 520_000,
-      runningBudgetHeldMoney: 0,
+      runningBudgetHeldMoney: 70_000,
     });
   });
 

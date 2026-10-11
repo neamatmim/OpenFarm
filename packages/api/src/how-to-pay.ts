@@ -1,6 +1,7 @@
 import type { MonthlySum } from "@OpenFarm/domain";
 import {
   capitalItMayHold,
+  roundMoney,
   sumsStandingOf,
   takesCapital,
 } from "@OpenFarm/domain";
@@ -19,18 +20,14 @@ export interface HowToPay {
   payInCode: string;
   decideBy: string;
   account: VentureAccount | null;
-  /** Paid by the month, once the buying has started: what has fallen due and is not yet paid, and the next sum — its
-   *  day and what his Units pay on it. Nothing while the Venture gathers its capital, which is paid by the decision
-   *  date like any other. */
+  /** What is due and the next unpaid installment, including while gathering cattle capital. */
   monthly: { dueMoney: number; next: MonthlySum | null } | null;
 }
 
 /**
  * What one Agreement still owes and where it is paid, or nothing once its capital is all in — or once its Venture takes
- * no more: one paid before buying once it leaves Open, one paid by the month once it starts selling. Owed is what the
- * Agreement may hold by now (its Units' price, or their Cattle Part while a monthly Venture gathers), less the capital
- * recorded against it, counted as the capital form counts it before refusing a payment too many. The caller has already
- * narrowed the Agreement to the Investor asking.
+ * no more: one paid before buying once it leaves Open, one paid by the month once it starts selling.
+ * Owed is the signed price less confirmed receipts. Pending Investor notes never count as received money.
  */
 export const howToPay = async (
   db: Pick<Tx, "query">,
@@ -65,15 +62,14 @@ export const howToPay = async (
     return null;
   }
   const paidMoney = await takenAgainst(db, farmId, agreementId);
-  // What he may pay now: his Units' whole price, or — for a Venture paid by the month, still gathering — their Cattle
-  // Part, since a taka of the Monthly Sums sent early would be refused at the bank's own door.
-  const owedMoney = capitalItMayHold(agreement.units, run) - paidMoney;
+  const owedMoney = roundMoney(
+    capitalItMayHold(agreement.units, run) - paidMoney
+  );
   if (owedMoney <= 0) {
     return null;
   }
   const { monthly } = paidForBy(run);
-  const running = run.state !== "open" && monthly !== null;
-  const standing = running
+  const standing = monthly
     ? sumsStandingOf({
         units: agreement.units,
         unitPriceMoney: run.unitPriceMoney,

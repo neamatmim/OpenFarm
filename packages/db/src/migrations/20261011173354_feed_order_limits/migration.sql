@@ -1,0 +1,3 @@
+CREATE INDEX "feed_in_order_idx" ON "feed_in" ("farm_id","purchase_order_id");--> statement-breakpoint
+ALTER TABLE "feed_purchase_order" ADD CONSTRAINT "feed_purchase_order_terms_ck" CHECK ("quantity" > 0 and "unit_price_money" > 0 and "budget_money" >= round("quantity" * "unit_price_money", 2) and "lead_days" between 0 and 90 and "buffer_days" between 0 and 30);--> statement-breakpoint
+ALTER TABLE "feed_purchase_order" ADD CONSTRAINT "feed_purchase_order_state_ck" CHECK ("state" in ('requested', 'approved', 'ordered', 'rejected', 'cancelled', 'closed'));

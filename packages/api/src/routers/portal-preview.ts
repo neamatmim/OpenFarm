@@ -3,6 +3,11 @@ import { z } from "zod";
 
 import type { Context } from "../context";
 import { protectedProcedure } from "../index";
+import {
+  documentAsked,
+  theirDocuments,
+  theirDocument,
+} from "../portal-documents";
 import type { PortalReader } from "../portal-reads";
 import {
   PORTAL_PAPER_KINDS,
@@ -84,6 +89,23 @@ export const portalPreviewRouter = {
     .handler(async ({ context, input }) =>
       theirPortfolio(await readerFor(context, input.investorId))
     ),
+
+  documents: ownersPreview
+    .input(whose)
+    .handler(async ({ context, input }) =>
+      theirDocuments(await readerFor(context, input.investorId))
+    ),
+
+  document: ownersPreview
+    .input(documentAsked.extend({ investorId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const reader = await readerFor(context, input.investorId);
+      return theirDocument(
+        { ...context, farm: reader.farm, inPreviewOf: reader.investor.id },
+        reader.investor,
+        input
+      );
+    }),
 
   /** The Ventures raising capital their portal would offer them today: none if they are retired. */
   openVentures: ownersPreview

@@ -1,4 +1,5 @@
 import { eq } from "@OpenFarm/db/operators";
+import { farm } from "@OpenFarm/db/schema/farm";
 import { feedIn } from "@OpenFarm/db/schema/feed";
 import { farmDayOf, roundMoney, startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
@@ -7,6 +8,10 @@ import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
+import {
+  lockFeedOrder,
+  validateCorrectedDelivery,
+} from "../feed-purchasing-store";
 import { farmAccountChange, paymentMethodChange } from "../money-inputs";
 import {
   accountSaid,
@@ -25,6 +30,10 @@ import {
   sellerInput,
   tellIfTheFeedCameDearer,
 } from "../stock-store";
+import {
+  assertInvoicePayments,
+  verifyCorrectedInvoice,
+} from "../supplier-store";
 import type { CorrectionKind } from "./correction";
 import {
   changeOf,
@@ -55,6 +64,10 @@ const loadArrival = (tx: Tx, farmId: string, id: string) =>
 export const feedArrivalCorrectionInput = correctionInput({
   quantity: changeOf(quantityInput, z.number()),
   priceMoney: changeOf(feedPriceInput, z.number().nullable()),
+  paidAtDeliveryMoney: changeOf(
+    z.number().min(0).max(100_000_000).multipleOf(0.01),
+    z.number().nullable()
+  ),
   seller: changeOf(sellerInput, z.string().nullable()),
   receivedOn: changeOf(farmDay, z.string()),
   paymentMethod: paymentMethodChange,
@@ -75,6 +88,14 @@ export const feedArrivalCorrection: CorrectionKind<
 > = {
   entity: "feed_in",
   table: feedIn,
+  // Deliveries, corrections and request creation take the farm before any order or receipt lock.
+  lock: async (tx, farmId) => {
+    await tx
+      .select({ id: farm.id })
+      .from(farm)
+      .where(eq(farm.id, farmId))
+      .for("update");
+  },
   roles: ["owner", "manager"],
   /**
    * An arrival is what the costing prices this Feed Item's feedings from: its price and its quantity both
@@ -102,6 +123,7 @@ export const feedArrivalCorrection: CorrectionKind<
     farmAccount: await farmAccountShownOf(tx, row.farmId, "feed_in", row.id),
     quantity: Number(row.quantity),
     priceMoney: row.priceMoney === null ? null : row.priceMoney,
+    paidAtDeliveryMoney: row.paidAtDeliveryMoney,
     seller: row.seller?.name ?? null,
     receivedOn: farmDayOf(row.receivedOn),
     paymentMethod: await paymentMethodOf(tx, row.farmId, "feed_in", row.id),
@@ -110,8 +132,16 @@ export const feedArrivalCorrection: CorrectionKind<
   shownAs: { seller: (to) => to.name },
   trail: (tx, row) => readFeedArrival(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
+    const order = row.purchaseOrderId
+      ? await lockFeedOrder(tx, row.farmId, row.purchaseOrderId)
+      : null;
     // The store is read again from what came in, so a lorry taken away leaves it as if it never came.
     if (to.voided) {
+      if (row.supplierInvoiceId) {
+        await assertInvoicePayments(tx, row.farmId, row.supplierInvoiceId, {
+          delivery: { id: row.id, voided: true },
+        });
+      }
       await forgetTheMoneyOf(tx, "feed_in", row.id);
       await tx.delete(feedIn).where(eq(feedIn.id, row.id));
       await clearNoticesAbout(tx, row.farmId, [row.id], now);
@@ -128,6 +158,9 @@ export const feedArrivalCorrection: CorrectionKind<
       seller: to.seller !== undefined || row.counterpartyId !== null,
     });
     const putRight = {
+      ...(to.paidAtDeliveryMoney === undefined
+        ? {}
+        : { paidAtDeliveryMoney: to.paidAtDeliveryMoney }),
       ...(to.quantity === undefined
         ? {}
         : {
@@ -158,6 +191,20 @@ export const feedArrivalCorrection: CorrectionKind<
             ),
           }),
     };
+    await verifyCorrectedInvoice(
+      tx,
+      { ...row, ...putRight },
+      to.paidAtDeliveryMoney !== undefined,
+      context.roles.includes("owner")
+    );
+    if (order) {
+      await validateCorrectedDelivery(
+        tx,
+        order,
+        { ...row, ...putRight },
+        context.roles.includes("owner")
+      );
+    }
     // Nothing of the record itself may have changed: a Correction may name only how it was paid
     // for, and an update with no values to set is a database error rather than a no-op.
     if (somethingChanged(putRight)) {

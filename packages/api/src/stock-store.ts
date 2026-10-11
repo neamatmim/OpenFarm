@@ -38,7 +38,7 @@ import { z } from "zod";
 
 import type { Tx } from "./audit";
 import type { Booking } from "./money-store";
-import { bookMoney, moneySnapshotOf } from "./money-store";
+import { bookMoney, forgetTheMoneyOf, moneySnapshotOf } from "./money-store";
 import type { Raised } from "./notice";
 import { rememberingPeople, tell, whoHears } from "./notice";
 import { insideATransaction, keptUntilAWrite } from "./writes-seen";
@@ -798,11 +798,16 @@ export const bookPurchaseMoney = async (
   if (row?.kind === "harvest") {
     return;
   }
-  if (row?.priceMoney) {
+  const paidMoney = row?.paidAtDeliveryMoney ?? row?.priceMoney;
+  if (row && paidMoney === 0) {
+    await forgetTheMoneyOf(tx, "feed_in", row.id);
+    return;
+  }
+  if (row && paidMoney) {
     await bookMoney(tx, booking, {
       source: "feed_in",
       sourceId: row.id,
-      amountMoney: row.priceMoney,
+      amountMoney: paidMoney,
       occurredAt: row.receivedOn,
       counterpartyId: row.counterpartyId,
       paymentMethod,

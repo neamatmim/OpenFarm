@@ -2,6 +2,37 @@ import type { enDesk } from "./en-desk";
 
 /** Bangla for the words read only at a desk or in the portal (./en-desk.ts says which). */
 export const bnDesk: Record<keyof typeof enDesk, string> = {
+  "payables.tab": "সরবরাহকারীকে পরিশোধ",
+  "payables.title": "সরবরাহকারীকে পরিশোধের পরিকল্পনা",
+  "payables.hint": "সরবরাহকারী অনুযায়ী খাদ্যের বকেয়া বিল—পরিশোধের শেষ তারিখের ক্রমে।",
+  "payables.asOf": "{date} অনুযায়ী",
+  "payables.outstanding": "মোট বকেয়া: {money}",
+  "payables.beforeToday": "আজকের আগে দেওয়ার কথা ছিল",
+  "payables.next7": "আগামী ৭ দিনে দিতে হবে",
+  "payables.next30": "আগামী ৩০ দিনে দিতে হবে",
+  "payables.month": "মাসের শেষের মধ্যে দিতে হবে",
+  "payables.monthHint": "{date} পর্যন্ত, মেয়াদ পেরোনো বিলসহ",
+  "payables.windowsHint":
+    "৭ ও ৩০ দিনের হিসাবে আজ অন্তর্ভুক্ত, মেয়াদ পেরোনো বিল বাদ। ৩০ দিনের মোটের মধ্যে ৭ দিনের মোটও আছে; এই অঙ্কগুলো যোগ করবেন না।",
+  "payables.search": "সরবরাহকারী, ফোন বা বিল খুঁজুন",
+  "payables.show": "বিল দেখান",
+  "payables.all": "সব বকেয়া বিল",
+  "payables.today": "আজ দিতে হবে",
+  "payables.shown": "{count}টি বিল দেখানো হচ্ছে · বকেয়া {money}",
+  "payables.supplierShown": "দেখানো বিলগুলোর বকেয়া: {money}",
+  "payables.viewInvoice": "বিল দেখুন",
+  "payables.viewNamed": "{supplier}-এর {number} বিল দেখুন",
+  "payables.payNamed": "পরিশোধ নথিভুক্ত করুন: {supplier}-এর {number} বিল",
+  "payables.viewPlan": "পরিশোধের পরিকল্পনা দেখুন",
+  "payables.empty": "সরবরাহকারীর কোনো বকেয়া বিল নেই",
+  "payables.emptyHint":
+    "বাকিতে বা আংশিক পরিশোধে কেনা খাদ্যের বিল সম্পূর্ণ পরিশোধ না হওয়া পর্যন্ত এখানে থাকবে।",
+  "payables.noMatches": "এই হিসাবে কোনো বিল মেলেনি",
+  "payables.noMatchesHint": "অন্য বকেয়া বিল দেখতে সময়সীমা বা খোঁজার লেখা বদলান।",
+  "audit.entity.supplier": "সরবরাহকারী",
+  "audit.entity.supplier_invoice": "সরবরাহকারীর ইনভয়েস",
+  "audit.entity.supplier_payment": "সরবরাহকারীকে পরিশোধ",
+  "audit.entity.feed_purchase_order": "খাদ্য কেনার আবেদন / অর্ডার",
   "portal.account.title": "আপনার অ্যাকাউন্ট",
   "portal.account.hint":
     "খামারে আপনার যে তথ্য আছে, কার কাছে জানতে চাইবেন, আপনার পাসওয়ার্ড, আর কোথায় সাইন ইন আছেন।",
@@ -659,8 +690,9 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "portal.runningBudget": "পরিচালনার বাজেট",
   "portal.budgetLeft": "{of}-এর মধ্যে {left} বাকি",
   "portal.budgetSpent": "{of}-এর মধ্যে {spent} খরচ",
-  "portal.papers": "আপনার কাগজ",
-  "portal.papersHint": "খামার আপনার জন্য যে কাগজ ছাপে, সেগুলোই — পড়ার ও ছাপার জন্য।",
+  "portal.papers": "আমার চুক্তি ও কাগজপত্র",
+  "portal.papersHint":
+    "সই করা চুক্তি, নমিনি মনোনয়নের ইতিহাস ও হিসাব বিবরণী — পড়ুন, ছাপুন বা নিজের কাছে রাখুন।",
   "portal.paper.joining": "যোগদানপত্র",
   "portal.paper.progress": "অগ্রগতি",
   "portal.paper.settlement": "হিসাব নিকাশ",
@@ -2396,4 +2428,51 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "push.headCountDiffersBody":
     "{pen}: গুনে {counted}টি, খাতায় {expected}টি। পেন ঘুরে আবার গুনুন।",
   "digest.headCountDiffers": "{count}টি পেনের গণনা খাতার সাথে মেলেনি",
+  "portal.documents.statements": "যোগদানপত্র ও হিসাব বিবরণী",
+  "portal.documents.agreements": "সই করা চুক্তি ও সংশোধনী",
+  "portal.documents.nominations": "নমিনি মনোনয়নের ইতিহাস",
+  "portal.documents.agreement": "বিনিয়োগ চুক্তি",
+  "portal.documents.amendment": "চুক্তির সংশোধনী",
+  "portal.documents.nomination": "নমিনি মনোনয়নপত্র",
+  "portal.documents.current": "বর্তমান",
+  "portal.documents.previous": "আগের",
+  "portal.documents.signedOn": "সই করার তারিখ: {day}",
+  "portal.documents.recordedOn": "নথিভুক্ত তারিখ: {day}",
+  "portal.documents.inApp": "অ্যাপে সম্মতি দেওয়া হয়েছে",
+  "portal.documents.photo": "সই করা কাগজের ছবি",
+  "portal.documents.inAgreement":
+    "এই নমিনিদের চুক্তিতে মনোনীত করা হয়েছে। সই করা নথি দেখতে চুক্তিটি খুলুন।",
+  "portal.documents.carriedOver":
+    "আগের তথ্য থেকে নেওয়া হয়েছে; সই করা মনোনয়নপত্র নথিতে নেই।",
+  "portal.documents.missing":
+    "সই করা কাগজের কপি নথিতে নেই। খামারকে সই করা কাগজের ছবি সংরক্ষণ করতে বলুন।",
+  "portal.documents.changed":
+    "সংরক্ষিত নথিটি যাচাই করা যায়নি। খামারের সঙ্গে যোগাযোগ করুন।",
+  "portal.documents.printPdf": "ছাপুন / PDF রাখুন",
+  "portal.documents.pdfHint": "PDF রাখতে ছাপার ডায়ালগে Save as PDF বেছে নিন।",
+  "portal.documents.originalInApp":
+    "অ্যাপে আপনি যে নথিতে সম্মতি দিয়েছেন, সেটিই আপনার সম্মতি ও খামারের অনুমোদনসহ সংরক্ষিত আছে।",
+  "portal.documents.agreedAt": "আপনার সম্মতির সময়: {at}",
+  "portal.documents.approvedAt": "খামারের অনুমোদনের সময়: {at}",
+  "portal.documents.emptyAgreements": "এখনও কোনো চুক্তি নথিভুক্ত নেই",
+  "portal.documents.emptyNominations": "এখনও কোনো মনোনয়ন নথিভুক্ত নেই",
+  "portal.documents.emptyHint": "খামার নথিভুক্ত করলে আপনার কাগজপত্র এখানে দেখা যাবে।",
+  "payments.title": "প্রাপ্ত টাকার বণ্টন",
+  "payments.hint":
+    "ব্যাংকে নিশ্চিত হওয়া টাকা প্রথমে আপনার গরু কেনার অংশ, এরপর পুরোনো থেকে নতুন মাসের টাকায় জমা হয়। চুক্তির নির্ধারিত তারিখ বদলায় না।",
+  "payments.cattle": "গরু কেনার অংশ",
+  "payments.monthly": "মাসের টাকা",
+  "payments.ahead": "ভবিষ্যৎ মাসের টাকায় জমা",
+  "payments.balance": "চুক্তির মোট বাকি",
+  "payments.paid": "জমা",
+  "payments.left": "বাকি",
+  "payments.schedule": "চুক্তির নির্ধারিত মাসের টাকার তালিকা",
+  "payments.preview": "এই প্রাপ্ত টাকা যে খাতে জমা হবে",
+  "payments.previewHint":
+    "নথিভুক্ত করার আগে ব্যাংকে টাকা প্রাপ্তি যাচাই করুন। এই চুক্তির গরু কেনার অংশের অতিরিক্ত টাকা রক্ষণাবেক্ষণের বাজেটে জমা হবে; অন্য কারও বাকি গরু কেনার অংশে গণনা হবে না।",
+  "portal.pay.early":
+    "এই চুক্তির বাকি {amount} পর্যন্ত অগ্রিম দিতে পারবেন। ব্যাংকে টাকা পাঠানোর প্রকৃত তারিখ ও রেফারেন্স লিখুন।",
+  "portal.pay.cattleDeadline":
+    "গরু কেনা শুরুর আগে আপনার গরু কেনার অংশ জমা হতে হবে। সিদ্ধান্তের তারিখ:",
+  "payments.dueOn": "নির্ধারিত তারিখ",
 };

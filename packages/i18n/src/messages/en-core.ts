@@ -4,6 +4,216 @@
  * every screen may need, and the only ones a Shed Phone fetches before its first screen is drawn.
  */
 export const enCore = {
+  "suppliers.show": "Show suppliers",
+  "suppliers.all": "All suppliers",
+  "suppliers.title": "Suppliers",
+  "suppliers.hint":
+    "Keep supplier contacts, credit terms, purchase history and outstanding invoices together.",
+  "suppliers.choose": "Choose a supplier",
+  "suppliers.new": "New supplier",
+  "suppliers.savedInvoices": "Saved invoices",
+  "suppliers.chooseInvoice": "Choose an invoice",
+  "suppliers.chooseInvoiceHint":
+    "Choose an invoice for another delivery under the same bill. Only invoices dated on or before this delivery are offered.",
+  "suppliers.searchInvoices": "Search invoice number or date",
+  "suppliers.noEligibleInvoices":
+    "No saved invoices are dated on or before this delivery.",
+  "suppliers.useInvoice": "Use invoice",
+  "suppliers.newInvoice": "Enter a new invoice",
+  "suppliers.savedInvoiceHint":
+    "This invoice's number and dates are kept. Enter only the payment made for this delivery.",
+  "suppliers.invoiceBalance": "Current invoice balance: {money}",
+  "suppliers.deliveryOwing": "Unpaid for this delivery",
+  "suppliers.add": "Add supplier",
+  "suppliers.edit": "Edit supplier",
+  "suppliers.save": "Save supplier",
+  "suppliers.saved": "Supplier saved",
+  "suppliers.address": "Address",
+  "suppliers.contact": "Contact person",
+  "suppliers.creditDays": "Credit period (days)",
+  "suppliers.retire": "Retire supplier",
+  "suppliers.retired": "Retired",
+  "suppliers.active": "Active suppliers",
+  "suppliers.withDues": "Suppliers with dues",
+  "suppliers.search": "Search name or phone",
+  "suppliers.empty": "No suppliers match this view",
+  "suppliers.view": "View account",
+  "suppliers.closeDetails": "Close account",
+  "suppliers.history": "Purchase history",
+  "suppliers.noPurchases": "No feed purchases recorded yet.",
+  "suppliers.purchaseCount":
+    "{count, plural, one {# purchase} other {# purchases}}",
+  "suppliers.paymentTerms": "Payment terms",
+  "suppliers.fullyPaid": "Paid in full",
+  "suppliers.credit": "Credit or partial payment",
+  "suppliers.invoiceNumber": "Supplier invoice number",
+  "suppliers.invoiceHint":
+    "Required for credit. Use the same number and dates when one invoice covers several deliveries.",
+  "suppliers.invoiceDate": "Invoice date",
+  "suppliers.dueOn": "Payment due by",
+  "suppliers.paidNow": "Paid at delivery",
+  "suppliers.purchased": "Purchase value",
+  "suppliers.paid": "Paid",
+  "suppliers.owing": "Outstanding",
+  "suppliers.overdue": "Overdue",
+  "suppliers.pay": "Record payment",
+  "suppliers.payment": "Supplier payment",
+  "suppliers.paymentSaved": "Supplier payment recorded",
+  "suppliers.amount": "Amount paid",
+  "suppliers.paidOn": "Paid on",
+  "suppliers.voidPayment": "Void payment",
+  "suppliers.voidHint":
+    "Use this for a duplicate or incorrect entry. The invoice balance and cash book will be restored, with the reason kept in the audit trail.",
+  "suppliers.paymentVoided": "Payment voided",
+  "suppliers.printOrder": "Purchase order / PDF",
+  "suppliers.statement": "Balance statement / PDF",
+  "suppliers.voucher": "Payment voucher / PDF",
+  "suppliers.invoices": "Supplier invoices",
+  "suppliers.noInvoices": "No supplier invoices recorded.",
+  "suppliers.invoiceRecorded": "Supplier invoice recorded",
+  "suppliers.deliveriesPayments": "Deliveries and payments",
+  "suppliers.deliveryReference": "Delivery reference",
+  "suppliers.invoiceCopy": "Supplier invoice copy",
+  "suppliers.copyKept": "Copy kept",
+  "suppliers.viewCopy": "View invoice copy",
+  "suppliers.hideCopy": "Hide copy",
+  "suppliers.attachCopy": "Attach invoice image",
+  "suppliers.copyReason": "Why are you attaching or replacing this copy?",
+  "suppliers.copySaved": "Invoice copy saved",
+  "suppliers.aging.current": "Not overdue",
+  "suppliers.aging.1_30": "1–30 days overdue",
+  "suppliers.aging.31_60": "31–60 days overdue",
+  "suppliers.aging.61_90": "61–90 days overdue",
+  "suppliers.aging.over_90": "Over 90 days overdue",
+  "suppliers.missing": "This supplier could not be found.",
+  "suppliers.retiredRefusal":
+    "Restore this supplier before placing a new purchase.",
+  "suppliers.changed":
+    "This supplier record changed. Refresh and provide a reason before editing.",
+  "suppliers.exists":
+    "This supplier already exists. Select or edit the existing supplier.",
+  "suppliers.openOrders":
+    "Finish or cancel active orders before retiring this supplier.",
+  "suppliers.invoiceDays":
+    "Check the invoice, delivery and payment dates. A due date must follow the invoice date.",
+  "suppliers.invoiceChanged":
+    "This invoice number already has different dates. Use its recorded dates or a different invoice number.",
+  "suppliers.invoiceRequired":
+    "Record the supplier invoice before entering credit or partial payment.",
+  "suppliers.invoicePurchase":
+    "A supplier invoice can only accompany purchased feed.",
+  "suppliers.invoiceSupplier":
+    "This delivery must keep the supplier named on its invoice.",
+  "suppliers.paymentLimit":
+    "The payment cannot exceed the delivered value or outstanding invoice balance on that day.",
+  "suppliers.attention": "Supplier bills need attention",
+  "suppliers.attentionHint":
+    "{count, plural, one {# supplier has overdue invoices.} other {# suppliers have overdue invoices.}}",
+
+  "purchasing.incomingAvailable":
+    "Placed orders arriving in time: {quantity} {unit}. Late deliveries and orders over their spending limit are excluded. Check outstanding approvals before requesting more.",
+  "purchasing.title": "Purchases",
+  "purchasing.description":
+    "Request feed, approve spending, place orders and record deliveries. Only deliveries enter stock and spending books.",
+  "purchasing.request": "Request feed purchase",
+  "purchasing.requestHint":
+    "One feed per request. Check outstanding requests before buying again. The owner approves quantity and spending before ordering.",
+  "purchasing.submit": "Submit request",
+  "purchasing.requested": "Purchase request submitted",
+  "purchasing.saved": "Purchase updated",
+  "purchasing.quantity": "Quantity",
+  "purchasing.unitPrice": "Quoted price per unit (৳)",
+  "purchasing.budget": "Maximum spend (৳)",
+  "purchasing.budgetHint":
+    "Leave empty to use quantity × quoted price. Include allowed delivery charges in this ceiling.",
+  "purchasing.quoteTotal": "Quoted total: {money}",
+  "purchasing.supplier": "Supplier",
+  "purchasing.phone": "Supplier phone (optional)",
+  "purchasing.assignee": "Responsible person",
+  "purchasing.neededOn": "Feed needed by",
+  "purchasing.leadDays": "Supplier delivery time (days)",
+  "purchasing.bufferDays": "Safety buffer (days)",
+  "purchasing.orderBy": "Order by {day}",
+  "purchasing.note": "Note (optional)",
+  "purchasing.existing": "{count} outstanding requests or orders for this feed",
+  "purchasing.incomingHint":
+    "Orders promising delivery by this date: {quantity} {unit}. Deducted from the suggested request; this is not stock. Check pending approvals and late deliveries before submitting.",
+  "purchasing.fromForecast": "Buy from this forecast",
+  "purchasing.approve": "Approve purchase",
+  "purchasing.approveHint":
+    "Check the quote and approve quantity and maximum spend. Changing an existing approval requires a reason; earlier approvals stay in the audit trail.",
+  "purchasing.revise": "Revise approval",
+  "purchasing.reason": "Reason",
+  "purchasing.place": "Record order placed",
+  "purchasing.placeHint":
+    "After ordering with the supplier, record its reference and promised delivery date here.",
+  "purchasing.orderReference": "Supplier order reference",
+  "purchasing.deliveryDue": "Promised delivery date",
+  "purchasing.arrivingLate":
+    "Delivery is promised after the feed is needed. Review stock coverage.",
+  "purchasing.action.rejected": "Decline request",
+  "purchasing.action.cancelled": "Cancel remaining purchase",
+  "purchasing.action.closed": "Close order",
+  "purchasing.endHint":
+    "Give a reason. Earlier deliveries and spending stay on the books. Closing or cancelling removes the remaining quantity from incoming plans.",
+  "purchasing.receive": "Record delivery",
+  "purchasing.received": "Received {quantity}",
+  "purchasing.remaining": "Still to receive {quantity}",
+  "purchasing.spent": "Spent {money}",
+  "purchasing.budgetLeft": "Spending room {money}",
+  "purchasing.orderLate":
+    "Ordering deadline reached. Approve or place this order now, or review the need date.",
+  "purchasing.deliveryLate":
+    "Delivery overdue. Contact the supplier and check remaining feed coverage.",
+  "purchasing.correctedAboveLimits":
+    "A corrected delivery exceeds the approved quantity or spending. The owner must review this discrepancy.",
+  "purchasing.history": "Order and delivery details",
+  "purchasing.requestedOn": "Requested",
+  "purchasing.approvedOn": "Approved",
+  "purchasing.noReceipts": "No deliveries recorded",
+  "purchasing.show": "Show purchases",
+  "purchasing.active": "Active purchases",
+  "purchasing.awaitingApproval": "Awaiting approval ({count})",
+  "purchasing.all": "Active and recent closed purchases",
+  "purchasing.empty": "No purchases in this view",
+  "purchasing.deliveryLimits":
+    "Remaining: {quantity} {unit} · Spending room: ৳{money}",
+  "purchasing.deliveryLimitsHint":
+    "Record what arrived and its actual cost. Use scale weight when available. The owner must revise approval before extra quantity or spending is accepted.",
+  "purchasing.state.requested": "Awaiting approval",
+  "purchasing.state.approved": "Approved · not ordered",
+  "purchasing.state.ordered": "Awaiting delivery",
+  "purchasing.state.delivered": "Fully received",
+  "purchasing.state.rejected": "Declined",
+  "purchasing.state.cancelled": "Cancelled",
+  "purchasing.state.closed": "Closed",
+  "purchasing.changed": "This purchase changed. Refresh before continuing.",
+  "purchasing.futureDay": "Choose today or a later day for delivery.",
+  "purchasing.budgetSmall":
+    "The approval must cover the quoted total and every delivery already recorded.",
+  "purchasing.activeAssignee":
+    "Choose an active owner or manager of this farm.",
+  "purchasing.forecastMissing":
+    "This feed has no requirement in the selected forecast. Refresh the estimate.",
+  "purchasing.terminal":
+    "This action is unavailable at the purchase's current stage.",
+  "purchasing.reasonNeeded":
+    "Give a reason of at least three characters for changing approval.",
+  "purchasing.needsApproval":
+    "The owner must approve this request before ordering.",
+  "purchasing.notOrdered":
+    "Record this approved order as placed before receiving it.",
+  "purchasing.wrongDelivery":
+    "The feed and supplier must match the approved order.",
+  "purchasing.deliveryDay": "A delivery cannot predate its order.",
+  "purchasing.quantityLimit":
+    "This delivery exceeds the approved remaining quantity. Ask the owner to revise approval.",
+  "purchasing.budgetLimit":
+    "This delivery exceeds approved spending room. Ask the owner to revise approval.",
+  "purchasing.queue": "Feed purchases need attention",
+  "purchasing.queueHint":
+    "{approvals} awaiting approval · {ordering} ordering deadlines reached · {deliveries} overdue deliveries",
+  "purchasing.open": "Open purchases",
   "refusal.feedPlanAnimalLeft":
     "This animal has left the farm. Its feeding plan cannot be revised.",
   "refusal.feedPlanChanged":
@@ -667,8 +877,6 @@ export const enCore = {
     "An animal's keep is judged within the days it is read over: {readDays, plural, one {# day} other {# days}} at the most. Change the two together.",
   "refusal.milkWeighedTooSoon":
     "A cow's milk is weighed only past her calf's days and then the days her keep is read over: {soonestDays, plural, one {# day} other {# days}} at the soonest. Change them together.",
-  "refusal.capitalOverCattlePart":
-    "That is more than this agreement's cattle money: the rest comes by the month once buying starts",
   "refusal.cattleMoneyShort":
     "Some signed investors' cattle money has still to come: buying waits on all of it",
   "refusal.capitalOverUnits":
@@ -2243,7 +2451,7 @@ export const enCore = {
   "feed.noItems": "Add a feed item first",
   "stock.recordArrival": "Record feed in",
   "stock.sheetDescription":
-    "Put feed bought, or cut from the farm's own land, into the store. A purchase's price goes to the money register.",
+    "Record purchased feed or a harvest. Keep payments and any unpaid supplier balance separately.",
   "stock.status.low": "Running low",
   "stock.status.out": "Nothing left",
   "stock.status.ok": "Enough",

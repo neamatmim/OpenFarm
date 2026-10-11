@@ -100,6 +100,24 @@ interface Saying {
   reference: string;
 }
 
+const firstAmountToSay = (paying: Paying, roomMoney: number | undefined) => {
+  const owing =
+    paying.monthly?.dueMoney ||
+    paying.monthly?.next?.amount ||
+    paying.owedMoney;
+  return Math.min(owing, roomMoney ?? owing);
+};
+
+const noteLimit = (
+  paying: Paying,
+  roomMoney: number | undefined,
+  changing: TheirNote | null
+) =>
+  Math.min(
+    paying.owedMoney,
+    (roomMoney ?? paying.owedMoney) + (changing?.amountMoney ?? 0)
+  );
+
 /**
  * Telling the farm they sent money, or changing a note that waits: how much, the day, the way, the reference, and a
  * photo of the slip if they have one. Above it, the Pay-in Code that should be on the transfer.
@@ -123,11 +141,11 @@ const NoteSheet = ({
 }) => {
   const { t } = useLanguage();
   const acting = useCanAct();
+  const asMoney = useMoney();
   const refused = useRefused(REFUSALS);
   // What is due now leads where it is paid by the month; what is owed otherwise — never more than the notes already
   // waiting leave room for, which the farm would refuse.
-  const owing = paying.monthly?.dueMoney || paying.owedMoney;
-  const due = Math.min(owing, roomMoney ?? owing);
+  const due = firstAmountToSay(paying, roomMoney);
   const fresh = (): Saying =>
     changing
       ? {
@@ -173,9 +191,13 @@ const NoteSheet = ({
     })
   );
   const amount = Number(said.amountMoney);
+  const maximum = noteLimit(paying, roomMoney, changing);
+  const withinLimit = amount <= maximum;
   const ready =
     acting.can &&
+    Number.isFinite(amount) &&
     amount > 0 &&
+    withinLimit &&
     said.sentOn !== "" &&
     said.reference.trim() !== "";
   const body = {
@@ -212,9 +234,16 @@ const NoteSheet = ({
       title={t("portal.payIn.sheetTitle")}
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField id="pay-in-amount" label={t("portal.payIn.amount")}>
+        <FormField
+          hint={t("portal.pay.early", { amount: asMoney(maximum) })}
+          id="pay-in-amount"
+          label={t("portal.payIn.amount")}
+        >
           <Input
             id="pay-in-amount"
+            min={0.01}
+            step="0.01"
+            max={maximum}
             onChange={(event) =>
               setSaid({ ...said, amountMoney: event.target.value })
             }

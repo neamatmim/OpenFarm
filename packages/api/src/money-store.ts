@@ -273,9 +273,9 @@ const recordCategoryOf = (
   if (source === "by_hand") {
     throw new Error("An entry made by hand names its own Category");
   }
-  if (source === "receivable_payment") {
+  if (source === "receivable_payment" || source === "supplier_payment") {
     throw new Error(
-      "A Receivable Payment names the Category of what it paid for: milk sales or cattle sales"
+      "A later payment names the category of its original purchase or sale"
     );
   }
   return source;

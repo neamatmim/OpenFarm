@@ -1,6 +1,7 @@
 import {
   farmDayOf,
   joiningLetterPaper,
+  monthlyPaymentAllocationOf,
   progressStatementPaper,
   roundMoney,
   settlementStatementPaper,
@@ -130,6 +131,15 @@ export const joiningLetterFor = async (
       reference: one.reference,
     })),
     totalCapitalMoney: standing.capitalMoney,
+    paymentAllocation: monthly
+      ? monthlyPaymentAllocationOf({
+          units: standing.agreement.units,
+          unitPriceMoney: standing.venture.unitPriceMoney,
+          monthly,
+          paidMoney: standing.capitalMoney,
+          today: farmDayOf(now),
+        })
+      : null,
     monthlySums: monthly
       ? monthly.sums.map((one) => ({
           dueOn: one.dueOn,

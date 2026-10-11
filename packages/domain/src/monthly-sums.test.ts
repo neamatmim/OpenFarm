@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   capitalItMayHold,
   cattleMoneyOf,
+  monthlyPaymentAllocationOf,
   monthlySumsOf,
   monthlyTermsOf,
   sumsStandingOf,
@@ -102,9 +103,9 @@ const BY_THE_MONTH = {
 };
 
 describe("what an Agreement may have paid in", () => {
-  it("is its Units' Cattle Part while a Venture paid by the month is open, and their whole price after", () => {
+  it("is the whole signed price, including while gathering cattle capital", () => {
     expect(capitalItMayHold(3, { ...BY_THE_MONTH, state: "open" })).toBe(
-      120_000
+      150_000
     );
     expect(capitalItMayHold(3, { ...BY_THE_MONTH, state: "buying" })).toBe(
       150_000
@@ -257,5 +258,122 @@ describe("the latest missed sum", () => {
     expect(standing(120_000, "2074-03-17")).toMatchObject({
       lastMissedOn: "2074-02-10",
     });
+  });
+});
+
+describe("confirmed receipts allocated against the original schedule", () => {
+  const monthly = {
+    cattlePartMoney: 40_000,
+    sums: monthlySumsOf(58_000, {
+      cattlePartMoney: 40_000,
+      sums: 9,
+      firstDueOn: "2071-02-10",
+    }),
+  };
+  const allocate = (paidMoney: number, today = "2071-01-05", units = 1) =>
+    monthlyPaymentAllocationOf({
+      units,
+      unitPriceMoney: 58_000,
+      monthly,
+      paidMoney,
+      today,
+    });
+
+  it("allocates 45,000 as 40,000 cattle and 5,000 monthly, including a half-paid third sum", () => {
+    const allocation = allocate(45_000);
+    expect(allocation).toMatchObject({
+      cattlePaidMoney: 40_000,
+      monthlyPaidMoney: 5000,
+      advanceMoney: 5000,
+      owedMoney: 13_000,
+    });
+    expect(allocation.sums.slice(0, 3)).toEqual([
+      {
+        dueOn: "2071-02-10",
+        amountMoney: 2000,
+        paidMoney: 2000,
+        leftMoney: 0,
+      },
+      {
+        dueOn: "2071-03-10",
+        amountMoney: 2000,
+        paidMoney: 2000,
+        leftMoney: 0,
+      },
+      {
+        dueOn: "2071-04-10",
+        amountMoney: 2000,
+        paidMoney: 1000,
+        leftMoney: 1000,
+      },
+    ]);
+    expect(
+      sumsStandingOf({
+        units: 1,
+        unitPriceMoney: 58_000,
+        monthly,
+        paidMoney: 45_000,
+        today: "2071-01-05",
+      })
+    ).toMatchObject({
+      next: { dueOn: "2071-04-10", amount: 1000 },
+      sumsPaid: 2,
+      dueMoney: 0,
+    });
+  });
+
+  it("clears arrears first and counts only future sums as paid ahead", () => {
+    expect(allocate(45_000, "2071-03-10").advanceMoney).toBe(1000);
+    expect(allocate(45_000, "2071-04-10").advanceMoney).toBe(0);
+  });
+
+  it("keeps amounts and dates across multi-unit, zero and full payments", () => {
+    expect(allocate(90_000, "2071-01-05", 2)).toMatchObject({
+      cattlePaidMoney: 80_000,
+      monthlyPaidMoney: 10_000,
+      owedMoney: 26_000,
+    });
+    expect(allocate(0).sums.every((one) => one.paidMoney === 0)).toBe(true);
+    const full = allocate(58_000);
+    expect(full.owedMoney).toBe(0);
+    expect(full.sums.every((one) => one.leftMoney === 0)).toBe(true);
+    expect(full.sums.map((one) => one.dueOn)).toEqual(
+      monthly.sums.map((one) => one.dueOn)
+    );
+    expect(
+      full.cattlePaidMoney +
+        full.sums.reduce((sum, one) => sum + one.paidMoney, 0)
+    ).toBe(full.paidMoney);
+  });
+
+  it("preserves the last whole-taka remainder in partially paid schedules", () => {
+    const terms = {
+      cattlePartMoney: 40_000,
+      sums: monthlySumsOf(50_000, {
+        cattlePartMoney: 40_000,
+        sums: 3,
+        firstDueOn: "2071-02-10",
+      }),
+    };
+    const allocation = monthlyPaymentAllocationOf({
+      units: 3,
+      unitPriceMoney: 50_000,
+      monthly: terms,
+      paidMoney: 149_999,
+      today: "2071-01-05",
+    });
+    expect(allocation.sums.at(-1)).toMatchObject({
+      amountMoney: 10_002,
+      paidMoney: 10_001,
+      leftMoney: 1,
+    });
+    expect(allocation.owedMoney).toBe(1);
+  });
+
+  it("keeps a partial sum exact to paisa", () => {
+    const almost = allocate(57_999.9);
+    expect(almost.owedMoney).toBe(0.1);
+    expect(almost.sums.at(-1)?.leftMoney).toBe(0.1);
+    expect(allocate(57_999.9 + 0.1).owedMoney).toBe(0);
   });
 });

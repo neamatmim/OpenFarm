@@ -32,6 +32,7 @@ import { namesIn } from "@/lib/names-in";
 import { orpc } from "@/utils/orpc";
 
 import { OtherName, TwoNames } from "./feed-name";
+import { ForecastPurchasePicker } from "./feed-purchase-request";
 
 type Estimate = Awaited<ReturnType<typeof orpc.stock.monthlyEstimate.call>>;
 type EstimateLine = Estimate["lines"][number];
@@ -345,6 +346,17 @@ export const MonthlyEstimateTab = ({
         )}
       </p>
       <Loaded query={estimate} skeleton={<TableSkeleton />}>
+        <ForecastPurchasePicker
+          month={month}
+          basis={basis}
+          lines={rows
+            .filter((line) => line.toBuy !== null && line.toBuy > 0)
+            .map((line) => ({
+              ...line,
+              quantity: line.toBuy ?? 0,
+              unitPriceMoney: line.priceMoney,
+            }))}
+        />
         {estimate.data ? <EstimateSummary estimate={estimate.data} /> : null}
         {rows.length === 0 ? (
           <EmptyState

@@ -8,6 +8,7 @@ export const DESK_AREAS: ReadonlySet<string> = new Set([
   "agreeInApp",
   "templates",
   "ventures",
+  "payments",
   "returns",
   "investors",
   "plan",
@@ -16,4 +17,5 @@ export const DESK_AREAS: ReadonlySet<string> = new Set([
   "years",
   "digest",
   "push",
+  "payables",
 ]);

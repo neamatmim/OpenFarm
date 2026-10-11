@@ -1,0 +1,2 @@
+ALTER TABLE "feed_purchase_order" ADD CONSTRAINT "feed_order_credit_days_check" CHECK ("credit_days" BETWEEN 0 AND 365);--> statement-breakpoint
+ALTER TABLE "feed_in" DROP CONSTRAINT "feed_in_payment_check", ADD CONSTRAINT "feed_in_payment_check" CHECK (("supplier_invoice_id" IS NULL AND "paid_at_delivery_money" IS NULL) OR ("supplier_invoice_id" IS NOT NULL AND "kind" = 'purchase' AND "price_money" IS NOT NULL AND "paid_at_delivery_money" IS NOT NULL AND "paid_at_delivery_money" >= 0 AND "paid_at_delivery_money" <= "price_money"));

@@ -8,7 +8,7 @@ import { useT } from "@/i18n/language-provider";
 import type { NavItem } from "./navigation";
 
 const tab =
-  "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring";
+  "flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
  * A phone's few daily destinations — the Role a person lands as on the farm, or an Investor's in the portal — and

@@ -81,6 +81,7 @@ export type RecordSource = (typeof RECORD_SOURCES)[number];
 export const MONEY_SOURCES = [
   ...RECORD_SOURCES,
   "receivable_payment",
+  "supplier_payment",
   "by_hand",
 ] as const;
 export type MoneySource = (typeof MONEY_SOURCES)[number];

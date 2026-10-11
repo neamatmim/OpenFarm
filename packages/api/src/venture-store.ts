@@ -138,6 +138,8 @@ export interface Held {
   /** What Floats are out at the livestock market, unreconciled. Money the farm has let go of and not yet counted. */
   openFloatMoney: number;
   capitalInMoney: number;
+  /** Cattle money allocated per Agreement; investor advances cannot fill another Agreement's cattle shortfall. */
+  cattleCapitalMoney: number;
   /** Money in that is not its Investors' capital: what it was paid for an Animal it let go. */
   proceedsMoney: number;
   /** What the Owner has put in of her own, interest-free: every Advance added up, before anything is
@@ -174,6 +176,7 @@ export const balanceOf = (held: Held) =>
 export const NOTHING_HELD: Held = {
   openFloatMoney: 0,
   capitalInMoney: 0,
+  cattleCapitalMoney: 0,
   proceedsMoney: 0,
   advancedMoney: 0,
   refundedMoney: 0,
@@ -224,17 +227,22 @@ export const budgetsOf = (
   const what = held ?? NOTHING_HELD;
   const target = row.targetCapitalMoney;
   // What of the capital arrived for cattle, less what has already been drawn against it.
-  const cameInForCattle = cattleMoneyOf(
-    what.capitalInMoney - what.refundedMoney,
-    row,
-    signedUnits
-  );
+  const cameInForCattle =
+    row.capitalPaid === "by_the_month"
+      ? what.cattleCapitalMoney
+      : cattleMoneyOf(
+          what.capitalInMoney - what.refundedMoney,
+          row,
+          signedUnits
+        );
   // Once buying closes there is nothing left to buy, so what the Cattle Budget did not spend is
   // feeding money — the glossary says so of a Cattle Budget, and a Venture told it is short of keep
   // while most of its capital sits idle on the other side would be told a thing that is not true.
   const stillBuying = isStillBuying(row.state);
   /** What the cattle side was drawn against, whether or not there is still buying to do with it. */
-  const cattleBudgetDrawnAgainstMoney = cameInForCattle - what.cattleOutMoney;
+  const cattleBudgetDrawnAgainstMoney = roundMoney(
+    cameInForCattle - what.cattleOutMoney
+  );
   const cattleBudgetHeldMoney = stillBuying ? cattleBudgetDrawnAgainstMoney : 0;
   return {
     // What it was planned as, which is a fact about the Venture for ever and does not move.
@@ -249,15 +257,14 @@ export const budgetsOf = (
     cattleBudgetDrawnAgainstMoney,
     // What is left to keep them with: the rest of the balance once the cattle side has its own. An
     // Advance is the Owner's own money landing on this side, which is why it raises what is left.
-    runningBudgetHeldMoney: balanceOf(what) - cattleBudgetHeldMoney,
+    runningBudgetHeldMoney: roundMoney(balanceOf(what) - cattleBudgetHeldMoney),
   };
 };
 
 /**
  * What a Venture paid by the month has still to take of its signed Units' Cattle Parts: the buying waits on all of it,
  * because a lorry that goes to the livestock market on part of the cattle money buys a herd the plan was not for. Nothing for a
- * Venture paid before buying. A payment is never let past its Agreement's Cattle Part while the Venture is Open, so
- * what is short altogether is what the Agreements are short between them.
+ * Venture paid before buying. Each Agreement contributes only its own paid Cattle Part, even when paid in advance.
  */
 export const cattleMoneyShortOf = (
   row: Pick<VentureRow, "capitalPaid" | "cattlePartMoney">,
@@ -267,10 +274,7 @@ export const cattleMoneyShortOf = (
   row.capitalPaid === "by_the_month" && row.cattlePartMoney !== null
     ? Math.max(
         0,
-        roundMoney(
-          signedUnits * row.cattlePartMoney -
-            (held.capitalInMoney - held.refundedMoney)
-        )
+        roundMoney(signedUnits * row.cattlePartMoney - held.cattleCapitalMoney)
       )
     : 0;
 
@@ -513,7 +517,7 @@ export const directionOf = (kind: VentureMovementKind): "in" | "out" =>
     : "out";
 
 /**
- * What each Venture's account has seen, in one query for the whole list. Capital in and refunds are
+ * What each Venture's account has seen, in batched queries for the whole list. Capital in and refunds are
  * Venture Movements; spending and payouts are read as nothing until the work that makes them arrives.
  */
 export const heldByEach = async (
@@ -536,16 +540,60 @@ export const heldByEach = async (
     },
     columns: {
       ventureId: true,
+      agreementId: true,
       kind: true,
       amountMoney: true,
       reconciledAt: true,
     },
   });
+  const agreements = await tx.query.investmentAgreement.findMany({
+    where: { farmId, ventureId: { in: [...ids] } },
+    columns: { id: true, ventureId: true, units: true },
+  });
+  const ventures = await tx.query.venture.findMany({
+    where: { farmId, id: { in: [...ids] } },
+    columns: {
+      id: true,
+      capitalPaid: true,
+      cattlePartMoney: true,
+      targetCapitalMoney: true,
+      cattleBudgetMoney: true,
+    },
+  });
+  const capitalByAgreement = new Map<string, number>();
   for (const one of movements) {
     held.set(
       one.ventureId,
       folded(held.get(one.ventureId) ?? NOTHING_HELD, one)
     );
+    if (
+      one.agreementId &&
+      (one.kind === "capital_in" || one.kind === "refund")
+    ) {
+      const sign = one.kind === "capital_in" ? 1 : -1;
+      capitalByAgreement.set(
+        one.agreementId,
+        roundMoney(
+          (capitalByAgreement.get(one.agreementId) ?? 0) +
+            sign * one.amountMoney
+        )
+      );
+    }
+  }
+  const plans = new Map(ventures.map((one) => [one.id, one]));
+  for (const one of agreements) {
+    const plan = plans.get(one.ventureId);
+    if (plan?.capitalPaid !== "by_the_month") {
+      continue;
+    }
+    const what = held.get(one.ventureId) ?? NOTHING_HELD;
+    held.set(one.ventureId, {
+      ...what,
+      cattleCapitalMoney: roundMoney(
+        what.cattleCapitalMoney +
+          cattleMoneyOf(capitalByAgreement.get(one.id) ?? 0, plan, one.units)
+      ),
+    });
   }
   return held;
 };
@@ -560,7 +608,7 @@ export const takenAgainst = async (
     where: { farmId, agreementId, kind: "capital_in" },
     columns: { amountMoney: true },
   });
-  return rows.reduce((sum, one) => sum + one.amountMoney, 0);
+  return roundMoney(rows.reduce((sum, one) => sum + one.amountMoney, 0));
 };
 
 /**

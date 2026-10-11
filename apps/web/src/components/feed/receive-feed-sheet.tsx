@@ -9,6 +9,7 @@ import {
   maundsOf,
   quantityOfPacks,
 } from "@OpenFarm/domain";
+import { feedQuoteTotal } from "@OpenFarm/domain/feed-purchasing";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -32,11 +33,26 @@ import { useLanguage } from "@/i18n/language-provider";
 import { keptAmount } from "@/lib/feed-figures";
 import { namesIn } from "@/lib/names-in";
 import { useRefused } from "@/lib/refused";
+import {
+  EMPTY_INVOICE,
+  invoiceReady,
+  invoiceSent,
+  invoiceAfterSupplierChange,
+} from "@/lib/supplier-invoice";
+import type { SupplierInvoiceDraft } from "@/lib/supplier-invoice";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
+import type { FeedPurchase } from "./feed-purchase-actions";
+import { REFUSALS as PURCHASING_WORDS } from "./feed-purchase-request";
 import type { FeedItemRow } from "./feed-types";
 import { PriceChange } from "./price-change";
+import {
+  REFUSALS as SUPPLIER_WORDS,
+  SupplierField,
+  SupplierInvoiceFields,
+} from "./supplier-fields";
+import { NewSupplierSheet } from "./supplier-forms";
 
 type Kind = "purchase" | "harvest";
 
@@ -44,13 +60,15 @@ type Kind = "purchase" | "harvest";
 type CountedIn = "own" | FeedPack;
 
 /** What is typed into the sheet, before it is feed in the store. */
-interface Draft {
+interface Draft extends SupplierInvoiceDraft {
   feedItemId: string;
   kind: Kind;
   countedIn: CountedIn;
   quantity: string;
   price: string;
   seller: string;
+  supplierId: string;
+  creditDays: number;
   paymentMethod: PaymentMethod;
   /** Which Farm Account mobile money or bank money came out of, and its transaction ID. */
   account: AccountTyped;
@@ -63,12 +81,15 @@ interface Draft {
 }
 
 const freshDraft = (feedItemId: string): Draft => ({
+  ...EMPTY_INVOICE,
   feedItemId,
   kind: "purchase",
   countedIn: "own",
   quantity: "",
   price: "",
   seller: "",
+  supplierId: "",
+  creditDays: 0,
   paymentMethod: "cash",
   account: NO_ACCOUNT,
   receivedOn: farmDayOf(new Date()),
@@ -353,28 +374,124 @@ const LotSummary = ({
  * with neither. Opened from the page's own button, or from a Feed Item's row with that item already chosen — the page
  * keys it on that item, so opening it for another starts a fresh sheet.
  */
+const receivingDraft = (
+  feedItemId: string | undefined,
+  items: FeedItemRow[],
+  order?: FeedPurchase
+): Draft => ({
+  ...freshDraft(feedItemId ?? items[0]?.id ?? ""),
+  ...(order
+    ? {
+        seller: order.supplierName,
+        supplierId: order.counterpartyId,
+        creditDays: order.creditDays,
+        quantity: String(order.remaining),
+        price: String(feedQuoteTotal(order.remaining, order.unitPriceMoney)),
+      }
+    : {}),
+});
+
+const deliveryFitsOrder = (
+  order: FeedPurchase | undefined,
+  draft: Draft,
+  chosen: FeedItemRow | null,
+  amount: number | null
+): boolean => {
+  if (!order) {
+    return true;
+  }
+  const actual = (chosen ? weighedOf(draft, chosen) : null) ?? amount ?? 0;
+  return (
+    draft.kind === "purchase" &&
+    actual <= order.remaining &&
+    Number(draft.price) <= order.budgetLeftMoney
+  );
+};
+
+const receiptReady = (
+  chosen: FeedItemRow | null,
+  amount: number | null,
+  expired: boolean,
+  draft: Draft
+): boolean =>
+  chosen !== null &&
+  amount !== null &&
+  !expired &&
+  saysWhatAPurchaseNeeds(draft);
+
+const receivingItem = (
+  items: FeedItemRow[],
+  feedItemId: string,
+  order?: FeedPurchase
+): FeedItemRow | null => {
+  if (order) {
+    return items.find((item) => item.id === order.feedItemId) ?? null;
+  }
+  return items.find((item) => item.id === feedItemId) ?? items[0] ?? null;
+};
+
+const receiveInputOf = (
+  draft: Draft,
+  item: FeedItemRow,
+  countedIn: CountedIn,
+  id: string,
+  purchaseOrderId?: string
+): Parameters<typeof orpc.stock.receive.call>[0] => ({
+  id,
+  purchaseOrderId,
+  feedItemId: item.id,
+  kind: draft.kind,
+  ...(countedIn === "own"
+    ? { quantity: Number(draft.quantity) }
+    : {
+        pack: { kind: countedIn, count: Number(draft.quantity) },
+      }),
+  receivedOn: draft.receivedOn,
+  ...(draft.kind === "purchase"
+    ? {
+        priceMoney: Number(draft.price),
+        seller: { name: draft.seller.trim() },
+        supplierId: draft.supplierId || undefined,
+        ...invoiceSent(draft, draft.receivedOn, draft.price, draft.creditDays),
+        paymentMethod: draft.paymentMethod,
+        ...(draft.onCredit && Number(draft.paidNow) === 0
+          ? {}
+          : accountSent(draft.paymentMethod, draft.account)),
+        lotNumber: draft.lotNumber.trim() || undefined,
+        expiresOn: draft.expiresOn || undefined,
+        weighed: weighedOf(draft, item) ?? undefined,
+      }
+    : {}),
+});
+
+const invoiceFitsDraft = (draft: Draft) =>
+  draft.kind === "harvest" ||
+  invoiceReady(draft, draft.receivedOn, draft.price, draft.creditDays);
+
 export const ReceiveFeedSheet = ({
   items,
   open,
   onOpenChange,
   feedItemId,
+  purchaseOrder,
 }: {
   items: FeedItemRow[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   feedItemId?: string;
+  purchaseOrder?: FeedPurchase;
 }) => {
   const { t, language } = useLanguage();
-  const refused = useRefused();
+  const refused = useRefused({ ...PURCHASING_WORDS, ...SUPPLIER_WORDS });
   const live = items.filter((item) => !item.retiredAt);
   const [draft, setDraft] = useState(() =>
-    freshDraft(feedItemId ?? live[0]?.id ?? "")
+    receivingDraft(feedItemId, live, purchaseOrder)
   );
   // One id per filling-in of the sheet: a second tap is the same lorry, not another.
   const [entryId, setEntryId] = useState(() => crypto.randomUUID());
+  const [addingSupplier, setAddingSupplier] = useState(false);
   useTodayWhenOpened(open, draft, setDraft);
-  const chosen =
-    live.find((item) => item.id === draft.feedItemId) ?? live[0] ?? null;
+  const chosen = receivingItem(live, draft.feedItemId, purchaseOrder);
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
 
@@ -398,228 +515,267 @@ export const ReceiveFeedSheet = ({
   const expiredWhenBought =
     draft.expiresOn !== "" && draft.expiresOn < draft.receivedOn;
   const ready =
-    chosen !== null &&
-    amount !== null &&
-    !expiredWhenBought &&
-    saysWhatAPurchaseNeeds(draft);
+    receiptReady(chosen, amount, expiredWhenBought, draft) &&
+    invoiceFitsDraft(draft);
+  const fitsOrder = deliveryFitsOrder(purchaseOrder, draft, chosen, amount);
 
   return (
-    <FormSheet
-      description={t("stock.sheetDescription")}
-      onOpenChange={onOpenChange}
-      onSubmit={() => {
-        if (!chosen) {
-          return;
-        }
-        receive.mutate({
-          id: entryId,
-          feedItemId: chosen.id,
-          kind: draft.kind,
-          ...(countedIn === "own"
-            ? { quantity: Number(draft.quantity) }
-            : {
-                pack: { kind: countedIn, count: Number(draft.quantity) },
-              }),
-          receivedOn: draft.receivedOn,
-          ...(draft.kind === "purchase"
-            ? {
-                priceMoney: Number(draft.price),
-                seller: { name: draft.seller.trim() },
-                paymentMethod: draft.paymentMethod,
-                ...accountSent(draft.paymentMethod, draft.account),
-                lotNumber: draft.lotNumber.trim() || undefined,
-                expiresOn: draft.expiresOn || undefined,
-                weighed: weighedOf(draft, chosen) ?? undefined,
-              }
-            : {}),
-        });
-      }}
-      open={open}
-      pending={receive.isPending}
-      ready={ready}
-      submitLabel={t("stock.record")}
-      title={t("stock.recordArrival")}
-      wide
-    >
-      {chosen ? (
-        <>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <FormField id="receive-item" label={t("stock.col.item")}>
-              <NativeSelect
-                id="receive-item"
-                onChange={(event) => set("feedItemId", event.target.value)}
-                value={chosen.id}
+    <>
+      <FormSheet
+        description={t("stock.sheetDescription")}
+        onOpenChange={onOpenChange}
+        onSubmit={() => {
+          if (!chosen || !ready || !fitsOrder) {
+            return;
+          }
+          receive.mutate(
+            receiveInputOf(draft, chosen, countedIn, entryId, purchaseOrder?.id)
+          );
+        }}
+        open={open}
+        pending={receive.isPending}
+        ready={ready && fitsOrder}
+        submitLabel={t("stock.record")}
+        title={t("stock.recordArrival")}
+        wide
+      >
+        {chosen ? (
+          <>
+            {purchaseOrder ? (
+              <Notice
+                tone="info"
+                title={t("purchasing.deliveryLimits", {
+                  quantity: formatNumber(purchaseOrder.remaining, language),
+                  unit: feedUnitWord(chosen.unit, language),
+                  money: formatNumber(purchaseOrder.budgetLeftMoney, language),
+                })}
               >
-                {live.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {namesIn(item, language).shown}
-                  </option>
-                ))}
-              </NativeSelect>
-            </FormField>
+                {t("purchasing.deliveryLimitsHint")}
+              </Notice>
+            ) : null}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <FormField id="receive-item" label={t("stock.col.item")}>
+                <NativeSelect
+                  disabled={!!purchaseOrder}
+                  id="receive-item"
+                  onChange={(event) => set("feedItemId", event.target.value)}
+                  value={chosen.id}
+                >
+                  {live.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {namesIn(item, language).shown}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </FormField>
 
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium">{t("stock.kind")}</span>
-              <SegmentedControl
-                label={t("stock.kind")}
-                name="receive-kind"
-                onChange={(value) => set("kind", value)}
-                options={[
-                  { value: "purchase", label: t("stock.purchase") },
-                  { value: "harvest", label: t("stock.harvest") },
-                ]}
-                value={draft.kind}
-              />
+              {purchaseOrder ? (
+                <WorkedOut>{t("stock.purchase")}</WorkedOut>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium">{t("stock.kind")}</span>
+                  <SegmentedControl
+                    label={t("stock.kind")}
+                    name="receive-kind"
+                    onChange={(value) => set("kind", value)}
+                    options={[
+                      { value: "purchase", label: t("stock.purchase") },
+                      { value: "harvest", label: t("stock.harvest") },
+                    ]}
+                    value={draft.kind}
+                  />
+                </div>
+              )}
+
+              <UnpricedCut item={chosen} kind={draft.kind} />
+
+              {ways.length > 1 ? (
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium">
+                    {t("stock.countedIn")}
+                  </span>
+                  <SegmentedControl
+                    label={t("stock.countedIn")}
+                    name="receive-counted-in"
+                    onChange={(value) => set("countedIn", value)}
+                    options={ways.map((way) => ({
+                      value: way,
+                      label:
+                        way === "own"
+                          ? feedUnitWord(chosen.unit, language)
+                          : FEED_PACK_WORDS[way][language],
+                    }))}
+                    value={countedIn}
+                  />
+                </div>
+              ) : null}
             </div>
 
-            <UnpricedCut item={chosen} kind={draft.kind} />
-
-            {ways.length > 1 ? (
-              <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">
-                  {t("stock.countedIn")}
-                </span>
-                <SegmentedControl
-                  label={t("stock.countedIn")}
-                  name="receive-counted-in"
-                  onChange={(value) => set("countedIn", value)}
-                  options={ways.map((way) => ({
-                    value: way,
-                    label:
-                      way === "own"
-                        ? feedUnitWord(chosen.unit, language)
-                        : FEED_PACK_WORDS[way][language],
-                  }))}
-                  value={countedIn}
-                />
-              </div>
-            ) : null}
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <FormField
-              hint={
-                countedIn === "bag" && chosen.bagSizeKg !== null
-                  ? t("stock.bagHolds", {
-                      kg: formatNumber(chosen.bagSizeKg, language),
-                    })
-                  : undefined
-              }
-              id="receive-quantity"
-              label={t("stock.howMuch")}
-            >
-              {/* The unit it is counted in, inside the box, as the scale's weight below has it. */}
-              <UnitInput
-                id="receive-quantity"
-                inputMode="decimal"
-                min={0}
-                onChange={(event) => set("quantity", event.target.value)}
-                required
-                step="0.1"
-                type="number"
-                unit={
-                  countedIn === "own"
-                    ? feedUnitWord(chosen.unit, language)
-                    : FEED_PACK_WORDS[countedIn][language]
+            <div className="grid gap-4 sm:grid-cols-3">
+              <FormField
+                hint={
+                  countedIn === "bag" && chosen.bagSizeKg !== null
+                    ? t("stock.bagHolds", {
+                        kg: formatNumber(chosen.bagSizeKg, language),
+                      })
+                    : undefined
                 }
-                value={draft.quantity}
-              />
-            </FormField>
-            <FormField id="receive-on" label={t("stock.receivedOn")}>
-              <Input
-                id="receive-on"
-                onChange={(event) => set("receivedOn", event.target.value)}
-                required
-                type="date"
-                value={draft.receivedOn}
-              />
-            </FormField>
-            {draft.kind === "purchase" ? (
-              <FormField id="receive-price" label={t("stock.price")}>
-                <Input
-                  id="receive-price"
-                  inputMode="numeric"
+                id="receive-quantity"
+                label={t("stock.howMuch")}
+              >
+                {/* The unit it is counted in, inside the box, as the scale's weight below has it. */}
+                <UnitInput
+                  id="receive-quantity"
+                  inputMode="decimal"
                   min={0}
-                  onChange={(event) => set("price", event.target.value)}
+                  onChange={(event) => set("quantity", event.target.value)}
                   required
+                  step="0.1"
                   type="number"
-                  value={draft.price}
+                  unit={
+                    countedIn === "own"
+                      ? feedUnitWord(chosen.unit, language)
+                      : FEED_PACK_WORDS[countedIn][language]
+                  }
+                  value={draft.quantity}
                 />
               </FormField>
-            ) : null}
-          </div>
-
-          {draft.kind === "purchase" ? (
-            <>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <PaymentMethodField
-                  account={{
-                    typed: draft.account,
-                    onChange: (account) => set("account", account),
-                  }}
-                  id="receive-paid-by"
-                  onChange={(method) => set("paymentMethod", method)}
-                  row
-                  value={draft.paymentMethod}
+              <FormField id="receive-on" label={t("stock.receivedOn")}>
+                <Input
+                  id="receive-on"
+                  onChange={(event) => set("receivedOn", event.target.value)}
+                  required
+                  type="date"
+                  value={draft.receivedOn}
                 />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <FormField id="receive-seller" label={t("stock.seller")}>
+              </FormField>
+              {draft.kind === "purchase" ? (
+                <FormField id="receive-price" label={t("stock.price")}>
                   <Input
-                    autoComplete="off"
-                    id="receive-seller"
-                    onChange={(event) => set("seller", event.target.value)}
+                    id="receive-price"
+                    inputMode="decimal"
+                    step="0.01"
+                    min={0}
+                    onChange={(event) => set("price", event.target.value)}
                     required
-                    value={draft.seller}
+                    type="number"
+                    value={draft.price}
                   />
                 </FormField>
-                <FormField id="receive-lot" label={t("lots.lotNumber")}>
-                  <Input
-                    autoComplete="off"
-                    id="receive-lot"
-                    maxLength={60}
-                    onChange={(event) => set("lotNumber", event.target.value)}
-                    value={draft.lotNumber}
-                  />
-                </FormField>
-                <FormField
-                  hint={
-                    expiredWhenBought
-                      ? t("refusal.expiredWhenBought")
-                      : t("lots.feedExpiresOnHint")
-                  }
-                  id="receive-expires"
-                  label={t("lots.expiresOn")}
-                >
-                  <Input
-                    aria-invalid={expiredWhenBought}
-                    id="receive-expires"
-                    min={draft.receivedOn}
-                    onChange={(event) => set("expiresOn", event.target.value)}
-                    type="date"
-                    value={draft.expiresOn}
-                  />
-                </FormField>
-              </div>
-            </>
-          ) : null}
+              ) : null}
+            </div>
 
-          <ScaleField
-            draft={draft}
-            item={chosen}
-            onChange={(value) => set("weighed", value)}
-            slip={amount}
-          />
-          <LotSummary countedIn={countedIn} draft={draft} item={chosen} />
-          <LastPurchase
-            amount={weighedOf(draft, chosen) ?? amount}
-            draft={draft}
-            item={chosen}
-          />
-        </>
-      ) : (
-        <p className="text-muted-foreground text-sm">{t("feed.noItems")}</p>
-      )}
-    </FormSheet>
+            {draft.kind === "purchase" ? (
+              <>
+                <SupplierField
+                  name={draft.seller}
+                  supplierId={draft.supplierId}
+                  disabled={!!purchaseOrder}
+                  onNewSupplier={() => setAddingSupplier(true)}
+                  onChange={(supplier) => {
+                    setDraft((current) => ({
+                      ...current,
+                      ...invoiceAfterSupplierChange(
+                        current,
+                        current.supplierId,
+                        supplier.id
+                      ),
+                      seller: supplier.name,
+                      supplierId: supplier.id,
+                      creditDays: supplier.creditDays,
+                    }));
+                  }}
+                />
+                <SupplierInvoiceFields
+                  draft={draft}
+                  onChange={(change) =>
+                    setDraft((current) => ({ ...current, ...change }))
+                  }
+                  receivedOn={draft.receivedOn}
+                  price={draft.price}
+                  creditDays={draft.creditDays}
+                  supplierId={draft.supplierId}
+                />
+                <div className="grid gap-4 sm:grid-cols-3">
+                  {!draft.onCredit || Number(draft.paidNow) > 0 ? (
+                    <PaymentMethodField
+                      account={{
+                        typed: draft.account,
+                        onChange: (account) => set("account", account),
+                      }}
+                      id="receive-paid-by"
+                      onChange={(method) => set("paymentMethod", method)}
+                      row
+                      value={draft.paymentMethod}
+                    />
+                  ) : null}
+                </div>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <FormField id="receive-lot" label={t("lots.lotNumber")}>
+                    <Input
+                      autoComplete="off"
+                      id="receive-lot"
+                      maxLength={60}
+                      onChange={(event) => set("lotNumber", event.target.value)}
+                      value={draft.lotNumber}
+                    />
+                  </FormField>
+                  <FormField
+                    hint={
+                      expiredWhenBought
+                        ? t("refusal.expiredWhenBought")
+                        : t("lots.feedExpiresOnHint")
+                    }
+                    id="receive-expires"
+                    label={t("lots.expiresOn")}
+                  >
+                    <Input
+                      aria-invalid={expiredWhenBought}
+                      id="receive-expires"
+                      min={draft.receivedOn}
+                      onChange={(event) => set("expiresOn", event.target.value)}
+                      type="date"
+                      value={draft.expiresOn}
+                    />
+                  </FormField>
+                </div>
+              </>
+            ) : null}
+
+            <ScaleField
+              draft={draft}
+              item={chosen}
+              onChange={(value) => set("weighed", value)}
+              slip={amount}
+            />
+            <LotSummary countedIn={countedIn} draft={draft} item={chosen} />
+            <LastPurchase
+              amount={weighedOf(draft, chosen) ?? amount}
+              draft={draft}
+              item={chosen}
+            />
+          </>
+        ) : (
+          <p className="text-muted-foreground text-sm">{t("feed.noItems")}</p>
+        )}
+      </FormSheet>
+      <NewSupplierSheet
+        open={addingSupplier}
+        onClose={() => setAddingSupplier(false)}
+        onCreated={(created) => {
+          setDraft((current) => ({
+            ...current,
+            ...invoiceAfterSupplierChange(
+              current,
+              current.supplierId,
+              created.id
+            ),
+            seller: created.name,
+            supplierId: created.id,
+            creditDays: created.creditDays,
+          }));
+        }}
+      />
+    </>
   );
 };
