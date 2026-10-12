@@ -8,6 +8,8 @@ import type {
   StorageAdapter,
 } from "@tanstack/offline-transactions";
 
+import { RecoveryError, withOutboxLock } from "./outbox-recovery";
+
 /** The kinds of Entry a phone can hold (ADR 0004). */
 export type EntryKindName = EntryInput["kind"];
 
@@ -18,7 +20,7 @@ export type EntryBody<K extends EntryKindName> = Omit<
 >;
 
 /** A kind of Entry with the body that belongs to it. */
-type EntryDraft = {
+export type EntryDraft = {
   [K in EntryKindName]: { kind: K; body: EntryBody<K> };
 }[EntryKindName];
 
@@ -41,6 +43,17 @@ export type OutboxEntry = {
     proof?: string;
   };
 }[EntryKindName];
+
+export type EntryOf<K extends EntryKindName> = Extract<
+  OutboxEntry,
+  { kind: K }
+>;
+export type WorkRecoveryEntry =
+  | EntryOf<"step_completion">
+  | EntryOf<"step_correction">;
+export type ActionRecoveryEntry =
+  | EntryOf<"instance_claim">
+  | EntryOf<"instance_complete">;
 
 /** An entry as it goes on the wire: the farm's own shape, the proof of who recorded it already turned into the
  *  switch token that proves it. */
@@ -85,6 +98,21 @@ interface PendingBatch {
   givenUp?: boolean;
 }
 
+/** One atomic storage write replaces a refused entry and all of its photographs. The small receipt remains after
+ * sending, so a stale screen or a second tab cannot record the same recovery twice. */
+interface Recovery {
+  sourceIds: string[];
+  replacementId: string;
+  actorId?: string;
+  entries: OutboxEntry[];
+}
+
+export type RecoveryPhoto = Omit<EntryBody<"completion_photo">, "completionId">;
+export interface RecoveryResult {
+  id: string;
+  created: boolean;
+}
+
 export interface Transport {
   send: (batch: {
     key: string;
@@ -115,6 +143,8 @@ export interface OutboxState {
 }
 
 const ENTRY = "entry:";
+const RECOVERY = "recovery:";
+const RECOVERED = "recovered:";
 const REJECTED = "rejected:";
 const NEEDS_REVIEW = "needs-review:";
 const PENDING_BATCH = "batch:pending";
@@ -272,9 +302,6 @@ export class Outbox {
     OutboxOptions;
   private paused: OutboxPause = "none";
   private flushing = false;
-  /** This phone's own count of what it has recorded. */
-  private counter: number | null = null;
-  private fromDevice: Promise<number | null> | null = null;
 
   constructor(options: OutboxOptions) {
     this.options = options;
@@ -301,22 +328,172 @@ export class Outbox {
     return this.options.storage.set(key, JSON.stringify(value));
   }
 
+  /** A shared phone may carry everybody's work, but only its author may change a refused entry. */
+  canRecover(entry: Pick<OutboxEntry, "actorId">): boolean {
+    const actor = this.options.actorOf?.();
+    return entry.actorId
+      ? actor === entry.actorId
+      : !this.options.actorOf || Boolean(actor);
+  }
+
+  private async recoveries(): Promise<{ key: string; row: Recovery }[]> {
+    const rows: { key: string; row: Recovery }[] = [];
+    const keys = await this.options.storage.keys();
+    for (const key of keys.filter((one) => one.startsWith(RECOVERY))) {
+      // oxlint-disable-next-line no-await-in-loop
+      const row = await this.read<Recovery>(key);
+      if (row) {
+        rows.push({ key, row });
+      }
+    }
+    return rows;
+  }
+
+  /** The photos still held for a refused answer, including photos that arrived before their parent could be taken. */
+  async photosFor(id: string): Promise<RecoveryPhoto[]> {
+    const [waiting, refused, reviewed] = await Promise.all([
+      this.pending(),
+      this.rejected(),
+      this.reviewed(),
+    ]);
+    const parent = refused.find((one) => one.entry.id === id)?.entry;
+    const photos = new Map<number, RecoveryPhoto>();
+    for (const entry of [
+      ...reviewed.map((one) => one.entry),
+      ...refused.map((one) => one.entry),
+      ...waiting,
+    ]) {
+      if (
+        entry.kind === "completion_photo" &&
+        entry.body.completionId === id &&
+        entry.actorId === parent?.actorId
+      ) {
+        const { completionId: _parent, ...photo } = entry.body;
+        photos.set(photo.slot, photo);
+      }
+    }
+    return [...photos.values()];
+  }
+
+  /** Queue a replacement under a fresh identity, retaining the author's original time and proof. Only refused entries
+   * can be replaced: a kept entry already belongs to the farm's review workflow. */
+  async recover(
+    id: string,
+    draft: EntryDraft,
+    photos: RecoveryPhoto[] = []
+  ): Promise<RecoveryResult> {
+    return await withOutboxLock(this.options.storage, async () => {
+      const key = `${RECOVERY}${id}`;
+      const receipt =
+        (await this.read<Recovery>(key)) ??
+        (await this.read<Pick<Recovery, "replacementId" | "actorId">>(
+          `${RECOVERED}${id}`
+        ));
+      if (receipt) {
+        if (!this.canRecover(receipt)) {
+          throw new RecoveryError("not_yours");
+        }
+        return { id: receipt.replacementId, created: false };
+      }
+      const held = await this.read<Held>(`${REJECTED}${id}`);
+      if (!held || held.entry.kind !== draft.kind) {
+        throw new RecoveryError("not_rejected");
+      }
+      const { entry } = held;
+      if (!this.canRecover(entry)) {
+        throw new RecoveryError("not_yours");
+      }
+      const [waiting, refused, reviewed] = await Promise.all([
+        this.pending(),
+        this.rejected(),
+        this.reviewed(),
+      ]);
+      const attached = [
+        ...waiting,
+        ...refused.map((one) => one.entry),
+        ...reviewed.map((one) => one.entry),
+      ].filter(
+        (one) =>
+          one.kind === "completion_photo" &&
+          one.body.completionId === id &&
+          one.actorId === entry.actorId
+      );
+      const sourceIds = [...new Set([id, ...attached.map((one) => one.id)])];
+      const frozen = await this.read<PendingBatch>(PENDING_BATCH);
+      if (frozen?.entries.some((one) => sourceIds.includes(one.id))) {
+        throw new RecoveryError("sending");
+      }
+      if (
+        entry.kind === "step_completion" &&
+        draft.kind === "step_completion" &&
+        !draft.body.skipReason &&
+        (entry.body.photoSlots ?? []).some(
+          (slot) => !photos.some((photo) => photo.slot === slot)
+        )
+      ) {
+        throw new RecoveryError("missing_photos");
+      }
+      const replacementId = this.newKey();
+      // Pick only the paired draft fields; structurally typed callers can carry extra metadata which must never
+      // replace the original author's identity, proof or recording time.
+      const cleanDraft = { kind: draft.kind, body: draft.body } as EntryDraft;
+      const replacing =
+        cleanDraft.kind === "step_completion"
+          ? {
+              kind: cleanDraft.kind,
+              body: {
+                ...cleanDraft.body,
+                photoSlots: photos.map((photo) => photo.slot),
+              },
+            }
+          : cleanDraft;
+      const replacement: OutboxEntry = {
+        ...entry,
+        ...replacing,
+        id: replacementId,
+        seq: await this.takeSeq(),
+      };
+      const entries: OutboxEntry[] = [replacement];
+      for (const photo of draft.kind === "step_completion" ? photos : []) {
+        // Sequence order places the parent before its photographs.
+        // oxlint-disable-next-line no-await-in-loop
+        const seq = await this.takeSeq();
+        entries.push({
+          kind: "completion_photo",
+          body: { ...photo, completionId: replacementId },
+          id: this.newKey(),
+          seq,
+          recordedAt: entry.recordedAt,
+          ...(entry.actorId ? { actorId: entry.actorId } : {}),
+          ...(entry.proof ? { proof: entry.proof } : {}),
+        });
+      }
+      // This is the commit point. Readers hide the sources and see the complete replacement bundle, even if the phone
+      // stops before cleanup. A failure before it leaves every source intact.
+      await this.write(key, {
+        sourceIds,
+        replacementId,
+        actorId: entry.actorId,
+        entries,
+      } satisfies Recovery);
+      return { id: replacementId, created: true };
+    });
+  }
+
   /** The next number in this phone's own count. Kept on the device, never reset: a gap in
    *  it is how the farm learns an entry never arrived. */
   private async takeSeq(): Promise<number> {
-    // Read from the device once, then counted in memory. Taking a number and putting the
-    // next one back are two steps, and two taps in the same instant would otherwise take
-    // the same one — the increment below is a single step nothing can get between.
-    this.fromDevice ??= this.read<number>(NEXT_SEQ);
-    const stored = await this.fromDevice;
-    // Checked after the wait, not before it. `??=` tests its target first, so three taps
-    // arriving together all passed the test while the number was still unread, and all
-    // three took the same one.
-    this.counter ??= stored ?? 1;
-    const seq = this.counter;
-    this.counter += 1;
-    await this.write(NEXT_SEQ, this.counter);
-    return seq;
+    // The short allocation lock is separate from sending: recording new work never waits for a network reply.
+    // Read the durable count on each allocation, since another tab may have recorded or recovered work meanwhile.
+    return await withOutboxLock(
+      this.options.storage,
+      async () => {
+        const seq = (await this.read<number>(NEXT_SEQ)) ?? 1;
+        await this.write(NEXT_SEQ, seq + 1);
+        return seq;
+      },
+      "openfarm-outbox:sequence"
+    );
   }
 
   /** This Outbox's id, made the first time it is asked for and kept on the device from then on. */
@@ -372,7 +549,11 @@ export class Outbox {
         entries.push(entry);
       }
     }
-    return entries;
+    const recoveries = await this.recoveries();
+    const superseded = new Set(recoveries.flatMap(({ row }) => row.sourceIds));
+    return [...entries, ...recoveries.flatMap(({ row }) => row.entries)]
+      .filter((entry) => !superseded.has(entry.id))
+      .toSorted((a, b) => a.seq - b.seq || a.id.localeCompare(b.id));
   }
 
   private async under(prefix: string): Promise<Held[]> {
@@ -385,7 +566,9 @@ export class Outbox {
         rows.push(row);
       }
     }
-    return rows;
+    const recoveries = await this.recoveries();
+    const superseded = new Set(recoveries.flatMap(({ row }) => row.sourceIds));
+    return rows.filter((row) => !superseded.has(row.entry.id));
   }
 
   /** What the farm sent back, with the data the person entered, so they can put it right. */
@@ -454,7 +637,8 @@ export class Outbox {
       rejected: refused.length,
       reviewed: looked.length,
       lastSyncAt,
-      oldestWaitingAt: waiting[0]?.recordedAt ?? null,
+      oldestWaitingAt:
+        waiting.map((entry) => entry.recordedAt).toSorted()[0] ?? null,
       paused: this.paused,
     };
   }
@@ -483,6 +667,16 @@ export class Outbox {
    * sign in again — none of which are failures.
    */
   async flush(): Promise<{ sent: number; verdicts: EntryVerdict[] }> {
+    if (this.flushing) {
+      return { sent: 0, verdicts: [] };
+    }
+    return await withOutboxLock(this.options.storage, () => this.flushLocked());
+  }
+
+  private async flushLocked(): Promise<{
+    sent: number;
+    verdicts: EntryVerdict[];
+  }> {
     const nothing = { sent: 0, verdicts: [] };
     if (this.flushing || (await this.pausedNow()) !== "none") {
       return nothing;
@@ -535,24 +729,25 @@ export class Outbox {
       // Still backing off from the last attempt.
       return nothing;
     }
+    let answer: Awaited<ReturnType<Transport["send"]>>;
     try {
-      const answer = await this.options.transport.send({
+      answer = await this.options.transport.send({
         key: batch.key,
         sentAt: this.now().toISOString(),
         outboxId: await this.idOfThisOutbox(),
         // Exactly what was frozen, whatever the phone has learned since: the same key never carries two things.
         entries: batch.entries,
       });
-      // Written down first. From here the batch is settled business whatever becomes of the
-      // phone; what is left is bookkeeping the next flush can finish.
-      const settled = { ...batch, verdicts: answer.results };
-      await this.write(PENDING_BATCH, settled);
-      await this.finish(settled, waiting, { taken: true });
-      return { sent: batch.entries.length, verdicts: answer.results };
     } catch (error) {
       await this.stumble(batch, error);
       return nothing;
     }
+    // Written down first. From here the batch is settled business whatever becomes of the
+    // phone; what is left is bookkeeping the next flush can finish.
+    const settled = { ...batch, verdicts: answer.results };
+    await this.write(PENDING_BATCH, settled);
+    await this.finish(settled, waiting, { taken: true });
+    return { sent: batch.entries.length, verdicts: answer.results };
   }
 
   /**
@@ -635,11 +830,30 @@ export class Outbox {
     }
   }
 
+  private async saveRecovery({
+    key,
+    row,
+  }: {
+    key: string;
+    row: Recovery;
+  }): Promise<void> {
+    await this.write(key, row);
+    if (row.entries.length > 0) {
+      return;
+    }
+    await this.write(`${RECOVERED}${key.slice(RECOVERY.length)}`, {
+      replacementId: row.replacementId,
+      actorId: row.actorId,
+    });
+    await this.options.storage.delete(key);
+  }
+
   private async settle(
     entries: OutboxEntry[],
     verdicts: EntryVerdict[]
   ): Promise<void> {
     const byId = new Map(verdicts.map((verdict) => [verdict.id, verdict]));
+    const recovered = await this.recoveries();
     for (const entry of entries) {
       const verdict = byId.get(entry.id);
       if (!verdict) {
@@ -659,6 +873,46 @@ export class Outbox {
       }
       // oxlint-disable-next-line no-await-in-loop
       await this.options.storage.delete(entryKey(entry.seq, entry.id));
+      const bundle = recovered.find(({ row }) =>
+        row.entries.some((one) => one.id === entry.id)
+      );
+      if (bundle) {
+        for (const source of bundle.row.sourceIds) {
+          // oxlint-disable-next-line no-await-in-loop
+          await this.discard(source);
+        }
+        // oxlint-disable-next-line no-await-in-loop
+        const keys = await this.options.storage.keys();
+        for (const key of keys.filter(
+          (one) =>
+            one.startsWith(ENTRY) &&
+            bundle.row.sourceIds.some((id) => one.endsWith(`:${id}`))
+        )) {
+          // oxlint-disable-next-line no-await-in-loop
+          await this.options.storage.delete(key);
+        }
+        bundle.row.entries = bundle.row.entries.filter(
+          (one) => one.id !== entry.id
+        );
+        // oxlint-disable-next-line no-await-in-loop
+        // A replacement refused again can have photos still waiting in its previous bundle. Once its new bundle is
+        // durable, retire those old queued copies too, keeping their identity receipts for stale screens.
+        for (const previous of recovered.filter(
+          (one) =>
+            one.key !== bundle.key &&
+            one.row.entries.some((photo) =>
+              bundle.row.sourceIds.includes(photo.id)
+            )
+        )) {
+          previous.row.entries = previous.row.entries.filter(
+            (photo) => !bundle.row.sourceIds.includes(photo.id)
+          );
+          // oxlint-disable-next-line no-await-in-loop
+          await this.saveRecovery(previous);
+        }
+        // oxlint-disable-next-line no-await-in-loop
+        await this.saveRecovery(bundle);
+      }
     }
   }
 

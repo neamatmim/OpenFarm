@@ -55,7 +55,6 @@ import type {
 import { useLanguage } from "@/i18n/language-provider";
 import { fieldOfMoment, momentOfField } from "@/lib/farm-moment";
 import { namesIn, saidIn } from "@/lib/names-in";
-import type { Photo } from "@/lib/photo";
 import { photoProblem, shrink } from "@/lib/photo";
 import type { MedicineCountEntry, StockCountEntry } from "@/lib/record-offline";
 import { skipReasonsOffered } from "@/lib/skipping";
@@ -184,15 +183,18 @@ const useRenewal = (
   step: Step,
   board: { expiresOn: Date | null } | null | undefined,
   correcting: boolean,
-  recorded: FactsAsShown["renewal"]
+  recorded: FactsAsShown["renewal"],
+  initial?: StepAnswer["renewal"]
 ) => {
   const renews = step.effect?.kind === "registration_renewal";
   const runsOutOn = board?.expiresOn ?? null;
   const [expiresOn, setExpiresOn] = useState(
-    () => recorded?.expiresOn ?? aYearOn(runsOutOn)
+    () => initial?.expiresOn ?? recorded?.expiresOn ?? aYearOn(runsOutOn)
   );
-  const [issuedOn, setIssuedOn] = useState("");
-  const [certificate, setCertificate] = useState<Photo | null>(null);
+  const [issuedOn, setIssuedOn] = useState(initial?.issuedOn ?? "");
+  const [certificate, setCertificate] = useState<
+    NonNullable<StepAnswer["renewal"]>["certificate"] | null
+  >(initial?.certificate ?? null);
   const given = expiresOn !== "" && (certificate !== null || correcting);
   return {
     renews,
@@ -670,7 +672,9 @@ const SheetHead = ({
         <h1 className="text-xl font-semibold">{saidIn(step.text, language)}</h1>
         <LastTime last={animal?.last} step={step} />
         {correcting ? (
-          <StatusBadge tone="info">{t("work.correcting")}</StatusBadge>
+          <StatusBadge tone="info">
+            <span className="whitespace-normal">{t("work.correcting")}</span>
+          </StatusBadge>
         ) : null}
         {locked ? (
           <StatusBadge icon={Lock} tone="warning">
@@ -760,14 +764,17 @@ const FieldWithLabel = ({
 const useStartingAnswer = (
   step: Step,
   existing: Completion | undefined,
-  animal: Animal | undefined
+  animal: Animal | undefined,
+  initialReason?: string
 ) => {
   const done = existing?.status === "done" ? existing.evidence : undefined;
   const [values, setValues] = useState<Entered>(() =>
     enteredFrom(step, done, new Date())
   );
   const [skipping, setSkipping] = useState(existing?.status === "skipped");
-  const [reason, setReason] = useState(existing?.skipReason ?? "");
+  const [reason, setReason] = useState(
+    initialReason ?? existing?.skipReason ?? ""
+  );
   const locked = Boolean(animal?.underMilkWithdrawal);
   const [destination, setDestination] = useState<MilkDestination>(
     existing?.destination ?? (locked ? "discard" : "bulk")
@@ -1013,6 +1020,24 @@ const PassAsWell = ({
   );
 };
 
+const RecordLabel = ({
+  label,
+  correcting,
+}: {
+  label?: string;
+  correcting: boolean;
+}) => {
+  const { t } = useLanguage();
+  return label ?? t(correcting ? "correct.save" : "work.confirm");
+};
+
+const recordButtonClass = (recovering: boolean, skippable: boolean): string => {
+  if (recovering) {
+    return "col-span-2 h-auto min-h-14 py-3 text-base whitespace-normal md:min-h-12";
+  }
+  return `h-14 text-lg md:h-12 ${skippable ? "" : "col-span-2"}`;
+};
+
 /** The full-screen sheet: one control per piece of Evidence the Version asks for, skip with
  *  a reason for a per-animal Step, and a warning that must be acknowledged for an odd figure. */
 export const EvidenceSheet = ({
@@ -1024,6 +1049,11 @@ export const EvidenceSheet = ({
   stockCount,
   medicineCount,
   renewal,
+  initialPhotos,
+  initialRenewal,
+  initialReason,
+  pending = false,
+  submitLabel,
   onCancel,
   onRecord,
 }: {
@@ -1050,6 +1080,12 @@ export const EvidenceSheet = ({
   medicineCount?: MedicineCountBoard | null;
   /** When the Registration runs out now, for the Step that renews it. */
   renewal?: { expiresOn: Date | null } | null;
+  /** Photographs and certificate still held with an answer the farm refused. */
+  initialPhotos?: Taken;
+  initialRenewal?: StepAnswer["renewal"];
+  initialReason?: string;
+  pending?: boolean;
+  submitLabel?: string;
   onCancel: () => void;
   onRecord: (payload: StepAnswer) => void;
 }) => {
@@ -1064,9 +1100,9 @@ export const EvidenceSheet = ({
     destination,
     setDestination,
     locked,
-  } = useStartingAnswer(step, existing, animal);
+  } = useStartingAnswer(step, existing, animal, initialReason);
   const [warning, setWarning] = useState<string | null>(null);
-  const [photos, setPhotos] = useState<Taken>({});
+  const [photos, setPhotos] = useState<Taken>(() => initialPhotos ?? {});
   const recordsMilk = step.effect?.kind === "milk_record";
   const feedsThePen = step.effect?.kind === "feeding";
   // Asked of one place, not worked out here: the server refuses a skip by the same rule, and when this
@@ -1084,7 +1120,13 @@ export const EvidenceSheet = ({
   );
   const count = useStockCount(step, stockCount);
   const medicine = useMedicineCount(step, medicineCount);
-  const renewing = useRenewal(step, renewal, correcting, recorded.renewal);
+  const renewing = useRenewal(
+    step,
+    renewal,
+    correcting,
+    recorded.renewal,
+    initialRenewal
+  );
 
   const { rows: feedingRows, cannotFeed } = feedingState(feedsThePen, feeding);
 
@@ -1106,8 +1148,11 @@ export const EvidenceSheet = ({
   // Asked of the answers as they will be sent, and by the farm's own rule: the button is offered when
   // the farm would take it, not when the boxes merely look filled.
   const ready = renewing.readyWith(
-    missingEvidence(step, assembled, (slot) => Boolean(photos[slot])).length ===
-      0
+    missingEvidence(
+      step,
+      assembled,
+      (slot) => Boolean(photos[slot]) || correcting
+    ).length === 0
   );
 
   const submit = (force: boolean) => {
@@ -1146,20 +1191,25 @@ export const EvidenceSheet = ({
 
   if (skipping) {
     return (
-      <SkipSheet
-        animalTag={animal?.tagNumber}
-        correcting={correcting}
-        onBack={() => setSkipping(false)}
-        onReason={setReason}
-        onSkip={onRecord}
-        reason={reason}
-        reasons={skipReasons}
-      />
+      <fieldset disabled={pending}>
+        <SkipSheet
+          animalTag={animal?.tagNumber}
+          correcting={correcting}
+          onBack={() => setSkipping(false)}
+          onReason={setReason}
+          onSkip={onRecord}
+          reason={reason}
+          reasons={skipReasons}
+        />
+      </fieldset>
     );
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-5 px-4 pt-4 pb-2">
+    <fieldset
+      disabled={pending}
+      className="mx-auto flex w-full max-w-lg min-w-0 flex-col gap-5 px-4 pt-4 pb-2"
+    >
       <button
         className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -ms-2 -mb-2 inline-flex min-h-11 w-fit items-center gap-1 rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2"
         onClick={onCancel}
@@ -1257,7 +1307,12 @@ export const EvidenceSheet = ({
         {skippable && !correcting ? (
           <PassAsWell onRecord={onRecord} step={step} />
         ) : null}
-        <div className="grid grid-cols-3 gap-2">
+        <div
+          className={cn(
+            "grid gap-2",
+            submitLabel ? "grid-cols-2" : "grid-cols-3"
+          )}
+        >
           <Button
             variant="ghost"
             className="h-14 text-base md:h-12"
@@ -1276,7 +1331,7 @@ export const EvidenceSheet = ({
             </Button>
           ) : null}
           <Button
-            className={`h-14 text-lg md:h-12 ${skippable ? "" : "col-span-2"}`}
+            className={recordButtonClass(Boolean(submitLabel), skippable)}
             disabled={
               cannotFeed ||
               untypedFeed(feedingRows, given) ||
@@ -1287,10 +1342,10 @@ export const EvidenceSheet = ({
             onClick={() => submit(false)}
           >
             <Check data-icon="inline-start" />
-            {correcting ? t("correct.save") : t("work.confirm")}
+            <RecordLabel label={submitLabel} correcting={correcting} />
           </Button>
         </div>
       </StickyAction>
-    </div>
+    </fieldset>
   );
 };

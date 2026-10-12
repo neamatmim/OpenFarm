@@ -7,7 +7,9 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Eye, Undo2 } from "lucide-react";
+import { useState } from "react";
 
+import { RecoverEntry } from "@/components/outbox/recover-entry";
 import {
   EmptyState,
   Loaded,
@@ -84,10 +86,12 @@ const HeldCard = ({
   held: { entry, refusal },
   tone,
   onDiscard,
+  onRecover,
 }: {
   held: Held;
   tone: "danger" | "info";
   onDiscard: (id: string) => void;
+  onRecover: (held: Held) => void;
 }) => {
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
@@ -136,6 +140,20 @@ const HeldCard = ({
             t(KIND_WORD[entry.kind])}
         </p>
       </div>
+      {tone === "danger" && phoneOutbox()?.canRecover(entry) ? (
+        <Button
+          className="h-12 w-full sm:w-auto sm:self-end md:h-9"
+          onClick={() => onRecover({ entry, refusal, reason: "" })}
+        >
+          <Undo2 data-icon="inline-start" />
+          {t("outbox.recover")}
+        </Button>
+      ) : null}
+      {tone === "danger" && !phoneOutbox()?.canRecover(entry) ? (
+        <p className="text-muted-foreground text-sm">
+          {t("outbox.recoveryAuthor")}
+        </p>
+      ) : null}
       <Button
         className="h-12 w-full sm:w-auto sm:self-end md:h-9"
         onClick={() => onDiscard(entry.id)}
@@ -153,11 +171,13 @@ const HeldList = ({
   emptyKey,
   tone,
   onDiscard,
+  onRecover,
 }: {
   rows: Held[];
   emptyKey: "outbox.heldNone" | "outbox.reviewedNone";
   tone: "danger" | "info";
   onDiscard: (id: string) => void;
+  onRecover: (held: Held) => void;
 }) => {
   const { t } = useLanguage();
   if (rows.length === 0) {
@@ -170,6 +190,7 @@ const HeldList = ({
           held={held}
           key={held.entry.id}
           onDiscard={onDiscard}
+          onRecover={onRecover}
           tone={tone}
         />
       ))}
@@ -185,6 +206,7 @@ const HeldList = ({
 const OutboxPage = () => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
+  const [recovering, setRecovering] = useState<Held | null>(null);
   const held = useQuery({
     queryKey: ["outbox", "held"],
     queryFn: async () => {
@@ -205,6 +227,20 @@ const OutboxPage = () => {
     },
   });
 
+  const recover = recovering ? (
+    <RecoverEntry
+      held={recovering}
+      key={recovering.entry.id}
+      onClose={() => setRecovering(null)}
+    />
+  ) : null;
+  if (
+    recovering?.entry.kind === "step_completion" ||
+    recovering?.entry.kind === "step_correction"
+  ) {
+    return recover;
+  }
+
   return (
     <Page>
       <PageHeader
@@ -216,6 +252,7 @@ const OutboxPage = () => {
           <HeldList
             emptyKey="outbox.heldNone"
             onDiscard={(id) => discard.mutate(id)}
+            onRecover={setRecovering}
             rows={held.data?.rejected ?? []}
             tone="danger"
           />
@@ -228,15 +265,18 @@ const OutboxPage = () => {
           <HeldList
             emptyKey="outbox.reviewedNone"
             onDiscard={(id) => discard.mutate(id)}
+            onRecover={setRecovering}
             rows={held.data?.reviewed ?? []}
             tone="info"
           />
         </Section>
       </Loaded>
+      {recover}
     </Page>
   );
 };
 
 export const Route = createFileRoute("/_authenticated/outbox")({
+  staticData: { focusedWork: true },
   component: OutboxPage,
 });

@@ -9,6 +9,7 @@ import {
   thePerson,
   theShedPhone,
 } from "@OpenFarm/test-harness";
+import { createRouterClient } from "@orpc/server";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { aMonthOn } from "../test/carrying";
@@ -239,6 +240,51 @@ describe("the scheduler", () => {
 });
 
 describe("claiming", () => {
+  it("opens a completion's original work with the same farm and pen boundaries as opening its board", async () => {
+    const clock = new FakeClock("2026-09-14T05:30:00.000Z");
+    const { owner, instance } = await instanceForPen(clock);
+    await owner.client.work.claim({ id: instance.id });
+    await owner.client.work.completeStep({
+      instanceId: instance.id,
+      stepId: "prep",
+      evidence: [true],
+    });
+    const board = await owner.client.work.get({ id: instance.id });
+    const completionId = board.completions[0]?.id ?? "";
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+    const fromCompletion = await staff.client.work.get({ completionId });
+    expect(fromCompletion.id).toBe(instance.id);
+    expect(fromCompletion.versionId).toBe(board.versionId);
+    expect(fromCompletion.completions).toEqual(board.completions);
+
+    const otherStaff = await createTestClient(appRouter, {
+      as: "otherStaff",
+      clock,
+    });
+    await expect(
+      otherStaff.client.work.get({ completionId })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      owner.client.work.get({ completionId: "does-not-exist" })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    const foreignFarm = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+    });
+    // A request whose farm differs still cannot resolve the id, even with an Owner's role.
+    if (!foreignFarm.context.farm) {
+      throw new Error("expected the test farm");
+    }
+    const foreign = {
+      ...foreignFarm.context,
+      farm: { ...foreignFarm.context.farm, id: "another-farm" },
+    };
+    const otherFarmClient = createRouterClient(appRouter, { context: foreign });
+    await expect(
+      otherFarmClient.work.get({ completionId })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
   it("is exclusive: the second person is told someone took it first", async () => {
     const clock = new FakeClock("2026-09-15T05:30:00.000Z");
     const { instance } = await instanceForPen(clock);

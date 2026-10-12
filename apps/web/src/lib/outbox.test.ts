@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import type { EntryVerdict, ProofSettled, Transport } from "./outbox";
 import { Outbox } from "./outbox";
+import { RecoveryError } from "./outbox-recovery";
 
 /** Storage a test can hold in its hand. The real one is IndexedDB, which behaves the same
  *  way and is the reason the outbox talks to an adapter rather than to a database. */
@@ -774,5 +775,326 @@ describe("putting right an entry still on the phone", () => {
     expect(
       await outbox.replaceWaiting("never", "step_completion", () => milk(1.1))
     ).toBe(false);
+  });
+});
+
+describe("recovering refused entries", () => {
+  const reject = () =>
+    farm.says((batch) => ({
+      results: batch.entries.map((entry) => ({
+        id: String(entry.id),
+        seq: Number(entry.seq),
+        outcome: "rejected" as const,
+        refusal: { category: "not_yours" as const },
+      })),
+    }));
+
+  it("keeps the original time, author and proof, but sends the edited answer under a new identity", async () => {
+    const outbox = shedPhoneOn(() =>
+      Promise.resolve(new Map([["pin-1", { token: "original-token" }]]))
+    );
+    await outbox.add("step_completion", milk(11), "original");
+    reject();
+    await outbox.flush();
+    const rejected = await outbox.rejected();
+    const original = rejected[0]?.entry;
+    at = new Date("2027-02-02T05:00:00.000Z");
+    const edited = {
+      kind: "step_completion",
+      body: milk(1.1),
+      actorId: "someone-else",
+      proof: "a-different-proof",
+      recordedAt: at.toISOString(),
+    } as const;
+    const { id } = await outbox.recover("original", edited);
+    const [replacement] = await outbox.pending();
+    expect(id).not.toBe("original");
+    expect(replacement).toMatchObject({
+      id,
+      recordedAt: original?.recordedAt,
+      actorId: "staff-a",
+      proof: "pin-1",
+      body: { evidence: [1.1] },
+    });
+    expect(replacement?.seq).toBeGreaterThan(original?.seq ?? 0);
+    expect(await outbox.rejected()).toEqual([]);
+    farm.says(takesEverything);
+    await outbox.flush();
+    expect(farm.sends.at(-1)?.entries).toMatchObject([
+      {
+        id,
+        recordedAt: original?.recordedAt,
+        switchToken: "original-token",
+        evidence: [1.1],
+      },
+    ]);
+    expect(await outbox.pending()).toEqual([]);
+  });
+
+  it("refuses to change another person's record even on a phone allowed to send everybody's work", async () => {
+    let actor = "staff-a";
+    const outbox = new Outbox({
+      storage,
+      transport: farm.transport,
+      retry: new DefaultRetryPolicy(),
+      actorOf: () => actor,
+      mayCarry: () => true,
+    });
+    await outbox.add(
+      "observation",
+      { tagNumber: "D-0001", saw: "limping" },
+      "original"
+    );
+    reject();
+    await outbox.flush();
+    actor = "staff-b";
+    const rejected = await outbox.rejected();
+    expect(outbox.canRecover(rejected[0]?.entry ?? {})).toBe(false);
+    await expect(
+      outbox.recover("original", {
+        kind: "observation",
+        body: { tagNumber: "D-0001", saw: "other", note: "changed" },
+      })
+    ).rejects.toMatchObject({ why: "not_yours" });
+    expect(await outbox.pending()).toEqual([]);
+    expect(await outbox.rejected()).toHaveLength(1);
+  });
+
+  it("does not replace accepted work that is waiting for review, or change the kind of a refused entry", async () => {
+    const outbox = outboxOn();
+    await outbox.add("step_completion", milk(11), "reviewed");
+    farm.says((batch) => ({
+      results: batch.entries.map((entry) => ({
+        id: String(entry.id),
+        seq: Number(entry.seq),
+        outcome: "kept" as const,
+      })),
+    }));
+    await outbox.flush();
+    await expect(
+      outbox.recover("reviewed", { kind: "step_completion", body: milk(9) })
+    ).rejects.toBeInstanceOf(RecoveryError);
+    expect(await outbox.reviewed()).toHaveLength(1);
+    await outbox.add("instance_claim", { instanceId: "instance-1" }, "refused");
+    reject();
+    await outbox.flush();
+    await expect(
+      outbox.recover("refused", {
+        kind: "instance_complete",
+        body: { instanceId: "instance-1" },
+      })
+    ).rejects.toMatchObject({ why: "not_rejected" });
+  });
+
+  it("makes concurrent and stale-screen resubmissions one replacement, including after it has reached the farm", async () => {
+    const outbox = outboxOn();
+    await outbox.add("step_completion", milk(11), "original");
+    reject();
+    await outbox.flush();
+    const draft = { kind: "step_completion" as const, body: milk(9) };
+    const ids = await Promise.all([
+      outbox.recover("original", draft),
+      outboxOn().recover("original", draft),
+    ]);
+    expect(new Set(ids.map((result) => result.id)).size).toBe(1);
+    expect(await outbox.pending()).toHaveLength(1);
+    farm.says(takesEverything);
+    await outbox.flush();
+    expect(await outboxOn().recover("original", draft)).toMatchObject({
+      id: ids[0]?.id,
+      created: false,
+    });
+    expect(await outbox.pending()).toEqual([]);
+  });
+
+  it("leaves the original intact if the atomic replacement write fails", async () => {
+    const outbox = outboxOn();
+    await outbox.add("step_completion", milk(11), "original");
+    reject();
+    await outbox.flush();
+    const write = storage.set.bind(storage);
+    storage.set = (key, value) =>
+      key.startsWith("recovery:")
+        ? Promise.reject(new Error("storage full"))
+        : write(key, value);
+    await expect(
+      outbox.recover("original", { kind: "step_completion", body: milk(9) })
+    ).rejects.toThrow("storage full");
+    expect(await outbox.pending()).toEqual([]);
+    const rejected = await outbox.rejected();
+    expect(rejected[0]?.entry.body).toMatchObject({
+      evidence: [11],
+    });
+    storage.set = write;
+    await outbox.recover("original", {
+      kind: "step_completion",
+      body: milk(9),
+    });
+    expect(await outbox.pending()).toHaveLength(1);
+  });
+
+  it("relinks the stored photo to the replacement parent and never sends the orphan again", async () => {
+    const outbox = outboxOn();
+    await outbox.add(
+      "step_completion",
+      { ...milk(11), photoSlots: [1] },
+      "original"
+    );
+    await outbox.add(
+      "completion_photo",
+      {
+        completionId: "original",
+        slot: 1,
+        contentType: "image/jpeg",
+        data: "photo-data",
+      },
+      "photo"
+    );
+    farm.says((batch) => ({
+      results: batch.entries.map((entry) => ({
+        id: String(entry.id),
+        seq: Number(entry.seq),
+        outcome:
+          entry.kind === "completion_photo"
+            ? ("kept" as const)
+            : ("rejected" as const),
+      })),
+    }));
+    await outbox.flush();
+    const photos = await outbox.photosFor("original");
+    expect(photos).toEqual([
+      { slot: 1, contentType: "image/jpeg", data: "photo-data" },
+    ]);
+    const { id } = await outbox.recover(
+      "original",
+      { kind: "step_completion", body: { ...milk(9), photoSlots: [1] } },
+      photos
+    );
+    const waiting = await outbox.pending();
+    expect(waiting).toHaveLength(2);
+    expect(waiting[1]).toMatchObject({
+      kind: "completion_photo",
+      body: { completionId: id, slot: 1, data: "photo-data" },
+    });
+    expect(waiting[1]?.seq).toBeGreaterThan(waiting[0]?.seq ?? 0);
+    expect(await outbox.reviewed()).toEqual([]);
+    farm.says(takesEverything);
+    await outbox.flush();
+    expect(farm.sends.at(-1)?.entries.map((entry) => entry.id)).not.toContain(
+      "photo"
+    );
+    expect(await outbox.pending()).toEqual([]);
+    expect(
+      [...storage.rows.keys()].some(
+        (key) => key.startsWith("rejected:") || key.startsWith("needs-review:")
+      )
+    ).toBe(false);
+  });
+
+  it("will not silently lose an original photo that is no longer on the phone", async () => {
+    const outbox = outboxOn();
+    await outbox.add(
+      "step_completion",
+      { ...milk(11), photoSlots: [1] },
+      "original"
+    );
+    reject();
+    await outbox.flush();
+    await expect(
+      outbox.recover("original", { kind: "step_completion", body: milk(9) })
+    ).rejects.toMatchObject({ why: "missing_photos" });
+    expect(await outbox.rejected()).toHaveLength(1);
+  });
+
+  it("recovers bookkeeping after the phone dies while an accepted replacement is being cleared", async () => {
+    const outbox = outboxOn();
+    await outbox.add("step_completion", milk(11), "original");
+    reject();
+    await outbox.flush();
+    const { id } = await outbox.recover("original", {
+      kind: "step_completion",
+      body: milk(9),
+    });
+    farm.says(takesEverything);
+    const failure = storage.failDeletesAfter(0);
+    await expect(outbox.flush()).rejects.toThrow("the phone died");
+    failure.stop();
+    const sends = farm.sends.length;
+    const restarted = outboxOn();
+    await restarted.flush();
+    expect(farm.sends).toHaveLength(sends);
+    expect(await restarted.pending()).toEqual([]);
+    expect(await restarted.rejected()).toEqual([]);
+    expect(
+      await restarted.recover("original", {
+        kind: "step_completion",
+        body: milk(9),
+      })
+    ).toMatchObject({ id, created: false });
+  });
+
+  it("keeps the oldest recording date visible when a recovered old entry is behind newer work", async () => {
+    const outbox = outboxOn();
+    await outbox.add("step_completion", milk(11), "old");
+    const first = at.toISOString();
+    reject();
+    await outbox.flush();
+    at = new Date("2027-02-03T05:00:00.000Z");
+    await outbox.add("instance_claim", { instanceId: "new-work" }, "new");
+    await outbox.recover("old", { kind: "step_completion", body: milk(9) });
+    const state = await outbox.state();
+    expect(state.oldestWaitingAt).toBe(first);
+  });
+
+  it("can recover a replacement refused again while its photos are still waiting, without carrying old copies", async () => {
+    const outbox = outboxOn();
+    await outbox.add(
+      "step_completion",
+      { ...milk(11), photoSlots: [1] },
+      "original"
+    );
+    const recoveryPhoto = {
+      slot: 1,
+      contentType: "image/jpeg" as const,
+      data: "photo-data",
+    };
+    await outbox.add(
+      "completion_photo",
+      { ...recoveryPhoto, completionId: "original" },
+      "original-photo"
+    );
+    reject();
+    await outbox.flush();
+    const { id: first } = await outbox.recover(
+      "original",
+      { kind: "step_completion", body: milk(9) },
+      [recoveryPhoto]
+    );
+    // A parent gets a verdict while its photo has no verdict yet and must keep waiting.
+    farm.says((batch) => ({
+      results: batch.entries
+        .filter((entry) => entry.kind === "step_completion")
+        .map((entry) => ({
+          id: String(entry.id),
+          seq: Number(entry.seq),
+          outcome: "rejected" as const,
+        })),
+    }));
+    await outbox.flush();
+    expect(await outbox.pending()).toHaveLength(1);
+    const { id: second } = await outbox.recover(
+      first,
+      { kind: "step_completion", body: milk(8) },
+      await outbox.photosFor(first)
+    );
+    const waiting = await outbox.pending();
+    expect(waiting).toHaveLength(2);
+    expect(waiting[1]).toMatchObject({ body: { completionId: second } });
+    farm.says(takesEverything);
+    await outbox.flush();
+    expect(await outbox.pending()).toEqual([]);
+    expect(
+      [...storage.rows.keys()].filter((key) => key.startsWith("recovery:"))
+    ).toEqual([]);
   });
 });

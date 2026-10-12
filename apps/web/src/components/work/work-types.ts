@@ -59,4 +59,7 @@ export type Typed = Record<string, string>;
 export type Entered = Record<number, boolean | number | string>;
 
 /** A picture taken against an Evidence slot, before it is queued. */
-export type Taken = Record<number, { contentType: "image/jpeg"; data: string }>;
+export type Taken = Record<
+  number,
+  { contentType: "image/jpeg" | "image/png" | "image/webp"; data: string }
+>;

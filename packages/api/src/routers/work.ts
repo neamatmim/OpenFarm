@@ -175,6 +175,26 @@ const countBoardsOf = async (
   return { stockCount, medicineCount };
 };
 
+/** A refused Correction or photo knows its Completion even after the phone's cached work expires. Resolve only
+ * within this farm; the board's normal role and work scope checks still apply below. */
+const resolveWorkId = async (
+  db: Database,
+  farmId: string,
+  input: { id: string } | { completionId: string }
+): Promise<string> => {
+  if ("id" in input) {
+    return input.id;
+  }
+  const completion = await db.query.stepCompletion.findFirst({
+    where: { id: input.completionId, farmId },
+    columns: { instanceId: true },
+  });
+  if (!completion) {
+    throw new ORPCError("NOT_FOUND");
+  }
+  return completion.instanceId;
+};
+
 export const workRouter = {
   /**
    * Raises the Instances the farm's day needs. Idempotent, so the phone and the office can
@@ -326,10 +346,16 @@ export const workRouter = {
    *  already been recorded. */
   get: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
-    .input(z.object({ id: z.string() }))
+    .input(
+      z.union([
+        z.object({ id: z.string() }),
+        z.object({ completionId: z.string().trim().min(1) }),
+      ])
+    )
     .handler(async ({ context, input }) => {
+      const workId = await resolveWorkId(context.db, context.farm.id, input);
       const instance = await context.db.query.sopInstance.findFirst({
-        where: { id: input.id, farmId: context.farm.id },
+        where: { id: workId, farmId: context.farm.id },
         with: {
           version: true,
           // Which Version the Playbook is on now, so work running on an older one can say so
