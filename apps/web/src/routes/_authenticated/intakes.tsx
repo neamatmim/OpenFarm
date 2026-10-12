@@ -6,6 +6,7 @@ import { ClipboardCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { FormDraftNotice } from "@/components/form-draft-notice";
 import { BuyingTripSheet } from "@/components/intake/buying-trip";
 import type { IntakeFields } from "@/components/intake/intake-fields";
 import {
@@ -26,14 +27,17 @@ import { IntakeSummary } from "@/components/intake/intake-summary";
 import { RecentIntakes } from "@/components/intake/recent-intakes";
 import { useIsOwner } from "@/components/money";
 import { Notice, Page, PageHeader } from "@/components/page";
+import { UnsavedChangesGuard } from "@/components/page-kit";
 import { accountSent } from "@/components/payment-method";
 import { PastOutings } from "@/components/trips/past-outings";
 import { useT } from "@/i18n/language-provider";
 import { momentOfField } from "@/lib/farm-moment";
+import { matchesFormFields } from "@/lib/form-draft";
 import { onlyFor } from "@/lib/guard";
 import { shrinkAnimalPhoto } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
+import { draftKeyFor, useFormDraft } from "@/lib/use-form-draft";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -59,11 +63,26 @@ const SubmitBar = ({ children }: { children: ReactNode }) => (
  * under the other, what will be written read back beside them — with the farm's own answers filled in for what was
  * left blank — and the newest arrivals beneath, so a beast is not written up twice.
  */
+const isIntakeDraft = (value: unknown): value is IntakeFields =>
+  matchesFormFields(value, EMPTY) &&
+  ["male", "female"].includes(value.sex) &&
+  ["cash", "bank", "mobile_money"].includes(value.paymentMethod);
+
+const intakeChanged = (fields: IntakeFields, photo: File | null): boolean =>
+  photo !== null || JSON.stringify(fields) !== JSON.stringify(EMPTY);
+
 const IntakePage = () => {
   const t = useT();
   const refused = useRefused();
   const navigate = useNavigate();
-  const [fields, setFields] = useState<IntakeFields>(EMPTY);
+  const me = useQuery(orpc.people.me.queryOptions());
+  const draft = useFormDraft(
+    draftKeyFor(me.data, "intake"),
+    EMPTY,
+    isIntakeDraft
+  );
+  const fields = draft.value;
+  const setFields = draft.setValue;
   const [photo, setPhoto] = useState<File | null>(null);
   const [writingTrip, setWritingTrip] = useState(false);
   const sheds = useQuery(orpc.sheds.list.queryOptions());
@@ -103,7 +122,7 @@ const IntakePage = () => {
             toast.error(t("intake.photoLater"));
           }
         }
-        setFields(EMPTY);
+        draft.clear();
         setPhoto(null);
         navigate({
           to: "/animals/$tagNumber",
@@ -128,10 +147,20 @@ const IntakePage = () => {
   const ready = missingFrom(sheet).length === 0 && windowIsWhole(sheet);
   // The photograph goes up after the animal exists, so the whole arrival is pending until it has.
   const pending = record.isPending || setItsPhoto.isPending;
+  const changed = intakeChanged(fields, photo);
 
   return (
     <Page>
       <PageHeader description={t("intake.subtitle")} title={t("nav.intake")} />
+      <FormDraftNotice
+        restored={draft.restored}
+        failed={draft.failed}
+        onDiscard={() => {
+          draft.clear();
+          setPhoto(null);
+        }}
+      />
+      {changed && !pending ? <UnsavedChangesGuard /> : null}
 
       <form
         className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-6"

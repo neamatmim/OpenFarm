@@ -6,7 +6,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, Eye, Undo2 } from "lucide-react";
+import { Eye, ListX, Undo2 } from "lucide-react";
 import { useState } from "react";
 
 import { RecoverEntry } from "@/components/outbox/recover-entry";
@@ -18,10 +18,12 @@ import {
   Section,
   TagChip,
 } from "@/components/page";
+import { ConfirmDialog } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { entryRefusalMessage } from "@/lib/correction-refusal";
 import type { Held, OutboxEntry } from "@/lib/outbox";
 import { phoneOutbox } from "@/lib/outbox-client";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** What each kind of entry is called, so one with nothing typed in it still says what it was. */
@@ -121,7 +123,8 @@ const HeldCard = ({
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <p className="font-semibold">
             {/* A batch refused whole has only the server's English, kept for whoever reads a log. */}
-            {entryRefusalMessage(refusal, t) ?? t("outbox.wrong")}
+            {entryRefusalMessage(refusal, t) ??
+              t(tone === "info" ? "outbox.reviewedTitle" : "outbox.wrong")}
           </p>
           <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             {tag ? <TagChip>{tag}</TagChip> : null}
@@ -155,11 +158,11 @@ const HeldCard = ({
         </p>
       ) : null}
       <Button
-        className="h-12 w-full sm:w-auto sm:self-end md:h-9"
+        className="h-auto min-h-12 w-full whitespace-normal sm:w-auto sm:self-end md:min-h-9"
         onClick={() => onDiscard(entry.id)}
         variant="outline"
       >
-        <Check data-icon="inline-start" />
+        <ListX aria-hidden data-icon="inline-start" />
         {t("outbox.discard")}
       </Button>
     </li>
@@ -207,6 +210,7 @@ const OutboxPage = () => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [recovering, setRecovering] = useState<Held | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
   const held = useQuery({
     queryKey: ["outbox", "held"],
     queryFn: async () => {
@@ -220,11 +224,17 @@ const OutboxPage = () => {
   });
   const discard = useMutation({
     mutationFn: async (id: string) => {
-      await phoneOutbox()?.discard(id);
+      const outbox = phoneOutbox();
+      if (!outbox) {
+        throw new Error("The phone outbox is unavailable");
+      }
+      await outbox.discard(id);
     },
     onSuccess: () => {
+      setRemoving(null);
       void queryClient.invalidateQueries({ queryKey: ["outbox"] });
     },
+    onError: () => toast.error(t("outbox.discardFailed")),
   });
 
   const recover = recovering ? (
@@ -251,7 +261,7 @@ const OutboxPage = () => {
         <Section plain>
           <HeldList
             emptyKey="outbox.heldNone"
-            onDiscard={(id) => discard.mutate(id)}
+            onDiscard={setRemoving}
             onRecover={setRecovering}
             rows={held.data?.rejected ?? []}
             tone="danger"
@@ -272,6 +282,24 @@ const OutboxPage = () => {
         </Section>
       </Loaded>
       {recover}
+      <ConfirmDialog
+        open={removing !== null}
+        onOpenChange={(open) => {
+          if (!open && !discard.isPending) {
+            setRemoving(null);
+          }
+        }}
+        title={t("outbox.discardTitle")}
+        description={t("outbox.discardHint")}
+        confirmLabel={t("outbox.discard")}
+        cancelLabel={t("outbox.keepEntry")}
+        pending={discard.isPending}
+        onConfirm={() => {
+          if (removing) {
+            discard.mutate(removing);
+          }
+        }}
+      />
     </Page>
   );
 };

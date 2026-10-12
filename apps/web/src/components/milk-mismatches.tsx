@@ -11,7 +11,7 @@ import {
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { CircleCheck, ClipboardPen, ListOrdered, Scale } from "lucide-react";
+import { ClipboardPen, ListOrdered, Scale } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -340,7 +340,12 @@ export const MilkMismatches = () => {
         {flagged.data?.length ? (
           <MismatchList sessions={flagged.data} />
         ) : (
-          <EmptyState bare icon={CircleCheck} title={t("mismatch.none")} />
+          <EmptyState
+            bare
+            icon={Scale}
+            title={t("mismatch.none")}
+            description={t("mismatch.noneHint")}
+          />
         )}
       </Loaded>
     </div>

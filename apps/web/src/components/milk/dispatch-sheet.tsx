@@ -13,13 +13,9 @@ import {
 } from "@/components/payment-method";
 import { ReceivableFields, BuyerOwes } from "@/components/receivable-fields";
 import { useLanguage } from "@/i18n/language-provider";
+import { dispatchProblem } from "@/lib/dispatch-validation";
 import type { ReceivableTyped } from "@/lib/receivable";
-import {
-  NO_RECEIVABLE,
-  receivableComplete,
-  receivableSent,
-  somethingPaid,
-} from "@/lib/receivable";
+import { NO_RECEIVABLE, receivableSent, somethingPaid } from "@/lib/receivable";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -129,11 +125,7 @@ export const DispatchSheet = ({
   const handleType = (name: keyof Typed, value: string) =>
     setForm((current) => ({ ...current, [name]: value }));
   const worthMoney = worthOf(Number(form.liters), Number(form.price));
-  const complete =
-    Number(form.liters) > 0 &&
-    Number(form.price) > 0 &&
-    form.buyerName.trim() !== "" &&
-    receivableComplete(receivable, worthMoney, false);
+  const problem = dispatchProblem(form, receivable, worthMoney);
   const box = { draft: form, onType: handleType };
 
   return (
@@ -165,7 +157,8 @@ export const DispatchSheet = ({
       }
       open={open}
       pending={record.isPending}
-      ready={complete}
+      ready={problem === null}
+      missing={problem ? { at: problem.at, said: t(problem.message) } : null}
       submitLabel={t("dispatch.save")}
       title={t("dispatch.recordAction")}
     >
@@ -174,7 +167,7 @@ export const DispatchSheet = ({
           {...box}
           {...FIGURE}
           label={t("dispatch.litersField")}
-          min={0}
+          min={0.01}
           name="liters"
           required
         />
@@ -182,7 +175,7 @@ export const DispatchSheet = ({
           {...box}
           {...FIGURE}
           label={t("dispatch.price")}
-          min={0}
+          min={0.01}
           name="price"
           required
         />

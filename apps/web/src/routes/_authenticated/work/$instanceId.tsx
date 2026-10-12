@@ -35,6 +35,7 @@ import {
   AnimalTile,
   ClosingAction,
 } from "@/components/work/work-board";
+import { WorkDeliveryNotice } from "@/components/work/work-delivery-notice";
 import {
   DosesOwedBeforeRelease,
   WhatRaisedIt,
@@ -48,7 +49,7 @@ import type {
   Completion,
   BulkOutcome,
 } from "@/components/work/work-types";
-import { isClosed, finishedWord } from "@/components/work/work-types";
+import { isClosed } from "@/components/work/work-types";
 import { useLanguage } from "@/i18n/language-provider";
 import { isChangedSince } from "@/lib/correction-refusal";
 import { cachedWithdrawal, herdCacheQuery } from "@/lib/herd-cache";
@@ -128,7 +129,8 @@ const WorkPage = () => {
     ...keptOnThePhone,
     mutationFn: () => finishInstance(queryClient, instanceKey, instanceId),
     onSuccess: () => {
-      toast.success(t(finishedWord(instance.data?.checkerRole)));
+      toast.success(t("work.finishKept"));
+      void queryClient.invalidateQueries({ queryKey: ["outbox"] });
       navigate({ to: "/work" });
     },
     onError,
@@ -393,6 +395,7 @@ const WorkPage = () => {
           tally={tally}
         />
         <WorkNotices runningOn={runningOn} shortFed={shortFed} state={state} />
+        <WorkDeliveryNotice instanceId={instanceId} />
         <Link
           className={buttonVariants({
             className: "h-12 w-full sm:w-fit md:h-12",
@@ -417,6 +420,7 @@ const WorkPage = () => {
         tally={tally}
       />
       <HeldByNotice someoneElse={someoneElse} />
+      <WorkDeliveryNotice instanceId={instanceId} />
       <AssignWork
         assignedRole={instance.data.assignedRole}
         assignedTo={instance.data.assignedTo}

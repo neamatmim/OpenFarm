@@ -24,12 +24,13 @@ import { stillHeld } from "@/components/animal/animal-words";
 import { useCullList } from "@/components/culling/cull-list";
 import { useKeepings } from "@/components/fattening/animal-prices";
 import { standingOf as gainStandingOf } from "@/components/fattening/fattening-types";
-import { standingOf, valueOf } from "@/components/feed/feed-types";
+import { valueOf } from "@/components/feed/feed-types";
 import { MORE_LINK } from "@/components/home/queue";
 import { categoryName } from "@/components/money";
-import { EmptyState, SUBHEADING, Section } from "@/components/page";
+import { EmptyState, Loaded, SUBHEADING, Section } from "@/components/page";
 import { FigureTerm } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { feedsInUse, shortFeedLines } from "@/lib/feed-shortages";
 import { useMoney } from "@/lib/money";
 import { moneyTotals } from "@/lib/money-totals";
 import { namesIn } from "@/lib/names-in";
@@ -421,10 +422,9 @@ export const FeedPanel = () => {
   const { t, language } = useLanguage();
   const asMoney = useMoney();
   const stock = useQuery(orpc.stock.onHand.queryOptions());
+  const rations = useQuery(orpc.feed.rations.list.queryOptions());
   const live = (stock.data ?? []).filter((line) => !line.retiredAt);
-  const short = live.filter((line) =>
-    ["low", "out"].includes(standingOf(line))
-  );
+  const short = shortFeedLines(live, feedsInUse(rations.data ?? []));
   const worth = live.reduce((sum, line) => sum + (valueOf(line) ?? 0), 0);
 
   return (
@@ -436,8 +436,8 @@ export const FeedPanel = () => {
       }
       title={t("nav.feed")}
     >
-      {stock.data ? (
-        <>
+      <Loaded query={stock}>
+        <Loaded query={rations}>
           <dl className="grid grid-cols-2 gap-4">
             <FigureTerm label={t("feed.kpi.items")} size="panel">
               {formatNumber(live.length, language)}
@@ -472,10 +472,8 @@ export const FeedPanel = () => {
           ) : (
             <AllWell>{t("owner.allStocked")}</AllWell>
           )}
-        </>
-      ) : (
-        <Waiting />
-      )}
+        </Loaded>
+      </Loaded>
     </Section>
   );
 };

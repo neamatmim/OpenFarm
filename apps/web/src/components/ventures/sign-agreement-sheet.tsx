@@ -8,13 +8,16 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FileText } from "lucide-react";
 import { useState } from "react";
 
+import { FormDraftNotice } from "@/components/form-draft-notice";
 import type { NomineeDraft } from "@/components/investors/nominee-draft";
 import {
   draftsOf,
   draftsProblem,
+  EMPTY_DRAFT,
   nomineesOf,
 } from "@/components/investors/nominee-draft";
 import { NomineesForm } from "@/components/investors/nominees-form";
+import { isRelation } from "@/components/investors/relations";
 import { SegmentedControl } from "@/components/page";
 import type { StillMissing } from "@/components/page-kit";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
@@ -23,10 +26,12 @@ import { TO_THE_KEEPERS } from "@/components/templates/data-keepers";
 import type { WordingSaid } from "@/components/ventures/paper-dialog";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
+import { matchesFormFields } from "@/lib/form-draft";
 import { useFreshFor } from "@/lib/fresh-for";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
+import { draftKeyFor, useFormDraft } from "@/lib/use-form-draft";
 import { orpc } from "@/utils/orpc";
 
 interface Terms {
@@ -103,6 +108,37 @@ const NOTHING_SIGNED: Terms = {
   stampedOn: "",
   stampSerial: "",
   signedOn: "",
+};
+
+const EMPTY_AGREEMENT_DRAFT = {
+  terms: NOTHING_SIGNED,
+  nominees: [] as NomineeDraft[],
+};
+const isNomineeDraft = (value: unknown): value is NomineeDraft =>
+  matchesFormFields(value, EMPTY_DRAFT) &&
+  (value.relation === "" ||
+    value.relation === "other" ||
+    isRelation(value.relation)) &&
+  (value.receiverRelation === "" ||
+    value.receiverRelation === "other" ||
+    isRelation(value.receiverRelation));
+const isAgreementDraft = (
+  value: unknown
+): value is typeof EMPTY_AGREEMENT_DRAFT => {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !("terms" in value) ||
+    !("nominees" in value)
+  ) {
+    return false;
+  }
+  return (
+    matchesFormFields(value.terms, NOTHING_SIGNED) &&
+    ["paper", "e_challan"].includes(value.terms.stampKind) &&
+    Array.isArray(value.nominees) &&
+    value.nominees.every(isNomineeDraft)
+  );
 };
 
 /** The day the paper says it was signed: what was typed, or — nothing typed — today, the day it is recorded. */
@@ -182,6 +218,7 @@ const stillMissing = (
     left,
     nominees,
     today,
+    investorAvailable,
   }: {
     units: number;
     /** The split as the box holds it: empty is no split, though it reads as nothing. */
@@ -190,10 +227,11 @@ const stillMissing = (
     left: number;
     nominees: NomineesProblem | null;
     today: string;
+    investorAvailable: boolean;
   },
   { t, language }: Pick<ReturnType<typeof useLanguage>, "t" | "language">
 ): StillMissing | null => {
-  if (terms.investorId === "") {
+  if (terms.investorId === "" || !investorAvailable) {
     return { said: t("ventures.missing.investor"), at: "agreement-investor" };
   }
   if (!(units > 0)) {
@@ -709,6 +747,23 @@ const useSaving = (paper: Photo | null, done: () => void) => {
  * Arbitrator both sides name, and the stamped instrument — its value, day and serial, with a photo of the
  * paper itself, because the paper is what a court would ask for.
  */
+const useAgreementDraft = (ventureId: string | undefined) => {
+  const me = useQuery(orpc.people.me.queryOptions());
+  const draft = useFormDraft(
+    ventureId ? draftKeyFor(me.data, `agreement:${ventureId}`) : null,
+    EMPTY_AGREEMENT_DRAFT,
+    isAgreementDraft
+  );
+  return draft;
+};
+
+const investorsPercentOf = (
+  farm: Awaited<ReturnType<typeof orpc.farm.current.call>> | undefined
+) =>
+  farm && "ventureInvestorsPercent" in farm
+    ? farm.ventureInvestorsPercent
+    : undefined;
+
 export const SignAgreementSheet = ({
   venture,
   open,
@@ -724,19 +779,17 @@ export const SignAgreementSheet = ({
   const farm = useQuery(orpc.farm.current.queryOptions());
   // The farm answers with less than its Parameters to somebody they are not for, so the figure is read
   // only where it is actually there rather than assumed onto every shape of the answer.
-  const farmsSetting =
-    farm.data && "ventureInvestorsPercent" in farm.data
-      ? farm.data.ventureInvestorsPercent
-      : undefined;
-  const [terms, setTerms] = useState<Terms>(NOTHING_SIGNED);
+  const farmsSetting = investorsPercentOf(farm.data);
+  const draft = useAgreementDraft(venture?.id);
+  const { terms } = draft.value;
+  const setTerms = (next: Terms) =>
+    draft.setValue({ ...draft.value, terms: next });
   const [paper, setPaper] = useState<Photo | null>(null);
+  useFreshFor(venture?.id, () => setPaper(null));
   // The Nominees it names: the chosen Investor's list in force, which the Owner may change for this signing.
-  const [nomineeDrafts, setNomineeDrafts] = useState<NomineeDraft[]>([]);
-  useFreshFor(venture?.id, () => {
-    setTerms(NOTHING_SIGNED);
-    setPaper(null);
-    setNomineeDrafts([]);
-  });
+  const nomineeDrafts = draft.value.nominees;
+  const setNomineeDrafts = (next: NomineeDraft[]) =>
+    draft.setValue({ ...draft.value, nominees: next });
   const today = farmDayOf(new Date());
   const { signable, left, nobodyLeft, inAppOn, venturesSplit } =
     useWhoMaySign(venture);
@@ -752,7 +805,7 @@ export const SignAgreementSheet = ({
     terms.answersNone
   );
   const saving = useSaving(paper, () => {
-    setTerms(NOTHING_SIGNED);
+    draft.clear();
     setPaper(null);
     onOpenChange(false);
   });
@@ -780,7 +833,15 @@ export const SignAgreementSheet = ({
   // answer to both, so a button can never stand pressable with nothing to say why it does nothing.
   const missing = stillMissing(
     asOffered,
-    { units, split, percent, left, nominees: nomineesWrong, today },
+    {
+      units,
+      split,
+      percent,
+      left,
+      nominees: nomineesWrong,
+      today,
+      investorAvailable: signable.some((one) => one.id === terms.investorId),
+    },
     { t, language }
   );
   const ready = venture !== null && missing === null;
@@ -810,12 +871,24 @@ export const SignAgreementSheet = ({
       }}
       open={open}
       pending={saving.pending}
+      hasUnsavedChanges={
+        paper !== null ||
+        JSON.stringify(draft.value) !== JSON.stringify(EMPTY_AGREEMENT_DRAFT)
+      }
       missing={missing}
       ready={ready}
       submitLabel={inApp ? t("agreeInApp.offer") : t("ventures.sign")}
       title={t("ventures.sign")}
       wide
     >
+      <FormDraftNotice
+        restored={draft.restored}
+        failed={draft.failed}
+        onDiscard={() => {
+          draft.clear();
+          setPaper(null);
+        }}
+      />
       <FormField
         hint={
           nobodyLeft
@@ -831,12 +904,14 @@ export const SignAgreementSheet = ({
             const chosen = signable.find(
               (one) => one.id === event.target.value
             );
-            setTerms({
-              ...terms,
-              investorId: event.target.value,
-              answersNone: false,
+            draft.setValue({
+              terms: {
+                ...terms,
+                investorId: event.target.value,
+                answersNone: false,
+              },
+              nominees: draftsOf(chosen?.nomination?.nominees ?? []),
             });
-            setNomineeDrafts(draftsOf(chosen?.nomination?.nominees ?? []));
           }}
           value={terms.investorId}
         >

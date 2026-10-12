@@ -28,12 +28,11 @@ export const MonthlyPayments = ({
               hint: `${t("payments.left")}: ${asMoney(allocation.cattleRequiredMoney - allocation.cattlePaidMoney)}`,
             },
             {
-              label: t("payments.monthly"),
+              label: t("payments.monthlyTotal"),
               value: asMoney(allocation.monthlyPaidMoney),
-            },
-            {
-              label: t("payments.ahead"),
-              value: asMoney(allocation.advanceMoney),
+              hint: t("payments.includesAdvance", {
+                amount: asMoney(allocation.advanceMoney),
+              }),
             },
             {
               label: t("payments.balance"),

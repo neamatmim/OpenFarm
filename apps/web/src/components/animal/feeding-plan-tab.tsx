@@ -2,7 +2,6 @@ import { farmDayOf, feedUnitWord, startOfFarmDay } from "@OpenFarm/domain";
 import type { FeedingPlan } from "@OpenFarm/domain/feeding-plan";
 import {
   FEED_PLAN_SCENARIOS,
-  feedingPlanProblems,
   forecastFeedingPlan,
 } from "@OpenFarm/domain/feeding-plan";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
@@ -41,6 +40,7 @@ import {
   SummaryFigures,
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { feedingPlanIssue } from "@/lib/feeding-plan-validation";
 import { useMoney } from "@/lib/money";
 import { saidMonth } from "@/lib/months";
 import { namesIn } from "@/lib/names-in";
@@ -63,20 +63,6 @@ const nineMonthsAfter = (day: string): string => {
   at.setUTCDate(Math.min(wantedDay, end.getUTCDate()));
   return at.toISOString().slice(0, 10);
 };
-
-const validPlanNumbers = (
-  fields: [string, number, number, boolean][]
-): boolean =>
-  fields.every(([input, min, max, integer]) => {
-    const value = Number(input);
-    return (
-      input !== "" &&
-      Number.isFinite(value) &&
-      value >= min &&
-      value <= max &&
-      (!integer || Number.isInteger(value))
-    );
-  });
 
 const eligiblePlanStages = (detail: Detail) =>
   detail.options
@@ -135,26 +121,32 @@ const PlanEditor = ({
     arrival: detail.options.find((one) => one.rationId === arrivalId) ?? null,
     stages: detail.options.filter((one) => stageIds.includes(one.rationId)),
   };
-  const validDay =
-    /^\d{4}-\d{2}-\d{2}$/u.test(startDay) &&
-    /^\d{4}-\d{2}-\d{2}$/u.test(saleDay);
-  const numericFieldsValid = validPlanNumbers([
-    [startWeightKg, 0.1, 2000, false],
-    [targetWeightKg, 0.1, 2000, false],
-    [adaptationDays, 0, 60, true],
-    [transitionDays, 0, 30, true],
-    [reviewDays, 7, 90, true],
-    [reservePercent, 0, 50, false],
-  ]);
-  const problems = validDay ? feedingPlanProblems(snapshot) : ["duration"];
-  const preview =
-    validDay && numericFieldsValid && problems.length === 0
-      ? forecastFeedingPlan(snapshot, "fast")
-      : null;
-  const ready =
-    preview !== null &&
-    preview.stopped === null &&
-    startDay <= farmDayOf(new Date());
+  const [stagesChanged, setStagesChanged] = useState(false);
+  const problem = feedingPlanIssue(
+    snapshot,
+    {
+      startWeightKg,
+      targetWeightKg,
+      adaptationDays,
+      transitionDays,
+      reviewDays,
+      reservePercent,
+    },
+    farmDayOf(new Date())
+  );
+  const preview = problem ? null : forecastFeedingPlan(snapshot, "fast");
+  const stopped = preview?.stopped;
+  let missing = problem ? { at: problem.at, said: t(problem.message) } : null;
+  if (stopped) {
+    missing = {
+      at: "plan-stages",
+      said: t("feedPlan.gap", {
+        kg: formatNumber(stopped.weightKg, language),
+        day: formatDate(startOfFarmDay(stopped.day), language, "date"),
+      }),
+    };
+  }
+  const ready = preview !== null && missing === null;
   const save = useMutation(orpc.feedingPlans.save.mutationOptions());
   return (
     <FormDialog
@@ -168,6 +160,8 @@ const PlanEditor = ({
       description={t("feedPlan.approvalHint")}
       submitLabel={t("feedPlan.save")}
       ready={ready}
+      missing={missing}
+      hasUnsavedChanges={stagesChanged}
       pending={save.isPending}
       onSubmit={async () => {
         await save.mutateAsync({
@@ -207,7 +201,7 @@ const PlanEditor = ({
           <Input
             id="plan-weight"
             type="number"
-            min="1"
+            min="0.1"
             max="2000"
             step="0.1"
             value={startWeightKg}
@@ -237,7 +231,7 @@ const PlanEditor = ({
           <Input
             id="plan-target"
             type="number"
-            min="1"
+            min="0.1"
             max="2000"
             step="0.1"
             value={targetWeightKg}
@@ -278,7 +272,7 @@ const PlanEditor = ({
             </NativeSelect>
           </Field>
         ) : null}
-        <FieldSet>
+        <FieldSet id="plan-stages" tabIndex={-1}>
           <FieldLegend>{t("feedPlan.stages")}</FieldLegend>
           <FieldDescription>{t("feedPlan.stagesHint")}</FieldDescription>
           <FieldGroup>
@@ -287,13 +281,14 @@ const PlanEditor = ({
                 <Checkbox
                   id={`plan-stage-${one.rationId}`}
                   checked={stageIds.includes(one.rationId)}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked) => {
+                    setStagesChanged(true);
                     setStageIds((ids) =>
                       checked
                         ? [...ids, one.rationId]
                         : ids.filter((id) => id !== one.rationId)
-                    )
-                  }
+                    );
+                  }}
                 />
                 <FieldLabel htmlFor={`plan-stage-${one.rationId}`}>
                   {namesIn(one, language).shown} ·{" "}
@@ -356,7 +351,7 @@ const PlanEditor = ({
           ? t("feedPlan.preview", {
               kg: formatNumber(preview.endWeightKg ?? 0, language),
             })
-          : t("feedPlan.checkStages")}
+          : (missing?.said ?? t("feedPlan.checkStages"))}
       </output>
       <Link className="text-primary text-sm underline" to="/feed/rations">
         {t("feedPlan.manageRations")}

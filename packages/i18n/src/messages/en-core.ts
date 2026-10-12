@@ -4,6 +4,57 @@
  * every screen may need, and the only ones a Shed Phone fetches before its first screen is drawn.
  */
 export const enCore = {
+  "form.discardDraft": "Discard draft",
+  "form.discardDraftWhy":
+    "The draft text on this device will be removed and this form will be cleared.",
+
+  "form.leaveTitle": "Leave this form?",
+  "form.leaveWhy":
+    "Your entries have not been saved to the farm. Leaving may lose unfinished work and selected photos.",
+  "form.leave": "Leave form",
+  "form.draftRestored":
+    "Draft text restored from this device. Check the details and select photos again before saving.",
+  "form.draftFailed":
+    "This device could not keep the draft. Keep this page open until you save.",
+  "work.finishKept":
+    "Completion saved on this phone — waiting to send to the farm.",
+  "work.waitingForFarm": "Work waiting to reach the farm",
+  "work.waitingForFarmHint":
+    "This phone has unsent work entries. The farm confirms who holds the job and checks completion after receiving them.",
+  "work.unassigned": "No pens assigned",
+  "work.unassignedHint":
+    "Ask your manager to assign your pens so their work can appear here.",
+  "mismatch.noneHint":
+    "Only recorded discrepancies appear here. An empty list does not confirm that every milking has been recorded and compared.",
+  "dispatch.missing.liters": "Enter a milk quantity greater than zero.",
+  "dispatch.missing.price": "Enter a price per liter greater than zero.",
+  "dispatch.missing.buyer": "Enter the buyer’s name.",
+  "dispatch.missing.paid":
+    "Enter the amount paid now, from zero up to the total milk price.",
+  "feedPlan.invalid.startWeight":
+    "Enter a starting weight from 0.1 to 2,000 kg.",
+  "feedPlan.invalid.targetWeight":
+    "Enter a target weight from 0.1 to 2,000 kg.",
+  "feedPlan.invalid.adaptation": "Enter 0 to 60 whole days for adaptation.",
+  "feedPlan.invalid.transition":
+    "Enter 0 to 30 whole days for each ration change.",
+  "feedPlan.invalid.review": "Enter 7 to 90 whole days between reviews.",
+  "feedPlan.invalid.reserve": "Enter a feed reserve from 0% to 50%.",
+  "feedPlan.invalid.startDay":
+    "Choose a valid starting date, today or earlier.",
+  "feedPlan.invalid.duration":
+    "Choose a sale date 1 to 540 days after the starting date.",
+  "feedPlan.invalid.arrival":
+    "Choose an arrival ration for the adaptation period, or set adaptation to zero days.",
+  "feedPlan.invalid.stages":
+    "Select at least one growth ration with a weight range and expected gain.",
+  "feedPlan.invalid.overlap":
+    "Selected rations overlap in weight. Choose one ration for each weight range.",
+  "feedPlan.invalid.gap":
+    "There is a gap between selected weight ranges. Add a ration covering the missing range.",
+  "feedPlan.invalid.stageIncomplete":
+    "A selected ration needs feed quantities and an expected gain. Update it in rations first.",
+
   "suppliers.show": "Show suppliers",
   "suppliers.all": "All suppliers",
   "suppliers.title": "Suppliers",
@@ -2450,6 +2501,22 @@ export const enCore = {
     "{headcount, plural, one {# animal} other {# animals}} × {perAnimal} {unit} ÷ {sessions} a day",
   "feed.noItems": "Add a feed item first",
   "stock.recordArrival": "Record feed in",
+  "stock.arrivalSourceHint": "Is this delivery for an existing purchase order?",
+  "stock.againstOrder": "Against an existing order",
+  "stock.againstOrderHint":
+    "Choose the order to update its delivered quantity, cost and remaining balance.",
+  "stock.directArrival": "Direct purchase / own harvest",
+  "stock.directArrivalHint":
+    "This records feed in without reducing any purchase order's remaining quantity. If an order already exists, receive against that order instead.",
+  "stock.chooseOrder": "Choose the purchase order",
+  "stock.chooseOrderHint":
+    "Only placed orders with feed still to arrive are offered. Check the supplier, reference and remaining quantity.",
+  "stock.searchOrders": "Search feed, supplier or order reference…",
+  "stock.noReceivableOrders":
+    "No placed orders have feed still to arrive for this selection. Open purchasing to record the order, or choose direct purchase / own harvest.",
+  "stock.useOrder": "Enter delivery against this order",
+  "stock.changeArrivalSource": "Choose a different arrival source",
+  "stock.linkedOrder": "This delivery updates order {reference} · {supplier}",
   "stock.sheetDescription":
     "Record purchased feed or a harvest. Keep payments and any unpaid supplier balance separately.",
   "stock.status.low": "Running low",
@@ -3445,13 +3512,13 @@ export const enCore = {
   "work.count": "{count} due",
   "work.lateCount": "{count} late",
   "work.noneHint":
-    "When the next job falls due it appears here. Nothing is waiting on you.",
+    "New work appears when it becomes due. Check the selected pen; ask your manager if expected work is missing.",
   "work.animalsDone": "Animals done",
   "work.stepDone": "Done",
   "work.correcting": "Correcting an entry",
   "work.blockedWithdrawal": "Blocked: milk withdrawal",
   "work.claimHint":
-    "Take this job so the farm knows it is yours. Nobody else can record it while you have it.",
+    "Take this job on this phone. Once it receives the claim, the farm confirms who holds it; another phone may have claimed it while you were offline.",
   "work.tallyDone": "{count} done",
   "work.tallySkipped": "{count} skipped",
   "work.tallyLeft": "{count} left",
@@ -3481,7 +3548,7 @@ export const enCore = {
   "people.pensSave": "Save pens",
   "people.pensSaved": "Pens saved",
   "people.pensNone": "No pens yet — they will see no work until they have some",
-  "work.none": "Nothing due right now",
+  "work.none": "No work listed for this view",
   "work.due": "Due {time}",
   "work.claim": "Start",
   "work.theirsToStart": "Pinned to {name} — theirs to start",
@@ -3527,7 +3594,7 @@ export const enCore = {
   "milk.matched": "The tank matches the cows",
   "mismatch.hint":
     "Milkings where the bulk tank and the cows' figures are further apart than the farm allows. Correct the figure on the work and it leaves this list.",
-  "mismatch.none": "Every tank reading matches its cows",
+  "mismatch.none": "No recorded discrepancies awaiting review",
   "mismatch.tank": "Bulk tank reading",
   "mismatch.cows": "The cows, added up",
   "mismatch.col.difference": "Difference",
@@ -3708,7 +3775,7 @@ export const enCore = {
   "review.takenIn": "Taken into the records",
   "review.oldestOf":
     "The oldest {shown} of {waiting} waiting. Close these, and the next come up.",
-  "outbox.allSent": "All sent",
+  "outbox.allSent": "Nothing waiting to send",
   "outbox.herdFresh": "Herd refreshed {ago}",
   "nav.group.today": "Today",
   "nav.group.herd": "Herd",
@@ -3739,12 +3806,22 @@ export const enCore = {
   "outbox.heldTitle": "Sent back",
   "outbox.heldNone": "Nothing sent back",
   "outbox.heldHint":
-    "What the farm could not take from this phone. Open an entry to check its saved values, correct it, and resend it. Tap Done with this if it has already been dealt with.",
-  "outbox.reviewedTitle": "Waiting for someone to look",
+    "What the farm could not take from this phone. Check its saved values, correct them, and resend. Remove an entry from the phone's list after dealing with it another way.",
+  "outbox.reviewedTitle": "Awaiting review",
   "outbox.reviewedNone": "Nothing waiting",
   "outbox.reviewedHint":
-    "The farm took these, and someone will look at them. Tap Done with this once you know about it.",
-  "outbox.discard": "Done with this",
+    "The farm accepted these; a manager's review is still pending. Removing them from this phone's list leaves the farm's review in place.",
+  "outbox.discard": "Remove from this phone's list",
+  "outbox.discardTitle": "Remove this rejected entry from the phone?",
+  "outbox.discardHint":
+    "Only remove it after dealing with it another way. It will no longer be available here to edit and resend. This does not complete the work or change the farm's records.",
+  "outbox.keepEntry": "Keep the entry",
+  "outbox.discardFailed":
+    "The entry could not be removed. Check the phone's storage and try again.",
+  "outbox.awaitingReview": "{count} awaiting review",
+  "outbox.rejectedShort": "Returned: {count}",
+  "outbox.reviewedShort": "Review: {count}",
+  "outbox.heldCounts": "Returned: {rejected} · Review: {reviewed}",
   "outbox.recover": "Correct and resend",
   "outbox.resend": "Save and resend",
   "outbox.recoveryHint":
