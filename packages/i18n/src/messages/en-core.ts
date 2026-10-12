@@ -3739,12 +3739,36 @@ export const enCore = {
   "outbox.heldTitle": "Sent back",
   "outbox.heldNone": "Nothing sent back",
   "outbox.heldHint":
-    "What the farm could not take from this phone. Check what was entered, put it in again if it still needs doing, then tap Done with this.",
+    "What the farm could not take from this phone. Open an entry to check its saved values, correct it, and resend it. Tap Done with this if it has already been dealt with.",
   "outbox.reviewedTitle": "Waiting for someone to look",
   "outbox.reviewedNone": "Nothing waiting",
   "outbox.reviewedHint":
     "The farm took these, and someone will look at them. Tap Done with this once you know about it.",
   "outbox.discard": "Done with this",
+  "outbox.recover": "Correct and resend",
+  "outbox.resend": "Save and resend",
+  "outbox.recoveryHint":
+    "Check the saved values. The original recording time, {when}, and author will stay with this entry. With no signal, it will wait safely on this phone.",
+  "outbox.recoveryAlready":
+    "This entry was already resubmitted. The previously saved version stays in use.",
+  "outbox.recoveryQueued":
+    "Saved on this phone; it will send when there is signal",
+  "outbox.recoveryAuthor":
+    "The person who recorded this must sign in to correct and resend it.",
+  "outbox.recoveryGone":
+    "This entry has already been dealt with. Close this form and check the list.",
+  "outbox.recoverySending":
+    "A related entry is being sent. Wait for syncing to finish, then try again.",
+  "outbox.recoveryPhotos":
+    "An original photo is missing. Add it again before resending this entry.",
+  "outbox.recoveryOldPen": "Previous pen unavailable — choose a pen",
+  "outbox.recoveryCurrent": "Current farm record",
+  "outbox.recoveryCorrection":
+    "Your proposed correction is shown below. Check it against the current work before saving; the farm will check whether you can still correct it.",
+  "outbox.recoveryContext":
+    "The original work or one of its items is unavailable. Keep this entry and ask the manager to check it.",
+  "outbox.recoveryClaim": "Resend your request to start this work?",
+  "outbox.recoveryFinish": "Resend your request to finish this work?",
   "outbox.entered": "What was entered",
   "outbox.ticked": "Ticked",
   "outbox.notTicked": "Not ticked",
