@@ -9,7 +9,6 @@ import type { LucideIcon } from "lucide-react";
 import {
   AlarmClock,
   ChevronRight,
-  CircleCheck,
   ClipboardList,
   Clock,
   Hand,
@@ -25,6 +24,7 @@ import type { Tone } from "@/components/page";
 import { EmptyState, Page, PageHeader, StatusBadge } from "@/components/page";
 import { RaiseWork } from "@/components/raise-work";
 import { AboutHerLines } from "@/components/work/work-board";
+import { WorkDeliveryNotice } from "@/components/work/work-delivery-notice";
 import { useLanguage } from "@/i18n/language-provider";
 import { refreshTheScreen } from "@/lib/refresh";
 import { placeOfWork } from "@/lib/work-place";
@@ -339,6 +339,17 @@ const useRaiseTheDay = (
 
 /** What is due now, for the Pens this person works: the notices first, as one line, then the work, a card each, and
  *  a row of Pens to narrow it to one. */
+const noPenAssignment = (
+  person: Awaited<ReturnType<typeof orpc.people.me.call>> | undefined
+): boolean => {
+  const scope = person?.scopes.staff;
+  return (
+    person?.roles.length === 1 &&
+    scope?.kind === "pens" &&
+    scope.penIds.length === 0
+  );
+};
+
 const TodayPage = () => {
   const { t, language } = useLanguage();
   const { pen } = Route.useSearch();
@@ -386,6 +397,7 @@ const TodayPage = () => {
         title={t("work.title")}
       />
       <AlertList />
+      <WorkDeliveryNotice />
       {choosing ? (
         <PenChips
           chosen={pen}
@@ -415,9 +427,11 @@ const TodayPage = () => {
       ) : null}
       {work.data && items.length === 0 ? (
         <EmptyState
-          description={t("work.noneHint")}
-          icon={CircleCheck}
-          title={t("work.none")}
+          description={t(
+            noPenAssignment(me.data) ? "work.unassignedHint" : "work.noneHint"
+          )}
+          icon={ClipboardList}
+          title={t(noPenAssignment(me.data) ? "work.unassigned" : "work.none")}
         />
       ) : null}
     </Page>

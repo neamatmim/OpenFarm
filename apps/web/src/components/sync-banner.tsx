@@ -1,5 +1,5 @@
 import { farmDayOf } from "@OpenFarm/domain";
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
   Dialog,
@@ -15,6 +15,7 @@ import {
   CloudCheck,
   CloudOff,
   CloudUpload,
+  Eye,
   Info,
   RefreshCw,
 } from "lucide-react";
@@ -50,6 +51,47 @@ const readableDate = (kept: unknown): Date | null => {
   }
   const date = new Date(kept);
   return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const SyncIcon = ({ held }: { held: OutboxState }) => {
+  const className = "size-4 shrink-0";
+  if (held.paused === "signed_out") {
+    return <CloudOff aria-hidden className={className} />;
+  }
+  if (held.pending > 0 || held.rejected > 0) {
+    return <CloudUpload aria-hidden className={className} />;
+  }
+  return held.reviewed > 0 ? (
+    <Eye aria-hidden className={className} />
+  ) : (
+    <CloudCheck aria-hidden className={className} />
+  );
+};
+
+/** Keep both counts readable in the phone's narrow header; the dialog carries their full wording and dates. */
+const HeldStatus = ({ held, label }: { held: OutboxState; label: string }) => {
+  const { t, language } = useLanguage();
+  return (
+    <>
+      <span className="hidden truncate md:block">{label}</span>
+      <span className="flex flex-col text-xs md:hidden">
+        {held.rejected > 0 ? (
+          <span>
+            {t("outbox.rejectedShort", {
+              count: formatNumber(held.rejected, language),
+            })}
+          </span>
+        ) : null}
+        {held.reviewed > 0 ? (
+          <span>
+            {t("outbox.reviewedShort", {
+              count: formatNumber(held.reviewed, language),
+            })}
+          </span>
+        ) : null}
+      </span>
+    </>
+  );
 };
 
 /**
@@ -169,21 +211,37 @@ export const SyncBanner = () => {
     return null;
   }
   const waiting = held.paused === "signed_out";
-  const sentBack = held.rejected + held.reviewed;
+  const hasHeld = held.rejected > 0 || held.reviewed > 0;
+  const rejected = t("outbox.rejected", {
+    count: formatNumber(held.rejected, language),
+  });
+  const reviewed = t("outbox.awaitingReview", {
+    count: formatNumber(held.reviewed, language),
+  });
   // A Shed Phone signs its person back in with a PIN; a personal phone signs in. Sending a
   // milker to the wrong one of those, with a morning's work in the queue, is the kind of
   // dead end that ends with the work being re-typed on paper.
   const signBackIn = getDeviceToken() ? "/shed-phone" : "/sign-in";
   // Being out of signal is normal on a farm, so the calm state is calm: only something the person must act on —
   // signed out, or work the farm sent back — is drawn as needing attention.
-  const hasSentBack = sentBack > 0;
-  const attention = waiting || hasSentBack;
+  const attention = waiting || held.rejected > 0;
+  const linksToHeld =
+    hasHeld && !waiting && (held.rejected > 0 || held.pending === 0);
   const label = (() => {
     if (waiting) {
       return t("outbox.signedOut");
     }
-    if (sentBack > 0) {
-      return t("outbox.rejected", { count: sentBack });
+    if (held.rejected > 0 && held.reviewed > 0) {
+      return t("outbox.heldCounts", {
+        rejected: formatNumber(held.rejected, language),
+        reviewed: formatNumber(held.reviewed, language),
+      });
+    }
+    if (held.rejected > 0) {
+      return rejected;
+    }
+    if (held.pending === 0 && held.reviewed > 0) {
+      return reviewed;
     }
     if (held.pending === 0) {
       return t("outbox.allSent");
@@ -193,10 +251,12 @@ export const SyncBanner = () => {
     const since = readableDate(held.oldestWaitingAt);
     return since && held.waitedLong
       ? t("outbox.pendingSince", {
-          count: held.pending,
+          count: formatNumber(held.pending, language),
           at: formatDate(since, language, "dateTime"),
         })
-      : t("outbox.pending", { count: held.pending });
+      : t("outbox.pending", {
+          count: formatNumber(held.pending, language),
+        });
   })();
   const syncedAt = readableDate(held.lastSyncAt);
   // Today's sending by its time alone: the whole date was cut on a phone's bar before it reached the time.
@@ -213,13 +273,6 @@ export const SyncBanner = () => {
         ago: formatDate(herdKeptAt, language, "dateTime"),
       })
     : t("outbox.herdNever");
-  let Icon = CloudCheck;
-  if (waiting) {
-    Icon = CloudOff;
-  } else if (held.pending > 0 || sentBack > 0) {
-    Icon = CloudUpload;
-  }
-
   return (
     <output
       aria-live="polite"
@@ -231,21 +284,28 @@ export const SyncBanner = () => {
       )}
       title={[sent, fresh].filter(Boolean).join(" · ")}
     >
-      <Icon aria-hidden className="size-4 shrink-0" />
+      <SyncIcon held={held} />
       {/* On a phone, when it was last sent goes under what is waiting: the bar is the pill's there, and a title is
           read only by a pointer that can hover. */}
       <span className="flex min-w-0 flex-col lg:flex-row lg:items-center lg:gap-2">
-        {hasSentBack && !waiting ? (
+        {linksToHeld ? (
           <Link
-            className="truncate font-medium underline-offset-2 hover:underline"
+            className="min-w-0 font-medium underline-offset-2 hover:underline"
             to="/outbox"
           >
-            {label}
+            <HeldStatus held={held} label={label} />
           </Link>
         ) : (
           <span className="truncate font-medium">{label}</span>
         )}
-        <span className="truncate text-xs opacity-80">{sent}</span>
+        <span
+          className={cn(
+            "truncate text-xs opacity-80",
+            linksToHeld && "hidden md:inline"
+          )}
+        >
+          {sent}
+        </span>
       </span>
       <Dialog>
         <DialogTrigger
@@ -264,7 +324,18 @@ export const SyncBanner = () => {
           <DialogHeader>
             <DialogTitle>{t("outbox.details")}</DialogTitle>
           </DialogHeader>
-          <p>{label}</p>
+          {waiting ? <p>{t("outbox.signedOut")}</p> : null}
+          <p>
+            {t("outbox.pending", {
+              count: formatNumber(held.pending, language),
+            })}
+          </p>
+          <Link className="underline underline-offset-2" to="/outbox">
+            {rejected}
+          </Link>
+          <Link className="underline underline-offset-2" to="/outbox">
+            {reviewed}
+          </Link>
           <p className="text-muted-foreground">{sent}</p>
           <p className="text-muted-foreground">{fresh}</p>
         </DialogContent>

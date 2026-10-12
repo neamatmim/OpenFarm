@@ -2640,8 +2640,9 @@ export const enDesk = {
   "payments.hint":
     "Confirmed bank receipts cover your Cattle Part first, then Monthly Sums oldest first. The original schedule stays the same.",
   "payments.cattle": "Cattle Part",
-  "payments.monthly": "Monthly Sums",
-  "payments.ahead": "Paid toward future sums",
+  "payments.monthly": "Monthly sums",
+  "payments.monthlyTotal": "Total paid towards monthly sums",
+  "payments.includesAdvance": "Includes {amount} paid ahead for future months",
   "payments.balance": "Agreement balance remaining",
   "payments.paid": "Paid",
   "payments.left": "Remaining",

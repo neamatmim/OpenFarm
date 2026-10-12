@@ -4,6 +4,48 @@ import type { enCore } from "./en-core";
  *  The type forces every English key to exist here; the check script also refuses empty strings and stray keys at
  *  build time. */
 export const bnCore: Record<keyof typeof enCore, string> = {
+  "form.discardDraft": "খসড়া মুছুন",
+  "form.discardDraftWhy": "এই যন্ত্রে রাখা খসড়া তথ্য মুছে ফর্ম খালি করা হবে।",
+
+  "form.leaveTitle": "এই ফর্ম ছেড়ে যাবেন?",
+  "form.leaveWhy":
+    "আপনার তথ্য এখনো খামারের হিসাবে রাখা হয়নি। চলে গেলে অসম্পূর্ণ তথ্য ও বাছা ছবি হারাতে পারে।",
+  "form.leave": "ফর্ম ছেড়ে যান",
+  "form.draftRestored":
+    "এই যন্ত্রে রাখা খসড়া তথ্য ফিরিয়ে আনা হয়েছে। রাখার আগে তথ্য যাচাই করে ছবিগুলো আবার বাছুন।",
+  "form.draftFailed": "এই যন্ত্রে খসড়া রাখা যায়নি। তথ্য রাখা পর্যন্ত এই পাতা খোলা রাখুন।",
+  "work.finishKept": "কাজ শেষ করার তথ্য এই ফোনে রাখা হয়েছে — খামারে পাঠানোর অপেক্ষায়।",
+  "work.waitingForFarm": "কাজের তথ্য খামারে পৌঁছানোর অপেক্ষায়",
+  "work.waitingForFarmHint":
+    "এই ফোনে কাজের কিছু তথ্য এখনো পাঠানো হয়নি। পাওয়ার পর খামার নিশ্চিত করবে কাজটি কার হাতে এবং শেষ করার তথ্য ঠিক আছে কি না।",
+  "work.unassigned": "আপনাকে কোনো পেন দেওয়া হয়নি",
+  "work.unassignedHint":
+    "ম্যানেজারকে আপনার পেনগুলো নির্ধারণ করতে বলুন। এরপর ওই পেনের কাজ এখানে দেখা যাবে।",
+  "mismatch.noneHint":
+    "এখানে শুধু নথিভুক্ত অমিল দেখায়। তালিকা খালি মানেই সব দোহনের তথ্য লেখা ও মেলানো হয়েছে, এমন নয়।",
+  "dispatch.missing.liters": "দুধের পরিমাণ শূন্যের বেশি লিখুন।",
+  "dispatch.missing.price": "প্রতি লিটারের দাম শূন্যের বেশি লিখুন।",
+  "dispatch.missing.buyer": "ক্রেতার নাম লিখুন।",
+  "dispatch.missing.paid": "এখন পাওয়া টাকা লিখুন — শূন্য থেকে দুধের মোট দাম পর্যন্ত।",
+  "feedPlan.invalid.startWeight": "শুরুর ওজন ০.১ থেকে ২,০০০ কেজির মধ্যে লিখুন।",
+  "feedPlan.invalid.targetWeight": "লক্ষ্য ওজন ০.১ থেকে ২,০০০ কেজির মধ্যে লিখুন।",
+  "feedPlan.invalid.adaptation": "মানিয়ে নেওয়ার সময় ০ থেকে ৬০ পূর্ণ দিন লিখুন।",
+  "feedPlan.invalid.transition": "রেশন বদলানোর সময় ০ থেকে ৩০ পূর্ণ দিন লিখুন।",
+  "feedPlan.invalid.review": "পর্যালোচনার ব্যবধান ৭ থেকে ৯০ পূর্ণ দিন লিখুন।",
+  "feedPlan.invalid.reserve": "বাড়তি খাদ্য মজুত ০% থেকে ৫০% লিখুন।",
+  "feedPlan.invalid.startDay": "শুরুর সঠিক তারিখ বাছুন — আজ বা তার আগে।",
+  "feedPlan.invalid.duration": "শুরুর তারিখের ১ থেকে ৫৪০ দিন পরে বিক্রির তারিখ বাছুন।",
+  "feedPlan.invalid.arrival":
+    "মানিয়ে নেওয়ার সময়ের রেশন বাছুন, অথবা ওই সময় শূন্য দিন করুন।",
+  "feedPlan.invalid.stages":
+    "ওজনসীমা ও প্রত্যাশিত ওজন বৃদ্ধি দেওয়া অন্তত একটি রেশন বাছুন।",
+  "feedPlan.invalid.overlap":
+    "বাছা রেশনগুলোর ওজনসীমা মিলে গেছে। প্রতি ওজনসীমার জন্য একটি রেশন রাখুন।",
+  "feedPlan.invalid.gap":
+    "বাছা রেশনগুলোর ওজনসীমার মাঝে ফাঁক আছে। বাদ পড়া ওজনসীমার রেশন যোগ করুন।",
+  "feedPlan.invalid.stageIncomplete":
+    "বাছা একটি রেশনে খাদ্যের পরিমাণ বা প্রত্যাশিত ওজন বৃদ্ধি নেই। আগে রেশনের পাতায় সেটি পূরণ করুন।",
+
   "suppliers.show": "সরবরাহকারী দেখুন",
   "suppliers.all": "সব সরবরাহকারী",
   "suppliers.title": "সরবরাহকারী",
@@ -2264,6 +2306,22 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "feed.working": "{headcount} পশু × {perAnimal} {unit} ÷ দিনে {sessions} বার",
   "feed.noItems": "আগে খাদ্য উপাদান যোগ করুন",
   "stock.recordArrival": "খাবার আসা রেকর্ড করুন",
+  "stock.arrivalSourceHint": "এই সরবরাহ কি আগে করা কোনো অর্ডারের বিপরীতে এসেছে?",
+  "stock.againstOrder": "অর্ডারের বিপরীতে",
+  "stock.againstOrderHint":
+    "অর্ডার বাছলে তার বুঝে পাওয়া পরিমাণ, খরচ ও বাকি সরবরাহের হিসাব হালনাগাদ হবে।",
+  "stock.directArrival": "সরাসরি কেনা / নিজস্ব ফসল",
+  "stock.directArrivalHint":
+    "এতে গুদামে খাদ্য উঠবে, তবে কোনো অর্ডারের বাকি পরিমাণ কমবে না। আগে অর্ডার করা থাকলে সেই অর্ডারের বিপরীতে সরবরাহ নিন।",
+  "stock.chooseOrder": "ক্রয় অর্ডার বাছুন",
+  "stock.chooseOrderHint":
+    "অর্ডার করা হয়েছে ও সরবরাহ বাকি আছে এমন অর্ডারগুলো দেখানো হচ্ছে। সরবরাহকারী, রেফারেন্স ও বাকি পরিমাণ মিলিয়ে নিন।",
+  "stock.searchOrders": "খাদ্য, সরবরাহকারী বা অর্ডার রেফারেন্স দিয়ে খুঁজুন…",
+  "stock.noReceivableOrders":
+    "এই বাছাইয়ে সরবরাহ বাকি আছে এমন কোনো অর্ডার নেই। অর্ডারের তথ্য রাখতে খাদ্য কেনাকাটা খুলুন, অথবা সরাসরি কেনা / নিজস্ব ফসল বাছুন।",
+  "stock.useOrder": "এই অর্ডারে সরবরাহের তথ্য দিন",
+  "stock.changeArrivalSource": "আসার ধরন আবার বাছুন",
+  "stock.linkedOrder": "এই সরবরাহ অর্ডার {reference} · {supplier}-এ যুক্ত হবে",
   "stock.sheetDescription":
     "কেনা খাবার বা নিজের জমির ফসল গুদামে তুলুন। পরিশোধিত টাকা ও সরবরাহকারীর বকেয়া আলাদা করে রাখুন।",
   "stock.status.low": "কমে আসছে",
@@ -3205,13 +3263,13 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "work.count": "{count}টি কাজ",
   "work.lateCount": "{count}টি দেরিতে",
   "work.noneHint":
-    "পরের কাজের সময় হলে এখানে আসবে। এখন আপনার জন্য কিছু অপেক্ষা করছে না।",
+    "নতুন কাজের সময় হলে এখানে দেখা যাবে। বাছা পেনটি দেখুন; প্রত্যাশিত কাজ না থাকলে ম্যানেজারকে জানান।",
   "work.animalsDone": "যে পশুদের কাজ শেষ",
   "work.stepDone": "শেষ",
   "work.correcting": "আগের লেখা ঠিক করছেন",
   "work.blockedWithdrawal": "আটকানো: দুধের অপেক্ষমাণ সময়",
   "work.claimHint":
-    "কাজটি নিন, যাতে খামার জানে এটি আপনার। আপনি নিলে অন্য কেউ এটি লিখতে পারবে না।",
+    "এই ফোনে কাজটি নিন। দাবিটি পৌঁছালে খামার নিশ্চিত করবে কাজটি কার হাতে; আপনি অফলাইনে থাকলে অন্য ফোন থেকেও কাজটি নেওয়া হয়ে থাকতে পারে।",
   "work.tallyDone": "{count}টি সম্পন্ন",
   "work.tallySkipped": "{count}টি বাদ",
   "work.tallyLeft": "{count}টি বাকি",
@@ -3253,7 +3311,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "people.pensSave": "পেন সংরক্ষণ",
   "people.pensSaved": "পেন সংরক্ষণ হয়েছে",
   "people.pensNone": "এখনো কোনো পেন নেই — পেন না দেওয়া পর্যন্ত কোনো কাজ দেখবেন না",
-  "work.none": "এখন কিছু বাকি নেই",
+  "work.none": "এই তালিকায় কোনো কাজ নেই",
   "work.due": "{time} এ",
   "work.claim": "শুরু করুন",
   "work.theirsToStart": "{name}-এর কাজ — তিনিই শুরু করবেন",
@@ -3297,7 +3355,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "milk.matched": "ট্যাংক ও গাভীর হিসাব মিলেছে",
   "mismatch.hint":
     "যে দোহনে বাল্ক ট্যাংক আর গাভীদের হিসাবের পার্থক্য খামারের অনুমোদিত সীমার বেশি। কাজের পাতায় ভুল সংখ্যাটি ঠিক করলে এটি তালিকা থেকে সরে যাবে।",
-  "mismatch.none": "সব ট্যাংকের হিসাব গাভীদের সঙ্গে মিলেছে",
+  "mismatch.none": "যাচাইয়ের অপেক্ষায় কোনো নথিভুক্ত অমিল নেই",
   "mismatch.tank": "বাল্ক ট্যাংকের মাপ",
   "mismatch.cows": "গাভীদের মোট",
   "mismatch.col.difference": "পার্থক্য",
@@ -3452,7 +3510,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "review.takenIn": "রেকর্ডে নেওয়া হয়েছে",
   "review.oldestOf":
     "অপেক্ষায় থাকা {waiting}টির মধ্যে সবচেয়ে পুরনো {shown}টি। এগুলো নিষ্পত্তি করলে পরেরগুলো আসবে।",
-  "outbox.allSent": "সব পাঠানো হয়েছে",
+  "outbox.allSent": "পাঠানোর বাকি নেই",
   "outbox.herdFresh": "পশুর তালিকা হালনাগাদ {ago}",
   "nav.group.today": "আজ",
   "nav.group.herd": "পশুপাল",
@@ -3482,12 +3540,22 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "outbox.heldTitle": "ফেরত এসেছে",
   "outbox.heldNone": "কিছু ফেরত আসেনি",
   "outbox.heldHint":
-    "এই ফোন থেকে যা খামার নিতে পারেনি। লেখা খুলে সংরক্ষিত তথ্য দেখে ঠিক করুন ও আবার পাঠান। আগেই নিষ্পত্তি হয়ে থাকলে “এটি সম্পন্ন” চাপুন।",
-  "outbox.reviewedTitle": "কেউ দেখবেন",
+    "এই ফোন থেকে যা খামার নিতে পারেনি। সংরক্ষিত তথ্য দেখে ঠিক করুন ও আবার পাঠান। অন্যভাবে নিষ্পত্তি করে থাকলে ফোনের তালিকা থেকে সরান।",
+  "outbox.reviewedTitle": "যাচাইয়ের অপেক্ষায়",
   "outbox.reviewedNone": "অপেক্ষায় কিছু নেই",
   "outbox.reviewedHint":
-    "খামার এগুলো নিয়েছে, কেউ একজন দেখবেন। জেনে নেওয়ার পর “এটি সম্পন্ন” চাপুন।",
-  "outbox.discard": "এটি সম্পন্ন",
+    "খামার এগুলো গ্রহণ করেছে; ম্যানেজারের যাচাই বাকি। ফোনের তালিকা থেকে সরালেও খামারে যাচাইয়ের কাজ থাকবে।",
+  "outbox.discard": "ফোনের তালিকা থেকে সরান",
+  "outbox.discardTitle": "ফেরত আসা লেখাটি ফোনের তালিকা থেকে সরাবেন?",
+  "outbox.discardHint":
+    "অন্যভাবে নিষ্পত্তি করে থাকলেই সরান। সরানোর পর এখান থেকে লেখাটি ঠিক করে আবার পাঠানো যাবে না। এতে কাজ সম্পন্ন হবে না বা খামারের নথি বদলাবে না।",
+  "outbox.keepEntry": "লেখাটি রাখুন",
+  "outbox.discardFailed":
+    "লেখাটি সরানো যায়নি। ফোনের সংরক্ষণের ব্যবস্থা দেখে আবার চেষ্টা করুন।",
+  "outbox.awaitingReview": "{count}টি যাচাইয়ের অপেক্ষায়",
+  "outbox.rejectedShort": "ফেরত {count}টি",
+  "outbox.reviewedShort": "যাচাই বাকি {count}টি",
+  "outbox.heldCounts": "ফেরত {rejected}টি · যাচাই {reviewed}টি",
   "outbox.recover": "ঠিক করে আবার পাঠান",
   "outbox.resend": "সংরক্ষণ করে আবার পাঠান",
   "outbox.recoveryHint":

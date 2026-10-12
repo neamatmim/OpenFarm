@@ -61,6 +61,7 @@ export const ReceivableFields = ({
               id={`${idPrefix}-paid-now`}
               inputMode="numeric"
               min={0}
+              max={Number.isFinite(worthMoney) ? worthMoney : undefined}
               onChange={(event) => onType({ paidNow: event.target.value })}
               required
               type="number"

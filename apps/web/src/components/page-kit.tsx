@@ -33,7 +33,7 @@ import {
   TabsTrigger,
 } from "@OpenFarm/ui/components/tabs";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { Link } from "@tanstack/react-router";
+import { Link, useBlocker } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { Camera, ChevronDown, EllipsisVertical } from "lucide-react";
 import type {
@@ -709,6 +709,8 @@ interface FormPanelProps {
   /** False for a form whose typing is not worth keeping — a password asked again — which closes without asking
    *  whether to discard it. */
   keepsWhatIsTyped?: boolean;
+  /** Restored drafts and controls that do not dispatch a native change event. */
+  hasUnsavedChanges?: boolean;
   children: ReactNode;
 }
 
@@ -771,6 +773,31 @@ export const ConfirmDialog = ({
   );
 };
 
+/** Mounted only while work can be lost. Browser reloads use the browser's own confirmation. */
+export const UnsavedChangesGuard = () => {
+  const { t } = useLanguage();
+  const leaving = useBlocker({
+    shouldBlockFn: () => true,
+    enableBeforeUnload: true,
+    withResolver: true,
+  });
+  return (
+    <ConfirmDialog
+      open={leaving.status === "blocked"}
+      title={t("form.leaveTitle")}
+      description={t("form.leaveWhy")}
+      confirmLabel={t("form.leave")}
+      cancelLabel={t("form.keepEditing")}
+      onConfirm={() => leaving.proceed?.()}
+      onOpenChange={(open) => {
+        if (!open) {
+          leaving.reset?.();
+        }
+      }}
+    />
+  );
+};
+
 /** The first control a form's own checks say is wrong: a required box left empty, a figure out of its range. */
 const firstWrong = (form: HTMLFormElement | null) =>
   form?.querySelector<HTMLElement>(":invalid, [aria-invalid='true']") ?? null;
@@ -794,6 +821,7 @@ const useFormKeeping = ({
   onSubmit,
   pending,
   keepsWhatIsTyped = true,
+  hasUnsavedChanges = false,
 }: Pick<
   FormPanelProps,
   | "open"
@@ -803,6 +831,7 @@ const useFormKeeping = ({
   | "onSubmit"
   | "pending"
   | "keepsWhatIsTyped"
+  | "hasUnsavedChanges"
 >) => {
   const { t } = useLanguage();
   const form = useRef<HTMLFormElement>(null);
@@ -814,6 +843,7 @@ const useFormKeeping = ({
     way?: RefusalWay;
   } | null>(null);
   const [changed, setChanged] = useState(false);
+  const unsaved = keepsWhatIsTyped && (changed || hasUnsavedChanges);
   const [discarding, setDiscarding] = useState(false);
   // An act whose save is still going: a second tap before the first has settled is the same thing recorded twice.
   const [saving, setSaving] = useState(false);
@@ -867,7 +897,7 @@ const useFormKeeping = ({
     field?.focus({ preventScroll: true });
   };
   const requestClose = () => {
-    if (changed && !pending) {
+    if (unsaved && !pending) {
       setDiscarding(true);
       return;
     }
@@ -899,18 +929,21 @@ const useFormKeeping = ({
     />
   ) : null;
   const askToDiscard = (
-    <ConfirmDialog
-      cancelLabel={t("form.keepEditing")}
-      confirmLabel={t("form.discard")}
-      description={t("form.discardWhy")}
-      onConfirm={() => {
-        setDiscarding(false);
-        onOpenChange(false);
-      }}
-      onOpenChange={setDiscarding}
-      open={discarding}
-      title={t("form.discardTitle")}
-    />
+    <>
+      {open && unsaved && !pending && !saving ? <UnsavedChangesGuard /> : null}
+      <ConfirmDialog
+        cancelLabel={t("form.keepEditing")}
+        confirmLabel={t("form.discard")}
+        description={t("form.discardWhy")}
+        onConfirm={() => {
+          setDiscarding(false);
+          onOpenChange(false);
+        }}
+        onOpenChange={setDiscarding}
+        open={discarding}
+        title={t("form.discardTitle")}
+      />
+    </>
   );
   return {
     form,
@@ -946,6 +979,8 @@ export const FormSheet = ({
   ready,
   missing,
   pending,
+  keepsWhatIsTyped,
+  hasUnsavedChanges,
   children,
   wide = false,
   full = false,
@@ -969,6 +1004,8 @@ export const FormSheet = ({
     missing,
     onSubmit,
     pending,
+    keepsWhatIsTyped,
+    hasUnsavedChanges,
   });
   return (
     <Sheet onOpenChange={handleOpenChange} open={open}>
@@ -1036,6 +1073,7 @@ export const FormDialog = ({
   missing,
   pending,
   keepsWhatIsTyped,
+  hasUnsavedChanges,
   children,
   className,
 }: FormPanelProps & { className?: string }) => {
@@ -1059,6 +1097,7 @@ export const FormDialog = ({
     onSubmit,
     pending,
     keepsWhatIsTyped,
+    hasUnsavedChanges,
   });
   return (
     <Dialog onOpenChange={handleOpenChange} open={open}>

@@ -33,12 +33,13 @@ import type {
 import { valueOf } from "@/components/feed/feed-types";
 import { FeedingPlansTab } from "@/components/feed/feeding-plans";
 import { MonthlyEstimateTab } from "@/components/feed/monthly-estimate";
-import { ReceiveFeedSheet } from "@/components/feed/receive-feed-sheet";
+import { ReceiveFeedEntry } from "@/components/feed/receive-feed-entry";
 import { SuppliersTab } from "@/components/feed/suppliers";
 import { Loaded, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { feedsInUse, shortFeedLines } from "@/lib/feed-shortages";
 import { onlyFor } from "@/lib/guard";
 import { useMoney } from "@/lib/money";
 import { isAMonth } from "@/lib/months";
@@ -73,26 +74,6 @@ const TAB_PATHS = {
   items: "/feed/items",
 } as const satisfies Record<Tab, string>;
 
-/** The Feed Items a Ration some Pen is on still feeds: a feed with none left matters only if one does. */
-const fedNow = (rations: RationRow[]): ReadonlySet<string> =>
-  new Set(
-    rations
-      .filter((ration) => ration.retiredAt === null && ration.penIds.length > 0)
-      .flatMap((ration) => ration.items.map((line) => line.feedItemId))
-  );
-
-/**
- * Feed Items running short: below the level set for them, or with none left of a feed a Pen is being fed. A feed
- * nobody watches and nothing feeds is not short for holding nothing — a store the farm has not stocked yet, or a feed
- * it has stopped using, would otherwise read as all of it running low.
- */
-const shortOf = (lines: StockLine[], fed: ReadonlySet<string>) =>
-  lines.filter(
-    (line) =>
-      !line.retiredAt &&
-      (line.runningLow || (line.onHand <= 0 && fed.has(line.feedItemId)))
-  ).length;
-
 /** The four figures the store is judged by: how many Feed Items it holds, how many are Running Low, what it is worth,
  *  and what feed was bought this month. */
 const useStoreFigures = (
@@ -103,7 +84,7 @@ const useStoreFigures = (
   const { t, language } = useLanguage();
   const asMoney = useMoney();
   const live = lines.filter((line) => !line.retiredAt);
-  const short = shortOf(lines, fed);
+  const short = shortFeedLines(lines, fed).length;
   const worth = live.reduce((sum, line) => sum + (valueOf(line) ?? 0), 0);
   const month = farmDayOf(new Date()).slice(0, 7);
   // Bought, not cut: a Harvest carries what its fodder is worth, which nobody paid.
@@ -183,7 +164,7 @@ const FeedPage = () => {
   const pens = (sheds.data ?? []).flatMap((shed) =>
     shed.pens.map((pen) => ({ id: pen.id, name: `${shed.name} / ${pen.name}` }))
   );
-  const fed = fedNow((rations.data ?? []) as RationRow[]);
+  const fed = feedsInUse((rations.data ?? []) as RationRow[]);
   const figures = useStoreFigures(lines, arrivals.data ?? [], fed);
 
   return (
@@ -201,7 +182,11 @@ const FeedPage = () => {
         title={t("nav.feed")}
       />
 
-      <SummaryFigures figures={figures} />
+      <Loaded query={stock}>
+        <Loaded query={rations}>
+          <SummaryFigures figures={figures} />
+        </Loaded>
+      </Loaded>
 
       <PageTabs
         onChange={(value) =>
@@ -216,7 +201,7 @@ const FeedPage = () => {
             value: "stock",
             label: t("feed.tab.stock"),
             icon: Warehouse,
-            count: shortOf(lines, fed),
+            count: shortFeedLines(lines, fed).length,
             content: (
               <Loaded query={stock}>
                 <StockTab
@@ -360,7 +345,7 @@ const FeedPage = () => {
       />
 
       {mayRecord ? (
-        <ReceiveFeedSheet
+        <ReceiveFeedEntry
           feedItemId={receiving?.feedItemId}
           items={feedItems}
           key={receiving?.feedItemId ?? "any"}

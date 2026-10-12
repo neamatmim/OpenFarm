@@ -468,6 +468,32 @@ const invoiceFitsDraft = (draft: Draft) =>
   draft.kind === "harvest" ||
   invoiceReady(draft, draft.receivedOn, draft.price, draft.creditDays);
 
+const ReceiptSource = ({
+  purchaseOrder,
+  kind,
+}: {
+  purchaseOrder?: FeedPurchase;
+  kind: Kind;
+}) => {
+  const { t } = useLanguage();
+  if (purchaseOrder) {
+    return (
+      <WorkedOut>
+        {t("stock.linkedOrder", {
+          reference:
+            purchaseOrder.orderReference ?? purchaseOrder.id.slice(0, 8),
+          supplier: purchaseOrder.supplierName,
+        })}
+      </WorkedOut>
+    );
+  }
+  return kind === "purchase" ? (
+    <Notice tone="info" title={t("stock.directArrival")}>
+      {t("stock.directArrivalHint")}
+    </Notice>
+  ) : null;
+};
+
 export const ReceiveFeedSheet = ({
   items,
   open,
@@ -541,6 +567,7 @@ export const ReceiveFeedSheet = ({
       >
         {chosen ? (
           <>
+            <ReceiptSource purchaseOrder={purchaseOrder} kind={draft.kind} />
             {purchaseOrder ? (
               <Notice
                 tone="info"
