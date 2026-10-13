@@ -2515,8 +2515,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "dispatch.sheetDescription":
     "ট্যাংকের দুধ ক্রেতাকে দেওয়া। দাম {currencyOf} হিসাবে যায়।",
   "dispatch.filledFrom": "{name}-এর শেষ দুধের হিসাব থেকে ভরা হলো।",
-  "dispatch.filledFromOwing":
-    "{name}-এর শেষ দুধের হিসাব থেকে ভরা হলো; তিনি পরে টাকা দিয়েছিলেন, তাই অন্য কিছু না বলা পর্যন্ত পুরোটাই বাকি।",
+  "dispatch.filledFromOnCredit":
+    "{name}-এর শেষ দুধের হিসাব থেকে ভরা হলো। তিনি বাকিতে দুধ নেন, তাই অন্য কিছু না বলা পর্যন্ত পুরোটাই বাকিতে।",
   "dispatch.worth":
     "{liters} লিটার × {currencySign}{price} = {currencySign}{amount}",
   "dispatch.dayBefore": "আগের দিন",

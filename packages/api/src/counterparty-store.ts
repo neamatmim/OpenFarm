@@ -1,16 +1,18 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { and, asc, eq, sql } from "@OpenFarm/db/operators";
 import { counterparty } from "@OpenFarm/db/schema/fattening";
+import { nameAsCompared } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 
-/** A name as the farm keeps and compares it: one Unicode form — য় typed as one letter or as য and its nukta is the same
- *  name — trimmed. */
+/** A name as the farm keeps it: one Unicode form — য় typed as one letter or as য and its nukta is the same name —
+ *  trimmed. It is compared as `nameAsCompared` compares names (`knownAs`). */
 const oneForm = (name: string) => name.normalize("NFC").trim();
 
-/** The trader this farm wrote down by this name, whatever letters were capitalized and however the keyboard spelled its
- *  letters; the first where two differ only so. Asked by the sheets as a Sale finds him, so what they say of his debts is
- *  said of the man the Sale goes to. */
+/** The trader this farm wrote down by this name, whatever letters were capitalized, however the keyboard spelled its
+ *  letters and however many spaces were typed between its words — compared as `nameAsCompared` compares names, so a
+ *  screen that offers him by name offers the man the farm books to; the first where two differ only so. Asked by the
+ *  sheets as a Sale finds him, so what they say of his debts is said of the man the Sale goes to. */
 export const knownAs = async (
   tx: Pick<Tx, "select">,
   farmId: string,
@@ -19,6 +21,7 @@ export const knownAs = async (
   const [known] = await tx
     .select({
       id: counterparty.id,
+      name: counterparty.name,
       address: counterparty.address,
       phone: counterparty.phone,
     })
@@ -26,7 +29,7 @@ export const knownAs = async (
     .where(
       and(
         eq(counterparty.farmId, farmId),
-        sql`lower(normalize(${counterparty.name}, NFC)) = lower(${oneForm(name)})`
+        sql`lower(btrim(regexp_replace(normalize(${counterparty.name}, NFC), '[[:space:]]+', ' ', 'g'))) = ${nameAsCompared(name)}`
       )
     )
     .orderBy(asc(counterparty.createdAt), asc(counterparty.id))

@@ -1,5 +1,5 @@
 import type { Database } from "@OpenFarm/db";
-import { desc, eq } from "@OpenFarm/db/operators";
+import { and, desc, eq, gte } from "@OpenFarm/db/operators";
 import { counterparty } from "@OpenFarm/db/schema/fattening";
 import { dispatch } from "@OpenFarm/db/schema/milk";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
@@ -8,6 +8,7 @@ import {
   calvesDrankADay,
   farmDayOf,
   milkAccountOf,
+  nameAsCompared,
   paidAtTheGate,
   roundLiters,
   roundMoney,
@@ -17,7 +18,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
-import { counterpartyNamed } from "./counterparty-store";
+import { counterpartyNamed, knownAs } from "./counterparty-store";
 import type { Booking } from "./money-store";
 import { bookMoney, moneySnapshotOf } from "./money-store";
 import type { Raised } from "./notice";
@@ -64,56 +65,6 @@ export const dispatchesBetween = async (
     promisedBy: row.promisedBy,
     note: row.note,
   }));
-};
-
-/** A milk buyer as the last milk he took left him: what the Dispatch sheet fills in once he is picked. */
-export interface MilkBuyer {
-  /** His name as the farm keeps it, which a Dispatch sent with it finds again. */
-  name: string;
-  address: string | null;
-  phone: string | null;
-  /** The price his last milk went at, per liter. */
-  pricePerLiterMoney: number;
-  /** Whether he left owing for his last milk: a collection centre that pays on its round, not at the gate. */
-  paysLater: boolean;
-}
-
-/**
- * Every Counterparty the farm has handed milk to, each by his last Dispatch, the most recent buyer first. His address is
- * the Counterparty's where the farm has one, else what his last Dispatch wrote; his phone only the Counterparty keeps.
- */
-export const milkBuyersOf = async (
-  db: Pick<Database, "selectDistinctOn">,
-  farmId: string
-): Promise<MilkBuyer[]> => {
-  const lastOfEach = await db
-    .selectDistinctOn([dispatch.buyerId], {
-      name: counterparty.name,
-      counterpartyAddress: counterparty.address,
-      dispatchAddress: dispatch.buyerAddress,
-      phone: counterparty.phone,
-      pricePerLiterMoney: dispatch.pricePerLiterMoney,
-      receivableMoney: dispatch.receivableMoney,
-      dispatchedAt: dispatch.dispatchedAt,
-      id: dispatch.id,
-    })
-    .from(dispatch)
-    .innerJoin(counterparty, eq(counterparty.id, dispatch.buyerId))
-    .where(eq(dispatch.farmId, farmId))
-    .orderBy(dispatch.buyerId, desc(dispatch.dispatchedAt), desc(dispatch.id));
-  return lastOfEach
-    .toSorted(
-      (a, b) =>
-        b.dispatchedAt.getTime() - a.dispatchedAt.getTime() ||
-        b.id.localeCompare(a.id)
-    )
-    .map((one) => ({
-      name: one.name,
-      address: one.counterpartyAddress ?? one.dispatchAddress,
-      phone: one.phone,
-      pricePerLiterMoney: Number(one.pricePerLiterMoney),
-      paysLater: one.receivableMoney > 0,
-    }));
 };
 
 /** Everything these Dispatches handed over, in liters. */
@@ -178,6 +129,83 @@ export const worthOfDispatch = (row: {
   liters: string | number;
   pricePerLiterMoney: string | number;
 }): number => roundMoney(Number(row.liters) * Number(row.pricePerLiterMoney));
+
+/** How far back the farm looks for its milk buyers: a buyer who has taken nothing for half a year is not offered. */
+const MILK_BUYERS_DAYS = 180;
+
+/** How many of a buyer's latest Dispatches say whether he takes his milk on credit. */
+const RECENT_RUN = 5;
+
+/** A milk buyer as his recent milk left him: what the Dispatch sheet fills in once he is picked. */
+export interface MilkBuyer {
+  /** His name as the farm keeps it, which a Dispatch sent with it finds again. */
+  name: string;
+  address: string | null;
+  phone: string | null;
+  /** The price his last milk went at, per liter. */
+  pricePerLiterMoney: number;
+  /**
+   * Whether he takes his milk on credit: more of his last five Dispatches left with all of it on credit than not — a
+   * collection center that pays on its round. A Dispatch he paid any of at the gate counts as paid at the gate, so a
+   * buyer who pays a part each time is not offered as taking it all on credit.
+   */
+  paysLater: boolean;
+}
+
+/**
+ * Every buyer the farm has handed milk to in the last half year, the most recent first, one for each name as
+ * `nameAsCompared` compares names — named as the Counterparty `knownAs` finds, the one his next Dispatch is booked to,
+ * with that Counterparty's address and phone. His price is his last Dispatch's.
+ */
+export const milkBuyersOf = async (
+  db: Pick<Database, "select">,
+  farmId: string,
+  now: Date
+): Promise<MilkBuyer[]> => {
+  const since = new Date(
+    now.getTime() - MILK_BUYERS_DAYS * 24 * 60 * 60 * 1000
+  );
+  const rows = await db
+    .select({
+      name: counterparty.name,
+      liters: dispatch.liters,
+      pricePerLiterMoney: dispatch.pricePerLiterMoney,
+      receivableMoney: dispatch.receivableMoney,
+    })
+    .from(dispatch)
+    .innerJoin(counterparty, eq(counterparty.id, dispatch.buyerId))
+    .where(and(eq(dispatch.farmId, farmId), gte(dispatch.dispatchedAt, since)))
+    .orderBy(desc(dispatch.dispatchedAt), desc(dispatch.id));
+  // Latest first, so each name's first Dispatch is his last, and the names come in the order they last took milk.
+  const byName = new Map<string, typeof rows>();
+  for (const row of rows) {
+    const key = nameAsCompared(row.name);
+    byName.set(key, [...(byName.get(key) ?? []), row]);
+  }
+  const buyers: MilkBuyer[] = [];
+  for (const [, theirs] of byName) {
+    const [last] = theirs;
+    if (!last) {
+      continue;
+    }
+    // A buyer the farm keeps under one name; one read per buyer, and the farm has a handful.
+    // oxlint-disable-next-line no-await-in-loop
+    const known = await knownAs(db, farmId, last.name);
+    const run = theirs.slice(0, RECENT_RUN);
+    const allOnCredit = run.filter(
+      (one) =>
+        one.receivableMoney > 0 && one.receivableMoney >= worthOfDispatch(one)
+    ).length;
+    buyers.push({
+      name: known?.name ?? last.name,
+      address: known?.address ?? null,
+      phone: known?.phone ?? null,
+      pricePerLiterMoney: Number(last.pricePerLiterMoney),
+      paysLater: allOnCredit > run.length - allOnCredit,
+    });
+  }
+  return buyers;
+};
 
 /**
  * Books a Dispatch's milk sale as it now stands: what the buyer paid for it as it left — its liters at its price,

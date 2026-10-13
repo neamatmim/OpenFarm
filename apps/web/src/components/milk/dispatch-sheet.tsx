@@ -14,10 +14,9 @@ import {
 import { ReceivableFields, BuyerOwes } from "@/components/receivable-fields";
 import { useLanguage } from "@/i18n/language-provider";
 import { dispatchProblem } from "@/lib/dispatch-validation";
-import type { MilkBuyerTerms } from "@/lib/milk-buyer-terms";
-import { buyerCalled, withBuyerTerms } from "@/lib/milk-buyer-terms";
-import type { ReceivableTyped } from "@/lib/receivable";
-import { NO_RECEIVABLE, receivableSent, somethingPaid } from "@/lib/receivable";
+import type { BuyerTyping } from "@/lib/milk-buyer-terms";
+import { afterNaming, NOBODY_PICKED } from "@/lib/milk-buyer-terms";
+import { receivableSent, somethingPaid } from "@/lib/receivable";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -38,6 +37,12 @@ const NOTHING_TYPED = {
 };
 
 type Typed = typeof NOTHING_TYPED;
+
+/** The sheet as it opens: nothing typed, nothing said of the money, nobody's terms in the boxes. */
+const SHEET_OPENS: BuyerTyping<Typed> = {
+  ...NOBODY_PICKED,
+  form: NOTHING_TYPED,
+};
 
 /** Words typed into a box, or nothing when the box was left empty. */
 const written = (value: string): string | undefined =>
@@ -99,9 +104,9 @@ const Worth = ({ form }: { form: Typed }) => {
  * Milk handed over at the gate, in a sheet beside the page: how much and at what price first, then the buyer as the
  * Safe Food Act wants them written, the delivery note and how it was paid, and what the collector measured. What is typed
  * stays when the sheet is closed without recording, so a buyer's phone looked up is not typed twice. A buyer the farm
- * has handed milk to before is offered as his name is typed, and once named whole his last milk's price, address, phone
- * and whether he paid later go into the boxes still free — a collection centre that pays on its round is then owed, not
- * booked as paid.
+ * has handed milk to before is offered as his name is typed, and once named whole his last price, address and phone, and
+ * whether he takes his milk on credit, go into the boxes still free — a collection center that pays on its round is then
+ * on credit, not booked as paid. Named otherwise, his terms go back out.
  */
 export const DispatchSheet = ({
   open,
@@ -112,46 +117,44 @@ export const DispatchSheet = ({
 }) => {
   const { t } = useLanguage();
   const refused = useRefused();
-  const [form, setForm] = useState(NOTHING_TYPED);
+  // What is typed, what is said of the money, and whose terms are in the boxes: one state, so naming a buyer changes
+  // all three together.
+  const [typing, setTyping] = useState(SHEET_OPENS);
+  const { form, receivable, filledFrom } = typing;
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
-  const [receivable, setReceivable] = useState<ReceivableTyped>(NO_RECEIVABLE);
-  // The buyer whose last milk filled the sheet, so picking another takes his terms back out rather than keeping them.
-  const [filledFrom, setFilledFrom] = useState<MilkBuyerTerms | null>(null);
   const buyers = useQuery({
     ...orpc.milk.buyers.queryOptions(),
     enabled: open,
   });
+  const known = buyers.data;
+  // A name typed before the farm's buyers had answered, or still typed from the last time the sheet was open, is
+  // asked again once they do: the answer seen last is kept, and a new one names the buyer as it is drawn.
+  const [buyersSeen, setBuyersSeen] = useState(known);
+  if (known !== buyersSeen) {
+    setBuyersSeen(known);
+    if (known) {
+      setTyping((current) =>
+        afterNaming(current, current.form.buyerName, known)
+      );
+    }
+  }
   const record = useMutation(
     orpc.milk.dispatch.mutationOptions({
       onSuccess: () => {
-        setForm(NOTHING_TYPED);
-        setReceivable(NO_RECEIVABLE);
-        setFilledFrom(null);
+        setTyping(SHEET_OPENS);
         toast.success(t("dispatch.recorded"));
         onOpenChange(false);
       },
       onError: refused,
     })
   );
-  const handleType = (name: keyof Typed, value: string) => {
-    const picked =
-      name === "buyerName" ? buyerCalled(buyers.data ?? [], value) : null;
-    if (picked === null || picked.name === filledFrom?.name) {
-      setForm((current) => ({ ...current, [name]: value }));
-      return;
-    }
-    // A buyer the farm has handed milk to before, named whole: his last milk's terms go into the boxes still free.
-    const filled = withBuyerTerms(
-      { ...form, buyerName: value },
-      receivable,
-      picked,
-      filledFrom
+  const handleType = (name: keyof Typed, value: string) =>
+    setTyping((current) =>
+      name === "buyerName"
+        ? afterNaming(current, value, known ?? [])
+        : { ...current, form: { ...current.form, [name]: value } }
     );
-    setForm(filled.form);
-    setReceivable(filled.receivable);
-    setFilledFrom(picked);
-  };
   const worthMoney = worthOf(Number(form.liters), Number(form.price));
   const problem = dispatchProblem(form, receivable, worthMoney);
   const box = { draft: form, onType: handleType };
@@ -231,7 +234,7 @@ export const DispatchSheet = ({
             <WorkedOut>
               {t(
                 filledFrom.paysLater === true
-                  ? "dispatch.filledFromOwing"
+                  ? "dispatch.filledFromOnCredit"
                   : "dispatch.filledFrom",
                 { name: filledFrom.name }
               )}
@@ -255,7 +258,10 @@ export const DispatchSheet = ({
       <ReceivableFields
         idPrefix="dispatch-receivable"
         onType={(patch) =>
-          setReceivable((current) => ({ ...current, ...patch }))
+          setTyping((current) => ({
+            ...current,
+            receivable: { ...current.receivable, ...patch },
+          }))
         }
         promiseRequired={false}
         typed={receivable}
