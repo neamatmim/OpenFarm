@@ -91,7 +91,7 @@ curl --fail --silent --show-error https://farm.example.com/api/ready
 ```
 
 In Vercel, open **Settings → Cron Jobs** and confirm the five-minute job exists.
-After it runs, **Admin → Backups** should show the farm schedule as running.
+After it runs, **Farm settings → Backups** (খামারের সেটিংস → খামারের কপি) should show the farm schedule as running.
 Also test sign-in, one write, sign-out, and Web Push permission if push keys are
 configured.
 
