@@ -133,9 +133,9 @@ and the whole green after (api 363 files, domain 101, i18n 3, web 85), and looke
 |---|---|---|
 | `30d324e1` | — | Main was red: the supplier/feed purchasing routers opened their own transactions (audit-guard); moved into the stores. |
 | `fb177d2e` | A1–A4 | Register keeps only refused rows, "Check without importing", blank-tag duplicate refused, tab-pasted cells, template download with pens/breeds, Bangla values, `lactation` column (dry cows 1). |
-| `b03…`/herd merge | B1, B4–B6 | Campaign "unwell, later" raised again for her alone; Confirm ready on the animal page and board, sale warns and offers; Sell on the animal page and cull list, Culled hint; "She has calved" opens the Calving record. |
-| notices merge | B2, B3 | `unwell_urgent` notice told at once through quiet hours (migration 20261013041620); bell in the top bar; "Yours to do now" on Farm today. |
-| portal merge | B7, B8, F4 | Monthly Venture portal says what is due now and the next sum; one name for the balance; "record the transfer" only with pay-in notes; cattle deadline only while Open; Paid cell orange only when missed. |
+| `5310be52` | B1, B4–B6 | Campaign "unwell, later" raised again for her alone; Confirm ready on the animal page and board, sale warns and offers; Sell on the animal page and cull list, Culled hint; "She has calved" opens the Calving record. |
+| `1be53076` | B2, B3 | `unwell_urgent` notice told at once through quiet hours (migration 20261013041620); bell in the top bar; "Yours to do now" on Farm today. |
+| `c5efa249` | B7, B8, F4 | Monthly Venture portal says what is due now and the next sum; one name for the balance; "record the transfer" only with pay-in notes; cattle deadline only while Open; Paid cell orange only when missed. |
 | `6074e175` | A5–A8, A10 | Setup card waits for Manager, Vet, Vet's days, worker with pens + PIN, phone set up, good copy, Opening Count; Going live page (16 lines, Opening Count, Paper Put Away; migration 20261013052714); Vet told medicines wait; runbook menu paths; train several at once. |
 | `8af62443` | A9 | Animal photo is an Outbox entry (migration 20261013054031, custom); "No photo yet" filter. |
 | `67020d9b` | — | Found in the browser: a Pen copied off a screen ("Shed / Pen") was refused by the register; now the same Pen. |
