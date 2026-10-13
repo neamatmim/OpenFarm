@@ -9,6 +9,7 @@
 export const QUEUE_KINDS = [
   "missing",
   "overdue",
+  "yours",
   "signOff",
   "review",
   "withdrawal",

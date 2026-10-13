@@ -47,6 +47,7 @@ import {
 import { missingToTell, tellOfMissing } from "./missing-store";
 import { missedToTell, raiseMissedSums } from "./monthly-sums-store";
 import { tell } from "./notice";
+import type { Raised } from "./notice";
 import { carryThePost, carryWhatWasHeld, pushRaised } from "./push-send";
 import { overdueToTell, raiseOverdueReceivable } from "./receivable-store";
 import { openRenewalsOf, tellOfRenewals } from "./registration-store";
@@ -61,6 +62,7 @@ import { soresToTell, tellOfSores } from "./sores-store";
 import { keepStandardKeys } from "./standards-kept";
 import { lowStockToTell, raiseLowStockAlerts, runningLow } from "./stock-store";
 import { asLogged } from "./thrown";
+import { tellOfUrgentUnwell } from "./unwell-notice";
 import { endExpiredVisits } from "./visits-store";
 import { heatThatRaised } from "./work-cause";
 
@@ -371,6 +373,7 @@ export const theDaysWork = async (context: Turning) => {
     return { raised: 0 };
   }
   let raised = { byTheSchedule: 0, byWhatHappened: 0, forTheRenewal: 0 };
+  let urgent: Raised[] = [];
   // What the trail says of it: how much work was raised, and by what — the Playbook's schedule, something that
   // happened to an animal, or the Registration coming up for renewal. Only when something was: the farm turns its
   // day every time anybody opens the app, and a turn that raised nothing is no event.
@@ -403,6 +406,8 @@ export const theDaysWork = async (context: Turning) => {
         raised = raisedBy(instances, byWhatHappened, forTheRenewal);
         // The Owner hears of a renewal in the evening's post, the day its work is raised.
         await tellOfRenewals(tx, context.farm, instances, now);
+        // Whoever is on urgent work about an animal hears of it the moment it is raised, pushed once the write closes.
+        urgent = await tellOfUrgentUnwell(tx, context.farm.id, instances, now);
         await flagHeatsThatArrivedTooLate(
           tx,
           context.farm.id,
@@ -418,6 +423,7 @@ export const theDaysWork = async (context: Turning) => {
         throw error;
       }
     });
+  await pushRaised(context, urgent, now);
   await rememberTheDayRaised(context, today);
   return {
     raised: raised.byTheSchedule + raised.byWhatHappened + raised.forTheRenewal,

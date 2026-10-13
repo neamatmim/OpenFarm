@@ -59,6 +59,15 @@ const EXAMPLE: NoticeFacts = {
   },
   withdrawal_changed: { tag: "BD-0142", until: "2038-03-06" },
   notifiable_diagnosis: { tag: "BD-0142", disease: "অ্যানথ্রাক্স" },
+  unwell_urgent: {
+    sopBn: "জরুরি: অসুস্থ পশু দেখুন",
+    sopEn: "Urgent: see to an unwell animal",
+    pen: "দোহন পেন ১",
+    dueAt: "2038-03-01T02:30:00.000Z",
+    tag: "BD-0142",
+    saw: "bloat",
+    sawBn: "পেট ফাঁপা",
+  },
   low_stock: {
     feedItemId: "feed-1",
     nameBn: "গমের ভুসি",

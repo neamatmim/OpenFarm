@@ -4,6 +4,7 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import LanguageToggle from "@/components/language-toggle";
 import { PAGE_LINE } from "@/components/page";
 import { GoToAnimal } from "@/components/shell/go-to-animal";
+import { NoticeBell } from "@/components/shell/notice-bell";
 import { SyncBanner } from "@/components/sync-banner";
 import { ThemeMenu } from "@/components/theme-menu";
 import UserMenu from "@/components/user-menu";
@@ -17,7 +18,7 @@ export const BAR_START = "-ms-2.5 size-9";
 export const BAR_END = "-me-2";
 
 /** The bar over every signed-in page: the menu, what this phone is holding, the way to any animal by her Tag Number,
- *  and the person's own settings. */
+ *  what the farm is telling this person, and the person's own settings. */
 export const TopBar = () => {
   const t = useT();
   return (
@@ -32,6 +33,7 @@ export const TopBar = () => {
         </div>
         <div className={cn("flex shrink-0 items-center gap-1", BAR_END)}>
           <GoToAnimal />
+          <NoticeBell />
           {/* On a phone the bar is the sync status's, and a language one tap away on a shared Shed Phone was pressed by
             mistake: both are in the account menu there. */}
           <div className="hidden items-center gap-1 md:flex">

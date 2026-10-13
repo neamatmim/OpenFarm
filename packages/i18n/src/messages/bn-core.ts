@@ -2922,6 +2922,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "home.endingSoon": "শিগগির শেষ",
   "home.queue": "আপনার কাছে যা আছে",
   "home.overdue": "দেরি হয়ে গেছে",
+  "home.yours": "এখন আপনার করার কাজ",
   "home.signOff": "যাচাই করার অপেক্ষায়",
   "home.needsReview": "সিদ্ধান্ত দরকার",
   "home.monthlyCosts": "এখনো লেখা হয়নি",
@@ -3379,6 +3380,9 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "mismatch.openWork": "কাজটি খুলুন",
   "milk.flagged": "ম্যানেজার এটি দেখবেন",
   "alerts.title": "সতর্কতা",
+  "alerts.bell":
+    "সতর্কতা: {count, plural, =0 {কিছু অপেক্ষায় নেই} one {#টি অপেক্ষায়} other {#টি অপেক্ষায়}}",
+  "alerts.none": "এখন জানানোর মতো কিছু নেই",
   "alerts.withdrawalEnding": "{tag} — দুধ আটকে রাখার সময় শেষ হচ্ছে",
   "animals.milkHeldUntil": "দুধ আটকে আছে {date} পর্যন্ত",
   "animals.meatHeldUntil": "বিক্রয়ের উপযোগী {date} থেকে",
@@ -4470,6 +4474,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "alerts.penSoresSeen":
     "{since} থেকে {pen}-এ {animals}টি পশুর মুখে বা ক্ষুরে ঘা দেখা গেছে",
   "alerts.openObservations": "যা দেখা গেছে খুলুন",
+  "alerts.unwellUrgent": "{pen}-এ {tag}: {saw}। এখনই দেখুন — {sop}",
   "params.sores": "এক পেনে কয়েকটি পশুর ঘা",
   "params.soresHint":
     "এক পেনে এত ঘণ্টার মধ্যে এতগুলো পশুর মুখে বা ক্ষুরে ঘা দেখা গেলে আপনাকে আর ম্যানেজারকে সঙ্গে সঙ্গে জানানো হবে।",

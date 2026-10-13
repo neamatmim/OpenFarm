@@ -34,6 +34,9 @@ export interface NoticeFacts {
   withdrawal_ending: { tag: string; animalId: string; until: string };
   withdrawal_changed: { tag: string; until: string };
   notifiable_diagnosis: { tag: string; disease: string };
+  /** The work an urgent sighting raised: the work, her tag, and what was seen — its word, and the Bangla the
+   *  Observation kept, for a word the farm has no English for. */
+  unwell_urgent: WorkFacts & { tag: string; saw: string; sawBn: string };
   /** One Receivable gone past its day: who owes it, what is still owing on it, and the first day it was late. */
   milk_unaccounted: {
     /** Liters gone in the week that nobody can account for. */

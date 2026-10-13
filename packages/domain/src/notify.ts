@@ -154,6 +154,10 @@ export const DELIVERY = {
   still_here_after_eid: { when: "digest" },
   // Medicine the count did not find is the evening's question for the Owner, as a short store is.
   medicine_short: { when: "digest" },
+  // Bloat or labored breathing seen on the round kills within hours, and the work it raises is an hour's: told the
+  // moment it is raised, through the quiet hours as a notifiable disease is — an hour's grace is no use to a Manager
+  // asleep till five. In the app and by push, never by text.
+  unwell_urgent: { when: "immediate", wakesTheFarm: true },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /** What one kind says. Whether it says anything in a text message is not this table's decision but the delivery
@@ -417,6 +421,11 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   medicine_short: {
     app: "alerts.medicineShort",
     digest: "digest.medicineShort",
+  },
+  unwell_urgent: {
+    app: "alerts.unwellUrgent",
+    push: { title: "push.unwellUrgentTitle", body: "alerts.unwellUrgent" },
+    digest: "digest.unwellUrgent",
   },
 };
 

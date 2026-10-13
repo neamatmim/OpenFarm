@@ -2413,6 +2413,8 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "digest.mortalityUndiagnosed":
     "{count}টি পশু রোগ নির্ণয় ছাড়াই মারা গেছে বা বাদ দেওয়া হয়েছে",
   "digest.storeShortfall": "{count}টি গুদাম গণনায় খাদ্য কম পাওয়া গেছে",
+  "push.unwellUrgentTitle": "একটি পশুকে এখনই দেখতে হবে",
+  "digest.unwellUrgent": "{count}টি পশুকে এমন অসুস্থ দেখা গেছে যা অপেক্ষা করতে পারে না",
   "push.penSoresSeenTitle": "এক পেনে কয়েকটি পশুর ঘা",
   "push.penSoresSeenBody":
     "{pen}-এ {animals}টি পশুর মুখে বা ক্ষুরে ঘা। ডাক্তারকে ফোন করুন, পেনটি আলাদা রাখুন।",

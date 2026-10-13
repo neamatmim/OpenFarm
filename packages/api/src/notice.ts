@@ -271,6 +271,12 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [theOwner],
     entity: "money_event",
   },
+  // Whoever the urgent work is on — the Manager, as the procedure assigns it, or whoever took it up — and the Owner when
+  // nobody holds its Role: about the work, so told once however often the day turns.
+  unwell_urgent: {
+    audience: ["thePeopleOnTheWork"],
+    entity: "sop_instance",
+  },
 };
 
 /** A Notice as it was raised, for whoever carries it out of the transaction to a pocket. */

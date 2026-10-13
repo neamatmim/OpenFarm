@@ -3154,6 +3154,7 @@ export const enCore = {
   "home.endingSoon": "Ending soon",
   "home.queue": "What needs you",
   "home.overdue": "Late",
+  "home.yours": "Yours to do now",
   "home.signOff": "Waiting for sign-off",
   "home.needsReview": "Needing a decision",
   "home.monthlyCosts": "Not entered yet",
@@ -3619,6 +3620,9 @@ export const enCore = {
   "mismatch.openWork": "Open the work",
   "milk.flagged": "The manager will look at this",
   "alerts.title": "Alerts",
+  "alerts.bell":
+    "Alerts: {count, plural, =0 {nothing waiting} one {# waiting} other {# waiting}}",
+  "alerts.none": "Nothing to tell you now",
   "alerts.withdrawalEnding": "{tag} — her milk withdrawal is ending",
   "animals.milkHeldUntil": "Milk held until {date}",
   "animals.meatHeldUntil": "Fit for sale from {date}",
@@ -4790,6 +4794,7 @@ export const enCore = {
   "alerts.penSoresSeen":
     "{animals, plural, one {# animal} other {# animals}} in {pen} seen with sores on the mouth or feet since {since}",
   "alerts.openObservations": "Open what was seen",
+  "alerts.unwellUrgent": "{tag} in {pen}: {saw}. See to her now — {sop}",
   "params.sores": "Sores in one pen",
   "params.soresHint":
     "When this many animals in one pen are seen with sores on the mouth or feet within these hours, you and the manager are told at once.",
