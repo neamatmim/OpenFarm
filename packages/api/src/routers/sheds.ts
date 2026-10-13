@@ -9,11 +9,11 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import type { FarmList } from "../farm-list";
 import { bringBackToList, retireFromList } from "../farm-list";
+import { lockTheFarm } from "../farm-lock";
 import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { sameName } from "../names";
 import { requireRole } from "../roles";
-import { lockTheFarm } from "../venture-store";
 
 const name = z.string().trim().min(1).max(80);
 /** No pen on a farm of a few hundred head holds more; a figure past it is a slip of the thumb. */

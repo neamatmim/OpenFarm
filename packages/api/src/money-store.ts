@@ -34,8 +34,16 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import type { ChangeBy, ChangeToWeigh } from "./closed-month-store";
+import {
+  aboutMoney,
+  answerToClosedMonths,
+  isTheOwner,
+  standsOf,
+} from "./closed-month-store";
 import { nameTaken } from "./names";
 import { tell } from "./notice";
+import { refuse } from "./refuse";
 
 /** The standard Categories: the one each record's money falls under, and the ones the rest of a dairy
  *  farm's month is made of — and which way each goes. */
@@ -623,6 +631,14 @@ export interface Booking {
   now: Date;
 }
 
+/** Who a booking is, as a **Closed Month** asks of a change to its money. */
+export const changeByOfBooking = (booking: Booking): ChangeBy => ({
+  farmId: booking.farm.id,
+  actorId: booking.actorId,
+  byTheOwner: booking.byTheOwner,
+  now: booking.now,
+});
+
 /** The Roles whose hands the farm's cash passes through: a Vet writing their own fee, or Barn Staff, hold none of it. */
 const HOLDS_CASH: ReadonlySet<RoleName> = new Set(["owner", "manager"]);
 
@@ -666,13 +682,10 @@ export const bookingOf = (
   farm: context.farm,
   actorId: context.actor.id,
   role,
-  byTheOwner: context.roles.includes("owner"),
+  byTheOwner: isTheOwner(context.roles),
   now,
   ...(account ? { account } : {}),
 });
-
-const refuse = (refusal: string, message: string) =>
-  new ORPCError("BAD_REQUEST", { message, data: { refusal } });
 
 type ExistingMoney =
   | {
@@ -1044,6 +1057,34 @@ const otherPiecesOf = async (
     ? roundMoney(byHand.drawsTakenMoney ?? 0)
     : await piecesOf(tx, booking, money, entry);
 
+/** The Side money stands under once booked: what money entered by hand says, else what the record says, else as it was. */
+const sideAfter = (
+  money: MoneyOfARecord,
+  byHand: EnteredByHand | undefined,
+  existing: { side: (typeof SIDES)[number] | null } | undefined
+): string | null => {
+  if (byHand) {
+    return byHand.side ?? null;
+  }
+  return money.side === undefined ? (existing?.side ?? null) : money.side;
+};
+
+/** When money is booked, which way it is paid and under which Side, as a **Closed Month** weighs the booking. */
+const howItIsBooked = (
+  money: MoneyOfARecord,
+  byHand: EnteredByHand | undefined,
+  existing:
+    | {
+        paymentMethod: PaymentMethod;
+        side: (typeof SIDES)[number] | null;
+      }
+    | undefined
+) => ({
+  occurredAt: money.occurredAt,
+  paymentMethod: money.paymentMethod ?? existing?.paymentMethod ?? "cash",
+  side: sideAfter(money, byHand, existing),
+});
+
 /**
  * Books a record's money as its Money Event, in the record's own transaction: the first time the record
  * is written, a Money Event; every time it is corrected, the same Money Event put right.
@@ -1052,6 +1093,8 @@ const otherPiecesOf = async (
  * the digest; the record itself is never held back (the Owner's decision, 2026-09-13). An approval is of
  * its terms, so a Correction that changes the amount, the Counterparty or the Category asks again, and one
  * that does not keeps it.
+ *
+ * Money that changes a **Closed Month** is the Owner's alone to book: anybody else is refused (ADR 0028).
  */
 export const bookMoney = async (
   tx: Tx,
@@ -1088,6 +1131,8 @@ export const bookMoney = async (
       heldBy: true,
       farmAccountId: true,
       reference: true,
+      occurredAt: true,
+      side: true,
     },
   });
   const id = existing?.id ?? byHand?.id ?? newId(now);
@@ -1129,20 +1174,37 @@ export const bookMoney = async (
       purseVentureId: terms.purseVentureId,
     }),
   });
+  const heldBy = handOf(booking, money, existing);
+  const account = await farmAccountOf(
+    tx,
+    booking,
+    money,
+    existing,
+    terms.purseVentureId,
+    id
+  );
+  // A Closed Month's money is the Owner's alone to change, and what she changes is kept for the next paper (ADR 0028).
+  await answerToClosedMonths(tx, changeByOfBooking(booking), [
+    {
+      recordId: id,
+      source: money.source,
+      before: existing ? standsOf(existing) : undefined,
+      after: standsOf({
+        ...terms,
+        ...howItIsBooked(money, byHand, existing),
+        heldBy,
+        farmAccountId: account.farmAccountId,
+      }),
+      about: aboutMoney(farm.id, money),
+    },
+  ]);
   const fields = {
     ...moneyFieldsOf({ amountMoney, money, approval, byHand }),
     awaitingInPieces:
       approval === "awaiting" &&
       terms.amountMoney <= farm.approvalThresholdMoney,
-    heldBy: handOf(booking, money, existing),
-    ...(await farmAccountOf(
-      tx,
-      booking,
-      money,
-      existing,
-      terms.purseVentureId,
-      id
-    )),
+    heldBy,
+    ...account,
   };
   await (existing
     ? tx.update(moneyEvent).set(fields).where(eq(moneyEvent.id, id))
@@ -1161,6 +1223,141 @@ export const bookMoney = async (
       }));
   await tellTheOwner(tx, booking, { id, amountMoney, approval, before, terms });
   return { id, approval };
+};
+
+/** What a record's money may be put right in place: the few columns a record's own Correction carries over. */
+export interface MoneyPutRight {
+  amountMoney?: number;
+  occurredAt?: Date;
+  purseVentureId?: string | null;
+  reference?: string | null;
+}
+
+/**
+ * Puts a record's Money Events right in place — a Vet's fee, an Internal Sale, a Venture's movement, an outing paid from
+ * its Float — where the record carries a column or two over rather than booking its money afresh (`bookMoney`). The one
+ * other way the Farm's money changes, so it answers to a **Closed Month** the same way (ADR 0028).
+ */
+export const putMoneyRight = async (
+  tx: Tx,
+  by: ChangeBy,
+  /** A record's Money Events, by the record; or the one Money Event named. */
+  of: { source?: MoneySource; sourceId: string } | { id: string },
+  change: MoneyPutRight
+): Promise<void> => {
+  const rows = await tx.query.moneyEvent.findMany({
+    where: {
+      farmId: by.farmId,
+      ...("id" in of
+        ? { id: of.id }
+        : {
+            sourceId: of.sourceId,
+            ...(of.source === undefined ? {} : { source: of.source }),
+          }),
+    },
+    columns: {
+      id: true,
+      source: true,
+      sourceId: true,
+      amountMoney: true,
+      occurredAt: true,
+      purseVentureId: true,
+      categoryId: true,
+      counterpartyId: true,
+      heldBy: true,
+      farmAccountId: true,
+      paymentMethod: true,
+      side: true,
+    },
+  });
+  await answerToClosedMonths(
+    tx,
+    by,
+    rows.map((row) => ({
+      recordId: row.id,
+      source: row.source,
+      before: standsOf(row),
+      after: standsOf({ ...row, ...change }),
+      about: aboutMoney(by.farmId, row),
+    }))
+  );
+  if (rows.length > 0) {
+    await tx
+      .update(moneyEvent)
+      .set(change)
+      .where(
+        inArray(
+          moneyEvent.id,
+          rows.map((row) => row.id)
+        )
+      );
+  }
+};
+
+/**
+ * Takes Money Events off the books — a record voided, never spent or written twice — with their receipts. One of the
+ * Farm's own in a **Closed Month** is the Owner's alone to take off, and is kept for the next month's paper; the months
+ * of them all are asked about at once.
+ */
+export const takeOffTheBooks = async (
+  tx: Tx,
+  by: ChangeBy,
+  ids: readonly string[]
+): Promise<void> => {
+  if (ids.length === 0) {
+    return;
+  }
+  const events = await tx.query.moneyEvent.findMany({
+    where: { farmId: by.farmId, id: { in: [...ids] } },
+    columns: {
+      id: true,
+      source: true,
+      sourceId: true,
+      occurredAt: true,
+      amountMoney: true,
+      purseVentureId: true,
+      categoryId: true,
+      counterpartyId: true,
+    },
+  });
+  await answerToClosedMonths(
+    tx,
+    by,
+    events.map((one): ChangeToWeigh => ({
+      recordId: one.id,
+      source: one.source,
+      before: standsOf(one),
+      after: undefined,
+      about: aboutMoney(by.farmId, one),
+    }))
+  );
+  await tx.delete(moneyReceipt).where(inArray(moneyReceipt.moneyEventId, ids));
+  await tx.delete(moneyEvent).where(inArray(moneyEvent.id, ids));
+};
+
+/**
+ * The Owner's word on money waiting for her: approved, by her and now — only while it still waits at the amount she
+ * read, so a correction or another approval landing between her read and this write changes nothing. Writes who
+ * approved and when, never a figure. Says whether it was still waiting.
+ */
+export const approveMoney = async (
+  tx: Tx,
+  by: ChangeBy,
+  waiting: { id: string; amountMoney: number }
+): Promise<boolean> => {
+  const approved = await tx
+    .update(moneyEvent)
+    .set({ approval: "approved", approvedBy: by.actorId, approvedAt: by.now })
+    .where(
+      and(
+        eq(moneyEvent.id, waiting.id),
+        eq(moneyEvent.farmId, by.farmId),
+        eq(moneyEvent.approval, "awaiting"),
+        eq(moneyEvent.amountMoney, waiting.amountMoney)
+      )
+    )
+    .returning({ id: moneyEvent.id });
+  return approved.length > 0;
 };
 
 /** All the money waiting for the Owner's word, every purse, counted and totaled on the farm — whichever way each
@@ -1195,10 +1392,12 @@ export const awaitingApproval = async (
 
 /**
  * Takes a voided record's money off the books: its Money Events and their receipts. A void is a record that should
- * never have been written — entered twice, or never spent — so its money is gone with it rather than set to nothing.
+ * never have been written — entered twice, or never spent — so its money is gone with it rather than set to nothing. A
+ * **Closed Month**'s is the Owner's alone to take off (`takeOffTheBooks`).
  */
 export const forgetTheMoneyOf = async (
   tx: Tx,
+  by: ChangeBy,
   source: MoneySource,
   sourceId: string
 ): Promise<void> => {
@@ -1206,10 +1405,9 @@ export const forgetTheMoneyOf = async (
     where: { source, sourceId },
     columns: { id: true },
   });
-  const ids = events.map((one) => one.id);
-  if (ids.length === 0) {
-    return;
-  }
-  await tx.delete(moneyReceipt).where(inArray(moneyReceipt.moneyEventId, ids));
-  await tx.delete(moneyEvent).where(inArray(moneyEvent.id, ids));
+  await takeOffTheBooks(
+    tx,
+    by,
+    events.map((one) => one.id)
+  );
 };

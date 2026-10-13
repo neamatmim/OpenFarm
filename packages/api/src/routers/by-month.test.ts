@@ -679,11 +679,14 @@ describe("one month of the farm as a CSV", () => {
       .replace(/^\uFEFF/u, "")
       .trim()
       .split(/\r?\n/u);
-    expect(head).toBe("part,part_en,line,line_en,way,this_month,month_before");
-    expect(lines).toContain(
-      "খামারের টাকা,The farm's money,নগদ এসেছে,Money in,,89300,0"
+    expect(head).toBe(
+      "part,part_en,line,line_en,way,this_month,month_before,before,after"
     );
-    expect(lines).toContain("দুগ্ধ,Dairy,লিটারে পাওয়া,Fetched a liter,,62,");
+
+    expect(lines).toContain(
+      "খামারের টাকা,The farm's money,নগদ এসেছে,Money in,,89300,0,,"
+    );
+    expect(lines).toContain("দুগ্ধ,Dairy,লিটারে পাওয়া,Fetched a liter,,62,,,");
   });
 
   it("says each figure as the month's page does", async () => {

@@ -18,9 +18,11 @@ import { z } from "zod";
 
 import type { Tx } from "../../audit";
 import { audited } from "../../audit";
+import { changeByOf } from "../../closed-month-store";
 import { counterpartyNamed } from "../../counterparty-store";
 import { farmsOwnOf } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
+import { lockTheFarm } from "../../farm-lock";
 import { protectedProcedure } from "../../index";
 import { farmAccountIdInput } from "../../money-inputs";
 import {
@@ -49,7 +51,7 @@ import {
   settlementOf,
 } from "../../settlement-store";
 import { ours } from "../../venture-act";
-import { lockTheFarm, readVenture } from "../../venture-store";
+import { readVenture } from "../../venture-store";
 import type { Context } from "./shared";
 import { assertByBank } from "./shared";
 
@@ -911,6 +913,7 @@ export const settlementProcedures = {
                   // oxlint-disable-next-line no-await-in-loop -- one transaction, one Investor's payment at a time
                   await forgetTheMoneyOf(
                     tx,
+                    changeByOf(context, context.clock.now()),
                     "settlement_adjustment",
                     `${input.adjustmentId}:${share.agreementId}`
                   );

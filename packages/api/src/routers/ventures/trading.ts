@@ -21,6 +21,7 @@ import {
   internalSaleCorrectionInput,
 } from "../../corrections/internal-sale";
 import { farmDay, targetWindowInput } from "../../farm-clock";
+import { lockTheFarm } from "../../farm-lock";
 import { protectedProcedure } from "../../index";
 import { recordInternalSale } from "../../internal-sale-store";
 import { farmAccountIdInput } from "../../money-inputs";
@@ -34,7 +35,6 @@ import {
 import { assertNotSettledUp, ours } from "../../venture-act";
 import {
   assertCattleBudgetHolds,
-  lockTheFarm,
   priceAtWeight,
   readInternalSale,
   readVenture,

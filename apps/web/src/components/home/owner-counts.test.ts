@@ -90,4 +90,16 @@ describe("what waits on the Owner", () => {
     expect(moneyAwaitingCount(old)).toBe(50);
     expect(moneyAwaitingTotal(old)).toBe(5000);
   });
+
+  it("counts last month ready to close as one thing under money, and nothing once closed", () => {
+    const ready = {
+      ...NOTHING,
+      monthToClose: { month: "2079-03", waiting: 0 },
+    } as unknown as NeedsYou;
+    expect(ownerCountsOf(ready).money).toBe(1);
+    expect(
+      ownerCountsOf({ ...NOTHING, monthToClose: null } as unknown as NeedsYou)
+        .money
+    ).toBe(0);
+  });
 });

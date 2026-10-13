@@ -12,6 +12,7 @@ type CashCountFacts = Pick<
   | "recordedBy"
   | "recordedAt"
   | "now"
+  | "changeBy"
 >;
 
 /** What the counter wrote beside the figure, where the Step asks for a note and they wrote one. */
@@ -43,7 +44,9 @@ const countTheCash = async (
     note: noteIn(input),
     countedAt: input.recordedAt,
     now: input.now,
+    by: input.changeBy,
   });
+
   return { kind: "cash_count", differs };
 };
 

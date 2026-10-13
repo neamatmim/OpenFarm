@@ -1,14 +1,21 @@
 import type { MonthlyReportFacts } from "@OpenFarm/domain";
 import {
   farmDayOf,
-  monthOf,
   monthlyReportPaper,
   monthlyReportRows,
-  startOfFarmDay,
 } from "@OpenFarm/domain";
+import { translate } from "@OpenFarm/i18n";
 import { z } from "zod";
 
+import { audited } from "../audit";
+import {
+  changeByOf,
+  closeMonth,
+  readClosedMonth,
+  reopenMonth,
+} from "../closed-month-store";
 import type { Context } from "../context";
+import { reasonInput } from "../corrections/correction";
 import { toCsv } from "../csv";
 import { stampedFileName } from "../export-name";
 import { assertRegistered, recordExport } from "../export-store";
@@ -17,12 +24,7 @@ import { protectedProcedure } from "../index";
 import { aMonth, monthByMonth } from "../month-store";
 import { madeOn } from "../paper-values";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
-
-/** A "YYYY-MM" month's last farm day. */
-const lastDayOf = (month: string) =>
-  farmDayOf(
-    new Date(monthOf(startOfFarmDay(`${month}-01`)).until.getTime() - 1)
-  );
+import { lastDayOf } from "../venture-store";
 
 /** Whoever makes a month's Export, signed in on their farm: the procedures that make one say who may. */
 type ExportingContext = Context & {
@@ -46,6 +48,14 @@ const monthToExport = async (context: ExportingContext, month: string) => {
     figures: one.figures,
     figuresBefore: one.figuresBefore,
     moneyBy: one.moneyBy,
+    // Each record named in both languages, as the paper and the CSV are read in either.
+    changedAfterClosing: one.changedAfterClosing.map((change) => ({
+      ...change,
+      record: {
+        bn: translate("bn", change.recordWord),
+        en: translate("en", change.recordWord),
+      },
+    })),
     producedAt: madeOn(now),
     producedBy: context.actor.name,
   };
@@ -95,6 +105,51 @@ export const monthlyReportRouter = {
     ),
 
   /**
+   * The Owner closes a month of the Farm's own money (a **Closed Month**): one that has ended, with nothing of it still
+   * waiting for her. Its money is hers alone to change afterwards — anybody else is refused — and the paper of the month
+   * she changes it in lists what she changed. Her own phone, on the trail.
+   */
+  close: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ month: farmMonth }))
+    .handler(async ({ context, input }) => {
+      const by = changeByOf(context, context.clock.now());
+      await audited(context).write(
+        {
+          entity: "closed_month",
+          entityId: input.month,
+          action: "update",
+          before: (tx) => readClosedMonth(tx, by.farmId, input.month),
+          after: (tx) => readClosedMonth(tx, by.farmId, input.month),
+        },
+        (tx) => closeMonth(tx, by, input.month)
+      );
+      return { month: input.month };
+    }),
+
+  /** The Owner opens a closed month again, with her reason, kept on the month and on the trail. */
+  reopen: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ month: farmMonth, reason: reasonInput }))
+    .handler(async ({ context, input }) => {
+      const by = changeByOf(context, context.clock.now());
+      await audited(context).write(
+        {
+          entity: "closed_month",
+          entityId: input.month,
+          action: "update",
+          before: (tx) => readClosedMonth(tx, by.farmId, input.month),
+          after: (tx) => readClosedMonth(tx, by.farmId, input.month),
+          reason: input.reason,
+        },
+        (tx) => reopenMonth(tx, by, input.month, input.reason)
+      );
+      return { month: input.month };
+    }),
+
+  /**
    * One month of the farm laid out on paper (`monthlyReportPaper`), for the Owner to print or save, and to hand the
    * accountant: on the Farm Identity letterhead, read in Bangla or English. An **Export**, with the month, the days it
    * covers and the format on the trail, and refused without the farm's DLS registration number, as every Export is. A
@@ -136,6 +191,9 @@ export const monthlyReportRouter = {
           "way",
           "this_month",
           "month_before",
+          // A change to a closed month's alone: what that month held of the record before it, and after.
+          "before",
+          "after",
         ],
         monthlyReportRows(facts).map((row) => [
           row.part.bn,
@@ -145,6 +203,8 @@ export const monthlyReportRouter = {
           row.way,
           row.thisMonth,
           row.monthBefore,
+          row.before ?? null,
+          row.after ?? null,
         ])
       );
       await recordExport(context, "monthly_report", days, {

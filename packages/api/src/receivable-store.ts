@@ -1,6 +1,9 @@
 import type { Database } from "@OpenFarm/db";
 import { sql } from "@OpenFarm/db/operators";
-import type { CategoryKey } from "@OpenFarm/db/schema/money";
+import type {
+  CategoryKey,
+  RECEIVABLE_SOURCES,
+} from "@OpenFarm/db/schema/money";
 import type {
   ReceivableAtTheGate,
   ReceivableKind,
@@ -23,6 +26,8 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
+import type { ChangeBy } from "./closed-month-store";
+import { aboutMoney, answerToClosedMonths } from "./closed-month-store";
 import type { Raised } from "./notice";
 import { rememberingPeople, tell, whoHears } from "./notice";
 
@@ -773,6 +778,48 @@ export const fetchedPerLiter = (
 /** A Write-off as the trail records it. */
 export const readWriteOff = async (tx: Tx, id: string) =>
   (await tx.query.receivableWriteOff.findFirst({ where: { id } })) ?? null;
+
+/**
+ * A Write-off written or put right, as a **Closed Month** has its say: it lowers what the Sale or Dispatch it writes off
+ * fetched, so it falls in that one's month — the Owner's alone once she has closed it, as writing off always is, and
+ * kept for the next paper with the buyer and, for a Sale, her tag (ADR 0028).
+ */
+export const answerForWriteOff = async (
+  tx: Tx,
+  by: ChangeBy,
+  row: {
+    id: string;
+    source: (typeof RECEIVABLE_SOURCES)[number];
+    sourceId: string;
+    counterpartyId: string;
+    amountMoney: number;
+  },
+  /** What it came to before a Correction: nothing for one written now. */
+  wasMoney?: number
+): Promise<void> => {
+  const item = await tx.query.moneyEvent.findFirst({
+    where: { farmId: by.farmId, source: row.source, sourceId: row.sourceId },
+    columns: { occurredAt: true, purseVentureId: true },
+  });
+  if (!item) {
+    return;
+  }
+  const weighed = (amountMoney: number) => ({
+    at: item.occurredAt,
+    amountMoney,
+    purseVentureId: item.purseVentureId,
+    rest: row.counterpartyId,
+  });
+  await answerToClosedMonths(tx, by, [
+    {
+      recordId: row.id,
+      source: "receivable_write_off",
+      before: wasMoney === undefined ? undefined : weighed(wasMoney),
+      after: weighed(row.amountMoney),
+      about: aboutMoney(by.farmId, row),
+    },
+  ]);
+};
 
 /** What is still owing on one Sale or Dispatch now, and whose it is, or nothing where it was never left owing. */
 export const owingOnItem = async (

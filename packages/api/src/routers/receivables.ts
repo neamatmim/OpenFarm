@@ -14,6 +14,7 @@ import { z } from "zod";
 
 import { audited } from "../audit";
 import { assertTheHand } from "../cash-store";
+import { changeByOf } from "../closed-month-store";
 import { correct } from "../corrections/correction";
 import {
   receivablePaymentCorrection,
@@ -37,6 +38,7 @@ import {
 import { accountSaid, bookingOf, bookMoney } from "../money-store";
 import {
   CATEGORY_OF_RECEIVABLE,
+  answerForWriteOff,
   assertPaidNoMoreThanOwed,
   receivableOfBuyers,
   assertWrittenOffNoMoreThanOwed,
@@ -247,6 +249,13 @@ export const receivablesRouter = {
             input.amountMoney,
             owingNow?.owingMoney ?? 0
           );
+          await answerForWriteOff(tx, changeByOf(context, now), {
+            id,
+            source: input.source,
+            sourceId: input.id,
+            counterpartyId: standing.counterpartyId,
+            amountMoney: input.amountMoney,
+          });
           await tx.insert(receivableWriteOff).values({
             id,
             farmId: context.farm.id,

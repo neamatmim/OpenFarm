@@ -21,7 +21,6 @@ import {
   farmAccountShownOf,
   paymentMethodOf,
 } from "../money-store";
-import { lockTheFarm } from "../venture-store";
 import { readWageDraw, takenOffDraw } from "../wage-draw-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
@@ -64,7 +63,6 @@ export const wageDrawCorrection: CorrectionKind<
   table: wageDraw,
   roles: ["owner", "manager"],
   // The same lock a payday takes before it reads what is owed.
-  lock: lockTheFarm,
   missing: "No such wage draw",
   load: loadDraw,
   entry: (row) => ({ enteredAt: row.recordedAt, enteredBy: row.recordedBy }),

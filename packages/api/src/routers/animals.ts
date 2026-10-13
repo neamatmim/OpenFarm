@@ -35,6 +35,7 @@ import {
 } from "../breeding-store";
 import { calfLossesOf } from "../calf-losses-store";
 import { followExpectedCalving } from "../calving-work";
+import { changeByOf } from "../closed-month-store";
 import type { Context } from "../context";
 import {
   animalFactsCorrection,
@@ -1954,7 +1955,7 @@ export const animalsRouter = {
             });
           }
           if (target.ownerVentureId) {
-            await takeBackMadeGood(tx, context.farm.id, {
+            await takeBackMadeGood(tx, changeByOf(context, now), {
               animalId: target.id,
               ventureId: target.ownerVentureId,
             });

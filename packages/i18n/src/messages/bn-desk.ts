@@ -1879,6 +1879,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "audit.entity.handover": "নগদ হাতবদল",
   "audit.entity.farm_account": "খামারের হিসাব",
   "audit.entity.farm_account_check": "ব্যাংক মিলানো",
+  "audit.entity.closed_month": "বন্ধ করা মাস",
   "audit.entity.needs_review": "পর্যালোচনা দরকার",
   "audit.entity.excused_dose": "মাফ করা ডোজ",
   "audit.entity.venture_settlement": "হিসাব চূড়ান্ত",

@@ -99,6 +99,7 @@ export const ENTITIES = [
   "handover",
   "farm_account",
   "farm_account_check",
+  "closed_month",
   "needs_review",
   "excused_dose",
   "venture_settlement",

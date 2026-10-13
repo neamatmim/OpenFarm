@@ -94,12 +94,60 @@ export interface MonthlyReportFacts {
     } & InAndOut)[];
   };
 
+  /** What the Owner changed in this month to months already closed (a **Closed Month**); nothing where nothing was, or
+   *  for facts made before months were closed. */
+  changedAfterClosing?: readonly ChangedAfterClosing[];
+
   producedAt: Said;
   producedBy: string;
 }
 
+/** One change made to a **Closed Month** after it was closed, as the paper of the month it was made in lists it. */
+export interface ChangedAfterClosing {
+  /** The closed month that changed, "YYYY-MM": where the record stood, or where it was moved to. */
+  month: string;
+  change: "entered" | "corrected" | "moved" | "voided";
+  /** What the record was — a Sale's money, a Handover, a Write-off — in each language. */
+  record: Said;
+  /** Whom it was with or about, and the tag of the Animal it was for, where there was one. */
+  about: string | null;
+  tagNumber: string | null;
+  /** What the closed month held of it before, and after: nothing before for one entered or moved in, nothing after for
+   *  one voided or moved out. */
+  beforeMoney: number | null;
+  afterMoney: number | null;
+  /** The farm day the change was made on, and who made it. */
+  changedOn: string;
+  by: string | null;
+}
+
+/** What a change to a Closed Month's money did, in each language. */
+const CHANGE_SAID: Record<ChangedAfterClosing["change"], Said> = {
+  entered: { bn: "নতুন লেখা", en: "Entered" },
+  corrected: { bn: "সংশোধন", en: "Put right" },
+  moved: { bn: "সরানো", en: "Moved" },
+  voided: { bn: "বাতিল", en: "Taken off" },
+};
+
 /** A dash, for a figure nobody made: never a price of nought. */
 export const NONE: Said = { bn: "—", en: "—" };
+
+/** The record a change was made to, said whole: what it was, whom it was with, and the tag of the Animal it was for. */
+const recordSaid = (one: ChangedAfterClosing): Said => {
+  const rest = [one.about, one.tagNumber].filter(
+    (part): part is string => part !== null && part !== ""
+  );
+  return {
+    bn: [one.record.bn, ...rest].join(" · "),
+    en: [one.record.en, ...rest].join(" · "),
+  };
+};
+
+/** The heading changes to closed months go under, on the paper and in the CSV alike. */
+const CHANGED_AFTER_CLOSING: Said = {
+  bn: "বন্ধ করা মাসে পরে যা বদলেছে",
+  en: "Changed after closing",
+};
 
 /** A month by its name and year, in each language. */
 export const monthSaid = (month: string): Said => {
@@ -769,6 +817,46 @@ const moneyByPart = (
         note: null,
       };
 
+/**
+ * What was changed this month to the money of months the Owner had already closed — entered, put right, moved or
+ * taken off — so a paper already handed over is known to have moved. Left off the paper when nothing was.
+ */
+const changedAfterClosingPart = (facts: MonthlyReportFacts): PaperSection[] => {
+  const changes = facts.changedAfterClosing ?? [];
+  if (changes.length === 0) {
+    return [];
+  }
+  return [
+    {
+      kind: "table",
+      heading: CHANGED_AFTER_CLOSING,
+      columns: [
+        { label: { bn: "দিন", en: "Day" } },
+        { label: { bn: "যে মাসের", en: "Month changed" } },
+        { label: { bn: "কী হলো", en: "What" } },
+        { label: { bn: "কোন হিসাব", en: "Record" } },
+        { label: { bn: "আগে", en: "Before" }, figures: true },
+        { label: { bn: "পরে", en: "After" }, figures: true },
+        { label: { bn: "কে", en: "By" } },
+      ],
+      rows: changes.map((one) => [
+        daySaid(one.changedOn),
+        monthSaid(one.month),
+        CHANGE_SAID[one.change],
+        recordSaid(one),
+        sumSaid(one.beforeMoney),
+        sumSaid(one.afterMoney),
+        one.by ?? NONE,
+      ]),
+      foot: null,
+      note: {
+        bn: "মালিক মাসটি বন্ধ করার পরে এগুলো লেখা হয়েছে; সেই মাসের আগের কাগজের অঙ্ক এখন বদলে গেছে।",
+        en: "Written after the owner closed the month: that month's paper, as handed over, no longer holds.",
+      },
+    },
+  ];
+};
+
 /** A Side by the name the farm's papers give it; the whole farm for money that belongs to no one Side. */
 const sideSaid = (side: Side | null): Said => {
   if (side === null) {
@@ -1011,6 +1099,7 @@ export const monthlyReportPaper = (
       partOf(STORE, facts),
       partOf(CAPITAL, facts),
       partOf(MONTHS_RETURN, facts),
+      ...changedAfterClosingPart(facts),
     ],
     closing: [...leftOut(facts.figures), VENTURES_KEEP_THEIR_OWN],
     produced: producedSaid(facts.producedAt, facts.producedBy),
@@ -1027,7 +1116,37 @@ export interface MonthlyReportRow {
   way: "in" | "out" | null;
   thisMonth: number | null;
   monthBefore: number | null;
+  /** For a change to a closed month alone: what that month held of the record before it, and after. */
+  before?: number | null;
+  after?: number | null;
 }
+
+/**
+ * Each change the Owner made this month to a closed month, a row each: the day, the month it changed, what happened,
+ * the record and who made it, said in its line, and what that month held of it before and after.
+ */
+const changedRows = (facts: MonthlyReportFacts): MonthlyReportRow[] =>
+  (facts.changedAfterClosing ?? []).map((one) => {
+    const parts = [
+      daySaid(one.changedOn),
+      monthSaid(one.month),
+      CHANGE_SAID[one.change],
+      recordSaid(one),
+      one.by === null ? null : { bn: one.by, en: one.by },
+    ].filter((part): part is Said => part !== null);
+    return {
+      part: CHANGED_AFTER_CLOSING,
+      line: {
+        bn: parts.map((part) => part.bn).join(" — "),
+        en: parts.map((part) => part.en).join(" — "),
+      },
+      way: null,
+      thisMonth: null,
+      monthBefore: null,
+      before: one.beforeMoney,
+      after: one.afterMoney,
+    };
+  });
 
 /** The month's money in and out by one way of adding it, a row each way: the month alone. */
 const moneyByRows = (
@@ -1184,5 +1303,6 @@ export const monthlyReportRows = (
     ...rowsOf(MONTHS_RETURN),
     ...rowsOf(LEFT_OUT),
     ...rowsOf(AWAITING),
+    ...changedRows(facts),
   ];
 };

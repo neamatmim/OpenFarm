@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
+import { changeByOf } from "../closed-month-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { assertNotExpiredWhenBought } from "../lot-input";
@@ -130,7 +131,12 @@ export const medicinePurchaseCorrection: CorrectionKind<
     // The store and its Lots are read again from what was bought, so a purchase taken away leaves them as if it never
     // came.
     if (to.voided) {
-      await forgetTheMoneyOf(tx, "medicine_purchase", row.id);
+      await forgetTheMoneyOf(
+        tx,
+        changeByOf(context, now),
+        "medicine_purchase",
+        row.id
+      );
       await tx.delete(medicinePurchase).where(eq(medicinePurchase.id, row.id));
       await clearNoticesAbout(tx, row.farmId, [row.id], now);
       return;

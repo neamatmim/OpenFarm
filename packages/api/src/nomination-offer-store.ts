@@ -19,6 +19,7 @@ import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Context } from "./context";
 import { assertRegistered } from "./export-store";
+import { lockTheFarm } from "./farm-lock";
 import { assertReadAsKept, keepPaper } from "./kept-paper";
 import { nominationInForce } from "./nomination-store";
 import {
@@ -41,7 +42,6 @@ import {
 } from "./offer-lifecycle";
 import { confirmApproval, proofSaid } from "./signing-code";
 import { currentWording, giveStandardTemplates } from "./template-store";
-import { lockTheFarm } from "./venture-store";
 
 // A মনোনয়নপত্র agreed within the app, instead of signed in front of the Owner (ADR 0022): the Owner offers it, the
 // Investor agrees to the paper in the portal with a Signing Code, and the Owner approves it — and only then is it the

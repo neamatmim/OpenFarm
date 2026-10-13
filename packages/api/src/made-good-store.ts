@@ -6,6 +6,7 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { audited } from "./audit";
+import type { ChangeBy } from "./closed-month-store";
 import type { Context } from "./context";
 import { boughtInOf, costToItsOwner, farmCosts } from "./cost-store";
 import { recordInternalSale } from "./internal-sale-store";
@@ -139,9 +140,10 @@ export const makeGood = async (
  */
 export const takeBackMadeGood = async (
   tx: Tx,
-  farmId: string,
+  by: ChangeBy,
   her: { animalId: string; ventureId: string }
 ): Promise<void> => {
+  const { farmId } = by;
   const venture = await tx.query.venture.findFirst({
     where: { id: her.ventureId, farmId },
     columns: { state: true },
@@ -165,7 +167,7 @@ export const takeBackMadeGood = async (
   if (!made) {
     return;
   }
-  await forgetTheMoneyOf(tx, "venture_made_good", made.id);
+  await forgetTheMoneyOf(tx, by, "venture_made_good", made.id);
   await tx.delete(ventureMovement).where(eq(ventureMovement.id, made.id));
 };
 

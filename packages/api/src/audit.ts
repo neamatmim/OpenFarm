@@ -7,6 +7,7 @@ import type { AuditEntity } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Context } from "./context";
+import { lockTheFarm } from "./farm-lock";
 import { aWriteWasSeen, seenWhenDone } from "./writes-seen";
 
 /** A transaction handle for the domain write. */
@@ -141,6 +142,11 @@ export const audited = (
     const eventId = uuidv7(receivedAt);
     return seenWhenDone(
       context.db.transaction(async (tx) => {
+        // The Farm first, before any row of the write's own: every write that can reach its money is ordered the same
+        // way, so none waits on another that waits on it (`lockTheFarm`).
+        if (farmId) {
+          await lockTheFarm(tx, farmId);
+        }
         const before = await readSnapshot(tx, event.before);
         const result = await apply(tx, eventId);
         const after = await readSnapshot(tx, event.after);

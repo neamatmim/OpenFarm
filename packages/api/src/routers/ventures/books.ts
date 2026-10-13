@@ -31,6 +31,7 @@ import { stampedFileName } from "../../export-name";
 import { assertRegistered, recordExport } from "../../export-store";
 import { farmsOwnOf } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
+import { lockTheFarm } from "../../farm-lock";
 import { tagsOfHerRecords } from "../../herd-store";
 import { protectedProcedure } from "../../index";
 import { farmAccountIdInput, monthInput } from "../../money-inputs";
@@ -49,7 +50,6 @@ import type { VentureRow } from "../../venture-store";
 import {
   balanceAtMonthEnd,
   directionOf,
-  lockTheFarm,
   ownedThenByOf,
   readBankCheck,
   readMovement,

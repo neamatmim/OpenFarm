@@ -8,6 +8,7 @@ import type { z } from "zod";
 
 import type { Tx } from "./audit";
 import { assertTheHand } from "./cash-store";
+import { lockTheFarm } from "./farm-lock";
 import type { receiptInput } from "./money-inputs";
 import {
   accountSaid,
@@ -15,7 +16,6 @@ import {
   bookingOf,
   mayBeEnteredByHand,
 } from "./money-store";
-import { lockTheFarm } from "./venture-store";
 import { drawsToTake, takeDraws } from "./wage-draw-store";
 
 /** Refused, with the word the screen says it in. */

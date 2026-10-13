@@ -25,6 +25,7 @@ import type { ReactNode } from "react";
 import {
   FarmAccountsOutGroup,
   FarmAccountsUnreadGroup,
+  MonthToCloseGroup,
 } from "@/components/home/farm-accounts-out";
 import { LowStockWords } from "@/components/home/low-stock-line";
 import { MissingAnimalsGroup } from "@/components/home/missing-animals";
@@ -471,6 +472,7 @@ const KindList = ({
           />
           <FarmAccountsOutGroup accounts={needsYou.farmAccountsOut} />
           <FarmAccountsUnreadGroup accounts={needsYou.farmAccountsUnread} />
+          <MonthToCloseGroup month={needsYou.monthToClose} />
         </div>
       );
     }

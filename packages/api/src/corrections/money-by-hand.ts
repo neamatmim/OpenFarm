@@ -1,5 +1,4 @@
-import { eq } from "@OpenFarm/db/operators";
-import { moneyEvent, moneyReceipt } from "@OpenFarm/db/schema/money";
+import { moneyEvent } from "@OpenFarm/db/schema/money";
 import type { Side } from "@OpenFarm/domain";
 import { farmDayOf, herdShares, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -7,6 +6,7 @@ import { z } from "zod";
 
 import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
+import { changeByOf } from "../closed-month-store";
 import { herdCostOf } from "../cost-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
@@ -29,7 +29,12 @@ import {
   receiptInput,
   sideInput,
 } from "../money-inputs";
-import { accountSaid, bookingOf, bookMoney } from "../money-store";
+import {
+  accountSaid,
+  bookingOf,
+  bookMoney,
+  takeOffTheBooks,
+} from "../money-store";
 import { drawsTakenBy } from "../wage-draw-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, venturesCharged } from "./correction";
@@ -201,10 +206,7 @@ export const moneyByHandCorrection: CorrectionKind<
       });
     }
     if (to.voided) {
-      await tx
-        .delete(moneyReceipt)
-        .where(eq(moneyReceipt.moneyEventId, row.id));
-      await tx.delete(moneyEvent).where(eq(moneyEvent.id, row.id));
+      await takeOffTheBooks(tx, changeByOf(context, now), [row.id]);
       // Awaiting the Owner's approval, entered twice: said of money that is no longer on the books.
       await clearNoticesAbout(tx, row.farmId, [row.id], now);
       return;

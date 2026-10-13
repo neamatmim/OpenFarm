@@ -63,7 +63,9 @@ export const ownerCountsOf = (
     monthlyCostsMissing(needsYou) +
     accountsToSee(needsYou) +
     // Missing from an answer a phone kept from before Receivable was written down.
-    (needsYou.receivableOverdue?.length ?? 0),
+    (needsYou.receivableOverdue?.length ?? 0) +
+    // Last month to close, from the 7th: missing from an answer kept from before months were closed.
+    (needsYou.monthToClose ? 1 : 0),
   review: needsYou.needsReview.length,
 });
 

@@ -1,14 +1,15 @@
-import { and, eq } from "@OpenFarm/db/operators";
-import { moneyEvent, vetFee, vetFeeAnimal } from "@OpenFarm/db/schema/money";
+import { eq } from "@OpenFarm/db/operators";
+import { vetFee, vetFeeAnimal } from "@OpenFarm/db/schema/money";
 import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
+import { changeByOf } from "../closed-month-store";
 import { farmDay } from "../farm-clock";
 import { amountInput } from "../money-inputs";
-import { forgetTheMoneyOf } from "../money-store";
+import { forgetTheMoneyOf, putMoneyRight } from "../money-store";
 import type { CorrectionKind } from "./correction";
 import {
   changeOf,
@@ -70,9 +71,9 @@ export const vetFeeCorrection: CorrectionKind<
       where: { id: row.id },
       with: { animals: { columns: { animalId: true } } },
     })) ?? null,
-  apply: async (tx, row, to, { now }) => {
+  apply: async (tx, row, to, { context, now }) => {
     if (to.voided) {
-      await forgetTheMoneyOf(tx, "vet_fee", row.id);
+      await forgetTheMoneyOf(tx, changeByOf(context, now), "vet_fee", row.id);
       await tx.delete(vetFeeAnimal).where(eq(vetFeeAnimal.vetFeeId, row.id));
       await tx.delete(vetFee).where(eq(vetFee.id, row.id));
       await clearNoticesAbout(tx, row.farmId, [row.id], now);
@@ -101,16 +102,12 @@ export const vetFeeCorrection: CorrectionKind<
       ...(to.visitedOn === undefined ? {} : { occurredAt: visitedOn }),
     };
     if (somethingChanged(money)) {
-      await tx
-        .update(moneyEvent)
-        .set(money)
-        .where(
-          and(
-            eq(moneyEvent.farmId, row.farmId),
-            eq(moneyEvent.source, "vet_fee"),
-            eq(moneyEvent.sourceId, row.id)
-          )
-        );
+      await putMoneyRight(
+        tx,
+        changeByOf(context, now),
+        { source: "vet_fee", sourceId: row.id },
+        money
+      );
     }
   },
 };

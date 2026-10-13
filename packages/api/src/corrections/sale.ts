@@ -1,6 +1,5 @@
-import { eq, inArray } from "@OpenFarm/db/operators";
+import { eq } from "@OpenFarm/db/operators";
 import { sale, sellingTripAnimal } from "@OpenFarm/db/schema/fattening";
-import { moneyEvent, moneyReceipt } from "@OpenFarm/db/schema/money";
 import { sellingTrip } from "@OpenFarm/db/schema/trip";
 import {
   receivablePutRight,
@@ -19,6 +18,7 @@ import {
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { assertTheHand, handOfTheRecord } from "../cash-store";
+import { changeByOf } from "../closed-month-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { comesBackFromAVoidedExit, correctHowSheLeft } from "../herd-store";
 import { farmAccountChange, paymentMethodChange } from "../money-inputs";
@@ -27,6 +27,7 @@ import {
   bookingOf,
   farmAccountShownOf,
   paymentMethodOf,
+  takeOffTheBooks,
 } from "../money-store";
 import {
   assertNothingStandsAgainst,
@@ -45,7 +46,7 @@ import {
   readSale,
 } from "../sale-store";
 import { assertNotSettledUp } from "../venture-act";
-import { backFromSellingOnAVoid, lockTheFarm } from "../venture-store";
+import { backFromSellingOnAVoid } from "../venture-store";
 import { keepWhatWasPhotographed } from "../voided-photos";
 import type { CorrectionKind, Corrector, NewValues } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
@@ -172,10 +173,7 @@ const voidTheSale = async (
       by: context.actor.id,
       at: now,
     });
-    await tx
-      .delete(moneyReceipt)
-      .where(inArray(moneyReceipt.moneyEventId, ids));
-    await tx.delete(moneyEvent).where(inArray(moneyEvent.id, ids));
+    await takeOffTheBooks(tx, changeByOf(context, now), ids);
   }
   await tx.delete(sale).where(eq(sale.id, row.id));
   // The Venture this Sale made Selling goes back where it stood, unless another of its animals has been sold since.
@@ -338,7 +336,6 @@ export const saleCorrection: CorrectionKind<
   roles: ["owner", "manager"],
   // Putting one of these right can move a Venture Movement, so it takes the Farm lock first, as
   // everything that counts a Venture's money does.
-  lock: lockTheFarm,
   // No `venturesOf`, on purpose. A Sale put right after a Settlement is the late news itself — refusing
   // it would leave what a buyer really paid nowhere to land — and what it changes is shown as a
   // Settlement Adjustment rather than moving the frozen figures.

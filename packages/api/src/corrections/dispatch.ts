@@ -6,6 +6,8 @@ import { z } from "zod";
 
 import { clearDebtNoticesOf, clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
+import type { ChangeBy } from "../closed-month-store";
+import { changeByOf } from "../closed-month-store";
 import {
   assertNotLater,
   bookDispatchMoney,
@@ -82,8 +84,9 @@ export const dispatchCorrectionInput = correctionInput({
 const voidTheDispatch = async (
   tx: Tx,
   row: { id: string; farmId: string; buyerId: string },
-  now: Date
+  by: ChangeBy
 ) => {
+  const { now } = by;
   await assertNothingStandsAgainst(tx, row.farmId, {
     id: row.id,
     counterpartyId: row.buyerId,
@@ -94,7 +97,7 @@ const voidTheDispatch = async (
       data: { refusal: "paid_on_it" },
     });
   });
-  await forgetTheMoneyOf(tx, "dispatch", row.id);
+  await forgetTheMoneyOf(tx, by, "dispatch", row.id);
   await tx.delete(dispatch).where(eq(dispatch.id, row.id));
   await clearNoticesAbout(tx, row.farmId, [row.id], now);
   await clearDebtNoticesOf(tx, row.farmId, row.id, now);
@@ -221,6 +224,6 @@ export const dispatchCorrection: CorrectionKind<
   trail: (tx, row) => readDispatch(tx, row.id),
   apply: (tx, row, to, { context, now }) =>
     to.voided
-      ? voidTheDispatch(tx, row, now)
+      ? voidTheDispatch(tx, row, changeByOf(context, now))
       : putTheDispatchRight(tx, row, to, { context, now }),
 };

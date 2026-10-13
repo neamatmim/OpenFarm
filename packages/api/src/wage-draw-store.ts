@@ -6,9 +6,9 @@ import { wageDraw, wageDrawTaken } from "@OpenFarm/db/schema/money";
 import { roundMoney } from "@OpenFarm/domain";
 
 import type { SnapshotValue, Tx } from "./audit";
+import { lockTheFarm } from "./farm-lock";
 import type { Booking } from "./money-store";
 import { bookMoney } from "./money-store";
-import { lockTheFarm } from "./venture-store";
 
 // The Wage Draw: a person's money ahead of payday, its own Money Event under Wages the day it was drawn, and taken off
 // the month's wage at payday — the oldest first — so nobody is paid twice.

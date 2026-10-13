@@ -33,7 +33,7 @@ import {
   giveStandardOnce,
   ignoreNothingToDo,
 } from "./farm-list";
-import { lockTheFarm } from "./venture-store";
+import { lockTheFarm } from "./farm-lock";
 
 /** One Version of a Template, as a paper is printed from it and the screen shows it. */
 export interface Wording {

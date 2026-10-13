@@ -1998,6 +1998,7 @@ export const enDesk = {
   "audit.entity.handover": "Cash handover",
   "audit.entity.farm_account": "Farm account",
   "audit.entity.farm_account_check": "Bank check",
+  "audit.entity.closed_month": "Closed month",
   "audit.entity.needs_review": "Needs review",
   "audit.entity.excused_dose": "Dose excused",
   "audit.entity.venture_settlement": "Settlement",

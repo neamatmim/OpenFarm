@@ -14,10 +14,11 @@ import { ORPCError } from "@orpc/server";
 import type { Trail, Tx } from "./audit";
 import { farmAsItIs } from "./farm-as-signed";
 import { assertTheVenturesSplit } from "./farm-capital-store";
+import { lockTheFarm } from "./farm-lock";
 import { countedInvestors, nextPayInCode, unitsTaken } from "./investor-store";
 import { nominationBySigning } from "./nominations";
 import { answerBySigning } from "./requests-to-join";
-import { lockTheFarm, windowInForceOn } from "./venture-store";
+import { windowInForceOn } from "./venture-store";
 
 /** What an Investment Agreement is written with, however it came to be agreed — on stamped paper or in the app. */
 export interface AgreementToWrite {

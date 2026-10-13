@@ -14,6 +14,7 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { pregnancyTimesOf } from "../breeding-store";
+import { changeByOf } from "../closed-month-store";
 import type { Recorder } from "../completion-store";
 import {
   assertEvidenceComplete,
@@ -212,6 +213,7 @@ const effectOfStep = (
     recordedAtByTheFarm,
     now,
     trail: audited(context).recordEvent,
+    changeBy: changeByOf(context, now),
   });
 
 /**

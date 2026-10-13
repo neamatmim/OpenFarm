@@ -1,11 +1,10 @@
-import { eq } from "@OpenFarm/db/operators";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
-import { moneyEvent } from "@OpenFarm/db/schema/money";
 import { z } from "zod";
 
 import type { Trail, Tx } from "./audit";
+import type { ChangeBy } from "./closed-month-store";
 import type { Booking } from "./money-store";
-import { bookMoney, moneySnapshotOf } from "./money-store";
+import { bookMoney, moneySnapshotOf, putMoneyRight } from "./money-store";
 
 /** Taka. One part of what an outing cost beyond the animals: the broker, the lorry, keeping the men. */
 export const tripCostInput = z.number().min(0).max(10_000_000);
@@ -108,23 +107,20 @@ export const fundedBy = async (
 export const paidFromTheFloat = async (
   tx: Tx,
   trail: Trail,
-  {
-    farmId,
-    tripId,
-    ventureId,
-  }: { farmId: string; tripId: string; ventureId: string }
+  by: ChangeBy,
+  { tripId, ventureId }: { tripId: string; ventureId: string }
 ) => {
   const booked = await tx.query.moneyEvent.findFirst({
-    where: { farmId, source: "buying_trip", sourceId: tripId },
+    where: { farmId: by.farmId, source: "buying_trip", sourceId: tripId },
     columns: { id: true, purseVentureId: true },
   });
   if (!booked || booked.purseVentureId === ventureId) {
     return;
   }
-  await tx
-    .update(moneyEvent)
-    .set({ purseVentureId: ventureId })
-    .where(eq(moneyEvent.id, booked.id));
+  // Out of the Farm's purse is out of its month's figures: a Closed Month's is the Owner's alone to move (ADR 0028).
+  // Only the one Money Event found is moved, so the trail below says all that moved.
+  await putMoneyRight(tx, by, { id: booked.id }, { purseVentureId: ventureId });
+
   await trail(tx, {
     entity: "money_event",
     entityId: booked.id,

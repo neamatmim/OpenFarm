@@ -14,6 +14,7 @@ import type { Trail, Tx } from "../audit";
 import type { PregnancyTimes } from "../breeding-store";
 import type { CalvingRecorded } from "../calving-store";
 import type { CalvingWorkFollowed } from "../calving-work";
+import type { ChangeBy } from "../closed-month-store";
 import type {
   MedicineAdjustment,
   MedicineCountLine,
@@ -238,6 +239,8 @@ export interface EffectInput {
   /** The trail of the request recording it now — the person putting a Step right, not the one who first did it: work
    *  it calls off or raises again is written there. */
   trail: Trail;
+  /** Who is writing it now, as a **Closed Month** asks: the person putting a Step right, not the one who first did it. */
+  changeBy: ChangeBy;
 }
 
 /** Why an Effect stood aside: what the farm has learned since that the Step does not know. */

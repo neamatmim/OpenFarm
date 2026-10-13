@@ -1,11 +1,11 @@
 import { eq } from "@OpenFarm/db/operators";
-import { farm } from "@OpenFarm/db/schema/farm";
 import { feedIn } from "@OpenFarm/db/schema/feed";
 import { farmDayOf, roundMoney, startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
+import { changeByOf } from "../closed-month-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import {
@@ -88,14 +88,6 @@ export const feedArrivalCorrection: CorrectionKind<
 > = {
   entity: "feed_in",
   table: feedIn,
-  // Deliveries, corrections and request creation take the farm before any order or receipt lock.
-  lock: async (tx, farmId) => {
-    await tx
-      .select({ id: farm.id })
-      .from(farm)
-      .where(eq(farm.id, farmId))
-      .for("update");
-  },
   roles: ["owner", "manager"],
   /**
    * An arrival is what the costing prices this Feed Item's feedings from: its price and its quantity both
@@ -142,7 +134,7 @@ export const feedArrivalCorrection: CorrectionKind<
           delivery: { id: row.id, voided: true },
         });
       }
-      await forgetTheMoneyOf(tx, "feed_in", row.id);
+      await forgetTheMoneyOf(tx, changeByOf(context, now), "feed_in", row.id);
       await tx.delete(feedIn).where(eq(feedIn.id, row.id));
       await clearNoticesAbout(tx, row.farmId, [row.id], now);
       return;
