@@ -39,6 +39,9 @@ const TheMonth = ({ one }: { one: OneMonth }) => {
   const lines = useMonthLines(one.figures, one.figuresBefore);
   // An answer kept on the phone from before the management figures holds none of them: drawn without those parts.
   const kept: KeptFigures = one.figures;
+  // Money that moved the cash and was neither income nor cost (ADR 0027); an answer kept from before it has none.
+  const outside =
+    (one.moneyBy as Partial<OneMonth["moneyBy"]>).outsideTheResults ?? [];
   const at = { month: one.month, before: one.before };
   return (
     <>
@@ -77,6 +80,18 @@ const TheMonth = ({ one }: { one: OneMonth }) => {
               outMoney: row.outMoney,
             }))}
           />
+          {outside.length > 0 ? (
+            <MoneyBy
+              heading={t("months.one.outsideTheResults")}
+              rows={outside.map((row) => ({
+                key: row.nameBn,
+                name:
+                  language === "en" ? (row.nameEn ?? row.nameBn) : row.nameBn,
+                inMoney: row.inMoney,
+                outMoney: row.outMoney,
+              }))}
+            />
+          ) : null}
         </div>
       </Section>
       <Section

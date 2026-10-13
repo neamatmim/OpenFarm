@@ -146,7 +146,54 @@ const CATEGORIES: Record<
     nameEn: "Bank and mobile money charges",
     direction: "out",
   },
+  // Money that moves the cash and is never the Farm's income or its cost (ADR 0027).
+  owner_money_in: {
+    nameBn: "মালিকের টাকা খামারে",
+    nameEn: "Owner's money in",
+    direction: "in",
+  },
+  owner_drawings: {
+    nameBn: "মালিকের তুলে নেওয়া টাকা",
+    nameEn: "Owner's drawings",
+    direction: "out",
+  },
+  loan_received: { nameBn: "ঋণ পাওয়া", nameEn: "Loan received", direction: "in" },
+  loan_repaid: {
+    nameBn: "ঋণের আসল শোধ",
+    nameEn: "Loan principal repaid",
+    direction: "out",
+  },
+  machine_bought: {
+    nameBn: "যন্ত্র বা ঘর কেনা",
+    nameEn: "Machine or building bought",
+    direction: "out",
+  },
+  // What the loan costs: an ordinary cost of running the place, as rent is.
+  loan_interest: {
+    nameBn: "ঋণের সুদ",
+    nameEn: "Loan interest",
+    direction: "out",
+  },
 };
+
+/**
+ * The standard Categories whose money moves the cash and is never the Farm's income or its cost (ADR 0027; CONTEXT.md:
+ * **Outside the Results**): the Owner's own money in and out, a loan and its principal paid back, and a machine or a
+ * building that lasts years. The cash figures count them; no Overhead, Side Result, Cost by Side or income and expense
+ * does. A loan's interest is a cost, and is not among them.
+ */
+export const OUTSIDE_THE_RESULTS: ReadonlySet<CategoryKey> =
+  new Set<CategoryKey>([
+    "owner_money_in",
+    "owner_drawings",
+    "loan_received",
+    "loan_repaid",
+    "machine_bought",
+  ]);
+
+/** Whether money under this Category stays out of every result (ADR 0027). */
+export const isOutsideTheResults = (key: CategoryKey | null): boolean =>
+  key !== null && OUTSIDE_THE_RESULTS.has(key);
 
 /** The Categories a record books its money under. */
 const KEPT_BY_RECORDS: ReadonlySet<CategoryKey> = new Set<CategoryKey>(
@@ -208,13 +255,16 @@ export const mayBeChargedToAnimals = (category: {
   direction: MoneyDirection;
 }): boolean =>
   category.direction === "out" &&
-  !(category.key !== null && NEVER_THE_ANIMALS.has(category.key));
+  !(category.key !== null && NEVER_THE_ANIMALS.has(category.key)) &&
+  // A machine, a loan paid back, the Owner's own money: none is a cost at all, so no animal can carry it (ADR 0027).
+  !isOutsideTheResults(category.key);
 
 /**
  * Whether the Owner may mark this Category as paid every month — a **Monthly Cost** — so a month with nothing under it
  * is named. Money going out that no record books: money coming in is nobody's to chase, and a record's money arrives
  * with the record — a Vet's fee among them, though a visiting vet's may be entered by hand, since it comes with a
  * visit and not with the month. Not Wages, which is one Category over many people and is watched by the person instead.
+ * Not money outside the results (ADR 0027), which is no cost the month owes: a loan's interest, which is, may be.
  */
 export const mayBePaidMonthly = (category: {
   key: CategoryKey | null;
@@ -222,7 +272,8 @@ export const mayBePaidMonthly = (category: {
 }): boolean =>
   category.direction === "out" &&
   (category.key === null || !KEPT_BY_RECORDS.has(category.key)) &&
-  category.key !== "wages";
+  category.key !== "wages" &&
+  !isOutsideTheResults(category.key);
 
 /** Whether one of the standard Categories goes by either of these names — which the farm's own may not take, in
  *  either language, whatever the capitals. */
@@ -254,8 +305,32 @@ export const missingStandardCategories = async (
   );
 };
 
-/** Gives the farm these standard Categories. A name the farm already uses for one of its own is left as
- *  the farm's. */
+/**
+ * Whether a Category of the farm's own may be taken up as this standard one: money going the same way, and no mark on
+ * it the standard one could not carry — one charged to the animals is a cost in the farm's own use, and stays the farm's.
+ */
+const mayBeTakenUpAs = (
+  key: CategoryKey,
+  own: {
+    direction: MoneyDirection;
+    chargedToAnimals: boolean;
+    paidMonthlySince: Date | null;
+  }
+): boolean => {
+  const standard = { key, direction: CATEGORIES[key].direction };
+  return (
+    own.direction === standard.direction &&
+    (!own.chargedToAnimals || mayBeChargedToAnimals(standard)) &&
+    (own.paidMonthlySince === null || mayBePaidMonthly(standard))
+  );
+};
+
+/**
+ * Gives the farm these standard Categories. One of the farm's own already going by a standard name, in either language
+ * (`nameTaken`), is taken up as the standard one — its money the standard one's from then on, as a farm that kept its
+ * loans under its own «ঋণ পাওয়া» before the standard one came would mean — where it can carry what the standard one
+ * is (`mayBeTakenUpAs`). One that cannot is left as the farm's.
+ */
 export const addStandardCategories = async (
   tx: Tx,
   farmId: string,
@@ -265,20 +340,60 @@ export const addStandardCategories = async (
   if (keys.length === 0) {
     return [];
   }
-  const added = await tx
-    .insert(moneyCategory)
-    .values(
-      keys.map((key) => ({
-        id: newId(now),
-        farmId,
-        key,
-        ...CATEGORIES[key],
-        createdAt: now,
-      }))
+  const own = await tx.query.moneyCategory.findMany({
+    where: { farmId, key: { isNull: true } },
+    columns: {
+      id: true,
+      nameBn: true,
+      nameEn: true,
+      direction: true,
+      chargedToAnimals: true,
+      paidMonthlySince: true,
+    },
+  });
+  // Each of the farm's own taken up once, by the first standard one it answers to.
+  const takenUp: { key: CategoryKey; id: string }[] = [];
+  const toAdd: CategoryKey[] = [];
+  for (const key of keys) {
+    const twin = own.find(
+      (one) =>
+        !takenUp.some((taken) => taken.id === one.id) &&
+        nameTaken([one], {
+          bn: CATEGORIES[key].nameBn,
+          en: CATEGORIES[key].nameEn,
+        })
+    );
+    if (twin && mayBeTakenUpAs(key, twin)) {
+      takenUp.push({ key, id: twin.id });
+    } else {
+      toAdd.push(key);
+    }
+  }
+  await Promise.all(
+    takenUp.map(({ key, id }) =>
+      tx.update(moneyCategory).set({ key }).where(eq(moneyCategory.id, id))
     )
-    .onConflictDoNothing()
-    .returning({ key: moneyCategory.key });
-  return added.flatMap((one) => (one.key === null ? [] : [one.key]));
+  );
+  const added =
+    toAdd.length === 0
+      ? []
+      : await tx
+          .insert(moneyCategory)
+          .values(
+            toAdd.map((key) => ({
+              id: newId(now),
+              farmId,
+              key,
+              ...CATEGORIES[key],
+              createdAt: now,
+            }))
+          )
+          .onConflictDoNothing()
+          .returning({ key: moneyCategory.key });
+  return [
+    ...takenUp.map((one) => one.key),
+    ...added.flatMap((one) => (one.key === null ? [] : [one.key])),
+  ];
 };
 
 /** The standard Category a record's money is booked under. An entry made by hand chooses its own. */

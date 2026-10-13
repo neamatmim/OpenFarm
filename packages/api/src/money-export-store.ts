@@ -9,7 +9,7 @@ import type {
 } from "@OpenFarm/domain";
 import { penHistoryOf, sidesOverTime, startOfFarmDay } from "@OpenFarm/domain";
 
-import { THE_FARMS_PURSE } from "./money-store";
+import { isOutsideTheResults, THE_FARMS_PURSE } from "./money-store";
 import { receivableOfBuyers } from "./receivable-store";
 
 type Db = Pick<Database, "query">;
@@ -438,7 +438,7 @@ export const moneyForTheAccountant = async (
       occurredAt: { gte: from, lt: until },
     },
     with: {
-      category: { columns: { nameBn: true, nameEn: true } },
+      category: { columns: { key: true, nameBn: true, nameEn: true } },
       counterparty: { columns: { name: true } },
     },
     orderBy: { occurredAt: "asc", id: "asc" },
@@ -485,6 +485,7 @@ export const moneyForTheAccountant = async (
         : null,
       approval: one.approval,
       awaitingApproval: one.approval === "awaiting",
+      outsideTheResults: isOutsideTheResults(one.category.key),
       note: one.note,
     };
   });

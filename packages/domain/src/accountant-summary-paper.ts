@@ -46,7 +46,25 @@ const MONEY_IN: Said = { bn: "নগদ এসেছে", en: "Money in" };
 /** The heading of the column of money that went out. */
 const MONEY_OUT: Said = { bn: "নগদ গেছে", en: "Money out" };
 
-/** The period's income against its expense, what it left, and the money still waiting for approval said beneath. */
+/**
+ * Where the money still awaiting approval is counted: everywhere, where all of it was income or expense; where each
+ * falls, where some was outside the results (ADR 0027), which no income or expense figure here holds.
+ */
+const whereAwaitingIs = (summary: MoneySummary): Said =>
+  summary.outsideTheResults.length === 0
+    ? {
+        bn: "এখানকার প্রতিটি অঙ্কে এগুলো ধরা আছে।",
+        en: `${summary.awaiting.count === 1 ? "It is" : "They are"} counted in every figure here.`,
+      }
+    : {
+        bn: "প্রতিটি যেখানে পড়ে সেখানেই ধরা আছে: আয়-ব্যয়ে, নয়তো আয়-ব্যয়ের বাইরে।",
+        en: `${summary.awaiting.count === 1 ? "It is" : "Each is"} counted where it falls: in the income and expense, or outside the results.`,
+      };
+
+/**
+ * The period's income against its expense, what it left, and the money still waiting for approval said beneath. Money
+ * outside the results (ADR 0027) is neither, so these are income and expense in earnest; the cash is said beside it.
+ */
 const totalsPart = ({ summary }: AccountantSummaryFacts): PaperSection => {
   const { awaiting } = summary;
   return {
@@ -54,18 +72,18 @@ const totalsPart = ({ summary }: AccountantSummaryFacts): PaperSection => {
     heading: { bn: "সারাংশ", en: "Summary" },
     columns: [{ label: FIGURE }, { label: MONEY, figures: true }],
     rows: [
-      [{ bn: "নগদ এসেছে", en: "Money in" }, sumSaid(summary.incomeMoney)],
-      [{ bn: "নগদ গেছে", en: "Money out" }, sumSaid(summary.expenseMoney)],
+      [{ bn: "আয়", en: "Income" }, sumSaid(summary.incomeMoney)],
+      [{ bn: "ব্যয়", en: "Expense" }, sumSaid(summary.expenseMoney)],
     ],
     foot: [
-      { bn: "নগদ আসা-যাওয়ার ফারাক", en: "Cash in less out" },
+      { bn: "আয় থেকে ব্যয় বাদে", en: "Income less expense" },
       sumSaid(summary.netMoney),
     ],
     note:
       awaiting.count > 0
         ? {
-            bn: `${formatNumber(awaiting.count, "bn")}টি হিসাব এখনো অনুমোদনের অপেক্ষায়: এসেছে ${sumSaid(awaiting.inMoney).bn}, গেছে ${sumSaid(awaiting.outMoney).bn}। এখানকার প্রতিটি অঙ্কে এগুলো ধরা আছে।`,
-            en: `${formatNumber(awaiting.count, "en")} ${awaiting.count === 1 ? "entry is" : "entries are"} still awaiting approval: ${sumSaid(awaiting.inMoney).en} in, ${sumSaid(awaiting.outMoney).en} out. ${awaiting.count === 1 ? "It is" : "They are"} counted in every figure here.`,
+            bn: `${formatNumber(awaiting.count, "bn")}টি হিসাব এখনো অনুমোদনের অপেক্ষায়: এসেছে ${sumSaid(awaiting.inMoney).bn}, গেছে ${sumSaid(awaiting.outMoney).bn}। ${whereAwaitingIs(summary).bn}`,
+            en: `${formatNumber(awaiting.count, "en")} ${awaiting.count === 1 ? "entry is" : "entries are"} still awaiting approval: ${sumSaid(awaiting.inMoney).en} in, ${sumSaid(awaiting.outMoney).en} out. ${whereAwaitingIs(summary).en}`,
           }
         : null,
   };
@@ -83,8 +101,10 @@ const inAndOutPart = (
         heading,
         rows: [],
         note: {
-          bn: "এই সময়ে খামারের টাকা নড়েনি।",
-          en: "The farm's money did not move in this period.",
+          // Said of income and expense, which these parts are, so a period where only money outside the results moved
+          // never reads as one where nothing did.
+          bn: "এই সময়ে কোনো আয় বা ব্যয় নেই।",
+          en: "No income or expense in this period.",
         },
       }
     : {
@@ -103,6 +123,43 @@ const inAndOutPart = (
         foot: null,
         note: null,
       };
+
+/**
+ * The money that moved the cash and was neither income nor expense (ADR 0027), by Category, and the whole of the cash
+ * beneath: what the income less expense and these come to together. Nothing where none moved.
+ */
+const outsideTheResultsPart = ({
+  summary,
+}: AccountantSummaryFacts): PaperSection[] =>
+  summary.outsideTheResults.length === 0
+    ? []
+    : [
+        {
+          kind: "table",
+          heading: { bn: "আয়-ব্যয়ের বাইরে", en: "Outside the results" },
+          columns: [
+            { label: { bn: "খাত", en: "Category" } },
+            { label: MONEY_IN, figures: true },
+            { label: MONEY_OUT, figures: true },
+          ],
+          rows: summary.outsideTheResults.map((line) => [
+            { bn: line.nameBn, en: line.nameEn?.trim() || line.nameBn },
+            movedSaid(line.inMoney),
+            movedSaid(line.outMoney),
+          ]),
+          // The whole of the cash, these and the income and expense together, so the accountant can tie it to the hands
+          // and the statements.
+          foot: [
+            { bn: "সব মিলিয়ে নগদ", en: "All the cash" },
+            sumSaid(summary.cash.inMoney),
+            sumSaid(summary.cash.outMoney),
+          ],
+          note: {
+            bn: `মালিকের নিজের টাকা, ঋণ ও তার আসল শোধ, যন্ত্র বা ঘর কেনা: নগদ নড়েছে, কিন্তু আয়ও নয়, ব্যয়ও নয়। সব মিলিয়ে নগদ আসা-যাওয়ার ফারাক ${sumSaid(summary.cash.netMoney).bn}।`,
+            en: `The owner's own money, a loan and its principal paid back, a machine or a building bought: the cash moved, and it was neither income nor expense. All the cash in less out: ${sumSaid(summary.cash.netMoney).en}.`,
+          },
+        },
+      ];
 
 /** A Side by the name the farm's papers give it; the whole farm for money that belongs to no one Side. */
 const sideSaid = (side: keyof typeof SIDE_LABEL | null): Said => {
@@ -153,6 +210,7 @@ export const accountantSummaryPaper = (
     },
     sections: [
       totalsPart(facts),
+      ...outsideTheResultsPart(facts),
       inAndOutPart(
         { bn: "খাত অনুযায়ী", en: "By category" },
         { bn: "খাত", en: "Category" },

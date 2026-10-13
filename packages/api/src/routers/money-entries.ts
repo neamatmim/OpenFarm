@@ -56,6 +56,7 @@ import {
   mayBeRetired,
   missingStandardCategories,
   accountSaid,
+  isOutsideTheResults,
 } from "../money-store";
 import { tell } from "../notice";
 import {
@@ -233,6 +234,8 @@ export const moneyEntryProcedures = {
           // Whether it is a Monthly Cost, and whether the Owner may make it one now: never a retired one, which takes
           // nothing new.
           paidMonthly: row.paidMonthlySince !== null,
+          // Money under it moves the cash and is never income or cost (ADR 0027).
+          outsideTheResults: isOutsideTheResults(row.key),
           monthlyMarkable: mayBePaidMonthly(row) && row.retiredAt === null,
         }));
       }),
@@ -378,7 +381,7 @@ export const moneyEntryProcedures = {
           !(mayBeEnteredByHand(existing.key) && mayBeChargedToAnimals(existing))
         ) {
           throw refusedByHand(
-            "Wages, shed rent, utilities, repairs, shed hygiene, equipment, money coming in and money a record books are never the animals' to carry",
+            "Wages, shed rent, utilities, repairs, shed hygiene, equipment, money coming in, money a record books and money outside the results are never the animals' to carry",
             "never_the_animals"
           );
         }
@@ -439,7 +442,7 @@ export const moneyEntryProcedures = {
         }
         if (input.paidMonthly && !mayBePaidMonthly(existing)) {
           throw refusedByHand(
-            "Only money going out that no record books may be marked as paid every month",
+            "Only money going out that no record books, and that is a cost, may be marked as paid every month",
             "never_monthly"
           );
         }

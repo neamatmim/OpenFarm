@@ -126,8 +126,8 @@ interface Read {
 }
 
 /**
- * One stretch of the farm — a month, or the whole year — as the pages these come from say it: the accountant's income
- * and expense of the Farm's purse, the milk its Dispatches sold with what a liter fetched, and Costs by Side over the
+ * One stretch of the farm — a month, or the whole year — as the pages these come from say it: the cash the Farm's purse
+ * moved, the milk its Dispatches sold with what a liter fetched, and Costs by Side over the
  * same days, narrowed to the Farm's own animals. Worked over the stretch itself rather than added up from its months, so a year's cost a liter is its
  * costs over its liters, not a mean of twelve.
  */
@@ -181,10 +181,11 @@ const figuresOver = (
     }),
   });
   return {
+    // The cash that moved, the money outside the results among it (ADR 0027): a loan in is cash in, never income.
     money: {
-      inMoney: cash.incomeMoney,
-      outMoney: cash.expenseMoney,
-      netMoney: cash.netMoney,
+      inMoney: cash.cash.inMoney,
+      outMoney: cash.cash.outMoney,
+      netMoney: cash.cash.netMoney,
       /** Money Events in it still waiting for the Owner, counted in the figures above as the accountant's are. */
       awaitingCount: cash.awaiting.count,
     },
@@ -595,7 +596,12 @@ export const aMonth = async (
     figures: withItsEnds(figures, endBefore, end),
     figuresBefore: withItsEnds(figuresBefore, beganBefore, endBefore),
     /** The month's money as the accountant adds it: by Category, and by Side. */
-    moneyBy: { category: money.byCategory, side: money.bySide },
+    moneyBy: {
+      category: money.byCategory,
+      side: money.bySide,
+      /** By Category, the money that moved the cash and was neither income nor cost (ADR 0027). */
+      outsideTheResults: money.outsideTheResults,
+    },
     /** The months there are to read, newest first: this one back to the month of the first taka the purse moved. */
     monthsKept: monthsFromTo(
       firstDay.slice(0, 7),

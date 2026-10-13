@@ -33,6 +33,19 @@ const FACTS: AccountantSummaryFacts = {
       { side: null, inMoney: 0, outMoney: 11_420 },
     ],
     awaiting: { count: 15, inMoney: 347_000, outMoney: 1_165_350 },
+    outsideTheResults: [
+      {
+        nameBn: "ঋণ পাওয়া",
+        nameEn: "Loan received",
+        inMoney: 200_000,
+        outMoney: 0,
+      },
+    ],
+    cash: {
+      inMoney: 892_379.05,
+      outMoney: 1_208_450,
+      netMoney: -316_070.95,
+    },
   },
   receivableAtTheEnd: [
     { name: "মো. কামাল", owingMoney: 30_000 },
@@ -59,17 +72,69 @@ describe("the accountant's summary, on paper", () => {
     }
   });
 
-  it("is headed with the period and sets the money in, the money out and the cash in less out apart, in English throughout", () => {
+  it("is headed with the period and sets the income, the expense and what it left apart, in English throughout", () => {
     const text = paperText(accountantSummaryPaper(FACTS), "en");
 
     expect(text).toContain("Income and expense");
     expect(text).toContain("1 October 2026");
     expect(text).toContain("9 October 2026");
-    expect(text).toContain("Money in · 692,379.05 taka");
-    expect(text).toContain("Money out · 1,208,450 taka");
+    expect(text).toContain("Income · 692,379.05 taka");
+    expect(text).toContain("Expense · 1,208,450 taka");
     // The minus leads the figure, never stuck between a sign and its digits.
-    expect(text).toContain("Cash in less out · -516,070.95 taka");
+    expect(text).toContain("Income less expense · -516,070.95 taka");
     expect(text).not.toMatch(/[ঀ-৿]{2,} \/ [A-Z]/u);
+  });
+
+  it("lists the money outside the results apart, with all the cash beneath (ADR 0027)", () => {
+    const text = paperText(accountantSummaryPaper(FACTS), "en");
+
+    expect(text).toContain("Outside the results");
+    expect(text).toContain("Loan received · 200,000 taka · —");
+    expect(text).toContain("All the cash · 892,379.05 taka · 1,208,450 taka");
+    expect(text).toContain("All the cash in less out: -316,070.95 taka");
+  });
+
+  it("says the money awaiting approval is counted where it falls, where some was outside the results", () => {
+    const text = paperText(accountantSummaryPaper(FACTS), "en");
+
+    expect(text).toContain(
+      "Each is counted where it falls: in the income and expense, or outside the results."
+    );
+    expect(text).not.toContain("counted in every figure here");
+  });
+
+  it("says a period where only money outside the results moved had no income or expense, never that nothing moved", () => {
+    const text = paperText(
+      accountantSummaryPaper({
+        ...FACTS,
+        summary: {
+          ...FACTS.summary,
+          incomeMoney: 0,
+          expenseMoney: 0,
+          netMoney: 0,
+          byCategory: [],
+          byCounterparty: [],
+          bySide: [],
+        },
+      }),
+      "en"
+    );
+
+    expect(text).toContain("No income or expense in this period.");
+    expect(text).not.toContain("did not move");
+    expect(text).toContain("Loan received · 200,000 taka · —");
+  });
+
+  it("has no part for money outside the results where none moved", () => {
+    const text = paperText(
+      accountantSummaryPaper({
+        ...FACTS,
+        summary: { ...FACTS.summary, outsideTheResults: [] },
+      }),
+      "en"
+    );
+
+    expect(text).not.toContain("Outside the results");
   });
 
   it("reads wholly in Bangla, its figures in Bangla numerals", () => {
@@ -94,7 +159,13 @@ describe("the accountant's summary, on paper", () => {
   });
 
   it("says the money awaiting approval, counted in, and who owed the farm at the period's end with their total", () => {
-    const text = paperText(accountantSummaryPaper(FACTS), "en");
+    const text = paperText(
+      accountantSummaryPaper({
+        ...FACTS,
+        summary: { ...FACTS.summary, outsideTheResults: [] },
+      }),
+      "en"
+    );
 
     expect(text).toContain(
       "15 entries are still awaiting approval: 347,000 taka in, 1,165,350 taka out. They are counted in every figure here."
