@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { outcomeOf, stillToSeeTo } from "./sighting-outcome";
+import { outcomeOf, stillToSeeTo } from "./observation-outcome";
 
-// "Which of what the round saw is still open?" — the sightings whose work is still owed, and nothing else: not one
-// done, not one that raised nothing, and not one from a list a phone kept from before sightings said what became of
+// "Which of what the round saw is still open?" — the Observations whose work is still owed, and nothing else: not one
+// done, not one that raised nothing, and not one from a list a phone kept from before Observations said what became of
 // them.
 
-describe("which sightings are still to see to", () => {
+describe("which Observations are still to see to", () => {
   it("keeps one whose work is still owed", () => {
     expect(stillToSeeTo({ outcome: { state: "open" } })).toBe(true);
   });
@@ -16,7 +16,7 @@ describe("which sightings are still to see to", () => {
     expect(stillToSeeTo({ outcome: null })).toBe(false);
   });
 
-  it("reads a sighting kept from before as having no outcome to say", () => {
+  it("reads an Observation kept from before as having no outcome to say", () => {
     expect(outcomeOf({})).toBeNull();
     expect(stillToSeeTo({})).toBe(false);
   });

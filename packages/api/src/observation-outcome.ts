@@ -1,21 +1,31 @@
 import type { Database } from "@OpenFarm/db";
-import { and, inArray, like, or, sql } from "@OpenFarm/db/operators";
 import type { Bilingual } from "@OpenFarm/domain";
 import { choiceSaid } from "@OpenFarm/domain";
 
-import { heatThatRaised, unwellThatRaised } from "./work-cause";
+import { causeOf, heatKeyOf, unwellKeyOf } from "./work-cause";
 
-/** What became of a sighting's work, in four words: still owed, done, not done in time, or no longer wanted. */
-export type OutcomeState = "open" | "done" | "missed" | "called_off";
+/**
+ * What became of an Observation, in a word: the work it raised still owed, done, not done in time or no longer wanted —
+ * or the Vet saw her, which answers it whatever became of the work.
+ */
+export type OutcomeState =
+  | "open"
+  | "done"
+  | "missed"
+  | "called_off"
+  | "diagnosed";
 
-/** What became of one sighting: the work it raised, how that stands, and — once answered — what was done. */
+/** What became of one Observation: the work it raised and how that stands, what was done, and what the Vet made of it. */
 export interface Outcome {
-  instanceId: string;
+  /** The work it raised; none where it raised none — a cow the Vet diagnosed before the day raised any. */
+  instanceId: string | null;
   state: OutcomeState;
   /** What the work's answer said was done — "The Vet has been called" — as its Version said it. */
   said: Bilingual | null;
-  /** When it was done, for work that is. */
+  /** When the work was done, for work that is. */
   doneAt: Date | null;
+  /** What the Vet's Diagnosis named, where one answered it. */
+  diagnosis: Bilingual | null;
 }
 
 const STATE_OF: Record<string, OutcomeState> = {
@@ -28,11 +38,13 @@ const STATE_OF: Record<string, OutcomeState> = {
   called_off: "called_off",
 };
 
-/** The Observation a piece of work was raised by, read off its cause: the first raising only, never one raised again. */
-const sightingThatRaised = (cause: string | null): string | null =>
-  unwellThatRaised(cause) ?? heatThatRaised(cause);
+/** The causes an Observation's own work carries, raised the day it was seen: an unwell animal's, or a heat's. */
+const causesOf = (observationId: string) => [
+  causeOf(unwellKeyOf(observationId), 0),
+  causeOf(heatKeyOf(observationId), 0),
+];
 
-/** The first choice answered on the work, as its own Version labels it: what was done about her. */
+/** The first choice answered on the work, in the order it was recorded, as its own Version labels it. */
 const answerSaid = (work: {
   version: { content: unknown };
   completions: { stepId: string; evidence: unknown; status: string }[];
@@ -57,41 +69,51 @@ const answerSaid = (work: {
 };
 
 /**
- * What became of each of these sightings: the work an unwell animal or a heat raised, how it stands, and what its first
- * chosen answer said. Read from the work's own cause (`unwell:<id>:+n`, `heat:<id>:+n`), which is where a sighting is
- * tied to what it raised. A sighting that raised nothing has no outcome.
+ * What became of each of these Observations: the work it raised, found by its exact cause about her as her page finds a
+ * heat's, how that work stands and what its answer said; and the Vet's Diagnosis where one answered it, which says what
+ * she had whether the work was called off by it or never raised. An Observation that raised nothing and that no Vet
+ * answered has no outcome.
  */
 export const outcomesOf = async (
-  db: Database,
+  db: Pick<Database, "query">,
   farmId: string,
-  observationIds: readonly string[]
+  observations: readonly { id: string; animalId: string }[]
 ): Promise<Map<string, Outcome>> => {
   const outcomes = new Map<string, Outcome>();
-  if (observationIds.length === 0) {
+  if (observations.length === 0) {
     return outcomes;
   }
-  const raised = await db.query.sopInstance.findMany({
-    where: {
-      farmId,
-      // `<happening>:<observation id>:+<days>`, and only the two happenings a sighting raises work by.
-      RAW: (row) =>
-        and(
-          or(like(row.cause, "unwell:%"), like(row.cause, "heat:%")),
-          inArray(sql`split_part(${row.cause}, ':', 2)`, [...observationIds])
-        ) ?? sql`false`,
-    },
-    // The first raised first, so a sighting's own work is the one said.
-    orderBy: { id: "asc" },
-    columns: { id: true, cause: true, state: true, completedAt: true },
-    with: {
-      version: { columns: { content: true } },
-      completions: {
-        columns: { stepId: true, evidence: true, status: true },
+  const ids = observations.map((one) => one.id);
+  const byCause = new Map(
+    observations.flatMap((one) =>
+      causesOf(one.id).map((cause) => [cause, one.id])
+    )
+  );
+  const [raised, diagnosed] = await Promise.all([
+    db.query.sopInstance.findMany({
+      where: {
+        farmId,
+        animalId: { in: [...new Set(observations.map((one) => one.animalId))] },
+        cause: { in: [...byCause.keys()] },
       },
-    },
-  });
+      orderBy: { id: "asc" },
+      columns: { id: true, cause: true, state: true, completedAt: true },
+      with: {
+        version: { columns: { content: true } },
+        completions: {
+          orderBy: { recordedAt: "asc", id: "asc" },
+          columns: { stepId: true, evidence: true, status: true },
+        },
+      },
+    }),
+    db.query.diagnosis.findMany({
+      where: { farmId, observationId: { in: ids } },
+      orderBy: { diagnosedAt: "asc", id: "asc" },
+      columns: { observationId: true, disease: true, diseaseEn: true },
+    }),
+  ]);
   for (const work of raised) {
-    const seen = sightingThatRaised(work.cause);
+    const seen = work.cause ? byCause.get(work.cause) : undefined;
     if (!seen || outcomes.has(seen)) {
       continue;
     }
@@ -100,6 +122,24 @@ export const outcomesOf = async (
       state: STATE_OF[work.state] ?? "open",
       said: answerSaid(work),
       doneAt: work.completedAt,
+      diagnosis: null,
+    });
+  }
+  const answered = new Set<string>();
+  for (const vet of diagnosed) {
+    if (!vet.observationId || answered.has(vet.observationId)) {
+      continue;
+    }
+    answered.add(vet.observationId);
+    const work = outcomes.get(vet.observationId);
+    outcomes.set(vet.observationId, {
+      instanceId: work?.instanceId ?? null,
+      state: "diagnosed",
+      said: null,
+      doneAt: work?.doneAt ?? null,
+      diagnosis: vet.diseaseEn
+        ? { bn: vet.disease, en: vet.diseaseEn }
+        : { bn: vet.disease },
     });
   }
   return outcomes;

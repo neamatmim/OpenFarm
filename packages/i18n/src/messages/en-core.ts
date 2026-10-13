@@ -1052,6 +1052,7 @@ export const enCore = {
     "An animal leaves the herd by the record of how she went — a sale, a death — not by a change of state",
   "refusal.meatWithdrawal": "She is still inside her meat withdrawal",
   "refusal.noSuchAnimal": "That animal is no longer here to show",
+  "refusal.couldNotBeDone": "This one could not be done; try it again",
   "refusal.noSuchProduct": "That medicine is not on the farm's drug list",
   "refusal.noSuchVenture": "That venture is not one of yours",
   "refusal.notNotifiable":
@@ -1799,6 +1800,7 @@ export const enCore = {
   "observations.outcome.done": "Done",
   "observations.outcome.missed": "Not done in time",
   "observations.outcome.called_off": "No longer needed",
+  "observations.outcome.diagnosed": "Seen by the vet",
   "observations.outcome.none": "Nothing raised",
   "observations.filter.open": "Still to see to",
   "nav.observations": "Observations",
@@ -4313,6 +4315,7 @@ export const enCore = {
     "{count, plural, one {# animal} other {# animals}} ready for sale",
   "ready.refusedMany":
     "{count, plural, one {# animal} other {# animals}} could not be made ready",
+  "several.tooMany": "At most {max} at once: untick some",
   "ready.setAside": "Keep it longer",
   "ready.setAsideWhy": "Why it is staying",
   "ready.setAsideDone": "{tag} is staying for now",

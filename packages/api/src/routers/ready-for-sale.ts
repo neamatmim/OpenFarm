@@ -2,6 +2,7 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { READY_REASONS, readySetAside } from "@OpenFarm/db/schema/fattening";
 import {
+  MANY_AT_ONCE,
   readyGrounds,
   stillWorthSaying,
   underMeatWithdrawal,
@@ -17,7 +18,7 @@ import type { Recorder } from "../completion-store";
 import { entersState, requireAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import type { RefusedOne } from "../one-of-several";
-import { MANY_AT_ONCE, refusedOne } from "../one-of-several";
+import { eachOnce, refusedOne } from "../one-of-several";
 import { fatteningRows } from "../ready-store";
 import { requireRole } from "../roles";
 
@@ -115,6 +116,13 @@ const confirmReady = async (context: Recorder, tag: string) => {
   return { tagNumber, state: "ready_for_sale" as const };
 };
 
+/** Whether a confirmation was refused only because she is Ready for Sale already: done before, by this answer's twin. */
+const isReadyAlready = (error: unknown): boolean => {
+  const data = (error as { data?: { refusal?: unknown; state?: unknown } })
+    ?.data;
+  return data?.refusal === "not_fattening" && data.state === "ready_for_sale";
+};
+
 export const readyForSaleRouter = {
   /**
    * The animals the farm thinks may be sold, and the grounds it thinks so on.
@@ -183,13 +191,18 @@ export const readyForSaleRouter = {
       const confirmed: string[] = [];
       const refused: RefusedOne[] = [];
       // One after another, each in a write of her own: a refusal rolls back only her.
-      for (const tag of new Set(input.tagNumbers)) {
+      for (const tag of eachOnce(input.tagNumbers, (one) => one)) {
         try {
           // oxlint-disable-next-line no-await-in-loop -- each is her own write, in turn, so one refused stops nobody else
           const { tagNumber } = await confirmReady(context, tag);
           confirmed.push(tagNumber);
         } catch (error) {
-          refused.push(refusedOne(tag, error));
+          // Sent again after an answer that never arrived: one already made ready was done, not refused.
+          if (isReadyAlready(error)) {
+            confirmed.push(tagNumberAsWritten(tag));
+          } else {
+            refused.push(refusedOne(tag, error));
+          }
         }
       }
       return { confirmed, refused };

@@ -43,7 +43,7 @@ export const observationsRouter = {
       const outcomes = await outcomesOf(
         context.db,
         context.farm.id,
-        rows.map((row) => row.id)
+        rows.map((row) => ({ id: row.id, animalId: row.animalId }))
       );
       return rows.map(({ animal, observer, completion, ...seen }) => ({
         ...seen,

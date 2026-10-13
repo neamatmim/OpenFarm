@@ -26,7 +26,11 @@ import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { saidIn } from "@/lib/names-in";
-import { OUTCOME_TONE, outcomeOf, stillToSeeTo } from "@/lib/sighting-outcome";
+import {
+  OUTCOME_TONE,
+  outcomeOf,
+  stillToSeeTo,
+} from "@/lib/observation-outcome";
 import { tagMatches, tagSought } from "@/lib/tag-search";
 import { orpc } from "@/utils/orpc";
 
@@ -80,8 +84,9 @@ const WhenCell = ({ row }: SeenCell) => (
 
 const FromCell = ({ row }: SeenCell) => <SeenFrom row={row.original} />;
 
-/** What became of a sighting: the work it raised still owed, done and what was done, or nothing raised. */
-const SeenOutcome = ({ row }: { row: Seen }) => {
+/** What became of an Observation: the work it raised still owed, done and what was done, what the Vet made of her, or
+ *  nothing raised. */
+const ObservationOutcome = ({ row }: { row: Seen }) => {
   const { t, language } = useLanguage();
   const outcome = outcomeOf(row);
   if (!outcome) {
@@ -91,20 +96,34 @@ const SeenOutcome = ({ row }: { row: Seen }) => {
       </span>
     );
   }
-  const said = outcome.said ? saidIn(outcome.said, language) : null;
+  // The Vet's Diagnosis says what she had; otherwise the work's answer says what was done.
+  const words = outcome.diagnosis ?? outcome.said;
+  const said = words ? saidIn(words, language) : null;
+  const badge = (
+    <StatusBadge tone={OUTCOME_TONE[outcome.state]}>
+      {t(`observations.outcome.${outcome.state}`)}
+    </StatusBadge>
+  );
   return (
     <span className="flex flex-wrap items-center gap-1.5">
-      <Link params={{ instanceId: outcome.instanceId }} to="/work/$instanceId">
-        <StatusBadge tone={OUTCOME_TONE[outcome.state]}>
-          {t(`observations.outcome.${outcome.state}`)}
-        </StatusBadge>
-      </Link>
+      {outcome.instanceId ? (
+        <Link
+          params={{ instanceId: outcome.instanceId }}
+          to="/work/$instanceId"
+        >
+          {badge}
+        </Link>
+      ) : (
+        badge
+      )}
       {said ? <span className="text-muted-foreground">{said}</span> : null}
     </span>
   );
 };
 
-const OutcomeCell = ({ row }: SeenCell) => <SeenOutcome row={row.original} />;
+const OutcomeCell = ({ row }: SeenCell) => (
+  <ObservationOutcome row={row.original} />
+);
 
 const NoteCell = ({ row }: SeenCell) =>
   row.original.note ? (
@@ -166,7 +185,7 @@ const SeenCard = ({ row }: { row: Seen }) => {
         <SeenFrom row={row} />
       </span>
       <span className="text-sm">
-        <SeenOutcome row={row} />
+        <ObservationOutcome row={row} />
       </span>
       {row.note ? (
         <span className="text-muted-foreground text-sm">“{row.note}”</span>

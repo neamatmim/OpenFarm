@@ -1,4 +1,4 @@
-import { tagNumberAsWritten } from "@OpenFarm/domain";
+import { MANY_AT_ONCE, tagNumberAsWritten } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -10,10 +10,13 @@ import {
   doseNotPrescribedCorrection,
   doseNotPrescribedCorrectionInput,
 } from "../corrections/dose-not-prescribed";
-import { recordDoseNotPrescribed } from "../dose-not-prescribed-store";
+import {
+  mayBeGivenNotPrescribed,
+  recordDoseNotPrescribed,
+} from "../dose-not-prescribed-store";
 import { protectedProcedure } from "../index";
 import type { RefusedOne } from "../one-of-several";
-import { MANY_AT_ONCE, refusedOne } from "../one-of-several";
+import { eachOnce, refusedOne } from "../one-of-several";
 import { takeBackTheExcuse, excuseArrivalDose } from "../put-off-store";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
 
@@ -27,10 +30,17 @@ const EXCUSED_BY_THE_VET = {
  *  Pen. */
 const giveOneNotPrescribed = async (
   context: Recorder,
-  input: { tag: string; productId: string; givenAt?: Date; advice: string }
+  input: {
+    /** The id the screen gave her dose: sent again, the same dose. */
+    id?: string;
+    tag: string;
+    productId: string;
+    givenAt?: Date;
+    advice: string;
+  }
 ) => {
   const now = context.clock.now();
-  let id = "";
+  let id = input.id ?? "";
   const done = await audited(context).write(
     {
       entity: "treatment",
@@ -44,6 +54,7 @@ const giveOneNotPrescribed = async (
         tx,
         context.farm.id,
         {
+          ...(input.id ? { id: input.id } : {}),
           tagNumber: tagNumberAsWritten(input.tag),
           productId: input.productId,
           givenAt: input.givenAt ?? now,
@@ -58,6 +69,13 @@ const giveOneNotPrescribed = async (
   );
   return { id: done.id };
 };
+
+/** Whether the dose the screen gave this id was written already, on this farm: sent again, it is not written twice. */
+const alreadyGiven = async (context: Recorder, id: string) =>
+  (await context.db.query.treatment.findFirst({
+    where: { id, farmId: context.farm.id },
+    columns: { id: true },
+  })) !== undefined;
 
 export const treatmentsRouter = {
   /**
@@ -84,15 +102,22 @@ export const treatmentsRouter = {
 
   /**
    * The same dose given to several at once — the pharmacy's wormer for a Pen of calves. Each animal's dose is her own
-   * Treatment, written and held as one given alone; one the farm refuses is named, with why, and stops nobody else.
+   * Treatment, written and held as one given alone, under the id the screen gave it: sent again after an answer that never
+   * came, a dose already written is found and counted, never written twice. A medicine that may not be given is refused
+   * for the whole request before anybody is dosed; one animal the farm refuses is named, with why, and stops nobody else.
    */
   giveNotPrescribedMany: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
     .input(
       z.object({
-        animalTags: z
-          .array(z.string().trim().min(1).max(32))
+        animals: z
+          .array(
+            z.object({
+              tagNumber: z.string().trim().min(1).max(32),
+              id: z.string().uuid(),
+            })
+          )
           .min(1)
           .max(MANY_AT_ONCE),
         productId: z.string(),
@@ -101,15 +126,32 @@ export const treatmentsRouter = {
       })
     )
     .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      // The medicine and the time are the request's, not any one animal's: refused whole, before anybody is dosed.
+      await mayBeGivenNotPrescribed(
+        context.db,
+        context.farm.id,
+        { productId: input.productId, givenAt: input.givenAt ?? now },
+        now
+      );
       const given: string[] = [];
       const refused: RefusedOne[] = [];
-      for (const tag of new Set(input.animalTags)) {
+      for (const one of eachOnce(input.animals, (each) => each.tagNumber)) {
+        const tagNumber = tagNumberAsWritten(one.tagNumber);
         try {
           // oxlint-disable-next-line no-await-in-loop -- each dose its own write, in turn, so one refused stops nobody else
-          await giveOneNotPrescribed(context, { ...input, tag });
-          given.push(tagNumberAsWritten(tag));
+          const written = await alreadyGiven(context, one.id);
+          if (!written) {
+            // oxlint-disable-next-line no-await-in-loop -- as above
+            await giveOneNotPrescribed(context, {
+              ...input,
+              id: one.id,
+              tag: one.tagNumber,
+            });
+          }
+          given.push(tagNumber);
         } catch (error) {
-          refused.push(refusedOne(tag, error));
+          refused.push(refusedOne(one.tagNumber, error));
         }
       }
       return { given, refused };

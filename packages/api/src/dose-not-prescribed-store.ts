@@ -23,28 +23,25 @@ const TOLD_WITHIN_MS = 2 * 24 * 60 * 60 * 1000;
 const refused = (message: string, refusal: string) =>
   new ORPCError("BAD_REQUEST", { message, data: { refusal } });
 
-/** Writes the dose, takes it from the store as any dose is, and works her Withdrawal out afresh. */
-export const recordDoseNotPrescribed = async (
-  tx: Tx,
+/**
+ * Whether this medicine may be given as a dose not prescribed at this time, and the days it holds her for: refused for a
+ * time still to come, a medicine the farm does not have or has retired, and one the Vet has written no days for and the
+ * farm no default. Asked once for a whole Pen before anybody is dosed, and again inside each animal's own write.
+ */
+export const mayBeGivenNotPrescribed = async (
+  db: Db,
   farmId: string,
-  input: {
-    tagNumber: string;
-    productId: string;
-    givenAt: Date;
-    advice: string;
-    givenBy: string;
-  },
+  dose: { productId: string; givenAt: Date },
   now: Date
-): Promise<{ id: string; animalId: string }> => {
-  if (input.givenAt > now) {
+) => {
+  if (dose.givenAt > now) {
     throw refused(
       "A dose cannot have been given at a time that has not come yet",
       "given_in_the_future"
     );
   }
-  const her = await loadLiveAnimal(tx, farmId, input.tagNumber);
-  const product = await tx.query.drugProduct.findFirst({
-    where: { id: input.productId, farmId },
+  const product = await db.query.drugProduct.findFirst({
+    where: { id: dose.productId, farmId },
     columns: {
       milkWithdrawalDays: true,
       meatWithdrawalDays: true,
@@ -52,7 +49,10 @@ export const recordDoseNotPrescribed = async (
     },
   });
   if (!product) {
-    throw new ORPCError("NOT_FOUND", { message: "No such product" });
+    throw new ORPCError("NOT_FOUND", {
+      message: "No such product",
+      data: { refusal: "no_such_product" },
+    });
   }
   if (product.retiredAt) {
     throw refused(
@@ -61,7 +61,7 @@ export const recordDoseNotPrescribed = async (
     );
   }
   // Read here rather than from the request: the Vet may have written them a moment ago.
-  const farm = await tx.query.farm.findFirst({
+  const farm = await db.query.farm.findFirst({
     where: { id: farmId },
     columns: {
       defaultMilkWithdrawalDays: true,
@@ -78,7 +78,30 @@ export const recordDoseNotPrescribed = async (
       "ask_the_vet_for_days"
     );
   }
-  const id = uuidv7(now);
+  return {
+    milkWithdrawalDays: product.milkWithdrawalDays ?? days.milkWithdrawalDays,
+    meatWithdrawalDays: product.meatWithdrawalDays ?? days.meatWithdrawalDays,
+  };
+};
+
+/** Writes the dose, takes it from the store as any dose is, and works her Withdrawal out afresh. */
+export const recordDoseNotPrescribed = async (
+  tx: Tx,
+  farmId: string,
+  input: {
+    /** The id the screen gave this animal's dose, so one sent again is found and never written twice. */
+    id?: string;
+    tagNumber: string;
+    productId: string;
+    givenAt: Date;
+    advice: string;
+    givenBy: string;
+  },
+  now: Date
+): Promise<{ id: string; animalId: string }> => {
+  const holds = await mayBeGivenNotPrescribed(tx, farmId, input, now);
+  const her = await loadLiveAnimal(tx, farmId, input.tagNumber);
+  const id = input.id ?? uuidv7(now);
   await tx.insert(treatment).values({
     id,
     farmId,
@@ -91,8 +114,7 @@ export const recordDoseNotPrescribed = async (
     givenBy: input.givenBy,
     givenAt: input.givenAt,
     advice: input.advice,
-    milkWithdrawalDays: product.milkWithdrawalDays ?? days.milkWithdrawalDays,
-    meatWithdrawalDays: product.meatWithdrawalDays ?? days.meatWithdrawalDays,
+    ...holds,
     learnedAt: now,
     createdAt: now,
   });

@@ -1,3 +1,4 @@
+import { MANY_AT_ONCE, tooManyAtOnce } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
@@ -290,12 +291,51 @@ const useConfirmMany = (shown: Suggestion[]) => {
   return {
     chosen,
     count: formatNumber(chosen.length, language),
+    tooMany: tooManyAtOnce(chosen.length),
     pending: confirm.isPending,
     selection,
     handleClear: () => setTicked(new Set()),
     handleConfirm: () =>
       confirm.mutate({ tagNumbers: chosen.map((row) => row.tagNumber) }),
   };
+};
+
+/** Over the list while some are ticked: how many, and the one answer for them all — stopped, and said why, past as many
+ *  as the farm takes at once. */
+const ConfirmManyBar = ({
+  many,
+}: {
+  many: ReturnType<typeof useConfirmMany>;
+}) => {
+  const { t, language } = useLanguage();
+  if (many.chosen.length === 0) {
+    return null;
+  }
+  return (
+    <BatchBar
+      busy={many.pending}
+      onClear={many.handleClear}
+      said={t("ready.chosen", { count: many.count })}
+    >
+      {many.tooMany ? (
+        <span className="text-muted-foreground text-xs">
+          {t("several.tooMany", { max: formatNumber(MANY_AT_ONCE, language) })}
+        </span>
+      ) : null}
+      <Button
+        disabled={many.pending || many.tooMany}
+        onClick={many.handleConfirm}
+        type="button"
+      >
+        {many.pending ? (
+          <Spinner />
+        ) : (
+          <CircleCheck aria-hidden data-icon="inline-start" />
+        )}
+        {t("ready.confirmMany", { count: many.count })}
+      </Button>
+    </BatchBar>
+  );
 };
 
 type GroundFilter = "" | "weight" | "window";
@@ -363,26 +403,7 @@ export const ReadySuggestions = ({
           </NativeSelect>
         ) : null}
       </FilterBar>
-      {many.chosen.length > 0 ? (
-        <BatchBar
-          busy={many.pending}
-          onClear={many.handleClear}
-          said={t("ready.chosen", { count: many.count })}
-        >
-          <Button
-            disabled={many.pending}
-            onClick={many.handleConfirm}
-            type="button"
-          >
-            {many.pending ? (
-              <Spinner />
-            ) : (
-              <CircleCheck aria-hidden data-icon="inline-start" />
-            )}
-            {t("ready.confirmMany", { count: many.count })}
-          </Button>
-        </BatchBar>
-      ) : null}
+      <ConfirmManyBar many={many} />
       {shown.length === 0 ? (
         <EmptyState bare title={t("gain.noneInFilter")} />
       ) : (

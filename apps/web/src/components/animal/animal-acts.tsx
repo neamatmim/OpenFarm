@@ -3,7 +3,6 @@ import {
   ADULT_DEATH_CAUSES,
   CALF_DEATH_CAUSES,
   DISPOSALS,
-  daysOfADoseNotPrescribed,
   MORTALITY_KINDS,
   statesSetByHand,
 } from "@OpenFarm/domain";
@@ -16,6 +15,7 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { DeathPhotoField } from "@/components/animal/death-photo";
+import { DoseFields, useDoseForm } from "@/components/animal/dose-form";
 import { MoveDialog } from "@/components/animal/move-dialog";
 import { Notice } from "@/components/page";
 import {
@@ -558,126 +558,38 @@ const ShortenDialog = ({ detail, open, onOpenChange }: ActProps) => {
   );
 };
 
-/** What the chosen medicine will hold her for: its own days, the Vet's default, or nothing yet — ask the Vet. */
-export const DoseDays = ({
-  product,
-  byDefault,
-}: {
-  product: {
-    milkWithdrawalDays: number | null;
-    meatWithdrawalDays: number | null;
-  };
-  byDefault: { milkDays: number | null; meatDays: number | null } | undefined;
-}) => {
-  const { t } = useLanguage();
-  const days = daysOfADoseNotPrescribed(product, {
-    milkDays: byDefault?.milkDays ?? null,
-    meatDays: byDefault?.meatDays ?? null,
-  });
-  if (!days) {
-    return <p className="text-danger text-sm">{t("dose.askTheVet")}</p>;
-  }
-  const milk = product.milkWithdrawalDays ?? days.milkWithdrawalDays ?? 0;
-  const meat = product.meatWithdrawalDays ?? days.meatWithdrawalDays ?? 0;
-  const tookTheDefault =
-    days.milkWithdrawalDays !== null || days.meatWithdrawalDays !== null;
-  return (
-    <p className="bg-muted rounded-md px-3 py-2 text-sm">
-      {t(tookTheDefault ? "dose.holdsDefault" : "dose.holdsOwn", {
-        milk,
-        meat,
-      })}
-    </p>
-  );
-};
-
 /**
  * A dose not prescribed: medicine the pharmacy or anybody advised, given before the Vet saw her. Written by the Owner
  * or the Manager so her milk and meat are held as any dose holds them; the Vet is told at once.
  */
 const DoseDialog = ({ detail, open, onOpenChange }: ActProps) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const onError = useRefused();
-  const drugs = useQuery({ ...orpc.drugs.list.queryOptions(), enabled: open });
-  const byDefault = useQuery({
-    ...orpc.drugs.defaultDays.queryOptions(),
-    enabled: open,
-  });
-  const [productId, setProductId] = useState("");
-  const [givenAt, setGivenAt] = useState("");
-  const [advice, setAdvice] = useState("");
+  const form = useDoseForm(open);
   const give = useMutation(
     orpc.treatments.giveNotPrescribed.mutationOptions({
       onSuccess: () => {
-        setProductId("");
-        setGivenAt("");
-        setAdvice("");
+        form.handleClear();
         toast.success(t("dose.recorded"));
         onOpenChange(false);
       },
       onError,
     })
   );
-  const products = (drugs.data ?? []).filter((one) => one.retiredAt === null);
-  const chosen = products.find((one) => one.id === productId);
-  const mayBeGiven =
-    chosen !== undefined &&
-    daysOfADoseNotPrescribed(chosen, {
-      milkDays: byDefault.data?.milkDays ?? null,
-      meatDays: byDefault.data?.meatDays ?? null,
-    }) !== null;
   return (
     <FormDialog
       description={t("dose.hint")}
       onOpenChange={onOpenChange}
       onSubmit={() =>
-        give.mutate({
-          animalTag: detail.tagNumber,
-          productId,
-          advice: advice.trim(),
-          // Read as the farm's day and time, not the phone's (lib/farm-moment).
-          ...(givenAt ? { givenAt: new Date(momentOfField(givenAt)) } : {}),
-        })
+        give.mutate({ animalTag: detail.tagNumber, ...form.sent() })
       }
       open={open}
       pending={give.isPending}
-      ready={mayBeGiven && advice.trim() !== ""}
+      ready={form.ready}
       submitLabel={t("dose.give")}
       title={`${t("dose.give")} · ${detail.tagNumber}`}
     >
-      <FormField id="dose-product" label={t("dose.product")}>
-        <NativeSelect
-          id="dose-product"
-          onChange={(event) => setProductId(event.target.value)}
-          required
-          value={productId}
-        >
-          <option value="">{t("dose.pick")}</option>
-          {products.map((one) => (
-            <option key={one.id} value={one.id}>
-              {language === "en" ? (one.nameEn ?? one.nameBn) : one.nameBn}
-            </option>
-          ))}
-        </NativeSelect>
-      </FormField>
-      {chosen ? <DoseDays byDefault={byDefault.data} product={chosen} /> : null}
-      <FormField id="dose-when" label={t("dose.givenAt")}>
-        <Input
-          id="dose-when"
-          onChange={(event) => setGivenAt(event.target.value)}
-          type="datetime-local"
-          value={givenAt}
-        />
-      </FormField>
-      <FormField id="dose-advice" label={t("dose.advice")}>
-        <Input
-          id="dose-advice"
-          maxLength={300}
-          onChange={(event) => setAdvice(event.target.value)}
-          required
-          value={advice}
-        />
-      </FormField>
+      <DoseFields form={form} id="dose" />
     </FormDialog>
   );
 };

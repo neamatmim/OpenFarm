@@ -1,25 +1,45 @@
-import { daysOfADoseNotPrescribed } from "@OpenFarm/domain";
+import { MANY_AT_ONCE, tooManyAtOnce } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Pill } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import { DoseDays } from "@/components/animal/animal-acts";
+import { DoseFields, useDoseForm } from "@/components/animal/dose-form";
 import type { HerdRow } from "@/components/animal/herd-list";
-import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
+import { FormDialog } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { momentOfField } from "@/lib/farm-moment";
 import { useRefused } from "@/lib/refused";
 import { refusedLines } from "@/lib/several-refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /**
+ * The id each ticked animal's dose is written under, kept for as long as this dose is being given: sent again after an
+ * answer that never came, the same ids, so the farm finds the doses it wrote and writes nobody's twice.
+ */
+const useDoseIds = () => {
+  const ids = useRef(new Map<string, string>());
+  return {
+    of: (tagNumber: string) => {
+      const known = ids.current.get(tagNumber);
+      if (known) {
+        return known;
+      }
+      const made = crypto.randomUUID();
+      ids.current.set(tagNumber, made);
+      return made;
+    },
+    /** A new dose: new ids. */
+    handleForget: () => ids.current.clear(),
+  };
+};
+
+/**
  * One dose not prescribed for every animal ticked on the herd list — the pharmacy's wormer for a Pen of calves — rather
- * than her page and the dose dialog once each. Each animal's dose is still her own, held as one given alone; the ones
- * the farm would not dose are named with why, and the rest are written. The Owner's and the Manager's, as one dose is.
+ * than her page and the dose dialog once each. Each animal's dose is still her own, held as one given alone; a medicine
+ * that may not be given is refused whole and the dialog stays as it was, and the animals the farm would not dose are
+ * named with why while the rest are written. The Owner's and the Manager's, as one dose is.
  */
 export const GroupDose = ({
   chosen,
@@ -34,22 +54,16 @@ export const GroupDose = ({
   const { t, language } = useLanguage();
   const onError = useRefused();
   const [open, setOpen] = useState(false);
-  const drugs = useQuery({ ...orpc.drugs.list.queryOptions(), enabled: open });
-  const byDefault = useQuery({
-    ...orpc.drugs.defaultDays.queryOptions(),
-    enabled: open,
-  });
-  const [productId, setProductId] = useState("");
-  const [givenAt, setGivenAt] = useState("");
-  const [advice, setAdvice] = useState("");
+  const form = useDoseForm(open);
+  const ids = useDoseIds();
   const count = formatNumber(chosen.length, language);
+  const tooMany = tooManyAtOnce(chosen.length);
   const give = useMutation(
     orpc.treatments.giveNotPrescribedMany.mutationOptions({
       onSuccess: ({ given, refused }) => {
         setOpen(false);
-        setProductId("");
-        setGivenAt("");
-        setAdvice("");
+        form.handleClear();
+        ids.handleForget();
         if (given.length > 0) {
           toast.success(
             t("dose.groupGiven", {
@@ -76,20 +90,22 @@ export const GroupDose = ({
       onError,
     })
   );
-  const products = (drugs.data ?? []).filter((one) => one.retiredAt === null);
-  const product = products.find((one) => one.id === productId);
-  const mayBeGiven =
-    product !== undefined &&
-    daysOfADoseNotPrescribed(product, {
-      milkDays: byDefault.data?.milkDays ?? null,
-      meatDays: byDefault.data?.meatDays ?? null,
-    }) !== null;
   if (!may) {
     return null;
   }
   return (
     <>
-      <Button onClick={() => setOpen(true)} type="button" variant="outline">
+      {tooMany ? (
+        <span className="text-muted-foreground text-xs">
+          {t("several.tooMany", { max: formatNumber(MANY_AT_ONCE, language) })}
+        </span>
+      ) : null}
+      <Button
+        disabled={tooMany}
+        onClick={() => setOpen(true)}
+        type="button"
+        variant="outline"
+      >
         <Pill aria-hidden data-icon="inline-start" />
         {t("dose.group", { count })}
       </Button>
@@ -98,54 +114,20 @@ export const GroupDose = ({
         onOpenChange={setOpen}
         onSubmit={() =>
           give.mutate({
-            animalTags: chosen.map((one) => one.tagNumber),
-            productId,
-            advice: advice.trim(),
-            // Read as the farm's day and time, not the phone's (lib/farm-moment).
-            ...(givenAt ? { givenAt: new Date(momentOfField(givenAt)) } : {}),
+            animals: chosen.map((one) => ({
+              tagNumber: one.tagNumber,
+              id: ids.of(one.tagNumber),
+            })),
+            ...form.sent(),
           })
         }
         open={open}
         pending={give.isPending}
-        ready={mayBeGiven && advice.trim() !== ""}
+        ready={form.ready}
         submitLabel={t("dose.group", { count })}
         title={t("dose.group", { count })}
       >
-        <FormField id="group-dose-product" label={t("dose.product")}>
-          <NativeSelect
-            id="group-dose-product"
-            onChange={(event) => setProductId(event.target.value)}
-            required
-            value={productId}
-          >
-            <option value="">{t("dose.pick")}</option>
-            {products.map((one) => (
-              <option key={one.id} value={one.id}>
-                {language === "en" ? (one.nameEn ?? one.nameBn) : one.nameBn}
-              </option>
-            ))}
-          </NativeSelect>
-        </FormField>
-        {product ? (
-          <DoseDays byDefault={byDefault.data} product={product} />
-        ) : null}
-        <FormField id="group-dose-when" label={t("dose.givenAt")}>
-          <Input
-            id="group-dose-when"
-            onChange={(event) => setGivenAt(event.target.value)}
-            type="datetime-local"
-            value={givenAt}
-          />
-        </FormField>
-        <FormField id="group-dose-advice" label={t("dose.advice")}>
-          <Input
-            id="group-dose-advice"
-            maxLength={300}
-            onChange={(event) => setAdvice(event.target.value)}
-            required
-            value={advice}
-          />
-        </FormField>
+        <DoseFields form={form} id="group-dose" />
       </FormDialog>
     </>
   );

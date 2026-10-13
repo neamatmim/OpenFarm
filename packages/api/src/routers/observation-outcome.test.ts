@@ -5,12 +5,12 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-// "Which of what the round saw is still open?" used to mean opening each sighting's work. The list now says what
-// became of each: the work it raised still owed, or done and what was done.
+// "Which of what the round saw is still open?" used to mean opening each Observation's work. The list now says what
+// became of each: the work it raised still owed, done and what was done, or what the Vet made of her.
 
 const suffix = `observation-outcome-${Date.now()}`;
 
-const as = (role: "owner" | "manager", instant: string) =>
+const as = (role: "owner" | "manager" | "vet", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 let roundId = "";
@@ -94,6 +94,49 @@ describe("what became of a sighting", () => {
     expect(row?.outcome).toMatchObject({
       state: "done",
       said: { en: "The Vet has been called" },
+    });
+  });
+
+  it("says what the Vet made of her, when a Diagnosis answered it and called its work off", async () => {
+    const cow = await aCow("diagnosed");
+    const manager = await seenLame(cow);
+    const seen = await rowOf(manager, cow.tag);
+    const vet = await as("vet", "2076-05-02T05:00:00.000Z");
+    await vet.client.diagnoses.record({
+      animalTag: cow.tag,
+      answers: seen?.id ?? "",
+      disease: { bn: `খুরা রোগ ${suffix}`, en: "Foot rot" },
+    });
+
+    const row = await rowOf(manager, cow.tag);
+
+    expect(row?.outcome).toMatchObject({
+      state: "diagnosed",
+      diagnosis: { bn: `খুরা রোগ ${suffix}`, en: "Foot rot" },
+    });
+  });
+
+  it("says what the Vet made of her when she was diagnosed before any work was raised", async () => {
+    const cow = await aCow("diagnosed-first");
+    const manager = await as("manager", "2076-05-02T03:00:00.000Z");
+    await manager.client.observations.record({
+      tagNumber: cow.tag,
+      saw: "cough",
+    });
+    const seen = await rowOf(manager, cow.tag);
+    const vet = await as("vet", "2076-05-02T03:30:00.000Z");
+    await vet.client.diagnoses.record({
+      animalTag: cow.tag,
+      answers: seen?.id ?? "",
+      disease: { bn: `নিউমোনিয়া ${suffix}` },
+    });
+
+    const row = await rowOf(manager, cow.tag);
+
+    expect(row?.outcome).toMatchObject({
+      state: "diagnosed",
+      instanceId: null,
+      diagnosis: { bn: `নিউমোনিয়া ${suffix}` },
     });
   });
 
