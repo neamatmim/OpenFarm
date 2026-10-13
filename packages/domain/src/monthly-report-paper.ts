@@ -312,17 +312,18 @@ const MONEY: Part = {
   heading: { bn: "খামারের টাকা", en: "The farm's money" },
   lines: [
     {
-      label: { bn: "আয়", en: "Money in" },
+      label: { bn: "নগদ এসেছে", en: "Money in" },
       kind: "sum",
       of: (one) => one.money.inMoney,
     },
     {
-      label: { bn: "ব্যয়", en: "Money out" },
+      label: { bn: "নগদ গেছে", en: "Money out" },
       kind: "sum",
       of: (one) => one.money.outMoney,
     },
     {
-      label: { bn: "নিট", en: "Net" },
+      // The purse's in less out, said as cash so it never reads as what the Farm came to, which is after overheads.
+      label: { bn: "নগদ আসা-যাওয়ার ফারাক", en: "Cash in less out" },
       kind: "sum",
       of: (one) => one.money.netMoney,
     },
@@ -439,12 +440,12 @@ const CASH_FLOW: Part = {
       of: (one) => one.cashFlow.openingMoney,
     },
     {
-      label: { bn: "আয়", en: "Money in" },
+      label: { bn: "নগদ এসেছে", en: "Money in" },
       kind: "sum",
       of: (one) => one.cashFlow.inMoney,
     },
     {
-      label: { bn: "ব্যয়", en: "Money out" },
+      label: { bn: "নগদ গেছে", en: "Money out" },
       kind: "sum",
       of: (one) => one.cashFlow.outMoney,
     },
@@ -657,8 +658,8 @@ const moneyByPart = (
         heading,
         columns: [
           { label: first },
-          { label: { bn: "আয়", en: "Money in" }, figures: true },
-          { label: { bn: "ব্যয়", en: "Money out" }, figures: true },
+          { label: { bn: "নগদ এসেছে", en: "Money in" }, figures: true },
+          { label: { bn: "নগদ গেছে", en: "Money out" }, figures: true },
         ],
         rows: rows.map((row) => [
           row.name,

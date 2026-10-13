@@ -2754,7 +2754,7 @@ export const enCore = {
   "money.lastFinancialYear": "Last financial year",
   "money.totalIn": "Money in",
   "money.totalOut": "Money out",
-  "money.net": "Net",
+  "money.net": "Cash in less out",
   "money.awaitingCount": "Awaiting approval",
   "money.register": "Money book",
   "money.col.date": "Date",
@@ -3225,7 +3225,11 @@ export const enCore = {
   "owner.noRecord": "nothing recorded",
   "owner.weekTitle": "Milk to the tank, last 7 days",
   "owner.milkHint": "Yesterday {yesterday} L · average {average} L",
-  "owner.monthNet": "Net this month",
+  "owner.monthNet": "Cash in less out this month {net}",
+  "owner.farmsOwnNow": "The farm's own money",
+  "owner.accountsNotRead": "Not yet read, so counting nothing: {names}",
+  "owner.farmsOwnHint":
+    "In the hands and the farm's accounts, the ventures' cash left out",
   "owner.inAndOut": "In {in} · out {out}",
   "owner.herd": "Animals on the farm",
   "owner.bySide": "Dairy {dairy} · fattening {fattening}",
@@ -4380,7 +4384,8 @@ export const enCore = {
   "nav.months": "Monthly report",
   "months.subtitle":
     "How the farm has done each month, over the last 12 months or a financial year you pick: its money, the milk against what the dairy cows cost, the fattening animals sold, and each venture against its plan.",
-  "months.net": "Net over the year",
+  "months.net": "Cash in less out over the year",
+  "months.yearAfterOverheads": "The farm after overheads, over the year",
   "months.whichYear": "Which months",
   "months.lastTwelve": "Last 12 months",
   "months.financialYear": "Financial year {year}",
@@ -4395,12 +4400,12 @@ export const enCore = {
   "months.marginsHint":
     "{count, plural, one {# animal sold} other {# animals sold}}",
   "months.nothingYet": "Nothing yet",
-  "months.chartTitle": "Net money each month",
+  "months.chartTitle": "Cash in less out each month",
   "months.chartHint":
     "The farm's own money in less money out; a venture's money is its own.",
   "months.chartHintSoFar":
     "The farm's own money in less money out; a venture's money is its own. This month is so far.",
-  "months.chartSaid": "{month}: net {net}",
+  "months.chartSaid": "{month}: cash in less out {net}",
   "months.tableTitle": "Each month",
   "months.tableHint":
     "Money is what moved in and out of the farm's purse. What a side cost is what its animals were fed, dosed and visited for in the month, whenever it was bought. The farm's own animals only: a venture's are on its own line below.",
@@ -4416,6 +4421,7 @@ export const enCore = {
   "months.col.fatteningCost": "Fattening cost",
   "months.col.overheads": "Overheads · a head a day",
   "months.cardOverheads": "Overheads {amount}, {perHead} a head a day",
+  "months.cardCash": "Cash in less out {net}: in {in} · out {out}",
   "months.yearOverheads":
     "Overheads over the year: {amount}, {perHead} a head a day over every animal here, the ventures' among them. Wages, rent and electricity: no side, season or venture above carries it.",
   "months.soFar": "so far",
@@ -5076,6 +5082,9 @@ export const enCore = {
   "refusal.handoverGoesNowhere":
     "Cash is handed from one hand to another, or to or from the bank",
   "cash.tab": "Cash in hand",
+  "cash.ownInHands": "The farm's own in the hands",
+  "cash.ownInAccounts": "In the farm's accounts",
+  "cash.venturesInHands": "{amount} in the hands is the ventures'",
   "cash.hint":
     "What each person holds of the farm's cash: the cash money that named their hand, less what they paid out and handed over. Mobile money and the bank name nobody. Open a hand to see what moved.",
   "cash.nobody": "Nobody holds the farm's cash yet",

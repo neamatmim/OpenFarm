@@ -58,16 +58,16 @@ describe("the accountant's summary, on paper", () => {
     }
   });
 
-  it("is headed with the period and sets income, expense and net apart, in English throughout", () => {
+  it("is headed with the period and sets the money in, the money out and the cash in less out apart, in English throughout", () => {
     const text = paperText(accountantSummaryPaper(FACTS), "en");
 
     expect(text).toContain("Income and expense");
     expect(text).toContain("1 October 2026");
     expect(text).toContain("9 October 2026");
-    expect(text).toContain("Income · 692,379.05 taka");
-    expect(text).toContain("Expense · 1,208,450 taka");
+    expect(text).toContain("Money in · 692,379.05 taka");
+    expect(text).toContain("Money out · 1,208,450 taka");
     // The minus leads the figure, never stuck between a sign and its digits.
-    expect(text).toContain("Net · -516,070.95 taka");
+    expect(text).toContain("Cash in less out · -516,070.95 taka");
     expect(text).not.toMatch(/[ঀ-৿]{2,} \/ [A-Z]/u);
   });
 

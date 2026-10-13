@@ -127,25 +127,35 @@ export const believedAtMonthEnd = async (
 /**
  * What the farm believes each of its Farm Accounts held at a moment — retired ones too, which may still hold money —
  * or nothing for one not read by then: its first reading is of a month's end, and before that end there is no figure to
- * start from (CONTEXT.md: **Cash Position**).
+ * start from (CONTEXT.md: **Cash Position**). Each by its name, so one counting nothing can be said.
  */
 export const farmAccountsHeldAt = async (
   tx: Pick<Tx, "query">,
   farmId: string,
   at: Date
-): Promise<(number | null)[]> => {
+): Promise<{ name: string; retired: boolean; heldMoney: number | null }[]> => {
   const accounts = await tx.query.farmAccount.findMany({
     where: { farmId },
-    columns: { id: true },
+    columns: { id: true, name: true, retiredAt: true },
+    orderBy: { createdAt: "asc", id: "asc" },
   });
   return await Promise.all(
-    accounts.map(async ({ id }) => {
+    accounts.map(async ({ id, name, retiredAt }) => {
+      const retired = retiredAt !== null;
       const first = await firstReadingOf(tx, farmId, id);
       const readAt = first ? endOf(first.forMonth) : null;
       if (!(first && readAt && readAt <= at)) {
-        return null;
+        return { name, retired, heldMoney: null };
       }
-      return heldAtEnd(first, await movedSince(tx, farmId, id, readAt), at);
+      return {
+        name,
+        retired,
+        heldMoney: heldAtEnd(
+          first,
+          await movedSince(tx, farmId, id, readAt),
+          at
+        ),
+      };
     })
   );
 };

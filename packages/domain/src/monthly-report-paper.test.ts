@@ -503,7 +503,7 @@ describe("the Monthly Report of one month, a row a figure", () => {
 
     expect(row("Money in")).toEqual({
       part: { bn: "খামারের টাকা", en: "The farm's money" },
-      line: { bn: "আয়", en: "Money in" },
+      line: { bn: "নগদ এসেছে", en: "Money in" },
       way: null,
       thisMonth: 89_300,
       monthBefore: 0,
