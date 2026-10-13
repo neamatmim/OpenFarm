@@ -47,6 +47,7 @@ import {
 import type { RecoveryBoard } from "@/lib/recovery-board";
 import { sayWhy } from "@/lib/saying";
 import type { StepAnswer } from "@/lib/step-answer";
+import { tagSought } from "@/lib/tag-search";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
@@ -132,7 +133,11 @@ const SightingRecovery = ({
       submit={() =>
         props.save({
           kind: "observation",
-          body: { tagNumber: tag.trim(), saw, note: note.trim() || undefined },
+          body: {
+            tagNumber: tagSought(tag),
+            saw,
+            note: note.trim() || undefined,
+          },
         })
       }
     >
@@ -159,7 +164,7 @@ const AnimalPhotoRecovery = ({
       submit={() =>
         props.save({
           kind: "animal_photo",
-          body: { ...photo, tagNumber: tag.trim() },
+          body: { ...photo, tagNumber: tagSought(tag) },
         })
       }
     >

@@ -15,6 +15,7 @@ import type { KeyboardEvent } from "react";
 import { useEffect, useState } from "react";
 
 import { useT } from "@/i18n/language-provider";
+import { tagMatches, tagNumbered, tagSought } from "@/lib/tag-search";
 import { orpc } from "@/utils/orpc";
 
 /** How many Tag Numbers the box offers as one is typed: enough to choose from, few enough to read at once. */
@@ -25,16 +26,23 @@ const onMac = () =>
   typeof navigator !== "undefined" &&
   /Mac|iPhone|iPad/u.test(navigator.platform);
 
-/** The Tag Numbers the farm has that hold what is typed, those that start with it first. */
+/** The Tag Numbers the farm has that hold what is typed: the one numbered so first, then those that start with it. */
 const offeredFor = (tags: string[], needle: string) => {
   if (!needle) {
     return [];
   }
-  const starting = tags.filter((tag) => tag.startsWith(needle));
-  const holding = tags.filter(
-    (tag) => !tag.startsWith(needle) && tag.includes(needle)
+  // A bare number typed — "12", or ১২ — is first the one animal numbered so: D-0012 before D-0120.
+  const numbered = tagNumbered(tags, needle);
+  const rest = tags.filter((tag) => tag !== numbered);
+  const starting = rest.filter((tag) => tag.startsWith(needle));
+  const holding = rest.filter(
+    (tag) => !tag.startsWith(needle) && tagMatches(tag, needle)
   );
-  return [...starting, ...holding].slice(0, OFFERED);
+  return [
+    ...(numbered === null ? [] : [numbered]),
+    ...starting,
+    ...holding,
+  ].slice(0, OFFERED);
 };
 
 /** The box itself: a Tag Number typed, the animals it could be offered under it, Enter opens one. */
@@ -53,7 +61,7 @@ const GoToAnimalDialog = ({
     ...orpc.animals.list.queryOptions({ input: { includeExited: false } }),
     enabled: open,
   });
-  const needle = typed.trim().toUpperCase();
+  const needle = tagSought(typed);
   const offered = offeredFor(
     (animals.data ?? []).map((one) => one.tagNumber),
     needle

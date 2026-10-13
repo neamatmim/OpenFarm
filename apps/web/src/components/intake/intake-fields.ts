@@ -96,6 +96,21 @@ export const EMPTY: IntakeFields = {
   heldBy: "",
 };
 
+/**
+ * The form as it stands for the next beast off the same lorry: the pen, the seller, the outing, whose money bought
+ * her, how she was paid for and what she is fed for are the lorry's, and stay; her price, weight, age and breed are
+ * hers, and so is a transfer's reference, since no two bulls are paid by one transfer. Fifteen bulls off one lorry are
+ * fifteen sets of the four things only the Manager standing there can know, never fifteen sellers typed.
+ */
+export const nextOffTheLorry = (fields: IntakeFields): IntakeFields => ({
+  ...fields,
+  purchasePriceMoney: "",
+  weightKg: "",
+  estimatedAgeMonths: "",
+  breedId: "",
+  reference: "",
+});
+
 /** A Venture's bull with no outing: paid straight from its account by bank, the Owner's to take in. */
 export const boughtFromTheAccount = (fields: IntakeFields): boolean =>
   fields.ventureId !== "" && fields.buyingTripId === "";

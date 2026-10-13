@@ -1,8 +1,5 @@
-import { Button } from "@OpenFarm/ui/components/button";
-import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ClipboardCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -12,6 +9,7 @@ import type { IntakeFields } from "@/components/intake/intake-fields";
 import {
   EMPTY,
   missingFrom,
+  nextOffTheLorry,
   orNothing,
   boughtFromTheAccount,
   owningVenture,
@@ -23,7 +21,11 @@ import {
   SellerSection,
   TargetSection,
 } from "@/components/intake/intake-sections";
-import { IntakeSummary } from "@/components/intake/intake-summary";
+import {
+  IntakeSummary,
+  NEXT_OFF_THE_LORRY,
+  TakeInButtons,
+} from "@/components/intake/intake-summary";
 import { RecentIntakes } from "@/components/intake/recent-intakes";
 import { useIsOwner } from "@/components/money";
 import { Notice, Page, PageHeader } from "@/components/page";
@@ -69,8 +71,14 @@ const isIntakeDraft = (value: unknown): value is IntakeFields =>
   ["male", "female"].includes(value.sex) &&
   ["cash", "bank", "mobile_money"].includes(value.paymentMethod);
 
-const intakeChanged = (fields: IntakeFields, photo: File | null): boolean =>
-  photo !== null || JSON.stringify(fields) !== JSON.stringify(EMPTY);
+/** Whether anything is typed beyond what the form started from: nothing at all, or the lorry's answers kept for the
+ *  next beast, which leaving would not lose anybody's work. */
+const intakeChanged = (
+  fields: IntakeFields,
+  photo: File | null,
+  startedFrom: IntakeFields
+): boolean =>
+  photo !== null || JSON.stringify(fields) !== JSON.stringify(startedFrom);
 
 const IntakePage = () => {
   const t = useT();
@@ -86,6 +94,9 @@ const IntakePage = () => {
   const setFields = draft.setValue;
   const [photo, setPhoto] = useState<File | null>(null);
   const [writingTrip, setWritingTrip] = useState(false);
+  // The beasts taken in off this lorry while the form stayed for the next, and what the form was left holding for it.
+  const [offThisLorry, setOffThisLorry] = useState<string[]>([]);
+  const [startedFrom, setStartedFrom] = useState<IntakeFields>(EMPTY);
   const sheds = useQuery(orpc.sheds.list.queryOptions());
   // The outings the farm has written up lately, so an arrival can be put on the one it came home on.
   const trips = useQuery(orpc.buyingTrips.list.queryOptions());
@@ -126,12 +137,6 @@ const IntakePage = () => {
             toast.error(t("intake.photoLater"));
           }
         }
-        draft.clear();
-        setPhoto(null);
-        navigate({
-          to: "/animals/$tagNumber",
-          params: { tagNumber: taken.tagNumber },
-        });
       },
       onError: refused,
     })
@@ -139,6 +144,20 @@ const IntakePage = () => {
 
   const edit = (patch: Partial<IntakeFields>) =>
     setFields({ ...fields, ...patch });
+  /** Once she is on the farm, and her photo gone up or kept: her page, or the form again for the next beast off the
+   *  same lorry, keeping what is the lorry's. */
+  const afterTaking = (tagNumber: string, then: "her" | "next") => {
+    setPhoto(null);
+    if (then === "next") {
+      const next = nextOffTheLorry(fields);
+      setFields(next);
+      setStartedFrom(next);
+      setOffThisLorry((before) => [...before, tagNumber]);
+      return;
+    }
+    draft.clear();
+    navigate({ to: "/animals/$tagNumber", params: { tagNumber } });
+  };
   const venture = owningVenture(fields, trips.data ?? [], ventures.data ?? []);
   // A Venture's animal is sold in the Venture's window, so days typed before she was named its are not sent. They are
   // kept in the form, for the moment somebody names her the Farm's again.
@@ -152,7 +171,7 @@ const IntakePage = () => {
   // The photograph goes up, or onto the phone, after the animal exists — inside the arrival's own success — so the
   // whole arrival is pending until it has.
   const pending = record.isPending;
-  const changed = intakeChanged(fields, photo);
+  const changed = intakeChanged(fields, photo, startedFrom);
 
   return (
     <Page>
@@ -163,8 +182,26 @@ const IntakePage = () => {
         onDiscard={() => {
           draft.clear();
           setPhoto(null);
+          setStartedFrom(EMPTY);
+          setOffThisLorry([]);
         }}
       />
+      {offThisLorry.length > 0 ? (
+        <Notice title={t("intake.offThisLorry")} tone="success">
+          <span className="flex flex-wrap gap-x-3 gap-y-1">
+            {offThisLorry.map((tagNumber) => (
+              <Link
+                className="font-mono underline"
+                key={tagNumber}
+                params={{ tagNumber }}
+                to="/animals/$tagNumber"
+              >
+                {tagNumber}
+              </Link>
+            ))}
+          </span>
+        </Notice>
+      ) : null}
       {changed && !pending ? <UnsavedChangesGuard /> : null}
 
       <form
@@ -174,48 +211,59 @@ const IntakePage = () => {
           if (!ready) {
             return;
           }
-          record.mutate({
-            penId: fields.penId,
-            sex: fields.sex,
-            // Read as the farm's day and time, not the phone's (lib/farm-moment): her Quarantine, her money and her
-            // outing are dated from it.
-            ...(fields.arrivedAt
-              ? { arrivedAt: new Date(momentOfField(fields.arrivedAt)) }
-              : {}),
-            seller: {
-              name: fields.sellerName,
-              address: fields.sellerPlace || undefined,
-              phone: fields.sellerPhone || undefined,
+          // The press that sent the form says what comes after it: the second button stays for the next beast.
+          const pressed = (event.nativeEvent as SubmitEvent).submitter;
+          const then =
+            pressed instanceof HTMLButtonElement &&
+            pressed.value === NEXT_OFF_THE_LORRY
+              ? "next"
+              : "her";
+          record.mutate(
+            {
+              penId: fields.penId,
+              sex: fields.sex,
+              // Read as the farm's day and time, not the phone's (lib/farm-moment): her Quarantine, her money and her
+              // outing are dated from it.
+              ...(fields.arrivedAt
+                ? { arrivedAt: new Date(momentOfField(fields.arrivedAt)) }
+                : {}),
+              seller: {
+                name: fields.sellerName,
+                address: fields.sellerPlace || undefined,
+                phone: fields.sellerPhone || undefined,
+              },
+              purchasePriceMoney: Number(fields.purchasePriceMoney),
+              marketTollMoney: orNothing(fields.marketTollMoney),
+              weightKg: Number(fields.weightKg),
+              estimatedAgeMonths: Number(fields.estimatedAgeMonths),
+              breedId: fields.breedId || undefined,
+              targetWeightKg: orNothing(fields.targetWeightKg),
+              targetWindowStart: sheet.targetWindowStart || undefined,
+              targetWindowEnd: sheet.targetWindowEnd || undefined,
+              buyingTripId: fields.buyingTripId || undefined,
+              ventureId: fields.ventureId || undefined,
+              paymentMethod: sheet.paymentMethod,
+              // A Venture's bull at the gate: the transfer from its account. The Farm's own by mobile money or the bank: the
+              // Farm Account it came out of and its transaction ID.
+              ...(boughtFromTheAccount(fields)
+                ? { reference: fields.reference.trim() }
+                : accountSent(sheet.paymentMethod, {
+                    farmAccountId: fields.farmAccountId,
+                    reference: fields.reference,
+                  })),
+              paidOn:
+                boughtFromTheAccount(fields) && fields.paidOn
+                  ? fields.paidOn
+                  : undefined,
+              // The Manager's cash, where the Owner writes up his lorry: his Friday count looks for it there.
+              heldBy:
+                sheet.paymentMethod === "cash" && fields.heldBy
+                  ? fields.heldBy
+                  : undefined,
             },
-            purchasePriceMoney: Number(fields.purchasePriceMoney),
-            marketTollMoney: orNothing(fields.marketTollMoney),
-            weightKg: Number(fields.weightKg),
-            estimatedAgeMonths: Number(fields.estimatedAgeMonths),
-            breedId: fields.breedId || undefined,
-            targetWeightKg: orNothing(fields.targetWeightKg),
-            targetWindowStart: sheet.targetWindowStart || undefined,
-            targetWindowEnd: sheet.targetWindowEnd || undefined,
-            buyingTripId: fields.buyingTripId || undefined,
-            ventureId: fields.ventureId || undefined,
-            paymentMethod: sheet.paymentMethod,
-            // A Venture's bull at the gate: the transfer from its account. The Farm's own by mobile money or the bank: the
-            // Farm Account it came out of and its transaction ID.
-            ...(boughtFromTheAccount(fields)
-              ? { reference: fields.reference.trim() }
-              : accountSent(sheet.paymentMethod, {
-                  farmAccountId: fields.farmAccountId,
-                  reference: fields.reference,
-                })),
-            paidOn:
-              boughtFromTheAccount(fields) && fields.paidOn
-                ? fields.paidOn
-                : undefined,
-            // The Manager's cash, where the Owner writes up his lorry: his Friday count looks for it there.
-            heldBy:
-              sheet.paymentMethod === "cash" && fields.heldBy
-                ? fields.heldBy
-                : undefined,
-          });
+            // After the arrival's own success, photo and all: her page, or the next off the lorry.
+            { onSuccess: (taken) => afterTaking(taken.tagNumber, then) }
+          );
         }}
       >
         <div className="flex min-w-0 flex-col gap-4">
@@ -262,18 +310,11 @@ const IntakePage = () => {
         </aside>
 
         <SubmitBar>
-          <Button
-            className="w-full sm:w-auto"
-            disabled={!ready || pending}
-            type="submit"
-          >
-            {pending ? (
-              <Spinner />
-            ) : (
-              <ClipboardCheck aria-hidden data-icon="inline-start" />
-            )}
-            {t("intake.record")}
-          </Button>
+          <TakeInButtons
+            className="sm:flex-row"
+            pending={pending}
+            ready={ready}
+          />
         </SubmitBar>
       </form>
 

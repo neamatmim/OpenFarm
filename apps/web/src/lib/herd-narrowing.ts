@@ -1,5 +1,7 @@
 import type { LiveState, SIDES } from "@OpenFarm/domain";
 
+import { tagMatches } from "./tag-search";
+
 export type SideFilter = "" | (typeof SIDES)[number];
 export const HOLDS = ["milk", "meat", "any"] as const;
 export type HoldFilter = "" | (typeof HOLDS)[number];
@@ -57,7 +59,7 @@ export const narrowed = <Row extends NarrowedRow>(
   rows.filter(
     (row) =>
       (needle === "" ||
-        row.tagNumber.toUpperCase().includes(needle) ||
+        tagMatches(row.tagNumber, needle) ||
         (row.officialTag ?? "").toUpperCase().includes(needle)) &&
       (!search.side || row.side === search.side) &&
       (!search.state || row.state === search.state) &&

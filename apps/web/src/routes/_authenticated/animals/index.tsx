@@ -42,6 +42,7 @@ import type {
 } from "@/lib/herd-narrowing";
 import { HOLDS, PHOTO_FILTERS, narrowed } from "@/lib/herd-narrowing";
 import { usePenNames } from "@/lib/pen-names";
+import { tagNumbered, tagSought } from "@/lib/tag-search";
 import { orpc } from "@/utils/orpc";
 
 /** The filters' box, which a phone's filter button opens. */
@@ -234,7 +235,7 @@ const AnimalsPage = () => {
   );
   const rows = useHerdRows(animals.data ?? []);
   const figures = useHerdFigures(rows);
-  const needle = q.trim().toUpperCase();
+  const needle = tagSought(q);
   const matching = narrowed(rows, search, needle);
   const ticking = useHerdTicking(matching);
   const narrowing = [side, state, pen, held, photo].filter(Boolean).length;
@@ -279,7 +280,12 @@ const AnimalsPage = () => {
             event.preventDefault();
             // One animal left, or a whole Tag Number typed: straight to her record.
             const exact =
-              matching.length === 1 ? matching[0]?.tagNumber : needle;
+              matching.length === 1
+                ? matching[0]?.tagNumber
+                : (tagNumbered(
+                    rows.map((row) => row.tagNumber),
+                    needle
+                  ) ?? needle);
             if (exact) {
               navigate({
                 to: "/animals/$tagNumber",

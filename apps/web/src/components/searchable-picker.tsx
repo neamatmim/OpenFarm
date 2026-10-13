@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { useT } from "@/i18n/language-provider";
+import { tagSought } from "@/lib/tag-search";
 
 /** One thing to choose: what is chosen, what the reader knows it by, and what tells two alike apart. */
 export interface PickerOption {
@@ -57,11 +58,15 @@ const Picker = ({
   if (options.length === 0) {
     return <p className="text-muted-foreground text-sm">{empty}</p>;
   }
+  // As typed, and as a Tag Number is written — ১২ is 12, ডি-০০১২ is D-0012 — so an animal is found from a Bangla keyboard
+  // without a name typed in Bangla going unfound.
   const looking = typed.trim().toLowerCase();
+  const asATag = tagSought(typed).toLowerCase();
   const matching = looking
-    ? options.filter((one) =>
-        `${one.label} ${one.detail ?? ""}`.toLowerCase().includes(looking)
-      )
+    ? options.filter((one) => {
+        const said = `${one.label} ${one.detail ?? ""}`.toLowerCase();
+        return said.includes(looking) || said.includes(asATag);
+      })
     : options;
   const kept = options.filter(
     (one) => chosen.has(one.value) && !matching.includes(one)
