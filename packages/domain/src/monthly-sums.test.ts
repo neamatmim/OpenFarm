@@ -284,7 +284,7 @@ describe("confirmed receipts allocated against the original schedule", () => {
     expect(allocation).toMatchObject({
       cattlePaidMoney: 40_000,
       monthlyPaidMoney: 5000,
-      paidAheadMoney: 5000,
+      paidEarlyMoney: 5000,
       owedMoney: 13_000,
     });
     expect(allocation.sums.slice(0, 3)).toEqual([
@@ -323,8 +323,8 @@ describe("confirmed receipts allocated against the original schedule", () => {
   });
 
   it("clears arrears first and counts only future sums as paid ahead", () => {
-    expect(allocate(45_000, "2071-03-10").paidAheadMoney).toBe(1000);
-    expect(allocate(45_000, "2071-04-10").paidAheadMoney).toBe(0);
+    expect(allocate(45_000, "2071-03-10").paidEarlyMoney).toBe(1000);
+    expect(allocate(45_000, "2071-04-10").paidEarlyMoney).toBe(0);
   });
 
   it("keeps amounts and dates across multi-unit, zero and full payments", () => {

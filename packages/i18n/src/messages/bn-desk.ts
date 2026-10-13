@@ -32,7 +32,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "audit.entity.supplier": "সরবরাহকারী",
   "audit.entity.supplier_invoice": "সরবরাহকারীর ইনভয়েস",
   "audit.entity.supplier_payment": "সরবরাহকারীকে পরিশোধ",
-  "audit.entity.feed_purchase_order": "খাদ্য কেনার আবেদন / অর্ডার",
+  "audit.entity.feed_purchase_order": "খাদ্যের অর্ডার",
   "portal.account.title": "আপনার অ্যাকাউন্ট",
   "portal.account.hint":
     "খামারে আপনার যে তথ্য আছে, কার কাছে জানতে চাইবেন, আপনার পাসওয়ার্ড, আর কোথায় সাইন ইন আছেন।",
@@ -988,7 +988,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "ventures.sums.due": "{amount} দেওয়ার সময় হয়েছে",
   "ventures.sums.next": "পরেরটি {day}, {amount}",
   "ventures.sumsMissedAdvance":
-    "খাওয়ানোর {currencySum} কমে এসেছে, আর মাসের {currencyOf} {currencySign}{missed} বাকি পড়েছে — সে {currencySum} না আসা পর্যন্ত নিজের {currencySum} (অগ্রিম) দিয়ে পশুদের খাওয়ানো যায়।",
+    "খাওয়ানোর {currencySum} কমে এসেছে, আর মাসের {currencyOf} {currencySign}{missed} বাকি পড়েছে — সে {currencySum} না আসা পর্যন্ত নিজের {currencySum} (মালিকের অগ্রিম) দিয়ে পশুদের খাওয়ানো যায়।",
   "ventures.cattleMoneyShort":
     "কেনা শুরুর আগে সই করা বিনিয়োগকারীদের গরু কেনার {currencyOf} আরও {currencySign}{short} আসতে হবে।",
   "ventures.noUnitsLeft": "সব ইউনিট সই হয়ে গেছে।",
@@ -2467,7 +2467,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "payments.cattle": "গরু কেনার অংশ",
   "payments.monthly": "মাসের টাকা",
   "payments.monthlyTotal": "মাসের মোট জমা",
-  "payments.includesPaidAhead": "এর মধ্যে সামনের মাসের আগাম জমা {amount}",
+  "payments.includesPaidEarly": "এর মধ্যে সামনের মাসের আগাম জমা {amount}",
   "payments.balance": "এই চুক্তিতে আরও দিতে হবে",
   "payments.paid": "জমা",
   "payments.left": "বাকি",

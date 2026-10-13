@@ -147,10 +147,10 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "সময়মতো আসার অর্ডার: {quantity} {unit}। দেরি হওয়া বা খরচের সীমা ছাড়ানো অর্ডার বাদ দেওয়া হয়েছে। আরও কেনার আগে বাকি অনুমোদন দেখুন।",
   "purchasing.title": "খাদ্যের অর্ডার",
   "purchasing.description":
-    "খাদ্য কেনার আবেদন, খরচের অনুমোদন, অর্ডার ও সরবরাহের হিসাব রাখুন। বুঝে পাওয়ার পরই খাদ্য মজুত ও খরচের খাতায় উঠবে।",
+    "খাদ্য অর্ডারের আবেদন, খরচের অনুমোদন, অর্ডার ও সরবরাহের হিসাব রাখুন। বুঝে পাওয়ার পরই খাদ্য মজুত ও খরচের খাতায় উঠবে।",
   "purchasing.request": "খাদ্য অর্ডারের আবেদন",
   "purchasing.requestHint":
-    "প্রতি আবেদনে একটি খাদ্য। আবার কেনার আগে বাকি আবেদন ও অর্ডার দেখুন। মালিক পরিমাণ ও খরচ অনুমোদন করলে অর্ডার করা যাবে।",
+    "প্রতি আবেদনে একটি খাদ্য। আবার অর্ডারের আগে বাকি আবেদন ও অর্ডার দেখুন। মালিক পরিমাণ ও খরচ অনুমোদন করলে অর্ডার করা যাবে।",
   "purchasing.submit": "আবেদন জমা দিন",
   "purchasing.requested": "খাদ্য অর্ডারের আবেদন জমা হয়েছে",
   "purchasing.saved": "অর্ডারের তথ্য সংরক্ষিত হয়েছে",
@@ -2093,7 +2093,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "papers.languageSwitch": "কাগজের ভাষা",
   "common.close": "বন্ধ করুন",
   "common.messages": "বার্তা",
-  "nav.signOff": "যাচাই",
+  "nav.signOff": "যা দেখতে হবে",
   "nav.backups": "খামারের কপি",
   "nav.settings": "আপনার সেটিংস",
   "feed.subtitle": "গুদামে কী আছে, কী এসেছে, আর কোন পেনে কোন রেশন চলছে।",
@@ -3425,6 +3425,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "work.lateFor": "{hours} ঘণ্টা দেরি",
   "work.counted": "গোনা পরিমাণ",
   "work.countReason": "কেন কম-বেশি",
+  "signOff.tab": "যাচাই",
   "signOff.none": "যাচাই করার কিছু নেই",
   "signOff.approve": "অনুমোদন",
   "signOff.yoursToBeChecked": "আপনার কাজ — অন্য কেউ যাচাই করবেন",
@@ -4666,7 +4667,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.gdNumberNeeded": "চুরি হলে থানার জিডি নম্বর লাগবে",
   "refusal.noFloatOnTheTrip": "এই যাত্রার জন্য কোনো {currencySum} দেওয়া হয়নি",
   "refusal.wageTookDraws":
-    "এই বেতন থেকে অগ্রিম কাটা হয়েছে, তাই এর {currencySum}, মানুষ আর মাস যেমন ছিল তেমনই থাকবে",
+    "এই বেতন থেকে বেতনের অগ্রিম কাটা হয়েছে, তাই এর {currencySum}, মানুষ আর মাস যেমন ছিল তেমনই থাকবে",
   "refusal.drawAlreadyTaken":
     "এই অগ্রিমের এতটা বেতন থেকে কাটা হয়ে গেছে; এর চেয়ে কমানো বা অন্যের নামে নেওয়া যায় না",
   "wageDraw.tab": "বেতনের অগ্রিম",
@@ -4683,7 +4684,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "wageDraw.listHint":
     "কে বেতনের আগে কত নিয়েছেন আর এখনো বাকি। পরের বেতন থেকে কাটা যায়, আগেরটা আগে।",
   "wageDraw.atPayday":
-    "অগ্রিম বাকি {owed}: এই বেতন থেকে কাটা {taken}, এখন দেওয়া {paid}।",
+    "বেতনের অগ্রিম বাকি {owed}: এই বেতন থেকে কাটা {taken}, এখন দেওয়া {paid}।",
   "wageDraw.carried": "{amount} পরের বেতনে যাবে।",
   "wageDraw.correct": "এই অগ্রিম ঠিক করুন",
   "wageDraw.correctHint":

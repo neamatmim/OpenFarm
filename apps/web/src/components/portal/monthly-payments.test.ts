@@ -16,7 +16,7 @@ beforeAll(async () => {
   await loadMessages("en", "desk");
 });
 
-it("shows a 45,000 receipt as 40,000 cattle and 5,000 monthly, with the advance included in the monthly total", () => {
+it("shows a 45,000 receipt as 40,000 cattle and 5,000 monthly, with what was paid early inside the monthly total", () => {
   const allocation = monthlyPaymentAllocationOf({
     units: 1,
     unitPriceMoney: 58_000,
@@ -40,6 +40,6 @@ it("shows a 45,000 receipt as 40,000 cattle and 5,000 monthly, with the advance 
     figures.map((figure) => figure.querySelector("dd")?.textContent)
   ).toEqual(["৳40,000", "৳5,000", "৳13,000"]);
   expect(figures[1]?.textContent).toContain(
-    "Includes ৳5,000 paid ahead for future months"
+    "Includes ৳5,000 paid early for months to come"
   );
 });

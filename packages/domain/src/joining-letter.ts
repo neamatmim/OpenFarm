@@ -187,10 +187,10 @@ const monthlySumsTable = (
             ),
             line(
               {
-                bn: "ভবিষ্যৎ মাসের টাকায় জমা",
-                en: "Allocated to future Monthly Sums",
+                bn: "সামনের মাসের আগাম জমা",
+                en: "Paid early on Monthly Sums to come",
               },
-              moneySaid(allocation.paidAheadMoney)
+              moneySaid(allocation.paidEarlyMoney)
             ),
             line(
               { bn: "চুক্তির মোট বাকি", en: "Agreement balance remaining" },

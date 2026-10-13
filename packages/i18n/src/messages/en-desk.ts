@@ -38,7 +38,7 @@ export const enDesk = {
   "audit.entity.supplier_invoice": "Supplier invoice",
   "audit.entity.supplier_payment": "Supplier payment",
 
-  "audit.entity.feed_purchase_order": "Feed purchase request / order",
+  "audit.entity.feed_purchase_order": "Feed order",
   "portal.account.title": "Your account",
   "portal.account.hint":
     "Your record as the farm holds it, who to ask about it, your password, and where you are signed in.",
@@ -2648,8 +2648,8 @@ export const enDesk = {
   "payments.cattle": "Cattle Part",
   "payments.monthly": "Monthly sums",
   "payments.monthlyTotal": "Total paid towards monthly sums",
-  "payments.includesPaidAhead":
-    "Includes {amount} paid ahead for future months",
+  "payments.includesPaidEarly":
+    "Includes {amount} paid early for months to come",
   "payments.balance": "Still to pay on this Agreement",
   "payments.paid": "Paid",
   "payments.left": "Remaining",

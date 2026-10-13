@@ -529,7 +529,7 @@ export const NeedsYouTabs = ({
     },
     {
       value: "approvals",
-      label: t("nav.signOff"),
+      label: t("signOff.tab"),
       icon: BadgeCheck,
       count: counts.approvals,
     },

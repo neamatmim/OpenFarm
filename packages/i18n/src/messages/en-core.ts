@@ -49,9 +49,9 @@ export const enCore = {
   "feedPlan.invalid.stages":
     "Select at least one growth ration with a weight range and expected gain.",
   "feedPlan.invalid.overlap":
-    "Selected rations overlap in weight. Choose one ration for each weight range.",
+    "Selected rations overlap in weight. Choose one ration for each weight band.",
   "feedPlan.invalid.gap":
-    "There is a gap between selected weight ranges. Add a ration covering the missing range.",
+    "There is a gap between the selected weight bands. Add a ration covering the missing weights.",
   "feedPlan.invalid.stageIncomplete":
     "A selected ration needs feed quantities and an expected gain. Update it in rations first.",
 
@@ -2274,7 +2274,7 @@ export const enCore = {
   "papers.languageSwitch": "The paper's language",
   "common.close": "Close",
   "common.messages": "Messages",
-  "nav.signOff": "Sign-off",
+  "nav.signOff": "To check",
   "nav.backups": "Backups",
   "nav.settings": "Your settings",
   "feed.subtitle":
@@ -3012,7 +3012,7 @@ export const enCore = {
   "costs.market_toll": "Market toll",
   "costs.trips": "Buying and selling trips",
   "costs.herd": "Herd costs",
-  "costs.overheads": "Running the farm",
+  "costs.overheads": "Overheads",
   "costs.overheadsHint":
     "Wages, rent, electricity and the like. Not charged to any animal, season or venture.",
   "costs.overheadsTotal": "All of it",
@@ -3667,6 +3667,7 @@ export const enCore = {
   "work.lateFor": "Late by {hours, plural, one {# hour} other {# hours}}",
   "work.counted": "Counted",
   "work.countReason": "Why it differs",
+  "signOff.tab": "Sign-off",
   "signOff.none": "Nothing to check",
   "signOff.approve": "Approve",
   "signOff.yoursToBeChecked": "Yours — somebody else checks it",
@@ -4263,7 +4264,7 @@ export const enCore = {
   "nav.sale": "Sales",
   "nav.trips": "Trips",
   "trips.subtitle":
-    "Every outing to a livestock market, buying or selling, and what the day cost beyond the animals. A buying trip that brought nothing home is still written up: its cost is counted in what running the farm cost that month.",
+    "Every outing to a livestock market, buying or selling, and what the day cost beyond the animals. A buying trip that brought nothing home is still written up: its cost is counted in that month's overheads.",
   "trips.buying": "Buying trips",
   "trips.selling": "Selling trips",
   "trips.newBuying": "New buying trip",
@@ -4367,10 +4368,10 @@ export const enCore = {
   "months.col.perCow": "Per cow, a day",
   "months.col.sold": "Fattening sold · Margin",
   "months.col.fatteningCost": "Fattening cost",
-  "months.col.overheads": "Running the farm · a head a day",
-  "months.cardOverheads": "Running the farm {amount}, {perHead} a head a day",
+  "months.col.overheads": "Overheads · a head a day",
+  "months.cardOverheads": "Overheads {amount}, {perHead} a head a day",
   "months.yearOverheads":
-    "Running the farm over the year: {amount}, {perHead} a head a day over every animal here, the ventures' among them. Wages, rent and electricity: no side, season or venture above carries it.",
+    "Overheads over the year: {amount}, {perHead} a head a day over every animal here, the ventures' among them. Wages, rent and electricity: no side, season or venture above carries it.",
   "months.soFar": "so far",
   "months.one.title": "Monthly report — {month}",
   "months.one.subtitle":
