@@ -122,6 +122,7 @@ export const registrationCorrection: CorrectionKind<
 > = {
   entity: "animal",
   table: animal,
+  money: true,
   roles: ["owner", "manager"],
   missing: "No such animal",
   load: loadRegistered,

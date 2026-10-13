@@ -9,19 +9,8 @@ import { contentOf } from "../sop-content";
 
 type Client = Pick<RouterClient<typeof appRouter>, "work">;
 
-/**
- * Puts a Step right as the work screen does: the answer it was shown — the Completion as the farm holds it, and what its
- * Effect recorded beside it — beside the answer it should hold now. For tests about what a corrected Step does; what a
- * stale one is told is the Correction's own test.
- */
-export const correctStepAsShown = async (
-  client: Client,
-  {
-    completionId,
-    reason,
-    ...answer
-  }: Partial<StepAnswer> & { completionId: string; reason: string }
-) => {
+/** The answer a Step's work screen shows: the Completion as the farm holds it, and what its Effect recorded beside it. */
+export const answerAsShown = async (completionId: string) => {
   const recorded = await scratchDb().query.stepCompletion.findFirst({
     where: { id: completionId },
     columns: {
@@ -42,20 +31,34 @@ export const correctStepAsShown = async (
         )
       )
     : {};
-  return client.work.correctStep({
+  return {
+    skipReason: recorded?.skipReason ?? null,
+    evidence: (recorded?.evidence ?? []) as StepAnswer["evidence"],
+    destination: recorded?.destination ?? null,
+    outOfRange: recorded?.outOfRange ?? null,
+    ...facts,
+  };
+};
+
+/**
+ * Puts a Step right as the work screen does: the answer it was shown (`answerAsShown`) beside the answer it should hold
+ * now. For tests about what a corrected Step does; what a stale one is told is the Correction's own test.
+ */
+export const correctStepAsShown = async (
+  client: Client,
+  {
+    completionId,
+    reason,
+    ...answer
+  }: Partial<StepAnswer> & { completionId: string; reason: string }
+) =>
+  client.work.correctStep({
     id: completionId,
     reason,
     changes: {
       answer: {
-        from: {
-          skipReason: recorded?.skipReason ?? null,
-          evidence: (recorded?.evidence ?? []) as StepAnswer["evidence"],
-          destination: recorded?.destination ?? null,
-          outOfRange: recorded?.outOfRange ?? null,
-          ...facts,
-        },
+        from: await answerAsShown(completionId),
         to: { ...answer, evidence: answer.evidence ?? [] },
       },
     },
   });
-};

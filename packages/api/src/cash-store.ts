@@ -545,6 +545,14 @@ export const cashInHand = async (
     .toSorted((a, b) => b.amount - a.amount || a.name.localeCompare(b.name));
 };
 
+/** A Cash Count as a **Closed Month** weighs it: what was counted, when, and whose hand — the count sets what it holds. */
+const countWeighed = (counted: number, at: Date, userId: string): Weighed => ({
+  at,
+  amountMoney: counted,
+  purseVentureId: null,
+  rest: userId,
+});
+
 /**
  * One hand's Cash Count: the notes the person found in their own hand, beside what the farm said they held — this
  * count left out, so a recount compares afresh — and, short by more than the Owner's line, the Owner told once in the
@@ -567,13 +575,7 @@ export const recordCashCount = async (
   // month's end — is kept for a person to see to, never lost (ADR 0002, 0028).
   const already = await tx.query.cashCount.findFirst({
     where: { completionId: input.completionId },
-    columns: { id: true, counted: true, countedAt: true },
-  });
-  const weighed = (counted: number, at: Date) => ({
-    at,
-    amountMoney: counted,
-    purseVentureId: null,
-    rest: input.userId,
+    columns: { id: true, counted: true, countedAt: true, userId: true },
   });
   const countId = already?.id ?? uuidv7(input.now);
   await answerToClosedMonths(
@@ -584,9 +586,10 @@ export const recordCashCount = async (
         recordId: countId,
         source: "cash_count",
         before: already
-          ? weighed(already.counted, already.countedAt)
+          ? countWeighed(already.counted, already.countedAt, already.userId)
           : undefined,
-        after: weighed(input.counted, input.countedAt),
+        after: countWeighed(input.counted, input.countedAt, input.userId),
+
         about: async (reading) => {
           const counter = await reading.query.user.findFirst({
             where: { id: input.userId },

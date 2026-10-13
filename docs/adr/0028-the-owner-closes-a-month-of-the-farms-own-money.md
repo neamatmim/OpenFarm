@@ -32,13 +32,24 @@ handed to the accountant could quietly stop being true. The Owner chose option A
   the Animal it was for, who changed it and when. The monthly report of the month she made it in lists them under
   "Changed after closing": on screen, with the way to the record where a page shows it; on the paper; and in the
   accountant's CSV, a row each, with what the month held before and after in columns of their own.
-- **The Farm's one lock comes first.** Every transaction that can reach a closed month takes `lockTheFarm` (in
-  `farm-lock.ts`) at its start, before any row of its own: every audited write, every Correction of any kind, a sync
-  batch and a wage run. `closeMonth` takes it before asking what of the month still waits. So money booked into a month
-  at the moment it closes either lands first, and is counted as waiting, or finds it closed; and no two writes take the
-  Farm and a row of their own in opposite orders, so none waits on another that waits on it. Asking about a closed
-  month takes the lock again, which in the same transaction is already held. Money in this month or later is never
-  asked about at all: only a month that has ended can be closed.
+- **The Farm's one lock comes first, and only where money can be.** A write that can book or move money, or another
+  figure of a month gone by, takes `lockTheFarm` (in `farm-lock.ts`) at its start, before any row of its own:
+  - the direct writers of money, each an audited write marked `reachesMoney` — money entered by hand and wages, Wage
+    Draws, Sales, Dispatches, Intakes, buying and selling outings, Medicine Purchases, a Vet's fee, Receivable paid and
+    written off, Handovers and counting a Float home, a Bank Check, a lost animal's money made good, and work held for
+    a person taken in from Needs Review — and the stores that open their own transactions for feed purchases, supplier
+    payments and the wage run, and every write of a Venture's money, which always have;
+  - a Correction of a kind marked `money`, or, for a Step, one whose Effect counts the cash;
+  - a sync batch only where one of its entries was made in a month gone by.
+  `closeMonth` takes it before asking what of the month still waits. So money booked into a month at the moment it
+  closes either lands first, and is counted as waiting, or finds it closed; and no two such writes take the Farm and a
+  row in opposite orders. Asking about a closed month takes the lock again, which in the same transaction is already
+  held, and takes it there only where a path above was missed. Everything else — a milking, an observation, the day's
+  sync, the register — never takes it, and never waits on it: the lock is `for no key update`, so a row that only names
+  the Farm is written beside it freely.
+- **A Correction a phone held asks as the farm stands now.** It is judged at when it was made, as every held
+  Correction is; but whether its month is closed is asked by the farm's clock when the farm hears of it (`heardAt`), so
+  a month closed since is closed to it, and it is kept as a late entry for a person.
 - **Reopening** is the Owner's, with a reason kept on the month and on the trail. Reopened, the month is ordinary
   again: anybody may write into it as before. Closed again, the same row says so.
 - From the 7th of a month, the Owner's home names last month as ready to close while it stands open, with how much of
@@ -55,11 +66,15 @@ Each is decided, and each is either covered by the rule or said here as not a cl
   them: one written or voided into a closed month is the Owner's alone (`writeHandover`, `takeHandoverAway`), and hers
   is listed by the hand it went into.
 - **Receivable written off** — covered. A Write-off lowers what its Sale or Dispatch fetched, so it falls in that one's
-  month, whenever it is written. Writing off is the Owner's alone already; hers into a closed month, or put right, is
-  listed by the buyer and, for a Sale, her tag (`answerForWriteOff`).
-- **Cash Counts** — covered. A count sets what a hand holds, and its difference is the month's. A count dated into a
-  closed month by anybody but the Owner is refused; one a phone held past the month's end comes in as a late entry, kept
-  for a person to see to and never lost (ADR 0002). Hers, or one she puts right, is listed by the counter.
+  month, whenever it is written: dated by the day she was sold or the milk sent, by its own record, as a Sale left
+  wholly on credit books no money to date it by; a Sale is the purse of whoever owned her that day. Writing off is the
+  Owner's alone already; hers into a closed month, or put right, is listed by the buyer and, for a Sale, her tag
+  (`answerForWriteOff`).
+- **Cash Counts** — covered. A count sets what a hand holds, and its difference is the month's: what was counted, when,
+  and whose hand. A count dated into a closed month by anybody but the Owner is refused; one a phone held past the
+  month's end comes in as a late entry, kept for a person to see to and never lost (ADR 0002). Hers, or one she puts
+  right, is listed by the counter.
+
 - **Bank Checks** — covered. A Farm Account's first reading sets what it held. Reading a statement is the Owner's alone
   already; hers of a closed month is listed by the account.
 - **A Venture's movements** — not a closed month's figure, but where the Farm's own capital goes into or comes back from
@@ -96,6 +111,6 @@ the Owner, who makes the change herself or reopens the month.
 - A month the Owner has closed is the month the accountant was handed, unless she changed it herself, and every such
   change is on the next paper and in the next CSV — save the charges and capital a late barn record can still move.
 - A late bill for last month, once it is closed, is the Owner's to enter, or the Manager's after she reopens it.
-- Every audited write and Correction now takes the Farm's lock first, so writes on one farm are made one after
-  another. A farm of one Owner, a Manager or two and a few Shed Phones does not feel it.
+- Writes of money on one farm are made one after another, as a Venture's always were; the day's barn work is not.
+
 - Closing is one more monthly step for the Owner. It sits beside the monthly Bank Check, which comes first.

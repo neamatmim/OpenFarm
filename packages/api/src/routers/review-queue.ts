@@ -270,7 +270,10 @@ export const reviewQueueRouter = {
             resolvedBy: context.actor.id,
             takenIn: held.id,
           },
+          // Held work is from a while ago, and may reach a month gone by: the Farm first, before the review's own row.
+          reachesMoney: true,
         },
+
         async (tx) => {
           const [row] = await tx
             .update(needsReview)

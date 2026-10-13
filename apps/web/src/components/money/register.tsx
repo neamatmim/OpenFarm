@@ -1,4 +1,4 @@
-import { PAYMENT_METHODS } from "@OpenFarm/domain";
+import { MONEY_SOURCE_WORD, PAYMENT_METHODS } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -48,31 +48,10 @@ const REGISTER_PAGE = 20;
 /** How many of a period's entries the farm sends at most, newest first (the money list's own limit). */
 const LISTED_AT_MOST = 500;
 
-const SOURCE_WORD = {
-  dispatch: "money.from.dispatch",
-  intake: "money.from.intake",
-  buying_trip: "money.from.buyingTrip",
-  selling_trip: "money.from.sellingTrip",
-  sale: "money.from.sale",
-  feed_in: "money.from.feedIn",
-  medicine_purchase: "money.from.medicinePurchase",
-  vet_fee: "money.from.vetFee",
-  sale_broker: "money.from.saleBroker",
-  wage_draw: "money.from.wageDraw",
-  internal_sale_in: "money.from.internalSaleIn",
-  internal_sale_out: "money.from.internalSaleOut",
-  reimbursement: "money.from.reimbursement",
-  settlement_adjustment: "money.from.settlementAdjustment",
-  farm_share: "money.from.farmShare",
-  farm_loss: "money.from.farmLoss",
-  venture_made_good: "money.from.ventureMadeGood",
-  venture_capital_out: "money.from.ventureCapitalOut",
-  venture_capital_back: "money.from.ventureCapitalBack",
-  venture_capital_return: "money.from.ventureCapitalReturn",
-  receivable_payment: "money.from.receivablePayment",
-  supplier_payment: "suppliers.payment",
-  by_hand: "money.from.byHand",
-} as const satisfies Record<MoneyEvent["source"], MessageKey>;
+const SOURCE_WORD = MONEY_SOURCE_WORD satisfies Record<
+  MoneyEvent["source"],
+  MessageKey
+>;
 
 export type MoneyList = Awaited<ReturnType<typeof orpc.money.list.call>>;
 type MoneyEvent = MoneyList["events"][number];

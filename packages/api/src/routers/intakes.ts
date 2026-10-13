@@ -285,6 +285,7 @@ export const intakesRouter = {
       await audited(context).write(
         {
           entity: "animal",
+          reachesMoney: true,
           entityId: id,
           action: "create",
           after: (tx) => readIntake(tx, id),

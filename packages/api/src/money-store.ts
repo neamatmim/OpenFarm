@@ -38,7 +38,7 @@ import type { ChangeBy, ChangeToWeigh } from "./closed-month-store";
 import {
   aboutMoney,
   answerToClosedMonths,
-  isTheOwner,
+  writesAsTheOwner,
   standsOf,
 } from "./closed-month-store";
 import { nameTaken } from "./names";
@@ -682,7 +682,7 @@ export const bookingOf = (
   farm: context.farm,
   actorId: context.actor.id,
   role,
-  byTheOwner: isTheOwner(context.roles),
+  byTheOwner: writesAsTheOwner(context.roles),
   now,
   ...(account ? { account } : {}),
 });

@@ -1940,6 +1940,7 @@ export const animalsRouter = {
       await audited(context).write(
         {
           entity: "missing",
+          reachesMoney: true,
           entityId: target.id,
           action: "correct",
           reason: input.reason,

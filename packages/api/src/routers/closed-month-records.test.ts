@@ -1,9 +1,18 @@
+import { setTimeout as sleep } from "node:timers/promises";
+
 import { paperText, standardPlaybook } from "@OpenFarm/domain";
-import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { recordCashCount } from "../cash-store";
+import { lockTheFarm } from "../farm-lock";
 import { createTestClient } from "../test/client";
-import { correctStepAsShown } from "../test/correct-step";
+import { answerAsShown, correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 // A Closed Month's figures beyond its Money Events — the cash passed between hands, Receivable written off, the cash
@@ -25,6 +34,8 @@ let saleId = "";
 let accountId = "";
 let handoverId = "";
 let completionId = "";
+let heiferTag = "";
+let onCreditId = "";
 
 const MONTH_CLOSED = { data: { refusal: "month_closed" } };
 
@@ -73,8 +84,32 @@ beforeAll(async () => {
     driver: `চালক ${suffix}`,
   });
   saleId = sold.id;
+  // A second bull, sold in April wholly on credit: no money of his is booked until the buyer pays.
+  const second = await owner.client.intakes.record({
+    penId: pen.id,
+    sex: "male",
+    seller: { name: `ব্যাপারী ${suffix}` },
+    purchasePriceMoney: 70_000,
+    weightKg: 240,
+    estimatedAgeMonths: 20,
+    arrivedAt: new Date("2071-04-01T05:00:00.000Z"),
+    targetWindowStart: "2071-08-17",
+    targetWindowEnd: "2071-08-19",
+  });
+  const onCredit = await seller.client.sales.record({
+    tagNumber: second.tagNumber,
+    buyer: { name: SHOP },
+    priceMoney: 90_000,
+    paidNowMoney: 0,
+    promisedBy: "2071-04-25",
+    weightKg: 300,
+    destination: `গাবতলী ${suffix}`,
+    vehicle: "ট্রাক",
+    driver: `চালক ${suffix}`,
+  });
+  onCreditId = onCredit.id;
   // A heifer, so the weekly count of the farm's cash is raised.
-  await owner.client.animals.register({
+  const heifer = await owner.client.animals.register({
     sex: "female",
     side: "dairy",
     state: "heifer",
@@ -82,6 +117,7 @@ beforeAll(async () => {
     source: "born",
     aliases: [],
   });
+  heiferTag = heifer.tagNumber;
   const account = await owner.client.farmAccounts.create({
     kind: "mobile_money",
     name: `বিকাশ ${suffix}`,
@@ -255,6 +291,106 @@ describe("a Cash Count in a closed month", () => {
   });
 });
 
+describe("a Cash Count held on a phone across the month's end", () => {
+  it("is judged by whether its month is closed now, not when the phone made it, and kept for a person", async () => {
+    // Put right on the Manager's phone with no signal on the 18th of April, and sent in May, after April was closed.
+    const manager = await as("manager", MAY);
+    const before = await scratchDb().query.cashCount.findFirst({
+      where: { completionId },
+      columns: { counted: true },
+    });
+    const sent = await manager.client.sync.batch({
+      key: `held-${completionId}`,
+      entries: [
+        {
+          id: `held-${completionId}`,
+          seq: 1,
+          kind: "step_correction" as const,
+          completionId,
+          reason: "ফোনে আবার গোনা",
+          recordedAt: new Date("2071-04-18T06:00:00.000Z"),
+          changes: {
+            answer: {
+              from: await answerAsShown(completionId),
+              to: { evidence: [999, ""] },
+            },
+          },
+        },
+      ],
+    });
+    expect(sent.results[0]?.outcome).toBe("kept");
+    expect(
+      await scratchDb().query.cashCount.findFirst({
+        where: { completionId },
+        columns: { counted: true },
+      })
+    ).toEqual(before);
+  });
+
+  it("is a change of whose hand was counted, too", async () => {
+    const count = await scratchDb().query.cashCount.findFirst({
+      where: { completionId },
+      columns: { counted: true, countedAt: true },
+    });
+    const now = new Date(MAY);
+    await expect(
+      scratchDb().transaction((tx) =>
+        recordCashCount(tx, {
+          farm: { id: theFarm().id, cashShortTellMoney: 1000 },
+          userId: thePerson("owner").id,
+          completionId,
+          counted: count?.counted ?? 0,
+          note: null,
+          countedAt: count?.countedAt ?? now,
+          now,
+          by: {
+            farmId: theFarm().id,
+            actorId: thePerson("manager").id,
+            byTheOwner: false,
+            now,
+          },
+        })
+      )
+    ).rejects.toMatchObject(MONTH_CLOSED);
+  });
+});
+
+describe("Receivable written off a Sale left wholly on credit", () => {
+  it("is dated by the Sale, which booked no money, and listed against its month", async () => {
+    const owner = await as("owner", MAY);
+    const { id } = await owner.client.receivables.writeOff({
+      source: "sale",
+      id: onCreditId,
+      amountMoney: 10_000,
+      why: "ফেরার",
+    });
+    expect(await changesKeptFor(id)).toEqual([
+      expect.objectContaining({
+        month: "2071-04",
+        source: "receivable_write_off",
+        change: "entered",
+        afterMoney: 10_000,
+      }),
+    ]);
+  });
+});
+
+describe("the day's ordinary work while a month's money is being written", () => {
+  it("does not wait on the Farm's lock: an Observation is written while another write holds it", async () => {
+    const manager = await as("manager", MAY);
+    const waited = await scratchDb().transaction(async (tx) => {
+      await lockTheFarm(tx, theFarm().id);
+      return await Promise.race([
+        manager.client.observations
+          .record({ tagNumber: heiferTag, saw: "heat" })
+          .then(() => "written"),
+        sleep(3000).then(() => "waited"),
+      ]);
+    });
+    expect(waited).toBe("written");
+  });
+});
+
 describe("a Bank Check of a closed month", () => {
   it("is the Owner's, and is listed", async () => {
     const owner = await as("owner", MAY);
@@ -278,8 +414,10 @@ describe("what changed, said", () => {
     const owner = await as("owner", MAY);
     const may = await owner.client.monthlyReport.month({ month: "2071-05" });
     const writeOff = may.changedAfterClosing?.find(
-      (one) => one.source === "receivable_write_off"
+      (one) =>
+        one.source === "receivable_write_off" && one.tagNumber === tagNumber
     );
+
     expect(writeOff).toMatchObject({
       recordWord: "months.closing.from.receivableWriteOff",
       about: SHOP,
