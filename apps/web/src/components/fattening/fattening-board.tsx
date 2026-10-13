@@ -3,7 +3,7 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Link } from "@tanstack/react-router";
-import { Beef, Store } from "lucide-react";
+import { Beef, CircleCheck, Store } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -25,6 +25,7 @@ import { EmptyState, ProgressBar } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 
+import { useConfirmReady } from "./confirm-ready";
 import type { KeepingFilter, StandingFilter } from "./fattening-filters";
 import { KEEPING_FILTERS, STANDING_FILTERS } from "./fattening-filters";
 import type { BoardRow } from "./fattening-types";
@@ -36,7 +37,8 @@ import { OnRationVerdict } from "./on-ration";
 const BOARD_PAGE = 20;
 
 /**
- * The one thing done from a row of the board: selling her, once she is Ready for Sale.
+ * The one thing done from a row of the board: selling her, once she is Ready for Sale — and before that, the Manager's
+ * yes that she is ready, so one set aside with "keep longer" is never left with no way back to the sale.
  *
  * Nothing else earns a place here. Her own page is her Tag Number, already a link; the suggestions for sale are
  * a page of their own in the sidebar, not something about her. A menu that held those was a click to find a
@@ -44,6 +46,21 @@ const BOARD_PAGE = 20;
  */
 const SellHer = ({ row }: { row: BoardRow }) => {
   const { t } = useLanguage();
+  const confirm = useConfirmReady();
+  if (row.state === "fattening") {
+    return (
+      <Button
+        disabled={confirm.isPending}
+        onClick={() => confirm.mutate({ tagNumber: row.tagNumber })}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        <CircleCheck aria-hidden data-icon="inline-start" />
+        {t("animals.confirmReady")}
+      </Button>
+    );
+  }
   if (row.state !== "ready_for_sale") {
     return null;
   }

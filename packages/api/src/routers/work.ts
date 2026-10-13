@@ -18,6 +18,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { openCalvingRecord } from "../calving-record-store";
 import { stepOf } from "../completion-store";
 import { correct, reasonInput } from "../corrections/correction";
 import {
@@ -51,7 +52,12 @@ import { tell } from "../notice";
 import { pushRaised } from "../push-send";
 import { raiseThePutOff } from "../put-off-store";
 import { requireRole } from "../roles";
-import { isWorkInScope, requireWorkInScope, workInScopeWhere } from "../scope";
+import {
+  isWorkInScope,
+  requireAnimalInScope,
+  requireWorkInScope,
+  workInScopeWhere,
+} from "../scope";
 import { contentOf } from "../sop-content";
 import { asTheFarm, theDaysWork } from "../the-day-turns";
 import { ABOUT_HER, aboutHer } from "../work-about";
@@ -285,6 +291,51 @@ export const workRouter = {
         }
       );
       return { raised };
+    }),
+
+  /**
+   * Opens the farm's Calving record about one cow now, in her Pen: the milker on the night round finds her calving with
+   * no round open, and records it there rather than waking the Manager to raise it. Hers to open who may record about
+   * her — her Pen's Barn Staff, and those who run the farm.
+   */
+  openCalvingRecord: protectedProcedure
+    .use(requireRole("owner", "manager", "staff"))
+    .input(z.object({ tagNumber: z.string().min(1) }))
+    .handler(async ({ context, input }) => {
+      const her = await context.db.query.animal.findFirst({
+        where: {
+          farmId: context.farm.id,
+          tagNumber: input.tagNumber.toUpperCase(),
+        },
+        columns: {
+          id: true,
+          sex: true,
+          side: true,
+          state: true,
+          penId: true,
+          lactationNumber: true,
+        },
+      });
+      if (!her) {
+        throw new ORPCError("NOT_FOUND", {
+          message: `No animal with tag ${input.tagNumber}`,
+        });
+      }
+      requireAnimalInScope(context.scope, her);
+      const now = context.clock.now();
+      let opened = { id: "" };
+      await audited(context).write(
+        {
+          entity: "sop_instance",
+          entityId: `calved:${her.id}:${now.toISOString()}`,
+          action: "create",
+          after: { animalId: her.id, penId: her.penId },
+        },
+        async (tx) => {
+          opened = await openCalvingRecord(tx, context.farm.id, her, now);
+        }
+      );
+      return opened;
     }),
 
   /** Today's work: what this person can pick up, newest due first. */

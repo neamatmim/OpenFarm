@@ -9,6 +9,7 @@ import { History } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
 
+import { useConfirmReady } from "@/components/fattening/confirm-ready";
 import { fitOnFrom } from "@/components/fattening/fattening-types";
 import { Notice, SECTION_TITLE } from "@/components/page";
 import {
@@ -35,6 +36,7 @@ import { NO_RECEIVABLE, receivableSent, somethingPaid } from "@/lib/receivable";
 import { useRefused } from "@/lib/refused";
 import { saleStillMissing } from "@/lib/sale-missing";
 import { toast } from "@/lib/toast";
+import { skipsThePreSaleCheck } from "@/lib/way-to-sell";
 import { orpc } from "@/utils/orpc";
 
 /** The broker's fee as the Sale takes it: whole taka, and nothing sent where none was typed — or on answers a phone
@@ -177,6 +179,12 @@ const AnimalPart = ({
     enabled: typing,
   });
   const penNames = usePenNames(typing);
+  // One being fattened, picked by her tag, was never confirmed Ready, so her Pre-sale check was never raised: said, and
+  // the yes offered here — warned, not refused, as a Dairy cull for the butcher is never Ready and is sold as she is.
+  const chosen = typing
+    ? herd.data?.find((her) => her.tagNumber === answers.tagNumber)
+    : undefined;
+  const confirmReady = useConfirmReady(() => setByTag(false));
   const now = new Date();
   const others = (herd.data ?? [])
     .filter((her) => !underMeatWithdrawal(her, now))
@@ -222,6 +230,25 @@ const AnimalPart = ({
           </NativeSelect>
         )}
       </FormField>
+      {chosen && skipsThePreSaleCheck(chosen) ? (
+        <Notice
+          action={
+            <Button
+              disabled={confirmReady.isPending}
+              onClick={() =>
+                confirmReady.mutate({ tagNumber: chosen.tagNumber })
+              }
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {t("sale.confirmFirst")}
+            </Button>
+          }
+          title={t("sale.notReadyYet", { tag: chosen.tagNumber })}
+          tone="warning"
+        />
+      ) : null}
       {ready.length === 0 ? null : (
         <Button
           className="w-fit px-0"

@@ -3221,6 +3221,8 @@ export const enCore = {
   "mortality.kind": "How she went",
   "mortality.died": "Died",
   "mortality.culled": "Culled",
+  "mortality.culledToButcher":
+    "Sold to a butcher? That is a sale, not a death: record it as a sale and what he paid is kept.",
   "mortality.diagnosis": "What the vet found",
   "mortality.diagnosisHint":
     "Where she died of what the vet diagnosed, link it: the register then names the disease and the office's reference.",
@@ -4002,6 +4004,8 @@ export const enCore = {
   "refusal.staffOrManagerOnly":
     "A calving is recorded by barn staff or the manager",
   "refusal.calvingOfACowNotInCalf": "She is not a cow who calves",
+  "refusal.noCalvingRecord":
+    "The farm has no Calving record procedure yet: adopt one from the Playbook",
   "refusal.calvingOfAMale": "A bull does not calve",
   "refusal.calvedInTheFuture": "A calving cannot be later than now",
   "sop.trigger.registrationRenewal": "the registration coming up for renewal",
@@ -4516,6 +4520,9 @@ export const enCore = {
   "sale.missingRegistration":
     "The farm's registration number is not recorded, so no transport card can be given. Write it on the farm identity page.",
   "sale.otherAnimal": "An animal not on the list",
+  "sale.notReadyYet":
+    "{tag} has not been confirmed ready for sale, so the pre-sale check — the vet's health certificate and the movement permit — has not been raised",
+  "sale.confirmFirst": "Confirm ready first",
   "sale.noneToSell":
     "No animal can be sold today: none is here and out of her meat withdrawal",
   "sale.fromList": "Choose from the list",
@@ -5024,6 +5031,9 @@ export const enCore = {
   "alerts.headCountDiffers":
     "The evening count in {pen} found {counted, plural, one {# animal} other {# animals}}; the register has {expected}",
   "animals.markNotFound": "Mark not found",
+  "animals.calved": "She has calved",
+  "animals.confirmReady": "Confirm ready for sale",
+  "animals.sell": "Sell",
   "animals.markNotFoundHint":
     "It is not in its pen. It stays in the herd while the farm looks for it, and you and the owner are told at once.",
   "animals.markedNotFound": "{tag} marked not found",

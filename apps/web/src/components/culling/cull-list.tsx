@@ -1,14 +1,17 @@
 import type { CullReason, MilkAgainstKeep } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
-import { CalendarX, Milk, Repeat } from "lucide-react";
+import { CalendarX, Milk, Repeat, Store } from "lucide-react";
 import { useState } from "react";
 
 import { StateBadge } from "@/components/animal/animal-words";
 import {
+  ActionsHeader,
   DataTable,
   createListColumns,
   listHeader,
@@ -210,6 +213,27 @@ const ReturnCell = ({ row }: CullCell) => (
   <CullListReturn labeled={false} tagNumber={row.original.tagNumber} />
 );
 
+/** Letting her go to the butcher is a Sale, written from here with her already chosen — never a cull on her page,
+ *  where what he paid would be lost. */
+const SellCow = ({ tagNumber }: { tagNumber: string }) => {
+  const { t } = useLanguage();
+  return (
+    <Button
+      nativeButton={false}
+      render={<Link search={{ sell: tagNumber }} to="/sales" />}
+      size="sm"
+      variant="outline"
+    >
+      <Store aria-hidden data-icon="inline-start" />
+      {t("animals.sell")}
+    </Button>
+  );
+};
+
+const SellCell = ({ row }: CullCell) => (
+  <SellCow tagNumber={row.original.tagNumber} />
+);
+
 const column = createListColumns<CullCow>();
 const cullColumns = column.columns([
   column.accessor("tagNumber", {
@@ -247,6 +271,12 @@ const cullColumns = column.columns([
     cell: CalvingCell,
     sortUndefined: "last",
   }),
+  column.display({
+    id: "sell",
+    header: ActionsHeader,
+    cell: SellCell,
+    meta: { align: "end" },
+  }),
 ]);
 
 /** A cow on a phone: her tag and reasons on top, where she stands and her milk beneath. */
@@ -261,6 +291,7 @@ const CullCard = ({ cow }: { cow: CullCow }) => (
     <CullListReturn labeled tagNumber={cow.tagNumber} />
     <MilkLines align="start" milk={cow.milk} state={cow.state} />
     <CalvingLines cow={cow} />
+    <SellCow tagNumber={cow.tagNumber} />
   </div>
 );
 

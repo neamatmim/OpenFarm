@@ -2,21 +2,25 @@ import { isExitState, PHOTO_FILE_MAX_BYTES } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRightLeft,
+  Baby,
   Camera,
+  CircleCheck,
   Handshake,
   MapPin,
   MapPinOff,
   Pill,
   RefreshCw,
   Skull,
+  Store,
   Tag,
 } from "lucide-react";
 
 import { AnimalPhoto } from "@/components/animal-photo";
+import { useConfirmReady } from "@/components/fattening/confirm-ready";
 import { PageHeader } from "@/components/page";
 import { HeaderMenu } from "@/components/page-kit";
 import type { RowAction } from "@/components/page-kit";
@@ -26,6 +30,7 @@ import { breedName } from "@/lib/breed";
 import { photoProblem, shrinkAnimalPhoto } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
+import { wayToSell } from "@/lib/way-to-sell";
 import { orpc } from "@/utils/orpc";
 
 import type { AnimalAct, AnimalDetail, AnimalPowers } from "./animal-types";
@@ -101,6 +106,63 @@ const useMenuActs = (detail: AnimalDetail, powers: AnimalPowers) => {
     },
   ];
   return acts.filter((one) => one.offered);
+};
+
+/**
+ * The acts that take her on to the next record of her own, first in her menu: the night milker finding her calving opens
+ * the Calving record about her; one being fattened is confirmed Ready, so her Pre-sale check is raised; one Ready, or a
+ * Dairy cull for the butcher, is sold.
+ */
+const useSellAndCalveActs = (
+  detail: AnimalDetail,
+  powers: AnimalPowers
+): RowAction[] => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  const navigate = useNavigate();
+  const confirmReady = useConfirmReady();
+  const openCalving = useMutation(
+    orpc.work.openCalvingRecord.mutationOptions({
+      onSuccess: ({ id }) =>
+        navigate({ to: "/work/$instanceId", params: { instanceId: id } }),
+      onError: refused,
+    })
+  );
+  const way = powers.runsTheFarm ? wayToSell(detail) : null;
+  return [
+    ...(powers.mayOpenCalvingRecord
+      ? [
+          {
+            label: t("animals.calved"),
+            icon: Baby,
+            handleSelect: () =>
+              openCalving.mutate({ tagNumber: detail.tagNumber }),
+            disabled: openCalving.isPending,
+          },
+        ]
+      : []),
+    ...(way === "confirm_ready"
+      ? [
+          {
+            label: t("animals.confirmReady"),
+            icon: CircleCheck,
+            handleSelect: () =>
+              confirmReady.mutate({ tagNumber: detail.tagNumber }),
+            disabled: confirmReady.isPending,
+          },
+        ]
+      : []),
+    ...(way === "sell"
+      ? [
+          {
+            label: t("animals.sell"),
+            icon: Store,
+            handleSelect: () =>
+              navigate({ to: "/sales", search: { sell: detail.tagNumber } }),
+          },
+        ]
+      : []),
+  ];
 };
 
 /** What she is, in a line under her number: her Side, her Pen, her breed, her age. */
@@ -180,6 +242,7 @@ export const AnimalProfile = ({
   const { t } = useLanguage();
   const refused = useRefused();
   const menuActs = useMenuActs(detail, powers);
+  const nextActs = useSellAndCalveActs(detail, powers);
   const setPhoto = useMutation(
     orpc.animals.setPhoto.mutationOptions({
       onSuccess: () => {
@@ -193,6 +256,7 @@ export const AnimalProfile = ({
     document.querySelector<HTMLInputElement>(`#${PHOTO_INPUT}`)?.click();
   };
   const actions: RowAction[] = [
+    ...nextActs,
     ...(powers.mayHandle
       ? [
           {

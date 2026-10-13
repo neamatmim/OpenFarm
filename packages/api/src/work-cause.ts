@@ -65,6 +65,22 @@ export const calvingKeyOf = (her: {
   lactationNumber: number;
 }): string => `calving:${her.id}:${her.lactationNumber}`;
 
+/**
+ * Every Calving record opened about her — the milker finding her calving with no round open — has a cause beginning so:
+ * the cow, and the Lactation her calving ends. Not a calving cause (below), so her calving recorded on it does not call
+ * it off.
+ */
+export const calvedPrefixOf = (her: {
+  id: string;
+  lactationNumber: number;
+}): string => `calved:${her.id}:${her.lactationNumber}:`;
+
+/** The cause of the nth Calving record opened about her for one calving: one closed on "not calved yet" is not the last. */
+export const calvedCauseOf = (
+  her: { id: string; lactationNumber: number },
+  n: number
+): string => `${calvedPrefixOf(her)}${n}`;
+
 /** The cause calving work carries: its pregnancy's key, and which lead it keeps. */
 export const calvingCauseOf = (key: string, lead: CalvingLead): string =>
   `${key}:${lead}`;
@@ -92,6 +108,18 @@ export const calvingCauseParts = (
  */
 export const wholeFarmCauseOf = (dueAt: Date): string =>
   `whole-farm:${dueAt.toISOString()}`;
+
+/**
+ * The key one animal's dose of a Pen's Campaign writes, once it is put off: the Campaign's work and her. The work raised
+ * again for her alone is caused by it (put off, below), so every raising of her dose is found from any of them, and her
+ * dose given on the Campaign by a Correction finds what was raised for it.
+ */
+export const campaignDoseKeyOf = (instanceId: string, animalId: string) =>
+  `campaign:${instanceId}:${animalId}`;
+
+/** Whether this is a Campaign dose's key: `campaign:<work>:<animal>`. */
+export const isCampaignDoseKey = (key: string): boolean =>
+  /^campaign:[^:]+:[^:]+$/u.test(key);
 
 /**
  * The cause work raised again carries, when the work it follows was put off — skipped, or closed Missed — and is still

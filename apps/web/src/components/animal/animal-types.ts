@@ -1,4 +1,5 @@
 import {
+  MAY_CALVE_FROM,
   isExitState,
   statesSetByHand,
   whyNotBetweenPurses,
@@ -106,12 +107,29 @@ export interface AnimalPowers {
   mayMovePurse: boolean;
   /** Write her off as Lost while the round cannot find her, and find her again once written off: the Owner's. */
   mayWriteOff: boolean;
+  /** Open the Calving record about her, found calving with no round open: a cow who may calve, opened by her Pen's
+   *  Barn Staff or those who run the farm. */
+  mayOpenCalvingRecord: boolean;
 }
 
 /** Whether there is a State she may simply be set to: a Fattening bull's next steps are each a record of their own —
  *  Ready on its page, a Sale, a Mortality — and are not offered to be refused. */
 const hasAStateToSet = (detail: AnimalDetail | undefined): boolean =>
   detail !== undefined && statesSetByHand(detail.state).length > 0;
+
+/**
+ * Whether this person may open the Calving record about her: a cow who may calve, by the rule her calving is refused
+ * by — a Dairy cow in calf, in milk or dry — and theirs to record about, in their Pens or on a farm they run.
+ */
+const mayOpenCalving = (
+  detail: AnimalDetail | undefined,
+  who: { runsTheFarm: boolean; mayHandle: boolean; ownPens: readonly string[] }
+): boolean =>
+  detail !== undefined &&
+  detail.sex === "female" &&
+  detail.side === "dairy" &&
+  (MAY_CALVE_FROM as readonly string[]).includes(detail.state) &&
+  (who.runsTheFarm || (who.mayHandle && who.ownPens.includes(detail.penId)));
 
 /** Whether an Internal Sale would take her, by the rule the farm refuses one by. */
 const movesBetweenPurses = (detail: AnimalDetail | undefined): boolean =>
@@ -152,6 +170,11 @@ export const useAnimalPowers = (detail: AnimalDetail | undefined) => {
     seesPapers,
     mayMovePurse: isOwner && movesBetweenPurses(detail),
     mayWriteOff: isOwner,
+    mayOpenCalvingRecord: mayOpenCalving(detail, {
+      runsTheFarm,
+      mayHandle,
+      ownPens,
+    }),
   };
   return powers;
 };
