@@ -142,3 +142,17 @@ and the whole green after (api 363 files, domain 101, i18n 3, web 85), and looke
 
 Left from A/B: the person page's training list stays read-only (recorded from the card); "She has calved" needs signal
 (the work it opens runs offline); a held photo is not shown on her page until it reaches the farm.
+
+## Built — step 3 (2026-10-13)
+
+The Owner: "continue". D1–D7 built in four branches, each code-reviewed and every finding fixed before merging; main
+green after (api 366 files, domain 103, i18n 3, web 92) and the screens looked at on the seed farm. No migration.
+
+| Merge | Findings | What |
+|---|---|---|
+| `ff759873` | D1, D7 | "Take it in, then the next off this lorry" keeps the lorry's answers on the page (never in the saved draft), clears each animal's price, weight, toll and target; tags read from a Bangla keyboard (ডি-১২, ডি১২, ১২ → D-0012) in the app and on the server (`tagNumberAsWritten`). |
+| `cc5c9c7d` | D2 | Milk dispatch offers past buyers (last 180 days) and fills their last price, phone, address, and "on credit" when most of their recent milk went that way; `knownAs` treats runs of spaces as one. |
+| `2834b260` | D6 | «Pay the month's wages»: last month's people at their whole wage, draws taken off, cash only, whose hand; Monthly Costs open with last time's payee and amount; the wage person picked from a list. **Wage Run** in CONTEXT.md. |
+| `34ba07fe` | D3–D5 | Today's work in Now / Later today / Done today with a real "all done"; after Finish, the next job in the same pen; the bottom bar counts what is owed now and what is To check. |
+
+Left: the 50-row cap on Done today and the flush ordering have no test (a `.tsx` hook); D8–D17 and groups E–G wait.
