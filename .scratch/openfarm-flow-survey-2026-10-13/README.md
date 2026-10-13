@@ -168,3 +168,13 @@ languages. E3 and E6 need the Owner's decision: [e3-e6-decisions.md](e3-e6-decis
 | `ad1ceac2` | E5, E8 | Owner's home names each bank/bKash account with an unread month (oldest + how many); a closed account refuses later readings; «Bank and mobile money charges» category (migration 20261013091352); money book filtered by method or account, saying where handovers are and when the 500-row cap bites; the Manager told the owner records supplier payments. |
 | `1e8948ec` | E1, E2, E7 | «The farm's own money» (hands + accounts, unread named) on the overview and Cash tab, one function with the monthly report; every cash figure says cash — «Cash in less out» / «নগদ আসা-যাওয়ার ফারাক», «নগদ এসেছে / নগদ গেছে» — and the year leads with the result after overheads; the period bar only on tabs that read it. |
 | `8fe57aa0` | E4 | «Owed to suppliers at the month's end, by age» on the report, paper, CSV and accountant summary, shown only when owed; Capital Employed takes it off (ADR 0023 addendum); one balance rule shared with Feed → Suppliers. |
+
+## Built — E3 and E6 (2026-10-13/14)
+
+The Owner: "go with recommendation" (option A for both), then for E6 "Refuse, don't hold" after three review rounds
+showed holding a change for her approval needed a parallel proposed state in every money write.
+
+| Merge | Finding | What |
+|---|---|---|
+| `502fb163` | E3 | ADR 0027 **Outside the Results**: Owner's money in, drawings, loan received, loan principal repaid, machine or building bought move the cash and never the results; loan interest a cost; no depreciation; a farm's own same-named Category taken up; accountant CSV marks the rows (migration 20261013102532). |
+| `c566de95` | E6 | ADR 0028 **Closed Month**: the Owner closes an ended month with nothing waiting; after that only she may enter, correct, move or void its money (handovers, write-offs, cash counts, bank checks too), anyone else is refused `month_closed`; each change she makes is listed on the next screen, paper and CSV; reopen with a reason; "ready to close" from the 7th; one guarded writer for money; farm lock only on paths that reach money (migration 20261013163003). Barn records and the Owner's prices are a known limit (ADR). `feat/month-closed` (the hold design) is left unmerged. |
