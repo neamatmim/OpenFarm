@@ -176,7 +176,7 @@ export interface MonthlyPaymentAllocation {
   cattlePaidMoney: number;
   monthlyPaidMoney: number;
   /** Confirmed money allocated to sums whose original due dates are still ahead. */
-  advanceMoney: number;
+  paidAheadMoney: number;
   sums: {
     dueOn: string;
     amountMoney: number;
@@ -224,7 +224,7 @@ export const monthlyPaymentAllocationOf = ({
     cattleRequiredMoney,
     cattlePaidMoney,
     monthlyPaidMoney: roundMoney(confirmedMoney - cattlePaidMoney),
-    advanceMoney: roundMoney(
+    paidAheadMoney: roundMoney(
       sums.reduce(
         (sum, one) => sum + (one.dueOn > today ? one.paidMoney : 0),
         0

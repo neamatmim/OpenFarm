@@ -34,8 +34,9 @@ const KEEP_FOR_MS = 14 * 24 * 60 * 60 * 1000;
  *  `animals.get`, the one after that because feed come into the store is the Feed In, `stock.feedIn`, and
  *  the one after that because a router holding more than one kind of thing nests one per kind:
  *  `feed.items.list`, the one after that because a Venture's do too: `ventures.agreements.list`, and this one
- *  because the farm's words are spelled the American way, liters and canceled among them (2026-10-08). */
-const CACHE_KEY = "kept-in-american-english";
+ *  because the farm's words are spelled the American way, liters and canceled among them (2026-10-08), and this one
+ *  because a Monthly Sum met before its day is Paid Ahead, `paidAheadMoney`, not an advance (2026-10-13). */
+const CACHE_KEY = "monthly-sums-paid-ahead";
 /** The shape of what this phone keeps, written on everything it puts away, so nothing put away the old way is read. */
 export const CACHE_SHAPE = CACHE_KEY;
 

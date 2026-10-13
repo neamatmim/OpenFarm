@@ -108,7 +108,7 @@ describe("advance Monthly Sums", () => {
     });
     expect(pending).toMatchObject({
       howToPay: { owedMoney: 58_000 },
-      paymentAllocation: { paidMoney: 0, advanceMoney: 0 },
+      paymentAllocation: { paidMoney: 0, paidAheadMoney: 0 },
       payIn: { roomMoney: 13_000 },
     });
     expect(await listed(ventureId)).toMatchObject({
@@ -134,7 +134,7 @@ describe("advance Monthly Sums", () => {
     expect(confirmed.allocation?.after).toMatchObject({
       cattlePaidMoney: 40_000,
       monthlyPaidMoney: 5000,
-      advanceMoney: 5000,
+      paidAheadMoney: 5000,
       owedMoney: 13_000,
     });
     const today = await them.client.portal.venture({
@@ -320,7 +320,7 @@ describe("advance Monthly Sums", () => {
     expect(today.paymentAllocation).toMatchObject({
       cattlePaidMoney: 40_000,
       monthlyPaidMoney: 2000,
-      advanceMoney: 2000,
+      paidAheadMoney: 2000,
       owedMoney: 16_000,
     });
     expect(today.howToPay?.monthly?.next).toEqual({

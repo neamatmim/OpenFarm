@@ -1660,7 +1660,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "audit.filterTo": "পর্যন্ত",
   "audit.all": "সব",
   "audit.empty": "এই ফিল্টারে কিছু নেই",
-  "audit.ownOnly": "আপনি শুধু নিজের কাজ দেখছেন",
+  "audit.mineSubtitle": "খামারে আপনি যা লিখেছেন, নতুনটা আগে, আর কিছু ঠিক করা হলে কেন।",
   "audit.subtitle": "খামারে যত পরিবর্তন হয়েছে — কে করেছেন, কোন ভূমিকায়, আর কেন।",
   "audit.allRecords": "সব ধরনের রেকর্ড",
   "audit.filterWho": "কে",
@@ -2467,7 +2467,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "payments.cattle": "গরু কেনার অংশ",
   "payments.monthly": "মাসের টাকা",
   "payments.monthlyTotal": "মাসের মোট জমা",
-  "payments.includesAdvance": "এর মধ্যে ভবিষ্যৎ মাসের অগ্রিম {amount}",
+  "payments.includesPaidAhead": "এর মধ্যে সামনের মাসের আগাম জমা {amount}",
   "payments.balance": "এই চুক্তিতে আরও দিতে হবে",
   "payments.paid": "জমা",
   "payments.left": "বাকি",
@@ -2476,7 +2476,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "payments.previewHint":
     "নথিভুক্ত করার আগে ব্যাংকে টাকা প্রাপ্তি যাচাই করুন। এই চুক্তির গরু কেনার অংশের অতিরিক্ত টাকা রক্ষণাবেক্ষণের বাজেটে জমা হবে; অন্য কারও বাকি গরু কেনার অংশে গণনা হবে না।",
   "portal.pay.early":
-    "এই চুক্তির বাকি {amount} পর্যন্ত অগ্রিম দিতে পারবেন। ব্যাংকে টাকা পাঠানোর প্রকৃত তারিখ ও রেফারেন্স লিখুন।",
+    "এই চুক্তির বাকি {amount} পর্যন্ত আগাম জমা দিতে পারবেন। ব্যাংকে টাকা পাঠানোর প্রকৃত তারিখ ও রেফারেন্স লিখুন।",
   "portal.pay.ahead":
     "এই চুক্তিতে যা দেওয়া বাকি, সে পর্যন্ত নির্ধারিত তারিখের আগেই দিতে পারবেন।",
   "portal.pay.aheadTell": "তারপর নিচে ব্যাংকে টাকা পাঠানোর তারিখ ও রেফারেন্স খামারকে জানান।",

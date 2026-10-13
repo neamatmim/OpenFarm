@@ -1774,7 +1774,8 @@ export const enDesk = {
   "audit.filterTo": "To",
   "audit.all": "All",
   "audit.empty": "Nothing recorded for this filter",
-  "audit.ownOnly": "You see your own actions",
+  "audit.mineSubtitle":
+    "Everything you have recorded on the farm, newest first, and why anything was put right.",
   "audit.subtitle":
     "Every change the farm has made: who made it, in which Role, and why.",
   "audit.allRecords": "Every kind of record",
@@ -2647,7 +2648,8 @@ export const enDesk = {
   "payments.cattle": "Cattle Part",
   "payments.monthly": "Monthly sums",
   "payments.monthlyTotal": "Total paid towards monthly sums",
-  "payments.includesAdvance": "Includes {amount} paid ahead for future months",
+  "payments.includesPaidAhead":
+    "Includes {amount} paid ahead for future months",
   "payments.balance": "Still to pay on this Agreement",
   "payments.paid": "Paid",
   "payments.left": "Remaining",

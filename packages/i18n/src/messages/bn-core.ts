@@ -145,15 +145,15 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "suppliers.attentionHint": "{count} জন সরবরাহকারীর বিলের মেয়াদ পার হয়েছে।",
   "purchasing.incomingAvailable":
     "সময়মতো আসার অর্ডার: {quantity} {unit}। দেরি হওয়া বা খরচের সীমা ছাড়ানো অর্ডার বাদ দেওয়া হয়েছে। আরও কেনার আগে বাকি অনুমোদন দেখুন।",
-  "purchasing.title": "খাদ্য কেনাকাটা",
+  "purchasing.title": "খাদ্যের অর্ডার",
   "purchasing.description":
     "খাদ্য কেনার আবেদন, খরচের অনুমোদন, অর্ডার ও সরবরাহের হিসাব রাখুন। বুঝে পাওয়ার পরই খাদ্য মজুত ও খরচের খাতায় উঠবে।",
-  "purchasing.request": "খাদ্য কেনার আবেদন",
+  "purchasing.request": "খাদ্য অর্ডারের আবেদন",
   "purchasing.requestHint":
     "প্রতি আবেদনে একটি খাদ্য। আবার কেনার আগে বাকি আবেদন ও অর্ডার দেখুন। মালিক পরিমাণ ও খরচ অনুমোদন করলে অর্ডার করা যাবে।",
   "purchasing.submit": "আবেদন জমা দিন",
-  "purchasing.requested": "খাদ্য কেনার আবেদন জমা হয়েছে",
-  "purchasing.saved": "কেনাকাটার তথ্য সংরক্ষিত হয়েছে",
+  "purchasing.requested": "খাদ্য অর্ডারের আবেদন জমা হয়েছে",
+  "purchasing.saved": "অর্ডারের তথ্য সংরক্ষিত হয়েছে",
   "purchasing.quantity": "পরিমাণ",
   "purchasing.unitPrice": "প্রতি এককের দর (৳)",
   "purchasing.budget": "সর্বোচ্চ খরচ (৳)",
@@ -171,8 +171,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "purchasing.existing": "এই খাদ্যের {count}টি আবেদন বা অর্ডার এখনও বাকি",
   "purchasing.incomingHint":
     "এই দিনের মধ্যে আসার কথা: {quantity} {unit}। প্রস্তাবিত আবেদন থেকে এই পরিমাণ বাদ দেওয়া হয়েছে; এটি মজুত নয়। জমা দেওয়ার আগে বাকি অনুমোদন ও দেরি হওয়া সরবরাহ দেখুন।",
-  "purchasing.fromForecast": "এই হিসাব থেকে কিনুন",
-  "purchasing.approve": "কেনাকাটা অনুমোদন",
+  "purchasing.fromForecast": "এই হিসাব থেকে অর্ডার করুন",
+  "purchasing.approve": "অর্ডার অনুমোদন",
   "purchasing.approveHint":
     "দর যাচাই করে পরিমাণ ও সর্বোচ্চ খরচ অনুমোদন করুন। আগের অনুমোদন বদলালে কারণ দিতে হবে; আগের তথ্য নিরীক্ষার ইতিহাসে থাকবে।",
   "purchasing.revise": "অনুমোদন সংশোধন",
@@ -185,7 +185,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "purchasing.arrivingLate":
     "খাদ্য লাগার দিনের পরে পৌঁছানোর কথা। ততদিনের মজুত যাচাই করুন।",
   "purchasing.action.rejected": "আবেদন প্রত্যাখ্যান",
-  "purchasing.action.cancelled": "বাকি কেনাকাটা বাতিল",
+  "purchasing.action.cancelled": "বাকিটা বাতিল",
   "purchasing.action.closed": "অর্ডার বন্ধ করুন",
   "purchasing.endHint":
     "কারণ লিখুন। আগে বুঝে পাওয়া খাদ্য ও তার খরচ খাতায় থাকবে। বন্ধ বা বাতিল করলে বাকি পরিমাণ আর আসার পরিকল্পনায় ধরা হবে না।",
@@ -204,11 +204,11 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "purchasing.requestedOn": "আবেদন করা হয়েছে",
   "purchasing.approvedOn": "অনুমোদন করা হয়েছে",
   "purchasing.noReceipts": "এখনও সরবরাহের তথ্য নেই",
-  "purchasing.show": "কেনাকাটা দেখুন",
-  "purchasing.active": "চলমান কেনাকাটা",
+  "purchasing.show": "অর্ডার দেখুন",
+  "purchasing.active": "চলমান অর্ডার",
   "purchasing.awaitingApproval": "অনুমোদনের অপেক্ষায় ({count})",
-  "purchasing.all": "চলমান ও সম্প্রতি বন্ধ কেনাকাটা",
-  "purchasing.empty": "এই তালিকায় কোনো কেনাকাটা নেই",
+  "purchasing.all": "চলমান ও সম্প্রতি বন্ধ অর্ডার",
+  "purchasing.empty": "এই তালিকায় কোনো অর্ডার নেই",
   "purchasing.deliveryLimits":
     "বাকি: {quantity} {unit} · খরচের বাকি সীমা: ৳{money}",
   "purchasing.deliveryLimitsHint":
@@ -220,14 +220,14 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "purchasing.state.rejected": "প্রত্যাখ্যাত",
   "purchasing.state.cancelled": "বাতিল",
   "purchasing.state.closed": "বন্ধ",
-  "purchasing.changed": "এই কেনাকাটার তথ্য বদলেছে। এগোনোর আগে পেজ রিফ্রেশ করুন।",
+  "purchasing.changed": "এই অর্ডারের তথ্য বদলেছে। এগোনোর আগে পেজ রিফ্রেশ করুন।",
   "purchasing.futureDay": "সরবরাহের জন্য আজ বা পরের কোনো দিন বেছে নিন।",
   "purchasing.budgetSmall":
     "অনুমোদনে দর অনুযায়ী মোট ও আগে বুঝে পাওয়া সব সরবরাহের খরচ ধরতে হবে।",
   "purchasing.activeAssignee": "এই খামারের সক্রিয় মালিক বা ম্যানেজার বেছে নিন।",
   "purchasing.forecastMissing":
     "এই খাদ্যের চাহিদা বাছাই করা হিসাবে নেই। হিসাব রিফ্রেশ করুন।",
-  "purchasing.terminal": "কেনাকাটার বর্তমান পর্যায়ে এই কাজ করা যাবে না।",
+  "purchasing.terminal": "অর্ডারের বর্তমান পর্যায়ে এই কাজ করা যাবে না।",
   "purchasing.reasonNeeded": "অনুমোদন বদলানোর কারণ অন্তত তিন অক্ষরে লিখুন।",
   "purchasing.needsApproval": "অর্ডারের আগে মালিককে এই আবেদন অনুমোদন করতে হবে।",
   "purchasing.notOrdered": "সরবরাহ গ্রহণের আগে অনুমোদিত অর্ডার করার তথ্য রাখুন।",
@@ -237,10 +237,10 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "এই সরবরাহ অনুমোদিত বাকি পরিমাণ ছাড়িয়েছে। মালিককে অনুমোদন সংশোধন করতে বলুন।",
   "purchasing.budgetLimit":
     "এই সরবরাহ অনুমোদিত বাকি খরচের সীমা ছাড়িয়েছে। মালিককে অনুমোদন সংশোধন করতে বলুন।",
-  "purchasing.queue": "খাদ্য কেনাকাটায় মনোযোগ দরকার",
+  "purchasing.queue": "খাদ্যের অর্ডারে মনোযোগ দরকার",
   "purchasing.queueHint":
     "অনুমোদনের অপেক্ষায় {approvals}টি · অর্ডারের সময় হয়েছে {ordering}টির · সরবরাহ দেরি {deliveries}টির",
-  "purchasing.open": "কেনাকাটা খুলুন",
+  "purchasing.open": "খাদ্যের অর্ডার খুলুন",
   "refusal.feedPlanAnimalLeft":
     "এই পশু খামার ছেড়েছে। তার খাদ্য পরিকল্পনা সংশোধন করা যাবে না।",
   "refusal.feedPlanChanged":
@@ -248,9 +248,9 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.feedPlanStartsInFuture":
     "পরিকল্পনা শুরুর দিন আজ বা তার আগের দিন বেছে নিন।",
   "refusal.feedPlanRations":
-    "এই খামারের বর্তমান রেশন বেছে নিন। প্রতিটি ধাপ একবারই বাছুন।",
+    "এই খামারের বর্তমান রেশন বেছে নিন, প্রতিটি ওজনসীমার জন্য একটি।",
   "refusal.feedPlanStages":
-    "শুরুর রেশন দেখুন এবং ফাঁক বা ওভারল্যাপ ছাড়া ওজনের ধাপ বেছে নিন। প্রতিটি বৃদ্ধির রেশনে খাদ্যের পরিমাণ ও প্রত্যাশিত বৃদ্ধি থাকতে হবে।",
+    "শুরুর রেশন দেখুন এবং ফাঁক বা ওভারল্যাপ ছাড়া ওজনসীমা বেছে নিন। প্রতিটি বৃদ্ধির রেশনে খাদ্যের পরিমাণ ও প্রত্যাশিত বৃদ্ধি থাকতে হবে।",
   "refusal.feedPlanCoverage":
     "দ্রুত বৃদ্ধিসহ বিক্রয়ের দিন পর্যন্ত পশুর সম্ভাব্য ওজনের জন্য উপযুক্ত রেশন যোগ করুন।",
   "feedPlan.rationsChanged": "এই পরিকল্পনা অনুমোদনের পর রেশন বদলেছে",
@@ -288,7 +288,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "feedPlan.emptyHint":
     "এই প্রাণীর ওজন ও খামারের অনুমোদিত রেশন দিয়ে কেনা থেকে বিক্রি পর্যন্ত পরিকল্পনা করুন।",
   "feedPlan.modelHint":
-    "অনুমোদিত রেশনের সংরক্ষিত তথ্য ও সর্বশেষ নির্ভরযোগ্য ওজন থেকে পূর্বাভাস। ধাপের দিনগুলো পর্যালোচনার জন্য; রেশন নিজে থেকে বদলায় না।",
+    "অনুমোদিত রেশনের সংরক্ষিত তথ্য ও সর্বশেষ নির্ভরযোগ্য ওজন থেকে পূর্বাভাস। প্রতিটি রেশন শুরুর দিন পর্যালোচনার জন্য; রেশন নিজে থেকে বদলায় না।",
   "feedPlan.revisions":
     "{count, plural, one {#টি সংরক্ষিত সংস্করণ} other {#টি সংরক্ষিত সংস্করণ}}",
   "feedPlan.scenario": "ওজন বৃদ্ধির পূর্বাভাস",
@@ -308,7 +308,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "feedPlan.recordWeight": "ওজন মাপা লিখুন",
   "feedPlan.rationReview": "রেশন পর্যালোচনা দরকার",
   "feedPlan.rationReviewHint":
-    "লেখা ওজনে পরিকল্পনায় {ration} আছে। পরের ধাপ অনুসরণের আগে প্রাণীর পেন দেখুন এবং ধীরে রেশন বদলের ব্যবস্থা করুন।",
+    "লেখা ওজনে পরিকল্পনায় {ration} আছে। পরের রেশনে নেওয়ার আগে পশুর পেন দেখুন এবং ধীরে রেশন বদলের ব্যবস্থা করুন।",
   "feedPlan.slowGain": "ওজন বৃদ্ধিতে নজর দরকার",
   "feedPlan.slowGainHint":
     "দানাদার খাবার বাড়ানোর আগে স্বাস্থ্য, দেওয়া খাবার ও অবশিষ্ট খাবার দেখুন।",
@@ -1382,6 +1382,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "common.signedOut": "আপনি সাইন আউট হয়ে গেছেন — আবার সাইন ইন করুন",
   "common.refreshFailed": "হালনাগাদ করা যায়নি — এই ফোনে শেষবার যা ছিল তা দেখানো হচ্ছে",
   "nav.audit": "অডিট লগ",
+  "nav.myRecords": "আমি যা লিখেছি",
   "nav.animals": "পশু",
   "nav.herd": "শেড ও পেন",
   "nav.breeds": "জাত",
@@ -2337,7 +2338,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "অর্ডার করা হয়েছে ও সরবরাহ বাকি আছে এমন অর্ডারগুলো দেখানো হচ্ছে। সরবরাহকারী, রেফারেন্স ও বাকি পরিমাণ মিলিয়ে নিন।",
   "stock.searchOrders": "খাদ্য, সরবরাহকারী বা অর্ডার রেফারেন্স দিয়ে খুঁজুন…",
   "stock.noReceivableOrders":
-    "এই বাছাইয়ে সরবরাহ বাকি আছে এমন কোনো অর্ডার নেই। অর্ডারের তথ্য রাখতে খাদ্য কেনাকাটা খুলুন, অথবা সরাসরি কেনা / নিজস্ব ফসল বাছুন।",
+    "এই বাছাইয়ে সরবরাহ বাকি আছে এমন কোনো অর্ডার নেই। অর্ডারের তথ্য রাখতে খাদ্যের অর্ডার খুলুন, অথবা সরাসরি কেনা / নিজস্ব ফসল বাছুন।",
   "stock.useOrder": "এই অর্ডারে সরবরাহের তথ্য দিন",
   "stock.changeArrivalSource": "আসার ধরন আবার বাছুন",
   "stock.linkedOrder": "এই সরবরাহ অর্ডার {reference} · {supplier}-এ যুক্ত হবে",
@@ -2785,7 +2786,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "costs.market_toll": "হাটের হাসিল",
   "costs.trips": "কেনা-বেচার যাত্রা",
   "costs.herd": "পশুপালের খরচ",
-  "costs.overheads": "খামার চালানোর খরচ",
+  "costs.overheads": "পরিচালন খরচ",
   "costs.overheadsHint":
     "মজুরি, ভাড়া, বিদ্যুৎ আর এমন খরচ। কোনো পশু, মৌসুম বা ভেঞ্চারের হিসাবে যায় না।",
   "costs.overheadsTotal": "মোট",
@@ -2938,8 +2939,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "home.animalsIn": "{count}টি পশু",
   "home.allClear": "এই মুহূর্তে আপনার কিছু করার নেই",
   "home.nothingRaised": "আজকের কাজ এখনো ওঠেনি",
-  "nav.theDay": "খামারে আজ",
-  "owner.approvals": "আপনার অনুমোদনের অপেক্ষায়",
+  "nav.theDay": "দিনের তদারকি",
+  "owner.approvals": "আপনার যাচাইয়ের অপেক্ষায়",
   "owner.escalated": "মালিক পর্যন্ত পৌঁছেছে",
   "owner.discardToday": "আজ ফেলে দেওয়া",
   "owner.average": "সাত দিনের গড় {liters} লিটার",
@@ -2963,7 +2964,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "owner.bySide": "দুগ্ধ {dairy} · মোটাতাজাকরণ {fattening}",
   "owner.entries": "{count}টি লেনদেন",
   "owner.moneyTotal": "মোট {amount}",
-  "owner.onTheFarm": "আজ খামারে",
+  "owner.onTheFarm": "ম্যানেজার যা দেখছেন",
   "owner.onTheFarmHint": "এগুলো ম্যানেজার দেখছেন; আপনার জানার জন্য এখানে।",
   "owner.nothingLate": "কিছু দেরি হয়নি, কোনো খাবার কমে আসেনি",
   "owner.moneyMonth": "এই মাসের {currencySum}",
@@ -3502,7 +3503,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.changedSince":
     "আপনি খোলার পরে কেউ এটি সংশোধন করেছেন। এখন কী লেখা আছে দেখতে আবার খুলুন।",
   "refusal.nothingToCorrect": "কিছুই বদলানো হয়নি, তাই সংশোধনের কিছু নেই",
-  "review.title": "দেখা দরকার",
+  "review.title": "সিদ্ধান্ত দরকার",
   "review.none": "অপেক্ষায় কিছু নেই",
   "review.resolve": "নিষ্পত্তি করুন",
   "review.weightIsRight": "স্কেলের ওজনটাই ঠিক",
@@ -3965,7 +3966,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "nav.sale": "বিক্রয়",
   "nav.trips": "হাটের যাত্রা",
   "trips.subtitle":
-    "কেনা বা বিক্রির জন্য হাটে প্রতিটি যাত্রা, আর গরুর দাম ছাড়া দিনটার খরচ। কিছু না কিনে ফিরলেও যাত্রাটা লিখুন: তার খরচ মাসের খামার চালানোর খরচে যাবে।",
+    "কেনা বা বিক্রির জন্য হাটে প্রতিটি যাত্রা, আর গরুর দাম ছাড়া দিনটার খরচ। কিছু না কিনে ফিরলেও যাত্রাটা লিখুন: তার খরচ মাসের পরিচালন খরচে যাবে।",
   "trips.buying": "কেনার যাত্রা",
   "trips.selling": "বিক্রির যাত্রা",
   "trips.newBuying": "নতুন কেনার যাত্রা",
@@ -4059,10 +4060,10 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.col.perCow": "গাভীপ্রতি দিনে",
   "months.col.sold": "মোটাতাজা বিক্রি · মার্জিন",
   "months.col.fatteningCost": "মোটাতাজাকরণের খরচ",
-  "months.col.overheads": "খামার চালানোর খরচ · প্রতি পশু প্রতিদিন",
-  "months.cardOverheads": "খামার চালানোর খরচ {amount}, প্রতি পশু প্রতিদিন {perHead}",
+  "months.col.overheads": "পরিচালন খরচ · প্রতি পশু প্রতিদিন",
+  "months.cardOverheads": "পরিচালন খরচ {amount}, প্রতি পশু প্রতিদিন {perHead}",
   "months.yearOverheads":
-    "বছরে খামার চালানোর খরচ: {amount}, ভেঞ্চারের পশুসহ খামারের সব পশুর হিসাবে প্রতি পশু প্রতিদিন {perHead}। মজুরি, ভাড়া আর বিদ্যুৎ: ওপরের কোনো দিক, মৌসুম বা ভেঞ্চারের হিসাবে এটা ধরা নেই।",
+    "বছরে পরিচালন খরচ: {amount}, ভেঞ্চারের পশুসহ খামারের সব পশুর হিসাবে প্রতি পশু প্রতিদিন {perHead}। মজুরি, ভাড়া আর বিদ্যুৎ: ওপরের কোনো দিক, মৌসুম বা ভেঞ্চারের হিসাবে এটা ধরা নেই।",
   "months.soFar": "এখন পর্যন্ত",
   "months.one.title": "মাসিক প্রতিবেদন — {month}",
   "months.one.subtitle":
@@ -4089,8 +4090,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.sold": "বিক্রি হওয়া পশু",
   "months.one.margins": "তাদের মার্জিন",
   "months.one.overheads": "পরিচালন খরচ",
-  "months.one.overheadsHint":
-    "খামার চালানোর খরচ, কোনো বিভাগে ধরা নয়; আর মাথাপিছু দিনে কত।",
+  "months.one.overheadsHint": "পরিচালন খরচ, কোনো বিভাগে ধরা নয়; আর মাথাপিছু দিনে কত।",
   "months.one.overheadsAmount": "মাসে মোট",
   "months.one.perHeadPerDay": "মাথাপিছু দিনে",
   "months.one.results": "প্রতিটি বিভাগের ফল",
@@ -4128,7 +4128,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.ended": "মাসের শেষে",
   "months.one.cash": "মাস শেষে খামারের নিজের টাকা",
   "months.one.cashHint":
-    "হাতে থাকা সব নোট, তার থেকে ভেঞ্চারের জমা-না-দেওয়া বিক্রির টাকা আর কেনার অগ্রিম বাদ — তা ভেঞ্চারের, খামারের খরচের নয়; আর বিবরণী থেকে হিসাব করা প্রতিটি খামারের হিসাবের জমা।",
+    "হাতে থাকা সব নোট, তার থেকে ভেঞ্চারের জমা-না-দেওয়া বিক্রির টাকা আর কেনার ফ্লোট বাদ — তা ভেঞ্চারের, খামারের খরচের নয়; আর বিবরণী থেকে হিসাব করা প্রতিটি খামারের হিসাবের জমা।",
   "months.one.inHands": "হাতে মোট নগদ",
   "months.one.venturesInHands": "এর মধ্যে ভেঞ্চারের",
   "months.one.farmsInHands": "হাতে খামারের নিজের",

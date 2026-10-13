@@ -15,3 +15,9 @@ The owner may revise an approval with a reason; the audit trail retains its prev
 Arrival corrections retain the ordinary correction windows, settlement protections and audit reasons. Managers cannot correct a delivery beyond its approval. An owner may record the facts even when they exceed it: the discrepancy remains visible and further deliveries stay bounded. The owner may revise an approval to acknowledge an overrun on a closed or cancelled order without reopening it. Voiding or correcting an arrival immediately changes the order's remaining quantity and actual cost.
 
 The owner and manager home screens show pending approvals, ordering deadlines, late deliveries and corrected overruns. These are in-app prompts; this feature does not send supplier orders or external reminders. Purchasing actions require a connection to protect approvals and shared limits. Existing offline shed work continues separately.
+
+## Addendum, 2026-10-13
+
+The request, approval and order this ADR describes are a **Feed Order** in `CONTEXT.md`, and the Feed page calls them
+«Feed orders». **Feed Purchase** keeps its one meaning: the feed that came. The glossary had defined Feed Purchase twice, once
+for each.

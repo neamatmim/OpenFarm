@@ -177,7 +177,7 @@ export const DrawCorrection = ({
     /** The Farm Account and transaction ID it named, where the screen holds them; nothing for cash. */
     farmAccountId?: string | null;
     reference?: string | null;
-    /** Left out where the screen does not hold the draw's own note: the money register does not. */
+    /** Left out where the screen does not hold the draw's own note: the money book does not. */
     note?: string | null;
   };
 }) => {

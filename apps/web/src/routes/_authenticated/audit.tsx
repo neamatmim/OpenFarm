@@ -11,7 +11,6 @@ import { ENTITIES } from "@/components/audit/audit-words";
 import {
   EmptyState,
   Loaded,
-  Notice,
   Page,
   PageHeader,
   TableSkeleton,
@@ -104,8 +103,10 @@ const AuditPage = () => {
 
   return (
     <Page>
-      <PageHeader description={t("audit.subtitle")} title={t("audit.title")} />
-      {seesAll ? null : <Notice title={t("audit.ownOnly")} tone="info" />}
+      <PageHeader
+        description={t(seesAll ? "audit.subtitle" : "audit.mineSubtitle")}
+        title={t(seesAll ? "audit.title" : "nav.myRecords")}
+      />
 
       <div className="surface flex flex-col gap-4 p-4 md:p-5">
         <FilterBar>
