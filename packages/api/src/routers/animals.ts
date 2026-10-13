@@ -878,7 +878,10 @@ const readRegisterRow = (
   breeds: Parameters<typeof breedNamed>[0],
   here: AlreadyHere
 ): { data: NewAnimal } | RowRefused => {
-  const penNamed = (values.pen ?? "").toLowerCase();
+  // The screens write a Pen "Shed / Pen", spaced; a name copied from one is the same Pen as "Shed/Pen".
+  const penNamed = (values.pen ?? "")
+    .toLowerCase()
+    .replaceAll(/\s*\/\s*/gu, "/");
   if (penByName.get(penNamed) === PEN_IN_TWO_SHEDS) {
     return {
       reason: "Two Sheds have a Pen by this name: write it as Shed/Pen",

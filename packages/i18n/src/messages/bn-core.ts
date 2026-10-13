@@ -1485,7 +1485,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "{pen}-এ {capacity}টি ধরে; এই স্থানান্তরের পরে সেখানে থাকবে {head}টি।",
   "herd.import": "প্রারম্ভিক তালিকা",
   "herd.importHelp":
-    "নমুনার কলামগুলোসহ CSV পেস্ট করুন, বা স্প্রেডশিট থেকে কপি করা ঘর: tag, sex, side, state, pen, source, breed, birth_date, calved_at, expected_calving, official_tag, alias, lactation। sex, side, state ও source বাংলায় বা ইংরেজিতে লেখা যায়, পর্দায় যেভাবে লেখা থাকে। তারিখ লিখুন বছর-মাস-দিন, যেমন 2025-03-15। tag হলো কানের ট্যাগে লেখা নম্বর, যেমন D-0001; খালি রাখলে পরের নম্বরটি দেওয়া হবে। lactation হলো দোহনে বা শুকনো গাভী কোন দুগ্ধকালে আছে; খালি রাখলে প্রথমটি। # দিয়ে শুরু হওয়া সারি বাদ পড়ে",
+    "নমুনার কলামগুলোসহ CSV পেস্ট করুন, বা স্প্রেডশিট থেকে কপি করা ঘর: tag, sex, side, state, pen, source, breed, birth_date, calved_at, expected_calving, official_tag, alias, lactation। sex, side, state ও source বাংলায় বা ইংরেজিতে লেখা যায়, পর্দায় যেভাবে লেখা থাকে। তারিখ লিখুন বছর-মাস-দিন, যেমন 2025-03-15। tag হলো কানের ট্যাগে লেখা নম্বর, যেমন D-0001; খালি রাখলে পরের নম্বরটি দেওয়া হবে। lactation হলো দোহনে বা শুকনো গাভী কোন দুগ্ধকালে আছে; খালি রাখলে প্রথমটি। # দিয়ে শুরু হওয়া সারি বাদ পড়ে।",
   "herd.importRun": "আমদানি",
   "herd.importCheck": "আমদানি না করে যাচাই করুন",
   "herd.templateDownload": "নমুনা ফাইল নামান",
@@ -1598,7 +1598,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "animals.filter.allPens": "সব পেন",
   "animals.filter.anyHold": "আটকে বা মুক্ত — সব",
   "animals.filter.held": "যেকোনো কিছু আটকে",
-  "animals.filter.anyPhoto": "ছবি আছে বা নেই — সব",
+  "animals.filter.anyPhoto": "ছবি — সব",
   "animals.filter.noPhoto": "এখনো ছবি নেই",
   "animals.filter.clear": "ফিল্টার মুছুন",
   "animals.filter.open": "ফিল্টার",
