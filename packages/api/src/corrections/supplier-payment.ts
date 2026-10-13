@@ -4,6 +4,7 @@ import { startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { changeByOf } from "../closed-month-store";
 import { farmDay } from "../farm-clock";
 import { enteredOn } from "../money-by-hand-store";
 import { farmAccountChange, paymentMethodChange } from "../money-inputs";
@@ -64,7 +65,12 @@ export const supplierPaymentCorrection: CorrectionKind<
   trail: async (tx, row) => (await load(tx, row.farmId, row.id)) ?? null,
   apply: async (tx, row, to, { context, now }) => {
     if (to.voided) {
-      await forgetTheMoneyOf(tx, "supplier_payment", row.id);
+      await forgetTheMoneyOf(
+        tx,
+        changeByOf(context, now),
+        "supplier_payment",
+        row.id
+      );
       await tx.delete(supplierPayment).where(eq(supplierPayment.id, row.id));
       return;
     }

@@ -570,3 +570,72 @@ export const receivableWriteOff = pgTable(
     ),
   ]
 );
+
+/**
+ * A **Closed Month** of the Farm's own money: the Owner said its figures were done. Only she may change its money
+ * afterwards, and what she changes is told on the next month's paper. Reopened with a reason, it is open again; closed
+ * again, the same row says so.
+ */
+export const closedMonth = pgTable(
+  "closed_month",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    /** The month closed, "YYYY-MM". */
+    month: text("month").notNull(),
+    closedBy: text("closed_by").references(() => user.id),
+    closedAt: timestamp("closed_at", { withTimezone: true }).notNull(),
+    /** Set while it stands reopened: who, when and why. */
+    reopenedBy: text("reopened_by").references(() => user.id),
+    reopenedAt: timestamp("reopened_at", { withTimezone: true }),
+    reopenReason: text("reopen_reason"),
+  },
+  (table) => [
+    check("closed_month_month", sql`${table.month} ~ '^[0-9]{4}-[0-9]{2}$'`),
+    uniqueIndex("closed_month_uidx").on(table.farmId, table.month),
+  ]
+);
+
+/** What a change to a **Closed Month**'s money did. */
+export const CLOSED_MONTH_CHANGES = [
+  "entered",
+  "corrected",
+  "moved",
+  "voided",
+] as const;
+export type ClosedMonthChangeKind = (typeof CLOSED_MONTH_CHANGES)[number];
+
+/**
+ * One change the Owner made to a **Closed Month**'s money after it was closed — an entry, a Correction, a move into or
+ * out of it, a void — kept so the next month's paper can say what changed under a month already done. The Money Event
+ * is named by its id alone: a void takes it off the books, and what it came to is kept here.
+ */
+export const closedMonthChange = pgTable(
+  "closed_month_change",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    /** The closed month whose money changed: where it stood, or where it was moved to. */
+    month: text("month").notNull(),
+    moneyEventId: text("money_event_id").notNull(),
+    source: text("source", { enum: MONEY_SOURCES }).notNull(),
+    change: text("change", { enum: CLOSED_MONTH_CHANGES }).notNull(),
+    /** What the closed month held of it before, and after: nothing before for one entered or moved in, nothing after
+     *  for one voided or moved out. */
+    beforeMoney: numericMoney("before_money"),
+    afterMoney: numericMoney("after_money"),
+    changedBy: text("changed_by").references(() => user.id),
+    changedAt: timestamp("changed_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    check(
+      "closed_month_change_month",
+      sql`${table.month} ~ '^[0-9]{4}-[0-9]{2}$'`
+    ),
+    index("closed_month_change_at_idx").on(table.farmId, table.changedAt),
+  ]
+);

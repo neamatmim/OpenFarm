@@ -1,6 +1,6 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Link } from "@tanstack/react-router";
-import { Landmark } from "lucide-react";
+import { CalendarCheck, Landmark } from "lucide-react";
 
 import {
   MORE_LINK,
@@ -77,6 +77,56 @@ export const FarmAccountsOutGroup = ({
       }
       rows={rows}
       tone="warning"
+    />
+  );
+};
+
+/** Last month, open from the 7th, as the Owner's home is told it. */
+export type MonthToCloseData = Awaited<
+  ReturnType<typeof orpc.overview.get.call>
+>["needsYou"]["monthToClose"];
+
+/**
+ * Last month, named from the 7th while it stands open: the Owner's to close (a **Closed Month**), once whatever of it
+ * still waits for her word is seen to. Opens the month, where it is closed.
+ */
+export const MonthToCloseGroup = ({
+  month,
+}: {
+  /** Missing from an answer a phone kept from before months were closed. */
+  month: MonthToCloseData | undefined;
+}) => {
+  const { t, language } = useLanguage();
+  if (!month) {
+    return null;
+  }
+  return (
+    <QueueGroup
+      icon={CalendarCheck}
+      label={t("months.closing.title")}
+      rows={[
+        <QueueRow
+          key={month.month}
+          meta={
+            month.waiting > 0
+              ? t("owner.monthToCloseWaiting", { count: month.waiting })
+              : undefined
+          }
+          title={
+            <Link
+              className="after:absolute after:inset-0 hover:underline"
+              params={{ month: month.month }}
+              to="/monthly-report/$month"
+            >
+              {t("owner.monthToClose", {
+                month: saidMonth(month.month, language),
+              })}
+            </Link>
+          }
+          trailing={<Opens />}
+        />,
+      ]}
+      tone="info"
     />
   );
 };

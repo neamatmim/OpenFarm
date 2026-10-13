@@ -18,8 +18,10 @@ import { z } from "zod";
 import type { Tx } from "../../audit";
 import { audited } from "../../audit";
 import { assertTheHand } from "../../cash-store";
+import { changeByOf } from "../../closed-month-store";
 import { isTheFarmsOwn } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
+import { lockTheFarm } from "../../farm-lock";
 import { protectedProcedure } from "../../index";
 import { theOwnersOf } from "../../intake-store";
 import { paperOnFile } from "../../investor-store";
@@ -47,7 +49,6 @@ import {
 } from "../../venture-act";
 import {
   assertCattleBudgetHolds,
-  lockTheFarm,
   paidForBy,
   readMovement,
   takenAgainst,
@@ -502,11 +503,15 @@ export const capitalProcedures = {
               createdAt: now,
             });
             // What the outing had cost when it was written up was booked as the Farm's; this Float paid it.
-            await paidFromTheFloat(tx, audited(context).recordEvent, {
-              farmId: context.farm.id,
-              tripId: input.buyingTripId,
-              ventureId: row.id,
-            });
+            await paidFromTheFloat(
+              tx,
+              audited(context).recordEvent,
+              changeByOf(context, now),
+              {
+                tripId: input.buyingTripId,
+                ventureId: row.id,
+              }
+            );
           },
         });
         return { id };

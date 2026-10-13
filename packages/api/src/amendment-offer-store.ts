@@ -21,6 +21,7 @@ import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Context } from "./context";
 import { assertRegistered } from "./export-store";
+import { lockTheFarm } from "./farm-lock";
 import { assertReadAsKept, keepPaper } from "./kept-paper";
 import type { OfferWords } from "./offer-lifecycle";
 import {
@@ -36,7 +37,7 @@ import {
 import { madeOn } from "./paper-values";
 import { confirmApproval, proofSaid } from "./signing-code";
 import { currentWording, giveStandardTemplates } from "./template-store";
-import { lockTheFarm, termsAcrossOn } from "./venture-store";
+import { termsAcrossOn } from "./venture-store";
 
 // An Amendment agreed within the app, instead of on a paper every Investor signs: the Owner offers it, every Investor on
 // the Venture agrees to the paper in the portal, and the Owner approves it — and only then is the Venture amended,

@@ -1,14 +1,12 @@
-import { eq, inArray } from "@OpenFarm/db/operators";
-import {
-  moneyEvent,
-  moneyReceipt,
-  receivablePayment,
-} from "@OpenFarm/db/schema/money";
+import { eq } from "@OpenFarm/db/operators";
+import { receivablePayment } from "@OpenFarm/db/schema/money";
 import { startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { assertTheHand, handOfTheRecord } from "../cash-store";
+import type { ChangeBy } from "../closed-month-store";
+import { changeByOf, takeOffTheBooks } from "../closed-month-store";
 import { farmDay } from "../farm-clock";
 import { enteredOn } from "../money-by-hand-store";
 import {
@@ -58,18 +56,16 @@ export const receivablePaymentCorrectionInput = correctionInput({
  * A payment voided: it and its Money Event are gone, and what he owes is read again without it — his oldest debts first,
  * as ever, so a write-off it had cleared stands again.
  */
-const voidThePayment = async (tx: Tx, row: { id: string }) => {
+const voidThePayment = async (tx: Tx, row: { id: string }, by: ChangeBy) => {
   const events = await tx.query.moneyEvent.findMany({
     where: { source: "receivable_payment", sourceId: row.id },
     columns: { id: true },
   });
-  const ids = events.map((one) => one.id);
-  if (ids.length > 0) {
-    await tx
-      .delete(moneyReceipt)
-      .where(inArray(moneyReceipt.moneyEventId, ids));
-    await tx.delete(moneyEvent).where(inArray(moneyEvent.id, ids));
-  }
+  await takeOffTheBooks(
+    tx,
+    by,
+    events.map((one) => one.id)
+  );
   await tx.delete(receivablePayment).where(eq(receivablePayment.id, row.id));
 };
 
@@ -106,7 +102,7 @@ export const receivablePaymentCorrection: CorrectionKind<
   trail: (tx, row) => readReceivablePayment(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
     if (to.voided) {
-      await voidThePayment(tx, row);
+      await voidThePayment(tx, row, changeByOf(context, now));
       return;
     }
     const amountMoney = to.amountMoney ?? row.amountMoney;

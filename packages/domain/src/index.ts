@@ -1016,6 +1016,7 @@ export type {
 export type { JoiningLetterFacts } from "./joining-letter";
 export { countSaid, joiningLetterPaper, moneySaid } from "./joining-letter";
 export type {
+  ChangedAfterClosing,
   MonthFigures,
   MonthlyReportFacts,
   MonthlyReportRow,

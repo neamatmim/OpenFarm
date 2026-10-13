@@ -11,9 +11,10 @@ import { ORPCError } from "@orpc/server";
 
 import { clearNoticesAbout, holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
+import { lockTheFarm } from "./farm-lock";
 import { THE_FARMS_PURSE } from "./money-store";
 import { tell } from "./notice";
-import { lockTheFarm, whatTheFloatBought } from "./venture-store";
+import { whatTheFloatBought } from "./venture-store";
 
 // Who holds the farm's cash: each person's **Cash in Hand** — the cash Money Events that named their hand, in less out,
 // and the Handovers that moved it on to another hand or to the bank.

@@ -24,6 +24,7 @@ import {
 } from "../farm-account-store";
 import type { FarmList } from "../farm-list";
 import { bringBackToList, retireFromList } from "../farm-list";
+import { lockTheFarm } from "../farm-lock";
 import { protectedProcedure } from "../index";
 import { monthInput } from "../money-inputs";
 import {
@@ -32,7 +33,6 @@ import {
   requirePersonalSession,
   requireRole,
 } from "../roles";
-import { lockTheFarm } from "../venture-store";
 
 // The Farm's own mobile money numbers and bank accounts — its **Farm Accounts** — where its money by mobile money or the bank goes in
 // and comes out. The Owner's to list and retire; everyone who writes money picks one by its name and last digits.

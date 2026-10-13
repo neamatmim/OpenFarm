@@ -8,7 +8,16 @@ import {
 } from "@OpenFarm/domain";
 import { z } from "zod";
 
+import { audited } from "../audit";
+import {
+  changeByOf,
+  closeMonth,
+  closingOf,
+  readClosedMonth,
+  reopenMonth,
+} from "../closed-month-store";
 import type { Context } from "../context";
+import { reasonInput } from "../corrections/correction";
 import { toCsv } from "../csv";
 import { stampedFileName } from "../export-name";
 import { assertRegistered, recordExport } from "../export-store";
@@ -46,6 +55,7 @@ const monthToExport = async (context: ExportingContext, month: string) => {
     figures: one.figures,
     figuresBefore: one.figuresBefore,
     moneyBy: one.moneyBy,
+    changedAfterClosing: one.changedAfterClosing,
     producedAt: madeOn(now),
     producedBy: context.actor.name,
   };
@@ -93,6 +103,62 @@ export const monthlyReportRouter = {
     .handler(({ context, input }) =>
       aMonth(context.db, context.farm, context.clock.now(), input.month)
     ),
+
+  /**
+   * Where a month stands with the Owner (`closingOf`): closed or open, whether it has ended, what of it still waits for
+   * her word, and — open again — when it was reopened and why.
+   */
+  closing: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .input(z.object({ month: farmMonth }))
+    .handler(({ context, input }) =>
+      closingOf(context.db, context.farm.id, input.month, context.clock.now())
+    ),
+
+  /**
+   * The Owner closes a month of the Farm's own money (a **Closed Month**): one that has ended, with nothing of it still
+   * waiting for her. Its money is hers alone to change afterwards — anybody else is refused — and the paper of the month
+   * she changes it in lists what she changed. Her own phone, on the trail.
+   */
+  close: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ month: farmMonth }))
+    .handler(async ({ context, input }) => {
+      const by = changeByOf(context, context.clock.now());
+      await audited(context).write(
+        {
+          entity: "closed_month",
+          entityId: input.month,
+          action: "update",
+          before: (tx) => readClosedMonth(tx, by.farmId, input.month),
+          after: (tx) => readClosedMonth(tx, by.farmId, input.month),
+        },
+        (tx) => closeMonth(tx, by, input.month)
+      );
+      return { month: input.month };
+    }),
+
+  /** The Owner opens a closed month again, with her reason, kept on the month and on the trail. */
+  reopen: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ month: farmMonth, reason: reasonInput }))
+    .handler(async ({ context, input }) => {
+      const by = changeByOf(context, context.clock.now());
+      await audited(context).write(
+        {
+          entity: "closed_month",
+          entityId: input.month,
+          action: "update",
+          before: (tx) => readClosedMonth(tx, by.farmId, input.month),
+          after: (tx) => readClosedMonth(tx, by.farmId, input.month),
+          reason: input.reason,
+        },
+        (tx) => reopenMonth(tx, by, input.month, input.reason)
+      );
+      return { month: input.month };
+    }),
 
   /**
    * One month of the farm laid out on paper (`monthlyReportPaper`), for the Owner to print or save, and to hand the

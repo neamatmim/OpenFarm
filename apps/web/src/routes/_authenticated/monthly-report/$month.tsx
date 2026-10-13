@@ -3,6 +3,10 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 import {
+  ChangedAfterClosing,
+  MonthClosing,
+} from "@/components/months/month-closing";
+import {
   TheMonthAsCsv,
   LeftOut,
   MoneyBy,
@@ -177,6 +181,8 @@ const TheMonth = ({ one }: { one: OneMonth }) => {
         </Section>
       ) : null}
       <LeftOut figures={one.figures} />
+      {/* An answer kept on the phone from before months were closed says nothing of it: nothing drawn. */}
+      <ChangedAfterClosing changes={one.changedAfterClosing ?? []} />
       <Section title={t("months.one.venturesTitle")}>
         <VenturesThatRan month={one.month} ventures={one.ventures} />
       </Section>
@@ -273,6 +279,7 @@ const MonthPage = () => {
   return (
     <Page>
       {header}
+      {one.data.closing ? <MonthClosing closing={one.data.closing} /> : null}
       <TheMonth one={one.data} />
     </Page>
   );

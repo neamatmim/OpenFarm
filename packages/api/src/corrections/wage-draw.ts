@@ -7,6 +7,7 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
+import { lockTheFarm } from "../farm-lock";
 import { enteredOn } from "../money-by-hand-store";
 import {
   counterpartyInput,
@@ -21,7 +22,6 @@ import {
   farmAccountShownOf,
   paymentMethodOf,
 } from "../money-store";
-import { lockTheFarm } from "../venture-store";
 import { readWageDraw, takenOffDraw } from "../wage-draw-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";

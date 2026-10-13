@@ -7,8 +7,10 @@ import { z } from "zod";
 
 import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
+import { changeByOf } from "../closed-month-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { targetWindowInput } from "../farm-clock";
+import { lockTheFarm } from "../farm-lock";
 import {
   assertAVentureMayOwnHer,
   assertSheBelongsWithTheFloat,
@@ -31,11 +33,7 @@ import {
   paymentMethodOf,
 } from "../money-store";
 import { bookSaleMoney } from "../sale-store";
-import {
-  assertTripIsOpen,
-  lockTheFarm,
-  ventureWindowOf,
-} from "../venture-store";
+import { assertTripIsOpen, ventureWindowOf } from "../venture-store";
 import type { CorrectionKind, NewValues } from "./correction";
 import {
   changeOf,
@@ -288,7 +286,7 @@ export const intakeCorrection: CorrectionKind<
     if (to.voided) {
       // A Float already counted was counted with her in it: the outing's sum would stop being true.
       await assertTripIsOpen(tx, row.farmId, row.buyingTripId);
-      await voidTheAnimal(tx, row.farmId, row.animalId);
+      await voidTheAnimal(tx, changeByOf(context, now), row.animalId);
       return;
     }
     if (to.owner !== undefined) {

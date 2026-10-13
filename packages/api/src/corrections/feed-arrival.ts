@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
+import { changeByOf } from "../closed-month-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import {
@@ -142,7 +143,7 @@ export const feedArrivalCorrection: CorrectionKind<
           delivery: { id: row.id, voided: true },
         });
       }
-      await forgetTheMoneyOf(tx, "feed_in", row.id);
+      await forgetTheMoneyOf(tx, changeByOf(context, now), "feed_in", row.id);
       await tx.delete(feedIn).where(eq(feedIn.id, row.id));
       await clearNoticesAbout(tx, row.farmId, [row.id], now);
       return;

@@ -1311,6 +1311,12 @@ export const enCore = {
     "Its animals consumed nothing of the farm's that month",
   "refusal.monthAlreadyReimbursed": "That month has been reimbursed already",
   "refusal.monthNotOver": "That month is not over yet",
+  "refusal.monthClosed": "This month is closed — ask the owner",
+  "refusal.monthNotEnded": "Only a month that has ended can be closed",
+  "refusal.monthAlreadyClosed": "That month is closed already",
+  "refusal.monthHasMoneyWaiting":
+    "Some of that month's money still waits for your word: approve it first",
+  "refusal.monthNotClosed": "That month is not closed",
   "refusal.farmAccountClosedByThen":
     "That account was closed before the month began: there is no statement of it to read",
   "refusal.monthBeforeTheVenture": "That month is before this venture opened",
@@ -4534,6 +4540,38 @@ export const enCore = {
   "months.one.fatteningAfter": "Fattening, after overheads",
   "months.one.farmsOwnMoney": "The farm's own money",
   "months.one.venturesTitle": "Ventures",
+  "months.closing.title": "Closing the month",
+  "months.closing.hint":
+    "Once you close a month, only you can enter, put right, move or take off its money, and the paper of the month you do it in lists what you changed.",
+  "months.closing.closedOn": "Closed on {day}",
+  "months.closing.close": "Close this month",
+  "months.closing.closed": "Month closed",
+  "months.closing.reopen": "Reopen",
+  "months.closing.reopenTitle": "Reopen this month",
+  "months.closing.reopenHint":
+    "Say why it is opened again: the reason is kept on the month and on the trail.",
+  "months.closing.reason": "Why",
+  "months.closing.reopened": "Month reopened",
+  "months.closing.reopenedOn": "Reopened on {day}: {reason}",
+  "months.closing.notEnded": "A month is closed once it has ended.",
+  "months.closing.waiting":
+    "{count, plural, one {# entry of this month still waits} other {# entries of this month still wait}} for your word: approve them before closing.",
+  "months.closing.changedTitle": "Changed after closing",
+  "months.closing.changedHint":
+    "Made this month to the money of months already closed: those months' papers, as handed over, no longer hold.",
+  "months.closing.entered": "Entered",
+  "months.closing.corrected": "Put right",
+  "months.closing.moved": "Moved",
+  "months.closing.voided": "Taken off",
+  "months.closing.col.day": "Day",
+  "months.closing.col.month": "Month changed",
+  "months.closing.col.what": "What",
+  "months.closing.col.before": "Before",
+  "months.closing.col.after": "After",
+  "months.closing.col.by": "By",
+  "owner.monthToClose": "{month} is ready to close",
+  "owner.monthToCloseWaiting":
+    "{count, plural, one {# entry still waits} other {# entries still wait}} for your word first",
   "months.one.ventures":
     "Each venture keeps its own accounts, so none are above; each has its own page.",
   "months.one.noVentures": "No venture ran this month.",

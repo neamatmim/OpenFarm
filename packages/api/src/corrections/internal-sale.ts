@@ -1,13 +1,14 @@
 import { and, eq } from "@OpenFarm/db/operators";
 import { fatteningJoining, internalSale } from "@OpenFarm/db/schema/fattening";
-import { moneyEvent } from "@OpenFarm/db/schema/money";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import { farmDayOf, priceAtWeight, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { changeByOf } from "../closed-month-store";
 import { farmDay } from "../farm-clock";
+import { putMoneyRight } from "../money-store";
 import { assertCattleBudgetHolds, readInternalSale } from "../venture-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
@@ -83,7 +84,7 @@ export const internalSaleCorrection: CorrectionKind<
       reference: row.sides[0]?.reference ?? "",
     }),
   trail: (tx, row) => readInternalSale(tx, row.farmId, row.id),
-  apply: async (tx, row, to, { now }) => {
+  apply: async (tx, row, to, { context, now }) => {
     const soldOn = to.soldOn ?? row.soldOn;
     if (soldOn > farmDayOf(now)) {
       throw refuse(
@@ -129,16 +130,16 @@ export const internalSaleCorrection: CorrectionKind<
           eq(ventureMovement.internalSaleId, row.id)
         )
       );
-    await tx
-      .update(moneyEvent)
-      .set({
+    await putMoneyRight(
+      tx,
+      changeByOf(context, now),
+      { sourceId: row.id },
+      {
         amountMoney: priceMoney,
         occurredAt: startOfFarmDay(soldOn),
         ...(to.reference === undefined ? {} : { reference: to.reference }),
-      })
-      .where(
-        and(eq(moneyEvent.farmId, row.farmId), eq(moneyEvent.sourceId, row.id))
-      );
+      }
+    );
     if (to.rateMoneyPerKg !== undefined) {
       await tx
         .update(fatteningJoining)

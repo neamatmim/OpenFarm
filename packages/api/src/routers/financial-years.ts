@@ -18,6 +18,7 @@ import { z } from "zod";
 
 import { audited } from "../audit";
 import { farmMonth } from "../farm-clock";
+import { lockTheFarm } from "../farm-lock";
 import { protectedProcedure } from "../index";
 import {
   OWNER_ONLY,
@@ -25,7 +26,6 @@ import {
   requirePersonalSession,
   requireRole,
 } from "../roles";
-import { lockTheFarm } from "../venture-store";
 import { yearChangesOf, yearRulesOf } from "../year-store";
 
 /** How many years after this one the farm lists: far enough to see a Transition Year the law has set. */

@@ -764,3 +764,55 @@ describe("the Monthly Report of one month, a row a figure", () => {
     }
   });
 });
+
+describe("what was changed after a month was closed, on paper", () => {
+  const changed = {
+    ...FACTS,
+    changedAfterClosing: [
+      {
+        month: "2044-02",
+        change: "corrected" as const,
+        beforeMoney: 1000,
+        afterMoney: 1200,
+        changedOn: "2044-03-04",
+        by: "রহিম",
+      },
+      {
+        month: "2044-02",
+        change: "voided" as const,
+        beforeMoney: 700,
+        afterMoney: null,
+        changedOn: "2044-03-05",
+        by: null,
+      },
+      {
+        month: "2044-02",
+        change: "moved" as const,
+        beforeMoney: 500,
+        afterMoney: null,
+        changedOn: "2044-03-06",
+        by: "রহিম",
+      },
+    ],
+  };
+
+  it("lists each change, in Bangla and in English", () => {
+    const bn = paperText(monthlyReportPaper(changed), "bn");
+    expect(bn).toContain("বন্ধ করা মাসে পরে যা বদলেছে");
+    expect(bn).toContain("সংশোধন");
+    expect(bn).toContain("১,২০০ টাকা");
+    expect(bn).toContain("রহিম");
+    expect(bn).toContain("সরানো");
+    const en = paperText(monthlyReportPaper(changed), "en");
+    expect(en).toContain("Changed after closing");
+    expect(en).toContain("Put right");
+    expect(en).toContain("Taken off");
+    expect(en).toContain("Moved");
+    expect(en).toContain("February 2044");
+  });
+
+  it("is left off a month that changed no closed month", () => {
+    const en = paperText(monthlyReportPaper(FACTS), "en");
+    expect(en).not.toContain("Changed after closing");
+  });
+});

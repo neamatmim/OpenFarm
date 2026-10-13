@@ -5,7 +5,7 @@ import { ORPCError } from "@orpc/server";
 
 import type { AuditedWrite, Tx } from "./audit";
 import { audited } from "./audit";
-import { lockTheFarm } from "./venture-store";
+import { lockTheFarm } from "./farm-lock";
 
 /** The context an act has: the Role is settled and the Farm is certain. */
 type ActorContext = Parameters<typeof audited>[0] & { farm: { id: string } };

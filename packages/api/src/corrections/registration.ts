@@ -7,6 +7,8 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import type { ChangeBy } from "../closed-month-store";
+import { changeByOf } from "../closed-month-store";
 import { readAnimal } from "../herd-store";
 import { forgetTheMoneyOf } from "../money-store";
 import type { CorrectionKind } from "./correction";
@@ -34,9 +36,10 @@ const isWrittenAbout = (error: unknown): boolean => {
  */
 export const voidTheAnimal = async (
   tx: Tx,
-  farmId: string,
+  by: ChangeBy,
   animalId: string
 ): Promise<void> => {
+  const { farmId } = by;
   const moves = await tx.query.animalMove.findMany({
     where: { farmId, animalId },
     columns: { id: true },
@@ -73,7 +76,7 @@ export const voidTheAnimal = async (
           eq(ventureMovement.intakeId, came.id)
         )
       );
-    await forgetTheMoneyOf(tx, "intake", came.id);
+    await forgetTheMoneyOf(tx, by, "intake", came.id);
     await tx.delete(intake).where(eq(intake.id, came.id));
   }
   try {
@@ -125,7 +128,7 @@ export const registrationCorrection: CorrectionKind<
   entry: (her) => ({ enteredAt: her.createdAt, enteredBy: her.writtenBy }),
   shown: () => Promise.resolve({ voided: false }),
   trail: (tx, her) => readAnimal(tx, her.id),
-  apply: async (tx, her, to) => {
+  apply: async (tx, her, to, { context, now }) => {
     if (to.voided) {
       const bought = await tx.query.intake.findFirst({
         where: { farmId: her.farmId, animalId: her.id },
@@ -137,7 +140,7 @@ export const registrationCorrection: CorrectionKind<
           data: { refusal: "void_her_intake" },
         });
       }
-      await voidTheAnimal(tx, her.farmId, her.id);
+      await voidTheAnimal(tx, changeByOf(context, now), her.id);
     }
   },
 };

@@ -9,6 +9,7 @@ import {
   farmDaysApart,
 } from "@OpenFarm/domain";
 
+import { monthReadyToClose } from "../closed-month-store";
 import { farmAccountsToSee } from "../farm-account-store";
 import { protectedProcedure } from "../index";
 import {
@@ -76,6 +77,7 @@ export const overviewRouter = {
         storeCount,
         lostYear,
         accounts,
+        readyToClose,
       ] = await Promise.all([
         // Every piece of late work still open, as the Overdue list holds it: one a month old is still late, and a home
         // that said nothing was late while the list held it was wrong (the Owner, 2026-10-06).
@@ -162,6 +164,8 @@ export const overviewRouter = {
         // has since changed its mind about; and those with a month's statement nobody has read, the monthly Bank Check
         // asked for. Read once for both.
         farmAccountsToSee(context.db, farmId, now),
+        // Last month, from the 7th while it stands open: hers to close (a Closed Month).
+        monthReadyToClose(context.db, farmId, now),
       ]);
 
       // A day of the farm's milk is every Pen's Sessions on that day added together, which
@@ -201,6 +205,8 @@ export const overviewRouter = {
         needsYou: {
           farmAccountsOut: accounts.out,
           farmAccountsUnread: accounts.unread,
+          /** Last month, open from the 7th, with how much of it still waits for her word: closing it asks that first. */
+          monthToClose: readyToClose,
           /** How much late work there is in all: the list below is its longest-waiting, at most `QUEUE_LIMIT`. */
           overdueTotal: late.length,
           overdue: late

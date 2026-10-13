@@ -23,6 +23,7 @@ import type { Context } from "../context";
 import { dataKeepersInput, readKeepers } from "../data-keepers";
 import { failuresInTheLastHour } from "../failures-seen";
 import { farmDay } from "../farm-clock";
+import { lockTheFarm } from "../farm-lock";
 import { protectedProcedure, publicProcedure } from "../index";
 import { retimePregnancyChecks } from "../instances-store";
 import { tell } from "../notice";
@@ -41,7 +42,6 @@ import {
 import { scheduleStatus } from "../scheduler";
 import { onlyOnAVisit } from "../scope";
 import { startWithStandard } from "../standard-store";
-import { lockTheFarm } from "../venture-store";
 
 /** A whole number within a Farm Parameter's bounds, as the farm declares them (domain `FARM_PARAMETERS`). */
 const withinBounds = ({ min, max }: ParameterBounds) =>

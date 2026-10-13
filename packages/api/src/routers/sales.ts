@@ -21,6 +21,7 @@ import { assertTheHand } from "../cash-store";
 import { correct } from "../corrections/correction";
 import { saleCorrection, saleCorrectionInput } from "../corrections/sale";
 import { counterpartyNamed } from "../counterparty-store";
+import { lockTheFarm } from "../farm-lock";
 import { leaves, loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { tellTheOwnerAPaperIsDue } from "../investor-statement-notice";
@@ -47,7 +48,7 @@ import {
   salePriceInput,
 } from "../sale-store";
 import { lastWeighingsBefore } from "../shrink-store";
-import { lockTheFarm, reachesSellingOnASale } from "../venture-store";
+import { reachesSellingOnASale } from "../venture-store";
 
 const tagInput = z.string().trim().min(1).max(32);
 

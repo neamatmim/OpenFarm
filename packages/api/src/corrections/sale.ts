@@ -1,6 +1,5 @@
-import { eq, inArray } from "@OpenFarm/db/operators";
+import { eq } from "@OpenFarm/db/operators";
 import { sale, sellingTripAnimal } from "@OpenFarm/db/schema/fattening";
-import { moneyEvent, moneyReceipt } from "@OpenFarm/db/schema/money";
 import { sellingTrip } from "@OpenFarm/db/schema/trip";
 import {
   receivablePutRight,
@@ -19,7 +18,9 @@ import {
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { assertTheHand, handOfTheRecord } from "../cash-store";
+import { changeByOf, takeOffTheBooks } from "../closed-month-store";
 import { counterpartyNamed } from "../counterparty-store";
+import { lockTheFarm } from "../farm-lock";
 import { comesBackFromAVoidedExit, correctHowSheLeft } from "../herd-store";
 import { farmAccountChange, paymentMethodChange } from "../money-inputs";
 import {
@@ -45,7 +46,7 @@ import {
   readSale,
 } from "../sale-store";
 import { assertNotSettledUp } from "../venture-act";
-import { backFromSellingOnAVoid, lockTheFarm } from "../venture-store";
+import { backFromSellingOnAVoid } from "../venture-store";
 import { keepWhatWasPhotographed } from "../voided-photos";
 import type { CorrectionKind, Corrector, NewValues } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
@@ -172,10 +173,7 @@ const voidTheSale = async (
       by: context.actor.id,
       at: now,
     });
-    await tx
-      .delete(moneyReceipt)
-      .where(inArray(moneyReceipt.moneyEventId, ids));
-    await tx.delete(moneyEvent).where(inArray(moneyEvent.id, ids));
+    await takeOffTheBooks(tx, changeByOf(context, now), ids);
   }
   await tx.delete(sale).where(eq(sale.id, row.id));
   // The Venture this Sale made Selling goes back where it stood, unless another of its animals has been sold since.

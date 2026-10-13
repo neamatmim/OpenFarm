@@ -14,6 +14,7 @@ import { earlyLossesOf } from "../early-losses-store";
 import { farmsNextEid } from "../eid-store";
 import { suggestedTargetOf } from "../expected-gain-store";
 import { farmDay } from "../farm-clock";
+import { lockTheFarm } from "../farm-lock";
 import { insertAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import {
@@ -30,7 +31,7 @@ import {
 import { farmAccountIdInput, paymentMethodInput } from "../money-inputs";
 import { accountSaid, bookingOf } from "../money-store";
 import { OWNER_ONLY, requireOnly, requireRole } from "../roles";
-import { lockTheFarm, ventureWindowOf } from "../venture-store";
+import { ventureWindowOf } from "../venture-store";
 
 /** Enough that the Manager recognizes the man; not so many that a shed phone fetches a ledger. */
 const SELLERS_SHOWN = 100;

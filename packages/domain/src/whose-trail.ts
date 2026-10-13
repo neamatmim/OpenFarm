@@ -104,6 +104,8 @@ export const WHOSE_TRAIL = {
   // The Farm's own accounts in full, and what they held against their statements: the Owner's check, as a Venture's is.
   farm_account: "owner",
   farm_account_check: "owner",
+  // A month of the Farm's own money closed, and reopened: the Owner's, as the monthly report it closes is.
+  closed_month: "owner",
   // What the Owner prices the farm's animals and money at: the returns.
   head_price: "owner",
   dairy_entry_price: "owner",

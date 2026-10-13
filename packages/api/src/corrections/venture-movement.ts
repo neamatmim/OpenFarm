@@ -1,5 +1,4 @@
-import { and, eq } from "@OpenFarm/db/operators";
-import { moneyEvent } from "@OpenFarm/db/schema/money";
+import { eq } from "@OpenFarm/db/operators";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import { capitalItMayHold, roundMoney, startOfFarmDay } from "@OpenFarm/domain";
 import { currencyWords } from "@OpenFarm/i18n";
@@ -8,12 +7,14 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { changeByOf } from "../closed-month-store";
 import { farmsOwnOf } from "../farm-capital-store";
 import { farmDay } from "../farm-clock";
+import { lockTheFarm } from "../farm-lock";
 import { amountInput } from "../money-inputs";
-import { forgetTheMoneyOf } from "../money-store";
+import { forgetTheMoneyOf, putMoneyRight } from "../money-store";
 import { closePayInNotes } from "../pay-in-notes";
-import { lockTheFarm, readMovement } from "../venture-store";
+import { readMovement } from "../venture-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
 
@@ -334,7 +335,12 @@ export const ventureMovementCorrection: CorrectionKind<
     if (to.voided) {
       await assertMayBeVoided(tx, row);
       // The Farm's own capital written twice leaves its books with it.
-      await forgetTheMoneyOf(tx, "venture_capital_out", row.id);
+      await forgetTheMoneyOf(
+        tx,
+        changeByOf(context, now),
+        "venture_capital_out",
+        row.id
+      );
       await tx.delete(ventureMovement).where(eq(ventureMovement.id, row.id));
       return;
     }
@@ -377,15 +383,12 @@ export const ventureMovementCorrection: CorrectionKind<
       ...(to.reference === undefined ? {} : { reference: to.reference }),
     };
     if (somethingChanged(followed)) {
-      await tx
-        .update(moneyEvent)
-        .set(followed)
-        .where(
-          and(
-            eq(moneyEvent.farmId, row.farmId),
-            eq(moneyEvent.sourceId, row.id)
-          )
-        );
+      await putMoneyRight(
+        tx,
+        changeByOf(context, now),
+        { sourceId: row.id },
+        followed
+      );
     }
   },
 };

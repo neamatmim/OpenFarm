@@ -18,6 +18,7 @@ import { recordExport } from "../export-store";
 import { farmDay } from "../farm-clock";
 import type { FarmList } from "../farm-list";
 import { bringBackToList, retireFromList } from "../farm-list";
+import { lockTheFarm } from "../farm-lock";
 import { protectedProcedure } from "../index";
 import { emailChanged, forgetEmailCode } from "../investor-email";
 import {
@@ -68,7 +69,6 @@ import {
 import { closeRequests, theirRequests } from "../requests-to-join";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import { theirAgreements } from "../their-agreements";
-import { lockTheFarm } from "../venture-store";
 import { CODE_PAPERS, codePaperFor, handOver } from "../welcome-letter";
 
 /** Why an Investor's access was taken away, as their record says it: the reason, and for a withdrawn consent the day

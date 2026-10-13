@@ -22,6 +22,7 @@ import { audited } from "../../audit";
 import { NEVER_CHECKED } from "../../bank-standing";
 import { farmsOwnOf } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
+import { lockTheFarm } from "../../farm-lock";
 import { protectedProcedure } from "../../index";
 import { tellTheOwnerAPaperIsDue } from "../../investor-statement-notice";
 import { accountSaid, bookMoney, bookingOf } from "../../money-store";
@@ -56,7 +57,6 @@ import {
   budgetsOf,
   cattleMoneyShortOf,
   heldByEach,
-  lockTheFarm,
   nextVentureOrdinal,
   NOTHING_HELD,
   readMovement,

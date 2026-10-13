@@ -4,9 +4,9 @@ import type { SopContent } from "@OpenFarm/domain";
 import { nameAsCompared, standardPlaybook } from "@OpenFarm/domain";
 
 import { audited } from "./audit";
+import { lockTheFarm } from "./farm-lock";
 import { contentOf, publishedContent } from "./sop-content";
 import type { Turning } from "./the-day-turns";
-import { lockTheFarm } from "./venture-store";
 
 /** A procedure's Steps by the names it gives them, in order. */
 const stepsOf = (content: SopContent) =>

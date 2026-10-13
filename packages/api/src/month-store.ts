@@ -35,6 +35,7 @@ import { ORPCError } from "@orpc/server";
 import type { CapitalBooks } from "./capital-store";
 import { animalsAt, capitalBooksOf, venturesCapitalAt } from "./capital-store";
 import { handsHeldAt } from "./cash-store";
+import { changesMadeIn, closingOf } from "./closed-month-store";
 import {
   chargedOf,
   costsBySide,
@@ -565,15 +566,25 @@ export const aMonth = async (
     capitalBooksOf(db, farm.id),
     supplierBillsOf(db, farm.id),
   ]);
-  const [read, ventures, firstDay, end, endBefore, beganBefore] =
-    await Promise.all([
-      readOver(db, farm.id, span, now),
-      venturesRunningIn(db, farm.id, range),
-      firstDayKept(db, farm.id, today),
-      atTheEndOf(db, farm, range.until, now, books, bills),
-      atTheEndOf(db, farm, earlier.until, now, books, bills),
-      atTheEndOf(db, farm, earlier.from, now, books, bills),
-    ]);
+  const [
+    read,
+    ventures,
+    firstDay,
+    end,
+    endBefore,
+    beganBefore,
+    changedAfterClosing,
+    closing,
+  ] = await Promise.all([
+    readOver(db, farm.id, span, now),
+    venturesRunningIn(db, farm.id, range),
+    firstDayKept(db, farm.id, today),
+    atTheEndOf(db, farm, range.until, now, books, bills),
+    atTheEndOf(db, farm, earlier.until, now, books, bills),
+    atTheEndOf(db, farm, earlier.from, now, books, bills),
+    changesMadeIn(db, farm.id, range),
+    closingOf(db, farm.id, month, now),
+  ]);
   const [thisMonth, monthBefore] = narrowedToEach(read.costs, [range, earlier]);
   // One for each range, always: a month falling back on the whole stretch's costs would say two months as one.
   if (!(thisMonth && monthBefore)) {
@@ -609,5 +620,9 @@ export const aMonth = async (
     ).toReversed(),
     /** The Ventures that ran in it: each keeps its own accounts, and has its own month. */
     ventures,
+    /** Whether the Owner has closed it, and what of it still waits for her (a **Closed Month**). */
+    closing,
+    /** What was changed in this month to the money of months already closed: entered, put right or taken off. */
+    changedAfterClosing,
   };
 };

@@ -11,9 +11,9 @@ import { refused } from "./agreeing-in-app";
 import type { AuditedWrite, SnapshotValue, Tx } from "./audit";
 import { audited, readSnapshot } from "./audit";
 import type { Context } from "./context";
+import { lockTheFarm } from "./farm-lock";
 import type { SignedOfferKind } from "./signing-code";
 import { checkSigningCode, keepProof, proofWithdrawn } from "./signing-code";
-import { lockTheFarm } from "./venture-store";
 import { seenWhenDone } from "./writes-seen";
 
 // The one life every paper offered in the app leads — an Agreement Offer, an Amendment, a মনোনয়নপত্র (ADR 0022): the

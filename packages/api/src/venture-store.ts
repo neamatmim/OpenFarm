@@ -1,6 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
-import { farm } from "@OpenFarm/db/schema/farm";
 import { sale as saleTable } from "@OpenFarm/db/schema/fattening";
 import { animal } from "@OpenFarm/db/schema/herd";
 import type { VentureState } from "@OpenFarm/db/schema/venture";
@@ -31,19 +30,6 @@ import { NEVER_CHECKED, standingOf } from "./bank-standing";
 
 /** Struck in the domain, because the screen that shows the Owner the price strikes it too. */
 export { priceAtWeight } from "@OpenFarm/domain";
-
-/**
- * Every count a Venture's rules make — Units taken, what a budget still holds, what a Float is owed — reads
- * rows that another request may be writing. One lock on the Farm, taken first by everything that writes a
- * Venture's money, is what makes those counts still true when the write lands.
- */
-export const lockTheFarm = async (tx: Tx, farmId: string) => {
-  await tx
-    .select({ id: farm.id })
-    .from(farm)
-    .where(eq(farm.id, farmId))
-    .for("update");
-};
 
 /**
  * The place the next Venture opened on this farm takes, counted from one: the first number in its Agreements'
