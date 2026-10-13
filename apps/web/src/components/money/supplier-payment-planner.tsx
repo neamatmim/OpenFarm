@@ -83,6 +83,8 @@ const amountOf = (invoices: readonly PlannedInvoice[]) =>
     0
   ) / 100;
 
+/** One bill on the plan: the Owner pays it from here, and anybody else is told that she does, in place of the button,
+ *  so the bill is not paid by some other road. */
 const PlannedInvoiceRow = ({
   invoice,
   today,
@@ -141,7 +143,11 @@ const PlannedInvoiceRow = ({
           >
             {t("suppliers.pay")}
           </Button>
-        ) : null}
+        ) : (
+          <span className="text-muted-foreground text-xs">
+            {t("suppliers.ownerPays")}
+          </span>
+        )}
       </div>
     </li>
   );

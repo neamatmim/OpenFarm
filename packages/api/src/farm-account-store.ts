@@ -1,4 +1,10 @@
-import { monthOf, roundMoney, startOfFarmDay } from "@OpenFarm/domain";
+import {
+  farmDayOf,
+  monthBefore,
+  monthOf,
+  roundMoney,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import type { BankStanding } from "./bank-standing";
@@ -219,4 +225,42 @@ export const farmAccountsOut = async (
         ]
       : [];
   });
+};
+
+/**
+ * The Farm's open accounts whose last month's statement nobody has read yet, from the first of the month on — the
+ * monthly **Bank Check** asked for on the Owner's home, the way a month's rent not entered is. An account listed only
+ * this month has no last month to read, and a retired one is read no more.
+ */
+export const farmAccountsUnread = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  now: Date
+): Promise<{ id: string; name: string; month: string }[]> => {
+  const today = farmDayOf(now);
+  const month = monthBefore(today);
+  const accounts = await tx.query.farmAccount.findMany({
+    where: {
+      farmId,
+      retiredAt: { isNull: true },
+      createdAt: { lt: startOfFarmDay(`${today.slice(0, 7)}-01`) },
+    },
+    columns: { id: true, name: true },
+    orderBy: { createdAt: "asc", id: "asc" },
+  });
+  if (accounts.length === 0) {
+    return [];
+  }
+  const read = await tx.query.farmAccountCheck.findMany({
+    where: {
+      farmId,
+      forMonth: month,
+      farmAccountId: { in: accounts.map((one) => one.id) },
+    },
+    columns: { farmAccountId: true },
+  });
+  const done = new Set(read.map((one) => one.farmAccountId));
+  return accounts
+    .filter((one) => !done.has(one.id))
+    .map((one) => ({ id: one.id, name: one.name, month }));
 };

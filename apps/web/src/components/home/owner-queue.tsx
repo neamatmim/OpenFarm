@@ -22,7 +22,10 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { FarmAccountsOutGroup } from "@/components/home/farm-accounts-out";
+import {
+  FarmAccountsOutGroup,
+  FarmAccountsUnreadGroup,
+} from "@/components/home/farm-accounts-out";
 import { LowStockWords } from "@/components/home/low-stock-line";
 import { MissingAnimalsGroup } from "@/components/home/missing-animals";
 import { MonthlyCostsGroup } from "@/components/home/monthly-costs";
@@ -467,6 +470,7 @@ const KindList = ({
             forTheOwner
           />
           <FarmAccountsOutGroup accounts={needsYou.farmAccountsOut} />
+          <FarmAccountsUnreadGroup accounts={needsYou.farmAccountsUnread} />
         </div>
       );
     }

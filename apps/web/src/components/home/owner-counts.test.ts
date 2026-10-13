@@ -46,6 +46,15 @@ describe("what waits on the Owner", () => {
     expect(ownerCountsOf(waiting)).toMatchObject({ storeCount: 1, money: 2 });
   });
 
+  it("counts an account whose last month's statement nobody has read under money, though it is no decision of hers", () => {
+    const unread = {
+      ...NOTHING,
+      farmAccountsUnread: [{}, {}],
+    } as unknown as NeedsYou;
+    expect(ownerCountsOf(unread)).toMatchObject({ money: 2 });
+    expect(decisionsWaiting(unread)).toBe(0);
+  });
+
   it("counts an answer kept from before the newer kinds as nothing of them", () => {
     const old = {
       approvals: [],

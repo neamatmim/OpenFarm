@@ -30,6 +30,8 @@ import { PAYMENT_METHOD_WORD } from "@/components/payment-method";
 import { CorrectVetFee } from "@/components/vet/correct-vet-fee";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
+import type { Filters } from "@/lib/register-filters";
+import { NO_FILTERS, passes } from "@/lib/register-filters";
 import type { orpc } from "@/utils/orpc";
 
 /** How many entries the register shows before the next page. */
@@ -341,45 +343,17 @@ const moneyColumns = column.columns([
   }),
 ]);
 
-type DirectionFilter = "" | "in" | "out";
-type StatusFilter = "" | "awaiting" | "approved";
-
-interface Filters {
-  direction: DirectionFilter;
-  category: string;
-  status: StatusFilter;
-  search: string;
-}
-
-const NO_FILTERS: Filters = {
-  direction: "",
-  category: "",
-  status: "",
-  search: "",
-};
-
-/** Whether an entry is one the filters let through: which way, its Category, where it stands, and words in it. */
-const passes = (filters: Filters, event: MoneyEvent, what: string) => {
-  const words = filters.search.trim().toLowerCase();
-  const said = [what, event.counterpartyName ?? "", event.note ?? ""]
-    .join(" ")
-    .toLowerCase();
-  return (
-    (filters.direction === "" || event.direction === filters.direction) &&
-    (filters.category === "" || what === filters.category) &&
-    (filters.status === "" || event.approval === filters.status) &&
-    (words === "" || said.includes(words))
-  );
-};
-
 /** The filters over the register, in a row above it where there is room and stacked on a phone. */
 const RegisterFilters = ({
   filters,
   categories,
+  accounts,
   onChange,
 }: {
   filters: Filters;
   categories: string[];
+  /** The Farm Accounts the period's money went through, so the book can be read against one statement. */
+  accounts: { id: string; name: string }[];
   onChange: (filters: Filters) => void;
 }) => {
   const { t } = useLanguage();
@@ -431,6 +405,24 @@ const RegisterFilters = ({
           <option value="">{t("money.anyStatus")}</option>
           <option value="awaiting">{t("money.awaitingCount")}</option>
           <option value="approved">{t("money.approved")}</option>
+        </NativeSelect>
+        <NativeSelect
+          aria-label={t("money.paidBy")}
+          className="sm:w-48"
+          onChange={(event) => set("paidThrough", event.target.value)}
+          value={filters.paidThrough}
+        >
+          <option value="">{t("money.anyWayPaid")}</option>
+          {(["cash", "mobile_money", "bank"] as const).map((method) => (
+            <option key={method} value={method}>
+              {t(PAYMENT_METHOD_WORD[method])}
+            </option>
+          ))}
+          {accounts.map((account) => (
+            <option key={account.id} value={account.id}>
+              {account.name}
+            </option>
+          ))}
         </NativeSelect>
       </div>
       <div className="sm:ml-auto">
@@ -497,11 +489,29 @@ export const RegisterTab = ({
     data: shown,
     getRowId: (row) => row.id,
   });
+  const accounts = [
+    ...new Map(
+      events.flatMap((event) =>
+        event.farmAccountId
+          ? [
+              [
+                event.farmAccountId,
+                {
+                  id: event.farmAccountId,
+                  name: event.farmAccountName ?? "",
+                },
+              ] as const,
+            ]
+          : []
+      )
+    ).values(),
+  ].toSorted((a, b) => a.name.localeCompare(b.name, language));
   const nothingInPeriod = events.length === 0;
   const nothingFiltered = !nothingInPeriod && shown.length === 0;
   return (
     <div className="surface flex flex-col gap-4 p-4 md:p-5">
       <RegisterFilters
+        accounts={accounts}
         categories={categories}
         filters={filters}
         onChange={setFilters}

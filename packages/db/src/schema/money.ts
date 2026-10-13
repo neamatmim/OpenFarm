@@ -101,6 +101,7 @@ export const CATEGORY_KEYS = [
   "equipment",
   "transport",
   "manure_sales",
+  "bank_charges",
 ] as const;
 export type CategoryKey = (typeof CATEGORY_KEYS)[number];
 

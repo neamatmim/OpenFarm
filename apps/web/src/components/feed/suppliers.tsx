@@ -113,6 +113,9 @@ export const SupplierInvoiceCard = ({
   const { t } = useLanguage();
   const asMoney = useMoney();
   const overdue = invoice.owingMoney !== 0 && invoice.aging !== "current";
+  const stillOwing = invoice.owingMoney > 0;
+  // In place of the button the Manager never sees: who does pay it, so the bill is not paid by some other road.
+  const toldWhoPays = stillOwing && !owner;
   const agingWords = {
     current: "suppliers.aging.current",
     "1_30": "suppliers.aging.1_30",
@@ -146,10 +149,15 @@ export const SupplierInvoiceCard = ({
           ]}
         />
       </div>
-      {owner && invoice.owingMoney > 0 ? (
+      {stillOwing && owner ? (
         <Button className="mt-3" size="sm" onClick={onPay}>
           {t("suppliers.pay")}
         </Button>
+      ) : null}
+      {toldWhoPays ? (
+        <p className="text-muted-foreground mt-3 text-xs">
+          {t("suppliers.ownerPays")}
+        </p>
       ) : null}
       <details className="mt-3 text-sm">
         <summary className="cursor-pointer font-medium">
