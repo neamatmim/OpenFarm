@@ -15,38 +15,21 @@ import type { KeyboardEvent } from "react";
 import { useEffect, useState } from "react";
 
 import { useT } from "@/i18n/language-provider";
-import { tagMatches, tagNumbered, tagSought } from "@/lib/tag-search";
+import { tagSought } from "@/lib/tag-search";
 import { orpc } from "@/utils/orpc";
 
-/** How many Tag Numbers the box offers as one is typed: enough to choose from, few enough to read at once. */
-const OFFERED = 6;
+import type { GoToChoice } from "./go-to-choices";
+import { goToChoicesFor } from "./go-to-choices";
+import type { Role } from "./navigation";
+import { navFor } from "./navigation";
 
 /** Whether the keyboard's shortcut is said as the Mac's ⌘ or everybody else's Ctrl. */
 const onMac = () =>
   typeof navigator !== "undefined" &&
   /Mac|iPhone|iPad/u.test(navigator.platform);
 
-/** The Tag Numbers the farm has that hold what is typed: the one numbered so first, then those that start with it. */
-const offeredFor = (tags: string[], needle: string) => {
-  if (!needle) {
-    return [];
-  }
-  // A bare number typed — "12", or ১২ — is first the one animal numbered so: D-0012 before D-0120.
-  const numbered = tagNumbered(tags, needle);
-  const rest = tags.filter((tag) => tag !== numbered);
-  const starting = rest.filter((tag) => tag.startsWith(needle));
-  const holding = rest.filter(
-    (tag) => !tag.startsWith(needle) && tagMatches(tag, needle)
-  );
-  return [
-    ...(numbered === null ? [] : [numbered]),
-    ...starting,
-    ...holding,
-  ].slice(0, OFFERED);
-};
-
-/** The box itself: a Tag Number typed, the animals it could be offered under it, Enter opens one. */
-const GoToAnimalDialog = ({
+/** The box itself: a Tag Number or a page's words typed, what they could open, Enter opens one. */
+const GoToDialog = ({
   open,
   onOpenChange,
 }: {
@@ -61,12 +44,18 @@ const GoToAnimalDialog = ({
     ...orpc.animals.list.queryOptions({ input: { includeExited: false } }),
     enabled: open,
   });
+  const me = useQuery(orpc.people.me.queryOptions());
+  const places = navFor((me.data?.roles ?? []) as Role[]);
+  // The example in the box is a page this reader's own menu holds, so following it never leads nowhere.
+  const examplePage = places[0]?.items[0]?.label;
   const needle = tagSought(typed);
-  const offered = offeredFor(
-    (animals.data ?? []).map((one) => one.tagNumber),
-    needle
-  );
-  const shown = Math.min(chosen, Math.max(offered.length - 1, 0));
+  const choices = goToChoicesFor({
+    places,
+    say: t,
+    tags: (animals.data ?? []).map((one) => one.tagNumber),
+    typed,
+  });
+  const shown = Math.min(chosen, Math.max(choices.length - 1, 0));
 
   const handleOpenChange = (now: boolean) => {
     onOpenChange(now);
@@ -79,20 +68,32 @@ const GoToAnimalDialog = ({
     handleOpenChange(false);
     navigate({ to: "/animals/$tagNumber", params: { tagNumber: tag } });
   };
+  const take = (choice: GoToChoice) => {
+    if (choice.kind === "animal") {
+      go(choice.tag);
+      return;
+    }
+    handleOpenChange(false);
+    navigate({ to: choice.to });
+  };
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "ArrowDown" && offered.length > 0) {
+    if (event.key === "ArrowDown" && choices.length > 0) {
       event.preventDefault();
-      setChosen((shown + 1) % offered.length);
-    } else if (event.key === "ArrowUp" && offered.length > 0) {
+      setChosen((shown + 1) % choices.length);
+    } else if (event.key === "ArrowUp" && choices.length > 0) {
       event.preventDefault();
-      setChosen((shown - 1 + offered.length) % offered.length);
+      setChosen((shown - 1 + choices.length) % choices.length);
     } else if (event.key === "Enter") {
       event.preventDefault();
       // A whole Tag Number typed goes to her even before the list has come; otherwise the one chosen.
-      const exact = offered.includes(needle) ? needle : offered[shown];
-      const tag = exact ?? needle;
-      if (tag) {
-        go(tag);
+      const exact = choices.find(
+        (one) => one.kind === "animal" && one.tag === needle
+      );
+      const picked = exact ?? choices[shown];
+      if (picked) {
+        take(picked);
+      } else if (/\d/u.test(needle)) {
+        go(needle);
       }
     }
   };
@@ -113,43 +114,46 @@ const GoToAnimalDialog = ({
             className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
           />
           <Input
-            aria-label={t("animals.search")}
+            aria-label={t("goTo.label")}
             autoComplete="off"
             autoFocus
-            className="pl-9 font-mono"
+            className="pl-9"
             onChange={(event) => {
               setTyped(event.target.value);
               setChosen(0);
             }}
             onKeyDown={onKeyDown}
-            placeholder={t("animals.searchPlaceholder")}
+            placeholder={
+              examplePage
+                ? t("goTo.placeholder", { page: t(examplePage) })
+                : t("goTo.placeholderTag")
+            }
             value={typed}
           />
         </div>
         {/* Each match a button, so a tab or a press reaches it as well as the arrow keys and Enter from the box. */}
         <ul aria-label={t("goTo.matches")} className="flex flex-col gap-0.5">
-          {offered.map((tag, at) => (
-            <li key={tag}>
+          {choices.map((choice, at) => (
+            <li key={choice.kind === "animal" ? choice.tag : choice.to}>
               <button
                 className={cn(
-                  "w-full rounded-md px-3 py-2 text-start font-mono text-sm",
+                  "w-full rounded-md px-3 py-2 text-start text-sm",
+                  choice.kind === "animal" && "font-mono",
                   "hover:bg-accent focus-visible:ring-ring outline-none focus-visible:ring-2",
                   at === shown && "bg-accent text-accent-foreground"
                 )}
-                onClick={() => go(tag)}
+                onClick={() => take(choice)}
                 onFocus={() => setChosen(at)}
                 onMouseEnter={() => setChosen(at)}
                 type="button"
               >
-                {tag}
+                {choice.kind === "animal" ? choice.tag : choice.label}
               </button>
             </li>
           ))}
         </ul>
-        {needle && animals.data && offered.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            {t("animals.noMatch")}
-          </p>
+        {needle && animals.data && choices.length === 0 ? (
+          <p className="text-muted-foreground text-sm">{t("goTo.none")}</p>
         ) : null}
       </DialogContent>
     </Dialog>
@@ -157,11 +161,11 @@ const GoToAnimalDialog = ({
 };
 
 /**
- * "Go to Tag Number", from any page: a box in the top bar on a desk, and Ctrl+K (⌘K on a Mac) everywhere, the
- * shortcut enterprise apps keep for jumping to a record (GitHub, Linear, Atlassian). The Tag Number is how the farm
- * names an animal, so it is what the box takes.
+ * "Go to", from any page: a box in the top bar on a desk, and Ctrl+K (⌘K on a Mac) everywhere, the shortcut
+ * enterprise apps keep for jumping to a record (GitHub, Linear, Atlassian). It takes a Tag Number, which is how the
+ * farm names an animal, or the words of a page the reader's own menu holds.
  */
-export const GoToAnimal = () => {
+export const GoTo = () => {
   const t = useT();
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -188,7 +192,7 @@ export const GoToAnimal = () => {
           {onMac() ? "⌘K" : "Ctrl K"}
         </kbd>
       </Button>
-      <GoToAnimalDialog onOpenChange={setOpen} open={open} />
+      <GoToDialog onOpenChange={setOpen} open={open} />
     </>
   );
 };

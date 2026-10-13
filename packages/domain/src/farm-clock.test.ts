@@ -7,6 +7,7 @@ import {
   farmDaysApart,
   farmDaysBetween,
   farmTimeOf,
+  isAFarmDay,
   startOfFarmDay,
 } from "./farm-clock";
 
@@ -107,5 +108,20 @@ describe("where the farm is", () => {
     expect(() =>
       setFarmLocale({ ...DEFAULT_FARM_LOCALE, timeZone: "Asia/Nowhere" })
     ).toThrow("Asia/Nowhere");
+  });
+});
+
+describe("a day as typed or kept", () => {
+  it("is one the calendar has, written YYYY-MM-DD", () => {
+    expect(isAFarmDay("2026-02-28")).toBe(true);
+    expect(isAFarmDay("2026-02-30")).toBe(false);
+    expect(isAFarmDay("2026-13-01")).toBe(false);
+    expect(isAFarmDay("yesterday")).toBe(false);
+    expect(isAFarmDay("2026-2-8")).toBe(false);
+  });
+
+  it("is not after the day it must not pass, when one is said", () => {
+    expect(isAFarmDay("2026-10-14", { notAfter: "2026-10-14" })).toBe(true);
+    expect(isAFarmDay("2026-10-15", { notAfter: "2026-10-14" })).toBe(false);
   });
 });

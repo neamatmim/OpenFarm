@@ -3,7 +3,7 @@ import {
   PIN_LENGTH,
   verifyPin,
 } from "@OpenFarm/domain";
-import { formatDigits, latinDigitsOf, numberAsTyped } from "@OpenFarm/i18n";
+import { formatDigits, numberAsTyped } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -60,6 +60,7 @@ import { currentListener } from "@/lib/push";
 import { handOverThisPhone } from "@/lib/query-cache";
 import { useRefused } from "@/lib/refused";
 import { lockAndPutAway, lockOnTheFarm } from "@/lib/shed-phone";
+import { codeAsTyped, codeInTheLink } from "@/lib/shed-phone-link";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
@@ -68,6 +69,13 @@ const PAD_DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 /** The longest code the farm takes, as the server does: ten characters, room for a stray one. */
 const CODE_MAX_LENGTH = 16;
+
+/** The page's address after its #, as the browser has it, followed as it changes. */
+const subscribeHash = (changed: () => void) => {
+  window.addEventListener("hashchange", changed);
+  return () => window.removeEventListener("hashchange", changed);
+};
+const readHash = () => window.location.hash;
 
 /** The one act of a step, big enough for a thumb at every width: the button's own `md:` height would shrink it on a
  *  tablet in the office, so the height is said at `md` too. */
@@ -181,7 +189,16 @@ const DevicePage = () => {
     getActiveUser,
     () => null
   );
-  const [code, setCode] = useState("");
+  // A phone opened by the QR on the Manager's screen arrives with its code after the #, which the server never sees.
+  // Read in the browser (the server drew the page with no hash), it is put in the box at once — the box then holds
+  // it as if typed — and taken off the address straight after, below, so the phone's history keeps none of it.
+  const hash = useSyncExternalStore(subscribeHash, readHash, () => "");
+  const linkedCode = codeInTheLink(hash);
+  const [typedCode, setTypedCode] = useState<string | null>(null);
+  if (linkedCode !== null && typedCode === null) {
+    setTypedCode(linkedCode);
+  }
+  const code = typedCode ?? "";
   const [chosen, setChosen] = useState<RosterEntry | null>(null);
   const [pin, setPin] = useState("");
   const [, forceTick] = useState(0);
@@ -198,6 +215,18 @@ const DevicePage = () => {
     }
   }, [where.data?.autoLockMinutes]);
   const navigate = useNavigate();
+  // The code, once in the box, leaves the address — through the router, so what it holds agrees — whether or not the
+  // phone was already set up when the link was opened.
+  useEffect(() => {
+    if (linkedCode !== null) {
+      navigate({
+        hash: "",
+        replace: true,
+        search: (previous) => previous,
+        to: "/shed-phone",
+      });
+    }
+  }, [linkedCode, navigate]);
 
   // Refresh the roster whenever there is signal; fall back to what the phone saved.
   const roster = useQuery({
@@ -216,7 +245,7 @@ const DevicePage = () => {
     orpc.devices.claim.mutationOptions({
       onSuccess: (result) => {
         setDeviceToken(result.token);
-        setCode("");
+        setTypedCode("");
         toast.success(t("device.enrolled"));
       },
       onError: refused,
@@ -343,13 +372,7 @@ const DevicePage = () => {
             id="code"
             inputMode="text"
             maxLength={CODE_MAX_LENGTH}
-            onChange={(e) =>
-              setCode(
-                latinDigitsOf(e.target.value)
-                  .replaceAll(/[\s-]/gu, "")
-                  .toUpperCase()
-              )
-            }
+            onChange={(e) => setTypedCode(codeAsTyped(e.target.value))}
             required
             spellCheck={false}
             value={code}

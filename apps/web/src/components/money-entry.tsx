@@ -332,7 +332,12 @@ export const EnterMoneySheet = ({
 }) => {
   const { t, language } = useLanguage();
   const onError = useRefused();
-  const categories = useQuery(orpc.money.categories.list.queryOptions());
+  // Asked only once the sheet opens: a page that keeps the sheet ready — the money page, the day's page — reads nothing
+  // for it until somebody enters money.
+  const categories = useQuery({
+    ...orpc.money.categories.list.queryOptions(),
+    enabled: open,
+  });
   const [typed, setTyped] = useState(() => ({
     ...NOTHING_TYPED,
     ...startWith,

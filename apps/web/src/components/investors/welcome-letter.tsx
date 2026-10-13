@@ -6,8 +6,8 @@ import {
   timeInDigits,
   translate,
 } from "@OpenFarm/i18n";
-import { encode } from "uqr";
 
+import { QrCode } from "@/components/qr-code";
 import { Letterhead } from "@/components/ventures/paper-document";
 import { portalAddress, portalAddressTyped } from "@/lib/portal-address";
 import type { PageSetup } from "@/lib/print-alone";
@@ -100,32 +100,6 @@ const WORDS = {
   },
 } as const satisfies Record<Language, unknown>;
 
-/** A QR code, drawn square by square: black on white whatever the page, so any phone's camera reads it. Hidden from a
- *  screen reader, which reads the same address printed beside it. */
-const Qr = ({ value, size }: { value: string; size: string }) => {
-  const { data } = encode(value, { border: 1 });
-  const across = data.length;
-  let squares = "";
-  for (const [y, row] of data.entries()) {
-    for (const [x, on] of row.entries()) {
-      if (on) {
-        squares += `M${x} ${y}h1v1h-1z`;
-      }
-    }
-  }
-  return (
-    <svg
-      aria-hidden
-      className="shrink-0"
-      style={{ width: size, height: size }}
-      viewBox={`0 0 ${across} ${across}`}
-    >
-      <rect fill="#fff" height={across} width={across} />
-      <path d={squares} fill="#000" />
-    </svg>
-  );
-};
-
 /** The Code Slip: whose code it is, the code in fours, and its last day — never the phone it opens the door with. */
 const Slip = ({
   paper,
@@ -205,7 +179,7 @@ const Steps = ({
         ))}
       </ol>
       <div className="flex flex-col items-center gap-1">
-        <Qr size="34mm" value={portalAddress(own)} />
+        <QrCode size="34mm" value={portalAddress(own)} />
         <span className="text-[10px] text-neutral-500">{words.scan}</span>
       </div>
     </div>

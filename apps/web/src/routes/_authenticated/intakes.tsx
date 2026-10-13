@@ -33,7 +33,6 @@ import { useIsOwner } from "@/components/money";
 import { Notice, Page, PageHeader } from "@/components/page";
 import { UnsavedChangesGuard } from "@/components/page-kit";
 import { accountSent } from "@/components/payment-method";
-import { PastOutings } from "@/components/trips/past-outings";
 import { useT } from "@/i18n/language-provider";
 import { momentOfField } from "@/lib/farm-moment";
 import { matchesFormFields } from "@/lib/form-draft";
@@ -368,7 +367,14 @@ const IntakePage = () => {
       />
 
       <RecentIntakes />
-      <PastOutings />
+      {/* The Buying Trips have one page, beside the Selling Trips. */}
+      <Link
+        className="text-primary self-start text-sm underline-offset-4 hover:underline"
+        search={{}}
+        to="/trips"
+      >
+        {t("trips.buyingLink")}
+      </Link>
     </Page>
   );
 };

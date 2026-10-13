@@ -1,4 +1,5 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
@@ -7,9 +8,10 @@ import {
   ClipboardCheck,
   Inbox,
   Milk,
+  Plus,
   Warehouse,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { DataFreshness } from "@/components/data-freshness";
 import { FeedPurchaseAttention } from "@/components/feed/feed-purchase-attention";
@@ -23,6 +25,7 @@ import type { QueueKind } from "@/components/home/queue-kinds";
 import { QUEUE_KINDS } from "@/components/home/queue-kinds";
 import { SetupLeft } from "@/components/home/setup-left";
 import { VenturesAtWork } from "@/components/home/ventures-at-work";
+import { EnterMoneySheet } from "@/components/money-entry";
 import {
   EmptyState,
   Notice,
@@ -65,6 +68,9 @@ const ManagerHome = () => {
     ) ?? false;
   // The Owner opens every step of setting the farm up; the Manager the steps that are theirs too.
   const isOwner = me.data?.roles.includes("owner") ?? false;
+  // Money paid out in the day — the bamboo, the lorry, a repair — is entered from where the Manager starts the day,
+  // not three taps deep on the money page.
+  const [entering, setEntering] = useState(false);
 
   // The Manager often opens this before anybody has opened Today, and the day's work is
   // raised by whoever opens the app first. Without this the screen would say the farm had
@@ -167,11 +173,18 @@ const ManagerHome = () => {
     <Page>
       {/* No button to today's work here: it is in the sidebar, and the work-done figure below is a link to it. */}
       <PageHeader
+        actions={
+          <Button onClick={() => setEntering(true)} type="button">
+            <Plus aria-hidden data-icon="inline-start" />
+            {t("byHand.title")}
+          </Button>
+        }
         description={t("home.subtitle")}
         eyebrow={formatDate(new Date(), language, "date")}
         freshness={<DataFreshness reads={[home, sheds]} />}
         title={t("nav.theDay")}
       />
+      <EnterMoneySheet onOpenChange={setEntering} open={entering} />
 
       <SetupLeft reader={isOwner ? "owner" : "manager"} />
       <SummaryFigures figures={figures} />

@@ -1,4 +1,4 @@
-import { addDays } from "@OpenFarm/domain";
+import { addDays, isAFarmDay } from "@OpenFarm/domain";
 
 export interface SupplierInvoiceDraft {
   savedInvoiceId: string;
@@ -50,13 +50,6 @@ export const invoiceAfterSupplierChange = (
     ? newInvoiceChosen()
     : {};
 
-const validDay = (day: string): boolean => {
-  const date = new Date(`${day}T00:00:00Z`);
-  return (
-    Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === day
-  );
-};
-
 /** Empty dates follow the delivery and supplier terms until the user writes a date. */
 export const invoiceOfDraft = (
   draft: SupplierInvoiceDraft,
@@ -67,7 +60,7 @@ export const invoiceOfDraft = (
   invoicedOn: draft.invoicedOn || receivedOn,
   dueOn:
     draft.dueOn ||
-    (validDay(receivedOn) ? addDays(receivedOn, creditDays) : ""),
+    (isAFarmDay(receivedOn) ? addDays(receivedOn, creditDays) : ""),
 });
 
 export const invoiceReady = (
@@ -84,10 +77,10 @@ export const invoiceReady = (
   const paid = draft.onCredit ? Number(draft.paidNow) : priceMoney;
   return (
     !!draft.invoiceNumber.trim() &&
-    validDay(receivedOn) &&
-    validDay(invoice.invoicedOn) &&
+    isAFarmDay(receivedOn) &&
+    isAFarmDay(invoice.invoicedOn) &&
     invoice.invoicedOn <= receivedOn &&
-    validDay(invoice.dueOn) &&
+    isAFarmDay(invoice.dueOn) &&
     invoice.dueOn >= invoice.invoicedOn &&
     (!draft.onCredit || draft.paidNow.trim() !== "") &&
     Number.isFinite(priceMoney) &&

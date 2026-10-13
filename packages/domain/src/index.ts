@@ -86,6 +86,7 @@ export {
   farmDaysApart,
   farmDaysBetween,
   farmTimeOf,
+  isAFarmDay,
   startOfFarmDay,
 } from "./farm-clock";
 export type { Age, AgeAtIntake } from "./age";

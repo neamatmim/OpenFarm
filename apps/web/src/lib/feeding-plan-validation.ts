@@ -1,3 +1,4 @@
+import { isAFarmDay } from "@OpenFarm/domain";
 import type { FeedingPlan } from "@OpenFarm/domain/feeding-plan";
 import { feedingPlanProblems } from "@OpenFarm/domain/feeding-plan";
 import type { MessageKey } from "@OpenFarm/i18n";
@@ -74,26 +75,16 @@ const STRUCTURE: Record<string, Problem> = {
     at: "plan-stages",
   },
 };
-const DAY = /^\d{4}-\d{2}-\d{2}$/u;
-const validDay = (value: string): boolean => {
-  const date = new Date(`${value}T00:00:00Z`);
-  return (
-    DAY.test(value) &&
-    Number.isFinite(date.getTime()) &&
-    date.toISOString().startsWith(value)
-  );
-};
-
 /** Keep the refusal and its field together, in the order the plan asks for them. */
 export const feedingPlanIssue = (
   plan: FeedingPlan,
   typed: Record<NumericField, string>,
   today: string
 ): Problem | null => {
-  if (!validDay(plan.startDay) || plan.startDay > today) {
+  if (!isAFarmDay(plan.startDay, { notAfter: today })) {
     return { message: "feedPlan.invalid.startDay", at: "plan-start" };
   }
-  if (!validDay(plan.saleDay)) {
+  if (!isAFarmDay(plan.saleDay)) {
     return STRUCTURE.duration ?? null;
   }
   for (const { field, min, max, integer, problem } of NUMBERS) {

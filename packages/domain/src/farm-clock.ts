@@ -63,6 +63,29 @@ export const atFarmTime = (day: string, time: string): Date => {
 /** The instant a farm-local day ("YYYY-MM-DD") begins. */
 export const startOfFarmDay = (day: string): Date => atFarmTime(day, "00:00");
 
+/** How a farm day is written, and only that: four, two and two digits. */
+const A_FARM_DAY = /^\d{4}-\d{2}-\d{2}$/u;
+
+/**
+ * Whether what was typed or kept is a farm day: written "YYYY-MM-DD", a day the calendar has — not the 30th of
+ * February — and, when `notAfter` is said, not after it (a sale or a delivery cannot have happened tomorrow). The one
+ * check every form, address and store asks, so none of them reads a day differently.
+ */
+export const isAFarmDay = (
+  day: string,
+  { notAfter }: { notAfter?: string } = {}
+): boolean => {
+  if (!A_FARM_DAY.test(day)) {
+    return false;
+  }
+  const date = new Date(`${day}T00:00:00Z`);
+  return (
+    Number.isFinite(date.getTime()) &&
+    date.toISOString().slice(0, 10) === day &&
+    (notAfter === undefined || day <= notAfter)
+  );
+};
+
 /** The calendar day after `day`, whatever the clocks did in between. */
 const dayAfter = (day: string): string =>
   new Date(Date.parse(`${day}T00:00:00Z`) + DAY_MS).toISOString().slice(0, 10);

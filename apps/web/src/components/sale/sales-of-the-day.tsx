@@ -68,7 +68,7 @@ interface SoldCell {
   row: { original: SoldRow };
 }
 
-/** The hour a sale was made on the farm's clock: the day is today, so the time alone is said. */
+/** The hour a sale was made on the farm's clock: the day is the list's own, said over it, so the time alone is said. */
 const timeOf = (when: Date, language: "bn" | "en") =>
   formatDate(new Date(when), language, "time");
 
@@ -256,18 +256,21 @@ const SoldTable = ({ sold, papers }: { sold: Sold[]; papers: SalePapers }) => {
 };
 
 /**
- * The day's sales, and the two papers each buyer leaves with.
+ * One day's sales — today's unless another day was chosen — and the two papers each buyer leaves with.
  *
  * Asked for one at a time rather than printed with every sale: at Eid the receipt is written once
  * the man has finished buying, and it covers everything he took that morning. The paper asked for is drawn beneath
  * the list, ready to print.
  */
-export const TodaysSales = ({
+export const SalesOfTheDay = ({
   sold,
   mayCorrect,
+  day,
 }: {
   sold: Sold[];
   mayCorrect: boolean;
+  /** The day said, for one that is not today; nothing for today. */
+  day: string | null;
 }) => {
   const { t, language } = useLanguage();
   const [paper, setPaper] = useState<PaperDocument | null>(null);
@@ -276,7 +279,11 @@ export const TodaysSales = ({
   if (sold.length === 0) {
     return (
       <div className="surface p-4 md:p-5">
-        <EmptyState bare icon={ReceiptText} title={t("sale.noneToday")} />
+        <EmptyState
+          bare
+          icon={ReceiptText}
+          title={day ? t("sale.noneOnDay", { day }) : t("sale.noneToday")}
+        />
       </div>
     );
   }
@@ -292,7 +299,7 @@ export const TodaysSales = ({
     <div className="flex flex-col gap-4">
       <div className="surface flex flex-col gap-4 p-4 md:p-5">
         <p className="text-muted-foreground no-print border-b pb-4 text-sm">
-          {t("sale.todayHint")}
+          {day ? t("sale.dayHint") : t("sale.todayHint")}
         </p>
         <SoldTable papers={papers} sold={sold} />
       </div>
