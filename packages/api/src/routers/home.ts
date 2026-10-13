@@ -19,6 +19,7 @@ import {
   openReviews,
   penLabel,
   workAwaitingSignOff,
+  yoursToDo,
 } from "../instances-store";
 import { milkDropsOn } from "../milk-store";
 import { missingNow } from "../missing-store";
@@ -34,6 +35,7 @@ import { runningLow } from "../stock-store";
 export const QUEUE_LIMIT = 50;
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
+const MINUTE_MS = 60_000;
 
 export const homeRouter = {
   /**
@@ -65,6 +67,7 @@ export const homeRouter = {
         illAgain,
         heatWatch,
         givingLess,
+        yours,
       ] = await Promise.all([
         // Every piece of late work still open, as the Overdue list holds it: one a month old is still late, and a home
         // that said nothing was late while the list held it was wrong (the Owner, 2026-10-06).
@@ -103,6 +106,16 @@ export const homeRouter = {
         heatWatchOn(context.db, context.farm, now),
         // Cows giving well under their own week: sudden illness shows in the pail before anywhere else.
         milkDropsOn(context.db, context.farm, now),
+        // The work that is theirs to do now and not yet late — an hour's urgent work about an unwell animal among it:
+        // a home that said nothing needed them while a bloated cow waited on them was wrong.
+        yoursToDo(
+          context.db,
+          farmId,
+          context.actor.id,
+          context.roles,
+          now,
+          QUEUE_LIMIT
+        ),
       ]);
 
       const underWithdrawal = animals;
@@ -183,6 +196,21 @@ export const homeRouter = {
             }))
             .toSorted((a, b) => b.minutesOverdue - a.minutesOverdue)
             .slice(0, QUEUE_LIMIT),
+          /** What is theirs to do now, soonest to go late first; it leaves for `overdue` once it goes late. */
+          yours: yours.map((instance) => ({
+            id: instance.id,
+            penId: instance.penId,
+            minutesLeft: Math.max(
+              0,
+              Math.ceil(
+                (instance.dueAt.getTime() +
+                  instance.graceMinutes * MINUTE_MS -
+                  now.getTime()) /
+                  MINUTE_MS
+              )
+            ),
+            ...alertParams(instance),
+          })),
           signOff: awaitingSignOff.map((instance) => ({
             id: instance.id,
             penId: instance.penId,

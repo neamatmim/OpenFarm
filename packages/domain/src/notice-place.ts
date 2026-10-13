@@ -128,6 +128,7 @@ const LEADS = {
   sold_under_cost: "what it names",
   still_here_after_eid: { to: "/farm/eid-dates", label: "alerts.openTheEids" },
   medicine_short: TO_THE_MEDICINES,
+  unwell_urgent: "what it names",
   feed_price_jump: { to: "/feed/feed-in", label: "alerts.openTheArrivals" },
   settings_changed: { to: "/audit", label: "alerts.openTheTrail" },
   cash_short: { to: "/money/cash", label: "alerts.openTheCash" },

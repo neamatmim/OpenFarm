@@ -33,6 +33,7 @@ const URGENT: ReadonlySet<string> = new Set([
   "animal_missing",
   "pen_sores_seen",
   "head_count_differs",
+  "unwell_urgent",
 ]);
 
 /** Why an Effect stood aside, for a Needs Review a Correction raised so: what the farm knew that the entry did not. */
@@ -120,6 +121,53 @@ const NoticeIcon = ({ kind }: { kind: string }) =>
   );
 
 /**
+ * What this person is being told, the loudest first and within each the order the farm gave them, and whether any of
+ * it is loud. One question, asked by the banner on the work list and the bell over every page alike, so the two never
+ * disagree about what is waiting.
+ */
+export const useNotices = () => {
+  const alerts = useQuery(orpc.alerts.mine.queryOptions({ input: {} }));
+  const notices = (alerts.data ?? []).toSorted(
+    (a, b) => Number(URGENT.has(b.kind)) - Number(URGENT.has(a.kind))
+  );
+  return {
+    notices,
+    urgent: notices.some((notice) => URGENT.has(notice.kind)),
+  };
+};
+
+/** Every notice, each with where it leads and its "got it". */
+export const NoticeRows = ({
+  notices,
+}: {
+  notices: ReturnType<typeof useNotices>["notices"];
+}) => {
+  const { t } = useLanguage();
+  const dismiss = useMutation(orpc.alerts.dismiss.mutationOptions({}));
+  return (
+    <ul className="divide-border divide-y">
+      {notices.map((notice) => (
+        <li className="flex items-start gap-3 px-4 py-3" key={notice.id}>
+          <NoticeIcon kind={notice.kind} />
+          <p className="min-w-0 flex-1 text-sm">
+            <NoticeWords notice={notice} />
+            <WhereItLeads notice={notice} />
+          </p>
+          <Button
+            className="h-11 shrink-0 md:h-8"
+            onClick={() => dismiss.mutate({ id: notice.id })}
+            size="sm"
+            variant="ghost"
+          >
+            {t("alerts.dismiss")}
+          </Button>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+/**
  * What this person is being told, as a banner that takes one line until it is opened: how many notices there are and
  * the loudest of them, so the work below stays on the first screen of a phone. Opened, every notice is listed, the
  * loudest first, each with its "got it".
@@ -130,18 +178,12 @@ const NoticeIcon = ({ kind }: { kind: string }) =>
 export const AlertList = () => {
   const { t, language } = useLanguage();
   const [open, setOpen] = useState(false);
-  const alerts = useQuery(orpc.alerts.mine.queryOptions({ input: {} }));
-  const dismiss = useMutation(orpc.alerts.dismiss.mutationOptions({}));
+  const { notices, urgent } = useNotices();
 
-  if (!alerts.data?.length) {
+  if (notices.length === 0) {
     return null;
   }
-  // The loudest first; within each, the order the farm gave them.
-  const notices = alerts.data.toSorted(
-    (a, b) => Number(URGENT.has(b.kind)) - Number(URGENT.has(a.kind))
-  );
   const [loudest] = notices;
-  const urgent = notices.some((notice) => URGENT.has(notice.kind));
   const Chevron = open ? ChevronUp : ChevronDown;
   return (
     <section
@@ -189,25 +231,9 @@ export const AlertList = () => {
         </span>
       </button>
       {open ? (
-        <ul className="divide-border divide-y border-t">
-          {notices.map((notice) => (
-            <li className="flex items-start gap-3 px-4 py-3" key={notice.id}>
-              <NoticeIcon kind={notice.kind} />
-              <p className="min-w-0 flex-1 text-sm">
-                <NoticeWords notice={notice} />
-                <WhereItLeads notice={notice} />
-              </p>
-              <Button
-                className="h-11 shrink-0 md:h-8"
-                onClick={() => dismiss.mutate({ id: notice.id })}
-                size="sm"
-                variant="ghost"
-              >
-                {t("alerts.dismiss")}
-              </Button>
-            </li>
-          ))}
-        </ul>
+        <div className="border-t">
+          <NoticeRows notices={notices} />
+        </div>
       ) : null}
     </section>
   );

@@ -789,6 +789,7 @@ export type {
 export {
   ROUND_WORDS,
   URGENT_ROUND_WORDS,
+  URGENT_SIGHT_WORDS,
   WEANING_AFTER_DAYS,
   eventOfObservation,
   PEN_NEEDS,

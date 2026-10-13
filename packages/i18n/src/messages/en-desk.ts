@@ -2585,6 +2585,9 @@ export const enDesk = {
     "{count, plural, one {# animal} other {# animals}} died or {count, plural, one {was} other {were}} culled with no diagnosis",
   "digest.storeShortfall":
     "{count, plural, one {# store count} other {# store counts}} came up short",
+  "push.unwellUrgentTitle": "An animal needs seeing to now",
+  "digest.unwellUrgent":
+    "{count, plural, one {# animal} other {# animals}} seen unwell with something that could not wait",
   "push.penSoresSeenTitle": "Sores in one pen",
   "push.penSoresSeenBody":
     "{animals, plural, one {# animal} other {# animals}} in {pen} with sores on the mouth or feet. Ring the vet, and keep the pen apart.",

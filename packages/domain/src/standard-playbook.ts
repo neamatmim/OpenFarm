@@ -166,6 +166,29 @@ export const URGENT_ROUND_WORDS: readonly string[] = [
   ROUND_WORDS.afterbirth,
 ];
 
+/** What each urgent word says, in both languages, as the round and the after-calving check offer it: what a notice
+ *  of the urgent work names, read in either language although the Observation keeps only the Bangla. */
+export const URGENT_SIGHT_WORDS: Readonly<
+  Record<string, { bn: string; en: string }>
+> = {
+  [ROUND_WORDS.bloat]: { bn: "পেট ফাঁপা", en: "Bloated" },
+  [ROUND_WORDS.breathing]: { bn: "শ্বাসকষ্ট", en: "Labored breathing" },
+  [ROUND_WORDS.downCow]: {
+    bn: "বসে আছে, উঠতে পারছে না",
+    en: "Down, cannot rise",
+  },
+  [ROUND_WORDS.afterbirth]: {
+    bn: "ফুল পড়েনি (১২ ঘণ্টা পেরিয়ে)",
+    en: "Afterbirth not passed after 12 hours",
+  },
+};
+
+/** One urgent word as a choice offers it: the value and its words, from the one table. */
+const urgentChoice = (word: string): [string, string, string] => {
+  const said = URGENT_SIGHT_WORDS[word];
+  return [word, said?.bn ?? word, said?.en ?? word];
+};
+
 /**
  * What an Observation raises: a Heat raises the breeding chain's work and nothing here; anything else the round saw is
  * work for the Manager — the urgent words on an hour's clock, the rest on a day's.
@@ -203,9 +226,9 @@ const healthRound = (): SopContent => ({
           [ROUND_WORDS.offFeed, "খাবারে অরুচি", "Off feed"],
           [ROUND_WORDS.mastitis, "ওলান ফোলা/শক্ত", "Swollen or hard udder"],
           [ROUND_WORDS.cough, "কাশি", "Coughing"],
-          [ROUND_WORDS.bloat, "পেট ফাঁপা", "Bloated"],
+          urgentChoice(ROUND_WORDS.bloat),
           [ROUND_WORDS.diarrhea, "পাতলা পায়খানা", "Scours"],
-          [ROUND_WORDS.breathing, "শ্বাসকষ্ট", "Labored breathing"],
+          urgentChoice(ROUND_WORDS.breathing),
           [ROUND_WORDS.sores, "মুখে বা ক্ষুরে ঘা", "Sores on mouth or feet"],
           [ROUND_WORDS.notSuckling, "বাছুর দুধ টানছে না", "Calf not suckling"],
           [ROUND_WORDS.navel, "নাভি ফোলা বা পুঁজ", "Navel swollen or discharging"],
@@ -1350,7 +1373,7 @@ const newbornCalfCare = (): SopContent => ({
           choice(true, [
             ["weak", "দুর্বল — উঠে দাঁড়াতে পারছে না", "Weak — cannot stand"],
             [ROUND_WORDS.notSuckling, "দুধ টানছে না", "Not sucking"],
-            [ROUND_WORDS.breathing, "শ্বাসকষ্ট", "Labored breathing"],
+            urgentChoice(ROUND_WORDS.breathing),
             [
               "defect",
               "পায়ুপথ বন্ধ, বা হাত-পা-চোখে সমস্যা",
@@ -1442,12 +1465,8 @@ const afterCalvingCheck = (): SopContent => ({
       repeatPerAnimal: true,
       evidence: [
         choice(true, [
-          [ROUND_WORDS.downCow, "বসে আছে, উঠতে পারছে না", "Down, cannot rise"],
-          [
-            ROUND_WORDS.afterbirth,
-            "ফুল পড়েনি (১২ ঘণ্টা পেরিয়ে)",
-            "Afterbirth not passed after 12 hours",
-          ],
+          urgentChoice(ROUND_WORDS.downCow),
+          urgentChoice(ROUND_WORDS.afterbirth),
           [ROUND_WORDS.offFeed, "খাবারে অরুচি", "Off feed"],
           [ROUND_WORDS.mastitis, "ওলান ফোলা/শক্ত", "Swollen or hard udder"],
         ]),

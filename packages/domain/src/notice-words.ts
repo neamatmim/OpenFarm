@@ -10,6 +10,7 @@ import type { AlertKind } from "./alerts";
 import { ALERT_KINDS } from "./alerts";
 import { feedUnitEach, feedUnitWord } from "./feed-units";
 import type { LotFacts, NoticeFacts, WorkFacts } from "./notice-facts";
+import { URGENT_SIGHT_WORDS } from "./standard-playbook";
 
 const MINUTES_PER_HOUR = 60;
 
@@ -404,6 +405,17 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     amount: Number(facts.amountMoney),
     day: saidDate(facts.sentOn, language),
     way: named(WAY_WORDS[facts.way].bn, WAY_WORDS[facts.way].en, language),
+  }),
+  // What was seen in the reader's language from the farm's own words for it; the Bangla the Observation kept, for a word
+  // the farm has none for.
+  unwell_urgent: (facts, language) => ({
+    ...theWork(facts, language),
+    tag: facts.tag,
+    saw: named(
+      facts.sawBn,
+      URGENT_SIGHT_WORDS[facts.saw]?.en ?? facts.sawBn,
+      language
+    ),
   }),
 };
 

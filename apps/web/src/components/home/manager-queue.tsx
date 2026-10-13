@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   Gavel,
   HandCoins,
+  Hourglass,
   Flame,
   MapPinOff,
   Repeat,
@@ -114,6 +115,8 @@ const countsOf = (queue: ManagerQueueData): Record<QueueKind, number> => ({
   missing: queue.missing?.length ?? 0,
   // All of it, not the longest-waiting fifty the list shows; an answer kept from before the total was said has its list.
   overdue: queue.overdueTotal ?? queue.overdue.length,
+  // Missing from an answer a phone kept from before the home said what was theirs to do.
+  yours: queue.yours?.length ?? 0,
   signOff: queue.signOff.length,
   review: queue.needsReview.length,
   withdrawal: queue.withdrawal.length,
@@ -166,6 +169,19 @@ const QueueKindList = ({
             <WorkRow key={row.id} row={row} />
           ))}
           tone="danger"
+        />
+      );
+    }
+    case "yours": {
+      return (
+        <QueueGroup
+          headless={headless}
+          icon={Hourglass}
+          label={t("home.yours")}
+          rows={(queue.yours ?? []).map((row) => (
+            <WorkRow key={row.id} row={row} />
+          ))}
+          tone="warning"
         />
       );
     }
@@ -341,7 +357,8 @@ const QueueKindList = ({
 };
 
 /**
- * What needs the Manager, loudest first: work gone late, work to check, entries needing a decision, cows whose milk or
+ * What needs the Manager, loudest first: work gone late, work theirs to do now — an hour's urgent work about an unwell
+ * animal among it — work to check, entries needing a decision, cows whose milk or
  * carcass is held back, feed running low, the month's rent, electricity and wages not entered yet, and cows somebody
  * has to decide about. Each kind shows its first few, with the way to the page that holds all of it.
  *
@@ -367,6 +384,7 @@ export const ManagerQueue = ({
   const LABEL: Record<QueueKind, { label: string; icon: LucideIcon }> = {
     missing: { label: t("home.missing"), icon: MapPinOff },
     overdue: { label: t("home.overdue"), icon: AlarmClock },
+    yours: { label: t("home.yours"), icon: Hourglass },
     signOff: { label: t("home.signOff"), icon: ClipboardCheck },
     review: { label: t("home.needsReview"), icon: Gavel },
     withdrawal: { label: t("home.withdrawal"), icon: Milk },

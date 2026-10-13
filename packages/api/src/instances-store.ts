@@ -960,6 +960,50 @@ export const findLate = async (
 
 export type LateInstance = Awaited<ReturnType<typeof findLate>>[number];
 
+/**
+ * The work that is this person's to do now and has not gone late: open, fallen due, and on them — given or taken up by
+ * them, or left to a Role they hold with nobody named on it. Soonest to go late first, so an hour's urgent work stands
+ * above a day's. Late work is the Overdue list's, and leaves this one the moment it goes late.
+ */
+export const yoursToDo = async (
+  db: Pick<Database, "query">,
+  farmId: string,
+  person: string,
+  roles: readonly RoleName[],
+  now: Date,
+  limit: number
+) => {
+  const open = await db.query.sopInstance.findMany({
+    where: {
+      farmId,
+      state: { in: [...OPEN_INSTANCE_STATES] },
+      dueAt: { lte: now },
+      OR: [
+        { assignedTo: person },
+        { claimedBy: person },
+        {
+          assignedTo: { isNull: true },
+          claimedBy: { isNull: true },
+          assignedRole: { in: [...roles] },
+        },
+      ],
+    },
+    with: {
+      version: { columns: { content: true } },
+      pen: {
+        columns: { name: true },
+        with: { shed: { columns: { name: true } } },
+      },
+    },
+  });
+  const lateAt = (instance: { dueAt: Date; graceMinutes: number }) =>
+    instance.dueAt.getTime() + instance.graceMinutes * MINUTE_MS;
+  return open
+    .filter((instance) => !isOverdue(instance, now))
+    .toSorted((a, b) => lateAt(a) - lateAt(b) || a.id.localeCompare(b.id))
+    .slice(0, limit);
+};
+
 /** A backstop on one sweep's writes, so a farm opening the app after a long silence catches
  *  up over a few sweeps rather than holding one write transaction open against all of it. */
 const SWEEP_BATCH = 200;
