@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { service } from "@OpenFarm/db/schema/breeding";
-import { SERVICE_STEP } from "@OpenFarm/domain";
+import { SERVICE_STEP, tagNumberAsWritten } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
@@ -157,7 +157,7 @@ const recordTheService = async (
     const bull = await tx.query.animal.findFirst({
       where: {
         farmId: input.instance.farmId,
-        tagNumber: sire.toUpperCase(),
+        tagNumber: tagNumberAsWritten(sire),
         sex: "male",
       },
       columns: { id: true, state: true },

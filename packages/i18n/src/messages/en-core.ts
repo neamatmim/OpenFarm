@@ -4123,6 +4123,10 @@ export const enCore = {
   "intake.photoLater":
     "The photo did not go up — take it again from the animal's page.",
   "intake.record": "Take it in",
+  "intake.recordAndNext": "Take it in, then the next off this lorry",
+  "intake.offThisLorry": "Taken in off this lorry so far",
+  "intake.recordAndNextShort": "Take in, then next",
+  "intake.doneWithTheLorry": "Done with this lorry",
   "intake.noPhoto": "No photo yet",
   "intake.subtitle":
     "A bought animal comes in: where it goes, who sold it, what it cost, and what it should weigh when it leaves.",

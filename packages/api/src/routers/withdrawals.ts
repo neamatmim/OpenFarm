@@ -1,5 +1,6 @@
 import { eq } from "@OpenFarm/db/operators";
 import { animal } from "@OpenFarm/db/schema/herd";
+import { tagNumberAsWritten } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -105,7 +106,7 @@ export const withdrawalsRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const tagNumber = input.animalTag.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.animalTag);
       // Read outside the transaction only to name her in the trail; the withdrawal that is
       // shortened is the one read inside it.
       const target = await requireAnimal(

@@ -1,6 +1,10 @@
 import { eq } from "@OpenFarm/db/operators";
 import { SEXES, animal } from "@OpenFarm/db/schema/herd";
-import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import {
+  farmDayOf,
+  startOfFarmDay,
+  tagNumberAsWritten,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -111,7 +115,10 @@ export const animalFactsCorrection: CorrectionKind<
       damId = null;
       if (to.damTag !== null) {
         const dam = await tx.query.animal.findFirst({
-          where: { farmId: her.farmId, tagNumber: to.damTag.toUpperCase() },
+          where: {
+            farmId: her.farmId,
+            tagNumber: tagNumberAsWritten(to.damTag),
+          },
           columns: { id: true, sex: true },
         });
         if (!dam || dam.id === her.id || dam.sex !== "female") {

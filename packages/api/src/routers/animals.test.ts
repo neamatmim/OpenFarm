@@ -256,6 +256,23 @@ describe("moves", () => {
   });
 });
 
+describe("a tag typed on a Bangla keyboard", () => {
+  it("finds her as her own tag finds her: ডি for D, Bangla digits, and the number without its padding", async () => {
+    const calf = await registerDairyCalf();
+    const sequence = Number(calf.tagNumber.slice(2));
+    const banglaDigits = String(sequence).replaceAll(
+      /\d/gu,
+      (digit) => "০১২৩৪৫৬৭৮৯"[Number(digit)] ?? digit
+    );
+
+    const her = await pens.owner.client.animals.get({
+      tagNumber: `ডি-${banglaDigits}`,
+    });
+
+    expect(her.tagNumber).toBe(calf.tagNumber);
+  });
+});
+
 describe("re-tagging", () => {
   it("keeps the tag number and records the event", async () => {
     const { tagNumber } = await registerDairyCalf();

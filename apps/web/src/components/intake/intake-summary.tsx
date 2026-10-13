@@ -1,8 +1,9 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardCheck } from "lucide-react";
+import { ClipboardCheck, Truck } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { useBreeds } from "@/components/breed-field";
@@ -135,10 +136,61 @@ const StillNeeded = ({ fields }: { fields: IntakeFields }) => {
   return null;
 };
 
+/** The value the second button sends the form with: take her in, and keep the lorry's answers for the next beast. */
+export const NEXT_OFF_THE_LORRY = "next";
+
+/**
+ * Take her in and open her page, or take her in and stay for the next beast off the same lorry — the second keeps the
+ * pen, the seller, the outing and how she was paid for, and asks only for what the next one weighs and cost. One under
+ * the other beside the form; side by side, the second said shorter, in the phone's bar, which two rows would double.
+ */
+export const TakeInButtons = ({
+  ready,
+  pending,
+  compact = false,
+  className,
+}: {
+  ready: boolean;
+  pending: boolean;
+  compact?: boolean;
+  className?: string;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <div
+      className={cn(
+        compact ? "grid grid-cols-2 gap-2" : "flex flex-col gap-2",
+        className
+      )}
+    >
+      <Button className="w-full" disabled={!ready || pending} type="submit">
+        {pending ? (
+          <Spinner />
+        ) : (
+          <ClipboardCheck aria-hidden data-icon="inline-start" />
+        )}
+        {t("intake.record")}
+      </Button>
+      <Button
+        className="w-full"
+        disabled={!ready || pending}
+        name="then"
+        type="submit"
+        value={NEXT_OFF_THE_LORRY}
+        variant="outline"
+      >
+        <Truck aria-hidden data-icon="inline-start" />
+        {t(compact ? "intake.recordAndNextShort" : "intake.recordAndNext")}
+      </Button>
+    </div>
+  );
+};
+
 /**
  * What the farm will write when the animal is taken in, read back as it is typed — with the farm's own answers filled
- * in where a field was left blank, so nobody wonders what "blank" will mean — what is still to fill in, and the button.
- * Beside the form where there is room; after it on a phone.
+ * in where a field was left blank, so nobody wonders what "blank" will mean — what is still to fill in, and the two
+ * buttons: take her in, or take her in and stay for the next off the lorry. Beside the form where there is room; after
+ * it on a phone, where the form's own bar carries the buttons.
  */
 export const IntakeSummary = ({
   fields,
@@ -228,18 +280,11 @@ export const IntakeSummary = ({
         </Line>
       </dl>
       <StillNeeded fields={fields} />
-      <Button
-        className="hidden w-full lg:inline-flex"
-        disabled={!ready || pending}
-        type="submit"
-      >
-        {pending ? (
-          <Spinner />
-        ) : (
-          <ClipboardCheck aria-hidden data-icon="inline-start" />
-        )}
-        {t("intake.record")}
-      </Button>
+      <TakeInButtons
+        className="hidden lg:flex"
+        pending={pending}
+        ready={ready}
+      />
     </Section>
   );
 };

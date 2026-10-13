@@ -241,6 +241,7 @@ export const InternalSaleSheet = ({
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField id="internal-tag" label={t("ventures.whichAnimal")}>
           <SearchablePicker
+            ofTags
             empty={t("ventures.noneMovable")}
             id="internal-tag"
             loading={movable.isPending}

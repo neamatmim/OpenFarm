@@ -23,6 +23,7 @@ import {
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { tagMatches, tagSought } from "@/lib/tag-search";
 import { orpc } from "@/utils/orpc";
 
 const WINDOW_DAYS = 7;
@@ -166,9 +167,9 @@ const ObservationsPage = () => {
       input: { days: WINDOW_DAYS, ...(saw ? { saw } : {}) },
     })
   );
-  const wanted = tag.trim().toLowerCase();
+  const wanted = tagSought(tag);
   const shown = (seen.data ?? []).filter(
-    (row) => wanted === "" || row.tagNumber.toLowerCase().includes(wanted)
+    (row) => wanted === "" || tagMatches(row.tagNumber, wanted)
   );
 
   return (

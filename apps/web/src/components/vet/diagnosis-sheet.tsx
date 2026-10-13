@@ -154,6 +154,7 @@ export const DiagnosisSheet = ({
       {seen === null && animalTag === undefined ? (
         <FormField id="own-tag" label={t("vet.tagNumber")}>
           <SearchablePicker
+            ofTags
             empty={t("vet.noAnimalToDiagnose")}
             id="own-tag"
             loading={herd.isPending}

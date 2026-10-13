@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { useT } from "@/i18n/language-provider";
+import { pickerMatches } from "@/lib/picker-match";
 
 /** One thing to choose: what is chosen, what the reader knows it by, and what tells two alike apart. */
 export interface PickerOption {
@@ -24,6 +25,9 @@ interface PickerProps {
   empty: ReactNode;
   /** Still being read: nothing to choose yet is not the same as nothing to choose. */
   loading?: boolean;
+  /** The choices are Tag Numbers, so what is typed is read as a tag too: ডি১২ finds D-0012. Never for a pen, a person or
+   *  a feed, whose names a Bangla keyboard types as they are. */
+  ofTags?: boolean;
 }
 
 /**
@@ -41,6 +45,7 @@ const Picker = ({
   placeholder,
   empty,
   loading = false,
+  ofTags = false,
   chosen,
   onToggle,
   many,
@@ -57,12 +62,7 @@ const Picker = ({
   if (options.length === 0) {
     return <p className="text-muted-foreground text-sm">{empty}</p>;
   }
-  const looking = typed.trim().toLowerCase();
-  const matching = looking
-    ? options.filter((one) =>
-        `${one.label} ${one.detail ?? ""}`.toLowerCase().includes(looking)
-      )
-    : options;
+  const matching = options.filter((one) => pickerMatches(one, typed, ofTags));
   const kept = options.filter(
     (one) => chosen.has(one.value) && !matching.includes(one)
   );

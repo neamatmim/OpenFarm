@@ -1,3 +1,4 @@
+import { tagNumberAsWritten } from "@OpenFarm/domain";
 import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
@@ -188,15 +189,15 @@ const AnimalPage = () => {
 };
 
 export const Route = createFileRoute("/_authenticated/animals/$tagNumber")({
-  /** One address for her: a Tag Number is written in capitals, and the server reads `d-0001` as `D-0001`, so an
-   *  address typed in small letters is sent, for good, to the one in capitals. */
+  /** One address for her: a Tag Number written as the farm writes it, and the server reads `d-12`, `D12` and `ডি-১২`
+   *  all as `D-0012` — so an address typed any of those ways is sent, for good, to the one the farm writes. */
   beforeLoad: ({ location, params }) => {
-    const capitals = params.tagNumber.toUpperCase();
-    if (capitals !== params.tagNumber) {
+    const written = tagNumberAsWritten(params.tagNumber);
+    if (written !== params.tagNumber) {
       throw redirect({
         href: location.href.replace(
           encodeURIComponent(params.tagNumber),
-          encodeURIComponent(capitals)
+          encodeURIComponent(written)
         ),
         statusCode: 308,
       });

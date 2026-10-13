@@ -1,3 +1,4 @@
+import { tagNumberAsWritten } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -54,7 +55,7 @@ export const treatmentsRouter = {
             tx,
             context.farm.id,
             {
-              tagNumber: input.animalTag.toUpperCase(),
+              tagNumber: tagNumberAsWritten(input.animalTag),
               productId: input.productId,
               givenAt: input.givenAt ?? now,
               advice: input.advice,
@@ -99,7 +100,7 @@ export const treatmentsRouter = {
       const him = await context.db.query.animal.findFirst({
         where: {
           farmId: context.farm.id,
-          tagNumber: input.tagNumber.toUpperCase(),
+          tagNumber: tagNumberAsWritten(input.tagNumber),
         },
         columns: { id: true },
       });
@@ -129,7 +130,7 @@ export const treatmentsRouter = {
             trail: audited(context).recordEvent,
           })
       );
-      return { tagNumber: input.tagNumber.toUpperCase() };
+      return { tagNumber: tagNumberAsWritten(input.tagNumber) };
     }),
 
   /** The Vet's excuse for an arrival dose taken back, with a reason (`takeBackTheExcuse`). The Vet's alone. */
@@ -148,7 +149,7 @@ export const treatmentsRouter = {
       const him = await context.db.query.animal.findFirst({
         where: {
           farmId: context.farm.id,
-          tagNumber: input.tagNumber.toUpperCase(),
+          tagNumber: tagNumberAsWritten(input.tagNumber),
         },
         columns: { id: true },
       });
@@ -171,6 +172,6 @@ export const treatmentsRouter = {
             now,
           })
       );
-      return { tagNumber: input.tagNumber.toUpperCase() };
+      return { tagNumber: tagNumberAsWritten(input.tagNumber) };
     }),
 };

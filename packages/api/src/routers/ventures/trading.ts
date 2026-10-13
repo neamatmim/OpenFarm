@@ -8,6 +8,7 @@ import {
   roundMoney,
   weighedTooLongAgo,
   whyNotBetweenPurses,
+  tagNumberAsWritten,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -271,7 +272,7 @@ export const tradingProcedures = {
           const her = await tx.query.animal.findFirst({
             where: {
               farmId: context.farm.id,
-              tagNumber: input.tagNumber.toUpperCase(),
+              tagNumber: tagNumberAsWritten(input.tagNumber),
             },
             columns: {
               id: true,

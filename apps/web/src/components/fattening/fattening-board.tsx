@@ -24,6 +24,7 @@ import { Nothing } from "@/components/list-cells";
 import { EmptyState, ProgressBar } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { tagMatches, tagSought } from "@/lib/tag-search";
 
 import { useConfirmReady } from "./confirm-ready";
 import type { KeepingFilter, StandingFilter } from "./fattening-filters";
@@ -459,14 +460,14 @@ export const FatteningBoard = ({
   const [penId, setPenId] = useState("");
   const [search, setSearch] = useState("");
   const keepings = useKeepings();
-  const wanted = search.trim().toUpperCase();
+  const wanted = tagSought(search);
   // Only once the Owner's prices are read: a filter nobody else can see, or not yet, filters nothing.
   const keepingShown = keepings === null ? "all" : keeping;
   const shown = rows.filter(
     (row) =>
       (standing === "all" || standingOf(row.onTrack) === standing) &&
       (penId === "" || row.penId === penId) &&
-      (wanted === "" || row.tagNumber.toUpperCase().includes(wanted)) &&
+      (wanted === "" || tagMatches(row.tagNumber, wanted)) &&
       (keepingShown === "all" || keepings?.get(row.tagNumber) === keepingShown)
   );
   const owner = useIsOwner();

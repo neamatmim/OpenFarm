@@ -8,6 +8,7 @@ import {
   lactationsOf,
   lactationView,
   roundLiters,
+  tagNumberAsWritten,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -298,7 +299,7 @@ export const milkRouter = {
       const beast = await context.db.query.animal.findFirst({
         where: {
           farmId: context.farm.id,
-          tagNumber: input.tagNumber.toUpperCase(),
+          tagNumber: tagNumberAsWritten(input.tagNumber),
         },
         columns: {
           id: true,

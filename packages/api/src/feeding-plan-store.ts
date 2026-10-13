@@ -8,6 +8,7 @@ import {
   gainStandingOf,
   roundMoney,
   startOfFarmDay,
+  tagNumberAsWritten,
 } from "@OpenFarm/domain";
 import type {
   FeedingPlan,
@@ -86,7 +87,7 @@ export const planningAnimal = async (
   now: Date
 ) => {
   const animal = await db.query.animal.findFirst({
-    where: { farmId, tagNumber: tagNumber.toUpperCase() },
+    where: { farmId, tagNumber: tagNumberAsWritten(tagNumber) },
     with: {
       moves: {
         columns: { movedAt: true },

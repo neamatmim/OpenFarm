@@ -26,6 +26,7 @@ import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { CullListReturn } from "@/components/returns/dairy-returns";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney, useMoneyRate } from "@/lib/money";
+import { tagMatches, tagSought } from "@/lib/tag-search";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -308,12 +309,10 @@ export const CullBoard = ({ cows }: { cows: CullCow[] }) => {
   const { t, language } = useLanguage();
   const [shown, setShown] = useState<Shown>("named");
   const [search, setSearch] = useState("");
-  const wanted = search.trim().toUpperCase();
+  const wanted = tagSought(search);
   const named = cows.filter((cow) => cow.reasons.length > 0);
   const rows = (shown === "named" ? named : cows)
-    .filter(
-      (cow) => wanted === "" || cow.tagNumber.toUpperCase().includes(wanted)
-    )
+    .filter((cow) => wanted === "" || tagMatches(cow.tagNumber, wanted))
     .toSorted(
       (a, b) =>
         b.reasons.length - a.reasons.length ||

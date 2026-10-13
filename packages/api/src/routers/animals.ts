@@ -16,6 +16,7 @@ import {
   farmDayOf,
   lactationView,
   sideOfState,
+  tagNumberAsWritten,
 } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { LANGUAGES, translate } from "@OpenFarm/i18n";
@@ -1149,7 +1150,7 @@ export const animalsRouter = {
       const her = await context.db.query.animal.findFirst({
         where: {
           farmId: context.farm.id,
-          tagNumber: input.tagNumber.toUpperCase(),
+          tagNumber: tagNumberAsWritten(input.tagNumber),
         },
         columns: { id: true },
       });
@@ -1169,7 +1170,7 @@ export const animalsRouter = {
     .input(z.object({ tagNumber: tagInput }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       // Her record, as her papers and the registers read it — what she is, where she has stood, what she has
       // had and weighed, how she arrived and how she left — and, asked for at the same time, what is her
       // page's alone: the chain from what somebody saw on the round to what the Vet made of it, her breeding,
@@ -1431,7 +1432,7 @@ export const animalsRouter = {
     .use(requireRole(...moveEntry.roles))
     .input(moveInput)
     .handler(async ({ context, input }) => {
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       await recordNow(context, moveEntry, input);
       const moved = await requireAnimal(context.db, context.farm.id, tagNumber);
       return { tagNumber, side: moved.side, state: moved.state };
@@ -1457,7 +1458,7 @@ export const animalsRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       // Known once the reading is written; the trail entry and its snapshot are read after `apply`.
       let reading = { id: "", flaggedNote: null as string | null };
       await audited(context).write(
@@ -1538,7 +1539,7 @@ export const animalsRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       const happenedAt = input.happenedAt ?? now;
       const { photo } = input;
       if (!photo) {
@@ -1626,7 +1627,7 @@ export const animalsRouter = {
       })
     )
     .handler(async ({ context, input }) => {
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       const { photo } = input;
       if (!photo) {
         throw deathNeedsAPhoto();
@@ -1691,7 +1692,7 @@ export const animalsRouter = {
     .use(requireRole(...mortalityCorrection.roles))
     .input(mortalityCorrectionInput)
     .handler(async ({ context, input: { tagNumber, ...input } }) => {
-      const her = tagNumber.toUpperCase();
+      const her = tagNumberAsWritten(tagNumber);
       const { existing } = await mortalityOf(context.db, context.farm.id, her);
       await correct(context, mortalityCorrection, {
         ...input,
@@ -1717,7 +1718,7 @@ export const animalsRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       const target = await requireAnimal(
         context.db,
         context.farm.id,
@@ -1820,7 +1821,7 @@ export const animalsRouter = {
       const her = await requireAnimal(
         context.db,
         context.farm.id,
-        tagNumber.toUpperCase()
+        tagNumberAsWritten(tagNumber)
       );
       await correct(context, animalFactsCorrection, { ...input, id: her.id });
       return { tagNumber: her.tagNumber };
@@ -1833,7 +1834,7 @@ export const animalsRouter = {
       const her = await requireAnimal(
         context.db,
         context.farm.id,
-        tagNumber.toUpperCase()
+        tagNumberAsWritten(tagNumber)
       );
       await correct(context, registrationCorrection, {
         ...input,
@@ -1854,7 +1855,7 @@ export const animalsRouter = {
       const her = await requireAnimal(
         context.db,
         context.farm.id,
-        tagNumber.toUpperCase()
+        tagNumberAsWritten(tagNumber)
       );
       await correct(context, expectedCalvingCorrection, {
         ...input,
@@ -1875,7 +1876,7 @@ export const animalsRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       const target = await requireAnimal(
         context.db,
         context.farm.id,
@@ -1929,7 +1930,7 @@ export const animalsRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       const target = await requireAnimal(
         context.db,
         context.farm.id,
@@ -1986,7 +1987,7 @@ export const animalsRouter = {
     .input(z.object({ tagNumber: tagInput }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       const target = await requireAnimal(
         context.db,
         context.farm.id,
@@ -2053,7 +2054,7 @@ export const animalsRouter = {
     .input(z.object({ tagNumber: tagInput }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       const target = await requireAnimal(
         context.db,
         context.farm.id,
@@ -2093,7 +2094,7 @@ export const animalsRouter = {
       const target = await requireAnimal(
         context.db,
         context.farm.id,
-        input.tagNumber.toUpperCase()
+        tagNumberAsWritten(input.tagNumber)
       );
       if (!target.ownerVentureId) {
         return null;
@@ -2142,7 +2143,7 @@ export const animalsRouter = {
         });
       }
       const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       const target = await requireAnimal(
         context.db,
         context.farm.id,
@@ -2235,7 +2236,7 @@ export const animalsRouter = {
       const target = await requireAnimal(
         context.db,
         context.farm.id,
-        input.tagNumber.toUpperCase()
+        tagNumberAsWritten(input.tagNumber)
       );
       requireLookUp(context.scope, target);
       const death = await context.db.query.mortality.findFirst({
@@ -2270,7 +2271,7 @@ export const animalsRouter = {
       const target = await requireAnimal(
         context.db,
         context.farm.id,
-        input.tagNumber.toUpperCase()
+        tagNumberAsWritten(input.tagNumber)
       );
       const kept = await context.db.query.voidedPhoto.findMany({
         where: { farmId: context.farm.id, animalId: target.id },
@@ -2305,7 +2306,7 @@ export const animalsRouter = {
       const target = await requireAnimal(
         context.db,
         context.farm.id,
-        input.tagNumber.toUpperCase()
+        tagNumberAsWritten(input.tagNumber)
       );
       requireLookUp(context.scope, target);
       // The thumbnail alone where it is asked for and there is one: a herd page asks for one an animal, and reading

@@ -8,6 +8,7 @@ import {
   MAX_TIMES_A_DAY,
   mayBePrescribed,
   whyNotPrescribable,
+  tagNumberAsWritten,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -205,7 +206,7 @@ export const prescriptionsRouter = {
           const her = await loadLiveAnimal(
             tx,
             context.farm.id,
-            input.animalTag.toUpperCase()
+            tagNumberAsWritten(input.animalTag)
           );
           requireClinicalInScope(context.scope, her.id);
           const answers = await tx.query.diagnosis.findFirst({
@@ -341,7 +342,7 @@ export const prescriptionsRouter = {
       const her = await context.db.query.animal.findFirst({
         where: {
           farmId: context.farm.id,
-          tagNumber: input.tagNumber.toUpperCase(),
+          tagNumber: tagNumberAsWritten(input.tagNumber),
         },
         columns: { id: true },
       });
