@@ -333,10 +333,6 @@ export const EnterMoneySheet = ({
   const { t, language } = useLanguage();
   const onError = useRefused();
   const categories = useQuery(orpc.money.categories.list.queryOptions());
-  const wagePeople = useQuery({
-    ...orpc.money.wagePeople.queryOptions(),
-    enabled: open,
-  });
   const [typed, setTyped] = useState(() => ({
     ...NOTHING_TYPED,
     ...startWith,
@@ -355,6 +351,11 @@ export const EnterMoneySheet = ({
     (one) => one.id === (typed.categoryId || usable[0]?.id)
   );
   const isWage = chosen?.key === "wages";
+  // Asked only of a wage: no other money names a person from the farm's list.
+  const wagePeople = useQuery({
+    ...orpc.money.wagePeople.queryOptions(),
+    enabled: open && isWage,
+  });
   const handleOpenChange = (opening: boolean) => {
     if (!opening) {
       // The file box is drawn afresh next time, so the photo it held goes with it.

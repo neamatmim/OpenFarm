@@ -4,19 +4,24 @@ import {
   monthOf,
   monthlyCostsNotEntered,
   monthsEndingIn,
-  roundMoney,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 
-import { THE_FARMS_PURSE } from "./money-store";
+import { THE_FARMS_PURSE, wagesCategoryOf } from "./money-store";
+import { wholeWagesOf } from "./wage-draw-store";
 
 type Db = Pick<Database, "query">;
 
-/** Each Category's last money entered by hand in the Farm's purse: who it went to and how much. */
+/**
+ * Each Category's last money entered by hand in the Farm's purse within the year: who it went to and how much. A Monthly
+ * Cost is paid every month, so a year holds its last whenever it was paid at all; reading further would read the farm's
+ * whole history on every home screen.
+ */
 const lastEnteredUnder = async (
   db: Db,
   farmId: string,
-  categoryIds: readonly string[]
+  categoryIds: readonly string[],
+  since: string
 ): Promise<
   Map<string, { counterparty: string | null; amountMoney: number }>
 > => {
@@ -29,6 +34,7 @@ const lastEnteredUnder = async (
       purseVentureId: THE_FARMS_PURSE,
       source: "by_hand",
       categoryId: { in: [...categoryIds] },
+      occurredAt: { gte: startOfFarmDay(`${since}-01`) },
     },
     columns: { categoryId: true, amountMoney: true },
     with: { counterparty: { columns: { name: true } } },
@@ -49,51 +55,49 @@ const lastEnteredUnder = async (
   return last;
 };
 
-/** Each person's last wage, whole: what it paid and what it took off their draws. */
+/**
+ * Each named person's last wage, whole — what it paid and what it took off their draws — from the wages the watch
+ * already read: somebody named was paid within them, so nothing further back is asked.
+ */
 const lastWageOf = async (
   db: Db,
-  farmId: string,
+  wages: readonly {
+    id: string;
+    counterpartyId: string | null;
+    wageMonth: string | null;
+    amountMoney: number;
+  }[],
   personIds: readonly string[]
 ): Promise<Map<string, number>> => {
-  if (personIds.length === 0) {
-    return new Map();
-  }
-  const wages = await db.query.moneyEvent.findMany({
-    where: {
-      farmId,
-      wageMonth: { isNotNull: true },
-      counterpartyId: { in: [...personIds] },
-    },
-    columns: { id: true, counterpartyId: true, amountMoney: true },
-    orderBy: { wageMonth: "desc", id: "desc" },
-  });
-  const latest = new Map<string, { id: string; amountMoney: number }>();
+  const named = new Set(personIds);
+  const latest = new Map<
+    string,
+    { id: string; amountMoney: number; wageMonth: string }
+  >();
   for (const one of wages) {
-    if (one.counterpartyId && !latest.has(one.counterpartyId)) {
-      latest.set(one.counterpartyId, one);
+    const known = one.counterpartyId
+      ? latest.get(one.counterpartyId)
+      : undefined;
+    if (
+      one.counterpartyId &&
+      one.wageMonth &&
+      named.has(one.counterpartyId) &&
+      (!known || one.wageMonth > known.wageMonth)
+    ) {
+      latest.set(one.counterpartyId, {
+        id: one.id,
+        amountMoney: one.amountMoney,
+        wageMonth: one.wageMonth,
+      });
     }
   }
-  const taken = await db.query.wageDrawTaken.findMany({
-    where: {
-      wageEventId: { in: [...latest.values()].map((one) => one.id) },
-    },
-    columns: { wageEventId: true, amount: true },
-  });
-  const takenBy = new Map<string, number>();
-  for (const one of taken) {
-    takenBy.set(
-      one.wageEventId,
-      (takenBy.get(one.wageEventId) ?? 0) + one.amount
-    );
-  }
-  const last = new Map<string, number>();
-  for (const [personId, wage] of latest) {
-    last.set(
+  const whole = await wholeWagesOf(db, [...latest.values()]);
+  return new Map(
+    [...latest].map(([personId, wage]) => [
       personId,
-      roundMoney(wage.amountMoney + (takenBy.get(wage.id) ?? 0))
-    );
-  }
-  return last;
+      whole.get(wage.id) ?? wage.amountMoney,
+    ])
+  );
 };
 
 /**
@@ -145,13 +149,15 @@ export const monthlyCostsNow = async (
         wageMonth: { gte: wagesFrom },
         counterpartyId: { isNotNull: true },
       },
-      columns: { counterpartyId: true, wageMonth: true },
+      columns: {
+        id: true,
+        counterpartyId: true,
+        wageMonth: true,
+        amountMoney: true,
+      },
       with: { counterparty: { columns: { name: true } } },
     }),
-    db.query.moneyCategory.findFirst({
-      where: { farmId: farm.id, key: "wages" },
-      columns: { id: true },
-    }),
+    wagesCategoryOf(db, farm.id),
   ]);
 
   const owed = monthlyCostsNotEntered({
@@ -182,15 +188,17 @@ export const monthlyCostsNow = async (
     ),
   });
   const byId = new Map(categories.map((one) => [one.id, one]));
+  const [aYearAgo = ""] = monthsEndingIn(today, 13);
   const [lastEntries, lastWages] = await Promise.all([
     lastEnteredUnder(
       db,
       farm.id,
-      owed.costs.map((one) => one.categoryId)
+      owed.costs.map((one) => one.categoryId),
+      aYearAgo
     ),
     lastWageOf(
       db,
-      farm.id,
+      wages,
       owed.wages.map((one) => one.personId)
     ),
   ]);
@@ -216,7 +224,7 @@ export const monthlyCostsNow = async (
       personName: one.name,
       month: one.month,
       /** Where the wage is entered, so the row opens the money entry on it. */
-      categoryId: wagesCategory?.id ?? null,
+      categoryId: wagesCategory,
       /** Their last wage whole — what was paid and the draws it took — so the entry opens with it. */
       lastWageMoney: lastWages.get(one.personId) ?? null,
     })),

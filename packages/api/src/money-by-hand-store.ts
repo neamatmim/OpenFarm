@@ -15,6 +15,7 @@ import {
   bookingOf,
   mayBeEnteredByHand,
 } from "./money-store";
+import { lockTheFarm } from "./venture-store";
 import { drawsToTake, takeDraws } from "./wage-draw-store";
 
 /** Refused, with the word the screen says it in. */
@@ -155,6 +156,19 @@ export const keepReceipt = async (
     });
 };
 
+/** The database refusing a second wage for one person's month (`money_event_wage_uidx`). */
+const isWageWrittenTwice = (error: unknown): boolean => {
+  const said = error as {
+    code?: unknown;
+    constraint?: unknown;
+    cause?: { code?: unknown; constraint?: unknown };
+  } | null;
+  const refused = said?.cause ?? said;
+  return (
+    refused?.code === "23505" && refused.constraint === "money_event_wage_uidx"
+  );
+};
+
 /**
  * Books one entry made by hand, once its Counterparty is known, in the transaction it is written in: one wage a person a
  * month; a wage taking the person's draws still owed off itself, the oldest first, and booking what is paid now; the cash
@@ -187,6 +201,11 @@ export const bookEnteredByHand = async (
   }
 ): Promise<number> => {
   const farmId = writer.farm.id;
+  if (entry.wageMonth) {
+    // Behind the Farm lock, so two writing the same person's month at once — two phones, two runs — are asked one after
+    // the other: the second finds the first and is refused in words, never by the index behind it.
+    await lockTheFarm(tx, farmId);
+  }
   await assertWageNotYetEntered(tx, farmId, {
     counterpartyId: entry.counterpartyId,
     wageMonth: entry.wageMonth,
@@ -206,27 +225,43 @@ export const bookEnteredByHand = async (
           entry.heldBy
         )
       : undefined;
-  await bookMoney(
-    tx,
-    bookingOf(writer, writer.role, entry.now, accountSaid(["by_hand"], entry)),
-    {
-      source: "by_hand",
-      sourceId: entry.id,
-      amountMoney: roundMoney(entry.amountMoney - draws.takenMoney),
-      occurredAt: entry.occurredAt,
-      counterpartyId: entry.counterpartyId,
-      paymentMethod: entry.paymentMethod,
-      ...(heldBy === undefined ? {} : { heldBy }),
-    },
-    {
-      id: entry.id,
-      category: entry.category,
-      note: entry.note,
-      wageMonth: entry.wageMonth,
-      side: entry.side,
-      drawsTakenMoney: draws.takenMoney,
+  try {
+    await bookMoney(
+      tx,
+      bookingOf(
+        writer,
+        writer.role,
+        entry.now,
+        accountSaid(["by_hand"], entry)
+      ),
+      {
+        source: "by_hand",
+        sourceId: entry.id,
+        amountMoney: roundMoney(entry.amountMoney - draws.takenMoney),
+        occurredAt: entry.occurredAt,
+        counterpartyId: entry.counterpartyId,
+        paymentMethod: entry.paymentMethod,
+        ...(heldBy === undefined ? {} : { heldBy }),
+      },
+      {
+        id: entry.id,
+        category: entry.category,
+        note: entry.note,
+        wageMonth: entry.wageMonth,
+        side: entry.side,
+        drawsTakenMoney: draws.takenMoney,
+      }
+    );
+  } catch (error) {
+    // What the lock leaves to the index — a wage written under another purse's lock, say — is still said in words.
+    if (isWageWrittenTwice(error)) {
+      throw refusedByHand(
+        "That person's wage for that month is already entered",
+        "wage_already_entered"
+      );
     }
-  );
+    throw error;
+  }
   await takeDraws(tx, farmId, entry.id, draws.parts, entry.now);
   return draws.takenMoney;
 };

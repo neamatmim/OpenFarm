@@ -161,6 +161,18 @@ export const mayBeRetired = (key: CategoryKey | null): boolean =>
 export const mayBeEnteredByHand = (key: CategoryKey | null): boolean =>
   key === null || key === "vet_fee" || !KEPT_BY_RECORDS.has(key);
 
+/** The Farm's Wages Category, which every wage goes under; nothing for a farm whose standard Categories are not in. */
+export const wagesCategoryOf = async (
+  db: Pick<Tx, "query">,
+  farmId: string
+): Promise<string | null> => {
+  const wages = await db.query.moneyCategory.findFirst({
+    where: { farmId, key: "wages" },
+    columns: { id: true },
+  });
+  return wages?.id ?? null;
+};
+
 /**
  * The standard Categories the animals never carry: the place, the people and the kit, which are the
  * Farm's and are how it earns its share.

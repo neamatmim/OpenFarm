@@ -1,38 +1,64 @@
-import type { WageRunRow } from "@OpenFarm/domain";
+import type { Side, WageRunRow } from "@OpenFarm/domain";
 
 import type { EnterMoneyStart } from "@/components/money-entry";
+import { figureOf } from "@/lib/typed-figure";
 
 /** What the sheet holds: who is ticked, and the wage typed for anybody whose is not last month's. */
 export interface WageRunTyped {
   ticked: ReadonlySet<string>;
-  /** By person: the wage as typed, where it was typed at all. */
+  /** By person: the wage as typed, where the box was touched at all — an emptied box is "", which pays nothing. */
   typed: Readonly<Record<string, string>>;
 }
 
-/** The wage a row stands at: what was typed, or last month's where nothing was. */
-const wageOf = (row: WageRunRow, typed: string | undefined): number =>
-  typed === undefined || typed.trim() === "" ? row.wageMoney : Number(typed);
+/**
+ * The wage a row stands at: last month's where its box was never touched, or what was typed — Bangla digits and all —
+ * where it was. An emptied box is nothing typed yet, and pays nothing: never last month's wage put back unseen.
+ */
+const wageOf = (row: WageRunRow, typed: string | undefined): number => {
+  if (typed === undefined) {
+    return row.wageMoney;
+  }
+  const figure = figureOf(typed);
+  return figure !== null && Number.isFinite(figure) ? figure : 0;
+};
 
 /**
  * The month's wages as the sheet sends them: each ticked person not already paid, at the wage typed or last month's,
- * and nobody whose wage is nothing — a wage of nothing is not a wage.
+ * on the Side last month's fell to, and nobody whose wage is nothing — a wage of nothing is not a wage.
  */
 export const wagesToSend = (
   rows: readonly WageRunRow[],
   { ticked, typed }: WageRunTyped
-): { personId: string; amountMoney: number }[] =>
+): { personId: string; amountMoney: number; side?: Side }[] =>
   rows.flatMap((row) => {
     const amountMoney = wageOf(row, typed[row.personId]);
     return ticked.has(row.personId) && !row.paid && amountMoney > 0
-      ? [{ personId: row.personId, amountMoney }]
+      ? [
+          {
+            personId: row.personId,
+            amountMoney,
+            ...(row.side ? { side: row.side } : {}),
+          },
+        ]
       : [];
   });
 
-/** What changes hands now at the wage typed: the person's draws still owed come off it first, the farm's payday rule. */
-export const paidNowOf = (row: WageRunRow, typed: string): number => {
+/**
+ * What payday takes off the person's draws still owed at the wage typed — up to the wage, the farm's payday rule — and
+ * what stays owed for the next.
+ */
+export const drawsOffOf = (
+  row: WageRunRow,
+  typed: string | undefined
+): { takenMoney: number; leftMoney: number } => {
   const owed = row.drawsTakenMoney + row.drawsLeftMoney;
-  return Math.max(0, wageOf(row, typed) - owed);
+  const takenMoney = Math.min(owed, wageOf(row, typed));
+  return { takenMoney, leftMoney: owed - takenMoney };
 };
+
+/** What changes hands now at the wage typed: what is left of it once the draws come off. */
+export const paidNowOf = (row: WageRunRow, typed?: string): number =>
+  wageOf(row, typed) - drawsOffOf(row, typed).takenMoney;
 
 /** A Monthly Cost not entered, opened with whom it was paid to and how much last time. */
 export const startOfMissingCost = (row: {

@@ -2940,7 +2940,11 @@ export const enCore = {
   "wageRun.nobody": "Nobody was paid a wage the month before",
   "wageRun.alreadyPaid": "This month's wage is entered already",
   "wageRun.lastMonth": "Last month {amount}",
-  "wageRun.lessDraws": "Less {draws} drawn ahead: {now} paid now",
+  "wageRun.lessDraws": "Payday takes {taken} of the draws: {now} paid now.",
+  "wageRun.drawsLeft": "{left} still drawn ahead, off the next wage.",
+  "wageRun.notPaid": "Nothing typed: not paid",
+  "wageRun.cashOnly":
+    "The month's wages are paid in cash. A wage sent by bank or mobile money is entered on its own, with its transaction ID.",
   "wageRun.wageOf": "{name}'s wage",
   "wageRun.save": "{count, plural, one {Save # wage} other {Save # wages}}",
   "wageRun.paid":

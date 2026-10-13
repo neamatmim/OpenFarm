@@ -1,6 +1,8 @@
+import type { WageRunRow } from "@OpenFarm/domain";
 import { describe, expect, it } from "vitest";
 
 import {
+  drawsOffOf,
   isANewName,
   paidNowOf,
   startOfMissingCost,
@@ -8,15 +10,7 @@ import {
   wagesToSend,
 } from "./wage-run";
 
-const row = (
-  personId: string,
-  over: Partial<{
-    wageMoney: number;
-    drawsTakenMoney: number;
-    drawsLeftMoney: number;
-    paid: boolean;
-  }> = {}
-) => ({
+const row = (personId: string, over: Partial<WageRunRow> = {}): WageRunRow => ({
   personId,
   name: personId,
   wageMoney: 10_000,
@@ -47,20 +41,50 @@ describe("the month's wages as the sheet sends them", () => {
     ]);
   });
 
-  it("leaves out a wage typed as nothing", () => {
+  it("leaves out a wage typed as nothing, and a box emptied — never last month's wage in its place", () => {
     expect(
-      wagesToSend([row("rahim")], {
-        ticked: new Set(["rahim"]),
-        typed: { rahim: "0" },
+      wagesToSend([row("rahim"), row("karim")], {
+        ticked: new Set(["rahim", "karim"]),
+        typed: { rahim: "0", karim: "" },
       })
     ).toEqual([]);
   });
 
-  it("says what changes hands now, the draws taken off a wage typed afresh", () => {
+  it("reads a wage typed in Bangla digits", () => {
+    expect(
+      wagesToSend([row("rahim")], {
+        ticked: new Set(["rahim"]),
+        typed: { rahim: "১২৫০০" },
+      })
+    ).toEqual([{ personId: "rahim", amountMoney: 12_500 }]);
+  });
+
+  it("carries the Side last month's wage fell to", () => {
+    expect(
+      wagesToSend([row("rahim", { side: "dairy" })], {
+        ticked: new Set(["rahim"]),
+        typed: {},
+      })
+    ).toEqual([{ personId: "rahim", amountMoney: 10_000, side: "dairy" }]);
+  });
+
+  it("says what payday takes off the draws, up to the wage, what stays owed, and what changes hands now", () => {
     const owing = row("rahim", { drawsTakenMoney: 3000, drawsLeftMoney: 1000 });
+    expect(drawsOffOf(owing, "12000")).toEqual({
+      takenMoney: 4000,
+      leftMoney: 0,
+    });
     expect(paidNowOf(owing, "12000")).toBe(8000);
+    expect(drawsOffOf(owing, "3000")).toEqual({
+      takenMoney: 3000,
+      leftMoney: 1000,
+    });
     expect(paidNowOf(owing, "3000")).toBe(0);
-    expect(paidNowOf(owing, "")).toBe(6000);
+    // Nothing typed yet: last month's wage.
+    expect(paidNowOf(owing)).toBe(6000);
+    // Emptied: nothing paid, nothing taken.
+    expect(paidNowOf(owing, "")).toBe(0);
+    expect(drawsOffOf(owing, "")).toEqual({ takenMoney: 0, leftMoney: 4000 });
   });
 });
 

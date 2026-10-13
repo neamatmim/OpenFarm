@@ -2717,7 +2717,11 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "wageRun.nobody": "আগের মাসে কাউকে মজুরি দেওয়া হয়নি",
   "wageRun.alreadyPaid": "এই মাসের মজুরি আগেই লেখা হয়েছে",
   "wageRun.lastMonth": "গত মাসে {amount}",
-  "wageRun.lessDraws": "বেতনের অগ্রিম {draws} কাটা: এখন দেওয়া {now}",
+  "wageRun.lessDraws": "বেতনের অগ্রিম থেকে কাটা {taken}: এখন দেওয়া {now}।",
+  "wageRun.drawsLeft": "বেতনের অগ্রিম আরও {left} বাকি, পরের মজুরি থেকে কাটা যাবে।",
+  "wageRun.notPaid": "কিছু লেখা নেই: দেওয়া হবে না",
+  "wageRun.cashOnly":
+    "মাসের মজুরি নগদে দেওয়া হয়। বিকাশ বা ব্যাংকে পাঠানো মজুরি আলাদা করে, ট্রানজ্যাকশন আইডিসহ লিখুন।",
   "wageRun.wageOf": "{name}-এর মজুরি",
   "wageRun.save": "{count}টি মজুরি রাখুন",
   "wageRun.paid": "{count}টি মজুরি লেখা হলো",

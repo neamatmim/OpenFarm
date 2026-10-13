@@ -3,8 +3,12 @@ import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import type { SIDES } from "@OpenFarm/db/schema/herd";
-import type { PaymentMethod } from "@OpenFarm/db/schema/money";
-import { monthBefore, roundMoney, wageRunOf } from "@OpenFarm/domain";
+import {
+  farmDayOf,
+  monthBefore,
+  monthsEndingIn,
+  wageRunOf,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import { audited } from "./audit";
@@ -15,7 +19,8 @@ import {
   enteredOn,
   readEntered,
 } from "./money-by-hand-store";
-import { openDrawsOf } from "./wage-draw-store";
+import { wagesCategoryOf } from "./money-store";
+import { openDrawsOf, wholeWagesOf } from "./wage-draw-store";
 import { seenWhenDone } from "./writes-seen";
 
 type Db = Pick<Database, "query">;
@@ -26,17 +31,8 @@ type Paying = Context & {
   actor: NonNullable<Context["actor"]>;
 };
 
-/** The Farm's Wages Category, which every wage goes under. */
-const wagesOf = async (db: Db, farmId: string) => {
-  const wages = await db.query.moneyCategory.findFirst({
-    where: { farmId, key: "wages" },
-    columns: { id: true },
-  });
-  if (!wages) {
-    throw new ORPCError("NOT_FOUND", { message: "The farm has no Wages" });
-  }
-  return wages.id;
-};
+/** How far back the people a wage may name are looked for: a year — somebody unpaid for longer has left. */
+const PEOPLE_LOOKED_BACK = 13;
 
 /**
  * A month's wages as the farm would pay them (`wageRunOf`): everybody paid a wage for the month before, at that wage
@@ -61,22 +57,10 @@ export const wageRunFor = async (db: Db, farmId: string, month: string) => {
     with: { counterparty: { columns: { name: true } } },
   });
   const lastMonth = wages.filter((one) => one.wageMonth === before);
-  const [taken, open] = await Promise.all([
-    lastMonth.length === 0
-      ? []
-      : db.query.wageDrawTaken.findMany({
-          where: { wageEventId: { in: lastMonth.map((one) => one.id) } },
-          columns: { wageEventId: true, amount: true },
-        }),
+  const [whole, open] = await Promise.all([
+    wholeWagesOf(db, lastMonth),
     openDrawsOf(db, farmId),
   ]);
-  const takenBy = new Map<string, number>();
-  for (const one of taken) {
-    takenBy.set(
-      one.wageEventId,
-      (takenBy.get(one.wageEventId) ?? 0) + one.amount
-    );
-  }
   return {
     month,
     rows: wageRunOf({
@@ -86,9 +70,7 @@ export const wageRunFor = async (db: Db, farmId: string, month: string) => {
               {
                 personId: one.counterpartyId,
                 name: one.counterparty.name,
-                wageMoney: roundMoney(
-                  one.amountMoney + (takenBy.get(one.id) ?? 0)
-                ),
+                wageMoney: whole.get(one.id) ?? one.amountMoney,
                 side: one.side,
               },
             ]
@@ -110,7 +92,8 @@ export const wageRunFor = async (db: Db, farmId: string, month: string) => {
 /**
  * A month's wages, ticked and saved together, in one transaction: all of them or none. Each is a wage of its own —
  * its own Money Event and Audit Event, one a person a month, taking the person's draws, waiting for the Owner over the
- * Approval Threshold — exactly as a wage entered alone (`bookEnteredByHand`).
+ * Approval Threshold — exactly as a wage entered alone (`bookEnteredByHand`). Paid in cash, out of the writer's hand
+ * or the one the Owner names.
  */
 export const payWages = (
   context: Paying,
@@ -118,14 +101,12 @@ export const payWages = (
   input: {
     month: string;
     occurredOn: string;
-    paymentMethod: PaymentMethod;
-    farmAccountId?: string;
+    paymentMethod: "cash";
     heldBy?: string;
     wages: readonly {
       personId: string;
       amountMoney: number;
       side?: (typeof SIDES)[number];
-      reference?: string;
     }[];
   },
   now: Date
@@ -134,12 +115,14 @@ export const payWages = (
     context.db.transaction(async (tx) => {
       const farmId = context.farm.id;
       const occurredAt = enteredOn(input.occurredOn, now);
-      const category = await categoryForEntered(
-        tx,
-        farmId,
-        await wagesOf(tx, farmId),
-        { wageMonth: input.month, alreadyUnderIt: false }
-      );
+      const wagesId = await wagesCategoryOf(tx, farmId);
+      if (!wagesId) {
+        throw new ORPCError("NOT_FOUND", { message: "The farm has no Wages" });
+      }
+      const category = await categoryForEntered(tx, farmId, wagesId, {
+        wageMonth: input.month,
+        alreadyUnderIt: false,
+      });
       const ids: string[] = [];
       for (const wage of input.wages) {
         // One wage after another: each takes its own person's draws behind the Farm's lock, a handful a month.
@@ -163,12 +146,6 @@ export const payWages = (
             counterpartyId: person.id,
             amountMoney: wage.amountMoney,
             paymentMethod: input.paymentMethod,
-            ...(input.farmAccountId === undefined
-              ? {}
-              : { farmAccountId: input.farmAccountId }),
-            ...(wage.reference === undefined
-              ? {}
-              : { reference: wage.reference }),
             ...(input.heldBy === undefined ? {} : { heldBy: input.heldBy }),
             note: null,
             wageMonth: input.month,
@@ -190,16 +167,21 @@ export const payWages = (
   );
 
 /**
- * Whom a wage may name: everybody the farm has paid a wage before, and its own people — the Manager and the Barn Staff
- * by their names — so the person is chosen, and a new spelling of somebody already paid is a choice rather than an
- * accident. Each name once, in the reader's alphabet order.
+ * Whom a wage may name: everybody the farm has paid a wage in the last year, and its own people — the Manager and the
+ * Barn Staff by their names — so the person is chosen, and a new spelling of somebody already paid is a choice rather
+ * than an accident. Each name once, in the reader's alphabet order.
  */
-export const wagePeople = async (db: Db, farmId: string): Promise<string[]> => {
+export const wagePeople = async (
+  db: Db,
+  farmId: string,
+  now: Date
+): Promise<string[]> => {
+  const [since = ""] = monthsEndingIn(farmDayOf(now), PEOPLE_LOOKED_BACK);
   const [paid, people] = await Promise.all([
     db.query.moneyEvent.findMany({
       where: {
         farmId,
-        wageMonth: { isNotNull: true },
+        wageMonth: { gte: since },
         counterpartyId: { isNotNull: true },
       },
       columns: { counterpartyId: true },

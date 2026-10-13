@@ -181,6 +181,48 @@ describe("a month's wages", () => {
     expect(booked?.approval).toBe("awaiting");
   });
 
+  it("ends two runs for the same month at once in one wage and a refusal, never a database error", async () => {
+    const both = `দুই খাতা ${suffix}`;
+    await payWage(both, 7000, "2075-08", "2075-09-01");
+    const run = await runFor("2075-09", "2075-10-01T05:00:00.000Z");
+    const row = run.rows.find((one) => one.name === both);
+    const one = await as("manager", "2075-10-01T06:00:00.000Z");
+    const other = await as("owner", "2075-10-01T06:00:00.000Z");
+    const sending = {
+      month: "2075-09",
+      occurredOn: "2075-10-01",
+      wages: [{ personId: row?.personId ?? "", amountMoney: 7000 }],
+    };
+
+    const results = await Promise.allSettled([
+      one.client.money.payWages(sending),
+      other.client.money.payWages(sending),
+    ]);
+
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    const [refused] = results.flatMap((r) =>
+      r.status === "rejected" ? [r.reason] : []
+    );
+    expect(refused).toMatchObject({
+      data: { refusal: "wage_already_entered" },
+    });
+  });
+
+  it("is paid in cash: a run by mobile money is refused whole before anything is entered", async () => {
+    const manager = await as("manager", "2075-10-01T06:00:00.000Z");
+    const run = await runFor("2075-09", "2075-10-01T05:00:00.000Z");
+    const row = run.rows.find((one) => one.name === RAHIM);
+    await expect(
+      manager.client.money.payWages({
+        month: "2075-09",
+        occurredOn: "2075-10-01",
+        // @ts-expect-error A run is the cash wages; a bank or mobile wage is entered on its own.
+        paymentMethod: "mobile_money",
+        wages: [{ personId: row?.personId ?? "", amountMoney: 1000 }],
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
   it("pays nobody who is not a person of this farm's", async () => {
     const manager = await as("manager", "2075-08-01T06:00:00.000Z");
     await expect(

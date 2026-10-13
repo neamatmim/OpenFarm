@@ -728,6 +728,10 @@ export const moneyEntryProcedures = {
   /**
    * A month's wages ticked and saved together — all or none — each a wage of its own, under every rule `enter` keeps
    * for one. The Manager's or the Owner's, from their own phone, as a wage is.
+   *
+   * Paid in cash, the farm's payday: a wage sent by bank or mobile money carries its own Farm Account and transaction
+   * ID, one payment each, and is entered on its own — a run naming one transaction ID for many would be refused at its
+   * second wage and enter none.
    */
   payWages: protectedProcedure
     .use(requireRole("owner", "manager"))
@@ -736,8 +740,8 @@ export const moneyEntryProcedures = {
       z.object({
         month: monthInput,
         occurredOn: farmDay,
-        paymentMethod: paymentMethodInput,
-        farmAccountId: farmAccountIdInput,
+        paymentMethod: z.literal("cash").default("cash"),
+        /** Whose hand the cash came out of, where it is not the writer's: the Owner writing up the Manager's payday. */
         heldBy: z.string().optional(),
         wages: z
           .array(
@@ -745,7 +749,6 @@ export const moneyEntryProcedures = {
               personId: z.string().min(1),
               amountMoney: amountInput,
               side: sideInput.optional(),
-              reference: referenceInput,
             })
           )
           .min(1)
@@ -764,7 +767,9 @@ export const moneyEntryProcedures = {
   /** Whom a wage may name: everybody paid a wage before, and the farm's own people. */
   wagePeople: protectedProcedure
     .use(requireRole("owner", "manager"))
-    .handler(({ context }) => wagePeople(context.db, context.farm.id)),
+    .handler(({ context }) =>
+      wagePeople(context.db, context.farm.id, context.clock.now())
+    ),
 
   /**
    * Puts a Wage Draw right — its money with it. Taken back whole by putting it to nothing; never below what a payday
