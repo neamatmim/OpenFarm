@@ -28,7 +28,6 @@ import { overdueReceivable } from "../receivable-store";
 import { renewalDue } from "../registration-store";
 import { withTheirWork } from "../review-store";
 import { requireRole } from "../roles";
-import { setupLeftOn } from "../setup-store";
 import { contentOf } from "../sop-content";
 import { runningLow, storeCountLate } from "../stock-store";
 import { DAY_MS, QUEUE_LIMIT } from "./home";
@@ -311,8 +310,6 @@ export const overviewRouter = {
           /** Written off as Lost in the last year, and what they had cost the farm. */
           lostYear,
         },
-        /** What is left to set the farm up, each step until it is done; nothing once it is. */
-        setupLeft: await setupLeftOn(context.db, context.farm),
       };
     }),
 };

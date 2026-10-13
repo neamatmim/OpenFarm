@@ -1,7 +1,12 @@
 import { formatNumber } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
+import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import {
+  Link,
+  createFileRoute,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
 import {
   ClipboardList,
   ClipboardPlus,
@@ -15,7 +20,7 @@ import {
 import { useState } from "react";
 
 import { stillOwed } from "@/components/course";
-import { Page, PageHeader } from "@/components/page";
+import { Notice, Page, PageHeader } from "@/components/page";
 import type { Figure, PageTab } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { DiagnosisSheet } from "@/components/vet/diagnosis-sheet";
@@ -101,6 +106,28 @@ const useVetFigures = ({ waiting, mine, last, visiting }: VetCounts) => {
   return figures;
 };
 
+/** The medicines on the list still waiting for the Vet's withdrawal days: until they are written nothing on the list
+ *  may be given and the farm's dose procedures cannot start, so the page the Vet opens says how many, and leads there. */
+const DaysWaiting = ({ count }: { count: number }) => {
+  const { t } = useLanguage();
+  if (count === 0) {
+    return null;
+  }
+  return (
+    <Notice
+      action={
+        <Link className={buttonVariants({ size: "sm" })} to="/drugs">
+          {t("drugs.save")}
+        </Link>
+      }
+      title={t("vet.daysWaiting", { count })}
+      tone="warning"
+    >
+      {t("vet.daysWaitingHint")}
+    </Notice>
+  );
+};
+
 /** What the Vet's page reads. A vet called in for a visit sees their Cases, not the farm's rounds, breeding list or
  *  fees, so those are not asked for on their behalf. */
 const useVetQueries = (saw: string) => {
@@ -131,7 +158,22 @@ const useVetQueries = (saw: string) => {
     ...orpc.vetCases.mine.queryOptions(),
     enabled: visiting,
   });
-  return { visiting, kinds, waiting, allWaiting, mine, repeat, heat, cases };
+  // The farm's own Vet writes the withdrawal days; a vet on a visit is not asked for them.
+  const medicines = useQuery({
+    ...orpc.drugs.list.queryOptions(),
+    enabled: inHouse,
+  });
+  return {
+    visiting,
+    kinds,
+    waiting,
+    allWaiting,
+    mine,
+    repeat,
+    heat,
+    cases,
+    medicines,
+  };
 };
 
 /** The tabs, by what the Vet came to do, and which of them this Vet has. */
@@ -264,6 +306,13 @@ const VetPage = () => {
         title={t("nav.vet")}
       />
 
+      <DaysWaiting
+        count={
+          (queries.medicines.data ?? []).filter(
+            (product) => product.whyNot === "no_withdrawal_days"
+          ).length
+        }
+      />
       <SummaryFigures figures={figures} />
 
       <VetTabs

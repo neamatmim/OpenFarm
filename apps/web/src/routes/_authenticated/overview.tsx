@@ -329,8 +329,7 @@ const OwnerDay = ({
         title={t("nav.farm")}
       />
 
-      {/* Missing from an answer kept from before the overview said what was left to set up. */}
-      <SetupLeft steps={data.setupLeft ?? []} />
+      <SetupLeft reader="owner" />
       <SummaryFigures figures={figures} />
       <FeedPurchaseAttention />
       <SupplierAttention />

@@ -296,6 +296,16 @@ export const farm = pgTable("farm", {
   dataHost: text("data_host"),
   backupStore: text("backup_store"),
   backupCountry: text("backup_country"),
+  /** The Owner's **Opening Count**: how many animals were counted standing on the farm on the tagging walk's day,
+   *  `YYYY-MM-DD`, beside how many the register held when the Owner wrote it down. The opening register is put in when
+   *  the two agree. Nulls until the Owner first says; said again after a recount, the latest stands and the trail
+   *  keeps the rest. */
+  openingCount: integer("opening_count"),
+  openingCountRegister: integer("opening_count_register"),
+  openingCountedOn: text("opening_counted_on"),
+  /** The first farm day, `YYYY-MM-DD`, the farm kept no paper register: the thirty days without paper go-live asks for
+   *  are counted from it. The Owner's word; said again when the paper came back, the count starts again. */
+  paperPutAwayOn: text("paper_put_away_on"),
   /** How far the Alert sweep has told people about. Everything that went late at or after
    *  this instant has been said; older work lives on the Overdue list, not in anyone's
    *  notifications. Null until the first sweep. */
