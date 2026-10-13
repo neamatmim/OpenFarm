@@ -27,6 +27,7 @@ import {
   dispatchFields,
   dispatchesBetween,
   litersDispatched,
+  milkBuyersOf,
   litersToBulkBetween,
   milkAccountOn,
   readDispatch,
@@ -258,6 +259,14 @@ export const milkRouter = {
       }
       return session;
     }),
+
+  /** The farm's milk buyers of the last half year, each with his last price, his address and phone, and whether he takes
+   *  his milk on credit — for the Dispatch sheet to fill in once he is picked. Whoever records the milk leaving reads it. */
+  buyers: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(({ context }) =>
+      milkBuyersOf(context.db, context.farm.id, context.clock.now())
+    ),
 
   /** The week's milk: into the tank, out of the gate, still in the tank, and what nobody can account for. */
   account: protectedProcedure

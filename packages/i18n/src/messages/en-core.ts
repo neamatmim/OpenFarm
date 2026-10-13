@@ -2727,6 +2727,9 @@ export const enCore = {
   "dispatch.recordAction": "Record milk handed over",
   "dispatch.sheetDescription":
     "Milk from the tank handed to a buyer. Its price goes to the money book.",
+  "dispatch.filledFrom": "Filled in from {name}'s last milk.",
+  "dispatch.filledFromOnCredit":
+    "Filled in from {name}'s last milk. He takes his milk on credit, so all of it is on credit until somebody says otherwise.",
   "dispatch.worth":
     "{liters, plural, one {# liter} other {# liters}} × {currencySign}{price} = {currencySign}{amount}",
   "dispatch.dayBefore": "Day before",
