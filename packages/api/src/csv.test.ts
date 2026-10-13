@@ -33,6 +33,39 @@ describe("the CSV reader", () => {
     expect(records[0]?.values.note).toBe("two\nlines");
     expect(records[1]?.line).toBe(4);
   });
+
+  it("reads cells pasted from a spreadsheet, which come separated by tabs", () => {
+    const records = parseCsvRecords("tag\tpen\nD-0001\tShed A/Pen 1, east");
+
+    expect(records[0]?.values).toEqual({
+      tag: "D-0001",
+      pen: "Shed A/Pen 1, east",
+    });
+  });
+
+  it("reads the first column of a file a spreadsheet saved with a byte-order mark", () => {
+    const records = parseCsvRecords("﻿tag,sex\nD-0001,female");
+
+    expect(records[0]?.values.tag).toBe("D-0001");
+  });
+
+  it("passes over a row beginning # when asked, keeping every other row's line", () => {
+    const records = parseCsvRecords(
+      [
+        "tag",
+        "# an example: D-0001",
+        "D-0002",
+        '"# Pens: a, b"',
+        "D-0003",
+      ].join("\n"),
+      { comments: true }
+    );
+
+    expect(records.map((r) => [r.line, r.values.tag])).toEqual([
+      [3, "D-0002"],
+      [5, "D-0003"],
+    ]);
+  });
 });
 
 describe("the CSV writer", () => {

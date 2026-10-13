@@ -1,14 +1,17 @@
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { useMutation } from "@tanstack/react-query";
+import { FileSpreadsheet, ListChecks } from "lucide-react";
 import { useState } from "react";
 
 import { Notice } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { saveCsv } from "@/lib/save-csv";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
@@ -25,6 +28,8 @@ const ROW_REFUSED: Partial<Record<string, MessageKey>> = {
   not_a_tag_number: "herd.row.notATagNumber",
   register_not_taken: "herd.row.registerNotTaken",
   pen_in_two_sheds: "herd.row.penInTwoSheds",
+  register_already_on_the_farm: "herd.row.registerAlreadyOnTheFarm",
+  register_lactation_not_of_state: "herd.row.registerLactationNotOfState",
 };
 
 /** A row refused. `refusal` is missing from an answer kept from before the register named its refusals. */
@@ -74,8 +79,8 @@ const Warned = ({
   );
 };
 
-/** What the last import came to: how many were added, every animal added without something the farm needs, and every
- *  row the farm would not take, with its line. */
+/** What the last import — or the last check — came to: how many were added (or would be), every animal added without
+ *  something the farm needs, and every row the farm would not take, with its line. */
 const ImportResult = ({
   result,
 }: {
@@ -84,18 +89,22 @@ const ImportResult = ({
     failed: RowFailed[];
     /** Missing from an answer kept from before the register warned of anything. */
     warned?: { line: number; tagNumber: string; warning: string }[];
+    /** Missing from an answer kept from before the register could be checked. */
+    checked?: boolean;
+    leftOver?: string;
   };
 }) => {
   const { t, language } = useLanguage();
+  const count = formatNumber(result.imported.length, language);
   return (
     <div className="flex flex-col gap-3">
-      {result.imported.length > 0 ? (
-        <Notice
-          title={t("herd.imported", {
-            count: formatNumber(result.imported.length, language),
-          })}
-          tone="success"
-        />
+      {result.checked ? (
+        <Notice title={t("herd.checked", { count })} tone="info" />
+      ) : null}
+      {!result.checked && result.imported.length > 0 ? (
+        <Notice title={t("herd.imported", { count })} tone="success">
+          {result.leftOver ? t("herd.leftOverHint") : null}
+        </Notice>
       ) : null}
       {result.failed.length > 0 ? (
         <Notice
@@ -121,8 +130,10 @@ const ImportResult = ({
 
 /**
  * The opening register, in a sheet of its own: the animals already on the farm, one CSV row each, pasted or read from
- * a file. What the farm took and every row it would not are said in the sheet, so a failed row can be put right and
- * sent again; when every row went in, the sheet closes.
+ * a file, or checked first with nothing taken in. What the farm took and every row it would not are said in the sheet,
+ * and only the rows it would not are left in the box, so a failed row can be put right and sent again without taking
+ * anybody twice; when every row went in, the sheet closes. A blank template with the farm's Pens and breeds is a
+ * download away.
  */
 export const ImportRegisterSheet = ({
   open,
@@ -137,17 +148,28 @@ export const ImportRegisterSheet = ({
   const importRegister = useMutation(
     orpc.animals.importRegister.mutationOptions({
       onSuccess: (result) => {
+        // A check takes nobody in: the rows stay in the box to be put right, or imported as they are.
+        if (result.checked) {
+          return;
+        }
         toast.success(
           t("herd.imported", {
             count: formatNumber(result.imported.length, language),
           })
         );
-        setCsv("");
+        // Only the rows refused are left, under the header, so sending the box again cannot take anybody twice.
+        setCsv(result.leftOver ?? "");
         if (result.failed.length === 0 && (result.warned ?? []).length === 0) {
           onOpenChange(false);
         }
       },
       onError: refused,
+    })
+  );
+  const template = useMutation(
+    orpc.animals.registerTemplate.mutationOptions({
+      onError: refused,
+      onSuccess: ({ csv: blank, fileName }) => saveCsv(fileName, blank),
     })
   );
 
@@ -174,6 +196,27 @@ export const ImportRegisterSheet = ({
       <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm">
         {t("herd.importHelp")}
       </p>
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          disabled={template.isPending}
+          onClick={() => template.mutate()}
+          type="button"
+          variant="outline"
+        >
+          <FileSpreadsheet aria-hidden data-icon="inline-start" />
+          {t("herd.templateDownload")}
+        </Button>
+        <Button
+          disabled={csv.trim() === "" || importRegister.isPending}
+          onClick={() => importRegister.mutate({ csv, check: true })}
+          type="button"
+          variant="outline"
+        >
+          <ListChecks aria-hidden data-icon="inline-start" />
+          {t("herd.importCheck")}
+        </Button>
+      </div>
 
       <FormField id="import-file" label={t("herd.importFile")}>
         <Input
