@@ -1,7 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { MONEY_DIRECTIONS, moneyCategory } from "@OpenFarm/db/schema/money";
-import { farmDayOf, looksEnteredAlready, roundMoney } from "@OpenFarm/domain";
+import { farmDayOf, looksEnteredAlready } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -28,7 +28,7 @@ import {
 } from "../farm-list";
 import { protectedProcedure } from "../index";
 import {
-  assertWageNotYetEntered,
+  bookEnteredByHand,
   categoryForEntered,
   enteredOn,
   keepReceipt,
@@ -48,7 +48,6 @@ import {
 } from "../money-inputs";
 import {
   addStandardCategories,
-  bookMoney,
   bookingOf,
   isStandardName,
   mayBeChargedToAnimals,
@@ -65,12 +64,8 @@ import {
   requirePersonalSession,
   requireRole,
 } from "../roles";
-import {
-  drawsByPerson,
-  drawsToTake,
-  recordWageDraw,
-  takeDraws,
-} from "../wage-draw-store";
+import { drawsByPerson, recordWageDraw } from "../wage-draw-store";
+import { payWages, wagePeople, wageRunFor } from "../wage-run-store";
 
 /**
  * Whether this looks like money already entered: the same person, the same taka, the same farm day, entered by hand.
@@ -599,50 +594,29 @@ export const moneyEntryProcedures = {
               now,
             });
           }
-          await assertWageNotYetEntered(tx, context.farm.id, {
-            counterpartyId,
-            wageMonth,
-            id,
-          });
-          // A wage takes the person's draws still open off the month's wage, the oldest first, and books what is paid
-          // now: the draws went out as money of their own the day they were drawn.
-          const draws = wageMonth
-            ? await drawsToTake(
-                tx,
-                context.farm.id,
-                counterpartyId,
-                input.amountMoney
-              )
-            : { parts: [], takenMoney: 0 };
-          ({ takenMoney } = draws);
-          const heldBy = await handNamed(context, tx, input);
-          await bookMoney(
+          takenMoney = await bookEnteredByHand(
             tx,
-            bookingOf(
-              context,
-              context.roleUsed,
-              now,
-              accountSaid(["by_hand"], input)
-            ),
-            {
-              source: "by_hand",
-              sourceId: id,
-              amountMoney: roundMoney(input.amountMoney - draws.takenMoney),
-              occurredAt,
-              counterpartyId,
-              paymentMethod: input.paymentMethod,
-              ...(heldBy === undefined ? {} : { heldBy }),
-            },
+            { ...context, role: context.roleUsed },
             {
               id,
               category,
+              occurredAt,
+              counterpartyId,
+              amountMoney: input.amountMoney,
+              paymentMethod: input.paymentMethod,
+              ...(input.farmAccountId === undefined
+                ? {}
+                : { farmAccountId: input.farmAccountId }),
+              ...(input.reference === undefined
+                ? {}
+                : { reference: input.reference }),
+              ...(input.heldBy === undefined ? {} : { heldBy: input.heldBy }),
               note: input.note ?? null,
               wageMonth,
               side: input.side ?? null,
-              drawsTakenMoney: draws.takenMoney,
+              now,
             }
           );
-          await takeDraws(tx, context.farm.id, id, draws.parts, now);
           if (input.receipt) {
             await keepReceipt(tx, context.farm.id, id, input.receipt, now);
           }
@@ -742,6 +716,60 @@ export const moneyEntryProcedures = {
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
     .handler(({ context }) => drawsByPerson(context.db, context.farm.id)),
+
+  /** A month's wages as the farm would pay them: everybody paid the month before, at that wage, less their draws. */
+  wageRun: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ month: monthInput }))
+    .handler(({ context, input }) =>
+      wageRunFor(context.db, context.farm.id, input.month)
+    ),
+
+  /**
+   * A month's wages ticked and saved together — all or none — each a wage of its own, under every rule `enter` keeps
+   * for one. The Manager's or the Owner's, from their own phone, as a wage is.
+   *
+   * Paid in cash, the farm's payday: a wage sent by bank or mobile money carries its own Farm Account and transaction
+   * ID, one payment each, and is entered on its own — a run naming one transaction ID for many would be refused at its
+   * second wage and enter none.
+   */
+  payWages: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        month: monthInput,
+        occurredOn: farmDay,
+        paymentMethod: z.literal("cash").default("cash"),
+        /** Whose hand the cash came out of, where it is not the writer's: the Owner writing up the Manager's payday. */
+        heldBy: z.string().optional(),
+        wages: z
+          .array(
+            z.object({
+              personId: z.string().min(1),
+              amountMoney: amountInput,
+              side: sideInput.optional(),
+            })
+          )
+          .min(1)
+          .max(200)
+          .refine(
+            (wages) =>
+              new Set(wages.map((one) => one.personId)).size === wages.length,
+            "One wage a person"
+          ),
+      })
+    )
+    .handler(({ context, input }) =>
+      payWages(context, context.roleUsed, input, context.clock.now())
+    ),
+
+  /** Whom a wage may name: everybody paid a wage before, and the farm's own people. */
+  wagePeople: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(({ context }) =>
+      wagePeople(context.db, context.farm.id, context.clock.now())
+    ),
 
   /**
    * Puts a Wage Draw right — its money with it. Taken back whole by putting it to nothing; never below what a payday

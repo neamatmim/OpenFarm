@@ -2934,6 +2934,24 @@ export const enCore = {
   "byHand.on": "Day",
   "byHand.counterparty": "Paid to or received from",
   "byHand.wagePerson": "Who the wage is for",
+  "byHand.newPerson":
+    "Nobody paid before is written so. A new person, or another spelling of somebody already paid? Pick the name from the list if it is them.",
+  "wageRun.open": "Pay the month's wages",
+  "wageRun.title": "The month's wages",
+  "wageRun.hint":
+    "Everybody paid a wage the month before, at that wage. Untick whoever is not paid, put right a wage that changed, and save them together. Draws still owed come off each wage, as at any payday.",
+  "wageRun.nobody": "Nobody was paid a wage the month before",
+  "wageRun.alreadyPaid": "This month's wage is entered already",
+  "wageRun.lastMonth": "Last month {amount}",
+  "wageRun.lessDraws": "Payday takes {taken} of the draws: {now} paid now.",
+  "wageRun.drawsLeft": "{left} still drawn ahead, off the next wage.",
+  "wageRun.notPaid": "Nothing typed: not paid",
+  "wageRun.cashOnly":
+    "The month's wages are paid in cash. A wage sent by bank or mobile money is entered on its own, with its transaction ID.",
+  "wageRun.wageOf": "{name}'s wage",
+  "wageRun.save": "{count, plural, one {Save # wage} other {Save # wages}}",
+  "wageRun.paid":
+    "{count, plural, one {# wage entered} other {# wages entered}}",
   "byHand.wageMonth": "Month the wage pays for",
   "byHand.wageMonthName": "Month",
   "byHand.wageYear": "Year",

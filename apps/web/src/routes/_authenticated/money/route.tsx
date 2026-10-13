@@ -17,6 +17,7 @@ import {
   PieChart,
   Plus,
   Scale,
+  Users,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -30,6 +31,7 @@ import type { MoneyList } from "@/components/money/register";
 import { RegisterTab } from "@/components/money/register";
 import { SupplierPaymentPlanner } from "@/components/money/supplier-payment-planner";
 import { WageDrawsTab } from "@/components/money/wage-draws";
+import { WageRunSheet } from "@/components/money/wage-run-sheet";
 import { Notice, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
@@ -128,6 +130,7 @@ const MoneyPage = () => {
   const [from, setFrom] = useState(() => asked.from ?? firstOfTheMonth());
   const [to, setTo] = useState(() => asked.to ?? farmDayOf(new Date()));
   const [entering, setEntering] = useState(false);
+  const [payingWages, setPayingWages] = useState(false);
   const money = useQuery({
     ...orpc.money.list.queryOptions({ input: { from, to } }),
     enabled: tab !== "supplierPayments",
@@ -144,10 +147,20 @@ const MoneyPage = () => {
       <PageHeader
         actions={
           entersMoney && tab !== "supplierPayments" ? (
-            <Button onClick={() => setEntering(true)} type="button">
-              <Plus aria-hidden data-icon="inline-start" />
-              {t("byHand.title")}
-            </Button>
+            <>
+              <Button
+                onClick={() => setPayingWages(true)}
+                type="button"
+                variant="outline"
+              >
+                <Users aria-hidden data-icon="inline-start" />
+                {t("wageRun.open")}
+              </Button>
+              <Button onClick={() => setEntering(true)} type="button">
+                <Plus aria-hidden data-icon="inline-start" />
+                {t("byHand.title")}
+              </Button>
+            </>
           ) : null
         }
         description={t("money.subtitle")}
@@ -235,7 +248,10 @@ const MoneyPage = () => {
       />
 
       {entersMoney ? (
-        <EnterMoneySheet onOpenChange={setEntering} open={entering} />
+        <>
+          <EnterMoneySheet onOpenChange={setEntering} open={entering} />
+          <WageRunSheet onOpenChange={setPayingWages} open={payingWages} />
+        </>
       ) : null}
     </Page>
   );

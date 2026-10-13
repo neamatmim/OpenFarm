@@ -214,6 +214,36 @@ export const drawsTakenBy = async (
   return roundMoney(total);
 };
 
+/**
+ * Each wage whole, by its Money Event: what it paid now and what it took off the person's draws — the wage as it was
+ * agreed, before payday took its draws. What the next month's wage is offered at.
+ */
+export const wholeWagesOf = async (
+  db: Db,
+  wages: readonly { id: string; amountMoney: number }[]
+): Promise<Map<string, number>> => {
+  if (wages.length === 0) {
+    return new Map();
+  }
+  const taken = await db.query.wageDrawTaken.findMany({
+    where: { wageEventId: { in: wages.map((one) => one.id) } },
+    columns: { wageEventId: true, amount: true },
+  });
+  const takenBy = new Map<string, number>();
+  for (const one of taken) {
+    takenBy.set(
+      one.wageEventId,
+      (takenBy.get(one.wageEventId) ?? 0) + one.amount
+    );
+  }
+  return new Map(
+    wages.map((one) => [
+      one.id,
+      roundMoney(one.amountMoney + (takenBy.get(one.id) ?? 0)),
+    ])
+  );
+};
+
 /** What paydays have taken off one draw so far. */
 export const takenOffDraw = async (db: Db, drawId: string): Promise<number> => {
   const taken = await db.query.wageDrawTaken.findMany({

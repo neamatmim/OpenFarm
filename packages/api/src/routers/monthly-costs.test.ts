@@ -92,6 +92,7 @@ describe("a Monthly Cost", () => {
         categoryBn: "শেড ভাড়া",
         categoryEn: "Shed rent",
         month: "2044-05",
+        last: null,
       },
     ]);
   });
@@ -171,6 +172,7 @@ describe("a wage not entered", () => {
         personName: "করিম",
         month: "2044-06",
         categoryId: category.wages,
+        lastWageMoney: 9000,
       },
     ]);
     // A month on, Karim — who has had nothing since May — is not named again; Rahim, paid for June and not July, is.
@@ -180,6 +182,7 @@ describe("a wage not entered", () => {
         personName: "রহিম",
         month: "2044-07",
         categoryId: category.wages,
+        lastWageMoney: 9000,
       },
     ]);
   });

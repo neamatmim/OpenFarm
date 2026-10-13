@@ -11,8 +11,10 @@ import {
 import { categoryName } from "@/components/money";
 import type { EnterMoneyStart } from "@/components/money-entry";
 import { EnterMoneySheet } from "@/components/money-entry";
+import { WageRunSheet } from "@/components/money/wage-run-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
+import { startOfMissingCost, startOfMissingWage } from "@/lib/wage-run";
 import type { orpc } from "@/utils/orpc";
 
 /** What of the farm's month has not been entered yet, as the home screens are told it. */
@@ -64,6 +66,7 @@ export const MonthlyCostsGroup = ({
 }) => {
   const { t, language } = useLanguage();
   const [open, setOpen] = useState(false);
+  const [payingWages, setPayingWages] = useState(false);
   const [entering, setEntering] = useState<{
     key: string;
     start: EnterMoneyStart;
@@ -79,7 +82,7 @@ export const MonthlyCostsGroup = ({
         <Missing
           key={key}
           month={row.month}
-          onEnter={() => enter(key, { categoryId: row.categoryId })}
+          onEnter={() => enter(key, startOfMissingCost(row))}
           title={categoryName(row, language)}
         />
       );
@@ -91,18 +94,14 @@ export const MonthlyCostsGroup = ({
         <Missing
           key={key}
           month={row.month}
-          onEnter={() =>
-            enter(key, {
-              categoryId: row.categoryId ?? undefined,
-              counterparty: row.personName,
-              wageMonth: row.month,
-            })
-          }
+          onEnter={() => enter(key, startOfMissingWage(row))}
           title={t("home.wageNotEntered", { name: row.personName })}
         />
       );
     }),
   ];
+  // A wage named here is one of the month's: all of them are paid from one sheet, opened on that month.
+  const wageMonth = (monthlyCosts?.wages ?? [])[0]?.month;
   return (
     <>
       <QueueGroup
@@ -110,9 +109,20 @@ export const MonthlyCostsGroup = ({
         icon={CalendarClock}
         label={t("home.monthlyCosts")}
         more={
-          <Link className={MORE_LINK} to="/money">
-            {t("home.openList")}
-          </Link>
+          <span className="flex items-center gap-3">
+            {wageMonth ? (
+              <button
+                className={MORE_LINK}
+                onClick={() => setPayingWages(true)}
+                type="button"
+              >
+                {t("wageRun.open")}
+              </button>
+            ) : null}
+            <Link className={MORE_LINK} to="/money">
+              {t("home.openList")}
+            </Link>
+          </span>
         }
         rows={rows}
         tone="warning"
@@ -124,6 +134,14 @@ export const MonthlyCostsGroup = ({
           onOpenChange={setOpen}
           open={open}
           startWith={entering.start}
+        />
+      ) : null}
+      {wageMonth ? (
+        <WageRunSheet
+          key={wageMonth}
+          month={wageMonth}
+          onOpenChange={setPayingWages}
+          open={payingWages}
         />
       ) : null}
     </>
