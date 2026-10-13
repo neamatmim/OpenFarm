@@ -1,3 +1,4 @@
+import { formatNumber } from "@OpenFarm/i18n";
 import { Link } from "@tanstack/react-router";
 import { Landmark } from "lucide-react";
 
@@ -101,7 +102,8 @@ export const FarmAccountsUnreadGroup = ({
     <QueueRow
       key={one.id}
       meta={t("farmAccounts.unreadMonth", {
-        month: saidMonth(one.month, language),
+        month: saidMonth(one.oldestMonth, language),
+        count: formatNumber(one.months, language),
       })}
       title={
         <Link

@@ -49,10 +49,19 @@ describe("what waits on the Owner", () => {
   it("counts an account whose last month's statement nobody has read under money, though it is no decision of hers", () => {
     const unread = {
       ...NOTHING,
-      farmAccountsUnread: [{}, {}],
+      farmAccountsUnread: [{ id: "bkash" }, { id: "sonali" }],
     } as unknown as NeedsYou;
     expect(ownerCountsOf(unread)).toMatchObject({ money: 2 });
     expect(decisionsWaiting(unread)).toBe(0);
+  });
+
+  it("counts an account once, however many things it asks of her", () => {
+    const both = {
+      ...NOTHING,
+      farmAccountsOut: [{ id: "bkash" }],
+      farmAccountsUnread: [{ id: "bkash" }, { id: "sonali" }],
+    } as unknown as NeedsYou;
+    expect(ownerCountsOf(both)).toMatchObject({ money: 2 });
   });
 
   it("counts an answer kept from before the newer kinds as nothing of them", () => {

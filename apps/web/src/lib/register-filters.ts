@@ -1,19 +1,24 @@
+import type { PaymentMethod } from "@OpenFarm/domain";
+import { PAYMENT_METHODS } from "@OpenFarm/domain";
+
 /** Which way the money went, as the register narrows to it. */
 export type DirectionFilter = "" | "in" | "out";
 /** Where an entry stands with the Owner, as the register narrows to it. */
 export type StatusFilter = "" | "awaiting" | "approved";
 
-/** The ways money is paid, which the register narrows to as a whole. */
-const PAYMENT_METHODS = ["cash", "mobile_money", "bank"] as const;
+/** How the money was paid, as the register narrows to it: any way, one way whichever account, or one Farm Account —
+ *  the money book read against one statement. */
+export type PaidThrough =
+  | { kind: "any" }
+  | { kind: "method"; method: PaymentMethod }
+  | { kind: "account"; accountId: string };
 
 export interface Filters {
   direction: DirectionFilter;
   category: string;
   status: StatusFilter;
   search: string;
-  /** How it was paid — "cash", "mobile_money" or "bank", whichever account — or one Farm Account by its id: the money
-   *  book read against one statement. Empty for all of it. */
-  paidThrough: string;
+  paidThrough: PaidThrough;
 }
 
 export const NO_FILTERS: Filters = {
@@ -21,7 +26,32 @@ export const NO_FILTERS: Filters = {
   category: "",
   status: "",
   search: "",
-  paidThrough: "",
+  paidThrough: { kind: "any" },
+};
+
+/** What a choice of how it was paid is written as in the list a person picks from: a way and an account never read as
+ *  each other, whatever an account's id looks like. */
+export const paidThroughValue = (one: PaidThrough): string => {
+  switch (one.kind) {
+    case "method": {
+      return `method:${one.method}`;
+    }
+    case "account": {
+      return `account:${one.accountId}`;
+    }
+    default: {
+      return "";
+    }
+  }
+};
+
+/** The choice a value from that list stands for; anything it does not know is no choice at all. */
+export const paidThroughOf = (value: string): PaidThrough => {
+  if (value.startsWith("account:")) {
+    return { kind: "account", accountId: value.slice("account:".length) };
+  }
+  const method = PAYMENT_METHODS.find((one) => value === `method:${one}`);
+  return method ? { kind: "method", method } : { kind: "any" };
 };
 
 /** As much of a Money Event as the filters read. */
@@ -35,13 +65,18 @@ interface Filtered {
 }
 
 /** Whether an entry went the way, or through the account, the register is narrowed to. */
-const paidThat = (paidThrough: string, event: Filtered): boolean => {
-  if (paidThrough === "") {
-    return true;
+const paidThat = (paidThrough: PaidThrough, event: Filtered): boolean => {
+  switch (paidThrough.kind) {
+    case "method": {
+      return event.paymentMethod === paidThrough.method;
+    }
+    case "account": {
+      return event.farmAccountId === paidThrough.accountId;
+    }
+    default: {
+      return true;
+    }
   }
-  return (PAYMENT_METHODS as readonly string[]).includes(paidThrough)
-    ? event.paymentMethod === paidThrough
-    : event.farmAccountId === paidThrough;
 };
 
 /** Whether an entry is one the filters let through: which way, its Category, where it stands, how it was paid, and

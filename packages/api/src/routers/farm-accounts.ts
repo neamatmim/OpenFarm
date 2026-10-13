@@ -62,10 +62,10 @@ const ours = async (
   tx: Pick<Tx, "query">,
   farmId: string,
   id: string
-): Promise<{ id: string }> => {
+): Promise<{ id: string; retiredAt: Date | null }> => {
   const row = await tx.query.farmAccount.findFirst({
     where: { id, farmId },
-    columns: { id: true },
+    columns: { id: true, retiredAt: true },
   });
   if (!row) {
     throw new ORPCError("NOT_FOUND", { message: "No such Farm Account" });
@@ -306,6 +306,17 @@ export const farmAccountsRouter = {
         throw new ORPCError("BAD_REQUEST", {
           message: "That month is not over yet",
           data: { refusal: "month_not_over" },
+        });
+      }
+      // An account closed before the month began held nothing that month to read; one closed during it is read still,
+      // its last month's statement being the one that says what it ended on.
+      if (
+        row.retiredAt &&
+        row.retiredAt < startOfFarmDay(`${input.month}-01`)
+      ) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "That account was closed before the month began",
+          data: { refusal: "farm_account_closed_by_then" },
         });
       }
       const id = idOfTheMonth(context.farm.id, row.id, input.month);

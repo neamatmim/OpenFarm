@@ -1,8 +1,10 @@
+import { PAYMENT_METHODS } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 import { Hourglass, Search, Wallet } from "lucide-react";
 import { useState } from "react";
 
@@ -21,6 +23,7 @@ import { DrawCorrection } from "@/components/money/wage-draws";
 import {
   EmptyState,
   Loaded,
+  Notice,
   SegmentedControl,
   StatusBadge,
   TableSkeleton,
@@ -31,11 +34,19 @@ import { CorrectVetFee } from "@/components/vet/correct-vet-fee";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
 import type { Filters } from "@/lib/register-filters";
-import { NO_FILTERS, passes } from "@/lib/register-filters";
-import type { orpc } from "@/utils/orpc";
+import {
+  NO_FILTERS,
+  paidThroughOf,
+  paidThroughValue,
+  passes,
+} from "@/lib/register-filters";
+import { orpc } from "@/utils/orpc";
 
 /** How many entries the register shows before the next page. */
 const REGISTER_PAGE = 20;
+
+/** How many of a period's entries the farm sends at most, newest first (the money list's own limit). */
+const LISTED_AT_MOST = 500;
 
 const SOURCE_WORD = {
   dispatch: "money.from.dispatch",
@@ -409,17 +420,28 @@ const RegisterFilters = ({
         <NativeSelect
           aria-label={t("money.paidBy")}
           className="sm:w-48"
-          onChange={(event) => set("paidThrough", event.target.value)}
-          value={filters.paidThrough}
+          onChange={(event) =>
+            set("paidThrough", paidThroughOf(event.target.value))
+          }
+          value={paidThroughValue(filters.paidThrough)}
         >
           <option value="">{t("money.anyWayPaid")}</option>
-          {(["cash", "mobile_money", "bank"] as const).map((method) => (
-            <option key={method} value={method}>
+          {PAYMENT_METHODS.map((method) => (
+            <option
+              key={method}
+              value={paidThroughValue({ kind: "method", method })}
+            >
               {t(PAYMENT_METHOD_WORD[method])}
             </option>
           ))}
           {accounts.map((account) => (
-            <option key={account.id} value={account.id}>
+            <option
+              key={account.id}
+              value={paidThroughValue({
+                kind: "account",
+                accountId: account.id,
+              })}
+            >
               {account.name}
             </option>
           ))}
@@ -489,23 +511,11 @@ export const RegisterTab = ({
     data: shown,
     getRowId: (row) => row.id,
   });
-  const accounts = [
-    ...new Map(
-      events.flatMap((event) =>
-        event.farmAccountId
-          ? [
-              [
-                event.farmAccountId,
-                {
-                  id: event.farmAccountId,
-                  name: event.farmAccountName ?? "",
-                },
-              ] as const,
-            ]
-          : []
-      )
-    ).values(),
-  ].toSorted((a, b) => a.name.localeCompare(b.name, language));
+  // The farm's own accounts, read from its list rather than from the period's money: one chosen stays to choose when
+  // the period moves to a month nothing went through it.
+  const farmAccounts = useQuery(orpc.farmAccounts.list.queryOptions());
+  const accounts = farmAccounts.data ?? [];
+  const oneAccount = filters.paidThrough.kind === "account";
   const nothingInPeriod = events.length === 0;
   const nothingFiltered = !nothingInPeriod && shown.length === 0;
   return (
@@ -516,6 +526,17 @@ export const RegisterTab = ({
         filters={filters}
         onChange={setFilters}
       />
+      {oneAccount ? (
+        <Notice title={t("money.handoversOnCash")} tone="info" />
+      ) : null}
+      {money.data?.more ? (
+        <Notice
+          title={t("money.newestOnly", {
+            count: formatNumber(LISTED_AT_MOST, language),
+          })}
+          tone="warning"
+        />
+      ) : null}
       <Loaded query={money} skeleton={<TableSkeleton />}>
         {nothingInPeriod ? (
           <EmptyState bare icon={Wallet} title={t("money.none")} />
