@@ -559,7 +559,7 @@ const ShortenDialog = ({ detail, open, onOpenChange }: ActProps) => {
 };
 
 /** What the chosen medicine will hold her for: its own days, the Vet's default, or nothing yet — ask the Vet. */
-const DoseDays = ({
+export const DoseDays = ({
   product,
   byDefault,
 }: {

@@ -1,10 +1,12 @@
-import { formatNumber } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { cn } from "@OpenFarm/ui/lib/utils";
+import { useMutation } from "@tanstack/react-query";
 import { CalendarClock, CalendarX, CircleCheck, Scale } from "lucide-react";
 import { useState } from "react";
 
+import type { RowSelection } from "@/components/data-table";
 import {
   ActionsHeader,
   DataTable,
@@ -19,8 +21,12 @@ import {
 } from "@/components/fattening/animal-prices";
 import { GainFigures, WeightAgainstTarget } from "@/components/gain";
 import { EmptyState, SegmentedControl, StatusBadge } from "@/components/page";
-import { FilterBar, NativeSelect } from "@/components/page-kit";
+import { BatchBar, FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useRefused } from "@/lib/refused";
+import { refusedLines } from "@/lib/several-refused";
+import { toast } from "@/lib/toast";
+import { orpc } from "@/utils/orpc";
 
 import type { Suggestion } from "./fattening-types";
 import { RatesLine, TagLink } from "./fattening-words";
@@ -231,6 +237,67 @@ const SuggestionCard = ({ row }: { row: SuggestionRow }) => {
 
 const suggestionCard = (row: SuggestionRow) => <SuggestionCard row={row} />;
 
+/**
+ * The suggestions ticked to confirm together — a whole Pen at Eid — and the one answer for them all. Each is still
+ * confirmed through her own door, her Withdrawal read as it stands; the ones the farm would not make ready are named
+ * with why and stay ticked, so the Manager sees who is left and the rest are done.
+ */
+const useConfirmMany = (shown: Suggestion[]) => {
+  const { t, language } = useLanguage();
+  const onError = useRefused();
+  const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set());
+  const chosen = shown.filter((row) => ticked.has(row.id));
+  const confirm = useMutation(
+    orpc.readyForSale.confirmMany.mutationOptions({
+      onSuccess: ({ confirmed, refused }) => {
+        if (confirmed.length > 0) {
+          toast.success(
+            t("ready.confirmedMany", {
+              count: formatNumber(confirmed.length, language),
+            })
+          );
+        }
+        const stillTicked = new Set(refused.map((one) => one.tagNumber));
+        setTicked(
+          new Set(
+            shown
+              .filter((row) => stillTicked.has(row.tagNumber))
+              .map((row) => row.id)
+          )
+        );
+        if (refused.length > 0) {
+          toast.error(
+            t("ready.refusedMany", {
+              count: formatNumber(refused.length, language),
+            }),
+            {
+              description: refusedLines(refused, t, (iso) =>
+                formatDate(new Date(iso), language, "date")
+              ).join(" · "),
+            }
+          );
+        }
+      },
+      onError,
+    })
+  );
+  const selection: RowSelection<SuggestionRow> = {
+    selected: new Set(chosen.map((row) => row.id)),
+    onChange: setTicked,
+    selectable: () => true,
+    label: (row) => t("ready.tick", { tag: row.tagNumber }),
+  };
+  return {
+    chosen,
+    count: formatNumber(chosen.length, language),
+    pending: confirm.isPending,
+    selection,
+    handleClear: () => setTicked(new Set()),
+    handleConfirm: () =>
+      confirm.mutate({ tagNumbers: chosen.map((row) => row.tagNumber) }),
+  };
+};
+
 type GroundFilter = "" | "weight" | "window";
 
 /** Every Pen a suggestion stands in, once each, by name. */
@@ -265,6 +332,7 @@ export const ReadySuggestions = ({
     data: shown.map((row) => ({ ...row, answering })),
     getRowId: (row) => row.id,
   });
+  const many = useConfirmMany(shown);
   return (
     <div className="surface flex flex-col gap-4 p-4 md:p-5">
       <FilterBar className="border-b pb-4 sm:justify-between">
@@ -295,6 +363,26 @@ export const ReadySuggestions = ({
           </NativeSelect>
         ) : null}
       </FilterBar>
+      {many.chosen.length > 0 ? (
+        <BatchBar
+          busy={many.pending}
+          onClear={many.handleClear}
+          said={t("ready.chosen", { count: many.count })}
+        >
+          <Button
+            disabled={many.pending}
+            onClick={many.handleConfirm}
+            type="button"
+          >
+            {many.pending ? (
+              <Spinner />
+            ) : (
+              <CircleCheck aria-hidden data-icon="inline-start" />
+            )}
+            {t("ready.confirmMany", { count: many.count })}
+          </Button>
+        </BatchBar>
+      ) : null}
       {shown.length === 0 ? (
         <EmptyState bare title={t("gain.noneInFilter")} />
       ) : (
@@ -303,6 +391,7 @@ export const ReadySuggestions = ({
           key={`${ground}:${pen}`}
           minWidth="60rem"
           pageSize={SUGGESTION_PAGE}
+          selection={many.selection}
           table={table}
         />
       )}

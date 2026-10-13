@@ -19,6 +19,7 @@ import {
 import { useState } from "react";
 
 import { stillHeld } from "@/components/animal/animal-words";
+import { GroupDose } from "@/components/animal/group-dose";
 import { GroupMove, useHerdTicking } from "@/components/animal/group-move";
 import type { HerdRow } from "@/components/animal/herd-list";
 import { HerdTable } from "@/components/animal/herd-list";
@@ -371,6 +372,13 @@ const AnimalsPage = () => {
         {ticking.chosen.length ? (
           <GroupMove
             chosen={ticking.chosen}
+            more={
+              <GroupDose
+                chosen={ticking.chosen}
+                may={ticking.mayDose}
+                onDone={ticking.handleClear}
+              />
+            }
             onClear={ticking.handleClear}
             onDone={ticking.handleClear}
             pens={ticking.movePens}

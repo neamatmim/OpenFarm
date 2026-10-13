@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import type { Recorder } from "../completion-store";
 import { correct } from "../corrections/correction";
 import {
   doseNotPrescribedCorrection,
@@ -11,6 +12,8 @@ import {
 } from "../corrections/dose-not-prescribed";
 import { recordDoseNotPrescribed } from "../dose-not-prescribed-store";
 import { protectedProcedure } from "../index";
+import type { RefusedOne } from "../one-of-several";
+import { MANY_AT_ONCE, refusedOne } from "../one-of-several";
 import { takeBackTheExcuse, excuseArrivalDose } from "../put-off-store";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
 
@@ -19,6 +22,42 @@ const EXCUSED_BY_THE_VET = {
   message: "Only the Vet may say a dose is not needed",
   reason: "vet_only",
 } as const;
+
+/** One dose not prescribed, written for one animal and held as any dose holds her: the one way in, alone or with her
+ *  Pen. */
+const giveOneNotPrescribed = async (
+  context: Recorder,
+  input: { tag: string; productId: string; givenAt?: Date; advice: string }
+) => {
+  const now = context.clock.now();
+  let id = "";
+  const done = await audited(context).write(
+    {
+      entity: "treatment",
+      entityId: () => id,
+      action: "create",
+      after: async (tx) =>
+        (await tx.query.treatment.findFirst({ where: { id } })) ?? null,
+    },
+    async (tx) => {
+      const made = await recordDoseNotPrescribed(
+        tx,
+        context.farm.id,
+        {
+          tagNumber: tagNumberAsWritten(input.tag),
+          productId: input.productId,
+          givenAt: input.givenAt ?? now,
+          advice: input.advice,
+          givenBy: context.actor.id,
+        },
+        now
+      );
+      ({ id } = made);
+      return made;
+    }
+  );
+  return { id: done.id };
+};
 
 export const treatmentsRouter = {
   /**
@@ -39,35 +78,41 @@ export const treatmentsRouter = {
         advice: z.string().trim().min(1).max(300),
       })
     )
+    .handler(({ context, input }) =>
+      giveOneNotPrescribed(context, { ...input, tag: input.animalTag })
+    ),
+
+  /**
+   * The same dose given to several at once — the pharmacy's wormer for a Pen of calves. Each animal's dose is her own
+   * Treatment, written and held as one given alone; one the farm refuses is named, with why, and stops nobody else.
+   */
+  giveNotPrescribedMany: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        animalTags: z
+          .array(z.string().trim().min(1).max(32))
+          .min(1)
+          .max(MANY_AT_ONCE),
+        productId: z.string(),
+        givenAt: z.coerce.date().optional(),
+        advice: z.string().trim().min(1).max(300),
+      })
+    )
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      let id = "";
-      const done = await audited(context).write(
-        {
-          entity: "treatment",
-          entityId: () => id,
-          action: "create",
-          after: async (tx) =>
-            (await tx.query.treatment.findFirst({ where: { id } })) ?? null,
-        },
-        async (tx) => {
-          const made = await recordDoseNotPrescribed(
-            tx,
-            context.farm.id,
-            {
-              tagNumber: tagNumberAsWritten(input.animalTag),
-              productId: input.productId,
-              givenAt: input.givenAt ?? now,
-              advice: input.advice,
-              givenBy: context.actor.id,
-            },
-            now
-          );
-          ({ id } = made);
-          return made;
+      const given: string[] = [];
+      const refused: RefusedOne[] = [];
+      for (const tag of new Set(input.animalTags)) {
+        try {
+          // oxlint-disable-next-line no-await-in-loop -- each dose its own write, in turn, so one refused stops nobody else
+          await giveOneNotPrescribed(context, { ...input, tag });
+          given.push(tagNumberAsWritten(tag));
+        } catch (error) {
+          refused.push(refusedOne(tag, error));
         }
-      );
-      return { id: done.id };
+      }
+      return { given, refused };
     }),
 
   /** A dose not prescribed voided: the wrong cow, written twice (`doseNotPrescribedCorrection`). */

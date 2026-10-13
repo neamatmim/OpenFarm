@@ -13,8 +13,11 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import type { Recorder } from "../completion-store";
 import { entersState, requireAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
+import type { RefusedOne } from "../one-of-several";
+import { MANY_AT_ONCE, refusedOne } from "../one-of-several";
 import { fatteningRows } from "../ready-store";
 import { requireRole } from "../roles";
 
@@ -57,6 +60,59 @@ const readAnimalForReady = async (tx: Tx, animalId: string) => {
     throw new ORPCError("NOT_FOUND", { message: "No such animal" });
   }
   return row;
+};
+
+/**
+ * The Manager's decision that one being fattened may be sold, in one write that reads her Withdrawal and her State as
+ * they stand — one door, whether she is confirmed alone or with her Pen.
+ */
+const confirmReady = async (context: Recorder, tag: string) => {
+  const now = context.clock.now();
+  const tagNumber = tagNumberAsWritten(tag);
+  const her = await requireAnimal(context.db, context.farm.id, tagNumber);
+  await audited(context).write(
+    {
+      entity: "animal",
+      entityId: her.id,
+      action: "update",
+      before: (tx) => readState(tx, her.id),
+      after: (tx) => readState(tx, her.id),
+    },
+    async (tx) => {
+      // Read inside the transaction: her days and her State are what they are when the
+      // write happens, not what they were when the request was parsed.
+      const now_ = await readAnimalForReady(tx, her.id);
+      if (underMeatWithdrawal(now_, now)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "She is still inside her meat withdrawal",
+          data: {
+            refusal: "meat_withdrawal",
+            fitOn: now_.meatWithdrawalUntil?.toISOString() ?? null,
+          },
+        });
+      }
+      if (now_.state !== "fattening") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Only an animal being fattened can be made ready for sale",
+          data: { refusal: "not_fattening", state: now_.state },
+        });
+      }
+      // Her State change is what overtakes any set-aside standing against her: the record
+      // of what the Manager decided and why stays, and stops being the last word.
+      await entersState(
+        tx,
+        context.farm.id,
+        { id: her.id, side: "fattening", state: now_.state },
+        {
+          state: "ready_for_sale",
+          at: now,
+          now,
+          trail: audited(context).recordEvent,
+        }
+      );
+    }
+  );
+  return { tagNumber, state: "ready_for_sale" as const };
 };
 
 export const readyForSaleRouter = {
@@ -113,54 +169,30 @@ export const readyForSaleRouter = {
   confirm: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(z.object({ tagNumber: tagInput }))
+    .handler(({ context, input }) => confirmReady(context, input.tagNumber)),
+
+  /**
+   * Several the Manager has looked at and judged ready at once — a whole Pen before Eid. Each goes through the one door
+   * a single tap does, her Withdrawal and her State read in her own write; one refused is said, with why, and never stops
+   * the rest.
+   */
+  confirmMany: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ tagNumbers: z.array(tagInput).min(1).max(MANY_AT_ONCE) }))
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      const tagNumber = tagNumberAsWritten(input.tagNumber);
-      const her = await requireAnimal(context.db, context.farm.id, tagNumber);
-      await audited(context).write(
-        {
-          entity: "animal",
-          entityId: her.id,
-          action: "update",
-          before: (tx) => readState(tx, her.id),
-          after: (tx) => readState(tx, her.id),
-        },
-        async (tx) => {
-          // Read inside the transaction: her days and her State are what they are when the
-          // write happens, not what they were when the request was parsed.
-          const now_ = await readAnimalForReady(tx, her.id);
-          if (underMeatWithdrawal(now_, now)) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "She is still inside her meat withdrawal",
-              data: {
-                refusal: "meat_withdrawal",
-                fitOn: now_.meatWithdrawalUntil?.toISOString() ?? null,
-              },
-            });
-          }
-          if (now_.state !== "fattening") {
-            throw new ORPCError("BAD_REQUEST", {
-              message:
-                "Only an animal being fattened can be made ready for sale",
-              data: { refusal: "not_fattening", state: now_.state },
-            });
-          }
-          // Her State change is what overtakes any set-aside standing against her: the record
-          // of what the Manager decided and why stays, and stops being the last word.
-          await entersState(
-            tx,
-            context.farm.id,
-            { id: her.id, side: "fattening", state: now_.state },
-            {
-              state: "ready_for_sale",
-              at: now,
-              now,
-              trail: audited(context).recordEvent,
-            }
-          );
+      const confirmed: string[] = [];
+      const refused: RefusedOne[] = [];
+      // One after another, each in a write of her own: a refusal rolls back only her.
+      for (const tag of new Set(input.tagNumbers)) {
+        try {
+          // oxlint-disable-next-line no-await-in-loop -- each is her own write, in turn, so one refused stops nobody else
+          const { tagNumber } = await confirmReady(context, tag);
+          confirmed.push(tagNumber);
+        } catch (error) {
+          refused.push(refusedOne(tag, error));
         }
-      );
-      return { tagNumber, state: "ready_for_sale" as const };
+      }
+      return { confirmed, refused };
     }),
 
   /**
