@@ -1,11 +1,21 @@
+import type { RoleName } from "@OpenFarm/db/schema/farm";
+import type { SIDES } from "@OpenFarm/db/schema/herd";
+import type { MoneyDirection, PaymentMethod } from "@OpenFarm/db/schema/money";
 import { moneyReceipt } from "@OpenFarm/db/schema/money";
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { roundMoney, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import type { z } from "zod";
 
 import type { Tx } from "./audit";
+import { assertTheHand } from "./cash-store";
 import type { receiptInput } from "./money-inputs";
-import { mayBeEnteredByHand } from "./money-store";
+import {
+  accountSaid,
+  bookMoney,
+  bookingOf,
+  mayBeEnteredByHand,
+} from "./money-store";
+import { drawsToTake, takeDraws } from "./wage-draw-store";
 
 /** Refused, with the word the screen says it in. */
 export const refusedByHand = (message: string, refusal: string) =>
@@ -143,4 +153,80 @@ export const keepReceipt = async (
       target: moneyReceipt.moneyEventId,
       set: { ...receipt, updatedAt: now },
     });
+};
+
+/**
+ * Books one entry made by hand, once its Counterparty is known, in the transaction it is written in: one wage a person a
+ * month; a wage taking the person's draws still owed off itself, the oldest first, and booking what is paid now; the cash
+ * in the hand named; over the Approval Threshold, waiting for the Owner. What a single entry and a month's wages share,
+ * so a wage paid with the others is every bit the wage one paid alone is. Returns what the draws gave up to the wage.
+ */
+export const bookEnteredByHand = async (
+  tx: Tx,
+  writer: {
+    farm: { id: string; approvalThresholdMoney: number };
+    actor: { id: string };
+    roles: readonly string[];
+    role: RoleName;
+  },
+  entry: {
+    id: string;
+    category: { id: string; direction: MoneyDirection };
+    occurredAt: Date;
+    counterpartyId: string;
+    amountMoney: number;
+    paymentMethod: PaymentMethod;
+    farmAccountId?: string;
+    reference?: string;
+    /** Whose hand the cash is in, where it is not the writer's. */
+    heldBy?: string;
+    note: string | null;
+    wageMonth: string | null;
+    side: (typeof SIDES)[number] | null;
+    now: Date;
+  }
+): Promise<number> => {
+  const farmId = writer.farm.id;
+  await assertWageNotYetEntered(tx, farmId, {
+    counterpartyId: entry.counterpartyId,
+    wageMonth: entry.wageMonth,
+    id: entry.id,
+  });
+  // A wage takes the person's draws still open off the month's wage, the oldest first, and books what is paid now: the
+  // draws went out as money of their own the day they were drawn.
+  const draws = entry.wageMonth
+    ? await drawsToTake(tx, farmId, entry.counterpartyId, entry.amountMoney)
+    : { parts: [], takenMoney: 0 };
+  const heldBy =
+    entry.paymentMethod === "cash"
+      ? await assertTheHand(
+          tx,
+          farmId,
+          { id: writer.actor.id, roles: writer.roles },
+          entry.heldBy
+        )
+      : undefined;
+  await bookMoney(
+    tx,
+    bookingOf(writer, writer.role, entry.now, accountSaid(["by_hand"], entry)),
+    {
+      source: "by_hand",
+      sourceId: entry.id,
+      amountMoney: roundMoney(entry.amountMoney - draws.takenMoney),
+      occurredAt: entry.occurredAt,
+      counterpartyId: entry.counterpartyId,
+      paymentMethod: entry.paymentMethod,
+      ...(heldBy === undefined ? {} : { heldBy }),
+    },
+    {
+      id: entry.id,
+      category: entry.category,
+      note: entry.note,
+      wageMonth: entry.wageMonth,
+      side: entry.side,
+      drawsTakenMoney: draws.takenMoney,
+    }
+  );
+  await takeDraws(tx, farmId, entry.id, draws.parts, entry.now);
+  return draws.takenMoney;
 };

@@ -4,12 +4,97 @@ import {
   monthOf,
   monthlyCostsNotEntered,
   monthsEndingIn,
+  roundMoney,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 
 import { THE_FARMS_PURSE } from "./money-store";
 
 type Db = Pick<Database, "query">;
+
+/** Each Category's last money entered by hand in the Farm's purse: who it went to and how much. */
+const lastEnteredUnder = async (
+  db: Db,
+  farmId: string,
+  categoryIds: readonly string[]
+): Promise<
+  Map<string, { counterparty: string | null; amountMoney: number }>
+> => {
+  if (categoryIds.length === 0) {
+    return new Map();
+  }
+  const entered = await db.query.moneyEvent.findMany({
+    where: {
+      farmId,
+      purseVentureId: THE_FARMS_PURSE,
+      source: "by_hand",
+      categoryId: { in: [...categoryIds] },
+    },
+    columns: { categoryId: true, amountMoney: true },
+    with: { counterparty: { columns: { name: true } } },
+    orderBy: { occurredAt: "desc", recordedAt: "desc", id: "desc" },
+  });
+  const last = new Map<
+    string,
+    { counterparty: string | null; amountMoney: number }
+  >();
+  for (const one of entered) {
+    if (!last.has(one.categoryId)) {
+      last.set(one.categoryId, {
+        counterparty: one.counterparty?.name ?? null,
+        amountMoney: one.amountMoney,
+      });
+    }
+  }
+  return last;
+};
+
+/** Each person's last wage, whole: what it paid and what it took off their draws. */
+const lastWageOf = async (
+  db: Db,
+  farmId: string,
+  personIds: readonly string[]
+): Promise<Map<string, number>> => {
+  if (personIds.length === 0) {
+    return new Map();
+  }
+  const wages = await db.query.moneyEvent.findMany({
+    where: {
+      farmId,
+      wageMonth: { isNotNull: true },
+      counterpartyId: { in: [...personIds] },
+    },
+    columns: { id: true, counterpartyId: true, amountMoney: true },
+    orderBy: { wageMonth: "desc", id: "desc" },
+  });
+  const latest = new Map<string, { id: string; amountMoney: number }>();
+  for (const one of wages) {
+    if (one.counterpartyId && !latest.has(one.counterpartyId)) {
+      latest.set(one.counterpartyId, one);
+    }
+  }
+  const taken = await db.query.wageDrawTaken.findMany({
+    where: {
+      wageEventId: { in: [...latest.values()].map((one) => one.id) },
+    },
+    columns: { wageEventId: true, amount: true },
+  });
+  const takenBy = new Map<string, number>();
+  for (const one of taken) {
+    takenBy.set(
+      one.wageEventId,
+      (takenBy.get(one.wageEventId) ?? 0) + one.amount
+    );
+  }
+  const last = new Map<string, number>();
+  for (const [personId, wage] of latest) {
+    last.set(
+      personId,
+      roundMoney(wage.amountMoney + (takenBy.get(wage.id) ?? 0))
+    );
+  }
+  return last;
+};
 
 /**
  * What of the farm's month has not been entered yet, for the Manager's home and the Owner's (CONTEXT.md: **Monthly
@@ -97,6 +182,18 @@ export const monthlyCostsNow = async (
     ),
   });
   const byId = new Map(categories.map((one) => [one.id, one]));
+  const [lastEntries, lastWages] = await Promise.all([
+    lastEnteredUnder(
+      db,
+      farm.id,
+      owed.costs.map((one) => one.categoryId)
+    ),
+    lastWageOf(
+      db,
+      farm.id,
+      owed.wages.map((one) => one.personId)
+    ),
+  ]);
   return {
     costs: owed.costs.flatMap((one) => {
       const category = byId.get(one.categoryId);
@@ -107,6 +204,8 @@ export const monthlyCostsNow = async (
               categoryBn: category.nameBn,
               categoryEn: category.nameEn,
               month: one.month,
+              /** What was entered under it last, so the entry opens with who was paid and how much. */
+              last: lastEntries.get(one.categoryId) ?? null,
             },
           ]
         : [];
@@ -118,6 +217,8 @@ export const monthlyCostsNow = async (
       month: one.month,
       /** Where the wage is entered, so the row opens the money entry on it. */
       categoryId: wagesCategory?.id ?? null,
+      /** Their last wage whole — what was paid and the draws it took — so the entry opens with it. */
+      lastWageMoney: lastWages.get(one.personId) ?? null,
     })),
   };
 };

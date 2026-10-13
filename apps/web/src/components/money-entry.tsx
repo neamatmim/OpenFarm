@@ -29,6 +29,7 @@ import { categoryName } from "@/components/money";
 import { SideField } from "@/components/money/side-field";
 import type { SideChoice } from "@/components/money/side-field";
 import { WageDrawsNote } from "@/components/money/wage-draws";
+import { Notice } from "@/components/page";
 import {
   ConfirmDialog,
   FormField,
@@ -50,6 +51,7 @@ import { useMoney } from "@/lib/money";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
+import { isANewName } from "@/lib/wage-run";
 import { orpc } from "@/utils/orpc";
 
 /** Takes a receipt photo, shrunk on the phone before it goes. */
@@ -113,7 +115,7 @@ const WAGE_YEARS = 3;
  * The month a wage pays for, as a month and a year chosen from lists. A browser's own month field draws dashes where a
  * month should be and speaks no Bangla; the Manager picks the month by its name instead. Stored as YYYY-MM.
  */
-const WageMonth = ({
+export const WageMonth = ({
   value,
   onChange,
 }: {
@@ -178,7 +180,10 @@ const WageMonth = ({
 
 /** What the sheet may open with already filled: the Category, who, and a wage's month. */
 export type EnterMoneyStart = Partial<
-  Pick<typeof NOTHING_TYPED, "categoryId" | "counterparty" | "wageMonth">
+  Pick<
+    typeof NOTHING_TYPED,
+    "categoryId" | "counterparty" | "wageMonth" | "amount"
+  >
 >;
 
 /** The entry the farm says this one looks like a second of, as it said it. */
@@ -253,6 +258,63 @@ const LooksEnteredDialog = ({
 };
 
 /**
+ * Who money went to or came from — and for a wage, whose wage, chosen from everybody paid before and the farm's own
+ * people, so "Rahim Mia" is not a second Rahim. A name nobody has is still typed.
+ */
+const WhoField = ({
+  isWage,
+  value,
+  onChange,
+  people,
+}: {
+  isWage: boolean;
+  value: string;
+  onChange: (value: string) => void;
+  people: readonly string[] | undefined;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <FormField
+      className={isWage ? undefined : "sm:col-span-2"}
+      id="entry-who"
+      label={t(isWage ? "byHand.wagePerson" : "byHand.counterparty")}
+    >
+      <Input
+        autoComplete="off"
+        id="entry-who"
+        list={isWage ? "entry-who-people" : undefined}
+        onChange={(event) => onChange(event.target.value)}
+        required
+        value={value}
+      />
+      {isWage ? (
+        <datalist id="entry-who-people">
+          {(people ?? []).map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </datalist>
+      ) : null}
+    </FormField>
+  );
+};
+
+/** Said under a wage whose person nobody paid before is written as: a new person, or another spelling of one paid? */
+const NewPersonNotice = ({
+  name,
+  people,
+}: {
+  name: string;
+  people: readonly string[] | undefined;
+}) => {
+  const { t } = useLanguage();
+  return people && isANewName(name, people) ? (
+    <Notice title={t("byHand.newPerson")} tone="info" />
+  ) : null;
+};
+
+/**
  * Money no record catches, entered by hand by the Manager in a sheet beside the register: how much, the day, the
  * Category, who with, how it was paid, a note, and a photo of the receipt. A wage names the month it pays for. What is
  * typed stays when the sheet is closed without entering it; a receipt photo is taken again.
@@ -271,6 +333,10 @@ export const EnterMoneySheet = ({
   const { t, language } = useLanguage();
   const onError = useRefused();
   const categories = useQuery(orpc.money.categories.list.queryOptions());
+  const wagePeople = useQuery({
+    ...orpc.money.wagePeople.queryOptions(),
+    enabled: open,
+  });
   const [typed, setTyped] = useState(() => ({
     ...NOTHING_TYPED,
     ...startWith,
@@ -411,24 +477,23 @@ export const EnterMoneySheet = ({
           />
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <FormField
-              className={isWage ? undefined : "sm:col-span-2"}
-              id="entry-who"
-              label={t(isWage ? "byHand.wagePerson" : "byHand.counterparty")}
-            >
-              <Input
-                autoComplete="off"
-                id="entry-who"
-                onChange={(event) => set("counterparty")(event.target.value)}
-                required
-                value={typed.counterparty}
-              />
-            </FormField>
+            <WhoField
+              isWage={isWage}
+              onChange={set("counterparty")}
+              people={wagePeople.data}
+              value={typed.counterparty}
+            />
             {isWage ? (
               <WageMonth onChange={set("wageMonth")} value={typed.wageMonth} />
             ) : null}
             <SideField id="entry-side" onChange={setSide} value={side} />
           </div>
+          {isWage ? (
+            <NewPersonNotice
+              name={typed.counterparty}
+              people={wagePeople.data}
+            />
+          ) : null}
           {isWage ? (
             <WageDrawsNote
               name={typed.counterparty}
