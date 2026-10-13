@@ -23,7 +23,8 @@ const tabSearch = (value: Tab) => (value === "buying" ? {} : { tab: value });
 
 /**
  * Every outing to a livestock market in one place: the Buying Trips, with a way to write one up on its own — the day
- * the lorry came home empty has no arrival to write it up from — and the Selling Trips, as the Sale page has them.
+ * the lorry came home empty has no arrival to write it up from — and the Selling Trips. The only place either is drawn:
+ * the Sale and Intake pages link here.
  */
 const TripsPage = () => {
   const { t } = useLanguage();

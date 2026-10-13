@@ -18,6 +18,7 @@ import { OneTimeCode } from "@/components/people/one-time-code";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
+import { shedPhoneLink } from "@/lib/shed-phone-link";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
@@ -148,6 +149,11 @@ const DevicesPage = () => {
       <OneTimeCode
         code={enrollment?.code ?? null}
         description={t("device.codeWhere")}
+        link={
+          enrollment
+            ? shedPhoneLink(window.location.origin, enrollment.code)
+            : null
+        }
         note={
           enrollment
             ? t("device.codeHelp", { minutes: enrollment.minutes })

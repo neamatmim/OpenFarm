@@ -687,6 +687,8 @@ export const enCore = {
   "people.copied": "Copied",
   "people.codeOnce":
     "Shown only this once. Copy it or write it down before closing.",
+  "people.codeScan":
+    "Or point the phone's camera at this: it opens the set-up with the code already in.",
   "people.codeDone": "Done",
   "people.tab.access": "Access & work",
   "people.tab.signIns": "Sign-ins",
@@ -1689,10 +1691,13 @@ export const enCore = {
     "Every animal on the farm you work, by her tag number. Type to narrow; press Find to open.",
   "animals.count": "{count, plural, one {# animal} other {# animals}}",
   "animals.searchPlaceholder": "Tag number, e.g. D-0001",
-  "goTo.label": "Go to tag number",
-  "goTo.title": "Go to an animal",
-  "goTo.hint": "Type her tag number; Enter opens her page.",
-  "goTo.matches": "Animals by that tag number",
+  "goTo.label": "Go to a tag or page",
+  "goTo.title": "Go to",
+  "goTo.hint":
+    "Type an animal's tag number or a page's name, as the menu says it; Enter opens it.",
+  "goTo.matches": "Pages and animals by what was typed",
+  "goTo.placeholder": "D-0001, or monthly report",
+  "goTo.none": "No page by that name, and no animal by that number.",
   "animals.milkHeld": "Milk held",
   "animals.meatHeld": "Meat held",
   "animals.noMatch":
@@ -2837,7 +2842,7 @@ export const enCore = {
   "money.from.sellingTrip": "Selling trip",
   "money.from.saleBroker": "Broker at a sale",
   "money.from.wageDraw": "Wage draw",
-  "selling.trip": "The outing",
+  "selling.trip": "Write up a selling trip",
   "selling.tripHint":
     "What the day at the livestock market cost beyond the animals. Tick every beast that stood on the lorry — the ones that came home again paid for their place too.",
   "selling.wentTo": "Where it went",
@@ -4325,6 +4330,8 @@ export const enCore = {
     "Every outing to a livestock market, buying or selling, and what the day cost beyond the animals. A buying trip that brought nothing home is still written up: its cost is counted in that month's overheads.",
   "trips.buying": "Buying trips",
   "trips.selling": "Selling trips",
+  "trips.sellingLink": "Selling trips →",
+  "trips.buyingLink": "Buying trips →",
   "trips.newBuying": "New buying trip",
   "trips.noneBuying": "No buying trips yet",
   "trips.recorded": "The outing is written up",
@@ -4625,6 +4632,7 @@ export const enCore = {
   "papers.withdrawalSummary": "Withdrawal summary",
   "sale.animal": "Which animal",
   "sale.today": "Sold today",
+  "sale.onDay": "Sold on {day}",
   "sale.receipt": "Receipt",
   "sale.transportCard": "Transport card",
   "sale.noneToday": "Nothing sold today",

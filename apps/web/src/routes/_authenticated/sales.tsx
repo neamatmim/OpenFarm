@@ -1,22 +1,21 @@
-import { formatNumber } from "@OpenFarm/i18n";
+import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Input } from "@OpenFarm/ui/components/input";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
-  Banknote,
-  CircleCheck,
-  ReceiptText,
-  Scale,
-  Store,
-  Truck,
-} from "lucide-react";
+  Link,
+  createFileRoute,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
+import { Banknote, CircleCheck, ReceiptText, Scale, Store } from "lucide-react";
 import { useState } from "react";
 
 import { NextEid } from "@/components/fattening/next-eid";
-import { SellingTripForm } from "@/components/fattening/selling-trip";
 import { Loaded, Page, PageHeader } from "@/components/page";
-import { PageTabs, SummaryFigures } from "@/components/page-kit";
+import { FormField, PageTabs, SummaryFigures } from "@/components/page-kit";
 import type { Sellable } from "@/components/sale/ready-to-go";
 import { ReadyToGo } from "@/components/sale/ready-to-go";
 import type { SaleAnswers } from "@/components/sale/sale-sheet";
@@ -27,13 +26,12 @@ import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useMoney } from "@/lib/money";
 import { TAB_SWITCH } from "@/lib/path-tabs";
+import type { SaleTab } from "@/lib/sale-search";
+import { saleSearchOf, wasTheTripTab } from "@/lib/sale-search";
 import { orpc } from "@/utils/orpc";
 
-const TABS = ["ready", "sold", "trip"] as const;
-type Tab = (typeof TABS)[number];
-
 /** The address for a tab: the first tab is the page itself, and says nothing. */
-const tabSearch = (value: Tab) => (value === "ready" ? {} : { tab: value });
+const tabSearch = (value: SaleTab) => (value === "ready" ? {} : { tab: value });
 
 /** The four figures a morning of selling is judged by: how many went, what their buyers paid, what they fetched a
  *  kilo, and how many more can still go. A dash for what the farm has not answered yet. What was taken is what was
@@ -114,16 +112,24 @@ const SaleFigures = ({
  * sheet. Another page sends somebody here to sell one animal with `?sell=`, which opens the sheet with her chosen.
  */
 const SalePage = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { tab = "ready", sell } = Route.useSearch();
+  const { tab = "ready", sell, day } = Route.useSearch();
+  const today = farmDayOf(new Date());
+  const shownDay = day ?? today;
   const [answers, setAnswers] = useState<SaleAnswers>(() => ({
     ...NOTHING_TYPED,
     tagNumber: sell ?? "",
   }));
   const [selling, setSelling] = useState(sell !== undefined);
   const sellable = useQuery(orpc.sales.sellable.queryOptions());
-  const sold = useQuery(orpc.papers.day.queryOptions({ input: {} }));
+  // The figures on top are today's whatever day the sold list is turned to; with no day chosen the two are one read.
+  const soldToday = useQuery(orpc.papers.day.queryOptions({ input: {} }));
+  const soldOnTheDay = useQuery({
+    ...orpc.papers.day.queryOptions({ input: { day: day ?? today } }),
+    enabled: day !== undefined,
+  });
+  const sold = day === undefined ? soldToday : soldOnTheDay;
   const me = useQuery(orpc.people.me.queryOptions());
   const mayCorrect =
     me.data?.roles.some((role) => role === "manager" || role === "owner") ??
@@ -147,7 +153,7 @@ const SalePage = () => {
         title={t("nav.sale")}
       />
 
-      <SaleFigures sellable={sellable.data} sold={sold.data} />
+      <SaleFigures sellable={sellable.data} sold={soldToday.data} />
       {/* How long to the Eid the farm sells into, and the day it is on, where the selling is done. */}
       <NextEid />
 
@@ -172,26 +178,56 @@ const SalePage = () => {
           },
           {
             value: "sold",
-            label: t("sale.today"),
+            label:
+              shownDay === today
+                ? t("sale.today")
+                : t("sale.onDay", {
+                    day: formatDate(startOfFarmDay(shownDay), language, "date"),
+                  }),
             icon: ReceiptText,
             content: (
-              <Loaded
-                query={sold}
-                skeleton={<Skeleton className="h-40 rounded-xl" />}
-              >
-                <TodaysSales mayCorrect={mayCorrect} sold={sold.data ?? []} />
-              </Loaded>
+              <div className="flex flex-col gap-4">
+                {/* Yesterday's receipt, or a sale to put right, found by its day rather than by her tag. */}
+                <FormField id="sold-on" label={t("sale.soldOn")}>
+                  <Input
+                    className="sm:w-44"
+                    id="sold-on"
+                    max={today}
+                    onChange={(event) =>
+                      navigate({
+                        ...TAB_SWITCH,
+                        search: {
+                          tab: "sold",
+                          ...(event.target.value && event.target.value !== today
+                            ? { day: event.target.value }
+                            : {}),
+                        },
+                      })
+                    }
+                    type="date"
+                    value={shownDay}
+                  />
+                </FormField>
+                <Loaded
+                  query={sold}
+                  skeleton={<Skeleton className="h-40 rounded-xl" />}
+                >
+                  <TodaysSales mayCorrect={mayCorrect} sold={sold.data ?? []} />
+                </Loaded>
+              </div>
             ),
-          },
-          {
-            value: "trip",
-            label: t("selling.trip"),
-            icon: Truck,
-            content: <SellingTripForm />,
           },
         ]}
         value={tab}
       />
+      {/* The Selling Trips have one page, beside the Buying Trips. */}
+      <Link
+        className="text-primary self-start text-sm underline-offset-4 hover:underline"
+        search={{ tab: "selling" }}
+        to="/trips"
+      >
+        {t("trips.sellingLink")}
+      </Link>
 
       <SaleSheet
         answers={answers}
@@ -210,17 +246,15 @@ const SalePage = () => {
 };
 
 export const Route = createFileRoute("/_authenticated/sales")({
-  beforeLoad: onlyFor("runsTheFarm"),
+  beforeLoad: (options) => {
+    onlyFor("runsTheFarm")(options);
+    // The Selling Trips were a tab here once; an address kept from then opens them where they are now.
+    if (wasTheTripTab(options.location.search)) {
+      throw redirect({ to: "/trips", search: { tab: "selling" } });
+    }
+  },
   component: SalePage,
-  /** Which tab, kept in the address so the page comes back as it was left, and — from another page — which animal to
-   *  sell. */
-  validateSearch: (
-    search: Record<string, unknown>
-  ): { tab?: Tab; sell?: string } => ({
-    ...(search.tab === "sold" ? { tab: "sold" as const } : {}),
-    ...(search.tab === "trip" ? { tab: "trip" as const } : {}),
-    ...(typeof search.sell === "string" && search.sell !== ""
-      ? { sell: search.sell }
-      : {}),
-  }),
+  /** Which tab, kept in the address so the page comes back as it was left; which day's sales the sold list shows;
+   *  and — from another page — which animal to sell. */
+  validateSearch: saleSearchOf,
 });

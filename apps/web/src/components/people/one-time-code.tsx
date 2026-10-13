@@ -14,6 +14,7 @@ import { useState } from "react";
 
 import { CODE_SPACING, Notice } from "@/components/page";
 import { InsetPanel } from "@/components/page-kit";
+import { QrCode } from "@/components/qr-code";
 import { useT } from "@/i18n/language-provider";
 
 /** How long "copied" stays on the button before it offers to copy again. */
@@ -71,6 +72,7 @@ export const OneTimeCode = ({
   title,
   description,
   note,
+  link,
   onDone,
 }: {
   /** The code to hand over; nothing is drawn without one. */
@@ -79,6 +81,8 @@ export const OneTimeCode = ({
   description?: ReactNode;
   /** A line of warning under the code — how long it lasts, that it is shown only now. */
   note?: ReactNode;
+  /** An address that carries the code, drawn as a QR code for a phone's camera beside the code to type. */
+  link?: string | null;
   onDone: () => void;
 }) => {
   const t = useT();
@@ -103,6 +107,14 @@ export const OneTimeCode = ({
           ) : null}
         </DialogHeader>
         {code ? <CodeBox code={code} /> : null}
+        {code && link ? (
+          <figure className="flex flex-col items-center gap-2">
+            <QrCode size="11rem" value={link} />
+            <figcaption className="text-muted-foreground text-center text-sm">
+              {t("people.codeScan")}
+            </figcaption>
+          </figure>
+        ) : null}
         <Notice title={note ?? t("people.codeOnce")} tone="warning" />
         <DialogFooter>
           <Button onClick={onDone} type="button">
