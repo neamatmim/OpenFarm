@@ -164,7 +164,7 @@ const MilkPage = () => {
             icon: TrendingDown,
             count: givingLess.data?.length,
             content: givingLess.data?.length ? (
-              <GivingLessList rows={givingLess.data} />
+              <GivingLessList mayAskTheVet rows={givingLess.data} />
             ) : (
               <EmptyState icon={TrendingDown} title={t("givingLess.none")} />
             ),

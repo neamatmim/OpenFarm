@@ -28,6 +28,8 @@ export const OBSERVATION_WORDS = [
     bn: "ফুল পড়েনি (১২ ঘণ্টা পেরিয়ে)",
     en: "Afterbirth not passed after 12 hours",
   },
+  // A cow named on "Giving less" put in front of the Vet: a drop that sudden is illness until somebody looks.
+  { value: "giving_less", bn: "দুধ কম দিচ্ছে", en: "Giving less milk" },
   { value: "other", bn: "অন্য কিছু", en: "Something else" },
 ] as const;
 

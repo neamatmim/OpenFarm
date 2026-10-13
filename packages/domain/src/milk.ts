@@ -1,8 +1,14 @@
 import { farmDayOf, farmDaysApart } from "./farm-clock";
 
 /** Where a cow's milk went. Bulk is the tank the processor collects; Calves is what stays
- *  on the farm; Discard is poured away — the only lawful destination under Withdrawal. */
-export const MILK_DESTINATIONS = ["bulk", "calves", "discard"] as const;
+ *  on the farm for the calves; Discard is poured away — the only lawful destination under Withdrawal; House is drunk on
+ *  the farm, by the household and the staff, at no price — never in the tank and never money. */
+export const MILK_DESTINATIONS = [
+  "bulk",
+  "calves",
+  "discard",
+  "house",
+] as const;
 export type MilkDestination = (typeof MILK_DESTINATIONS)[number];
 
 const PERCENT = 100;

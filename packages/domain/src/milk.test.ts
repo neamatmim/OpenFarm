@@ -41,8 +41,15 @@ describe("where a Milk Record actually goes", () => {
     });
   });
 
+  it("pours away a held-back cow's milk meant for the house too: nobody drinks withheld milk", () => {
+    expect(destinationFor("house", true)).toEqual({
+      destination: "discard",
+      forced: true,
+    });
+  });
+
   it("leaves a clear cow's milk where it was sent", () => {
-    for (const asked of ["bulk", "calves", "discard"] as const) {
+    for (const asked of ["bulk", "calves", "discard", "house"] as const) {
       expect(destinationFor(asked, false)).toEqual({
         destination: asked,
         forced: false,

@@ -3704,6 +3704,7 @@ export const enCore = {
   "milk.bulk": "Bulk tank",
   "milk.calves": "Calves",
   "milk.discard": "Poured away",
+  "milk.house": "Farm or house use",
   "milk.withdrawal": "Under withdrawal — this milk cannot go to the tank",
   "milk.withdrawalShort": "Withdrawal",
   "milk.forced":
@@ -5094,6 +5095,14 @@ export const enCore = {
     "An open cow with no heat seen this many days after calving is put on the heat watch, for closer watching and the vet. DLS re-examines a cow not in heat by 50–60 days.",
   "params.heatWatchAfterCalvingDays": "From this day after calving",
   "givingLess.title": "Giving less",
+  "givingLess.seenByVet": "Seen by the vet {day}",
+  "givingLess.vetAsked": "Vet asked {day}",
+  "givingLess.askVet": "Vet to look",
+  "givingLess.asked": "On the vet’s list",
+  "givingLess.queued":
+    "Kept on this phone: it reaches the vet when there is signal",
+  "givingLess.col.seenTo": "Seen to",
+  "givingLess.notYet": "Not yet",
   "givingLess.col.drop": "Less by",
   "givingLess.col.lately": "Lately (L a milking)",
   "givingLess.col.usually": "Usually (L a milking)",
@@ -5152,6 +5161,7 @@ export const enCore = {
   "milkAccount.dispatched": "Out of the gate",
   "milkAccount.stillInTank": "Still in the tank",
   "milkAccount.notAccounted": "Not accounted for",
+  "milkAccount.toHouse": "Farm or house use",
   "milkAccount.calves":
     "To calves: {liters} L a day for {calves, plural, one {# calf} other {# calves}} — {perCalf} L each",
   "params.firstServiceMonths": "A crossbred heifer served by",
