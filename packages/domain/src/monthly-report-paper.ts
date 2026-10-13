@@ -322,7 +322,8 @@ const MONEY: Part = {
       of: (one) => one.money.outMoney,
     },
     {
-      label: { bn: "নিট", en: "Net" },
+      // The purse's in less out, said as cash so it never reads as what the Farm came to, which is after overheads.
+      label: { bn: "আয় থেকে ব্যয় বাদে", en: "Cash in less out" },
       kind: "sum",
       of: (one) => one.money.netMoney,
     },

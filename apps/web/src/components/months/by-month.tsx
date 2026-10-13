@@ -96,27 +96,43 @@ export const YearPicker = ({
   );
 };
 
-/** The year in four figures: what the Farm's own money came to, the milk sold beside what the dairy cows cost, and the
- *  Margins on the fattening animals sold. */
+/** The year in four figures: what the Farm came to after its overheads — its cash in less out beside it, a cash figure
+ *  and never the result — the milk sold beside what the dairy cows cost, and the Margins on the fattening animals sold.
+ *  An answer kept from before the results were worked out leads with the cash, said as cash. */
 export const YearFigures = ({ year }: { year: Stretch }) => {
   const { t, language } = useLanguage();
   const asMoney = useMoney();
   const perLiter = useMoneyRate();
   const { money, dairy, fattening } = year;
+  const after = year.results?.farm.afterOverheadsMoney;
+  const cash = t("months.cardCash", {
+    net: asMoney(money.netMoney),
+    in: asMoney(money.inMoney),
+    out: asMoney(money.outMoney),
+  });
   return (
     <SummaryFigures
       figures={[
-        {
-          label: t("months.net"),
-          value: asMoney(money.netMoney),
-          hint: t("owner.inAndOut", {
-            in: asMoney(money.inMoney),
-            out: asMoney(money.outMoney),
-          }),
-          icon: Scale,
-          tone: money.netMoney < 0 ? "danger" : "neutral",
-          lead: true,
-        },
+        after === undefined
+          ? {
+              label: t("months.net"),
+              value: asMoney(money.netMoney),
+              hint: t("owner.inAndOut", {
+                in: asMoney(money.inMoney),
+                out: asMoney(money.outMoney),
+              }),
+              icon: Scale,
+              tone: money.netMoney < 0 ? "danger" : "neutral",
+              lead: true,
+            }
+          : {
+              label: t("months.yearAfterOverheads"),
+              value: asMoney(after),
+              hint: cash,
+              icon: Scale,
+              tone: after < 0 ? "danger" : "neutral",
+              lead: true,
+            },
         {
           label: t("months.milkSold"),
           value: asMoney(dairy.milkSoldMoney),
@@ -429,6 +445,13 @@ const monthColumns = column.columns([
     // Pinned as the year scrolls sideways at a laptop's width, so every figure still says which month it is.
     meta: { className: "bg-card sticky left-0 z-[1]" },
   }),
+  // What the Farm came to after its overheads leads; the cash in and out after it are the purse, not the result.
+  column.accessor((row) => row.results?.farm.afterOverheadsMoney, {
+    id: "afterOverheads",
+    header: listHeader("months.col.afterOverheads"),
+    cell: AfterOverheadsCell,
+    meta: { align: "end" },
+  }),
   column.accessor((row) => row.money.inMoney, {
     id: "in",
     header: listHeader("money.totalIn"),
@@ -490,36 +513,42 @@ const monthColumns = column.columns([
     cell: OverheadsCell,
     meta: { align: "end" },
   }),
-  column.accessor((row) => row.results?.farm.afterOverheadsMoney, {
-    id: "afterOverheads",
-    header: listHeader("months.col.afterOverheads"),
-    cell: AfterOverheadsCell,
-    meta: { align: "end" },
-  }),
 ]);
 
-/** A month on a phone: its name and net on top, then its money, its milk and its fattening, each a line of words. */
+/** A month on a phone: its name and what the Farm came to after its overheads on top, then its cash in less out — the
+ *  purse, said as such — its milk and its fattening, each a line of words. An answer kept from before the results were
+ *  worked out has the cash alone on top. */
 const MonthCard = ({ month }: { month: Month }) => {
   const { t } = useLanguage();
   const asMoney = useMoney();
   const perLiter = useMoneyRate();
   const perHead = usePerHeadPerDay();
   const { money, dairy, fattening } = month;
+  const after = month.results?.farm.afterOverheadsMoney;
+  const top = after ?? money.netMoney;
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-3">
         <MonthName month={month} />
-        <span
-          className={cn(
-            "font-semibold tabular-nums",
-            money.netMoney < 0 && "text-danger"
-          )}
-        >
-          {asMoney(money.netMoney)}
+        <span className="flex items-baseline gap-2">
+          <span className="text-muted-foreground text-xs">
+            {after === undefined
+              ? t("money.net")
+              : t("months.col.afterOverheads")}
+          </span>
+          <span
+            className={cn(
+              "font-semibold tabular-nums",
+              top < 0 && "text-danger"
+            )}
+          >
+            {asMoney(top)}
+          </span>
         </span>
       </div>
       <p className="text-muted-foreground text-sm">
-        {t("owner.inAndOut", {
+        {t("months.cardCash", {
+          net: asMoney(money.netMoney),
           in: asMoney(money.inMoney),
           out: asMoney(money.outMoney),
         })}

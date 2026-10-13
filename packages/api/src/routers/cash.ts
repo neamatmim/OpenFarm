@@ -20,6 +20,7 @@ import {
 } from "../corrections/handover";
 import { protectedProcedure } from "../index";
 import { amountInput } from "../money-inputs";
+import { farmsOwnMoneyAt } from "../month-store";
 import {
   OWNER_ONLY,
   forbidden,
@@ -58,6 +59,19 @@ const NOT_YOURS = {
 } as const;
 
 export const cashRouter = {
+  /** The Farm's own money now — every hand's notes less the Ventures', and each Farm Account as its statements say — with
+   *  the accounts never read named; the Owner's, as the month's report is. */
+  farmsOwnNow: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .handler(async ({ context }) => {
+      const { position, notReadNames } = await farmsOwnMoneyAt(
+        context.db,
+        context.farm.id,
+        context.clock.now()
+      );
+      return { ...position, accountsNotReadNames: notReadNames };
+    }),
+
   /** Every hand holding the farm's cash for the Owner; a Manager's own for a Manager. */
   inHand: protectedProcedure
     .use(requireRole("owner", "manager"))

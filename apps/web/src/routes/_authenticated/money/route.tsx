@@ -38,20 +38,11 @@ import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { useMoney } from "@/lib/money";
+import { readsThePeriod } from "@/lib/money-tabs";
+import type { MoneyTab as Tab } from "@/lib/money-tabs";
 import { moneyTotals, totalsPartial } from "@/lib/money-totals";
 import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
-
-const TABS = [
-  "register",
-  "cash",
-  "draws",
-  "receivable",
-  "supplierPayments",
-  "costs",
-  "accountant",
-] as const;
-type Tab = (typeof TABS)[number];
 
 /** Each tab at its own address, the first at the page's own. */
 const TAB_PATHS = {
@@ -116,8 +107,8 @@ const useMoneyFigures = (list: MoneyList | undefined): Figure[] => {
 /**
  * The farm's money in a period, by what somebody came to it for: the register of every taka in and out — and, for the
  * Owner, what waits for their approval — what each Side cost, the accountant's export, and the Categories money is
- * entered under. Money entered by hand is one button away from every tab, and the period above the figures is the one
- * every tab reads. The tab is kept in the address, so a page comes back as it was left.
+ * entered under. Money entered by hand is one button away from every tab, and the period above the figures stands over
+ * the tabs that read it (`readsThePeriod`). The tab is kept in the address, so a page comes back as it was left.
  */
 const MoneyPage = () => {
   const { t } = useLanguage();
@@ -167,7 +158,7 @@ const MoneyPage = () => {
         title={t("nav.money")}
       />
 
-      {tab === "supplierPayments" ? null : (
+      {readsThePeriod(tab) ? (
         <div className="flex flex-col gap-4">
           <PeriodBar
             from={from}
@@ -188,7 +179,7 @@ const MoneyPage = () => {
           ) : null}
           <SummaryFigures figures={figures} />
         </div>
-      )}
+      ) : null}
 
       <PageTabs
         onChange={(value) => navigate({ ...TAB_SWITCH, to: TAB_PATHS[value] })}

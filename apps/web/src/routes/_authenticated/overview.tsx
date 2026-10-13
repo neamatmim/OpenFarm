@@ -3,7 +3,7 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { CircleCheck, Hourglass, Milk, Scale, Tractor } from "lucide-react";
+import { CircleCheck, Hourglass, Milk, Tractor, Wallet } from "lucide-react";
 
 import { DataFreshness } from "@/components/data-freshness";
 import type { FreshnessRead } from "@/components/data-freshness";
@@ -100,9 +100,9 @@ const useMilkFigure = (tiles: OwnerAnswer["tiles"]): Figure => {
   };
 };
 
-/** The four figures the Owner judges the farm by: the milk, the month's money, the herd, and the money waiting on
- *  their word. Each is worked out from what was recorded; the two from other lists wait for them without holding up
- *  the rest. */
+/** The four figures the Owner judges the farm by: the milk, the Farm's own money now with what the month's cash came to,
+ *  the herd, and the money waiting on their word. Each is worked out from what was recorded; those from other lists
+ *  wait for them without holding up the rest. */
 const useFarmFigures = (
   data: OwnerAnswer
 ): { figures: Figure[]; reads: FreshnessRead[] } => {
@@ -110,6 +110,7 @@ const useFarmFigures = (
   const asMoney = useMoney();
   const milk = useMilkFigure(data.tiles);
   const money = useQuery(orpc.money.list.queryOptions({ input: thisMonth() }));
+  const own = useQuery(orpc.cash.farmsOwnNow.queryOptions());
   const animals = useQuery(
     orpc.animals.list.queryOptions({ input: { includeExited: false } })
   );
@@ -119,19 +120,28 @@ const useFarmFigures = (
   const net = sum("in") - sum("out");
   const herd = animals.data ?? [];
   const awaiting = moneyAwaitingCount(data.needsYou);
+  // A way to the hands and accounts it is made of.
+  const ownMoney = own.data ? (
+    <Link className={FIGURE_LINK} to="/money/cash">
+      {asMoney(own.data.farmsOwnMoney)}
+    </Link>
+  ) : undefined;
   const figures: Figure[] = [
     milk,
     {
-      label: t("owner.monthNet"),
-      value: money.data ? asMoney(net) : loading,
-      hint: money.data
-        ? t("owner.inAndOut", {
-            in: asMoney(sum("in")),
-            out: asMoney(sum("out")),
-          })
-        : undefined,
-      icon: Scale,
-      tone: net < 0 ? "danger" : "neutral",
+      label: t("owner.farmsOwnNow"),
+      value: ownMoney ?? loading,
+      hint: (
+        <OwnMoneyHint
+          monthNet={money.data ? asMoney(net) : undefined}
+          notRead={own.data?.accountsNotReadNames ?? []}
+        />
+      ),
+      icon: Wallet,
+      tone:
+        (own.data?.accountsNotReadNames ?? []).length > 0
+          ? "warning"
+          : "neutral",
     },
     {
       label: t("owner.herd"),
@@ -174,7 +184,29 @@ const useFarmFigures = (
       tone: awaiting > 0 ? "warning" : "neutral",
     },
   ];
-  return { figures, reads: [money, animals] };
+  return { figures, reads: [money, own, animals] };
+};
+
+/** Under the Farm's own money: what this month's cash in less out came to — a cash figure, never a result — and any
+ *  Farm Account not yet read, which counts nothing until it is. */
+const OwnMoneyHint = ({
+  monthNet,
+  notRead,
+}: {
+  monthNet: string | undefined;
+  notRead: readonly string[];
+}) => {
+  const { t } = useLanguage();
+  return (
+    <>
+      {monthNet ? t("owner.monthNet", { net: monthNet }) : null}
+      {notRead.length > 0 ? (
+        <span className="text-warning block">
+          {t("owner.accountsNotRead", { names: notRead.join(", ") })}
+        </span>
+      ) : null}
+    </>
+  );
 };
 
 /** A figure that is a way to the list it counts. */

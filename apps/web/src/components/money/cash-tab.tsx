@@ -6,7 +6,7 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Banknote, HandCoins } from "lucide-react";
+import { Banknote, HandCoins, Landmark, Wallet } from "lucide-react";
 import { useState } from "react";
 
 import { TakeItBack } from "@/components/animal/take-it-back";
@@ -25,7 +25,12 @@ import {
   TableSkeleton,
   TagChip,
 } from "@/components/page";
-import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import {
+  FormField,
+  FormSheet,
+  NativeSelect,
+  SummaryFigures,
+} from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
@@ -897,10 +902,62 @@ const HandsTable = ({ rows }: { rows: HandRow[] }) => {
   );
 };
 
+/** The Farm's own money now, for the Owner: the notes in the hands less the Ventures', and each Farm Account as its
+ *  statements say — the same figure the month's report ends on, and an account never read named, counting nothing. */
+const FarmsOwnNow = () => {
+  const { t } = useLanguage();
+  const asMoney = useMoney();
+  const own = useQuery(orpc.cash.farmsOwnNow.queryOptions());
+  if (!own.data) {
+    return null;
+  }
+  const {
+    farmsOwnMoney,
+    farmsInHandsMoney,
+    venturesInHandsMoney,
+    inAccountsMoney,
+    accountsNotReadNames: notRead,
+  } = own.data;
+  return (
+    <SummaryFigures
+      figures={[
+        {
+          label: t("owner.farmsOwnNow"),
+          value: asMoney(farmsOwnMoney),
+          hint: t("owner.farmsOwnHint"),
+          icon: Wallet,
+          lead: true,
+        },
+        {
+          label: t("cash.ownInHands"),
+          value: asMoney(farmsInHandsMoney),
+          hint:
+            venturesInHandsMoney > 0
+              ? t("cash.venturesInHands", {
+                  amount: asMoney(venturesInHandsMoney),
+                })
+              : undefined,
+          icon: Banknote,
+        },
+        {
+          label: t("cash.ownInAccounts"),
+          value: asMoney(inAccountsMoney),
+          hint:
+            notRead.length > 0
+              ? t("owner.accountsNotRead", { names: notRead.join(", ") })
+              : undefined,
+          icon: Landmark,
+          tone: notRead.length > 0 ? "warning" : "neutral",
+        },
+      ]}
+    />
+  );
+};
+
 /**
  * Who holds the farm's cash: each Owner and Manager and what is in their hand, from the cash money that named it and
- * the Handovers that moved it on. The Owner sees and moves every hand; a Manager sees and hands over their own.
- * "Nobody holds it" is said only once the farm has answered.
+ * the Handovers that moved it on. The Owner sees and moves every hand, under the Farm's own money now; a Manager sees
+ * and hands over their own. "Nobody holds it" is said only once the farm has answered.
  */
 export const CashTab = ({
   isOwner,
@@ -918,6 +975,7 @@ export const CashTab = ({
         <EmptyState icon={Banknote} title={t("cash.nobody")} />
       ) : (
         <div className="flex flex-col gap-6">
+          {isOwner ? <FarmsOwnNow /> : null}
           <Section description={t("cash.hint")} title={t("cash.hands")}>
             <HandsTable
               rows={held.map((hand) => ({

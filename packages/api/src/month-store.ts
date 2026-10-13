@@ -224,14 +224,35 @@ interface EndFarm {
   receivableDays: number;
 }
 
-/** What the Farm held of its own money at a moment: the hands' notes less the Ventures', and its Farm Accounts. */
-const cashAt = async (db: Database, farmId: string, at: Date) => {
+/**
+ * The Farm's own money at a moment (CONTEXT.md: **Cash Position**), with the Farm Accounts not yet read by then named:
+ * the one figure for "how much have we got", worked out as the month's report works out its end.
+ */
+export const farmsOwnMoneyAt = async (
+  db: Database,
+  farmId: string,
+  at: Date
+) => {
   const [hands, accounts] = await Promise.all([
     // A hand holds what moved up to and at the moment before; an account what moved before it.
     handsHeldAt(db, farmId, new Date(at.getTime() - 1)),
     farmAccountsHeldAt(db, farmId, at),
   ]);
-  return cashPositionOf({ hands, accounts });
+  return {
+    position: cashPositionOf({
+      hands,
+      accounts: accounts.map((one) => one.heldMoney),
+    }),
+    notReadNames: accounts
+      .filter((one) => one.heldMoney === null)
+      .map((one) => one.name),
+  };
+};
+
+/** What the Farm held of its own money at a moment: the hands' notes less the Ventures', and its Farm Accounts. */
+const cashAt = async (db: Database, farmId: string, at: Date) => {
+  const own = await farmsOwnMoneyAt(db, farmId, at);
+  return own.position;
 };
 
 /**
