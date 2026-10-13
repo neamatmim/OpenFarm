@@ -691,6 +691,8 @@ const VentureToday = ({
       {/* While their capital is owed. An answer this phone kept from before the farm said where to pay has none. */}
       <MonthlyPayments allocation={today.paymentAllocation ?? null} />
       <HowToPay
+        gathering={today.venture.state === "open"}
+        mayTell={today.payIn?.mayTell ?? false}
         paying={today.howToPay ?? null}
         waitingMoney={waitingMoneyOf(today.payIn)}
       />
