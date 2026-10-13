@@ -473,6 +473,8 @@ One still gathering capital comes from its plan alone: every band bought at its 
 
 **Pen Assignment**: The Pens a Staff member is responsible for. Defines what they see and may record as Barn Staff — their **Scope** under that Role. _Avoid_: Area, zone, allocation
 
+**Cover**: One Barn Staff member looking after an absent one's Pens for one farm day, set by the Owner or the Manager from their own phone and kept on the trail. Until the day turns — or until it is ended early — the cover's **Scope** holds the absent person's Pens beside their own: their list, claims and a Shed Phone's PIN Switch all see them. The one away keeps their own Pens throughout. Ends by itself with the day; a new one for the same person that day replaces the last. What the cover recorded that day is judged by the Pens they had that day, so a phone that brings it in after the Cover ended still lands it. «বদলি» in Bangla. _Avoid_: Shift swap, reassignment (a Pen Assignment changes for good), relief
+
 **Visiting Scope**: A Vet account limited to animals with an open case they are on, granted per visit and time-limited. It is the **Scope** of their work as the Vet. _Avoid_: Guest access, temporary account
 
 **Scope**: What a person may see and record acting under one Role: the whole farm for the Owner, the Manager and a Vet; their Pen Assignment for Barn Staff; their Visiting Scope for a Vet called in for a visit; and both together for Barn Staff who are also visiting. Barn Staff may still look up any animal by her Tag Number, read-only; a visitor may not. Worked out for each piece of work from the Role it is done under, never from the highest Role they hold. _Avoid_: Permissions (what a Role may do), access level, visibility

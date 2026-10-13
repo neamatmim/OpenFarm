@@ -7,6 +7,7 @@ import { applyBatch } from "../batch-store";
 import type { Recorder } from "../completion-store";
 import type { Context } from "../context";
 import { buildContext } from "../context";
+import { coveredPensOf, withCoveredPens } from "../cover-store";
 import { hashToken, requireDevice, stretchSwitch } from "../device";
 import { protectedProcedure, publicProcedure } from "../index";
 import { lateEntry } from "../late";
@@ -32,6 +33,36 @@ type FarmAndPhone = Pick<
   Context,
   "db" | "clock" | "push" | "sms" | "device"
 > & { farm: NonNullable<Context["farm"]> };
+
+/**
+ * The recorder as they were on the day the entry was made, a Cover included: Barn Staff who covered somebody's Pens
+ * that day recorded in them as theirs, and what they did is theirs however late the phone brings it in — the Cover
+ * ended with the day, the work it covered did not. Only Barn Staff have Pens to cover.
+ */
+const asOnTheDay = async (
+  db: Context["db"],
+  recorder: Recorder,
+  at: Date
+): Promise<Recorder> => {
+  if (recorder.roleUsed !== "staff") {
+    return recorder;
+  }
+  const covered = await coveredPensOf(
+    db,
+    recorder.farm.id,
+    recorder.actor.id,
+    at
+  );
+  if (covered.length === 0) {
+    return recorder;
+  }
+  const penIds = withCoveredPens(recorder.penIds, covered);
+  return {
+    ...recorder,
+    penIds,
+    ...workingAs({ ...recorder, penIds }, "staff"),
+  };
+};
 
 /**
  * Who each entry is written as. Unnamed, or naming the sender, it is the sender's. From a Shed Phone it may name
@@ -139,7 +170,7 @@ const recordersFor = (
   };
   return async (entry) => {
     if (sender && (!entry.actorId || entry.actorId === sender.actor.id)) {
-      return sender;
+      return asOnTheDay(context.db, sender, entry.recordedAt);
     }
     if (!entry.actorId) {
       throw new ORPCError("FORBIDDEN", {
@@ -156,7 +187,7 @@ const recordersFor = (
       });
     }
     await provedFor(entry);
-    return recorder;
+    return asOnTheDay(context.db, recorder, entry.recordedAt);
   };
 };
 

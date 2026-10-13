@@ -8,6 +8,7 @@ import { env } from "@OpenFarm/env/server";
 
 import type { Clock } from "./clock";
 import { systemClock } from "./clock";
+import { coveredPensOf, withCoveredPens } from "./cover-store";
 import type { DeviceSession, DeviceStatus } from "./device";
 import {
   DEVICE_TOKEN_HEADER,
@@ -290,6 +291,23 @@ const pensOf = (db: Database, farmId: string, row: PersonRow) =>
     ? pensKeptUntil(db, farmId, row.id, row.disabledAt)
     : Promise.resolve(row.penAssignments.map((p) => p.penId));
 
+/**
+ * The Pens they work at a moment: their own, and — Barn Staff covering somebody away today — that person's besides,
+ * until the day turns. Somebody who has left covers nobody.
+ */
+const pensWorkedAt = async (
+  db: Database,
+  farmId: string,
+  row: PersonRow,
+  roles: readonly RoleName[],
+  at: Date
+) => {
+  const own = await pensOf(db, farmId, row);
+  return roles.includes("staff") && !row.disabledAt
+    ? withCoveredPens(own, await coveredPensOf(db, farmId, row.id, at))
+    : own;
+};
+
 /** Whose request this is: the person signed in, whoever is switched in on the phone, or the person named. */
 const actingUserOf = (
   session: Session | null,
@@ -382,14 +400,13 @@ export const buildContext = async ({
   if (!row || shutOut(row, evenIfLeft)) {
     return { ...empty, farm, person };
   }
-  const penIds = await pensOf(db, farm.id, row);
-
   const { roles, visiting, caseAnimalIds } = await accessOf(
     db,
     farm.id,
     row,
     clock.now()
   );
+  const penIds = await pensWorkedAt(db, farm.id, row, roles, clock.now());
 
   return {
     ...base,

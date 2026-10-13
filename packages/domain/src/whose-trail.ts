@@ -48,6 +48,7 @@ export const WHOSE_TRAIL = {
   notifiable_disease: "farm",
   observation: "farm",
   pen: "farm",
+  cover: "farm",
   prescription: "farm",
   push_subscription: "farm",
   ration: "farm",

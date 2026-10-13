@@ -18,6 +18,7 @@ import { FeedPurchaseAttention } from "@/components/feed/feed-purchase-attention
 import { SupplierAttention } from "@/components/feed/supplier-attention";
 import { AdultDeathsSection } from "@/components/home/adult-deaths";
 import { CalfLossesSection } from "@/components/home/calf-losses";
+import { CoveringToday } from "@/components/home/covering-today";
 import { HerdHealthSection } from "@/components/home/herd-health";
 import { ManagerQueue, queueWaiting } from "@/components/home/manager-queue";
 import { PenProgress } from "@/components/home/pen-progress";
@@ -188,6 +189,7 @@ const ManagerHome = () => {
 
       <SetupLeft reader={isOwner ? "owner" : "manager"} />
       <SummaryFigures figures={figures} />
+      <CoveringToday />
       <FeedPurchaseAttention />
       <SupplierAttention />
 
