@@ -6,6 +6,7 @@ import {
   farmDayOf,
   farmDaysBetween,
   shrinkOfMany,
+  tagNumberAsWritten,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -179,7 +180,9 @@ export const sellingTripsRouter = {
         });
       }
       // The same beast ticked twice is one beast on the lorry.
-      const tags = [...new Set(input.animals.map((one) => one.toUpperCase()))];
+      const tags = [
+        ...new Set(input.animals.map((one) => tagNumberAsWritten(one))),
+      ];
       const taken = await context.db.query.animal.findMany({
         where: { farmId: context.farm.id, tagNumber: { in: tags } },
         columns: {

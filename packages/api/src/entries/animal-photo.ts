@@ -1,6 +1,6 @@
 import { eq } from "@OpenFarm/db/operators";
 import { animal, animalPhoto } from "@OpenFarm/db/schema/herd";
-import { THUMB_MAX_BYTES } from "@OpenFarm/domain";
+import { THUMB_MAX_BYTES, tagNumberAsWritten } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import { readAnimal, requireAnimal } from "../herd-store";
@@ -40,7 +40,7 @@ export const animalPhotoEntry: EntryKind<
       const her = await requireAnimal(
         tx,
         context.farm.id,
-        input.tagNumber.toUpperCase()
+        tagNumberAsWritten(input.tagNumber)
       );
       return readAnimal(tx, her.id);
     },

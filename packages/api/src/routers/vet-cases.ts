@@ -2,7 +2,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { roleAssignment } from "@OpenFarm/db/schema/farm";
 import { vetCase } from "@OpenFarm/db/schema/health";
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { startOfFarmDay, tagNumberAsWritten } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -58,7 +58,7 @@ export const vetCasesRouter = {
       const her = await requireAnimal(
         context.db,
         context.farm.id,
-        input.tagNumber.toUpperCase()
+        tagNumberAsWritten(input.tagNumber)
       );
       const rows = await context.db.query.vetCase.findMany({
         where: {
@@ -109,7 +109,7 @@ export const vetCasesRouter = {
           const her = await loadLiveAnimal(
             tx,
             context.farm.id,
-            input.tagNumber.toUpperCase()
+            tagNumberAsWritten(input.tagNumber)
           );
           const [row] = await tx
             .insert(vetCase)

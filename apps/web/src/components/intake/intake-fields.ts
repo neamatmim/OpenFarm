@@ -98,18 +98,31 @@ export const EMPTY: IntakeFields = {
 
 /**
  * The form as it stands for the next beast off the same lorry: the pen, the seller, the outing, whose money bought
- * her, how she was paid for and what she is fed for are the lorry's, and stay; her price, weight, age and breed are
- * hers, and so is a transfer's reference, since no two bulls are paid by one transfer. Fifteen bulls off one lorry are
- * fifteen sets of the four things only the Manager standing there can know, never fifteen sellers typed.
+ * her, how she was paid for and the window she is fed for are the lorry's, and stay. Her price, her Market Toll (the
+ * livestock market's slip is per beast), her weight, age and breed, and the target weight suggested from them are hers,
+ * and so is a transfer's reference, since no two bulls are paid by one transfer. Fifteen bulls off one lorry are fifteen
+ * sets of what only the Manager standing there can know, never fifteen sellers typed.
  */
 export const nextOffTheLorry = (fields: IntakeFields): IntakeFields => ({
   ...fields,
   purchasePriceMoney: "",
+  marketTollMoney: "",
   weightKg: "",
   estimatedAgeMonths: "",
   breedId: "",
+  targetWeightKg: "",
   reference: "",
 });
+
+/**
+ * Whether anything has been typed since the form was left as it is: blank, or holding the lorry's answers for the
+ * next beast. Only then is there work to lose by leaving, or a draft worth keeping on the phone — a seller and an
+ * outing kept for the next bull are not, and a visit days later must not find them waiting.
+ */
+export const typedSince = (
+  fields: IntakeFields,
+  startedFrom: IntakeFields
+): boolean => JSON.stringify(fields) !== JSON.stringify(startedFrom);
 
 /** A Venture's bull with no outing: paid straight from its account by bank, the Owner's to take in. */
 export const boughtFromTheAccount = (fields: IntakeFields): boolean =>

@@ -1,24 +1,10 @@
-import { latinDigitsOf } from "@OpenFarm/i18n";
-
-/** The Bangla a Tag Number's prefix is spoken and typed as, beside the letter it is written with. */
-const BANGLA_PREFIX: readonly (readonly [string, string])[] = [
-  ["ডি", "D"],
-  ["এফ", "F"],
-];
+import { isTagNumber, tagNumberAsWritten } from "@OpenFarm/domain";
 
 /**
- * What somebody typed to find an animal, as Tag Numbers are written: capitals, English digits, and the D or F a
- * Bangla keyboard types as ডি or এফ. A milker whose phone types ১২ is looking for D-0012, not for nothing.
+ * What somebody typed to find an animal, read as the farm writes its tags (`tagNumberAsWritten`): ডি-১২ and D12 are
+ * D-0012, and a bare ১২ is 12. A milker whose phone types ১২ is looking for D-0012, not for nothing.
  */
-export const tagSought = (typed: string): string => {
-  let sought = latinDigitsOf(typed.trim());
-  for (const [bangla, letter] of BANGLA_PREFIX) {
-    if (sought.startsWith(bangla)) {
-      sought = letter + sought.slice(bangla.length);
-    }
-  }
-  return sought.toUpperCase();
-};
+export const tagSought = (typed: string): string => tagNumberAsWritten(typed);
 
 /** Whether a Tag Number holds what was sought — as `tagSought` reads it — anywhere in it. */
 export const tagMatches = (tagNumber: string, sought: string): boolean =>
@@ -31,13 +17,17 @@ const numberOf = (tagNumber: string): number | null => {
 };
 
 /**
- * The one animal whose number is the one typed bare — "12" for D-0012 — or nothing: a number both Sides have, or
- * anything typed with its prefix, is for the list to narrow, not for this to guess.
+ * The one animal a search names outright, or nothing: a whole tag, however it was typed, names hers; a bare number —
+ * "12" for D-0012 — names the one animal numbered so, and none where both Sides have it. Anything else is for the list
+ * to narrow, not for this to guess.
  */
 export const tagNumbered = (
   tagNumbers: readonly string[],
   sought: string
 ): string | null => {
+  if (isTagNumber(sought)) {
+    return tagNumbers.includes(sought) ? sought : null;
+  }
   if (!/^\d+$/u.test(sought)) {
     return null;
   }

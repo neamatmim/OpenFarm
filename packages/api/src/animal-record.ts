@@ -6,6 +6,7 @@ import {
   exitOf,
   penSpellsOf,
   withdrawalView,
+  tagNumberAsWritten,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -55,7 +56,7 @@ export const herRecord = async (
 ) => {
   const depth = { ...PAPER_DEPTH, ...howDeep };
   const row = await db.query.animal.findFirst({
-    where: { farmId, tagNumber: tagNumber.toUpperCase() },
+    where: { farmId, tagNumber: tagNumberAsWritten(tagNumber) },
     // What she is, as every list of her says it — her whole withdrawal record included, the shortening with
     // it: a hold a Vet cut short is the one thing a slaughter vet asks about, and a paper that did not say so
     // would be the farm asking to be taken at its word exactly where its word is not enough.

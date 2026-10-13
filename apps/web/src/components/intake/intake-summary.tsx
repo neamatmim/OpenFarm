@@ -141,20 +141,28 @@ export const NEXT_OFF_THE_LORRY = "next";
 
 /**
  * Take her in and open her page, or take her in and stay for the next beast off the same lorry — the second keeps the
- * pen, the seller, the outing and how she was paid for, and asks only for what the next one weighs and cost.
+ * pen, the seller, the outing and how she was paid for, and asks only for what the next one weighs and cost. One under
+ * the other beside the form; side by side, the second said shorter, in the phone's bar, which two rows would double.
  */
 export const TakeInButtons = ({
   ready,
   pending,
+  compact = false,
   className,
 }: {
   ready: boolean;
   pending: boolean;
+  compact?: boolean;
   className?: string;
 }) => {
   const { t } = useLanguage();
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
+    <div
+      className={cn(
+        compact ? "grid grid-cols-2 gap-2" : "flex flex-col gap-2",
+        className
+      )}
+    >
       <Button className="w-full" disabled={!ready || pending} type="submit">
         {pending ? (
           <Spinner />
@@ -172,7 +180,7 @@ export const TakeInButtons = ({
         variant="outline"
       >
         <Truck aria-hidden data-icon="inline-start" />
-        {t("intake.recordAndNext")}
+        {t(compact ? "intake.recordAndNextShort" : "intake.recordAndNext")}
       </Button>
     </div>
   );
@@ -180,8 +188,9 @@ export const TakeInButtons = ({
 
 /**
  * What the farm will write when the animal is taken in, read back as it is typed — with the farm's own answers filled
- * in where a field was left blank, so nobody wonders what "blank" will mean — what is still to fill in, and the button.
- * Beside the form where there is room; after it on a phone.
+ * in where a field was left blank, so nobody wonders what "blank" will mean — what is still to fill in, and the two
+ * buttons: take her in, or take her in and stay for the next off the lorry. Beside the form where there is room; after
+ * it on a phone, where the form's own bar carries the buttons.
  */
 export const IntakeSummary = ({
   fields,

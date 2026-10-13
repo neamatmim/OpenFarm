@@ -6,6 +6,7 @@ import {
   stillWorthSaying,
   underMeatWithdrawal,
   windowHasClosed,
+  tagNumberAsWritten,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -114,7 +115,7 @@ export const readyForSaleRouter = {
     .input(z.object({ tagNumber: tagInput }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       const her = await requireAnimal(context.db, context.farm.id, tagNumber);
       await audited(context).write(
         {
@@ -181,7 +182,7 @@ export const readyForSaleRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       const her = await requireAnimal(context.db, context.farm.id, tagNumber);
       const values = {
         farmId: context.farm.id,

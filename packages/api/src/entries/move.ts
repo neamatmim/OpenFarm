@@ -1,4 +1,4 @@
-import { SIDES } from "@OpenFarm/domain";
+import { SIDES, tagNumberAsWritten } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -42,7 +42,7 @@ export const moveEntry: EntryKind<MoveInput, { animalId: string }> = {
       const her = await requireAnimal(
         tx,
         context.farm.id,
-        input.tagNumber.toUpperCase()
+        tagNumberAsWritten(input.tagNumber)
       );
       return readAnimal(tx, her.id);
     },

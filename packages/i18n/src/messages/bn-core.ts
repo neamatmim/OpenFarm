@@ -3836,6 +3836,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "intake.record": "তোলা হলো",
   "intake.recordAndNext": "তোলা হলো, এই লরির পরেরটা",
   "intake.offThisLorry": "এই লরি থেকে এ পর্যন্ত তোলা হয়েছে",
+  "intake.recordAndNextShort": "তুলে পরেরটা",
+  "intake.doneWithTheLorry": "এই লরি শেষ",
   "intake.noPhoto": "এখনো ছবি নেই",
   "intake.subtitle":
     "কেনা পশু খামারে এল: কোথায় রাখা হবে, কে বিক্রি করল, দাম কত, আর যাওয়ার সময় ওজন কত হওয়া উচিত।",

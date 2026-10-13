@@ -1,5 +1,10 @@
 import type { SopContent, Step } from "@OpenFarm/domain";
-import { WRITTEN_BY_MISTAKE, maySkip, missingEvidence } from "@OpenFarm/domain";
+import {
+  WRITTEN_BY_MISTAKE,
+  maySkip,
+  missingEvidence,
+  tagNumberAsWritten,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -57,7 +62,7 @@ export const resolveStepAnimal = async (
     });
   }
   const beast = await tx.query.animal.findFirst({
-    where: { farmId, tagNumber: animalTag.toUpperCase() },
+    where: { farmId, tagNumber: tagNumberAsWritten(animalTag) },
     columns: { id: true, penId: true, state: true },
   });
   // A tag the farm has never had is not a changed world; it is a wrong entry, and whoever

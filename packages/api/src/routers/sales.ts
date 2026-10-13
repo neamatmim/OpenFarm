@@ -7,6 +7,7 @@ import {
   startOfFarmDay,
   underMeatWithdrawal,
   windowHasClosed,
+  tagNumberAsWritten,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -64,7 +65,7 @@ export const salesRouter = {
       const her = await context.db.query.animal.findFirst({
         where: {
           farmId: context.farm.id,
-          tagNumber: input.tagNumber.toUpperCase(),
+          tagNumber: tagNumberAsWritten(input.tagNumber),
         },
         columns: { id: true },
       });
@@ -165,7 +166,7 @@ export const salesRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       const soldAt = input.soldAt ?? now;
       if (soldAt.getTime() > now.getTime()) {
         throw new ORPCError("BAD_REQUEST", {

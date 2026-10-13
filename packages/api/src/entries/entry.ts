@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import type { AuditAction } from "@OpenFarm/db/schema/audit";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
-import { isExitState } from "@OpenFarm/domain";
+import { isExitState, tagNumberAsWritten } from "@OpenFarm/domain";
 import type { AuditEntity } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -50,7 +50,7 @@ export const requireAnimalStillHere = async (
   farmId: string,
   tagNumber: string
 ) => {
-  const beast = await requireAnimal(tx, farmId, tagNumber.toUpperCase());
+  const beast = await requireAnimal(tx, farmId, tagNumberAsWritten(tagNumber));
   if (isExitState(beast.state)) {
     throw lateEntry(
       `Animal ${beast.tagNumber} has left the farm (${beast.state})`,

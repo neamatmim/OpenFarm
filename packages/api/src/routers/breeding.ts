@@ -1,6 +1,6 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { abortion, repeatBreederAnswer } from "@OpenFarm/db/schema/breeding";
-import { REPEAT_BREEDER_DECISIONS } from "@OpenFarm/domain";
+import { REPEAT_BREEDER_DECISIONS, tagNumberAsWritten } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -62,7 +62,7 @@ export const breedingRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       const id = newId(now);
       await audited(context).write(
         {
@@ -192,7 +192,7 @@ export const breedingRouter = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       const answeredByRole = context.roleUsed;
       if (!answeredByRole) {
         throw new ORPCError("FORBIDDEN");

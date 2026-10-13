@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { IntakeFields } from "./intake-fields";
-import { EMPTY, missingFrom, nextOffTheLorry } from "./intake-fields";
+import {
+  EMPTY,
+  missingFrom,
+  nextOffTheLorry,
+  typedSince,
+} from "./intake-fields";
 
 /** The third bull off a Gabtoli lorry, as the Manager left the form once he was taken in. */
 const thirdBull: IntakeFields = {
@@ -37,10 +42,8 @@ describe("the next beast off the same lorry", () => {
       sellerName: "Karim Bepari",
       sellerPlace: "Gabtoli",
       sellerPhone: "01711000000",
-      marketTollMoney: "1500",
       buyingTripId: "trip-1",
       ventureId: "venture-1",
-      targetWeightKg: "320",
       targetWindowStart: "2027-05-14",
       targetWindowEnd: "2027-05-17",
       paymentMethod: "cash",
@@ -51,14 +54,16 @@ describe("the next beast off the same lorry", () => {
     });
   });
 
-  it("asks again for what only this beast can say: her price, weight, age and breed, and the transfer that paid for her", () => {
+  it("asks again for what only this beast can say: her price, toll, weight, age, breed and target, and the transfer that paid for her", () => {
     const next = nextOffTheLorry(thirdBull);
 
     expect(next).toMatchObject({
       purchasePriceMoney: "",
+      marketTollMoney: "",
       weightKg: "",
       estimatedAgeMonths: "",
       breedId: "",
+      targetWeightKg: "",
       reference: "",
     });
     expect(missingFrom(next)).toEqual([
@@ -66,5 +71,15 @@ describe("the next beast off the same lorry", () => {
       "intake.weight",
       "intake.age",
     ]);
+  });
+});
+
+describe("what the form holds for the next beast", () => {
+  it("is nothing typed, until somebody types her own figures", () => {
+    const held = nextOffTheLorry(thirdBull);
+
+    expect(typedSince(held, held)).toBe(false);
+    expect(typedSince({ ...held, weightKg: "198" }, held)).toBe(true);
+    expect(typedSince(thirdBull, EMPTY)).toBe(true);
   });
 });

@@ -194,6 +194,7 @@ export {
   isTagNumber,
   parseTagNumber,
   prefixForOrigin,
+  tagNumberAsWritten,
 } from "./tag-number";
 export type {
   LactationSummary,

@@ -206,6 +206,7 @@ const AnimalPart = ({
       <FormField id="sale-animal" label={t("sale.animal")}>
         {typing ? (
           <SearchablePicker
+            ofTags
             empty={t("sale.noneToSell")}
             id="sale-animal"
             loading={herd.isPending}

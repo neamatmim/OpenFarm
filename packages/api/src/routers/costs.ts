@@ -1,3 +1,4 @@
+import { tagNumberAsWritten } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -20,7 +21,7 @@ export const costsRouter = {
     .use(requireRole("owner", "manager"))
     .input(z.object({ tagNumber: z.string().trim().min(1).max(32) }))
     .handler(async ({ context, input }) => {
-      const tagNumber = input.tagNumber.toUpperCase();
+      const tagNumber = tagNumberAsWritten(input.tagNumber);
       const costs = await farmCosts(context.db, context.farm.id);
       const animal = costs.animals.find((one) => one.tagNumber === tagNumber);
       if (!animal) {

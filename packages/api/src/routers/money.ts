@@ -1,7 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import { moneyEvent, vetFee, vetFeeAnimal } from "@OpenFarm/db/schema/money";
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { startOfFarmDay, tagNumberAsWritten } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -323,9 +323,9 @@ export const moneyRouter = {
         });
       }
       const seen = await Promise.all(
-        [...new Set(input.animalTags.map((tag) => tag.toUpperCase()))].map(
-          (tag) => requireAnimal(context.db, context.farm.id, tag)
-        )
+        [
+          ...new Set(input.animalTags.map((tag) => tagNumberAsWritten(tag))),
+        ].map((tag) => requireAnimal(context.db, context.farm.id, tag))
       );
       const id = newId(now);
       await audited(context).write(

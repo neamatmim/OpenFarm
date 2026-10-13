@@ -2,7 +2,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq, sql } from "@OpenFarm/db/operators";
 import { DIAGNOSIS_OUTCOMES, diagnosis } from "@OpenFarm/db/schema/health";
 import type { observation } from "@OpenFarm/db/schema/observation";
-import { EXIT_STATES, isExitState } from "@OpenFarm/domain";
+import { EXIT_STATES, isExitState, tagNumberAsWritten } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -179,7 +179,7 @@ export const diagnosesRouter = {
           const her = await loadLiveAnimal(
             tx,
             context.farm.id,
-            input.animalTag.toUpperCase()
+            tagNumberAsWritten(input.animalTag)
           );
           requireClinicalInScope(context.scope, her.id);
           if (input.answers) {
