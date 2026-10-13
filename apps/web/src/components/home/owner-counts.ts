@@ -33,6 +33,18 @@ export const monthlyCostsMissing = (needsYou: NeedsYou): number =>
   (needsYou.monthlyCosts?.wages.length ?? 0);
 
 /**
+ * How many of the Farm's accounts ask something of her: one whose statement disagreed and whose next month is unread
+ * too is still one account to see to, counted once. Either list is missing from an answer a phone kept from before it.
+ */
+const accountsToSee = (needsYou: NeedsYou): number =>
+  new Set(
+    [
+      ...(needsYou.farmAccountsOut ?? []),
+      ...(needsYou.farmAccountsUnread ?? []),
+    ].map((one) => one.id)
+  ).size;
+
+/**
  * How many of each kind wait on the Owner — one count, read by the tabs that list them and by whatever says the farm is
  * all fine, so nothing can wait under a green "all fine". None for a kind an answer the phone kept from before does not
  * carry.
@@ -49,8 +61,7 @@ export const ownerCountsOf = (
   money:
     moneyAwaitingCount(needsYou) +
     monthlyCostsMissing(needsYou) +
-    // Missing from an answer a phone kept from before Farm Accounts were checked.
-    (needsYou.farmAccountsOut?.length ?? 0) +
+    accountsToSee(needsYou) +
     // Missing from an answer a phone kept from before Receivable was written down.
     (needsYou.receivableOverdue?.length ?? 0),
   review: needsYou.needsReview.length,

@@ -98,6 +98,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "suppliers.owing": "বকেয়া",
   "suppliers.overdue": "মেয়াদোত্তীর্ণ বকেয়া",
   "suppliers.pay": "পরিশোধ নথিভুক্ত করুন",
+  "suppliers.ownerPays": "সরবরাহকারীকে টাকা দেওয়া মালিক লেখেন",
   "suppliers.payment": "সরবরাহকারীকে পরিশোধ",
   "suppliers.paymentSaved": "সরবরাহকারীকে পরিশোধ নথিভুক্ত",
   "suppliers.amount": "পরিশোধিত টাকা",
@@ -1184,6 +1185,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.nothingToReimburse": "ওই মাসে এর গরু খামারের কিছুই খায়নি",
   "refusal.monthAlreadyReimbursed": "ওই মাসের হিসাব আগেই ফেরত হয়েছে",
   "refusal.monthNotOver": "ওই মাস এখনো শেষ হয়নি",
+  "refusal.farmAccountClosedByThen":
+    "মাস শুরুর আগেই হিসাবটি বন্ধ হয়েছিল: ওই মাসের কোনো স্টেটমেন্ট নেই",
   "refusal.monthBeforeTheVenture": "এই ভেঞ্চার শুরুর আগের মাস",
   "refusal.sayWhatYouFoundOut": "যে মাসে মেলেনি, সে বিষয়ে কী জেনেছেন লিখুন",
   "refusal.ventureIsSettled":
@@ -2548,6 +2551,11 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "money.approved": "অনুমোদিত",
   "money.allCategories": "সব খাত",
   "money.anyStatus": "সব অবস্থা",
+  "money.anyWayPaid": "যেভাবেই দেওয়া",
+  "money.handoversOnCash":
+    "এই হিসাবে যে টাকা হাতবদল হয়ে ঢুকেছে বা বেরিয়েছে, তা এখানে নয়, «হাতে নগদ» ট্যাবে আছে: স্টেটমেন্টের সাথে মেলানোর আগে সেটাও ধরুন।",
+  "money.newestOnly":
+    "এই সময়ে তালিকায় যত লেখা ধরে তার চেয়ে বেশি আছে: শুধু নতুনগুলো দেখানো হচ্ছে, সর্বোচ্চ {count}টি। বাছাই করলে পুরনো লেখা বাদ পড়তে পারে; দেখতে ছোট সময় বেছে নিন।",
   "money.search": "কার সাথে, কী বা মন্তব্য খুঁজুন",
   "byHand.hint":
     "যে {currencySum} অন্য কোনো রেকর্ড থেকে আসে না: মজুরি, গোবর বিক্রি, মেরামত।",
@@ -2576,6 +2584,9 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "farmAccounts.broughtBack": "হিসাবটি আবার চালু হয়েছে",
   "farmAccounts.readHint": "মাসের শেষ দিনে স্টেটমেন্টে যে ব্যালান্স ছিল",
   "farmAccounts.outOnHome": "স্টেটমেন্টের সাথে মেলেনি",
+  "farmAccounts.unreadOnHome": "যে স্টেটমেন্ট এখনো মেলানো হয়নি",
+  "farmAccounts.unreadMonth":
+    "{month} থেকে {count} মাসের স্টেটমেন্ট এখনো মেলানো হয়নি",
   "farmAccounts.check": "স্টেটমেন্ট মেলান",
   "farmAccounts.neverRead": "এখনো কোনো স্টেটমেন্ট মেলানো হয়নি",
   "farmAccounts.heldNow": "খামারের হিসাবে এখন {currencySign}{amount}",

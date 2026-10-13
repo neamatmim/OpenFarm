@@ -108,6 +108,7 @@ export const enCore = {
   "suppliers.owing": "Outstanding",
   "suppliers.overdue": "Overdue",
   "suppliers.pay": "Record payment",
+  "suppliers.ownerPays": "The owner records supplier payments",
   "suppliers.payment": "Supplier payment",
   "suppliers.paymentSaved": "Supplier payment recorded",
   "suppliers.amount": "Amount paid",
@@ -1310,6 +1311,8 @@ export const enCore = {
     "Its animals consumed nothing of the farm's that month",
   "refusal.monthAlreadyReimbursed": "That month has been reimbursed already",
   "refusal.monthNotOver": "That month is not over yet",
+  "refusal.farmAccountClosedByThen":
+    "That account was closed before the month began: there is no statement of it to read",
   "refusal.monthBeforeTheVenture": "That month is before this venture opened",
   "refusal.sayWhatYouFoundOut":
     "Say what you found out about the month that did not agree",
@@ -2762,6 +2765,11 @@ export const enCore = {
   "money.approved": "Approved",
   "money.allCategories": "All categories",
   "money.anyStatus": "Any status",
+  "money.anyWayPaid": "Paid any way",
+  "money.handoversOnCash":
+    "Money handed into or out of this account is on the Cash in hand tab, not here: count it too before reading this against the statement.",
+  "money.newestOnly":
+    "This period has more entries than the list holds: only the newest are shown, at most {count}. A filter may miss older ones; choose a shorter period to see them.",
   "money.search": "Search who, what or a note",
   "byHand.hint": "For money no other record makes: wages, dung sold, repairs.",
   "money.partialTotals": "These totals cover only the entries shown",
@@ -2790,6 +2798,9 @@ export const enCore = {
   "farmAccounts.readHint":
     "The balance the statement shows at the month's last day",
   "farmAccounts.outOnHome": "Statements that did not agree",
+  "farmAccounts.unreadOnHome": "Statements not yet checked",
+  "farmAccounts.unreadMonth":
+    "{count, plural, one {# month's statement} other {# months' statements}} not checked yet, from {month}",
   "farmAccounts.check": "Check the statement",
   "farmAccounts.neverRead": "No statement read yet",
   "farmAccounts.heldNow": "The farm's books say {currencySign}{amount} now",

@@ -139,6 +139,13 @@ const CATEGORIES: Record<
     nameEn: "Manure sales",
     direction: "in",
   },
+  // A bKash cash-out fee, a bank's charge: the statement shows it, and with nowhere to write it the Bank Check
+  // disagrees by it every month.
+  bank_charges: {
+    nameBn: "ব্যাংক ও বিকাশের চার্জ",
+    nameEn: "Bank and mobile money charges",
+    direction: "out",
+  },
 };
 
 /** The Categories a record books its money under. */

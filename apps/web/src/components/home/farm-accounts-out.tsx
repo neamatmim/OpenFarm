@@ -1,3 +1,4 @@
+import { formatNumber } from "@OpenFarm/i18n";
 import { Link } from "@tanstack/react-router";
 import { Landmark } from "lucide-react";
 
@@ -69,6 +70,57 @@ export const FarmAccountsOutGroup = ({
       headless={headless}
       icon={Landmark}
       label={t("farmAccounts.outOnHome")}
+      more={
+        <Link className={MORE_LINK} hash="farm-accounts" to="/farm/money">
+          {t("home.openList")}
+        </Link>
+      }
+      rows={rows}
+      tone="warning"
+    />
+  );
+};
+
+/** The Farm Accounts whose last month's statement nobody has checked, as the Owner's home is told them. */
+export type FarmAccountsUnreadData = Awaited<
+  ReturnType<typeof orpc.overview.get.call>
+>["needsYou"]["farmAccountsUnread"];
+
+/**
+ * The Farm's mobile money numbers and bank accounts whose last month's statement nobody has checked yet, from the first
+ * of the month: the monthly Bank Check asked for, the way a month's rent not entered is. Each opens the accounts, where
+ * the statement is checked.
+ */
+export const FarmAccountsUnreadGroup = ({
+  accounts,
+}: {
+  /** Missing from an answer a phone kept from before the unchecked statements were named. */
+  accounts: FarmAccountsUnreadData | undefined;
+}) => {
+  const { t, language } = useLanguage();
+  const rows = (accounts ?? []).map((one) => (
+    <QueueRow
+      key={one.id}
+      meta={t("farmAccounts.unreadMonth", {
+        month: saidMonth(one.oldestMonth, language),
+        count: formatNumber(one.months, language),
+      })}
+      title={
+        <Link
+          className="after:absolute after:inset-0 hover:underline"
+          hash="farm-accounts"
+          to="/farm/money"
+        >
+          {one.name}
+        </Link>
+      }
+      trailing={<Opens />}
+    />
+  ));
+  return (
+    <QueueGroup
+      icon={Landmark}
+      label={t("farmAccounts.unreadOnHome")}
       more={
         <Link className={MORE_LINK} hash="farm-accounts" to="/farm/money">
           {t("home.openList")}

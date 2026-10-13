@@ -1,0 +1,3 @@
+-- A bKash cash-out fee or a bank's charge has a standard Category of its own (bank_charges).
+ALTER TABLE "money_category" DROP CONSTRAINT "money_category_key_known";--> statement-breakpoint
+ALTER TABLE "money_category" ADD CONSTRAINT "money_category_key_known" CHECK ("key" IN ('dispatch', 'intake', 'buying_trip', 'selling_trip', 'sale', 'sale_broker', 'wage_draw', 'feed_in', 'medicine_purchase', 'vet_fee', 'internal_sale_in', 'internal_sale_out', 'reimbursement', 'settlement_adjustment', 'farm_share', 'farm_loss', 'venture_made_good', 'venture_capital_out', 'venture_capital_back', 'venture_capital_return', 'wages', 'rent', 'utilities', 'repairs', 'hygiene', 'equipment', 'transport', 'manure_sales', 'bank_charges'));

@@ -1,8 +1,10 @@
+import { PAYMENT_METHODS } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 import { Hourglass, Search, Wallet } from "lucide-react";
 import { useState } from "react";
 
@@ -21,6 +23,7 @@ import { DrawCorrection } from "@/components/money/wage-draws";
 import {
   EmptyState,
   Loaded,
+  Notice,
   SegmentedControl,
   StatusBadge,
   TableSkeleton,
@@ -30,10 +33,20 @@ import { PAYMENT_METHOD_WORD } from "@/components/payment-method";
 import { CorrectVetFee } from "@/components/vet/correct-vet-fee";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
-import type { orpc } from "@/utils/orpc";
+import type { Filters } from "@/lib/register-filters";
+import {
+  NO_FILTERS,
+  paidThroughOf,
+  paidThroughValue,
+  passes,
+} from "@/lib/register-filters";
+import { orpc } from "@/utils/orpc";
 
 /** How many entries the register shows before the next page. */
 const REGISTER_PAGE = 20;
+
+/** How many of a period's entries the farm sends at most, newest first (the money list's own limit). */
+const LISTED_AT_MOST = 500;
 
 const SOURCE_WORD = {
   dispatch: "money.from.dispatch",
@@ -341,45 +354,17 @@ const moneyColumns = column.columns([
   }),
 ]);
 
-type DirectionFilter = "" | "in" | "out";
-type StatusFilter = "" | "awaiting" | "approved";
-
-interface Filters {
-  direction: DirectionFilter;
-  category: string;
-  status: StatusFilter;
-  search: string;
-}
-
-const NO_FILTERS: Filters = {
-  direction: "",
-  category: "",
-  status: "",
-  search: "",
-};
-
-/** Whether an entry is one the filters let through: which way, its Category, where it stands, and words in it. */
-const passes = (filters: Filters, event: MoneyEvent, what: string) => {
-  const words = filters.search.trim().toLowerCase();
-  const said = [what, event.counterpartyName ?? "", event.note ?? ""]
-    .join(" ")
-    .toLowerCase();
-  return (
-    (filters.direction === "" || event.direction === filters.direction) &&
-    (filters.category === "" || what === filters.category) &&
-    (filters.status === "" || event.approval === filters.status) &&
-    (words === "" || said.includes(words))
-  );
-};
-
 /** The filters over the register, in a row above it where there is room and stacked on a phone. */
 const RegisterFilters = ({
   filters,
   categories,
+  accounts,
   onChange,
 }: {
   filters: Filters;
   categories: string[];
+  /** The Farm Accounts the period's money went through, so the book can be read against one statement. */
+  accounts: { id: string; name: string }[];
   onChange: (filters: Filters) => void;
 }) => {
   const { t } = useLanguage();
@@ -431,6 +416,35 @@ const RegisterFilters = ({
           <option value="">{t("money.anyStatus")}</option>
           <option value="awaiting">{t("money.awaitingCount")}</option>
           <option value="approved">{t("money.approved")}</option>
+        </NativeSelect>
+        <NativeSelect
+          aria-label={t("money.paidBy")}
+          className="sm:w-48"
+          onChange={(event) =>
+            set("paidThrough", paidThroughOf(event.target.value))
+          }
+          value={paidThroughValue(filters.paidThrough)}
+        >
+          <option value="">{t("money.anyWayPaid")}</option>
+          {PAYMENT_METHODS.map((method) => (
+            <option
+              key={method}
+              value={paidThroughValue({ kind: "method", method })}
+            >
+              {t(PAYMENT_METHOD_WORD[method])}
+            </option>
+          ))}
+          {accounts.map((account) => (
+            <option
+              key={account.id}
+              value={paidThroughValue({
+                kind: "account",
+                accountId: account.id,
+              })}
+            >
+              {account.name}
+            </option>
+          ))}
         </NativeSelect>
       </div>
       <div className="sm:ml-auto">
@@ -497,15 +511,32 @@ export const RegisterTab = ({
     data: shown,
     getRowId: (row) => row.id,
   });
+  // The farm's own accounts, read from its list rather than from the period's money: one chosen stays to choose when
+  // the period moves to a month nothing went through it.
+  const farmAccounts = useQuery(orpc.farmAccounts.list.queryOptions());
+  const accounts = farmAccounts.data ?? [];
+  const oneAccount = filters.paidThrough.kind === "account";
   const nothingInPeriod = events.length === 0;
   const nothingFiltered = !nothingInPeriod && shown.length === 0;
   return (
     <div className="surface flex flex-col gap-4 p-4 md:p-5">
       <RegisterFilters
+        accounts={accounts}
         categories={categories}
         filters={filters}
         onChange={setFilters}
       />
+      {oneAccount ? (
+        <Notice title={t("money.handoversOnCash")} tone="info" />
+      ) : null}
+      {money.data?.more ? (
+        <Notice
+          title={t("money.newestOnly", {
+            count: formatNumber(LISTED_AT_MOST, language),
+          })}
+          tone="warning"
+        />
+      ) : null}
       <Loaded query={money} skeleton={<TableSkeleton />}>
         {nothingInPeriod ? (
           <EmptyState bare icon={Wallet} title={t("money.none")} />
