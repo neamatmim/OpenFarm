@@ -102,6 +102,13 @@ export const CATEGORY_KEYS = [
   "transport",
   "manure_sales",
   "bank_charges",
+  // Money that moves the cash and is never income or cost (ADR 0027), and the interest a loan costs, which is.
+  "owner_money_in",
+  "owner_drawings",
+  "loan_received",
+  "loan_repaid",
+  "machine_bought",
+  "loan_interest",
 ] as const;
 export type CategoryKey = (typeof CATEGORY_KEYS)[number];
 

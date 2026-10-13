@@ -87,6 +87,11 @@ export interface MonthlyReportFacts {
   moneyBy: {
     category: readonly ({ nameBn: string; nameEn: string | null } & InAndOut)[];
     side: readonly ({ side: Side | null } & InAndOut)[];
+    /** By Category, the money that moved the cash and was neither income nor cost (ADR 0027); nothing where none did. */
+    outsideTheResults?: readonly ({
+      nameBn: string;
+      nameEn: string | null;
+    } & InAndOut)[];
   };
 
   producedAt: Said;
@@ -693,6 +698,15 @@ const BY_CATEGORY: Said = {
 };
 /** The heading of the month's money by Side, which holds this month alone. */
 const BY_SIDE: Said = { bn: "বিভাগ অনুযায়ী, এই মাসে", en: "By side, this month" };
+/** The heading of the month's money that moved the cash and was neither income nor cost (ADR 0027). */
+const OUTSIDE_THE_RESULTS: Said = {
+  bn: "আয়-ব্যয়ের বাইরে, এই মাসে",
+  en: "Outside the results, this month",
+};
+
+/** The month's money outside the results; none in facts read before it was kept apart. */
+const outsideOf = (facts: MonthlyReportFacts) =>
+  facts.moneyBy.outsideTheResults ?? [];
 
 /** A part of the month as a table: each line, the month beside the month before. */
 const partOf = (
@@ -971,6 +985,19 @@ export const monthlyReportPaper = (
           outMoney: row.outMoney,
         }))
       ),
+      ...(outsideOf(facts).length > 0
+        ? [
+            moneyByPart(
+              OUTSIDE_THE_RESULTS,
+              { bn: "খাত", en: "Category" },
+              outsideOf(facts).map((row) => ({
+                name: { bn: row.nameBn, en: row.nameEn ?? row.nameBn },
+                inMoney: row.inMoney,
+                outMoney: row.outMoney,
+              }))
+            ),
+          ]
+        : []),
       partOf(DAIRY, facts),
       partOf(FATTENING, facts),
       partOf(OVERHEADS, facts),
@@ -1130,6 +1157,14 @@ export const monthlyReportRows = (
       BY_SIDE,
       facts.moneyBy.side.map((row) => ({
         name: sideSaid(row.side),
+        inMoney: row.inMoney,
+        outMoney: row.outMoney,
+      }))
+    ),
+    ...moneyByRows(
+      OUTSIDE_THE_RESULTS,
+      outsideOf(facts).map((row) => ({
+        name: { bn: row.nameBn, en: row.nameEn },
         inMoney: row.inMoney,
         outMoney: row.outMoney,
       }))

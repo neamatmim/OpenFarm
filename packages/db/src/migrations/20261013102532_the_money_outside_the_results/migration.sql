@@ -1,0 +1,4 @@
+-- Money that moves the cash and is never income or cost (owner_money_in, owner_drawings, loan_received, loan_repaid,
+-- machine_bought), and the interest a loan costs (loan_interest), have standard Categories of their own (ADR 0027).
+ALTER TABLE "money_category" DROP CONSTRAINT "money_category_key_known";--> statement-breakpoint
+ALTER TABLE "money_category" ADD CONSTRAINT "money_category_key_known" CHECK ("key" IN ('dispatch', 'intake', 'buying_trip', 'selling_trip', 'sale', 'sale_broker', 'wage_draw', 'feed_in', 'medicine_purchase', 'vet_fee', 'internal_sale_in', 'internal_sale_out', 'reimbursement', 'settlement_adjustment', 'farm_share', 'farm_loss', 'venture_made_good', 'venture_capital_out', 'venture_capital_back', 'venture_capital_return', 'wages', 'rent', 'utilities', 'repairs', 'hygiene', 'equipment', 'transport', 'manure_sales', 'bank_charges', 'owner_money_in', 'owner_drawings', 'loan_received', 'loan_repaid', 'machine_bought', 'loan_interest'));

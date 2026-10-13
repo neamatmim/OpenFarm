@@ -434,7 +434,15 @@ export const EnterMoneySheet = ({
       {chosen ? (
         <>
           <div className="grid gap-4 sm:grid-cols-3">
-            <FormField id="entry-category" label={t("byHand.category")}>
+            <FormField
+              hint={
+                chosen.outsideTheResults === true
+                  ? t("byHand.outsideTheResults")
+                  : undefined
+              }
+              id="entry-category"
+              label={t("byHand.category")}
+            >
               <NativeSelect
                 id="entry-category"
                 onChange={(event) => set("categoryId")(event.target.value)}

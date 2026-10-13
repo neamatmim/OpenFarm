@@ -56,6 +56,7 @@ import {
   mayBeRetired,
   missingStandardCategories,
   accountSaid,
+  isOutsideTheResults,
 } from "../money-store";
 import { tell } from "../notice";
 import {
@@ -233,6 +234,8 @@ export const moneyEntryProcedures = {
           // Whether it is a Monthly Cost, and whether the Owner may make it one now: never a retired one, which takes
           // nothing new.
           paidMonthly: row.paidMonthlySince !== null,
+          // Money under it moves the cash and is never income or cost (ADR 0027).
+          outsideTheResults: isOutsideTheResults(row.key),
           monthlyMarkable: mayBePaidMonthly(row) && row.retiredAt === null,
         }));
       }),

@@ -2716,6 +2716,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "money.from.byHand": "হাতে লেখা",
   "byHand.title": "{currencyOf} হিসাব লিখুন",
   "byHand.category": "খাত",
+  "byHand.outsideTheResults":
+    "নগদ নড়ে, কিন্তু আয় বা ব্যয় হিসেবে ধরা হয় না: খামারের লাভ-ক্ষতির হিসাবে এটি নেই।",
   "byHand.in": "আয়",
   "byHand.out": "ব্যয়",
   "byHand.amount": "{currencySum} ({currencySign})",
@@ -4126,6 +4128,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "খামারের নিজের টাকা, হিসাবরক্ষকের সারাংশ যেভাবে যোগ করে; খাত আর বিভাগ শুধু এই মাসের।",
   "months.one.byCategory": "খাত",
   "months.one.bySide": "বিভাগ",
+  "months.one.outsideTheResults": "আয়-ব্যয়ের বাইরে",
   "months.one.wholeFarm": "পুরো খামার",
   "months.one.noMoney": "এই মাসে খামারের টাকা নড়েনি।",
   "months.one.dairy": "দুগ্ধ",

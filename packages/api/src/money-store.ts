@@ -146,7 +146,54 @@ const CATEGORIES: Record<
     nameEn: "Bank and mobile money charges",
     direction: "out",
   },
+  // Money that moves the cash and is never the Farm's income or its cost (ADR 0027).
+  owner_money_in: {
+    nameBn: "মালিকের টাকা খামারে",
+    nameEn: "Owner's money in",
+    direction: "in",
+  },
+  owner_drawings: {
+    nameBn: "মালিকের তুলে নেওয়া টাকা",
+    nameEn: "Owner's drawings",
+    direction: "out",
+  },
+  loan_received: { nameBn: "ঋণ পাওয়া", nameEn: "Loan received", direction: "in" },
+  loan_repaid: {
+    nameBn: "ঋণের আসল শোধ",
+    nameEn: "Loan principal repaid",
+    direction: "out",
+  },
+  machine_bought: {
+    nameBn: "যন্ত্র বা ঘর কেনা",
+    nameEn: "Machine or building bought",
+    direction: "out",
+  },
+  // What the loan costs: an ordinary cost of running the place, as rent is.
+  loan_interest: {
+    nameBn: "ঋণের সুদ",
+    nameEn: "Loan interest",
+    direction: "out",
+  },
 };
+
+/**
+ * The standard Categories whose money moves the cash and is never the Farm's income or its cost (ADR 0027; CONTEXT.md:
+ * **Outside the Results**): the Owner's own money in and out, a loan and its principal paid back, and a machine or a
+ * building that lasts years. The cash figures count them; no Overhead, Side Result, Cost by Side or income and expense
+ * does. A loan's interest is a cost, and is not among them.
+ */
+export const OUTSIDE_THE_RESULTS: ReadonlySet<CategoryKey> =
+  new Set<CategoryKey>([
+    "owner_money_in",
+    "owner_drawings",
+    "loan_received",
+    "loan_repaid",
+    "machine_bought",
+  ]);
+
+/** Whether money under this Category stays out of every result (ADR 0027). */
+export const isOutsideTheResults = (key: CategoryKey | null): boolean =>
+  key !== null && OUTSIDE_THE_RESULTS.has(key);
 
 /** The Categories a record books its money under. */
 const KEPT_BY_RECORDS: ReadonlySet<CategoryKey> = new Set<CategoryKey>(
@@ -208,7 +255,9 @@ export const mayBeChargedToAnimals = (category: {
   direction: MoneyDirection;
 }): boolean =>
   category.direction === "out" &&
-  !(category.key !== null && NEVER_THE_ANIMALS.has(category.key));
+  !(category.key !== null && NEVER_THE_ANIMALS.has(category.key)) &&
+  // A machine, a loan paid back, the Owner's own money: none is a cost at all, so no animal can carry it (ADR 0027).
+  !isOutsideTheResults(category.key);
 
 /**
  * Whether the Owner may mark this Category as paid every month — a **Monthly Cost** — so a month with nothing under it

@@ -333,6 +333,44 @@ describe("the Monthly Report of one month, on paper", () => {
   });
 });
 
+describe("money outside the results, on paper (ADR 0027)", () => {
+  const WITH_A_LOAN: MonthlyReportFacts = {
+    ...FACTS,
+    moneyBy: {
+      ...FACTS.moneyBy,
+      outsideTheResults: [
+        {
+          nameBn: "ঋণ পাওয়া",
+          nameEn: "Loan received",
+          inMoney: 200_000,
+          outMoney: 0,
+        },
+      ],
+    },
+  };
+
+  it("has a part of its own, by category, where any moved", () => {
+    const text = paperText(monthlyReportPaper(WITH_A_LOAN), "en");
+
+    expect(text).toContain("Outside the results, this month");
+    expect(text).toContain("Loan received · 200,000 taka · —");
+    expect(paperText(monthlyReportPaper(FACTS), "en")).not.toContain(
+      "Outside the results"
+    );
+  });
+
+  it("goes in the spreadsheet file the same way", () => {
+    const rows = monthlyReportRows(WITH_A_LOAN).filter(
+      (row) => row.part.en === "Outside the results, this month"
+    );
+
+    expect(rows).toEqual([
+      expect.objectContaining({ way: "in", thisMonth: 200_000 }),
+      expect.objectContaining({ way: "out", thisMonth: 0 }),
+    ]);
+  });
+});
+
 describe("what each Side came to, on paper", () => {
   it("sets each Side's month before and after its share of the overheads, its margins, the Ventures' share and the farm's", () => {
     const text = paperText(monthlyReportPaper(FACTS), "en");

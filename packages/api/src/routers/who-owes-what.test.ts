@@ -314,6 +314,7 @@ describe("the accountant's export", () => {
     expect(text).toContain(`${TRADER} · 30,000 taka`);
     expect(text).toContain(`${SHOP} · 5,250 taka`);
     expect(text).toContain("Total · 35,250 taka");
-    expect(text).toContain("Cash in less out · ");
+    // Income and expense in earnest: money outside the results is listed apart (ADR 0027).
+    expect(text).toContain("Income less expense · ");
   });
 });

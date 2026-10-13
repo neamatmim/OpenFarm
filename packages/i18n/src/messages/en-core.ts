@@ -2939,6 +2939,8 @@ export const enCore = {
   "money.from.byHand": "Entered by hand",
   "byHand.title": "Enter money",
   "byHand.category": "Category",
+  "byHand.outsideTheResults":
+    "Moves the cash, never counted as income or cost: the farm's results leave it out.",
   "byHand.in": "in",
   "byHand.out": "out",
   "byHand.amount": "Amount ({currencySign})",
@@ -4435,6 +4437,7 @@ export const enCore = {
     "The farm's own money, added up as the accountant's summary adds it; categories and sides for this month only.",
   "months.one.byCategory": "Category",
   "months.one.bySide": "Side",
+  "months.one.outsideTheResults": "Outside the results",
   "months.one.wholeFarm": "Whole farm",
   "months.one.noMoney": "The farm's money did not move this month.",
   "months.one.dairy": "Dairy",

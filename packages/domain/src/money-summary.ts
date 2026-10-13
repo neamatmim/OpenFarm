@@ -18,6 +18,8 @@ export interface MoneyToSummarize {
    *  both Sides split between them. */
   sides: readonly SideShare[];
   awaitingApproval: boolean;
+  /** Money that moved the cash and is neither income nor expense — the Owner's own, a loan, a machine (ADR 0027). */
+  outsideTheResults?: boolean;
 }
 
 /** Money in and money out. */
@@ -26,7 +28,10 @@ export interface InAndOut {
   outMoney: number;
 }
 
-/** The accountant's summary of a period: income against expense, by Category, Counterparty and Side. */
+/**
+ * The accountant's summary of a period: income against expense, by Category, Counterparty and Side — and, apart, the
+ * money that moved the cash without being either (ADR 0027), with the whole of the cash that moved.
+ */
 export interface MoneySummary {
   incomeMoney: number;
   expenseMoney: number;
@@ -34,6 +39,10 @@ export interface MoneySummary {
   byCategory: ({ nameBn: string; nameEn: string | null } & InAndOut)[];
   byCounterparty: ({ name: string | null } & InAndOut)[];
   bySide: ({ side: Side | null } & InAndOut)[];
+  /** By Category, the money that moved the cash and is neither income nor expense. */
+  outsideTheResults: ({ nameBn: string; nameEn: string | null } & InAndOut)[];
+  /** Everything that came in and went out, the money outside the results among it: the cash, not a result. */
+  cash: InAndOut & { netMoney: number };
   /** Money in the period the Owner has not yet approved: in the sums, and said apart — in and out
    *  apart too, because a sum of both would mean nothing. */
   awaiting: { count: number } & InAndOut;
@@ -62,29 +71,50 @@ const rounded = (totals: InAndOut): InAndOut => ({
   outMoney: roundMoney(totals.outMoney),
 });
 
+/** Each Category's in and out, named and in the order of its Bangla name. */
+const namedLines = (
+  totals: Map<string, InAndOut>,
+  names: Map<string, string | null>
+) =>
+  [...totals.entries()]
+    .map(([nameBn, line]) => ({
+      nameBn,
+      nameEn: names.get(nameBn) ?? null,
+      ...rounded(line),
+    }))
+    .toSorted((a, b) => a.nameBn.localeCompare(b.nameBn));
+
 /**
  * A period's money added up for the accountant: income and expense and what is left, by Category, by
  * Counterparty and by Side — the Dairy side, the Fattening side, and the whole farm for money that belongs
- * to neither. Money the Owner has not approved is counted, as it has moved, and counted apart as well.
+ * to neither. Money the Owner has not approved is counted, as it has moved, and counted apart as well. Money outside
+ * the results (ADR 0027) is in none of those: it is listed apart, and counted only in the cash.
  */
 export const summarizeMoney = (
   events: readonly MoneyToSummarize[]
 ): MoneySummary => {
   const all = new Map<"all", InAndOut>();
+  const cash = new Map<"cash", InAndOut>();
   const awaiting = new Map<"awaiting", InAndOut>();
   const byCategory = new Map<string, InAndOut>();
+  const outside = new Map<string, InAndOut>();
   const categoryNames = new Map<string, string | null>();
   const byCounterparty = new Map<string | null, InAndOut>();
   const bySide = new Map<Side | null, InAndOut>();
   let awaitingCount = 0;
   for (const money of events) {
-    tally(all, "all", money.direction, money.amountMoney);
+    tally(cash, "cash", money.direction, money.amountMoney);
     if (money.awaitingApproval) {
       awaitingCount += 1;
       tally(awaiting, "awaiting", money.direction, money.amountMoney);
     }
-    tally(byCategory, money.categoryBn, money.direction, money.amountMoney);
     categoryNames.set(money.categoryBn, money.categoryEn);
+    if (money.outsideTheResults === true) {
+      tally(outside, money.categoryBn, money.direction, money.amountMoney);
+      continue;
+    }
+    tally(all, "all", money.direction, money.amountMoney);
+    tally(byCategory, money.categoryBn, money.direction, money.amountMoney);
     tally(
       byCounterparty,
       money.counterpartyName,
@@ -96,17 +126,14 @@ export const summarizeMoney = (
     }
   }
   const totals = rounded(all.get("all") ?? { inMoney: 0, outMoney: 0 });
+  const moved = rounded(cash.get("cash") ?? { inMoney: 0, outMoney: 0 });
   return {
     incomeMoney: totals.inMoney,
     expenseMoney: totals.outMoney,
     netMoney: roundMoney(totals.inMoney - totals.outMoney),
-    byCategory: [...byCategory.entries()]
-      .map(([nameBn, line]) => ({
-        nameBn,
-        nameEn: categoryNames.get(nameBn) ?? null,
-        ...rounded(line),
-      }))
-      .toSorted((a, b) => a.nameBn.localeCompare(b.nameBn)),
+    byCategory: namedLines(byCategory, categoryNames),
+    outsideTheResults: namedLines(outside, categoryNames),
+    cash: { ...moved, netMoney: roundMoney(moved.inMoney - moved.outMoney) },
     byCounterparty: [...byCounterparty.entries()]
       .map(([name, line]) => ({ name, ...rounded(line) }))
       .toSorted((a, b) => (a.name ?? "").localeCompare(b.name ?? "")),
