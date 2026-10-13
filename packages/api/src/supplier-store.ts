@@ -9,7 +9,7 @@ import {
   supplierPayment,
   supplierProfile,
 } from "@OpenFarm/db/schema/supplier";
-import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf, invoiceOwingOn, startOfFarmDay } from "@OpenFarm/domain";
 import {
   supplierAging,
   supplierBalance,
@@ -344,6 +344,51 @@ export const verifyCorrectedInvoice = async (
   if (row.counterpartyId !== invoice.counterpartyId) {
     supplierRefused("supplier_invoice_supplier");
   }
+};
+
+/**
+ * Every Supplier Invoice dated by the end of a farm day, with what it still owed at that day's end (CONTEXT.md: **Owed
+ * to Suppliers**): the feed come against it by then, less what was paid at the gate and on the bill by then. A bill paid
+ * up by then owes nothing and is left out. What the monthly report ages and the accountant's summary names.
+ */
+export const supplierBillsAt = async (
+  db: Database | Tx,
+  farmId: string,
+  asOf: string
+) => {
+  const invoices = await db.query.supplierInvoice.findMany({
+    where: { farmId, invoicedOn: { lte: asOf } },
+    columns: { id: true, invoicedOn: true, dueOn: true },
+    with: {
+      supplier: { columns: { name: true } },
+      deliveries: {
+        columns: {
+          receivedOn: true,
+          priceMoney: true,
+          paidAtDeliveryMoney: true,
+        },
+      },
+      payments: { columns: { paidOn: true, amountMoney: true } },
+    },
+    orderBy: { invoicedOn: "asc", id: "asc" },
+  });
+  return invoices
+    .map((invoice) => ({
+      supplierName: invoice.supplier.name,
+      invoicedOn: invoice.invoicedOn,
+      dueOn: invoice.dueOn,
+      owingMoney: invoiceOwingOn(
+        {
+          deliveries: invoice.deliveries.map((one) => ({
+            ...one,
+            receivedOn: farmDayOf(one.receivedOn),
+          })),
+          payments: invoice.payments,
+        },
+        asOf
+      ),
+    }))
+    .filter((bill) => bill.owingMoney > 0);
 };
 
 export const suppliersList = async (

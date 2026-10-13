@@ -20,6 +20,7 @@ import {
   monthsFromTo,
   monthsOfFinancialYear,
   monthsReturnOf,
+  owedToSuppliersByAge,
   receivablesByAge,
   roundMoney,
   sideResultsOf,
@@ -54,6 +55,7 @@ import {
 } from "./receivable-store";
 import { approvedSettlementOf } from "./settlement-store";
 import { movementsByItem } from "./stock-store";
+import { supplierBillsAt } from "./supplier-store";
 import { planAgainstActual } from "./venture-plan-store";
 import { ownedThenByOf, ownersOverTime } from "./venture-store";
 import { yearRulesOf } from "./year-store";
@@ -236,7 +238,7 @@ const cashAt = async (db: Database, farmId: string, at: Date) => {
 
 /**
  * Where the Farm stood at the end of a stretch — or now, for one still going (ADR 0023): what buyers owed, by age, what
- * the store held, in taka, the Farm's own money, and what it had tied up, at cost.
+ * it owed its Suppliers, by age, what the store held, in taka, the Farm's own money, and what it had tied up, at cost.
  */
 const atTheEndOf = async (
   db: Database,
@@ -249,8 +251,9 @@ const atTheEndOf = async (
   // Its last moment, and the farm day it ended on: its last, or today.
   const last = new Date(end.getTime() - 1);
   const lastDay = farmDayOf(last);
-  const [buyers, feed, medicine, cash] = await Promise.all([
+  const [buyers, bills, feed, medicine, cash] = await Promise.all([
     receivableOfBuyers(db, farm.id, { asOf: lastDay }),
+    supplierBillsAt(db, farm.id, lastDay),
     movementsByItem(db, farm.id),
     // Every count up to then set against it: no count is being put right.
     bookAt(db, farm.id, last, ""),
@@ -261,6 +264,7 @@ const atTheEndOf = async (
     lastDay,
     farm.receivableDays
   );
+  const owedToSuppliers = owedToSuppliersByAge(bills, lastDay);
   const store = storeValueOf({
     feed: [...feed.values()].map((movements) => stockLedger(movements, last)),
     medicine: [...medicine.values()],
@@ -268,16 +272,19 @@ const atTheEndOf = async (
   return {
     /** What buyers owed at its end, by the days since each Sale or Dispatch left, and what of it was overdue. */
     receivables,
+    /** What the Farm owed its Suppliers at its end, by the days since each bill's date, and what of it was past due. */
+    owedToSuppliers,
     /** What the store held at its end: the feed at its average price, the medicine at a dose's. */
     store,
     /** What the Farm had tied up at its end, at cost: its animals by Side, its capital in Ventures, the store, the
-     *  Receivables. */
+     *  Receivables — less what it owed its Suppliers for feed not yet paid for. */
     capital: capitalEmployedOf({
       at: last,
       animals: animalsAt(books, last),
       venturesMoney: venturesCapitalAt(books, end),
       storeMoney: store.totalMoney,
       receivablesMoney: receivables.owingMoney,
+      owedToSuppliersMoney: owedToSuppliers.owingMoney,
     }),
     /** The Farm's own money at its end: in the hands, less the Ventures', and in its Farm Accounts. */
     cash,

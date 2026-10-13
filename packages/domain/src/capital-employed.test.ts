@@ -21,6 +21,7 @@ describe("the money the Farm had tied up, at cost", () => {
       venturesMoney: 0,
       storeMoney: 0,
       receivablesMoney: 0,
+      owedToSuppliersMoney: 0,
     });
     expect(capital.fatteningMoney).toBe(53_000);
   });
@@ -47,6 +48,7 @@ describe("the money the Farm had tied up, at cost", () => {
       venturesMoney: 0,
       storeMoney: 0,
       receivablesMoney: 0,
+      owedToSuppliersMoney: 0,
     });
     expect(capital.dairyMoney).toBe(92_500);
   });
@@ -71,6 +73,7 @@ describe("the money the Farm had tied up, at cost", () => {
       venturesMoney: 0,
       storeMoney: 0,
       receivablesMoney: 0,
+      owedToSuppliersMoney: 0,
     });
     expect(capital).toMatchObject({
       dairyMoney: 0,
@@ -87,6 +90,7 @@ describe("the money the Farm had tied up, at cost", () => {
         venturesMoney: 100_000,
         storeMoney: 45_000,
         receivablesMoney: 36_000,
+        owedToSuppliersMoney: 0,
       })
     ).toEqual({
       dairyMoney: 0,
@@ -94,9 +98,24 @@ describe("the money the Farm had tied up, at cost", () => {
       venturesMoney: 100_000,
       storeMoney: 45_000,
       receivablesMoney: 36_000,
+      owedToSuppliersMoney: 0,
       totalMoney: 181_000,
       unpriced: 0,
     });
+  });
+
+  it("takes off what the Farm owed its Suppliers: feed come on credit is in the store, but not yet its own money", () => {
+    const capital = capitalEmployedOf({
+      at: AT,
+      animals: [],
+      venturesMoney: 100_000,
+      storeMoney: 45_000,
+      receivablesMoney: 36_000,
+      owedToSuppliersMoney: 20_000,
+    });
+
+    expect(capital.owedToSuppliersMoney).toBe(20_000);
+    expect(capital.totalMoney).toBe(161_000);
   });
 });
 
@@ -121,6 +140,7 @@ describe("what the capital made in a month", () => {
       venturesMoney: 500_000,
       storeMoney: 0,
       receivablesMoney: 0,
+      owedToSuppliersMoney: 0,
     });
 
   it("is a Side's result after overheads over the mean of its capital at the month's start and end, for every hundred taka", () => {

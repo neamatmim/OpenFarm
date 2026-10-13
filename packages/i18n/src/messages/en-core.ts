@@ -3049,7 +3049,7 @@ export const enCore = {
   "accountant.csv": "Every money event",
   "accountant.hint": "For the period chosen above.",
   "accountant.summaryHint":
-    "Income against expense by category, counterparty and side, and who owed the farm at the period's end, on the farm's letterhead to print or save as a PDF.",
+    "Income against expense by category, counterparty and side, who owed the farm at the period's end and whom it owed, on the farm's letterhead to print or save as a PDF.",
   "accountant.csvHint":
     "One row to each money event, with the record behind it, its side and account, and whether it is approved, to open in a spreadsheet.",
   "exports.csv": "Download CSV",
@@ -4446,7 +4446,7 @@ export const enCore = {
   "months.one.overheadsShare": "Share of overheads",
   "months.one.afterOverheads": "After overheads",
   "months.one.venturesDays": "The ventures' animals' days",
-  "months.one.receivables": "Owed at the month's end, by age",
+  "months.one.receivables": "Owed by buyers at the month's end, by age",
   "months.one.receivablesHint":
     "What buyers still owed on the month's last day, by the days since each sale or milk dispatch left, and what of it was past the day promised.",
   "months.one.age.0-7": "0–7 days",
@@ -4456,6 +4456,12 @@ export const enCore = {
   "months.one.age.over-60": "Over 60 days",
   "months.one.owedInAll": "Owed in all",
   "months.one.ofItOverdue": "Of it overdue",
+  "months.one.owedToSuppliersByAge":
+    "Owed to suppliers at the month's end, by age",
+  "months.one.owedToSuppliersHint":
+    "What the farm still owed its suppliers on the month's last day for feed on their bills, by the days since each bill's date, and what of it was past its due day.",
+  "months.one.owedToSuppliersInAll": "Owed to suppliers in all",
+  "months.one.pastItsDueDay": "Of it past its due day",
   "months.one.store": "The store at the month's end",
   "months.one.storeHint":
     "What the store held on the month's last day: the feed at its average price, the medicine at what a dose cost — the prices the animals are charged at.",
@@ -4488,6 +4494,8 @@ export const enCore = {
   "months.one.inVentures": "In ventures",
   "months.one.theStore": "The store",
   "months.one.owedByBuyers": "Owed by buyers",
+  "months.one.owedToSuppliers": "Owed to suppliers",
+  "months.one.owedToSuppliersTakenOff": "Owed to suppliers, taken off",
   "months.one.capitalInAll": "Capital in all",
   "months.one.unpricedAnimals":
     "{amount, plural, one {# animal was never priced, and counts in the capital at its charges alone} other {# animals were never priced, and count in the capital at their charges alone}}",

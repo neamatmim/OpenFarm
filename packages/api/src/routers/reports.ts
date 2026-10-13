@@ -5,6 +5,7 @@ import {
   farmTimeOf,
   milkDispatchPaper,
   roundLiters,
+  roundMoney,
   summarizeMoney,
 } from "@OpenFarm/domain";
 import { z } from "zod";
@@ -22,6 +23,7 @@ import { madeOn } from "../paper-values";
 import { periodInput, periodOf } from "../period";
 import { receivableOfBuyers } from "../receivable-store";
 import { requirePersonalSession, requireRole } from "../roles";
+import { supplierBillsAt } from "../supplier-store";
 
 type FarmContext = Context & { farm: NonNullable<Context["farm"]> };
 
@@ -32,10 +34,19 @@ const accountantPaper = async (
   period: { from: string; to: string },
   summary: MoneySummary
 ) => {
-  // Who still owed what on the period's last day, as the buyers' payments up to then had left it.
-  const book = await receivableOfBuyers(context.db, context.farm.id, {
-    asOf: period.to,
-  });
+  // Who still owed what on the period's last day, as the buyers' payments up to then had left it; and whom the farm
+  // still owed, as its payments up to then had left each bill.
+  const [book, bills] = await Promise.all([
+    receivableOfBuyers(context.db, context.farm.id, { asOf: period.to }),
+    supplierBillsAt(context.db, context.farm.id, period.to),
+  ]);
+  const owedTo = new Map<string, number>();
+  for (const bill of bills) {
+    owedTo.set(
+      bill.supplierName,
+      roundMoney((owedTo.get(bill.supplierName) ?? 0) + bill.owingMoney)
+    );
+  }
   return accountantSummaryPaper({
     farm: context.farm,
     from: period.from,
@@ -44,6 +55,11 @@ const accountantPaper = async (
     receivableAtTheEnd: book
       .filter((buyer) => buyer.owingMoney > 0)
       .map((buyer) => ({ name: buyer.name, owingMoney: buyer.owingMoney }))
+      .toSorted(
+        (a, b) => b.owingMoney - a.owingMoney || a.name.localeCompare(b.name)
+      ),
+    owedToSuppliersAtTheEnd: [...owedTo]
+      .map(([name, owingMoney]) => ({ name, owingMoney }))
       .toSorted(
         (a, b) => b.owingMoney - a.owingMoney || a.name.localeCompare(b.name)
       ),

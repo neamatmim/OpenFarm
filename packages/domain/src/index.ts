@@ -1063,6 +1063,8 @@ export type { SideResult, SideResults } from "./side-results";
 export { sideResultsOf } from "./side-results";
 export type { ReceivableAge, ReceivablesByAge } from "./receivable-ages";
 export { RECEIVABLE_AGES, receivablesByAge } from "./receivable-ages";
+export type { OwedToSuppliers } from "./owed-to-suppliers";
+export { invoiceOwingOn, owedToSuppliersByAge } from "./owed-to-suppliers";
 export type { StoreValue } from "./store-value";
 export { storeValueOf } from "./store-value";
 export type { CashFlow, CashPosition } from "./cash-position";

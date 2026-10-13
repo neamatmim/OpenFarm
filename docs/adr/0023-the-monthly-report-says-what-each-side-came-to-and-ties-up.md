@@ -22,3 +22,12 @@ On 2026-10-09 the Owner asked for more management figures on the monthly report:
 - CONTEXT.md gains **Side Result**, **Cash Position** and **Capital Employed**. The **Overhead** and **Receivable** entries say how the report uses them.
 - `MonthFigures` grows a Summary, Side Results, a position at the month's end (cash, Receivables by age, the store, Capital Employed) and the cash flow. The paper and the CSV read the same parts, as before.
 - Nothing is stored and nothing is migrated. Every figure is worked out on read from what the farm already keeps.
+
+## Addendum, 2026-10-13: what the Farm owes its Suppliers
+
+ADR 0026 (2026-10-12) let feed come on a Supplier's bill, after this ADR was written. The store counts that feed at its
+price, so Capital Employed counted money the Farm had not yet spent as its own. **Capital Employed** now takes off what
+the Farm owed its Suppliers at the moment: it is the Farm's *own* money tied up, and a Supplier's credit is not. The
+monthly report says **Owed to Suppliers** at each month's end, aged by the days since each bill's date in the ages
+Receivables are read in, with what was past its due day beside them, and the accountant's summary names each Supplier
+still owed. Only feed bills are kept (ADR 0026); other bills on credit wait for their own work.

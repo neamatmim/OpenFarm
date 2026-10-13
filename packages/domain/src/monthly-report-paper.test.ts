@@ -69,6 +69,17 @@ const FIGURES = {
         { age: "over-60" as const, owingMoney: 0 },
       ],
     },
+    owedToSuppliers: {
+      owingMoney: 38_000,
+      overdueMoney: 30_000,
+      ages: [
+        { age: "0-7" as const, owingMoney: 8000 },
+        { age: "8-15" as const, owingMoney: 0 },
+        { age: "16-30" as const, owingMoney: 30_000 },
+        { age: "31-60" as const, owingMoney: 0 },
+        { age: "over-60" as const, owingMoney: 0 },
+      ],
+    },
     store: {
       feedMoney: 40_000,
       medicineMoney: 5000,
@@ -89,7 +100,8 @@ const FIGURES = {
       venturesMoney: 100_000,
       storeMoney: 45_000,
       receivablesMoney: 36_000,
-      totalMoney: 184_000,
+      owedToSuppliersMoney: 38_000,
+      totalMoney: 146_000,
       unpriced: 1,
     },
   },
@@ -152,6 +164,17 @@ const NOTHING = {
         { age: "over-60" as const, owingMoney: 0 },
       ],
     },
+    owedToSuppliers: {
+      owingMoney: 0,
+      overdueMoney: 0,
+      ages: [
+        { age: "0-7" as const, owingMoney: 0 },
+        { age: "8-15" as const, owingMoney: 0 },
+        { age: "16-30" as const, owingMoney: 0 },
+        { age: "31-60" as const, owingMoney: 0 },
+        { age: "over-60" as const, owingMoney: 0 },
+      ],
+    },
     store: { feedMoney: 0, medicineMoney: 0, totalMoney: 0, unpriced: 0 },
     cash: {
       inHandsMoney: 0,
@@ -167,6 +190,7 @@ const NOTHING = {
       venturesMoney: 0,
       storeMoney: 0,
       receivablesMoney: 0,
+      owedToSuppliersMoney: 0,
       totalMoney: 0,
       unpriced: 0,
     },
@@ -340,7 +364,7 @@ describe("what buyers owed at the month's end, on paper", () => {
   it("sets each age beside the month before's, the whole and what of it was overdue", () => {
     const text = paperText(monthlyReportPaper(FACTS), "en");
 
-    expect(text).toContain("Owed at the month's end, by age");
+    expect(text).toContain("Owed by buyers at the month's end, by age");
     expect(text).toContain("8–15 days · 30,000 taka · 0 taka");
     expect(text).toContain("Over 60 days · 0 taka · 0 taka");
     expect(text).toContain("Owed in all · 36,000 taka · 0 taka");
@@ -350,9 +374,27 @@ describe("what buyers owed at the month's end, on paper", () => {
   it("says the ages in Bangla", () => {
     const text = paperText(monthlyReportPaper(FACTS), "bn");
 
-    expect(text).toContain("মাস শেষে বাকি, কত দিনের");
+    expect(text).toContain("মাস শেষে ক্রেতাদের কাছে বাকি, কত দিনের");
     expect(text).toContain("১৬–৩০ দিন · ৬,০০০ টাকা · ০ টাকা");
     expect(text).toContain("৬০ দিনের বেশি");
+  });
+});
+
+describe("what the farm owed its suppliers at the month's end, on paper", () => {
+  it("sets each age beside the month before's, the whole and what of it was past its day", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(text).toContain("Owed to suppliers at the month's end, by age");
+    expect(text).toContain("0–7 days · 8,000 taka · 0 taka");
+    expect(text).toContain("Owed to suppliers in all · 38,000 taka · 0 taka");
+    expect(text).toContain("Of it past its due day · 30,000 taka · 0 taka");
+  });
+
+  it("says it in Bangla", () => {
+    const text = paperText(monthlyReportPaper(FACTS), "bn");
+
+    expect(text).toContain("মাস শেষে সরবরাহকারীদের কাছে দেনা, কত দিনের");
+    expect(text).toContain("সরবরাহকারীদের কাছে মোট দেনা · ৩৮,০০০ টাকা · ০ টাকা");
   });
 });
 
@@ -418,7 +460,10 @@ describe("what the farm had tied up, and what it made on it, on paper", () => {
     expect(text).toContain("Capital employed at the month's end, at cost");
     expect(text).toContain("The dairy herd · 3,000 taka · 0 taka");
     expect(text).toContain("In ventures · 100,000 taka · 0 taka");
-    expect(text).toContain("Capital in all · 184,000 taka · 0 taka");
+    expect(text).toContain(
+      "Owed to suppliers, taken off · 38,000 taka · 0 taka"
+    );
+    expect(text).toContain("Capital in all · 146,000 taka · 0 taka");
     expect(text).toContain(
       "1 animal was never priced, and counts in the capital at its charges alone."
     );
@@ -590,12 +635,27 @@ describe("the Monthly Report of one month, a row a figure", () => {
 
     expect(rows).toContainEqual({
       part: {
-        bn: "মাস শেষে বাকি, কত দিনের",
-        en: "Owed at the month's end, by age",
+        bn: "মাস শেষে ক্রেতাদের কাছে বাকি, কত দিনের",
+        en: "Owed by buyers at the month's end, by age",
       },
       line: { bn: "১৬–৩০ দিন", en: "16–30 days" },
       way: null,
       thisMonth: 6000,
+      monthBefore: 0,
+    });
+  });
+
+  it("says what the farm owed its suppliers at each month's end by age", () => {
+    const rows = monthlyReportRows(FACTS);
+
+    expect(rows).toContainEqual({
+      part: {
+        bn: "মাস শেষে সরবরাহকারীদের কাছে দেনা, কত দিনের",
+        en: "Owed to suppliers at the month's end, by age",
+      },
+      line: { bn: "১৬–৩০ দিন", en: "16–30 days" },
+      way: null,
+      thisMonth: 30_000,
       monthBefore: 0,
     });
   });

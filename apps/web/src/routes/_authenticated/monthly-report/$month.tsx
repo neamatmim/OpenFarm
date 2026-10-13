@@ -129,6 +129,14 @@ const TheMonth = ({ one }: { one: OneMonth }) => {
           <MonthPart {...at} lines={lines.receivables} />
         </Section>
       ) : null}
+      {kept.atEnd?.owedToSuppliers ? (
+        <Section
+          description={t("months.one.owedToSuppliersHint")}
+          title={t("months.one.owedToSuppliersByAge")}
+        >
+          <MonthPart {...at} lines={lines.owedToSuppliers} />
+        </Section>
+      ) : null}
       {kept.atEnd ? (
         <Section
           description={t("months.one.storeHint")}

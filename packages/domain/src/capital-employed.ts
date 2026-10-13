@@ -17,7 +17,9 @@ export interface CapitalAnimal {
  * The Farm's own money tied up at a moment, at cost (CONTEXT.md: **Capital Employed**; ADR 0023): each fattening
  * Animal standing at her price and every charge to her before it — she is stock; each dairy Animal standing at her entry
  * price and what she was charged until she first calved, or so far — she is the herd; the Farm Capital in Ventures still
- * running, the store and what buyers owe. Cash is not among it. One never priced counts nothing, and is counted.
+ * running, the store and what buyers owe — less what the Farm owed its Suppliers, whose feed stands in the store at its
+ * price but was not yet paid for with the Farm's own money (ADR 0026). Cash is not among it. One never priced counts
+ * nothing, and is counted.
  */
 export const capitalEmployedOf = ({
   at,
@@ -25,12 +27,15 @@ export const capitalEmployedOf = ({
   venturesMoney,
   storeMoney,
   receivablesMoney,
+  owedToSuppliersMoney,
 }: {
   at: Date;
   animals: readonly CapitalAnimal[];
   venturesMoney: number;
   storeMoney: number;
   receivablesMoney: number;
+  /** What the Farm owed its Suppliers at the moment, for feed come on credit. */
+  owedToSuppliersMoney: number;
 }) => {
   const costOf = (animal: CapitalAnimal) => {
     const until =
@@ -60,12 +65,14 @@ export const capitalEmployedOf = ({
     venturesMoney,
     storeMoney,
     receivablesMoney,
+    owedToSuppliersMoney,
     totalMoney: roundMoney(
       dairyMoney +
         fatteningMoney +
         venturesMoney +
         storeMoney +
-        receivablesMoney
+        receivablesMoney -
+        owedToSuppliersMoney
     ),
     /** Animals standing, on either Side, with no price the Owner entered: counted at their charges alone above. */
     unpriced: animals.filter((one) => one.takenOnMoney === null).length,

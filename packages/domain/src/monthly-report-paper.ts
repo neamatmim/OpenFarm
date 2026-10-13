@@ -11,6 +11,7 @@ import type { Side } from "./lifecycle";
 import { roundMoney } from "./money";
 import { changeBetween } from "./month-change";
 import { daySaid } from "./nominees";
+import type { OwedToSuppliers } from "./owed-to-suppliers";
 import { letterheadOf } from "./paper-template";
 import type { PaperDocument, PaperSection } from "./paper-template";
 import type { Said, Worded } from "./papers";
@@ -54,6 +55,8 @@ export interface MonthFigures {
   /** Where the Farm stood at the stretch's end — or now, for one still going. */
   atEnd: {
     receivables: ReceivablesByAge;
+    /** What the farm owed its Suppliers at the end, by age. */
+    owedToSuppliers: OwedToSuppliers;
     store: StoreValue;
     cash: CashPosition;
     capital: CapitalEmployed;
@@ -250,6 +253,11 @@ const SUMMARY: Part = {
       of: (one) => one.atEnd.receivables.owingMoney,
     },
     {
+      label: { bn: "সরবরাহকারীদের কাছে দেনা", en: "Owed to suppliers" },
+      kind: "sum",
+      of: (one) => one.atEnd.owedToSuppliers.owingMoney,
+    },
+    {
       label: { bn: "ভান্ডার", en: "The store" },
       kind: "sum",
       of: (one) => one.atEnd.store.totalMoney,
@@ -405,8 +413,8 @@ const AGE_SAID: Record<ReceivableAge, Said> = {
 /** What buyers owed at the month's end, by the days since it left, the whole, and what of it was overdue. */
 const RECEIVABLES: Part = {
   heading: {
-    bn: "মাস শেষে বাকি, কত দিনের",
-    en: "Owed at the month's end, by age",
+    bn: "মাস শেষে ক্রেতাদের কাছে বাকি, কত দিনের",
+    en: "Owed by buyers at the month's end, by age",
   },
   lines: [
     ...RECEIVABLE_AGES.map(({ age }) => ({
@@ -425,6 +433,40 @@ const RECEIVABLES: Part = {
       label: { bn: "এর মধ্যে মেয়াদ পেরোনো", en: "Of it overdue" },
       kind: "sum",
       of: (one) => one.atEnd.receivables.overdueMoney,
+    },
+  ],
+};
+
+/** What the farm owed its Suppliers at the month's end, by the days since each bill's date, the whole, and what of it
+ *  was past its due day (CONTEXT.md: **Owed to Suppliers**). */
+const OWED_TO_SUPPLIERS: Part = {
+  heading: {
+    bn: "মাস শেষে সরবরাহকারীদের কাছে দেনা, কত দিনের",
+    en: "Owed to suppliers at the month's end, by age",
+  },
+  lines: [
+    ...RECEIVABLE_AGES.map(({ age }) => ({
+      label: AGE_SAID[age],
+      kind: "sum" as const,
+      of: (one: MonthFigures) =>
+        one.atEnd.owedToSuppliers.ages.find((each) => each.age === age)
+          ?.owingMoney ?? 0,
+    })),
+    {
+      label: {
+        bn: "সরবরাহকারীদের কাছে মোট দেনা",
+        en: "Owed to suppliers in all",
+      },
+      kind: "sum",
+      of: (one) => one.atEnd.owedToSuppliers.owingMoney,
+    },
+    {
+      label: {
+        bn: "এর মধ্যে পরিশোধের দিন পেরোনো",
+        en: "Of it past its due day",
+      },
+      kind: "sum",
+      of: (one) => one.atEnd.owedToSuppliers.overdueMoney,
     },
   ],
 };
@@ -533,6 +575,14 @@ const CAPITAL: Part = {
       label: { bn: "ক্রেতাদের কাছে বাকি", en: "Owed by buyers" },
       kind: "sum",
       of: (one) => one.atEnd.capital.receivablesMoney,
+    },
+    {
+      label: {
+        bn: "সরবরাহকারীদের কাছে দেনা, বাদ",
+        en: "Owed to suppliers, taken off",
+      },
+      kind: "sum",
+      of: (one) => one.atEnd.capital.owedToSuppliersMoney,
     },
     {
       label: { bn: "মোট পুঁজি", en: "Capital in all" },
@@ -894,6 +944,7 @@ export const monthlyReportPaper = (
       partOf(CASH_FLOW, facts),
       partOf(CASH, facts),
       partOf(RECEIVABLES, facts),
+      partOf(OWED_TO_SUPPLIERS, facts),
       partOf(STORE, facts),
       partOf(CAPITAL, facts),
       partOf(MONTHS_RETURN, facts),
@@ -1056,6 +1107,7 @@ export const monthlyReportRows = (
     ...rowsOf(CASH_FLOW),
     ...rowsOf(CASH),
     ...rowsOf(RECEIVABLES),
+    ...rowsOf(OWED_TO_SUPPLIERS),
     ...rowsOf(STORE),
     ...rowsOf(CAPITAL),
     ...rowsOf(MONTHS_RETURN),

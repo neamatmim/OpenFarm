@@ -2820,7 +2820,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "accountant.csv": "সব {currencyOf} হিসাব",
   "accountant.hint": "ওপরে বেছে নেওয়া সময়ের।",
   "accountant.summaryHint":
-    "খাত, লেনদেনকারী ও বিভাগ অনুযায়ী আয় আর ব্যয়, আর সময়কালের শেষে খামারের পাওনা, খামারের প্যাডে প্রিন্ট বা PDF করার জন্য।",
+    "খাত, লেনদেনকারী ও বিভাগ অনুযায়ী আয় আর ব্যয়, আর সময়কালের শেষে খামারের পাওনা ও সরবরাহকারীদের কাছে দেনা, খামারের প্যাডে প্রিন্ট বা PDF করার জন্য।",
   "accountant.csvHint":
     "প্রতিটি {currencyOf} হিসাব এক সারিতে, পেছনের রেকর্ড, বিভাগ, অ্যাকাউন্ট আর অনুমোদন হয়েছে কি না সহ, স্প্রেডশিটে খোলার জন্য।",
   "exports.csv": "CSV ডাউনলোড",
@@ -4137,7 +4137,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.overheadsShare": "পরিচালন খরচের ভাগ",
   "months.one.afterOverheads": "পরিচালন খরচের পরে",
   "months.one.venturesDays": "ভেঞ্চারের পশুর দিন",
-  "months.one.receivables": "মাস শেষে বাকি, কত দিনের",
+  "months.one.receivables": "মাস শেষে ক্রেতাদের কাছে বাকি, কত দিনের",
   "months.one.receivablesHint":
     "মাসের শেষ দিনে ক্রেতাদের কাছে যত বাকি, প্রতিটি বিক্রি বা দুধ পাঠানোর পর কত দিন হলো সেই হিসাবে; আর তার কতটা কথা দেওয়া দিন পেরিয়েছে।",
   "months.one.age.0-7": "০–৭ দিন",
@@ -4147,6 +4147,11 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.age.over-60": "৬০ দিনের বেশি",
   "months.one.owedInAll": "মোট বাকি",
   "months.one.ofItOverdue": "এর মধ্যে মেয়াদ পেরোনো",
+  "months.one.owedToSuppliersByAge": "মাস শেষে সরবরাহকারীদের কাছে দেনা, কত দিনের",
+  "months.one.owedToSuppliersHint":
+    "মাসের শেষ দিনে সরবরাহকারীদের বিলে খাদ্যের জন্য খামারের যত দেনা, প্রতিটি বিলের তারিখের পর কত দিন হলো সেই হিসাবে; আর তার কতটা পরিশোধের দিন পেরিয়েছে।",
+  "months.one.owedToSuppliersInAll": "সরবরাহকারীদের কাছে মোট দেনা",
+  "months.one.pastItsDueDay": "এর মধ্যে পরিশোধের দিন পেরোনো",
   "months.one.store": "মাস শেষে ভান্ডার",
   "months.one.storeHint":
     "মাসের শেষ দিনে ভান্ডারে যা ছিল: খাদ্য তার গড় দামে, ওষুধ এক ডোজের দামে — যে দামে পশুর খরচ ধরা হয়।",
@@ -4179,6 +4184,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.inVentures": "ভেঞ্চারে",
   "months.one.theStore": "ভান্ডার",
   "months.one.owedByBuyers": "ক্রেতাদের কাছে বাকি",
+  "months.one.owedToSuppliers": "সরবরাহকারীদের কাছে দেনা",
+  "months.one.owedToSuppliersTakenOff": "সরবরাহকারীদের কাছে দেনা, বাদ",
   "months.one.capitalInAll": "মোট পুঁজি",
   "months.one.unpricedAnimals":
     "{amount}টি পশুর কোনো দাম দেওয়া হয়নি; পুঁজিতে শুধু তার খরচ ধরা হয়েছে",
