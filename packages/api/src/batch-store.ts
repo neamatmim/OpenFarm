@@ -8,6 +8,7 @@ import { audited } from "./audit";
 import type { Recorder } from "./completion-store";
 import { correct } from "./corrections/correction";
 import { stepCorrection } from "./corrections/step-completion";
+import { animalPhotoEntry } from "./entries/animal-photo";
 import { claimEntry } from "./entries/claim";
 import type { EntryKind, EntryRefusal } from "./entries/entry";
 import { recordHeld, refusalOf } from "./entries/entry";
@@ -55,6 +56,7 @@ const ENTRIES = {
   completion_photo: stepPhotoEntry,
   animal_move: moveEntry,
   observation: observationEntry,
+  animal_photo: animalPhotoEntry,
 } as const satisfies Record<Exclude<SyncKind, "step_correction">, unknown>;
 
 /**
@@ -116,8 +118,12 @@ const entryAfter = (entry: Entry): Record<string, unknown> => {
   // The image itself never goes in the trail: a megabyte of base64 in an Audit Event would
   // make it unreadable to the people who most need to read it. What it was, and which slot
   // it answered, is the part worth keeping.
-  const rest =
-    entry.kind === "completion_photo" ? { ...entry, data: undefined } : entry;
+  let rest: Record<string, unknown> = entry;
+  if (entry.kind === "completion_photo") {
+    rest = { ...entry, data: undefined };
+  } else if (entry.kind === "animal_photo") {
+    rest = { ...entry, data: undefined, thumb: undefined };
+  }
   // Nor the switch token: it proves who recorded it, and a proof written into a record anybody can read is a proof
   // anybody can use.
   return {
@@ -141,7 +147,11 @@ const tagOfEntry = (entry: Entry): string | null => {
   if (entry.kind === "step_completion") {
     return entry.animalTag ?? null;
   }
-  if (entry.kind === "animal_move" || entry.kind === "observation") {
+  if (
+    entry.kind === "animal_move" ||
+    entry.kind === "observation" ||
+    entry.kind === "animal_photo"
+  ) {
     return entry.tagNumber;
   }
   return null;

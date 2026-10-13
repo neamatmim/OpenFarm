@@ -1100,6 +1100,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "ভেঞ্চারের পশুর বিক্রির সময় ভেঞ্চারেরই; তা বদলায় সংশোধনী দিয়ে, পশু তোলার সময় নয়",
   "refusal.windowNeeded":
     "পশুটি এখন খামারের নিজের: খামার কবে বিক্রি করবে সেই সময় লিখুন",
+  "refusal.newerPhotoKept":
+    "এই ছবির পরে কেউ তার নতুন ছবি তুলেছেন; নতুন ছবিটিই তার পাতায় থাকবে",
   "refusal.sheIsGone":
     "গরুটি আর খামারে নেই — বিক্রি হয়েছে, মারা গেছে বা বাদ দেওয়া হয়েছে; তার নামে আর কিছু লেখা যায় না",
   "refusal.sheIsReadyForSale":
@@ -1585,6 +1587,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "animals.photo": "ছবি",
   "animals.photoTake": "ছবি তুলুন",
   "animals.photoSaved": "ছবি সংরক্ষিত",
+  "animals.photoQueued": "ছবিটি এই ফোনে রাখা হলো — সংযোগ পেলেই পাঠানো হবে",
   "animals.moveFromWork": "কাজ থেকে",
   "animals.kpi.herd": "খামারে আছে",
   "animals.kpi.herdHint": "যারা চলে গেছে তারা বাদে",
@@ -1595,6 +1598,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "animals.filter.allPens": "সব পেন",
   "animals.filter.anyHold": "আটকে বা মুক্ত — সব",
   "animals.filter.held": "যেকোনো কিছু আটকে",
+  "animals.filter.anyPhoto": "ছবি আছে বা নেই — সব",
+  "animals.filter.noPhoto": "এখনো ছবি নেই",
   "animals.filter.clear": "ফিল্টার মুছুন",
   "animals.filter.open": "ফিল্টার",
   "animals.age": "বয়স",
@@ -3522,6 +3527,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "review.held.animal_move": "একটি সরানো",
   "review.held.observation": "একটি দেখা",
   "review.held.step_correction": "একটি ধাপ ঠিক করা",
+  "review.held.animal_photo": "একটি পশুর ছবি",
   "review.heldBy": "{name} লিখেছেন",
   "review.takeIn": "রেকর্ডে নিন",
   "review.takeInHint":

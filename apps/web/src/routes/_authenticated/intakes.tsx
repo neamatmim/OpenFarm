@@ -35,10 +35,11 @@ import { momentOfField } from "@/lib/farm-moment";
 import { matchesFormFields } from "@/lib/form-draft";
 import { onlyFor } from "@/lib/guard";
 import { shrinkAnimalPhoto } from "@/lib/photo";
+import { sendOrKeepAnimalPhoto } from "@/lib/record-offline";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { draftKeyFor, useFormDraft } from "@/lib/use-form-draft";
-import { orpc } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
 
 /**
  * The button at the foot of the form on a phone and a tablet, held in sight the whole way down it — above the phone's
@@ -103,7 +104,6 @@ const IntakePage = () => {
   );
   const noQuarantinePen = sheds.data !== undefined && pens.length === 0;
 
-  const setItsPhoto = useMutation(orpc.animals.setPhoto.mutationOptions({}));
   const record = useMutation(
     orpc.intakes.record.mutationOptions({
       onSuccess: async (taken) => {
@@ -113,11 +113,15 @@ const IntakePage = () => {
         // animal is on the farm either way, and its page will ask for one.
         if (photo) {
           try {
-            // Shrunk on the phone, with a thumbnail for the herd's lists: the camera's file would go up whole.
-            await setItsPhoto.mutateAsync({
-              tagNumber: taken.tagNumber,
-              ...(await shrinkAnimalPhoto(photo)),
-            });
+            // Shrunk on the phone, with a thumbnail for the herd's lists: the camera's file would go up whole. The
+            // signal at a lorry comes and goes; a photo it drops is kept on the phone and goes when it is back.
+            await sendOrKeepAnimalPhoto(
+              {
+                tagNumber: taken.tagNumber,
+                ...(await shrinkAnimalPhoto(photo)),
+              },
+              (herPhoto) => client.animals.setPhoto(herPhoto)
+            );
           } catch {
             toast.error(t("intake.photoLater"));
           }
@@ -145,8 +149,9 @@ const IntakePage = () => {
     ...(boughtFromTheAccount(fields) ? { paymentMethod: "bank" as const } : {}),
   };
   const ready = missingFrom(sheet).length === 0 && windowIsWhole(sheet);
-  // The photograph goes up after the animal exists, so the whole arrival is pending until it has.
-  const pending = record.isPending || setItsPhoto.isPending;
+  // The photograph goes up, or onto the phone, after the animal exists — inside the arrival's own success — so the
+  // whole arrival is pending until it has.
+  const pending = record.isPending;
   const changed = intakeChanged(fields, photo);
 
   return (

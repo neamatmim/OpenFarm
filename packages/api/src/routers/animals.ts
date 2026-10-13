@@ -1,13 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
-import {
-  ANIMAL_SOURCES,
-  SEXES,
-  animal,
-  animalPhoto,
-  retag,
-} from "@OpenFarm/db/schema/herd";
+import { ANIMAL_SOURCES, SEXES, animal, retag } from "@OpenFarm/db/schema/herd";
 import type { AnimalState, Disposal, MortalityKind } from "@OpenFarm/domain";
 import {
   DISPOSALS,
@@ -16,8 +10,6 @@ import {
   EXIT_STATES,
   MORTALITY_KINDS,
   LIVE_STATES,
-  PHOTO_MAX_BYTES,
-  THUMB_MAX_BYTES,
   SIDES,
   STATES,
   failedAttempts,
@@ -68,6 +60,7 @@ import { csvLineAsWritten, parseCsvTable, toCsv } from "../csv";
 import { tellOfTheDeath } from "../death-notice";
 import { adultDeathsOf, herdHealthOf } from "../deaths-store";
 import { assertWeighableAt, weighHerByHand } from "../effects/weigh-in";
+import { animalPhotoEntry, animalPhotoInput } from "../entries/animal-photo";
 import { recordNow } from "../entries/entry";
 import { moveEntry, moveInput } from "../entries/move";
 import { farmDay } from "../farm-clock";
@@ -2211,63 +2204,21 @@ export const animalsRouter = {
       return { tagNumber, state: "lost" as const, workClosed: closed };
     }),
 
+  /** Her photo, taken with signal: the same Entry a phone's Outbox sends one taken in a shed without it (ADR 0004). */
   setPhoto: protectedProcedure
-    .use(requireRole("owner", "manager", "staff"))
-    .input(
-      z.object({
-        tagNumber: tagInput,
-        contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-        data: z.string().min(1).max(PHOTO_MAX_BYTES),
-        /** The same photo small, a JPEG made on the device; a phone running an older build sends none. */
-        thumb: z.string().min(1).max(THUMB_MAX_BYTES).optional(),
+    .use(
+      requireRole(...animalPhotoEntry.roles, {
+        visitingVet: animalPhotoEntry.visitingVet,
       })
     )
+    .input(animalPhotoInput)
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
-      const target = await requireAnimal(
-        context.db,
-        context.farm.id,
-        tagNumber
+      const { tagNumber, photoUpdatedAt } = await recordNow(
+        context,
+        animalPhotoEntry,
+        input
       );
-      requireAnimalInScope(context.scope, target);
-      await audited(context).write(
-        {
-          entity: "animal",
-          entityId: target.id,
-          action: "update",
-          before: (tx) => readAnimal(tx, target.id),
-          after: (tx) => readAnimal(tx, target.id),
-        },
-        async (tx) => {
-          const current = await loadLiveAnimal(tx, context.farm.id, tagNumber);
-          await tx
-            .insert(animalPhoto)
-            .values({
-              animalId: current.id,
-              farmId: context.farm.id,
-              contentType: input.contentType,
-              data: input.data,
-              thumb: input.thumb ?? null,
-              updatedAt: now,
-            })
-            .onConflictDoUpdate({
-              target: animalPhoto.animalId,
-              set: {
-                contentType: input.contentType,
-                data: input.data,
-                // A new photo without its own thumbnail drops the old one's, which would show the old animal.
-                thumb: input.thumb ?? null,
-                updatedAt: now,
-              },
-            });
-          await tx
-            .update(animal)
-            .set({ photoUpdatedAt: now, updatedAt: now })
-            .where(eq(animal.id, current.id));
-        }
-      );
-      return { tagNumber, photoUpdatedAt: now };
+      return { tagNumber, photoUpdatedAt };
     }),
 
   /**

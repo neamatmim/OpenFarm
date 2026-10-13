@@ -142,6 +142,44 @@ const SightingRecovery = ({
   );
 };
 
+/** An animal's photo the farm could not take: which animal it was of, put right, or the picture taken again. The thumbnail
+ *  goes with the picture it was made from, and not with a new one. */
+const AnimalPhotoRecovery = ({
+  entry,
+  ...props
+}: EditorProps & { entry: EntryOf<"animal_photo"> }) => {
+  const { t } = useLanguage();
+  const [tag, setTag] = useState(entry.body.tagNumber);
+  const [photo, setPhoto] = useState<EntryBody<"animal_photo">>(entry.body);
+  const id = useId();
+  return (
+    <RecoveryDialog
+      {...props}
+      ready={Boolean(tag.trim() && photo.data)}
+      submit={() =>
+        props.save({
+          kind: "animal_photo",
+          body: { ...photo, tagNumber: tag.trim() },
+        })
+      }
+    >
+      <TagField value={tag} onChange={setTag} />
+      <FormField id={id} label={t("review.held.animal_photo")}>
+        <PhotoField
+          id={id}
+          takeLabel="animals.photoTake"
+          chosen={Boolean(photo.data)}
+          onPhoto={(value) => {
+            if (value) {
+              setPhoto({ tagNumber: tag, ...value });
+            }
+          }}
+        />
+      </FormField>
+    </RecoveryDialog>
+  );
+};
+
 const MoveRecovery = ({
   entry,
   ...props
@@ -721,6 +759,9 @@ export const RecoverEntry = ({
     }
     case "completion_photo": {
       return <PhotoRecovery {...props} entry={entry} />;
+    }
+    case "animal_photo": {
+      return <AnimalPhotoRecovery {...props} entry={entry} />;
     }
     case "instance_claim":
     case "instance_complete": {

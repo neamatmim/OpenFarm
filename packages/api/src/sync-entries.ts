@@ -2,6 +2,7 @@ import type { EntryOutcome } from "@OpenFarm/db/schema/sync";
 import { z } from "zod";
 
 import { stepCorrectionInput } from "./corrections/step-completion";
+import { animalPhotoInput } from "./entries/animal-photo";
 import { workInput } from "./entries/claim";
 import type { EntryRefusal } from "./entries/entry";
 import { moveInput } from "./entries/move";
@@ -62,6 +63,11 @@ export const entryInput = z.discriminatedUnion("kind", [
     completionId: stepCorrectionInput.shape.id,
     reason: stepCorrectionInput.shape.reason,
     changes: stepCorrectionInput.shape.changes,
+  }),
+  z.object({
+    ...entryBase,
+    kind: z.literal("animal_photo"),
+    ...animalPhotoInput.shape,
   }),
 ]);
 

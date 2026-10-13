@@ -201,10 +201,19 @@ export const queueObservation = async (
   await held().add("observation", seen, newId());
 };
 
+/** An animal's photo into the Outbox, for the tagging walk through a shed with no signal: it is on the phone before the
+ *  person walks on, and on her page when the phone is back in range. */
+export const queueAnimalPhoto = async (
+  photo: EntryBody<"animal_photo">
+): Promise<void> => {
+  await held().add("animal_photo", photo, newId());
+};
+
 /**
- * Sends a sighting or a Move now when the farm answers, and keeps it on the phone when it does not. Asking the browser
- * first is not enough: a phone with bars and no data says it is online, the send fails, and the person had to type it
- * again. Only the farm's own no comes back as a refusal; not being answered is kept, as one made out of signal is.
+ * Sends a sighting, a Move or an animal's photo now when the farm answers, and keeps it on the phone when it does not.
+ * Asking the browser first is not enough: a phone with bars and no data says it is online, the send fails, and the
+ * person had to type it again. Only the farm's own no comes back as a refusal; not being answered is kept, as one made
+ * out of signal is.
  */
 export const sendOrKeep = async ({
   online,
@@ -230,6 +239,22 @@ export const sendOrKeep = async ({
     return "kept";
   }
 };
+
+/**
+ * Her photo, sent now when the farm answers and kept on the phone when it does not — for a screen that takes it after
+ * something of its own the farm had to answer first: an arrival is recorded with signal, and only then her photo, which
+ * the lorry's signal may already have dropped. A screen whose save is the photo alone calls `sendOrKeep` in a mutation
+ * that is `keptOnThePhone`.
+ */
+export const sendOrKeepAnimalPhoto = (
+  photo: EntryBody<"animal_photo">,
+  send: (photo: EntryBody<"animal_photo">) => Promise<unknown>
+): Promise<"sent" | "kept"> =>
+  sendOrKeep({
+    online: navigator.onLine,
+    send: () => send(photo),
+    keep: () => queueAnimalPhoto(photo),
+  });
 
 /** A Correction of a Step as the work screen asks for it: which Completion, why, and the answer shown beside the one
  *  it should hold now. */
