@@ -117,10 +117,15 @@ describe("what was done today", () => {
     });
     const finished = await milker.client.work.doneToday();
 
-    expect(finished.map((one) => one.id)).toEqual([done]);
-    expect(finished[0]).toMatchObject({
-      name: { en: "Cleaning" },
-      pen: { name: `mine ${suffix}` },
+    expect(finished.day).toBe("2089-03-10");
+    expect(finished.count).toBe(1);
+    expect(finished.done.map((one) => one.id)).toEqual([done]);
+    expect(finished.done[0]).toEqual({
+      id: done,
+      name: { bn: `পরিষ্কার ${suffix}`, en: "Cleaning" },
+      penId: mine,
+      pen: { name: `mine ${suffix}`, shed: { name: `mine-${suffix}` } },
+      completedAt: expect.any(Date),
     });
     // The evening's cleaning is still owed, so it stays on the list and is not done.
     const owed = await milker.client.work.today();
@@ -133,6 +138,44 @@ describe("what was done today", () => {
       as: "staff",
       clock: new FakeClock(NEXT_NOON),
     });
-    expect(await tomorrow.client.work.doneToday()).toEqual([]);
+    expect(await tomorrow.client.work.doneToday()).toEqual({
+      day: "2089-03-11",
+      count: 0,
+      done: [],
+    });
+  });
+});
+
+describe("what waits for Sign-off, counted", () => {
+  it("is how much done work waits on a Role the reader checks with, and nothing for somebody who checks nothing", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const checked = cleaning();
+    await owner.client.sops.create({
+      content: {
+        ...checked,
+        name: { bn: `ঝাড়ু ${suffix}`, en: "Sweeping" },
+        checkerRole: "manager",
+      },
+    });
+    const milker = await createTestClient(appRouter, {
+      as: "staff",
+      clock: new FakeClock(NOON),
+    });
+    await milker.client.work.ensureDue();
+    const owed = await milker.client.work.today({ penId: mine });
+    const sweeping = owed.find(
+      (one) => (one.version.content as SopContent).name.en === "Sweeping"
+    );
+    await milker.client.work.claim({ id: sweeping?.id ?? "" });
+    await milker.client.work.completeStep({
+      instanceId: sweeping?.id ?? "",
+      stepId: "clean",
+      evidence: [true],
+    });
+    await milker.client.work.complete({ id: sweeping?.id ?? "" });
+
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    expect(await manager.client.work.signOffWaiting()).toEqual({ waiting: 1 });
+    expect(await milker.client.work.signOffWaiting()).toEqual({ waiting: 0 });
   });
 });

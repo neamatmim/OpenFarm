@@ -4,7 +4,7 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
   AlarmClock,
@@ -19,7 +19,7 @@ import {
   Undo2,
   UserRound,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { AlertList } from "@/components/alert-list";
 import type { Tone } from "@/components/page";
@@ -36,12 +36,21 @@ import { WorkDeliveryNotice } from "@/components/work/work-delivery-notice";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFinishedHere } from "@/lib/finished-here";
 import { refreshTheScreen } from "@/lib/refresh";
-import { doneToday, groupTheDay, nextInPen } from "@/lib/work-groups";
+import { useNow } from "@/lib/use-now";
+import {
+  doneOnTheDay,
+  doneToday,
+  freeFor,
+  groupTheDay,
+  nextInPen,
+} from "@/lib/work-groups";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 
 type Work = Awaited<ReturnType<typeof orpc.work.today.call>>[number];
-type Done = Awaited<ReturnType<typeof orpc.work.doneToday.call>>[number];
+type Done = Awaited<
+  ReturnType<typeof orpc.work.doneToday.call>
+>["done"][number];
 
 /** Where a piece of work stands for the person holding the phone, as one badge: its word, its icon, its color. */
 interface Standing {
@@ -63,7 +72,8 @@ const useStanding = () => {
   const me = useQuery(orpc.people.me.queryOptions());
   return (work: Work): { standing: Standing | null; free: boolean } => {
     const mine = me.data?.id;
-    if (work.assignedTo && work.assignedTo !== mine) {
+    // The one rule for free work, as the next job offered and the bar's count read it.
+    if (!freeFor(work, mine) && work.assignedTo && work.assignedTo !== mine) {
       return {
         free: false,
         standing: {
@@ -73,7 +83,7 @@ const useStanding = () => {
         },
       };
     }
-    if (work.claimedBy && work.claimedBy !== mine) {
+    if (!freeFor(work, mine)) {
       return {
         free: false,
         standing: {
@@ -277,12 +287,13 @@ const doneHere = (work: Work): Done => ({
 });
 
 /** The next job where the person already is, offered the moment the last one is finished: one tap to start it. */
-const NextCard = ({ next }: { next: Work }) => {
+const NextCard = ({ next, onOpen }: { next: Work; onOpen: () => void }) => {
   const { t } = useLanguage();
   const content = next.version.content as SopContent;
   return (
     <Link
       className="surface border-primary/40 hover:border-primary focus-visible:ring-ring flex min-h-20 items-center gap-3 p-4 transition-colors duration-150 outline-none focus-visible:ring-2"
+      onClick={onOpen}
       params={{ instanceId: next.id }}
       search={{ start: true }}
       to="/work/$instanceId"
@@ -459,6 +470,52 @@ const noPenAssignment = (
   );
 };
 
+/**
+ * The work just finished and its Pen, carried here from the work page in the address and taken out of it at once: the
+ * card offering what comes next is for the moment after a Finish, and a reload — or the same list opened next morning
+ * from history — must not offer it again.
+ */
+const useJustFinished = (): [
+  { finishedId: string; penId: string | null } | null,
+  () => void,
+] => {
+  const { after, nextIn } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+  // Read from the address once, as the list opens; the address is emptied of it straight after.
+  const [finished, setFinished] = useState(() =>
+    after ? { finishedId: after, penId: nextIn ?? null } : null
+  );
+  useEffect(() => {
+    if (after !== undefined || nextIn !== undefined) {
+      void navigate({
+        replace: true,
+        search: (previous) => (previous.pen ? { pen: previous.pen } : {}),
+      });
+    }
+  }, [after, nextIn, navigate]);
+  // Once the card is taken up, it is not offered again on the way back.
+  return [finished, () => setFinished(null)];
+};
+
+/**
+ * What was done today in the list's Pen, or in all of them: this phone's finished work first, then the farm's answer —
+ * held to today, so an answer kept overnight says nothing — and how much in all, the farm counting beyond the latest it
+ * lists.
+ */
+const useDoneToday = (
+  pen: string | undefined,
+  finishedHere: readonly Work[],
+  now: Date
+): { done: Done[]; count: number } => {
+  const told = useQuery(orpc.work.doneToday.queryOptions());
+  const answer = doneOnTheDay(told.data, now);
+  const listed = answer.done.filter((one) => !pen || one.penId === pen);
+  const done = doneToday(listed, finishedHere.map(doneHere));
+  // One Pen's is only what is listed; the farm's count is of every Pen.
+  const toldCount = pen ? listed.length : answer.count;
+  return { done, count: toldCount + done.length - listed.length };
+};
+
 /** How much is still owed today, and how much of it is late: nothing said when nothing is owed. */
 const OwedBadges = ({ owed, late }: { owed: number; late: number }) => {
   const { t, language } = useLanguage();
@@ -481,35 +538,29 @@ const OwedBadges = ({ owed, late }: { owed: number; late: number }) => {
 
 const TodayPage = () => {
   const { t, language } = useLanguage();
-  const { pen, after, nextIn } = Route.useSearch();
+  const { pen } = Route.useSearch();
   const work = useQuery(
     orpc.work.today.queryOptions({ input: pen ? { penId: pen } : {} })
   );
   // Everything this person works today, for the row of Pens: the same question as the list when no Pen is chosen.
   const everything = useQuery(orpc.work.today.queryOptions({ input: {} }));
   const finishedHere = useFinishedHere();
-  // An answer kept from before the farm said what was done holds nothing here: read as none done.
-  const told = useQuery(orpc.work.doneToday.queryOptions());
   const me = useQuery(orpc.people.me.queryOptions());
   const runsTheFarm = (me.data?.roles ?? []).some(
     (role) => role === "owner" || role === "manager"
   );
+  const [justFinished, takenUp] = useJustFinished();
+  const now = useNow();
 
   useRaiseTheDay(me.data);
 
-  const now = new Date();
   const day = groupTheDay(work.data ?? [], { now, finishedHere });
-  const items = [...day.now, ...day.later];
   const late = day.now.filter((instance) => instance.overdue).length;
-  const done = doneToday(
-    (told.data ?? []).filter((one) => !pen || one.penId === pen),
-    day.finishedHere.map(doneHere)
-  );
+  const done = useDoneToday(pen, day.finishedHere, now);
   // Just finished something: the next free work where the person already is.
-  const next = after
+  const next = justFinished
     ? nextInPen(everything.data ?? [], {
-        finishedId: after,
-        penId: nextIn ?? null,
+        ...justFinished,
         me: me.data?.id,
         now,
         finishedHere,
@@ -525,7 +576,7 @@ const TodayPage = () => {
         actions={runsTheFarm ? <RaiseWork key={pen} penId={pen} /> : undefined}
         description={t("work.subtitle")}
         eyebrow={formatDate(new Date(), language, "date")}
-        meta={<OwedBadges late={late} owed={items.length} />}
+        meta={<OwedBadges late={late} owed={day.now.length} />}
         title={t("work.title")}
       />
       <AlertList />
@@ -544,7 +595,7 @@ const TodayPage = () => {
           ))}
         </div>
       ) : null}
-      {next ? <NextCard next={next} /> : null}
+      {next ? <NextCard next={next} onOpen={takenUp} /> : null}
       {work.data ? (
         <TheDay day={day} done={done} unassigned={noPenAssignment(me.data)} />
       ) : null}
@@ -560,11 +611,12 @@ const TheDay = ({
   unassigned,
 }: {
   day: { now: Work[]; later: Work[] };
-  done: Done[];
+  done: { done: Done[]; count: number };
   unassigned: boolean;
 }) => {
   const { t, language } = useLanguage();
   const owed = day.now.length + day.later.length;
+  const doneCount = formatNumber(done.count, language);
   return (
     <>
       {day.now.length > 0 ? (
@@ -581,30 +633,24 @@ const TheDay = ({
           <WorkCards quiet work={day.later} />
         </Section>
       ) : null}
-      {owed === 0 && done.length > 0 ? (
+      {owed === 0 && done.count > 0 ? (
         <EmptyState
-          description={t("work.allDoneHint", {
-            count: formatNumber(done.length, language),
-          })}
+          description={t("work.allDoneHint", { count: doneCount })}
           icon={CircleCheck}
           title={t("work.allDone")}
         />
       ) : null}
-      {owed === 0 && done.length === 0 ? (
+      {owed === 0 && done.count === 0 ? (
         <EmptyState
           description={t(unassigned ? "work.unassignedHint" : "work.noneHint")}
           icon={ClipboardList}
           title={t(unassigned ? "work.unassigned" : "work.none")}
         />
       ) : null}
-      {done.length > 0 ? (
-        <Section
-          title={t("work.group.done", {
-            count: formatNumber(done.length, language),
-          })}
-        >
+      {done.count > 0 ? (
+        <Section title={t("work.group.done", { count: doneCount })}>
           <ul className="divide-border -my-2 divide-y">
-            {done.map((one) => (
+            {done.done.map((one) => (
               <DoneLine done={one} key={one.id} />
             ))}
           </ul>

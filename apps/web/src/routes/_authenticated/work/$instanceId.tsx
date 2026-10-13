@@ -127,7 +127,18 @@ const WorkPage = () => {
   });
   const finish = useMutation({
     ...keptOnThePhone,
-    mutationFn: () => finishInstance(queryClient, instanceKey, instanceId),
+    mutationFn: async () => {
+      await finishInstance(queryClient, instanceKey, instanceId);
+      // Held as finished on the day's list too, until the farm is asked again: once the Outbox has sent it on, the
+      // list must not offer it back as owed before it has been read afresh.
+      queryClient.setQueriesData<{ id: string; state: string }[]>(
+        { queryKey: orpc.work.today.key() },
+        (rows) =>
+          rows?.map((row) =>
+            row.id === instanceId ? { ...row, state: "completed" } : row
+          )
+      );
+    },
     onSuccess: () => {
       toast.success(t("work.finishKept"));
       void queryClient.invalidateQueries({ queryKey: ["outbox"] });

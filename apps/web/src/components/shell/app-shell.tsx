@@ -9,6 +9,7 @@ import { useOutboxSender } from "@/components/sync-banner";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFinishedHere } from "@/lib/finished-here";
 import { useShedPhoneKeeper } from "@/lib/shed-phone";
+import { useNow } from "@/lib/use-now";
 import { owedNowBy } from "@/lib/work-groups";
 import { orpc } from "@/utils/orpc";
 
@@ -89,28 +90,28 @@ const RoleBottomBar = ({
   me: string | undefined;
 }) => {
   const { language } = useLanguage();
+  const now = useNow();
   const counts = (to: string) => items.some((item) => item.to === to);
+  const countsWork = counts("/work");
+  const countsChecks = counts("/review-queue");
   const today = useQuery({
     ...orpc.work.today.queryOptions({ input: {} }),
-    enabled: counts("/work"),
+    enabled: countsWork,
   });
-  const finishedHere = useFinishedHere();
+  const finishedHere = useFinishedHere(countsWork);
+  // Counts, not the queues: a bar on every page asks for two numbers, never every piece of work with its Steps.
   const signOff = useQuery({
-    ...orpc.work.signOffQueue.queryOptions(),
-    enabled: counts("/review-queue"),
+    ...orpc.work.signOffWaiting.queryOptions(),
+    enabled: countsChecks,
   });
   const deciding = useQuery({
     ...orpc.reviewQueue.waiting.queryOptions(),
-    enabled: counts("/review-queue"),
+    enabled: countsChecks,
   });
   const waiting = {
-    "/work": owedNowBy(today.data ?? [], {
-      me,
-      now: new Date(),
-      finishedHere,
-    }),
+    "/work": owedNowBy(today.data ?? [], { me, now, finishedHere }),
     "/review-queue":
-      (signOff.data?.length ?? 0) + (deciding.data?.waiting ?? 0),
+      (signOff.data?.waiting ?? 0) + (deciding.data?.waiting ?? 0),
   };
   return <BottomBar items={barWithCounts(items, waiting, language)} />;
 };

@@ -1,3 +1,5 @@
+import { farmDayOf, isFinished } from "@OpenFarm/domain";
+
 /** How long before its time work counts as now: a milker starting the feed a little early is doing today's work, not
  *  the evening's. Everything raised for later in the day stays startable, only further down. */
 const NEAR_MS = 60 * 60_000;
@@ -24,8 +26,8 @@ const isNow = (one: ListedWork, now: Date): boolean =>
 
 /**
  * The day's owed work split by when it is wanted: now — late, under way, or due within the hour — and later today.
- * Work this phone has finished and not yet sent is owed no longer, and is handed back on its own so the list can count
- * it done before the farm has heard.
+ * Work this phone has finished is owed no longer — its Finish still in the Outbox, or sent on and held as finished
+ * until the list is read again — and is handed back on its own so the list can count it done before the farm has said.
  */
 export const groupTheDay = <W extends ListedWork>(
   work: readonly W[],
@@ -33,7 +35,7 @@ export const groupTheDay = <W extends ListedWork>(
 ): { now: W[]; later: W[]; finishedHere: W[] } => {
   const day = { now: [] as W[], later: [] as W[], finishedHere: [] as W[] };
   for (const one of work) {
-    if (finishedHere.has(one.id)) {
+    if (finishedHere.has(one.id) || isFinished(one.state)) {
       day.finishedHere.push(one);
     } else if (isNow(one, now)) {
       day.now.push(one);
@@ -54,12 +56,47 @@ export const doneToday = <D extends { id: string }>(
   return [...finishedHere, ...told.filter((one) => !seen.has(one.id))];
 };
 
+/** What the farm said was done on a day: the latest of it, how much in all, and which farm day it answered for. */
+export interface DoneAnswer<D> {
+  day: string;
+  count: number;
+  done: readonly D[];
+}
+
+/**
+ * The farm's answer about what was done, as far as it is today's: an answer kept on the phone from another day — or
+ * from before the farm said which day it was answering for — is nothing done, so yesterday's work never reads as done
+ * today and never makes a day "all done". Within today's answer each piece is held to the farm's day by when it was
+ * finished, as the farm itself holds it, and the count gives up whatever that drops.
+ */
+export const doneOnTheDay = <D extends { completedAt: Date | string | null }>(
+  answer: DoneAnswer<D> | undefined,
+  now: Date
+): { done: D[]; count: number } => {
+  const today = farmDayOf(now);
+  if (!answer || Array.isArray(answer) || answer.day !== today) {
+    return { done: [], count: 0 };
+  }
+  const done = answer.done.filter(
+    (one) =>
+      one.completedAt !== null && farmDayOf(new Date(one.completedAt)) === today
+  );
+  return {
+    done,
+    count: Math.max(0, answer.count - (answer.done.length - done.length)),
+  };
+};
+
 /** Earlier due first. */
 const soonest = (a: ListedWork, b: ListedWork) =>
   new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
 
-/** Whether the person holding the phone may start this work: nobody else pinned it, nobody else holds it. */
-const freeFor = (one: ListedWork, me: string | undefined): boolean =>
+/** Whether the person holding the phone may start this work: nobody else pinned it, nobody else holds it. The one rule
+ *  for "free" — the list's Start button, the next job offered, and the count on the bar all read it. */
+export const freeFor = (
+  one: Pick<ListedWork, "assignedTo" | "claimedBy">,
+  me: string | undefined
+): boolean =>
   (one.assignedTo === null || one.assignedTo === me) &&
   (one.claimedBy === null || one.claimedBy === me);
 
@@ -88,11 +125,7 @@ export const nextInPen = <W extends ListedWork>(
     return null;
   }
   const left = work.filter(
-    (one) =>
-      one.id !== finishedId &&
-      one.penId === penId &&
-      !finishedHere.has(one.id) &&
-      freeFor(one, me)
+    (one) => one.id !== finishedId && one.penId === penId && freeFor(one, me)
   );
   const day = groupTheDay(left, { now, finishedHere });
   return day.now.toSorted(soonest)[0] ?? day.later.toSorted(soonest)[0] ?? null;
