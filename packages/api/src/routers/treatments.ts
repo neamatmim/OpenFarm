@@ -1,16 +1,22 @@
-import { tagNumberAsWritten } from "@OpenFarm/domain";
+import { MANY_AT_ONCE, tagNumberAsWritten } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import type { Recorder } from "../completion-store";
 import { correct } from "../corrections/correction";
 import {
   doseNotPrescribedCorrection,
   doseNotPrescribedCorrectionInput,
 } from "../corrections/dose-not-prescribed";
-import { recordDoseNotPrescribed } from "../dose-not-prescribed-store";
+import {
+  mayBeGivenNotPrescribed,
+  recordDoseNotPrescribed,
+} from "../dose-not-prescribed-store";
 import { protectedProcedure } from "../index";
+import type { RefusedOne } from "../one-of-several";
+import { eachOnce, refusedOne } from "../one-of-several";
 import { takeBackTheExcuse, excuseArrivalDose } from "../put-off-store";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
 
@@ -19,6 +25,57 @@ const EXCUSED_BY_THE_VET = {
   message: "Only the Vet may say a dose is not needed",
   reason: "vet_only",
 } as const;
+
+/** One dose not prescribed, written for one animal and held as any dose holds her: the one way in, alone or with her
+ *  Pen. */
+const giveOneNotPrescribed = async (
+  context: Recorder,
+  input: {
+    /** The id the screen gave her dose: sent again, the same dose. */
+    id?: string;
+    tag: string;
+    productId: string;
+    givenAt?: Date;
+    advice: string;
+  }
+) => {
+  const now = context.clock.now();
+  let id = input.id ?? "";
+  const done = await audited(context).write(
+    {
+      entity: "treatment",
+      entityId: () => id,
+      action: "create",
+      after: async (tx) =>
+        (await tx.query.treatment.findFirst({ where: { id } })) ?? null,
+    },
+    async (tx) => {
+      const made = await recordDoseNotPrescribed(
+        tx,
+        context.farm.id,
+        {
+          ...(input.id ? { id: input.id } : {}),
+          tagNumber: tagNumberAsWritten(input.tag),
+          productId: input.productId,
+          givenAt: input.givenAt ?? now,
+          advice: input.advice,
+          givenBy: context.actor.id,
+        },
+        now
+      );
+      ({ id } = made);
+      return made;
+    }
+  );
+  return { id: done.id };
+};
+
+/** Whether the dose the screen gave this id was written already, on this farm: sent again, it is not written twice. */
+const alreadyGiven = async (context: Recorder, id: string) =>
+  (await context.db.query.treatment.findFirst({
+    where: { id, farmId: context.farm.id },
+    columns: { id: true },
+  })) !== undefined;
 
 export const treatmentsRouter = {
   /**
@@ -39,35 +96,65 @@ export const treatmentsRouter = {
         advice: z.string().trim().min(1).max(300),
       })
     )
+    .handler(({ context, input }) =>
+      giveOneNotPrescribed(context, { ...input, tag: input.animalTag })
+    ),
+
+  /**
+   * The same dose given to several at once — the pharmacy's wormer for a Pen of calves. Each animal's dose is her own
+   * Treatment, written and held as one given alone, under the id the screen gave it: sent again after an answer that never
+   * came, a dose already written is found and counted, never written twice. A medicine that may not be given is refused
+   * for the whole request before anybody is dosed; one animal the farm refuses is named, with why, and stops nobody else.
+   */
+  giveNotPrescribedMany: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        animals: z
+          .array(
+            z.object({
+              tagNumber: z.string().trim().min(1).max(32),
+              id: z.string().uuid(),
+            })
+          )
+          .min(1)
+          .max(MANY_AT_ONCE),
+        productId: z.string(),
+        givenAt: z.coerce.date().optional(),
+        advice: z.string().trim().min(1).max(300),
+      })
+    )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      let id = "";
-      const done = await audited(context).write(
-        {
-          entity: "treatment",
-          entityId: () => id,
-          action: "create",
-          after: async (tx) =>
-            (await tx.query.treatment.findFirst({ where: { id } })) ?? null,
-        },
-        async (tx) => {
-          const made = await recordDoseNotPrescribed(
-            tx,
-            context.farm.id,
-            {
-              tagNumber: tagNumberAsWritten(input.animalTag),
-              productId: input.productId,
-              givenAt: input.givenAt ?? now,
-              advice: input.advice,
-              givenBy: context.actor.id,
-            },
-            now
-          );
-          ({ id } = made);
-          return made;
-        }
+      // The medicine and the time are the request's, not any one animal's: refused whole, before anybody is dosed.
+      await mayBeGivenNotPrescribed(
+        context.db,
+        context.farm.id,
+        { productId: input.productId, givenAt: input.givenAt ?? now },
+        now
       );
-      return { id: done.id };
+      const given: string[] = [];
+      const refused: RefusedOne[] = [];
+      for (const one of eachOnce(input.animals, (each) => each.tagNumber)) {
+        const tagNumber = tagNumberAsWritten(one.tagNumber);
+        try {
+          // oxlint-disable-next-line no-await-in-loop -- each dose its own write, in turn, so one refused stops nobody else
+          const written = await alreadyGiven(context, one.id);
+          if (!written) {
+            // oxlint-disable-next-line no-await-in-loop -- as above
+            await giveOneNotPrescribed(context, {
+              ...input,
+              id: one.id,
+              tag: one.tagNumber,
+            });
+          }
+          given.push(tagNumber);
+        } catch (error) {
+          refused.push(refusedOne(one.tagNumber, error));
+        }
+      }
+      return { given, refused };
     }),
 
   /** A dose not prescribed voided: the wrong cow, written twice (`doseNotPrescribedCorrection`). */

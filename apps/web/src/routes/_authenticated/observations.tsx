@@ -17,12 +17,20 @@ import {
   Loaded,
   Page,
   PageHeader,
+  SegmentedControl,
+  StatusBadge,
   TableSkeleton,
   TagChip,
 } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { saidIn } from "@/lib/names-in";
+import {
+  OUTCOME_TONE,
+  outcomeOf,
+  stillToSeeTo,
+} from "@/lib/observation-outcome";
 import { tagMatches, tagSought } from "@/lib/tag-search";
 import { orpc } from "@/utils/orpc";
 
@@ -76,6 +84,47 @@ const WhenCell = ({ row }: SeenCell) => (
 
 const FromCell = ({ row }: SeenCell) => <SeenFrom row={row.original} />;
 
+/** What became of an Observation: the work it raised still owed, done and what was done, what the Vet made of her, or
+ *  nothing raised. */
+const ObservationOutcome = ({ row }: { row: Seen }) => {
+  const { t, language } = useLanguage();
+  const outcome = outcomeOf(row);
+  if (!outcome) {
+    return (
+      <span className="text-muted-foreground">
+        {t("observations.outcome.none")}
+      </span>
+    );
+  }
+  // The Vet's Diagnosis says what she had; otherwise the work's answer says what was done.
+  const words = outcome.diagnosis ?? outcome.said;
+  const said = words ? saidIn(words, language) : null;
+  const badge = (
+    <StatusBadge tone={OUTCOME_TONE[outcome.state]}>
+      {t(`observations.outcome.${outcome.state}`)}
+    </StatusBadge>
+  );
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      {outcome.instanceId ? (
+        <Link
+          params={{ instanceId: outcome.instanceId }}
+          to="/work/$instanceId"
+        >
+          {badge}
+        </Link>
+      ) : (
+        badge
+      )}
+      {said ? <span className="text-muted-foreground">{said}</span> : null}
+    </span>
+  );
+};
+
+const OutcomeCell = ({ row }: SeenCell) => (
+  <ObservationOutcome row={row.original} />
+);
+
 const NoteCell = ({ row }: SeenCell) =>
   row.original.note ? (
     <span className="text-muted-foreground">“{row.original.note}”</span>
@@ -106,6 +155,11 @@ const seenColumns = column.columns([
     cell: FromCell,
   }),
   column.display({
+    id: "outcome",
+    header: listHeader("observations.col.outcome"),
+    cell: OutcomeCell,
+  }),
+  column.display({
     id: "note",
     header: listHeader("work.note"),
     cell: NoteCell,
@@ -129,6 +183,9 @@ const SeenCard = ({ row }: { row: Seen }) => {
         {row.seenByName ? ` · ${row.seenByName}` : ""}
         {" · "}
         <SeenFrom row={row} />
+      </span>
+      <span className="text-sm">
+        <ObservationOutcome row={row} />
       </span>
       {row.note ? (
         <span className="text-muted-foreground text-sm">“{row.note}”</span>
@@ -160,6 +217,7 @@ const ObservationsPage = () => {
   const t = useT();
   const [saw, setSaw] = useState<string>("");
   const [tag, setTag] = useState("");
+  const [openOnly, setOpenOnly] = useState(false);
 
   const kinds = useQuery(orpc.observations.kinds.queryOptions());
   const seen = useQuery(
@@ -169,7 +227,9 @@ const ObservationsPage = () => {
   );
   const wanted = tagSought(tag);
   const shown = (seen.data ?? []).filter(
-    (row) => wanted === "" || tagMatches(row.tagNumber, wanted)
+    (row) =>
+      (wanted === "" || tagMatches(row.tagNumber, wanted)) &&
+      (!openOnly || stillToSeeTo(row))
   );
 
   return (
@@ -194,6 +254,16 @@ const ObservationsPage = () => {
               </option>
             ))}
           </NativeSelect>
+          <SegmentedControl
+            label={t("observations.col.outcome")}
+            name="observations-open"
+            onChange={(value) => setOpenOnly(value === "open")}
+            options={[
+              { value: "", label: t("observations.all") },
+              { value: "open", label: t("observations.filter.open") },
+            ]}
+            value={openOnly ? "open" : ""}
+          />
           <div className="relative sm:w-64">
             <Search
               aria-hidden

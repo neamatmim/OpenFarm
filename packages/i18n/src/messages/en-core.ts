@@ -1054,6 +1054,7 @@ export const enCore = {
     "An animal leaves the herd by the record of how she went — a sale, a death — not by a change of state",
   "refusal.meatWithdrawal": "She is still inside her meat withdrawal",
   "refusal.noSuchAnimal": "That animal is no longer here to show",
+  "refusal.couldNotBeDone": "This one could not be done; try it again",
   "refusal.noSuchProduct": "That medicine is not on the farm's drug list",
   "refusal.noSuchVenture": "That venture is not one of yours",
   "refusal.notNotifiable":
@@ -1800,6 +1801,14 @@ export const enCore = {
   "observations.col.when": "When",
   "observations.col.by": "Seen by",
   "observations.col.from": "From",
+  "observations.col.outcome": "What became of it",
+  "observations.outcome.open": "Still to see to",
+  "observations.outcome.done": "Done",
+  "observations.outcome.missed": "Not done in time",
+  "observations.outcome.called_off": "No longer needed",
+  "observations.outcome.diagnosed": "Seen by the vet",
+  "observations.outcome.none": "Nothing raised",
+  "observations.filter.open": "Still to see to",
   "nav.observations": "Observations",
   "animals.treatments": "What she has been given",
   "animals.dosesOwed": "Still owed",
@@ -4304,6 +4313,15 @@ export const enCore = {
   "ready.because.window": "Its target window has opened",
   "ready.confirm": "Yes, ready",
   "ready.confirmed": "{tag} is ready for sale",
+  "ready.tick": "Choose {tag}",
+  "ready.chosen": "{count, plural, one {# animal} other {# animals}} chosen",
+  "ready.confirmMany":
+    "Yes, {count, plural, one {# animal} other {# animals}} ready",
+  "ready.confirmedMany":
+    "{count, plural, one {# animal} other {# animals}} ready for sale",
+  "ready.refusedMany":
+    "{count, plural, one {# animal} other {# animals}} could not be made ready",
+  "several.tooMany": "At most {max} at once: untick some",
   "ready.setAside": "Keep it longer",
   "ready.setAsideWhy": "Why it is staying",
   "ready.setAsideDone": "{tag} is staying for now",
@@ -5233,6 +5251,11 @@ export const enCore = {
   "dose.askTheVet":
     "The vet has written no days for this medicine, and no default. Ask the vet first.",
   "dose.recorded": "Dose written; the vet will be told",
+  "dose.group": "Dose {count, plural, one {# animal} other {# animals}}",
+  "dose.groupGiven":
+    "{count, plural, one {# animal} other {# animals}} dosed; the vet will be told",
+  "dose.groupRefused":
+    "{count, plural, one {# animal} other {# animals}} could not be dosed",
   "dose.void": "Take it back",
   "dose.voidHint":
     "Written against the wrong animal, or twice: her holds are worked out again without it. Write it again against the animal really given it.",

@@ -91,6 +91,7 @@ export {
 } from "./farm-clock";
 export type { Age, AgeAtIntake } from "./age";
 export { ageOf, bornAroundOf } from "./age";
+export { MANY_AT_ONCE, tooManyAtOnce } from "./at-once";
 export type {
   FatteningView,
   GainBasis,

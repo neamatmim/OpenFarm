@@ -3,6 +3,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRightLeft } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 import type { PenChoice } from "@/components/animal/animal-types";
@@ -37,12 +38,15 @@ export const GroupMove = ({
   pens,
   onDone,
   onClear,
+  more,
 }: {
   chosen: HerdRow[];
   /** Where this person may move them: every Pen for those who run the farm, a Staff member's own. */
   pens: PenChoice[];
   onDone: () => void;
   onClear: () => void;
+  /** Whatever else this person may do with the ticked animals, beside the Move: a dose for them all. */
+  more?: ReactNode;
 }) => {
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
@@ -131,6 +135,7 @@ export const GroupMove = ({
   return (
     <>
       <BatchBar onClear={onClear} said={t("animals.groupChosen", { count })}>
+        {more}
         <Button onClick={() => setOpen(true)} type="button">
           <ArrowRightLeft aria-hidden data-icon="inline-start" />
           {t("animals.groupMove", { count })}
@@ -188,6 +193,8 @@ export const useHerdTicking = (
   selection: RowSelection<HerdRow> | undefined;
   chosen: HerdRow[];
   movePens: PenChoice[];
+  /** Whether a dose not prescribed may be written for them: the Owner's and the Manager's, as for one. */
+  mayDose: boolean;
   handleClear: () => void;
 } => {
   const { t } = useLanguage();
@@ -217,6 +224,7 @@ export const useHerdTicking = (
     movePens: runsTheFarm
       ? pens
       : pens.filter((pen) => ownPens.includes(pen.id)),
+    mayDose: runsTheFarm,
     handleClear: () => setTicked(new Set()),
   };
 };

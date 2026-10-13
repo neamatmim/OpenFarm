@@ -7,6 +7,7 @@ import { recordNow } from "../entries/entry";
 import { observationEntry, observationInput } from "../entries/observation";
 import { MAX_SEEN_ROWS, seenLately, seenLatelyInput } from "../health-store";
 import { protectedProcedure } from "../index";
+import { outcomesOf } from "../observation-outcome";
 import { requireRole } from "../roles";
 
 /** A week is the Manager's question: which cows were seen bulling since Friday. */
@@ -38,12 +39,19 @@ export const observationsRouter = {
           completion: { columns: { instanceId: true } },
         },
       });
+      // What became of each: the work it raised, and what was done.
+      const outcomes = await outcomesOf(
+        context.db,
+        context.farm.id,
+        rows.map((row) => ({ id: row.id, animalId: row.animalId }))
+      );
       return rows.map(({ animal, observer, completion, ...seen }) => ({
         ...seen,
         tagNumber: animal.tagNumber,
         penId: animal.penId,
         seenByName: observer?.name ?? null,
         instanceId: completion?.instanceId ?? null,
+        outcome: outcomes.get(seen.id) ?? null,
       }));
     }),
 
