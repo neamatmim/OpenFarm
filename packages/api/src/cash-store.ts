@@ -11,7 +11,10 @@ import { ORPCError } from "@orpc/server";
 
 import { clearNoticesAbout, holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
+import type { About, ChangeBy, Weighed } from "./closed-month-store";
+import { answerToClosedMonths } from "./closed-month-store";
 import { lockTheFarm } from "./farm-lock";
+import { lateEntry } from "./late";
 import { THE_FARMS_PURSE } from "./money-store";
 import { tell } from "./notice";
 import { whatTheFloatBought } from "./venture-store";
@@ -557,8 +560,48 @@ export const recordCashCount = async (
     note: string | null;
     countedAt: Date;
     now: Date;
+    by: ChangeBy;
   }
 ): Promise<{ differs: boolean }> => {
+  // Counted into a month the Owner has closed, it is hers alone: anybody else's count — a phone that held it past the
+  // month's end — is kept for a person to see to, never lost (ADR 0002, 0028).
+  const already = await tx.query.cashCount.findFirst({
+    where: { completionId: input.completionId },
+    columns: { id: true, counted: true, countedAt: true },
+  });
+  const weighed = (counted: number, at: Date) => ({
+    at,
+    amountMoney: counted,
+    purseVentureId: null,
+    rest: input.userId,
+  });
+  const countId = already?.id ?? uuidv7(input.now);
+  await answerToClosedMonths(
+    tx,
+    input.by,
+    [
+      {
+        recordId: countId,
+        source: "cash_count",
+        before: already
+          ? weighed(already.counted, already.countedAt)
+          : undefined,
+        after: weighed(input.counted, input.countedAt),
+        about: async (reading) => {
+          const counter = await reading.query.user.findFirst({
+            where: { id: input.userId },
+            columns: { name: true },
+          });
+          return { about: counter?.name ?? null, tagNumber: null };
+        },
+      },
+    ],
+    (month) =>
+      lateEntry("That month is closed: ask the owner", {
+        refusal: "month_closed",
+        month,
+      })
+  );
   // The hand as it stood when the notes were counted: nothing that moved since is what they were counted against.
   const holds = await handsOf(tx, input.farm.id, {
     excludingCount: input.completionId,
@@ -576,7 +619,7 @@ export const recordCashCount = async (
   await tx
     .insert(cashCount)
     .values({
-      id: uuidv7(input.now),
+      id: countId,
       farmId: input.farm.id,
       completionId: input.completionId,
       ...row,
@@ -834,6 +877,72 @@ export const requireOpenFarmTrip = async (
   }
 };
 
+/** A Handover as a **Closed Month** weighs it: when the notes moved, how much, and from and to whom. */
+const handoverWeighed = (one: typeof handover.$inferInsert): Weighed => ({
+  at: one.handedAt,
+  amountMoney: one.amountMoney,
+  purseVentureId: null,
+  rest: [
+    one.fromUserId ?? "",
+    one.toUserId ?? "",
+    one.fromAccountId ?? "",
+    one.toAccountId ?? "",
+  ].join("|"),
+});
+
+/** Whom a Handover was with, as a change to it is listed: the hand it went into, or the hand it left for the bank. */
+const aboutHandover =
+  (one: typeof handover.$inferInsert) =>
+  async (tx: Tx): Promise<About> => {
+    const userId = one.toUserId ?? one.fromUserId;
+    const person = userId
+      ? await tx.query.user.findFirst({
+          where: { id: userId },
+          columns: { name: true },
+        })
+      : undefined;
+    return { about: person?.name ?? null, tagNumber: null };
+  };
+
+/**
+ * Writes a Handover — the one way one is written — once a **Closed Month** has had its say: a Handover dated into a
+ * month the Owner has closed is hers alone, and hers is kept for the next paper (ADR 0028).
+ */
+const writeHandover = async (
+  tx: Tx,
+  by: ChangeBy,
+  row: typeof handover.$inferInsert
+): Promise<void> => {
+  await answerToClosedMonths(tx, by, [
+    {
+      recordId: row.id,
+      source: "handover",
+      before: undefined,
+      after: handoverWeighed(row),
+      about: aboutHandover(row),
+    },
+  ]);
+  await tx.insert(handover).values(row);
+};
+
+/** Takes a Handover away — the one way one is — once a **Closed Month** has had its say, as `writeHandover` does. */
+export const takeHandoverAway = async (
+  tx: Tx,
+  by: ChangeBy,
+  row: typeof handover.$inferSelect
+): Promise<void> => {
+  await answerToClosedMonths(tx, by, [
+    {
+      recordId: row.id,
+      source: "handover",
+      before: handoverWeighed(row),
+      after: undefined,
+      about: aboutHandover(row),
+    },
+  ]);
+  await tx.delete(handover).where(eq(handover.id, row.id));
+};
+
 /**
  * Counts a Farm float home: the cash handed out must be what the outing bought of the Farm's own — its animals, their
  * Market toll and its costs — and the cash brought back, to the taka, as a Venture's is; refused over or short with the gap.
@@ -848,6 +957,7 @@ export const reconcileFarmFloat = async (
     ownerId: string;
     role: RoleName;
     now: Date;
+    by: ChangeBy;
   }
 ): Promise<void> => {
   // Behind the Farm lock, as every money path is: two counts sent at once would both find the float open and both
@@ -880,7 +990,7 @@ export const reconcileFarmFloat = async (
     });
   }
   if (input.cashBackMoney > 0 && float.carrierId !== input.ownerId) {
-    await tx.insert(handover).values({
+    await writeHandover(tx, input.by, {
       id: uuidv7(input.now),
       farmId: input.farmId,
       fromUserId: float.carrierId,
@@ -909,7 +1019,7 @@ export const reconcileFarmFloat = async (
  */
 export const uncountFarmFloat = async (
   tx: Tx,
-  input: { farmId: string; tripId: string }
+  input: { farmId: string; tripId: string; by: ChangeBy }
 ): Promise<void> => {
   await lockTheFarm(tx, input.farmId);
   const trip = await tx.query.buyingTrip.findFirst({
@@ -924,7 +1034,6 @@ export const uncountFarmFloat = async (
   }
   const back = await tx.query.handover.findFirst({
     where: { farmId: input.farmId, buyingTripId: input.tripId, float: "back" },
-    columns: { id: true, fromUserId: true, toUserId: true, handedAt: true },
   });
   if (back) {
     const hands = [back.fromUserId, back.toUserId].filter(
@@ -944,7 +1053,7 @@ export const uncountFarmFloat = async (
         data: { refusal: "counted_since" },
       });
     }
-    await tx.delete(handover).where(eq(handover.id, back.id));
+    await takeHandoverAway(tx, input.by, back);
   }
   await tx
     .update(buyingTrip)
@@ -1061,6 +1170,7 @@ const depositSaleCash = async (
     recordedBy: string;
     recordedByRole: RoleName;
     now: Date;
+    by: ChangeBy;
   }
 ): Promise<{ id: string }> => {
   if (!input.fromUserId) {
@@ -1114,7 +1224,7 @@ const depositSaleCash = async (
     });
   }
   const id = uuidv7(input.now);
-  await tx.insert(handover).values({
+  await writeHandover(tx, input.by, {
     id,
     farmId: input.farmId,
     fromUserId: input.fromUserId,
@@ -1168,6 +1278,7 @@ export const recordHandover = async (
     recordedBy: string;
     recordedByRole: RoleName;
     now: Date;
+    by: ChangeBy;
   }
 ): Promise<{ id: string }> => {
   if ("ventureId" in input.to) {
@@ -1219,7 +1330,7 @@ export const recordHandover = async (
     });
   }
   const id = uuidv7(input.now);
-  await tx.insert(handover).values({
+  await writeHandover(tx, input.by, {
     id,
     farmId: input.farmId,
     fromUserId,

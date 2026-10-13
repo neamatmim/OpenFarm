@@ -13,6 +13,7 @@ import { ORPCError } from "@orpc/server";
 
 import { audited } from "./audit";
 import type { Context } from "./context";
+import { lockTheFarm } from "./farm-lock";
 import {
   bookEnteredByHand,
   categoryForEntered,
@@ -114,6 +115,8 @@ export const payWages = (
   seenWhenDone(
     context.db.transaction(async (tx) => {
       const farmId = context.farm.id;
+      // The Farm first, as every write of its money takes it (`lockTheFarm`).
+      await lockTheFarm(tx, farmId);
       const occurredAt = enteredOn(input.occurredOn, now);
       const wagesId = await wagesCategoryOf(tx, farmId);
       if (!wagesId) {

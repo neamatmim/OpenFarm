@@ -6,14 +6,13 @@ import {
   farmDayOf,
   farmDaysApart,
   herdBetween,
-  monthHasBegun,
   monthBefore,
-  monthOf,
+  monthHasBegun,
+  monthRangeOf,
   monthsFromTo,
   plannedHeadKg,
-  roundMoney,
   roundedCosts,
-  startOfFarmDay,
+  roundMoney,
   sumsStandingOf,
 } from "@OpenFarm/domain";
 import type { FarmIdentity, Said, VentureMonthFacts } from "@OpenFarm/domain";
@@ -44,7 +43,6 @@ import {
 } from "./venture-store";
 
 /** A "YYYY-MM" month as the farm's own days begin and end it, the end not counted in. */
-const rangeOf = (month: string) => monthOf(startOfFarmDay(`${month}-01`));
 
 /**
  * The months a Venture ran: from the month it was opened to the later of the month its Settlement was approved and the
@@ -277,7 +275,7 @@ export const ventureMonth = async (
       data: { refusal: "venture_not_running", months: months.toReversed() },
     });
   }
-  const range = rangeOf(month);
+  const range = monthRangeOf(month);
   const firstDay = `${month}-01`;
   const lastDay = lastDayOf(month);
   const [costs, ownedThenBy, boughtIn, holdings, movements, bankCheck] =

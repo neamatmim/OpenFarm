@@ -13,6 +13,7 @@ import {
   recordHandover,
 } from "../cash-store";
 import type { HandEnd } from "../cash-store";
+import { changeByOf } from "../closed-month-store";
 import { correct } from "../corrections/correction";
 import {
   handoverCorrection,
@@ -165,6 +166,7 @@ export const cashRouter = {
             recordedBy: context.actor.id,
             recordedByRole: role,
             now,
+            by: changeByOf(context, now),
           }));
         }
       );
@@ -211,6 +213,7 @@ export const cashRouter = {
           uncountFarmFloat(tx, {
             farmId: context.farm.id,
             tripId: input.tripId,
+            by: changeByOf(context, context.clock.now()),
           })
       );
       return { tripId: input.tripId };
@@ -265,6 +268,7 @@ export const cashRouter = {
             ownerId: context.actor.id,
             role,
             now,
+            by: changeByOf(context, now),
           })
       );
       return { tripId: input.tripId };

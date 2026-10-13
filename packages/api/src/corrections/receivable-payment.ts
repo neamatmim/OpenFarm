@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { assertTheHand, handOfTheRecord } from "../cash-store";
 import type { ChangeBy } from "../closed-month-store";
-import { changeByOf, takeOffTheBooks } from "../closed-month-store";
+import { changeByOf } from "../closed-month-store";
 import { farmDay } from "../farm-clock";
 import { enteredOn } from "../money-by-hand-store";
 import {
@@ -21,6 +21,7 @@ import {
   bookMoney,
   farmAccountShownOf,
   paymentMethodOf,
+  takeOffTheBooks,
 } from "../money-store";
 import {
   CATEGORY_OF_RECEIVABLE,

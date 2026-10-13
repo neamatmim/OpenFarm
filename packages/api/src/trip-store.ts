@@ -118,12 +118,9 @@ export const paidFromTheFloat = async (
     return;
   }
   // Out of the Farm's purse is out of its month's figures: a Closed Month's is the Owner's alone to move (ADR 0028).
-  await putMoneyRight(
-    tx,
-    by,
-    { source: "buying_trip", sourceId: tripId },
-    { purseVentureId: ventureId }
-  );
+  // Only the one Money Event found is moved, so the trail below says all that moved.
+  await putMoneyRight(tx, by, { id: booked.id }, { purseVentureId: ventureId });
+
   await trail(tx, {
     entity: "money_event",
     entityId: booked.id,

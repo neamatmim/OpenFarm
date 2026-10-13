@@ -17,6 +17,7 @@ import { moveEntry } from "./entries/move";
 import { observationEntry } from "./entries/observation";
 import { stepCompletionEntry } from "./entries/step-completion";
 import { stepPhotoEntry } from "./entries/step-photo";
+import { lockTheFarm } from "./farm-lock";
 import type { RaisedAlert } from "./instances-store";
 import { tell } from "./notice";
 import type { Entry, EntryResult } from "./sync-entries";
@@ -449,6 +450,8 @@ export const applyBatch = async (
 }> =>
   await seenWhenDone(
     db.transaction(async (tx) => {
+      // The Farm first, as every write that can reach its money takes it: a Cash Count is one (`lockTheFarm`).
+      await lockTheFarm(tx, context.farm.id);
       const reserved = await reserveBatch(tx, {
         key: input.key,
         farmId: context.farm.id,

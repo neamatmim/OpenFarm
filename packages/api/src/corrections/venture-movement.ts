@@ -10,7 +10,6 @@ import { audited } from "../audit";
 import { changeByOf } from "../closed-month-store";
 import { farmsOwnOf } from "../farm-capital-store";
 import { farmDay } from "../farm-clock";
-import { lockTheFarm } from "../farm-lock";
 import { amountInput } from "../money-inputs";
 import { forgetTheMoneyOf, putMoneyRight } from "../money-store";
 import { closePayInNotes } from "../pay-in-notes";
@@ -318,7 +317,6 @@ export const ventureMovementCorrection: CorrectionKind<
   entity: "venture_movement",
   table: ventureMovement,
   roles: ["owner"],
-  lock: lockTheFarm,
   missing: "No such movement",
   load: loadMovement,
   // The Owner's window is open-ended, so nothing here turns on when it was entered or by whom.

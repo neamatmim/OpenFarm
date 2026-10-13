@@ -1,5 +1,4 @@
 import { eq } from "@OpenFarm/db/operators";
-import { farm } from "@OpenFarm/db/schema/farm";
 import { feedIn } from "@OpenFarm/db/schema/feed";
 import { farmDayOf, roundMoney, startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
@@ -89,14 +88,6 @@ export const feedArrivalCorrection: CorrectionKind<
 > = {
   entity: "feed_in",
   table: feedIn,
-  // Deliveries, corrections and request creation take the farm before any order or receipt lock.
-  lock: async (tx, farmId) => {
-    await tx
-      .select({ id: farm.id })
-      .from(farm)
-      .where(eq(farm.id, farmId))
-      .for("update");
-  },
   roles: ["owner", "manager"],
   /**
    * An arrival is what the costing prices this Feed Item's feedings from: its price and its quantity both

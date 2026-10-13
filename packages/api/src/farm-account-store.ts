@@ -1,7 +1,7 @@
 import {
   farmDayOf,
   monthBefore,
-  monthOf,
+  monthRangeOf,
   roundMoney,
   startOfFarmDay,
 } from "@OpenFarm/domain";
@@ -11,8 +11,7 @@ import type { BankStanding } from "./bank-standing";
 import { standingOf } from "./bank-standing";
 
 /** The instant a month ends, by the farm's clock: the first moment of the next. */
-const endOf = (month: string): Date =>
-  monthOf(startOfFarmDay(`${month}-01`)).until;
+const endOf = (month: string): Date => monthRangeOf(month).until;
 
 /** One movement of a Farm Account's money: a Money Event naming it, or a Handover into or out of it. */
 interface Moved {

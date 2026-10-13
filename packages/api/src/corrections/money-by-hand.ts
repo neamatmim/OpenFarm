@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { clearNoticesAbout } from "../alerts-store";
 import type { Tx } from "../audit";
-import { changeByOf, takeOffTheBooks } from "../closed-month-store";
+import { changeByOf } from "../closed-month-store";
 import { herdCostOf } from "../cost-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
@@ -29,7 +29,12 @@ import {
   receiptInput,
   sideInput,
 } from "../money-inputs";
-import { accountSaid, bookingOf, bookMoney } from "../money-store";
+import {
+  accountSaid,
+  bookingOf,
+  bookMoney,
+  takeOffTheBooks,
+} from "../money-store";
 import { drawsTakenBy } from "../wage-draw-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, venturesCharged } from "./correction";

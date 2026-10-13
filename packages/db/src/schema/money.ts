@@ -608,9 +608,22 @@ export const CLOSED_MONTH_CHANGES = [
 export type ClosedMonthChangeKind = (typeof CLOSED_MONTH_CHANGES)[number];
 
 /**
- * One change the Owner made to a **Closed Month**'s money after it was closed — an entry, a Correction, a move into or
- * out of it, a void — kept so the next month's paper can say what changed under a month already done. The Money Event
- * is named by its id alone: a void takes it off the books, and what it came to is kept here.
+ * What a change to a **Closed Month** was made to: a Money Event, by the record its money came from, or one of the
+ * other records the month's figures read — a Handover between hands, a Receivable Write-off, a Cash Count, a Bank
+ * Check.
+ */
+export const CLOSED_MONTH_SOURCES = [
+  ...MONEY_SOURCES,
+  "handover",
+  "receivable_write_off",
+  "cash_count",
+  "bank_check",
+] as const;
+export type ClosedMonthSource = (typeof CLOSED_MONTH_SOURCES)[number];
+
+/**
+ * One change the Owner made to a **Closed Month**'s figures after it was closed — an entry, a Correction, a move into or
+ * out of it, a void — kept so the next month's paper can say what changed under a month already done, and to what.
  */
 export const closedMonthChange = pgTable(
   "closed_month_change",
@@ -621,11 +634,17 @@ export const closedMonthChange = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     /** The closed month whose money changed: where it stood, or where it was moved to. */
     month: text("month").notNull(),
-    moneyEventId: text("money_event_id").notNull(),
-    source: text("source", { enum: MONEY_SOURCES }).notNull(),
+    /** The Money Event, Handover, Write-off, Cash Count or Bank Check changed: named by its id alone, as a void takes
+     *  it away. */
+    recordId: text("record_id").notNull(),
+    source: text("source", { enum: CLOSED_MONTH_SOURCES }).notNull(),
+    /** Whom it was with or about, as named when it changed: the Counterparty, the buyer, the person handed to. */
+    about: text("about"),
+    /** The tag of the Animal it was for, where it was one animal's. */
+    tagNumber: text("tag_number"),
     change: text("change", { enum: CLOSED_MONTH_CHANGES }).notNull(),
     /** What the closed month held of it before, and after: nothing before for one entered or moved in, nothing after
-     *  for one voided or moved out. */
+     *  for one voided or moved out. Signed, as a Bank Check reads an overdrawn account. */
     beforeMoney: numericMoney("before_money"),
     afterMoney: numericMoney("after_money"),
     changedBy: text("changed_by").references(() => user.id),

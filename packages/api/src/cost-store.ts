@@ -11,29 +11,28 @@ import type {
   PenHistoryLine,
 } from "@OpenFarm/domain";
 import {
-  HER_KEEP,
-  WHAT_THE_FARM_IS_OWED,
   chargesOfOwner,
-  costsOf,
-  exitOf,
   costOfGainOf,
   costPerLiterOf,
+  costsOf,
   dosePriceOf,
+  exitOf,
   feedShares,
   groupedBy,
+  handedOverAt,
+  HER_KEEP,
+  herdShares,
   marginOf,
-  monthOf,
+  monthRangeOf,
   penHistoryOf,
   priceHistory,
+  roundedCosts,
   roundKg,
   roundLiters,
   roundMoney,
-  roundedCosts,
-  herdShares,
-  handedOverAt,
-  startOfFarmDay,
   sidesOverTime,
   tripShares,
+  WHAT_THE_FARM_IS_OWED,
 } from "@OpenFarm/domain";
 
 import { THE_FARMS_PURSE } from "./money-store";
@@ -1144,7 +1143,7 @@ export const owedByMonth = (
       theirs,
       ownedThenBy,
       ventureId,
-      monthOf(startOfFarmDay(`${month}-01`))
+      monthRangeOf(month)
     );
     const comesToMoney = consumed.totalMoney;
     const own = paid.find((one) => one.forMonth === month);

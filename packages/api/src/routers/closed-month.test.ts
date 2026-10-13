@@ -62,9 +62,9 @@ const moneyOf = (id: string) =>
   });
 
 /** The changes kept against one Money Event for a closed month's paper. */
-const changesKeptFor = (moneyEventId: string) =>
+const changesKeptFor = (recordId: string) =>
   scratchDb().query.closedMonthChange.findMany({
-    where: { moneyEventId },
+    where: { recordId },
     columns: {
       month: true,
       change: true,
@@ -75,13 +75,21 @@ const changesKeptFor = (moneyEventId: string) =>
 
 const MONTH_CLOSED = { data: { refusal: "month_closed" } };
 
+/** Where a month stands with the Owner, as the month's own page says it. */
+const closingOf = async (month: string) => {
+  const owner = await as("owner");
+  const one = await owner.client.monthlyReport.month({ month });
+  return one.closing;
+};
+
 describe("closing a month", () => {
   it("closes a month that has ended, and refuses one still going or closed already", async () => {
     const owner = await as("owner");
     await owner.client.monthlyReport.close({ month: "2079-01" });
-    expect(
-      await owner.client.monthlyReport.closing({ month: "2079-01" })
-    ).toMatchObject({ closed: true, ended: true });
+    expect(await closingOf("2079-01")).toMatchObject({
+      closed: true,
+      ended: true,
+    });
     await expect(
       owner.client.monthlyReport.close({ month: "2079-01" })
     ).rejects.toMatchObject({ data: { refusal: "month_already_closed" } });
@@ -416,9 +424,7 @@ describe("reopening a month", () => {
       month: "2078-11",
       reason: "হিসাবরক্ষক একটি বিল পেয়েছেন",
     });
-    expect(
-      await owner.client.monthlyReport.closing({ month: "2078-11" })
-    ).toMatchObject({
+    expect(await closingOf("2078-11")).toMatchObject({
       closed: false,
       reopened: { reason: "হিসাবরক্ষক একটি বিল পেয়েছেন" },
     });

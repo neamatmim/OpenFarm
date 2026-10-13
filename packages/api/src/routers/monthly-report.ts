@@ -1,18 +1,16 @@
 import type { MonthlyReportFacts } from "@OpenFarm/domain";
 import {
   farmDayOf,
-  monthOf,
   monthlyReportPaper,
   monthlyReportRows,
-  startOfFarmDay,
 } from "@OpenFarm/domain";
+import { translate } from "@OpenFarm/i18n";
 import { z } from "zod";
 
 import { audited } from "../audit";
 import {
   changeByOf,
   closeMonth,
-  closingOf,
   readClosedMonth,
   reopenMonth,
 } from "../closed-month-store";
@@ -26,12 +24,7 @@ import { protectedProcedure } from "../index";
 import { aMonth, monthByMonth } from "../month-store";
 import { madeOn } from "../paper-values";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
-
-/** A "YYYY-MM" month's last farm day. */
-const lastDayOf = (month: string) =>
-  farmDayOf(
-    new Date(monthOf(startOfFarmDay(`${month}-01`)).until.getTime() - 1)
-  );
+import { lastDayOf } from "../venture-store";
 
 /** Whoever makes a month's Export, signed in on their farm: the procedures that make one say who may. */
 type ExportingContext = Context & {
@@ -55,7 +48,14 @@ const monthToExport = async (context: ExportingContext, month: string) => {
     figures: one.figures,
     figuresBefore: one.figuresBefore,
     moneyBy: one.moneyBy,
-    changedAfterClosing: one.changedAfterClosing,
+    // Each record named in both languages, as the paper and the CSV are read in either.
+    changedAfterClosing: one.changedAfterClosing.map((change) => ({
+      ...change,
+      record: {
+        bn: translate("bn", change.recordWord),
+        en: translate("en", change.recordWord),
+      },
+    })),
     producedAt: madeOn(now),
     producedBy: context.actor.name,
   };
@@ -102,17 +102,6 @@ export const monthlyReportRouter = {
     .input(z.object({ month: farmMonth }))
     .handler(({ context, input }) =>
       aMonth(context.db, context.farm, context.clock.now(), input.month)
-    ),
-
-  /**
-   * Where a month stands with the Owner (`closingOf`): closed or open, whether it has ended, what of it still waits for
-   * her word, and — open again — when it was reopened and why.
-   */
-  closing: protectedProcedure
-    .use(requireOnly("owner", OWNER_ONLY))
-    .input(z.object({ month: farmMonth }))
-    .handler(({ context, input }) =>
-      closingOf(context.db, context.farm.id, input.month, context.clock.now())
     ),
 
   /**
@@ -202,6 +191,9 @@ export const monthlyReportRouter = {
           "way",
           "this_month",
           "month_before",
+          // A change to a closed month's alone: what that month held of the record before it, and after.
+          "before",
+          "after",
         ],
         monthlyReportRows(facts).map((row) => [
           row.part.bn,
@@ -211,6 +203,8 @@ export const monthlyReportRouter = {
           row.way,
           row.thisMonth,
           row.monthBefore,
+          row.before ?? null,
+          row.after ?? null,
         ])
       );
       await recordExport(context, "monthly_report", days, {

@@ -40,12 +40,13 @@ const listedColumns = () =>
     });
 
 // Left free, each for its reason: the Owner's settings, refused out of range by their own form; a balance the bank
-// shows, which may be overdrawn; a plan's guesses; a Settlement's figures, which may be a loss; the tank's
-// difference from the cows' own liters, either way; the sign-in limiter's own count; a Ration's expected gain; and what a
-// Buying Float counted home did not account for, short or over.
+// shows, which may be overdrawn, and a Closed Month's change that carries one; a plan's guesses; a Settlement's
+// figures, which may be a loss; the tank's difference from the cows' own liters, either way; the sign-in limiter's own
+// count; a Ration's expected gain; and what a Buying Float counted home did not account for, short or over.
 const leftFree = (table: string, column: string): boolean =>
   [
     "farm",
+    "closed_month_change",
     "farm_account_check",
     "venture_bank_check",
     "venture_plan",

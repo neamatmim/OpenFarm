@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "e2e38327-d99d-48a5-abb3-bd3a8d04119d",
+  "id": "a49c525e-786d-4d3f-a1c6-a96ae306ae78",
   "prevIds": [
     "9f76d2cc-8255-4d17-a831-ffbe757e849a"
   ],
@@ -12889,7 +12889,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "money_event_id",
+      "name": "record_id",
       "entityType": "columns",
       "schema": "public",
       "table": "closed_month_change"
@@ -12903,6 +12903,32 @@
       "generated": null,
       "identity": null,
       "name": "source",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "closed_month_change"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "about",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "closed_month_change"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tag_number",
       "entityType": "columns",
       "schema": "public",
       "table": "closed_month_change"

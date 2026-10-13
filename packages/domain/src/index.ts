@@ -529,6 +529,7 @@ export {
   herdShares,
   marginOf,
   monthOf,
+  monthRangeOf,
   monthsEndingIn,
   roundedCosts,
   tripShares,

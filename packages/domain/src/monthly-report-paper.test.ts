@@ -772,6 +772,9 @@ describe("what was changed after a month was closed, on paper", () => {
       {
         month: "2044-02",
         change: "corrected" as const,
+        record: { bn: "বিক্রি", en: "Sale" },
+        about: "করিম ব্যাপারী",
+        tagNumber: "F-0012",
         beforeMoney: 1000,
         afterMoney: 1200,
         changedOn: "2044-03-04",
@@ -780,6 +783,9 @@ describe("what was changed after a month was closed, on paper", () => {
       {
         month: "2044-02",
         change: "voided" as const,
+        record: { bn: "নগদ হাতবদল", en: "Cash handover" },
+        about: null,
+        tagNumber: null,
         beforeMoney: 700,
         afterMoney: null,
         changedOn: "2044-03-05",
@@ -788,6 +794,9 @@ describe("what was changed after a month was closed, on paper", () => {
       {
         month: "2044-02",
         change: "moved" as const,
+        record: { bn: "হাতে লেখা", en: "Entered by hand" },
+        about: "মিস্ত্রি",
+        tagNumber: null,
         beforeMoney: 500,
         afterMoney: null,
         changedOn: "2044-03-06",
@@ -809,6 +818,26 @@ describe("what was changed after a month was closed, on paper", () => {
     expect(en).toContain("Taken off");
     expect(en).toContain("Moved");
     expect(en).toContain("February 2044");
+  });
+
+  it("names the record each change was made to: what it was, whom it was with, and her tag", () => {
+    const en = paperText(monthlyReportPaper(changed), "en");
+    expect(en).toContain("Sale · করিম ব্যাপারী · F-0012");
+    expect(en).toContain("Cash handover");
+    const bn = paperText(monthlyReportPaper(changed), "bn");
+    expect(bn).toContain("বিক্রি · করিম ব্যাপারী · F-0012");
+  });
+
+  it("is a row a change in the accountant's file, with the record and what the month held before and after", () => {
+    const rows = monthlyReportRows(changed).filter(
+      (row) => row.part.en === "Changed after closing"
+    );
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toMatchObject({ before: 1000, after: 1200 });
+    expect(rows[0]?.line.en).toContain("Sale · করিম ব্যাপারী · F-0012");
+    expect(rows[0]?.line.en).toContain("Put right");
+    expect(rows[0]?.line.en).toContain("February 2044");
+    expect(rows[1]).toMatchObject({ before: 700, after: null });
   });
 
   it("is left off a month that changed no closed month", () => {

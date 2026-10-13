@@ -3,8 +3,10 @@ import { receivableWriteOff } from "@OpenFarm/db/schema/money";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { changeByOf } from "../closed-month-store";
 import { noteInput } from "../money-inputs";
 import {
+  answerForWriteOff,
   assertWrittenOffNoMoreThanOwed,
   lockTheBuyer,
   owingOnItem,
@@ -36,7 +38,7 @@ export const writeOffCorrection: CorrectionKind<
   shown: (_tx, row) =>
     Promise.resolve({ amountMoney: row.amountMoney, why: row.reason }),
   trail: (tx, row) => readWriteOff(tx, row.id),
-  apply: async (tx, row, to) => {
+  apply: async (tx, row, to, { context, now }) => {
     if (to.amountMoney !== undefined && to.amountMoney > row.amountMoney) {
       // Under his lock, as a write-off is written: a payment at the same moment is counted before this one grows.
       await lockTheBuyer(tx, row.counterpartyId);
@@ -57,7 +59,14 @@ export const writeOffCorrection: CorrectionKind<
       ...(to.why === undefined ? {} : { reason: to.why }),
     };
     if (somethingChanged(putRight)) {
+      await answerForWriteOff(
+        tx,
+        changeByOf(context, now),
+        { ...row, amountMoney: to.amountMoney ?? row.amountMoney },
+        row.amountMoney
+      );
       await tx
+
         .update(receivableWriteOff)
         .set(putRight)
         .where(eq(receivableWriteOff.id, row.id));

@@ -14,8 +14,10 @@ CREATE TABLE "closed_month_change" (
 	"id" text PRIMARY KEY,
 	"farm_id" text NOT NULL,
 	"month" text NOT NULL,
-	"money_event_id" text NOT NULL,
+	"record_id" text NOT NULL,
 	"source" text NOT NULL,
+	"about" text,
+	"tag_number" text,
 	"change" text NOT NULL,
 	"before_money" numeric(12,2),
 	"after_money" numeric(12,2),
@@ -31,7 +33,5 @@ ALTER TABLE "closed_month" ADD CONSTRAINT "closed_month_closed_by_user_id_fkey" 
 ALTER TABLE "closed_month" ADD CONSTRAINT "closed_month_reopened_by_user_id_fkey" FOREIGN KEY ("reopened_by") REFERENCES "user"("id");--> statement-breakpoint
 ALTER TABLE "closed_month_change" ADD CONSTRAINT "closed_month_change_farm_id_farm_id_fkey" FOREIGN KEY ("farm_id") REFERENCES "farm"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "closed_month_change" ADD CONSTRAINT "closed_month_change_changed_by_user_id_fkey" FOREIGN KEY ("changed_by") REFERENCES "user"("id");;--> statement-breakpoint
-ALTER TABLE "closed_month_change" ADD CONSTRAINT "closed_month_change_source_known" CHECK ("source" IN ('dispatch', 'intake', 'buying_trip', 'selling_trip', 'sale', 'sale_broker', 'wage_draw', 'feed_in', 'medicine_purchase', 'vet_fee', 'internal_sale_in', 'internal_sale_out', 'reimbursement', 'settlement_adjustment', 'farm_share', 'farm_loss', 'venture_made_good', 'venture_capital_out', 'venture_capital_back', 'venture_capital_return', 'receivable_payment', 'supplier_payment', 'by_hand'));--> statement-breakpoint
-ALTER TABLE "closed_month_change" ADD CONSTRAINT "closed_month_change_change_known" CHECK ("change" IN ('entered', 'corrected', 'moved', 'voided'));--> statement-breakpoint
-ALTER TABLE "closed_month_change" ADD CONSTRAINT "closed_month_change_before_money_not_negative" CHECK ("before_money" >= 0);--> statement-breakpoint
-ALTER TABLE "closed_month_change" ADD CONSTRAINT "closed_month_change_after_money_not_negative" CHECK ("after_money" >= 0);
+ALTER TABLE "closed_month_change" ADD CONSTRAINT "closed_month_change_source_known" CHECK ("source" IN ('dispatch', 'intake', 'buying_trip', 'selling_trip', 'sale', 'sale_broker', 'wage_draw', 'feed_in', 'medicine_purchase', 'vet_fee', 'internal_sale_in', 'internal_sale_out', 'reimbursement', 'settlement_adjustment', 'farm_share', 'farm_loss', 'venture_made_good', 'venture_capital_out', 'venture_capital_back', 'venture_capital_return', 'receivable_payment', 'supplier_payment', 'by_hand', 'handover', 'receivable_write_off', 'cash_count', 'bank_check'));--> statement-breakpoint
+ALTER TABLE "closed_month_change" ADD CONSTRAINT "closed_month_change_change_known" CHECK ("change" IN ('entered', 'corrected', 'moved', 'voided'));

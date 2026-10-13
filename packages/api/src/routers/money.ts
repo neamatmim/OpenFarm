@@ -1,12 +1,12 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { and, eq } from "@OpenFarm/db/operators";
-import { moneyEvent, vetFee, vetFeeAnimal } from "@OpenFarm/db/schema/money";
+import { vetFee, vetFeeAnimal } from "@OpenFarm/db/schema/money";
 import { startOfFarmDay, tagNumberAsWritten } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { changeByOf } from "../closed-month-store";
 import { correct } from "../corrections/correction";
 import {
   vetFeeCorrection,
@@ -25,6 +25,7 @@ import {
 import {
   THE_FARMS_PURSE,
   accountSaid,
+  approveMoney,
   bookMoney,
   bookingOf,
   moneyTotalsOf,
@@ -266,22 +267,11 @@ export const moneyRouter = {
         async (tx) => {
           // Only while it still waits at the amount read: a correction or another approval landing
           // between the read and this write changes nothing, and nothing is recorded.
-          const approved = await tx
-            .update(moneyEvent)
-            .set({
-              approval: "approved",
-              approvedBy: context.actor.id,
-              approvedAt: now,
-            })
-            .where(
-              and(
-                eq(moneyEvent.id, waiting.id),
-                eq(moneyEvent.approval, "awaiting"),
-                eq(moneyEvent.amountMoney, input.amountMoney)
-              )
-            )
-            .returning({ id: moneyEvent.id });
-          if (approved.length === 0) {
+          const approved = await approveMoney(tx, changeByOf(context, now), {
+            id: waiting.id,
+            amountMoney: input.amountMoney,
+          });
+          if (!approved) {
             throw notWaiting();
           }
           await settleMoneyNotices(tx, context.farm.id, waiting.id, now);

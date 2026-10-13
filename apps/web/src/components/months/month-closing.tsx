@@ -1,3 +1,4 @@
+import { farmDayOf, monthRangeOf } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -11,13 +12,16 @@ import {
 } from "@OpenFarm/ui/components/table";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import type { ReactNode } from "react";
 
 import { COLUMN_HEADING } from "@/components/data-table";
 import { Nothing } from "@/components/list-cells";
 import type { OneMonth } from "@/components/months/one-month";
 import { Notice, Section, StatusBadge } from "@/components/page";
 import { ReasonDialog } from "@/components/sign-off/reason-dialog";
+import { AnimalLink } from "@/components/vet/vet-types";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import { saidMonth } from "@/lib/months";
@@ -143,8 +147,73 @@ export const MonthClosing = ({ closing }: { closing: Closing }) => {
 };
 
 /**
- * What the Owner changed this month in the money of months already closed — entered, put right, moved or taken off —
- * so a paper already handed over is known to have moved. Nothing drawn when nothing was.
+ * The page a changed record is found on, where one shows it: the cash in hand for a Handover or a Cash Count, the
+ * Receivable for a Write-off, the supplier payments for one, and the money book over the month changed for any other
+ * money still on the books. A record taken off, or a Bank Check, is named without a way to it.
+ */
+const ToTheRecord = ({
+  change,
+  children,
+}: {
+  change: Change;
+  children: ReactNode;
+}) => {
+  const className = "hover:underline";
+  if (change.source === "handover" || change.source === "cash_count") {
+    return (
+      <Link className={className} to="/money/cash">
+        {children}
+      </Link>
+    );
+  }
+  if (change.source === "receivable_write_off") {
+    return (
+      <Link className={className} to="/money/receivables">
+        {children}
+      </Link>
+    );
+  }
+  if (change.source === "supplier_payment" && change.change !== "voided") {
+    return (
+      <Link className={className} to="/money/supplier-payments">
+        {children}
+      </Link>
+    );
+  }
+  if (change.source === "bank_check" || change.change === "voided") {
+    return children;
+  }
+  const { until } = monthRangeOf(change.month);
+  return (
+    <Link
+      className={className}
+      search={{
+        from: `${change.month}-01`,
+        to: farmDayOf(new Date(until.getTime() - 1)),
+      }}
+      to="/money"
+    >
+      {children}
+    </Link>
+  );
+};
+
+/** The record a change was made to: what it was and whom it was with, the way to it, and the Animal's tag. */
+const RecordCell = ({ change }: { change: Change }) => {
+  const { t } = useLanguage();
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <ToTheRecord change={change}>
+        {[t(change.recordWord), change.about].filter(Boolean).join(" · ")}
+      </ToTheRecord>
+      {change.tagNumber ? <AnimalLink tagNumber={change.tagNumber} /> : null}
+    </span>
+  );
+};
+
+/**
+ * What the Owner changed this month in months already closed — entered, put right, moved or taken off, and what each
+ * was — so a paper already handed over is known to have moved. Nothing drawn when nothing was.
  */
 export const ChangedAfterClosing = ({
   changes,
@@ -175,6 +244,9 @@ export const ChangedAfterClosing = ({
             <TableHead className={COLUMN_HEADING}>
               {t("months.closing.col.what")}
             </TableHead>
+            <TableHead className={COLUMN_HEADING}>
+              {t("months.closing.col.record")}
+            </TableHead>
             <TableHead className={cn(COLUMN_HEADING, "text-right")}>
               {t("months.closing.col.before")}
             </TableHead>
@@ -192,6 +264,10 @@ export const ChangedAfterClosing = ({
               <TableCell>{formatDate(one.changedAt, language)}</TableCell>
               <TableCell>{saidMonth(one.month, language)}</TableCell>
               <TableCell>{t(CHANGE_WORD[one.change])}</TableCell>
+              <TableCell>
+                <RecordCell change={one} />
+              </TableCell>
+
               <TableCell className="text-right tabular-nums">
                 {money(one.beforeMoney)}
               </TableCell>

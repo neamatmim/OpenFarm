@@ -17,6 +17,7 @@ import { audited } from "../audit";
 import type { Recorder } from "../completion-store";
 import type { FarmCosts } from "../cost-store";
 import { farmCosts } from "../cost-store";
+import { lockTheFarm } from "../farm-lock";
 import { herVenturesAround as whoseSheWas } from "../intake-store";
 import { tell } from "../notice";
 import { pickRoleUsed } from "../roles";
@@ -176,9 +177,6 @@ export interface CorrectionKind<
   rolesFor?: (row: Row) => readonly RoleName[] | undefined;
   /** Whether a Vet called in for a visit may put it right as the Vet. */
   visitingVet?: boolean;
-  /** Held before the row is, for a kind whose rules count what other records say — the same lock those records
-   *  take, in the same order, so a Correction cannot read a sum a write in flight is about to change. */
-  lock?: (tx: Tx, farmId: string) => Promise<void>;
   /**
    * The Ventures whose records this one belongs to, of which there may be none, one or several.
    *
@@ -401,7 +399,10 @@ export const correct = async <
   let corrector: Corrector | undefined;
   const outcome = await seenWhenDone(
     context.db.transaction(async (tx) => {
-      await kind.lock?.(tx, context.farm.id);
+      // The Farm first, for every kind, before its row: the lock every write that can reach the Farm's money takes at
+      // its start, so a Correction and a month closing, or two Corrections, never wait on each other (`lockTheFarm`).
+      await lockTheFarm(tx, context.farm.id);
+
       await tx.execute(
         sql`select 1 from ${kind.table} where ${kind.table.id} = ${input.id} for update`
       );

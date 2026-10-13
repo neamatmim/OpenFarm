@@ -18,9 +18,8 @@ import {
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { assertTheHand, handOfTheRecord } from "../cash-store";
-import { changeByOf, takeOffTheBooks } from "../closed-month-store";
+import { changeByOf } from "../closed-month-store";
 import { counterpartyNamed } from "../counterparty-store";
-import { lockTheFarm } from "../farm-lock";
 import { comesBackFromAVoidedExit, correctHowSheLeft } from "../herd-store";
 import { farmAccountChange, paymentMethodChange } from "../money-inputs";
 import {
@@ -28,6 +27,7 @@ import {
   bookingOf,
   farmAccountShownOf,
   paymentMethodOf,
+  takeOffTheBooks,
 } from "../money-store";
 import {
   assertNothingStandsAgainst,
@@ -336,7 +336,6 @@ export const saleCorrection: CorrectionKind<
   roles: ["owner", "manager"],
   // Putting one of these right can move a Venture Movement, so it takes the Farm lock first, as
   // everything that counts a Venture's money does.
-  lock: lockTheFarm,
   // No `venturesOf`, on purpose. A Sale put right after a Settlement is the late news itself — refusing
   // it would leave what a buyer really paid nowhere to land — and what it changes is shown as a
   // Settlement Adjustment rather than moving the frozen figures.

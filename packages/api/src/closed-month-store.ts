@@ -1,28 +1,29 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { and, eq, gte, inArray, isNull, lt, sql } from "@OpenFarm/db/operators";
+import { and, eq, gte, isNull, lt, sql } from "@OpenFarm/db/operators";
 import type {
   ClosedMonthChangeKind,
+  ClosedMonthSource,
   MoneySource,
 } from "@OpenFarm/db/schema/money";
 import {
   closedMonth,
   closedMonthChange,
   moneyEvent,
-  moneyReceipt,
 } from "@OpenFarm/db/schema/money";
 import {
   farmDayOf,
   monthBefore,
-  monthOf as monthRangeOf,
+  monthRangeOf,
   roundMoney,
-  startOfFarmDay,
 } from "@OpenFarm/domain";
-import { ORPCError } from "@orpc/server";
+import type { MessageKey } from "@OpenFarm/i18n";
 
 import type { Tx } from "./audit";
 import { lockTheFarm } from "./farm-lock";
+import { tagsOfHerRecords } from "./herd-store";
+import { refuse } from "./refuse";
 
-/** Who is changing the Farm's money, as a **Closed Month** asks: whether it is the Owner, who alone may. */
+/** Who is changing the Farm's figures, as a **Closed Month** asks: whether it is the Owner, who alone may. */
 export interface ChangeBy {
   farmId: string;
   actorId: string;
@@ -30,7 +31,11 @@ export interface ChangeBy {
   now: Date;
 }
 
-/** Who this request is, as a change to a Closed Month's money is asked about and kept. */
+/** The one rule of who the Owner is, as a Closed Month and the Approval Threshold both ask: whoever holds her Role. */
+export const isTheOwner = (roles: readonly string[]): boolean =>
+  roles.includes("owner");
+
+/** Who this request is, as a change to a Closed Month is asked about and kept. */
 export const changeByOf = (
   context: {
     farm: { id: string };
@@ -41,18 +46,18 @@ export const changeByOf = (
 ): ChangeBy => ({
   farmId: context.farm.id,
   actorId: context.actor.id,
-  byTheOwner: context.roles.includes("owner"),
+  byTheOwner: isTheOwner(context.roles),
   now,
 });
 
-/** The month a moment of money falls in, on the farm's own clock: "YYYY-MM". */
+/** The month a moment falls in, on the farm's own clock: "YYYY-MM". */
 export const monthKeyOf = (at: Date): string => farmDayOf(at).slice(0, 7);
 
 /**
- * Which of these months the farm has closed and not reopened, asked behind the Farm's one money lock so a month closed
- * at the same moment is either seen closed or closed after this write. Only a month already over can be closed, so money
- * in this month or after is never asked about — the database is not read, and the Farm not locked, for the day's
- * ordinary money.
+ * Which of these months the farm has closed and not reopened. Asked behind the Farm's one lock, which every
+ * transaction that can reach a past month takes at its start (`audited`, `correct`), so taking it here again is only
+ * a guard. Only a month already over can be closed, so money in this month or after is never asked about — the
+ * database is not read for the day's ordinary money.
  */
 const closedAmong = async (
   tx: Tx,
@@ -77,18 +82,22 @@ const closedAmong = async (
 };
 
 /**
- * Money as a change to a Closed Month is weighed: when, how much, whose purse, and every other figure of the month it
- * stands in — its Category and Counterparty, and whose hand, which account, which way it was paid and which Side, each
- * a figure of the closed month too: a hand's cash, an account's balance, a Side's result.
+ * A record as a change to a Closed Month weighs it: when it falls, what it comes to, whose purse — a Venture's figures
+ * are its own papers', never the Farm's month — and everything else about it that is a figure of the month, as one
+ * fingerprint.
  */
-export interface MoneyAsItStands {
+export interface Weighed {
   at: Date;
   amountMoney: number;
   purseVentureId: string | null;
   rest: string;
 }
 
-/** A Money Event, or one about to be written, as a Closed Month weighs it (`MoneyAsItStands`). */
+/**
+ * A Money Event, or one about to be written, as a Closed Month weighs it: beside its day, amount and purse, its
+ * Category and Counterparty, and whose hand, which account, which way it was paid and which Side — each a figure of
+ * the closed month too: a hand's cash, an account's balance, a Side's result.
+ */
 export const standsOf = (one: {
   occurredAt: Date;
   amountMoney: number;
@@ -99,7 +108,7 @@ export const standsOf = (one: {
   farmAccountId?: string | null;
   paymentMethod?: string | null;
   side?: string | null;
-}): MoneyAsItStands => ({
+}): Weighed => ({
   at: one.occurredAt,
   amountMoney: one.amountMoney,
   purseVentureId: one.purseVentureId,
@@ -113,22 +122,45 @@ export const standsOf = (one: {
   ].join("|"),
 });
 
-/** Whether two weighings of money say the same: a write that says what the money already says changes no month. */
-const sameMoney = (a: MoneyAsItStands, b: MoneyAsItStands): boolean =>
+/** Whom or what a change was about, as the paper names it. */
+export interface About {
+  about: string | null;
+  tagNumber: string | null;
+}
+
+/** One change to weigh against the Closed Months: what it was made to, as it stood and as it will stand. */
+export interface ChangeToWeigh {
+  recordId: string;
+  source: ClosedMonthSource;
+  /** As it stood: nothing for a record entered new. */
+  before: Weighed | undefined;
+  /** As it will stand: nothing for one taken away. */
+  after: Weighed | undefined;
+  /** Whom it was with or about: read only for a change the Owner makes to a closed month, which is kept. */
+  about: (tx: Tx) => Promise<About>;
+}
+
+/** Whether two weighings say the same: a write that says what the record already says changes no month. */
+const sameAs = (a: Weighed, b: Weighed): boolean =>
   a.at.getTime() === b.at.getTime() &&
   roundMoney(a.amountMoney) === roundMoney(b.amountMoney) &&
   a.purseVentureId === b.purseVentureId &&
   a.rest === b.rest;
 
-/** The month money stands in as the Farm's own: none for a Venture's purse, whose figures are its own papers'. */
-const farmsMonthOf = (one: MoneyAsItStands | undefined): string | null =>
+/** The month a weighing stands in as the Farm's own: none for a Venture's purse. */
+const farmsMonthOf = (one: Weighed | undefined): string | null =>
   one && one.purseVentureId === null ? monthKeyOf(one.at) : null;
 
-/** What a change did to one closed month: what the month held of the money before, and after. */
+/** The months a change touches as the Farm's own: where it stood, and where it goes. */
+const monthsTouched = (change: ChangeToWeigh): string[] =>
+  [farmsMonthOf(change.before), farmsMonthOf(change.after)].flatMap((one) =>
+    one === null ? [] : [one]
+  );
+
+/** What a change did to one closed month: what the month held of it before, and after. */
 const changeIn = (
   month: string,
-  before: MoneyAsItStands | undefined,
-  after: MoneyAsItStands | undefined
+  { before, after }: ChangeToWeigh
 ): {
   change: ClosedMonthChangeKind;
   beforeMoney: number | null;
@@ -151,99 +183,130 @@ const changeIn = (
   };
 };
 
+/** Refused to anybody but the Owner: the month is closed, and is hers. */
+const closedToThem = (month: string) =>
+  refuse("month_closed", "That month is closed: ask the owner", { month });
+
 /**
- * The one rule of a **Closed Month** (ADR 0028), asked of every write of the Farm's money — booked, put right in place,
- * or taken off the books: money that changes a month the Owner has closed, where it stood or where it goes, is hers
- * alone to change. Anybody else is refused (`month_closed`), and nothing of the write is kept; hers is written, and
- * kept for the paper of the month she made it in. Money written as it already stood changes nothing and asks nothing.
+ * The one rule of a **Closed Month** (ADR 0028), asked of every write of a figure the Farm's months are made of — its
+ * money booked, put right in place or taken off the books, a Handover, a Write-off, a Cash Count, a Bank Check: a
+ * change to a month the Owner has closed, where it stood or where it goes, is hers alone. Anybody else is refused, and
+ * nothing of the write is kept; hers is written, and kept for the paper of the month she made it in. A record written
+ * as it already stood changes nothing and asks nothing. Every change in one write is weighed at once.
  */
 export const answerToClosedMonths = async (
   tx: Tx,
   by: ChangeBy,
-  money: {
-    id: string;
-    source: MoneySource;
-    /** As it stood: nothing for money entered new. */
-    before: MoneyAsItStands | undefined;
-    /** As it will stand: nothing for money taken off the books. */
-    after: MoneyAsItStands | undefined;
-  }
+  changes: readonly ChangeToWeigh[],
+  /** How a refusal is said, where the write is not a request's own: a phone's late entry is kept, not refused. */
+  refused: (month: string) => Error = closedToThem
 ): Promise<void> => {
-  const { before, after } = money;
-  if (before && after && sameMoney(before, after)) {
-    return;
-  }
-  const closed = await closedAmong(
-    tx,
-    by,
-    [farmsMonthOf(before), farmsMonthOf(after)].flatMap((one) =>
-      one === null ? [] : [one]
-    )
+  const changing = changes.filter(
+    ({ before, after }) => !(before && after && sameAs(before, after))
   );
+  const closed = await closedAmong(tx, by, changing.flatMap(monthsTouched));
   const [first] = closed;
   if (first === undefined) {
     return;
   }
   if (!by.byTheOwner) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "That month is closed: ask the owner",
-      data: { refusal: "month_closed", month: first },
-    });
+    throw refused(first);
   }
-  for (const month of closed) {
+  for (const change of changing) {
+    const months = monthsTouched(change).filter((month) => closed.has(month));
+    if (months.length === 0) {
+      continue;
+    }
+    // oxlint-disable-next-line no-await-in-loop -- the few records of one write, and only those the Owner changed
+    const about = await change.about(tx);
     // oxlint-disable-next-line no-await-in-loop -- at most the two months it was in and is moved to
-    await tx.insert(closedMonthChange).values({
-      id: newId(by.now),
-      farmId: by.farmId,
-      month,
-      moneyEventId: money.id,
-      source: money.source,
-      ...changeIn(month, before, after),
-      changedBy: by.actorId,
-      changedAt: by.now,
-    });
+    await tx.insert(closedMonthChange).values(
+      [...new Set(months)].map((month) => ({
+        id: newId(by.now),
+        farmId: by.farmId,
+        month,
+        recordId: change.recordId,
+        source: change.source,
+        ...about,
+        ...changeIn(month, change),
+        changedBy: by.actorId,
+        changedAt: by.now,
+      }))
+    );
   }
 };
 
-/**
- * Takes Money Events off the books — a record voided, never spent or written twice — with their receipts. One of the
- * Farm's own in a **Closed Month** is the Owner's alone to take off, and is kept for the next month's paper.
- */
-export const takeOffTheBooks = async (
-  tx: Tx,
-  by: ChangeBy,
-  ids: readonly string[]
-): Promise<void> => {
-  if (ids.length === 0) {
-    return;
-  }
-  const events = await tx.query.moneyEvent.findMany({
-    where: { id: { in: [...ids] } },
-    columns: {
-      id: true,
-      source: true,
-      occurredAt: true,
-      amountMoney: true,
-      purseVentureId: true,
-      categoryId: true,
-    },
-  });
-  for (const one of events) {
-    // oxlint-disable-next-line no-await-in-loop -- one record's money, a Money Event or two
-    await answerToClosedMonths(tx, by, {
-      id: one.id,
-      source: one.source,
-      before: standsOf(one),
-      after: undefined,
-    });
-  }
-  await tx.delete(moneyReceipt).where(inArray(moneyReceipt.moneyEventId, ids));
-  await tx.delete(moneyEvent).where(inArray(moneyEvent.id, ids));
+/** Which records name their Animal, for the tag a change to their money is listed by. */
+const HER_RECORDS: Partial<
+  Record<MoneySource, "intakeIds" | "saleIds" | "internalSaleIds">
+> = {
+  intake: "intakeIds",
+  sale: "saleIds",
+  sale_broker: "saleIds",
+  internal_sale_in: "internalSaleIds",
+  internal_sale_out: "internalSaleIds",
 };
 
-/** The moments a "YYYY-MM" month runs over on the farm's clock: from its first moment up to the next month's. */
-const rangeOfMonth = (month: string) =>
-  monthRangeOf(startOfFarmDay(`${month}-01`));
+/** Whom a Money Event was with, and the Animal it was for where it was one animal's, as a change to it is listed. */
+export const aboutMoney =
+  (
+    farmId: string,
+    money: {
+      source: MoneySource;
+      sourceId: string;
+      counterpartyId: string | null;
+    }
+  ) =>
+  async (tx: Tx): Promise<About> => {
+    const kind = HER_RECORDS[money.source];
+    const [counterparty, tags] = await Promise.all([
+      money.counterpartyId
+        ? tx.query.counterparty.findFirst({
+            where: { id: money.counterpartyId, farmId },
+            columns: { name: true },
+          })
+        : undefined,
+      kind
+        ? tagsOfHerRecords(tx, farmId, { [kind]: [money.sourceId] })
+        : new Map<string, string>(),
+    ]);
+    return {
+      about: counterparty?.name ?? null,
+      tagNumber: tags.get(money.sourceId) ?? null,
+    };
+  };
+
+/** What each record a change was made to is called, as the screen says it and the paper and CSV say it in both
+ *  languages: a Money Event by the record its money came from, as the money book names it. */
+export const RECORD_WORD = {
+  dispatch: "money.from.dispatch",
+  intake: "money.from.intake",
+  buying_trip: "money.from.buyingTrip",
+  selling_trip: "money.from.sellingTrip",
+  sale: "money.from.sale",
+  feed_in: "money.from.feedIn",
+  medicine_purchase: "money.from.medicinePurchase",
+  vet_fee: "money.from.vetFee",
+  sale_broker: "money.from.saleBroker",
+  wage_draw: "money.from.wageDraw",
+  internal_sale_in: "money.from.internalSaleIn",
+  internal_sale_out: "money.from.internalSaleOut",
+  reimbursement: "money.from.reimbursement",
+  settlement_adjustment: "money.from.settlementAdjustment",
+  farm_share: "money.from.farmShare",
+  farm_loss: "money.from.farmLoss",
+  venture_made_good: "money.from.ventureMadeGood",
+  venture_capital_out: "money.from.ventureCapitalOut",
+  venture_capital_back: "money.from.ventureCapitalBack",
+  venture_capital_return: "money.from.ventureCapitalReturn",
+  receivable_payment: "money.from.receivablePayment",
+  supplier_payment: "suppliers.payment",
+  by_hand: "money.from.byHand",
+  handover: "months.closing.from.handover",
+  receivable_write_off: "months.closing.from.receivableWriteOff",
+  cash_count: "months.closing.from.cashCount",
+  bank_check: "months.closing.from.bankCheck",
+} as const satisfies Record<ClosedMonthSource, MessageKey>;
 
 /** How many of the Farm's own Money Events dated in a month still wait for the Owner's word. */
 const waitingIn = async (
@@ -251,7 +314,7 @@ const waitingIn = async (
   farmId: string,
   month: string
 ): Promise<number> => {
-  const range = rangeOfMonth(month);
+  const range = monthRangeOf(month);
   const [row] = await db
     .select({ waiting: sql<number>`count(*)::int` })
     .from(moneyEvent)
@@ -316,9 +379,6 @@ export const monthReadyToClose = async (
   return standing.closed ? null : { month: last, waiting: standing.waiting };
 };
 
-const refused = (refusal: string, message: string) =>
-  new ORPCError("BAD_REQUEST", { message, data: { refusal } });
-
 /** Closes a month of the Farm's own money: one that has ended, is not closed already, and has nothing waiting. */
 export const closeMonth = async (
   tx: Tx,
@@ -330,16 +390,16 @@ export const closeMonth = async (
   await lockTheFarm(tx, by.farmId);
   const standing = await closingOf(tx, by.farmId, month, by.now);
   if (!standing.ended) {
-    throw refused(
+    throw refuse(
       "month_not_ended",
       "Only a month that has ended can be closed"
     );
   }
   if (standing.closed) {
-    throw refused("month_already_closed", "That month is closed already");
+    throw refuse("month_already_closed", "That month is closed already");
   }
   if (standing.waiting > 0) {
-    throw refused(
+    throw refuse(
       "month_has_money_waiting",
       "Some of that month's money still waits for the owner's word: approve it first"
     );
@@ -375,7 +435,7 @@ export const reopenMonth = async (
   await lockTheFarm(tx, by.farmId);
   const standing = await closingOf(tx, by.farmId, month, by.now);
   if (!standing.closed) {
-    throw refused("month_not_closed", "That month is not closed");
+    throw refuse("month_not_closed", "That month is not closed");
   }
   await tx
     .update(closedMonth)
@@ -394,8 +454,8 @@ export const readClosedMonth = async (
   (await tx.query.closedMonth.findFirst({ where: { farmId, month } })) ?? null;
 
 /**
- * Every change the Owner made over a stretch of time to the money of a month already closed — what the paper of the
- * month it was made in says under "changed after closing" — oldest first, with who made it.
+ * Every change the Owner made over a stretch of time to a month already closed — what the paper of the month it was
+ * made in says under "changed after closing" — oldest first, with what it was made to and who made it.
  */
 export const changesMadeIn = async (
   db: Pick<Tx, "query">,
@@ -408,8 +468,10 @@ export const changesMadeIn = async (
     columns: {
       id: true,
       month: true,
-      moneyEventId: true,
+      recordId: true,
       source: true,
+      about: true,
+      tagNumber: true,
       change: true,
       beforeMoney: true,
       afterMoney: true,
@@ -430,6 +492,8 @@ export const changesMadeIn = async (
   const named = new Map(people.map((one) => [one.id, one.name]));
   return rows.map(({ changedBy, ...one }) => ({
     ...one,
+    /** What the record is called (`RECORD_WORD`). */
+    recordWord: RECORD_WORD[one.source],
     changedOn: farmDayOf(one.changedAt),
     by: changedBy ? (named.get(changedBy) ?? null) : null,
   }));

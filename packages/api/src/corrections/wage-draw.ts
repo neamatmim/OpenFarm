@@ -7,7 +7,6 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
-import { lockTheFarm } from "../farm-lock";
 import { enteredOn } from "../money-by-hand-store";
 import {
   counterpartyInput,
@@ -64,7 +63,6 @@ export const wageDrawCorrection: CorrectionKind<
   table: wageDraw,
   roles: ["owner", "manager"],
   // The same lock a payday takes before it reads what is owed.
-  lock: lockTheFarm,
   missing: "No such wage draw",
   load: loadDraw,
   entry: (row) => ({ enteredAt: row.recordedAt, enteredBy: row.recordedBy }),

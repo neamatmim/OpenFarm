@@ -5,27 +5,26 @@ import type {
   YearRules,
 } from "@OpenFarm/domain";
 import {
+  billsOwingAt,
   capitalEmployedOf,
   cashFlowOf,
   cashPositionOf,
   farmDayOf,
+  financialYearsBack,
   financialYearStarting,
   headDaysBySide,
-  financialYearsBack,
   litersPerCowMilked,
   milkPriceOf,
   monthHasBegun,
-  monthOf,
+  monthRangeOf,
   monthsEndingIn,
   monthsFromTo,
   monthsOfFinancialYear,
   monthsReturnOf,
-  billsOwingAt,
   owedToSuppliersByAge,
   receivablesByAge,
   roundMoney,
   sideResultsOf,
-  startOfFarmDay,
   stockLedger,
   storeValueOf,
   summarizeMoney,
@@ -66,7 +65,6 @@ import { yearRulesOf } from "./year-store";
 export const MONTHS_READ = 12;
 
 /** A "YYYY-MM" month as the farm's own days begin and end it. */
-const rangeOf = (month: string) => monthOf(startOfFarmDay(`${month}-01`));
 
 /** Each Venture that has not been called off, against the plan it opened on: what the plan said it would make, what it
  *  is projected to make now while it runs, and what it made once it settled. */
@@ -478,8 +476,8 @@ export const monthByMonth = async (
   const rules = await yearRulesOf(db, farm.id);
   const { months, year: asked } = monthsRead(rules, today, financialYear);
   const span = {
-    from: rangeOf(months[0] ?? "").from,
-    until: rangeOf(months.at(-1) ?? "").until,
+    from: monthRangeOf(months[0] ?? "").from,
+    until: monthRangeOf(months.at(-1) ?? "").until,
   };
   const [read, ventures, financialYears] = await Promise.all([
     readOver(db, farm.id, span, now),
@@ -487,13 +485,13 @@ export const monthByMonth = async (
     financialYearsKept(db, farm.id, rules, today),
   ]);
   // Each month's charges sorted out of the year's once, rather than every month reading all of them.
-  const ranges = months.map(rangeOf);
+  const ranges = months.map(monthRangeOf);
   const narrowed = narrowedToEach(read.costs, [...ranges, span]);
   const over = (range: { from: Date; until: Date }, index: number) =>
     figuresOver(range, { ...read, costs: narrowed[index] ?? read.costs });
   return {
     months: months.map((month, index) => {
-      const range = ranges[index] ?? rangeOf(month);
+      const range = ranges[index] ?? monthRangeOf(month);
       return {
         month,
         /** This month, still going: its figures are what it has come to so far. */
@@ -558,8 +556,8 @@ export const aMonth = async (
     });
   }
   const [before = month] = monthsEndingIn(`${month}-01`, 2);
-  const range = rangeOf(month);
-  const earlier = rangeOf(before);
+  const range = monthRangeOf(month);
+  const earlier = monthRangeOf(before);
   const span = { from: earlier.from, until: range.until };
   // Read once for all three ends: the capital's books, and every bill the farm owes or owed its Suppliers.
   const [books, bills] = await Promise.all([

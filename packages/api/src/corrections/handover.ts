@@ -1,9 +1,10 @@
-import { eq } from "@OpenFarm/db/operators";
 import { handover } from "@OpenFarm/db/schema/money";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { takeHandoverAway } from "../cash-store";
+import { changeByOf } from "../closed-month-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput } from "./correction";
 
@@ -65,7 +66,7 @@ export const handoverCorrection: CorrectionKind<
   shown: () => Promise.resolve({ voided: false }),
   trail: async (tx, row) =>
     (await tx.query.handover.findFirst({ where: { id: row.id } })) ?? null,
-  apply: async (tx, row, to) => {
+  apply: async (tx, row, to, { context, now }) => {
     if (!to.voided) {
       return;
     }
@@ -76,6 +77,6 @@ export const handoverCorrection: CorrectionKind<
       );
     }
     await assertNoCountSince(tx, row);
-    await tx.delete(handover).where(eq(handover.id, row.id));
+    await takeHandoverAway(tx, changeByOf(context, now), row);
   },
 };

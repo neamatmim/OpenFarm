@@ -137,6 +137,10 @@ export const monthOf = (at: Date): { from: Date; until: Date } => {
   };
 };
 
+/** A "YYYY-MM" month as the farm's own clock runs it: from its first moment up to the next month's. */
+export const monthRangeOf = (month: string): { from: Date; until: Date } =>
+  monthOf(startOfFarmDay(`${month}-01`));
+
 /** A month — "YYYY-MM", or any farm day in it — as a count of months, so that a January reaches back into the December
  *  before it by subtracting one. */
 export const monthIndexOf = (monthOrDay: string): number =>

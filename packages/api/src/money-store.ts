@@ -1,5 +1,14 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { and, eq, gte, isNull, like, lt, sql } from "@OpenFarm/db/operators";
+import {
+  and,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  like,
+  lt,
+  sql,
+} from "@OpenFarm/db/operators";
 import { alert } from "@OpenFarm/db/schema/alert";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import type { SIDES } from "@OpenFarm/db/schema/herd";
@@ -13,6 +22,7 @@ import {
   RECORD_SOURCES,
   moneyCategory,
   moneyEvent,
+  moneyReceipt,
 } from "@OpenFarm/db/schema/money";
 import type { ApprovedTerms, MoneyApproval } from "@OpenFarm/domain";
 import {
@@ -24,14 +34,16 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
-import type { ChangeBy } from "./closed-month-store";
+import type { ChangeBy, ChangeToWeigh } from "./closed-month-store";
 import {
+  aboutMoney,
   answerToClosedMonths,
+  isTheOwner,
   standsOf,
-  takeOffTheBooks,
 } from "./closed-month-store";
 import { nameTaken } from "./names";
 import { tell } from "./notice";
+import { refuse } from "./refuse";
 
 /** The standard Categories: the one each record's money falls under, and the ones the rest of a dairy
  *  farm's month is made of — and which way each goes. */
@@ -670,13 +682,10 @@ export const bookingOf = (
   farm: context.farm,
   actorId: context.actor.id,
   role,
-  byTheOwner: context.roles.includes("owner"),
+  byTheOwner: isTheOwner(context.roles),
   now,
   ...(account ? { account } : {}),
 });
-
-const refuse = (refusal: string, message: string) =>
-  new ORPCError("BAD_REQUEST", { message, data: { refusal } });
 
 type ExistingMoney =
   | {
@@ -1175,17 +1184,20 @@ export const bookMoney = async (
     id
   );
   // A Closed Month's money is the Owner's alone to change, and what she changes is kept for the next paper (ADR 0028).
-  await answerToClosedMonths(tx, changeByOfBooking(booking), {
-    id,
-    source: money.source,
-    before: existing ? standsOf(existing) : undefined,
-    after: standsOf({
-      ...terms,
-      ...howItIsBooked(money, byHand, existing),
-      heldBy,
-      farmAccountId: account.farmAccountId,
-    }),
-  });
+  await answerToClosedMonths(tx, changeByOfBooking(booking), [
+    {
+      recordId: id,
+      source: money.source,
+      before: existing ? standsOf(existing) : undefined,
+      after: standsOf({
+        ...terms,
+        ...howItIsBooked(money, byHand, existing),
+        heldBy,
+        farmAccountId: account.farmAccountId,
+      }),
+      about: aboutMoney(farm.id, money),
+    },
+  ]);
   const fields = {
     ...moneyFieldsOf({ amountMoney, money, approval, byHand }),
     awaitingInPieces:
@@ -1229,18 +1241,24 @@ export interface MoneyPutRight {
 export const putMoneyRight = async (
   tx: Tx,
   by: ChangeBy,
-  of: { source?: MoneySource; sourceId: string },
+  /** A record's Money Events, by the record; or the one Money Event named. */
+  of: { source?: MoneySource; sourceId: string } | { id: string },
   change: MoneyPutRight
 ): Promise<void> => {
   const rows = await tx.query.moneyEvent.findMany({
     where: {
       farmId: by.farmId,
-      sourceId: of.sourceId,
-      ...(of.source === undefined ? {} : { source: of.source }),
+      ...("id" in of
+        ? { id: of.id }
+        : {
+            sourceId: of.sourceId,
+            ...(of.source === undefined ? {} : { source: of.source }),
+          }),
     },
     columns: {
       id: true,
       source: true,
+      sourceId: true,
       amountMoney: true,
       occurredAt: true,
       purseVentureId: true,
@@ -1252,17 +1270,94 @@ export const putMoneyRight = async (
       side: true,
     },
   });
-  for (const row of rows) {
-    // oxlint-disable-next-line no-await-in-loop -- a record's Money Events, one or two
-    await answerToClosedMonths(tx, by, {
-      id: row.id,
+  await answerToClosedMonths(
+    tx,
+    by,
+    rows.map((row) => ({
+      recordId: row.id,
       source: row.source,
       before: standsOf(row),
       after: standsOf({ ...row, ...change }),
-    });
-    // oxlint-disable-next-line no-await-in-loop -- as above
-    await tx.update(moneyEvent).set(change).where(eq(moneyEvent.id, row.id));
+      about: aboutMoney(by.farmId, row),
+    }))
+  );
+  if (rows.length > 0) {
+    await tx
+      .update(moneyEvent)
+      .set(change)
+      .where(
+        inArray(
+          moneyEvent.id,
+          rows.map((row) => row.id)
+        )
+      );
   }
+};
+
+/**
+ * Takes Money Events off the books — a record voided, never spent or written twice — with their receipts. One of the
+ * Farm's own in a **Closed Month** is the Owner's alone to take off, and is kept for the next month's paper; the months
+ * of them all are asked about at once.
+ */
+export const takeOffTheBooks = async (
+  tx: Tx,
+  by: ChangeBy,
+  ids: readonly string[]
+): Promise<void> => {
+  if (ids.length === 0) {
+    return;
+  }
+  const events = await tx.query.moneyEvent.findMany({
+    where: { farmId: by.farmId, id: { in: [...ids] } },
+    columns: {
+      id: true,
+      source: true,
+      sourceId: true,
+      occurredAt: true,
+      amountMoney: true,
+      purseVentureId: true,
+      categoryId: true,
+      counterpartyId: true,
+    },
+  });
+  await answerToClosedMonths(
+    tx,
+    by,
+    events.map((one): ChangeToWeigh => ({
+      recordId: one.id,
+      source: one.source,
+      before: standsOf(one),
+      after: undefined,
+      about: aboutMoney(by.farmId, one),
+    }))
+  );
+  await tx.delete(moneyReceipt).where(inArray(moneyReceipt.moneyEventId, ids));
+  await tx.delete(moneyEvent).where(inArray(moneyEvent.id, ids));
+};
+
+/**
+ * The Owner's word on money waiting for her: approved, by her and now — only while it still waits at the amount she
+ * read, so a correction or another approval landing between her read and this write changes nothing. Writes who
+ * approved and when, never a figure. Says whether it was still waiting.
+ */
+export const approveMoney = async (
+  tx: Tx,
+  by: ChangeBy,
+  waiting: { id: string; amountMoney: number }
+): Promise<boolean> => {
+  const approved = await tx
+    .update(moneyEvent)
+    .set({ approval: "approved", approvedBy: by.actorId, approvedAt: by.now })
+    .where(
+      and(
+        eq(moneyEvent.id, waiting.id),
+        eq(moneyEvent.farmId, by.farmId),
+        eq(moneyEvent.approval, "awaiting"),
+        eq(moneyEvent.amountMoney, waiting.amountMoney)
+      )
+    )
+    .returning({ id: moneyEvent.id });
+  return approved.length > 0;
 };
 
 /** All the money waiting for the Owner's word, every purse, counted and totaled on the farm — whichever way each

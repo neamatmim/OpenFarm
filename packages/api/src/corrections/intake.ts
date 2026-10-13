@@ -10,7 +10,6 @@ import type { Tx } from "../audit";
 import { changeByOf } from "../closed-month-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { targetWindowInput } from "../farm-clock";
-import { lockTheFarm } from "../farm-lock";
 import {
   assertAVentureMayOwnHer,
   assertSheBelongsWithTheFloat,
@@ -254,7 +253,6 @@ export const intakeCorrection: CorrectionKind<
   roles: ["owner", "manager"],
   // Putting one of these right can move a Venture Movement, so it takes the Farm lock first, as
   // everything that counts a Venture's money does.
-  lock: lockTheFarm,
   // An Intake carries her price, her Market toll and whose she is — every one of them a figure a Settlement
   // was worked out from.
   venturesOf: herVenturesAround((row) => row.createdAt),

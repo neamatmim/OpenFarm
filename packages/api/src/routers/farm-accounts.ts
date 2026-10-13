@@ -17,6 +17,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { answerToClosedMonths, changeByOf } from "../closed-month-store";
 import {
   believedAtMonthEnd,
   farmAccountStandingOf,
@@ -62,10 +63,10 @@ const ours = async (
   tx: Pick<Tx, "query">,
   farmId: string,
   id: string
-): Promise<{ id: string; retiredAt: Date | null }> => {
+): Promise<{ id: string; name: string; retiredAt: Date | null }> => {
   const row = await tx.query.farmAccount.findFirst({
     where: { id, farmId },
-    columns: { id: true, retiredAt: true },
+    columns: { id: true, name: true, retiredAt: true },
   });
   if (!row) {
     throw new ORPCError("NOT_FOUND", { message: "No such Farm Account" });
@@ -363,6 +364,25 @@ export const farmAccountsRouter = {
             });
           }
           const agreesNow = roundMoney(input.readMoney - expectedMoney) === 0;
+          // The statement of a month the Owner has closed is a figure of it: hers, as every Bank Check is, and kept for
+          // the next paper (ADR 0028).
+          const read = (readMoney: number) => ({
+            at: startOfFarmDay(`${input.month}-01`),
+            amountMoney: readMoney,
+            purseVentureId: null,
+            rest: row.id,
+          });
+          await answerToClosedMonths(tx, changeByOf(context, now), [
+            {
+              recordId: id,
+              source: "bank_check",
+              before: already ? read(already.readMoney) : undefined,
+              after: read(input.readMoney),
+              about: () =>
+                Promise.resolve({ about: row.name, tagNumber: null }),
+            },
+          ]);
+
           await tx
             .insert(farmAccountCheck)
             .values({

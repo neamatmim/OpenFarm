@@ -17,7 +17,6 @@ import {
 } from "../money-store";
 import {
   assertInvoicePayments,
-  lockSupplierFarm,
   validSupplierDay,
   supplierRefused,
 } from "../supplier-store";
@@ -47,7 +46,6 @@ export const supplierPaymentCorrection: CorrectionKind<
   roles: ["owner"],
   missing: "No such supplier payment",
   load,
-  lock: lockSupplierFarm,
   entry: (row) => ({ enteredAt: row.recordedAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
     amountMoney: row.amountMoney,

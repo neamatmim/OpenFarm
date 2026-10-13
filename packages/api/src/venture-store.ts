@@ -8,6 +8,7 @@ import type { VentureMovementKind } from "@OpenFarm/db/schema/venture-account";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import {
   addDays,
+  cattleMoneyOf,
   EXIT_STATES,
   farmDayOf,
   handedOverAt,
@@ -15,11 +16,9 @@ import {
   isRunning,
   isStillBuying,
   mayMoveTo,
-  monthOf,
-  cattleMoneyOf,
   monthlySumsOf,
+  monthRangeOf,
   roundMoney,
-  startOfFarmDay,
 } from "@OpenFarm/domain";
 import type { AuditEntity, CapitalPaid } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -815,7 +814,7 @@ export const ownersOverTime = async (
 
 /** The last day a month has, as the farm writes a day. */
 export const lastDayOf = (month: string) => {
-  const { until } = monthOf(startOfFarmDay(`${month}-01`));
+  const { until } = monthRangeOf(month);
   return farmDayOf(new Date(until.getTime() - 1));
 };
 
