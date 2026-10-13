@@ -178,3 +178,16 @@ showed holding a change for her approval needed a parallel proposed state in eve
 |---|---|---|
 | `502fb163` | E3 | ADR 0027 **Outside the Results**: Owner's money in, drawings, loan received, loan principal repaid, machine or building bought move the cash and never the results; loan interest a cost; no depreciation; a farm's own same-named Category taken up; accountant CSV marks the rows (migration 20261013102532). |
 | `c566de95` | E6 | ADR 0028 **Closed Month**: the Owner closes an ended month with nothing waiting; after that only she may enter, correct, move or void its money (handovers, write-offs, cash counts, bank checks too), anyone else is refused `month_closed`; each change she makes is listed on the next screen, paper and CSV; reopen with a reason; "ready to close" from the 7th; one guarded writer for money; farm lock only on paths that reach money (migration 20261013163003). Barn records and the Owner's prices are a known limit (ADR). `feat/month-closed` (the hold design) is left unmerged. |
+
+## Built — step 5 (2026-10-14)
+
+`/implement`: G1 plus the small D items. Each branch code-reviewed and fixed before merging; main green after (api 379
+files, domain 107, i18n 3, web 101), screens seen on the seed farm. No migration.
+
+| Merge | Findings | What |
+|---|---|---|
+| `01734c2a` | D13–D16 | «Enter money» on Running the day; ⌘K finds the reader's own pages as well as tags (animals first when it reads as a tag); a Shed Phone set up from a QR (`#code=`, never sent to the server, cleared once read); the Sold tab for any day; trips only on /trips, «Selling trip» words. |
+| `6fcfb2ed` | D8, D17 | Many confirmed Ready at once, and «Dose N animals» from the herd list (retry-safe per animal, tags read once, checked once, ≤ 200); each Observation says what became of it, a Vet's Diagnosis included, with a «still to see to» filter. |
+| `4b5c94d8` | G1 | ADR 0029: a Campaign comes round by each animal's last dose (every N months); raised in many Pens at once, never twice in one Pen; «animals owed a Campaign» on Medicines; animals not due show «Not due — dosed {day}» on the walk and raise no put-off. A farm that adopted its vaccination procedures before this sets the interval in the Playbook. |
+
+Left: D9 (cover for an absent worker), D10–D12 (feed screens, after a month of use), F (Venture admin), G2–G9.
