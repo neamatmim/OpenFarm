@@ -94,6 +94,18 @@ export const wholeFarmCauseOf = (dueAt: Date): string =>
   `whole-farm:${dueAt.toISOString()}`;
 
 /**
+ * The key one animal's dose of a Pen's Campaign writes, once it is put off: the Campaign's work and her. The work raised
+ * again for her alone is caused by it (put off, below), so every raising of her dose is found from any of them, and her
+ * dose given on the Campaign by a Correction finds what was raised for it.
+ */
+export const campaignDoseKeyOf = (instanceId: string, animalId: string) =>
+  `campaign:${instanceId}:${animalId}`;
+
+/** Whether this is a Campaign dose's key: `campaign:<work>:<animal>`. */
+export const isCampaignDoseKey = (key: string): boolean =>
+  /^campaign:[^:]+:[^:]+$/u.test(key);
+
+/**
  * The cause work raised again carries, when the work it follows was put off — skipped, or closed Missed — and is still
  * owed: `<original cause>:again:<n>`. Every raising is its own, so the unique cause keeps a replay from raising it twice,
  * and the original is found from any of them.

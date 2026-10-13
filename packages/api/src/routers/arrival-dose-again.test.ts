@@ -8,8 +8,8 @@ import { appRouter } from "./index";
 
 /**
  * A bull's arrival dose skipped — "Unwell — to be given later", or anything else — or closed Missed is still owed: it is
- * raised again for him alone after the farm's days, until it is given. A Pen's Campaign dose skipped is not an arrival
- * dose, and is left as it is.
+ * raised again for him alone after the farm's days, until it is given. A Pen's Campaign dose skipped — "Unwell — to be
+ * given later" is the only reason it offers — is raised again for her alone the same way.
  */
 const suffix = `dose-again-${Date.now()}`;
 const ARRIVED = "2087-01-05T04:00:00.000Z";
@@ -170,7 +170,7 @@ describe("an arrival dose put off", () => {
     ).toHaveLength(1);
   });
 
-  it("is not raised again for a Pen's Campaign dose skipped", async () => {
+  it("is raised again for her alone when a Pen's Campaign dose is skipped, and given then, is owed no more", async () => {
     const manager = await as("manager", DOSE_DAY);
     await manager.client.work.raiseNow({
       definitionId: campaignId,
@@ -179,11 +179,91 @@ describe("an arrival dose put off", () => {
     const listed = await manager.client.work.today({ penId });
     const campaign = listed.find((row) => row.definitionId === campaignId);
     await dose(DOSE_DAY, campaign?.id ?? "", tags.campaign, { skipped: true });
-    const raised = await scratchDb().query.sopInstance.findMany({
-      where: { definitionId: campaignId, cause: { like: "%:again:%" } },
-      columns: { id: true },
+    const her = await manager.client.animals.get({ tagNumber: tags.campaign });
+    const raisedAgain = () =>
+      scratchDb().query.sopInstance.findMany({
+        where: { definitionId: campaignId, cause: { like: "%:again:%" } },
+        columns: {
+          id: true,
+          animalId: true,
+          penId: true,
+          dueAt: true,
+          state: true,
+        },
+      });
+    // "Unwell — to be given later": her dose alone, the farm's days on — not the whole Pen walked again.
+    const raised = await raisedAgain();
+    expect(raised).toEqual([
+      expect.objectContaining({
+        animalId: her.id,
+        penId,
+        dueAt: new Date(new Date(DOSE_DAY).getTime() + 7 * DAY_MS),
+      }),
+    ]);
+    const [hers] = raised;
+    const day = new Date(hers?.dueAt ?? 0).toISOString();
+    const onTheDay = await as("manager", day);
+    const board = await onTheDay.client.work.get({ id: hers?.id ?? "" });
+    expect(board.animals.map((one) => one.tagNumber)).toEqual([tags.campaign]);
+    await dose(day, hers?.id ?? "", tags.campaign, { skipped: false });
+    // Given on her own work: nothing more raised, and the dose in her history.
+    expect(await raisedAgain()).toEqual([
+      expect.objectContaining({ id: hers?.id, state: "in_progress" }),
+    ]);
+    const given = await scratchDb().query.treatment.findFirst({
+      where: { instanceId: hers?.id ?? "", animalId: her.id },
+      columns: { givenAt: true },
     });
-    expect(raised).toEqual([]);
+    expect(given?.givenAt).not.toBeNull();
+  });
+
+  it("is owed no more once a Campaign skip is put right to say it was given", async () => {
+    const manager = await as("manager", DOSE_DAY);
+    const shed = await manager.client.sheds.create({ name: `${suffix}-c` });
+    const pen = await manager.client.sheds.pens.create({
+      shedId: shed.id,
+      name: `কোয়ারেন্টিন ২ ${suffix}`,
+      quarantine: true,
+    });
+    const bull = await manager.client.intakes.record({
+      penId: pen.id,
+      sex: "male",
+      seller: { name: `ব্যাপারী ${suffix}` },
+      purchasePriceMoney: 60_000,
+      weightKg: 200,
+      estimatedAgeMonths: 18,
+      arrivedAt: new Date(ARRIVED),
+      targetWindowStart: "2087-06-01",
+      targetWindowEnd: "2087-06-05",
+    });
+    await manager.client.work.raiseNow({
+      definitionId: campaignId,
+      penId: pen.id,
+    });
+    const listed = await manager.client.work.today({ penId: pen.id });
+    const campaign = listed.find((row) => row.definitionId === campaignId);
+    await dose(DOSE_DAY, campaign?.id ?? "", bull.tagNumber, {
+      skipped: true,
+    });
+    const owed = () =>
+      scratchDb().query.sopInstance.findMany({
+        where: {
+          definitionId: campaignId,
+          penId: pen.id,
+          cause: { like: "%:again:%" },
+        },
+        columns: { state: true },
+      });
+    expect(await owed()).toHaveLength(1);
+    const later = await as("manager", "2087-01-15T09:00:00.000Z");
+    const board = await later.client.work.get({ id: campaign?.id ?? "" });
+    const skipped = board.completions.find((row) => row.stepId === "dose");
+    await correctStepAsShown(later.client, {
+      completionId: skipped?.id ?? "",
+      evidence: [true, ""],
+      reason: `টিকা আসলে দেওয়া হয়েছিল ${suffix}`,
+    });
+    expect(await owed()).toEqual([{ state: "called_off" }]);
   });
 
   it("is not raised again once the Owner retires the procedure", async () => {

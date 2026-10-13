@@ -10,7 +10,12 @@ import type { SQL } from "drizzle-orm";
 import type { Trail, Tx } from "./audit";
 import { raiseDueInstances } from "./instances-store";
 import { contentOf } from "./sop-content";
-import { putOffCauseOf, putOffOf } from "./work-cause";
+import {
+  campaignDoseKeyOf,
+  isCampaignDoseKey,
+  putOffCauseOf,
+  putOffOf,
+} from "./work-cause";
 import { callOffWork } from "./work-transitions";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -27,33 +32,57 @@ const givesADose = (content: SopContent): boolean =>
 const ARRIVAL_CAUSE = /^arrival:[^:]+:\+\d+$/u;
 
 /**
- * What kind of owed work this is, from the work itself and never from a skip's words: his Release, or one of his arrival
- * doses — work his arrival raised that gives a dose. A Pen's Campaign, a tick spray, any other dose: neither.
+ * What kind of owed work this is, from the work itself and never from a skip's words: his Release, one of his arrival
+ * doses — work his arrival raised that gives a dose — or her dose of a Pen's Campaign, put off. A tick spray, a
+ * Prescription's dose, any other work: none of them.
  */
 export const putOffKindOf = (
   original: string,
   content: SopContent
-): "release" | "arrival_dose" | null => {
+): "release" | "arrival_dose" | "campaign_dose" | null => {
   if (releases(content)) {
     return "release";
   }
-  return givesADose(content) && ARRIVAL_CAUSE.test(original)
-    ? "arrival_dose"
-    : null;
+  if (!givesADose(content)) {
+    return null;
+  }
+  if (ARRIVAL_CAUSE.test(original)) {
+    return "arrival_dose";
+  }
+  return isCampaignDoseKey(original) ? "campaign_dose" : null;
 };
 
 /**
+ * Whose work put off this is, and the cause it is owed by: work about one animal is hers, under its own cause; her dose
+ * on a Pen's Campaign is keyed afresh by the Campaign's work and her.
+ */
+const whoseIsIt = (
+  work: { id: string; animalId: string | null; cause: string | null },
+  campaignAnimalId: string | null | undefined
+): { animalId: string | null; cause: string | null } =>
+  !work.animalId && campaignAnimalId
+    ? {
+        animalId: campaignAnimalId,
+        cause: campaignDoseKeyOf(work.id, campaignAnimalId),
+      }
+    : { animalId: work.animalId, cause: work.cause };
+
+/**
  * Owed work put off — its step skipped, or the work closed Missed — raised again for him in his Pen, the farm's put-off
- * days later, under the same Version: his Release while he is still in Quarantine, an arrival dose while he is still on
- * the farm. Again and again until it is done; a replay of the same skip raises nothing more, as its cause is the same.
- * Nothing for any other work.
+ * days later, under the same Version: his Release while he is still in Quarantine, an arrival dose or a Campaign's dose
+ * while he is still on the farm. Again and again until it is done; a replay of the same skip raises nothing more, as its
+ * cause is the same. Nothing for any other work.
+ *
+ * A Pen's Campaign is work about the Pen, so the animal whose dose was skipped is named: her dose alone is raised again,
+ * never the whole Pen walked a second time.
  */
 export const raiseThePutOff = async (
   tx: Tx,
   farmId: string,
   instanceId: string,
   at: Date,
-  now: Date
+  now: Date,
+  campaignAnimalId?: string | null
 ): Promise<void> => {
   const work = await tx.query.sopInstance.findFirst({
     where: { id: instanceId, farmId },
@@ -68,7 +97,14 @@ export const raiseThePutOff = async (
       definition: { columns: { retiredAt: true } },
     },
   });
-  if (!(work?.animalId && work.cause && work.version)) {
+  if (!work?.version) {
+    return;
+  }
+  const { animalId, cause } = whoseIsIt(
+    { id: instanceId, ...work },
+    campaignAnimalId
+  );
+  if (!(animalId && cause)) {
     return;
   }
   // The farm has switched the procedure off: work it had begun is finished, and none raised again under it.
@@ -76,14 +112,14 @@ export const raiseThePutOff = async (
     return;
   }
   const content = contentOf(work.version);
-  const before = putOffOf(work.cause);
-  const original = before?.original ?? work.cause;
+  const before = putOffOf(cause);
+  const original = before?.original ?? cause;
   const kind = putOffKindOf(original, content);
   if (!kind) {
     return;
   }
   const him = await tx.query.animal.findFirst({
-    where: { id: work.animalId, farmId },
+    where: { id: animalId, farmId },
     columns: { state: true, penId: true },
   });
   const stillOwed =
@@ -104,7 +140,7 @@ export const raiseThePutOff = async (
         definitionId: work.definitionId,
         versionId: work.versionId,
         penId: him.penId,
-        animalId: work.animalId,
+        animalId,
         dueAt: new Date(at.getTime() + (farm?.putOffDays ?? 7) * DAY_MS),
         cause: putOffCauseOf(original, (before?.n ?? 0) + 1),
         graceMinutes: content.graceMinutes,
@@ -153,15 +189,21 @@ export const callOffPutOffReleases = (
     trail
   );
 
-/** His arrival dose given — on the work first raised, or on one raised again — so what else was raised for it is not owed. */
+/**
+ * His arrival dose or her Campaign dose given — on the work first raised, or on one raised again — so what else was
+ * raised for it is not owed. On the Pen's Campaign itself her dose is keyed by the animal it was given to.
+ */
 export const callOffPutOffDose = (
   tx: Tx,
   farmId: string,
-  work: { id: string; cause: string | null },
-  trail: Trail
+  work: { id: string; cause: string | null; animalId: string | null },
+  trail: Trail,
+  campaignAnimalId?: string | null
 ) => {
-  const original = putOffOf(work.cause)?.original ?? work.cause;
-  return original && ARRIVAL_CAUSE.test(original)
+  const { cause } = whoseIsIt(work, campaignAnimalId);
+  const original = putOffOf(cause)?.original ?? cause;
+  return original &&
+    (ARRIVAL_CAUSE.test(original) || isCampaignDoseKey(original))
     ? callOffAgain(
         tx,
         farmId,

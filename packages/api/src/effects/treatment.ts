@@ -217,26 +217,36 @@ export const tellIfItsLotHadExpired = async (
 };
 
 /**
- * An arrival dose put off — skipped for any reason — is raised again for him after the farm's days; given, on the work
- * first raised or on one raised again, whatever else was raised for it is owed no more. Nothing for any other dose:
- * which work is an arrival dose is the store's to say.
+ * An arrival dose or a Pen's Campaign dose put off — skipped — is raised again for her alone after the farm's days;
+ * given, on the work first raised or on one raised again, whatever else was raised for it is owed no more. Nothing for
+ * any other dose: which work is owed again is the store's to say. A Campaign's Step names the animal it doses.
  */
-const followTheArrivalDose = async (tx: Tx, input: TreatmentFacts) => {
+const followThePutOffDose = async (
+  tx: Tx,
+  input: TreatmentFacts,
+  campaignAnimalId: string | null
+) => {
   if (input.skipped) {
     await raiseThePutOff(
       tx,
       input.instance.farmId,
       input.instance.id,
       input.recordedAt,
-      input.now
+      input.now,
+      campaignAnimalId
     );
     return;
   }
   await callOffPutOffDose(
     tx,
     input.instance.farmId,
-    { id: input.instance.id, cause: input.instance.cause },
-    input.trail
+    {
+      id: input.instance.id,
+      cause: input.instance.cause,
+      animalId: input.instance.animalId,
+    },
+    input.trail,
+    campaignAnimalId
   );
 };
 
@@ -377,7 +387,7 @@ const giveTheDose = async (
   if (dose && !input.skipped) {
     await tellIfItsLotHadExpired(tx, input.instance.farmId, dose.id, input.now);
   }
-  await followTheArrivalDose(tx, input);
+  await followThePutOffDose(tx, input, shape.campaign ? shape.animalId : null);
   return {
     kind: "treatment",
     number: dose?.number ?? 1,

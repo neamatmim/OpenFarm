@@ -20,8 +20,18 @@ describe("putOffKindOf", () => {
     expect(putOffKindOf("arrival:a:+10", playbook.arrivalFmd)).toBe(
       "arrival_dose"
     );
-    // The same dose raised by anything else — a Prescription, a Campaign — is not owed again by this rule.
+    // The same dose raised by anything else — a Prescription — is not owed again by this rule.
     expect(putOffKindOf("prescription:p:1", playbook.arrivalFmd)).toBeNull();
     expect(putOffKindOf("arrival:a:+10", playbook.arrivalCheck)).toBeNull();
+  });
+
+  it("is a Campaign dose only for her dose of a Pen's Campaign, put off", () => {
+    expect(putOffKindOf("campaign:w:a", playbook.fmdVaccination)).toBe(
+      "campaign_dose"
+    );
+    // The Pen's own work, raised by hand, is not hers.
+    expect(
+      putOffKindOf("byHand:p:2087-01-15", playbook.fmdVaccination)
+    ).toBeNull();
   });
 });
