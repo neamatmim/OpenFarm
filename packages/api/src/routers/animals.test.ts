@@ -825,13 +825,14 @@ describe("review findings", () => {
     await expect(
       pens.owner.client.animals.retag({ tagNumber, reason: "tag lost" })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    // Her photo is refused as anything a phone sends of her is: she is gone.
     await expect(
       pens.owner.client.animals.setPhoto({
         tagNumber,
         contentType: "image/jpeg",
         data: "AAAA",
       })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    ).rejects.toMatchObject({ data: { refusal: "she_is_gone" } });
   });
 
   it("staff cannot re-tag or photograph an animal outside their pens", async () => {

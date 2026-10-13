@@ -51,6 +51,7 @@ const COVERED: readonly SyncKind[] = [
   "step_completion",
   "completion_photo",
   "instance_complete",
+  "animal_photo",
 ];
 
 /** Kinds a phone sends that are not Entries, held to their office twin elsewhere: a Correction made with no signal is
@@ -308,6 +309,21 @@ const completionOf = async (instanceId: string) => {
     : null;
 };
 
+/** Her own photo, as twins can be compared. */
+const herPhotoOf = async (animalId: string) => {
+  const row = await scratchDb().query.animalPhoto.findFirst({
+    where: { animalId },
+  });
+  return row
+    ? {
+        contentType: row.contentType,
+        data: row.data,
+        thumb: row.thumb,
+        updatedAt: row.updatedAt.toISOString(),
+      }
+    : null;
+};
+
 /** The photographs against a Step Completion, as twins can be compared. */
 const photosOf = (completionId: string) =>
   scratchDb().query.completionPhoto.findMany({
@@ -394,6 +410,7 @@ const setup = async () => {
     movedByStaffVet: await pair(penA.id),
     crossed: await pair(penA.id),
     crossedAsked: await pair(penA.id),
+    photographed: await pair(penA.id),
     notTheirs: await heifer(penC.id),
     gone,
     work: [await workIn(penA.id), await workIn(penB.id)] as const,
@@ -606,6 +623,47 @@ describe("an Observation", () => {
     expect(later).toMatchObject({
       outcome: "kept",
       refusal: { category: "late" },
+    });
+  });
+});
+
+describe("an animal's photo", () => {
+  it("is the same photo and the same Audit Event either way, dated when it was taken", async () => {
+    const [online, offline] = world.photographed;
+    const picture = {
+      contentType: "image/jpeg" as const,
+      data: "AAAA",
+      thumb: "AA",
+    };
+    const now = await calling(world.staff, DONE);
+    await now.animals.setPhoto({ tagNumber: online.tagNumber, ...picture });
+    const later = await sendLater(world.staff, {
+      kind: "animal_photo",
+      tagNumber: offline.tagNumber,
+      ...picture,
+    });
+
+    expect(later?.outcome).toBe("applied");
+    expect(await herPhotoOf(offline.id)).toEqual(await herPhotoOf(online.id));
+    expect(await lastEventAbout("animal", offline.id)).toEqual(
+      await lastEventAbout("animal", online.id)
+    );
+  });
+
+  it("of an animal in another's Pen is refused either way", async () => {
+    const picture = { contentType: "image/jpeg" as const, data: "AAAA" };
+    const now = await calling(world.staff, DONE);
+    await expect(
+      now.animals.setPhoto({ tagNumber: world.notTheirs.tagNumber, ...picture })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const later = await sendLater(world.staff, {
+      kind: "animal_photo",
+      tagNumber: world.notTheirs.tagNumber,
+      ...picture,
+    });
+    expect(later).toMatchObject({
+      outcome: "rejected",
+      refusal: { category: "not_yours" },
     });
   });
 });

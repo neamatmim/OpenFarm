@@ -27,11 +27,17 @@ import type { RowAction } from "@/components/page-kit";
 import { ReportSighting } from "@/components/report-sighting";
 import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
+import type { EntryBody } from "@/lib/outbox";
 import { photoProblem, shrinkAnimalPhoto } from "@/lib/photo";
+import {
+  keptOnThePhone,
+  queueAnimalPhoto,
+  sendOrKeep,
+} from "@/lib/record-offline";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { wayToSell } from "@/lib/way-to-sell";
-import { orpc } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
 
 import type { AnimalAct, AnimalDetail, AnimalPowers } from "./animal-types";
 import {
@@ -243,14 +249,23 @@ export const AnimalProfile = ({
   const refused = useRefused();
   const menuActs = useMenuActs(detail, powers);
   const nextActs = useSellAndCalveActs(detail, powers);
-  const setPhoto = useMutation(
-    orpc.animals.setPhoto.mutationOptions({
-      onSuccess: () => {
-        toast.success(t("animals.photoSaved"));
-      },
-      onError: refused,
-    })
-  );
+  // Sent now when the farm answers, kept on the phone when it does not: the tagging walk goes through sheds with no
+  // signal, and a photo taken there is not lost for it.
+  const setPhoto = useMutation({
+    ...keptOnThePhone,
+    mutationFn: (photo: EntryBody<"animal_photo">) =>
+      sendOrKeep({
+        online: navigator.onLine,
+        send: () => client.animals.setPhoto(photo),
+        keep: () => queueAnimalPhoto(photo),
+      }),
+    onSuccess: (how) => {
+      toast.success(
+        t(how === "sent" ? "animals.photoSaved" : "animals.photoQueued")
+      );
+    },
+    onError: refused,
+  });
 
   const handleTakePhoto = () => {
     document.querySelector<HTMLInputElement>(`#${PHOTO_INPUT}`)?.click();

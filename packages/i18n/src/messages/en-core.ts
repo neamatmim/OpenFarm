@@ -1207,6 +1207,8 @@ export const enCore = {
     "A venture's animal is sold in the venture's target window; an amendment moves it, not the intake",
   "refusal.windowNeeded":
     "She is the farm's own now: say the window the farm sells her in",
+  "refusal.newerPhotoKept":
+    "Somebody photographed her after this photo was taken; the newer photo stays on her page",
   "refusal.sheIsGone":
     "She has left the farm — sold, died or culled — and nothing more can be written of her",
   "refusal.sheIsReadyForSale":
@@ -1731,6 +1733,8 @@ export const enCore = {
   "animals.photo": "Photo",
   "animals.photoTake": "Take a photo",
   "animals.photoSaved": "Photo saved",
+  "animals.photoQueued":
+    "Photo kept on this phone — it goes when there is signal",
   "animals.moveFromWork": "From the work",
   "animals.kpi.herd": "In the herd",
   "animals.kpi.herdHint": "Not counting animals that have left",
@@ -1741,6 +1745,8 @@ export const enCore = {
   "animals.filter.allPens": "All pens",
   "animals.filter.anyHold": "Held or clear",
   "animals.filter.held": "Anything held",
+  "animals.filter.anyPhoto": "With or without a photo",
+  "animals.filter.noPhoto": "No photo yet",
   "animals.filter.clear": "Clear filters",
   "animals.filter.open": "Filters",
   "animals.age": "Age",
@@ -3788,6 +3794,7 @@ export const enCore = {
   "review.held.animal_move": "A move",
   "review.held.observation": "A sighting",
   "review.held.step_correction": "A step put right",
+  "review.held.animal_photo": "An animal's photo",
   "review.heldBy": "by {name}",
   "review.takeIn": "Take it in",
   "review.takeInHint":

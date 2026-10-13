@@ -22,6 +22,8 @@ export const SYNC_KINDS = [
   "observation",
   // A Correction of a Step the phone has already sent, made with no signal and sent behind it.
   "step_correction",
+  // An animal's own photo, taken on the tagging walk in a shed with no signal.
+  "animal_photo",
 ] as const;
 export type SyncKind = (typeof SYNC_KINDS)[number];
 

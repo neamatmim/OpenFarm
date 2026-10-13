@@ -34,40 +34,20 @@ import { FilterBar, NativeSelect, SummaryFigures } from "@/components/page-kit";
 import { RegisterAnimal } from "@/components/register-animal";
 import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
+import type {
+  HerdSearch,
+  HoldFilter,
+  PhotoFilter,
+  SideFilter,
+} from "@/lib/herd-narrowing";
+import { HOLDS, PHOTO_FILTERS, narrowed } from "@/lib/herd-narrowing";
 import { usePenNames } from "@/lib/pen-names";
 import { orpc } from "@/utils/orpc";
 
 /** The filters' box, which a phone's filter button opens. */
 const FILTERS_ID = "herd-filters";
 
-type SideFilter = "" | (typeof SIDES)[number];
-const HOLDS = ["milk", "meat", "any"] as const;
-type HoldFilter = "" | (typeof HOLDS)[number];
-
-/** What the herd is narrowed to, as the address keeps it. */
-interface HerdSearch {
-  q?: string;
-  side?: SideFilter;
-  state?: LiveState;
-  pen?: string;
-  held?: HoldFilter;
-}
-
 type Animal = Awaited<ReturnType<typeof orpc.animals.list.call>>[number];
-
-/** Whether she passes the hold asked for: milk held, meat held, or held at all. */
-const passesHold = (row: HerdRow, held: HoldFilter): boolean => {
-  if (held === "milk") {
-    return row.milkHeld;
-  }
-  if (held === "meat") {
-    return row.meatHeld;
-  }
-  if (held === "any") {
-    return row.milkHeld || row.meatHeld;
-  }
-  return true;
-};
 
 /** The four figures the herd is read by: how many there are, how they split between the Sides, and how many a
  *  Withdrawal holds back from the tank or from sale. */
@@ -136,21 +116,9 @@ const useHerdRows = (animals: Animal[]): HerdRow[] => {
   }));
 };
 
-/** The rows the filters leave: a Tag Number or official tag as typed, then Side, State, Pen and hold. */
-const narrowed = (rows: HerdRow[], search: HerdSearch, needle: string) =>
-  rows.filter(
-    (row) =>
-      (needle === "" ||
-        row.tagNumber.toUpperCase().includes(needle) ||
-        (row.officialTag ?? "").toUpperCase().includes(needle)) &&
-      (!search.side || row.side === search.side) &&
-      (!search.state || row.state === search.state) &&
-      (!search.pen || row.penId === search.pen) &&
-      passesHold(row, search.held ?? "")
-  );
-
-/** The filters over the herd: her Side, her State, whatever holds her, and — where the herd stands in more than one —
- *  her Pen. Only the Pens her herd stands in are offered: a Staff member's own, the farm's for those who run it. */
+/** The filters over the herd: her Side, her State, whatever holds her, whether she has a photo yet, and — where the herd
+ *  stands in more than one — her Pen. Only the Pens her herd stands in are offered: a Staff member's own, the farm's for
+ *  those who run it. */
 const HerdFilters = ({
   search,
   rows,
@@ -164,7 +132,7 @@ const HerdFilters = ({
   onSearch: (next: HerdSearch) => void;
 }) => {
   const { t } = useLanguage();
-  const { side = "", state = "", pen = "", held = "" } = search;
+  const { side = "", state = "", pen = "", held = "", photo = "" } = search;
   const setSearch = onSearch;
   const sides: { value: SideFilter; label: string }[] = [
     { value: "", label: t("audit.all") },
@@ -218,6 +186,17 @@ const HerdFilters = ({
             <option value="milk">{t("animals.milkHeld")}</option>
             <option value="meat">{t("animals.meatHeld")}</option>
           </NativeSelect>
+          <NativeSelect
+            aria-label={t("animals.photo")}
+            className="sm:w-48"
+            onChange={(event) =>
+              setSearch({ photo: event.target.value as PhotoFilter })
+            }
+            value={photo}
+          >
+            <option value="">{t("animals.filter.anyPhoto")}</option>
+            <option value="none">{t("animals.filter.noPhoto")}</option>
+          </NativeSelect>
           {pens.length > 1 ? (
             <NativeSelect
               aria-label={t("animals.pen")}
@@ -248,7 +227,7 @@ const AnimalsPage = () => {
   const { t, language } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
   const search = Route.useSearch();
-  const { q = "", side, state, pen, held } = search;
+  const { q = "", side, state, pen, held, photo } = search;
   const me = useQuery(orpc.people.me.queryOptions());
   const animals = useQuery(
     orpc.animals.list.queryOptions({ input: { includeExited: false } })
@@ -258,7 +237,7 @@ const AnimalsPage = () => {
   const needle = q.trim().toUpperCase();
   const matching = narrowed(rows, search, needle);
   const ticking = useHerdTicking(matching);
-  const narrowing = [side, state, pen, held].filter(Boolean).length;
+  const narrowing = [side, state, pen, held, photo].filter(Boolean).length;
   const filtered = Boolean(needle) || narrowing > 0;
   const [filtersOpen, setFiltersOpen] = useState(false);
   // A typed number that matches nobody is said as that; a filter that leaves nobody, as an empty group.
@@ -416,7 +395,7 @@ const oneOf = <T extends string>(
 
 export const Route = createFileRoute("/_authenticated/animals/")({
   component: AnimalsPage,
-  /** What was typed, and which Side, State, Pen and hold, kept in the address so the list is as it was on return. */
+  /** What was typed, and which Side, State, Pen, hold and photo, kept in the address so the list is as it was on return. */
   validateSearch: (search: Record<string, unknown>): HerdSearch => {
     const kept: HerdSearch = {
       q: typeof search.q === "string" && search.q ? search.q : undefined,
@@ -425,6 +404,7 @@ export const Route = createFileRoute("/_authenticated/animals/")({
       pen:
         typeof search.pen === "string" && search.pen ? search.pen : undefined,
       held: oneOf(HOLDS, search.held),
+      photo: oneOf(PHOTO_FILTERS, search.photo),
     };
     return Object.fromEntries(
       Object.entries(kept).filter(([, value]) => value !== undefined)

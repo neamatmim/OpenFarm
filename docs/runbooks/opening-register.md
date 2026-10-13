@@ -60,8 +60,8 @@ old mark comes in by writing the number on her ear tag.
 3. **Import.** The app adds every row it can and lists the ones it refused. The refused rows do not
    change anybody else's number, and only they are left in the box, under the header: put them right
    there and import again.
-4. Take each animal's photo from her page. Nothing reminds anybody about a missing photo, so do
-   it on the walk, or keep a list.
+4. Take each animal's photo from her page. A photo taken where there is no signal is kept on the
+   phone and goes when there is; Animals → "No photo yet" lists who is still owed one.
 
 ## Done when
 
