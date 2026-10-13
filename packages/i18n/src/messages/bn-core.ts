@@ -3282,7 +3282,17 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "animals.diagnosedBy": "{name}, {date}",
   "nav.drugs": "ওষুধ",
   "nav.today": "আজকের কাজ",
-  "work.subtitle": "আপনার পেনগুলোতে এখন যা করার আছে। শুরু করতে একটিতে চাপুন।",
+  "work.subtitle":
+    "আপনার পেনগুলোতে আজকের কাজ: এখন যা করার, পরে যা আসবে, আর যা শেষ হয়েছে। শুরু করতে একটিতে চাপুন।",
+  "work.group.now": "এখন",
+  "work.group.later": "আজ পরে",
+  "work.group.laterHint": "এখনো সময় হয়নি। চাইলে আগে শুরু করতে পারেন।",
+  "work.group.done": "আজ শেষ ({count})",
+  "work.allDone": "আজকের সব কাজ শেষ",
+  "work.allDoneHint": "{count}টি কাজ শেষ। নতুন কাজের সময় হলে এখানে দেখা যাবে।",
+  "work.doneAt": "{time}-এ শেষ",
+  "work.doneOnPhone": "এই ফোনে শেষ, খামারে পৌঁছানোর অপেক্ষায়",
+  "work.next": "{place}-এ এরপর",
   "work.count": "{count}টি কাজ",
   "work.lateCount": "{count}টি দেরিতে",
   "work.noneHint":

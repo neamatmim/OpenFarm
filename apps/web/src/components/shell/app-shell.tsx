@@ -6,13 +6,16 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 
 import { useOutboxSender } from "@/components/sync-banner";
+import { useLanguage } from "@/i18n/language-provider";
+import { useFinishedHere } from "@/lib/finished-here";
 import { useShedPhoneKeeper } from "@/lib/shed-phone";
+import { owedNowBy } from "@/lib/work-groups";
 import { orpc } from "@/utils/orpc";
 
 import { AppSidebar } from "./app-sidebar";
 import { BottomBar } from "./bottom-bar";
-import type { Role } from "./navigation";
-import { BOTTOM_BAR, primaryRole } from "./navigation";
+import type { NavItem, Role } from "./navigation";
+import { BOTTOM_BAR, barWithCounts, primaryRole } from "./navigation";
 import { TopBar } from "./top-bar";
 
 declare module "@tanstack/react-router" {
@@ -74,6 +77,45 @@ export const useSidebarOpen = () => {
 };
 
 /**
+ * The Role's bottom bar with how much waits at its places: Today's work carries the work owed now that this person
+ * may start, and the Manager's checks what waits for Sign-off and for a decision. Asked with the very questions those
+ * pages ask, so the bar and the page share one answer, and only where the bar has the place at all.
+ */
+const RoleBottomBar = ({
+  items,
+  me,
+}: {
+  items: readonly NavItem[];
+  me: string | undefined;
+}) => {
+  const { language } = useLanguage();
+  const counts = (to: string) => items.some((item) => item.to === to);
+  const today = useQuery({
+    ...orpc.work.today.queryOptions({ input: {} }),
+    enabled: counts("/work"),
+  });
+  const finishedHere = useFinishedHere();
+  const signOff = useQuery({
+    ...orpc.work.signOffQueue.queryOptions(),
+    enabled: counts("/review-queue"),
+  });
+  const deciding = useQuery({
+    ...orpc.reviewQueue.waiting.queryOptions(),
+    enabled: counts("/review-queue"),
+  });
+  const waiting = {
+    "/work": owedNowBy(today.data ?? [], {
+      me,
+      now: new Date(),
+      finishedHere,
+    }),
+    "/review-queue":
+      (signOff.data?.length ?? 0) + (deciding.data?.waiting ?? 0),
+  };
+  return <BottomBar items={barWithCounts(items, waiting, language)} />;
+};
+
+/**
  * Every signed-in page: the grouped sidebar, the top bar, the page, and on a phone the Role's bottom bar. The page
  * itself decides its width and layout; the shell only frames it.
  */
@@ -104,7 +146,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         </main>
       </SidebarInset>
       {focused || roles.length === 0 ? null : (
-        <BottomBar items={BOTTOM_BAR[primaryRole(roles)]} />
+        <RoleBottomBar
+          items={BOTTOM_BAR[primaryRole(roles)]}
+          me={me.data?.id}
+        />
       )}
     </SidebarProvider>
   );

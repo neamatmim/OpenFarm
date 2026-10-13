@@ -131,7 +131,13 @@ const WorkPage = () => {
     onSuccess: () => {
       toast.success(t("work.finishKept"));
       void queryClient.invalidateQueries({ queryKey: ["outbox"] });
-      navigate({ to: "/work" });
+      // Back to the day's list with the next free job in this Pen offered at its top, from what the phone already
+      // holds: a milker finishing the milking goes straight on to the feeding, signal or none.
+      const penId = instance.data?.penId;
+      navigate({
+        to: "/work",
+        search: penId ? { after: instanceId, nextIn: penId } : {},
+      });
     },
     onError,
   });

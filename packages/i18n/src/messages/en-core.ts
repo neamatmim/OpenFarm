@@ -3533,7 +3533,17 @@ export const enCore = {
   "animals.diagnosedBy": "{name}, {date}",
   "nav.drugs": "Medicines",
   "nav.today": "Today's work",
-  "work.subtitle": "Everything due now in the pens you work. Tap one to start.",
+  "work.subtitle":
+    "The day's work in the pens you work: what is wanted now, what comes later, and what is done. Tap one to start.",
+  "work.group.now": "Now",
+  "work.group.later": "Later today",
+  "work.group.laterHint": "Not due yet. You can start one early.",
+  "work.group.done": "Done today ({count})",
+  "work.allDone": "All done for today",
+  "work.allDoneHint": "{count} done. New work shows here when it falls due.",
+  "work.doneAt": "Done {time}",
+  "work.doneOnPhone": "Done on this phone, on its way to the farm",
+  "work.next": "Next in {place}",
   "work.count": "{count} due",
   "work.lateCount": "{count} late",
   "work.noneHint":

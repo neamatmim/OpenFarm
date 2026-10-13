@@ -393,6 +393,39 @@ export const workRouter = {
       });
     }),
 
+  /** What was finished today in this person's Scope, last done first: the other half of the day's list, so a list with
+   *  nothing left on it reads as a morning done rather than work gone missing. Named and placed, nothing more — the
+   *  work itself is opened from its page. */
+  doneToday: protectedProcedure
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
+    .handler(async ({ context }) => {
+      const { from, to } = farmDayRange(context.clock.now());
+      const rows = await context.db.query.sopInstance.findMany({
+        where: {
+          farmId: context.farm.id,
+          state: { in: ["completed", "approved"] },
+          completedAt: { gte: from, lt: to },
+          ...workInScopeWhere(context.scope),
+        },
+        columns: { id: true, penId: true, completedAt: true },
+        with: {
+          version: { columns: { content: true } },
+          pen: {
+            columns: { name: true },
+            with: { shed: { columns: { name: true } } },
+          },
+        },
+        orderBy: { completedAt: "desc", id: "desc" },
+      });
+      return rows.map((row) => ({
+        id: row.id,
+        name: (row.version.content as SopContent).name,
+        penId: row.penId,
+        pen: row.pen,
+        completedAt: row.completedAt,
+      }));
+    }),
+
   /** Everything the pen board needs: the Version's Steps, the Pen's animals, and what has
    *  already been recorded. */
   get: protectedProcedure

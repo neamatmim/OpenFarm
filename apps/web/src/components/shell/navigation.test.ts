@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { navFor } from "./navigation";
+import { BOTTOM_BAR, barWithCounts, navFor } from "./navigation";
 
 /** Every destination a person holding these Roles is offered, as "group › label → address". */
 const offered = (roles: Parameters<typeof navFor>[0]) =>
@@ -25,5 +25,29 @@ describe("the trail in the menu", () => {
     expect(
       offered(["owner"]).filter((one) => one.includes("nav.myRecords"))
     ).toEqual([]);
+  });
+});
+
+describe("the counts on the phone's bar", () => {
+  it("says how much waits on the Manager's day and their checks, in their own digits, and nothing where none waits", () => {
+    const bar = barWithCounts(
+      BOTTOM_BAR.manager,
+      { "/review-queue": 12, "/home": 0 },
+      "bn"
+    );
+
+    expect(bar.map((item) => [item.to, item.count])).toEqual([
+      ["/home", undefined],
+      ["/review-queue", "১২"],
+      ["/animals", undefined],
+    ]);
+  });
+
+  it("puts the milker's work owed now on Today's work", () => {
+    expect(
+      barWithCounts(BOTTOM_BAR.staff, { "/work": 3 }, "en").map(
+        (item) => item.count
+      )
+    ).toEqual(["3", undefined]);
   });
 });
