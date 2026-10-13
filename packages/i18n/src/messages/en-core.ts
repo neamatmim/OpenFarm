@@ -1622,7 +1622,7 @@ export const enCore = {
     "After this move {head} will stand in {pen}, which is built for {capacity}.",
   "herd.import": "Opening register",
   "herd.importHelp":
-    "Paste the CSV, or cells copied from a spreadsheet, with the template's columns: tag, sex, side, state, pen, source, breed, birth_date, calved_at, expected_calving, official_tag, alias, lactation. sex, side, state and source may be written in Bangla or English, as the screens say them. Dates are written year-month-day, like 2025-03-15. tag is the number on her ear tag, like D-0001; left blank, she is given the next number. lactation is the one a cow in milk or dry is in; left blank, her first. A row beginning # is passed over",
+    "Paste the CSV, or cells copied from a spreadsheet, with the template's columns: tag, sex, side, state, pen, source, breed, birth_date, calved_at, expected_calving, official_tag, alias, lactation. sex, side, state and source may be written in Bangla or English, as the screens say them. Dates are written year-month-day, like 2025-03-15. tag is the number on her ear tag, like D-0001; left blank, she is given the next number. lactation is the one a cow in milk or dry is in; left blank, her first. A row beginning # is passed over.",
   "herd.importRun": "Import",
   "herd.importCheck": "Check without importing",
   "herd.templateDownload": "Download the template",
@@ -1745,7 +1745,7 @@ export const enCore = {
   "animals.filter.allPens": "All pens",
   "animals.filter.anyHold": "Held or clear",
   "animals.filter.held": "Anything held",
-  "animals.filter.anyPhoto": "With or without a photo",
+  "animals.filter.anyPhoto": "Any photo",
   "animals.filter.noPhoto": "No photo yet",
   "animals.filter.clear": "Clear filters",
   "animals.filter.open": "Filters",

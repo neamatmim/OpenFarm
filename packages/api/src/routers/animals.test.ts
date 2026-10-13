@@ -425,6 +425,27 @@ describe("the opening register", () => {
     expect(her.penId).toBe(southPen.id);
   });
 
+  it("takes a Pen written as the screens show it, with spaces either side of the slash", async () => {
+    const owner = pens.owner.client;
+    const stamp = Date.now();
+    const shed = await owner.sheds.create({ name: `পূর্ব ${stamp}` });
+    const pen = await owner.sheds.pens.create({
+      shedId: shed.id,
+      name: `পেন দুই ${stamp}`,
+    });
+    const csv = [
+      "sex,side,state,pen,source",
+      `female,dairy,heifer,পূর্ব ${stamp} / পেন দুই ${stamp},born`,
+    ].join("\n");
+
+    const result = await owner.animals.importRegister({ csv });
+
+    expect(result.failed).toEqual([]);
+    const [placed] = result.imported;
+    const her = await owner.animals.get({ tagNumber: placed?.tagNumber ?? "" });
+    expect(her.penId).toBe(pen.id);
+  });
+
   it("keeps the number already written on her ear tag, and the next animal is numbered after it", async () => {
     const csv = [
       "tag,sex,side,state,pen,source",
