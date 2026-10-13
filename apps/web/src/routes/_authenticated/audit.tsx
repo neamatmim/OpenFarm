@@ -11,7 +11,6 @@ import { ENTITIES } from "@/components/audit/audit-words";
 import {
   EmptyState,
   Loaded,
-  Notice,
   Page,
   PageHeader,
   TableSkeleton,
@@ -71,6 +70,9 @@ const AuditPage = () => {
   const me = useQuery(orpc.people.me.queryOptions());
   const seesAll =
     me.data?.roles.some((r) => r === "owner" || r === "manager") ?? false;
+  // Named as their own only once the farm has said who is reading: a page still asking, or asked and unanswered, keeps
+  // the trail's own name rather than calling the farm's whole trail somebody's.
+  const onlyTheirOwn = me.data !== undefined && !seesAll;
   // The Owner's own records — an Investor's, a Venture's money, the prices she sets — are the Owner's alone to read: the
   // server answers anybody else with nothing, so nobody else is offered them to choose, and "no events" never reads as
   // "nothing happened". The same list the server keeps.
@@ -104,8 +106,10 @@ const AuditPage = () => {
 
   return (
     <Page>
-      <PageHeader description={t("audit.subtitle")} title={t("audit.title")} />
-      {seesAll ? null : <Notice title={t("audit.ownOnly")} tone="info" />}
+      <PageHeader
+        description={t(onlyTheirOwn ? "audit.mineSubtitle" : "audit.subtitle")}
+        title={t(onlyTheirOwn ? "nav.myRecords" : "audit.title")}
+      />
 
       <div className="surface flex flex-col gap-4 p-4 md:p-5">
         <FilterBar>

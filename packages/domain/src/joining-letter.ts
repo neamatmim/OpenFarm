@@ -187,10 +187,10 @@ const monthlySumsTable = (
             ),
             line(
               {
-                bn: "ভবিষ্যৎ মাসের টাকায় জমা",
-                en: "Allocated to future Monthly Sums",
+                bn: "সামনের মাসের আগাম জমা",
+                en: "Paid early on Monthly Sums to come",
               },
-              moneySaid(allocation.advanceMoney)
+              moneySaid(allocation.paidEarlyMoney)
             ),
             line(
               { bn: "চুক্তির মোট বাকি", en: "Agreement balance remaining" },
@@ -198,7 +198,7 @@ const monthlySumsTable = (
             ),
           ],
           note: {
-            bn: "প্রথমে নিজের গরু কেনার অংশ, এরপর পুরোনো থেকে নতুন মাসের টাকায় টাকা জমা হয়। অগ্রিম পরিশোধে চুক্তির মাসের টাকার নির্ধারিত তারিখ, ইউনিট বা লাভের অনুপাত বদলায় না।",
+            bn: "প্রথমে নিজের গরু কেনার অংশ, এরপর পুরোনো থেকে নতুন মাসের টাকায় টাকা জমা হয়। আগাম জমায় চুক্তির মাসের টাকার নির্ধারিত তারিখ, ইউনিট বা লাভের অনুপাত বদলায় না।",
             en: "Payments cover this Agreement's Cattle Part first, then Monthly Sums oldest first. Paying ahead does not change the signed due dates, Units or profit split.",
           },
         },

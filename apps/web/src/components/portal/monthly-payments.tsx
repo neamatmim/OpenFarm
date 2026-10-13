@@ -30,8 +30,8 @@ export const MonthlyPayments = ({
             {
               label: t("payments.monthlyTotal"),
               value: asMoney(allocation.monthlyPaidMoney),
-              hint: t("payments.includesAdvance", {
-                amount: asMoney(allocation.advanceMoney),
+              hint: t("payments.includesPaidEarly", {
+                amount: asMoney(allocation.paidEarlyMoney),
               }),
             },
             {

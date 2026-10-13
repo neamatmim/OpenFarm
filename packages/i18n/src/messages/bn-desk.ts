@@ -32,7 +32,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "audit.entity.supplier": "সরবরাহকারী",
   "audit.entity.supplier_invoice": "সরবরাহকারীর ইনভয়েস",
   "audit.entity.supplier_payment": "সরবরাহকারীকে পরিশোধ",
-  "audit.entity.feed_purchase_order": "খাদ্য কেনার আবেদন / অর্ডার",
+  "audit.entity.feed_purchase_order": "খাদ্যের অর্ডার",
   "portal.account.title": "আপনার অ্যাকাউন্ট",
   "portal.account.hint":
     "খামারে আপনার যে তথ্য আছে, কার কাছে জানতে চাইবেন, আপনার পাসওয়ার্ড, আর কোথায় সাইন ইন আছেন।",
@@ -988,7 +988,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "ventures.sums.due": "{amount} দেওয়ার সময় হয়েছে",
   "ventures.sums.next": "পরেরটি {day}, {amount}",
   "ventures.sumsMissedAdvance":
-    "খাওয়ানোর {currencySum} কমে এসেছে, আর মাসের {currencyOf} {currencySign}{missed} বাকি পড়েছে — সে {currencySum} না আসা পর্যন্ত নিজের {currencySum} (অগ্রিম) দিয়ে পশুদের খাওয়ানো যায়।",
+    "খাওয়ানোর {currencySum} কমে এসেছে, আর মাসের {currencyOf} {currencySign}{missed} বাকি পড়েছে — সে {currencySum} না আসা পর্যন্ত নিজের {currencySum} (মালিকের অগ্রিম) দিয়ে পশুদের খাওয়ানো যায়।",
   "ventures.cattleMoneyShort":
     "কেনা শুরুর আগে সই করা বিনিয়োগকারীদের গরু কেনার {currencyOf} আরও {currencySign}{short} আসতে হবে।",
   "ventures.noUnitsLeft": "সব ইউনিট সই হয়ে গেছে।",
@@ -1660,7 +1660,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "audit.filterTo": "পর্যন্ত",
   "audit.all": "সব",
   "audit.empty": "এই ফিল্টারে কিছু নেই",
-  "audit.ownOnly": "আপনি শুধু নিজের কাজ দেখছেন",
+  "audit.mineSubtitle": "খামারে আপনি যা লিখেছেন, নতুনটা আগে, আর কিছু ঠিক করা হলে কেন।",
   "audit.subtitle": "খামারে যত পরিবর্তন হয়েছে — কে করেছেন, কোন ভূমিকায়, আর কেন।",
   "audit.allRecords": "সব ধরনের রেকর্ড",
   "audit.filterWho": "কে",
@@ -2467,7 +2467,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "payments.cattle": "গরু কেনার অংশ",
   "payments.monthly": "মাসের টাকা",
   "payments.monthlyTotal": "মাসের মোট জমা",
-  "payments.includesAdvance": "এর মধ্যে ভবিষ্যৎ মাসের অগ্রিম {amount}",
+  "payments.includesPaidEarly": "এর মধ্যে সামনের মাসের আগাম জমা {amount}",
   "payments.balance": "এই চুক্তিতে আরও দিতে হবে",
   "payments.paid": "জমা",
   "payments.left": "বাকি",
@@ -2476,7 +2476,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "payments.previewHint":
     "নথিভুক্ত করার আগে ব্যাংকে টাকা প্রাপ্তি যাচাই করুন। এই চুক্তির গরু কেনার অংশের অতিরিক্ত টাকা রক্ষণাবেক্ষণের বাজেটে জমা হবে; অন্য কারও বাকি গরু কেনার অংশে গণনা হবে না।",
   "portal.pay.early":
-    "এই চুক্তির বাকি {amount} পর্যন্ত অগ্রিম দিতে পারবেন। ব্যাংকে টাকা পাঠানোর প্রকৃত তারিখ ও রেফারেন্স লিখুন।",
+    "এই চুক্তির বাকি {amount} পর্যন্ত আগাম জমা দিতে পারবেন। ব্যাংকে টাকা পাঠানোর প্রকৃত তারিখ ও রেফারেন্স লিখুন।",
   "portal.pay.ahead":
     "এই চুক্তিতে যা দেওয়া বাকি, সে পর্যন্ত নির্ধারিত তারিখের আগেই দিতে পারবেন।",
   "portal.pay.aheadTell": "তারপর নিচে ব্যাংকে টাকা পাঠানোর তারিখ ও রেফারেন্স খামারকে জানান।",

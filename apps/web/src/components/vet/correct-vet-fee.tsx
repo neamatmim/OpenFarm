@@ -21,7 +21,7 @@ export const CorrectVetFee = ({
     id: string;
     amountMoney: number;
     visitedOn: Date | string;
-    /** Left out where the screen does not hold it — the money register — and the note is not offered there. */
+    /** Left out where the screen does not hold it — the money book — and the note is not offered there. */
     note?: string | null;
   };
 }) => {

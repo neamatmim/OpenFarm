@@ -49,9 +49,9 @@ export const enCore = {
   "feedPlan.invalid.stages":
     "Select at least one growth ration with a weight range and expected gain.",
   "feedPlan.invalid.overlap":
-    "Selected rations overlap in weight. Choose one ration for each weight range.",
+    "Selected rations overlap in weight. Choose one ration for each weight band.",
   "feedPlan.invalid.gap":
-    "There is a gap between selected weight ranges. Add a ration covering the missing range.",
+    "There is a gap between the selected weight bands. Add a ration covering the missing weights.",
   "feedPlan.invalid.stageIncomplete":
     "A selected ration needs feed quantities and an expected gain. Update it in rations first.",
 
@@ -163,15 +163,15 @@ export const enCore = {
 
   "purchasing.incomingAvailable":
     "Placed orders arriving in time: {quantity} {unit}. Late deliveries and orders over their spending limit are excluded. Check outstanding approvals before requesting more.",
-  "purchasing.title": "Purchases",
+  "purchasing.title": "Feed orders",
   "purchasing.description":
     "Request feed, approve spending, place orders and record deliveries. Only deliveries enter stock and spending books.",
-  "purchasing.request": "Request feed purchase",
+  "purchasing.request": "Ask for a feed order",
   "purchasing.requestHint":
     "One feed per request. Check outstanding requests before buying again. The owner approves quantity and spending before ordering.",
   "purchasing.submit": "Submit request",
-  "purchasing.requested": "Purchase request submitted",
-  "purchasing.saved": "Purchase updated",
+  "purchasing.requested": "Feed order asked for",
+  "purchasing.saved": "Feed order updated",
   "purchasing.quantity": "Quantity",
   "purchasing.unitPrice": "Quoted price per unit (৳)",
   "purchasing.budget": "Maximum spend (৳)",
@@ -189,8 +189,8 @@ export const enCore = {
   "purchasing.existing": "{count} outstanding requests or orders for this feed",
   "purchasing.incomingHint":
     "Orders promising delivery by this date: {quantity} {unit}. Deducted from the suggested request; this is not stock. Check pending approvals and late deliveries before submitting.",
-  "purchasing.fromForecast": "Buy from this forecast",
-  "purchasing.approve": "Approve purchase",
+  "purchasing.fromForecast": "Order from this forecast",
+  "purchasing.approve": "Approve the order",
   "purchasing.approveHint":
     "Check the quote and approve quantity and maximum spend. Changing an existing approval requires a reason; earlier approvals stay in the audit trail.",
   "purchasing.revise": "Revise approval",
@@ -203,7 +203,7 @@ export const enCore = {
   "purchasing.arrivingLate":
     "Delivery is promised after the feed is needed. Review stock coverage.",
   "purchasing.action.rejected": "Decline request",
-  "purchasing.action.cancelled": "Cancel remaining purchase",
+  "purchasing.action.cancelled": "Cancel what is still to come",
   "purchasing.action.closed": "Close order",
   "purchasing.endHint":
     "Give a reason. Earlier deliveries and spending stay on the books. Closing or cancelling removes the remaining quantity from incoming plans.",
@@ -222,11 +222,11 @@ export const enCore = {
   "purchasing.requestedOn": "Requested",
   "purchasing.approvedOn": "Approved",
   "purchasing.noReceipts": "No deliveries recorded",
-  "purchasing.show": "Show purchases",
-  "purchasing.active": "Active purchases",
+  "purchasing.show": "Show orders",
+  "purchasing.active": "Open orders",
   "purchasing.awaitingApproval": "Awaiting approval ({count})",
-  "purchasing.all": "Active and recent closed purchases",
-  "purchasing.empty": "No purchases in this view",
+  "purchasing.all": "Open and recently closed orders",
+  "purchasing.empty": "No orders in this view",
   "purchasing.deliveryLimits":
     "Remaining: {quantity} {unit} · Spending room: ৳{money}",
   "purchasing.deliveryLimitsHint":
@@ -238,7 +238,7 @@ export const enCore = {
   "purchasing.state.rejected": "Declined",
   "purchasing.state.cancelled": "Cancelled",
   "purchasing.state.closed": "Closed",
-  "purchasing.changed": "This purchase changed. Refresh before continuing.",
+  "purchasing.changed": "This order changed. Refresh before continuing.",
   "purchasing.futureDay": "Choose today or a later day for delivery.",
   "purchasing.budgetSmall":
     "The approval must cover the quoted total and every delivery already recorded.",
@@ -247,7 +247,7 @@ export const enCore = {
   "purchasing.forecastMissing":
     "This feed has no requirement in the selected forecast. Refresh the estimate.",
   "purchasing.terminal":
-    "This action is unavailable at the purchase's current stage.",
+    "This action is unavailable at the order's current stage.",
   "purchasing.reasonNeeded":
     "Give a reason of at least three characters for changing approval.",
   "purchasing.needsApproval":
@@ -261,10 +261,10 @@ export const enCore = {
     "This delivery exceeds the approved remaining quantity. Ask the owner to revise approval.",
   "purchasing.budgetLimit":
     "This delivery exceeds approved spending room. Ask the owner to revise approval.",
-  "purchasing.queue": "Feed purchases need attention",
+  "purchasing.queue": "Feed orders need attention",
   "purchasing.queueHint":
     "{approvals} awaiting approval · {ordering} ordering deadlines reached · {deliveries} overdue deliveries",
-  "purchasing.open": "Open purchases",
+  "purchasing.open": "Go to feed orders",
   "refusal.feedPlanAnimalLeft":
     "This animal has left the farm. Its feeding plan cannot be revised.",
   "refusal.feedPlanChanged":
@@ -272,7 +272,7 @@ export const enCore = {
   "refusal.feedPlanStartsInFuture":
     "Choose a plan start date on or before today.",
   "refusal.feedPlanRations":
-    "Choose current rations from this farm, selecting each stage once.",
+    "Choose current rations from this farm, one for each weight band.",
   "refusal.feedPlanStages":
     "Check the arrival ration and choose continuous weight bands without overlaps. Each growth ration needs feed quantities and expected gain.",
   "refusal.feedPlanCoverage":
@@ -307,13 +307,13 @@ export const enCore = {
   "feedPlan.reserve": "Feed reserve (%)",
   "feedPlan.preview": "Fast growth scenario: {kg} kg at the sale date.",
   "feedPlan.checkStages":
-    "Check dates, quantities and ration coverage before approving. The selected stages must cover the animal through the fast growth scenario.",
+    "Check dates, quantities and ration coverage before approving. The rations chosen must cover the animal through the fast growth scenario.",
   "feedPlan.manageRations": "Review rations and pen assignments",
   "feedPlan.empty": "No feeding plan yet",
   "feedPlan.emptyHint":
     "Plan from purchase to sale using this animal’s weights and the farm’s approved rations.",
   "feedPlan.modelHint":
-    "A forecast from approved ration snapshots and the latest reliable weight. Stage dates are suggestions to review, not automatic ration changes.",
+    "A forecast from approved ration snapshots and the latest reliable weight. The day each ration starts is a suggestion to review, not an automatic ration change.",
   "feedPlan.revisions":
     "{count, plural, one {# saved revision} other {# saved revisions}}",
   "feedPlan.scenario": "Growth scenario",
@@ -333,7 +333,7 @@ export const enCore = {
   "feedPlan.recordWeight": "Record a weigh-in",
   "feedPlan.rationReview": "Ration review needed",
   "feedPlan.rationReviewHint":
-    "At the recorded weight the plan uses {ration}. Check the animal’s pen and arrange a gradual change before following the next stage.",
+    "At the recorded weight the plan uses {ration}. Check the animal’s pen and arrange a gradual change before moving her to the next ration.",
   "feedPlan.slowGain": "Growth needs attention",
   "feedPlan.slowGainHint":
     "Check health, feed offered and leftovers before increasing concentrate.",
@@ -1516,6 +1516,7 @@ export const enCore = {
   "common.refreshFailed":
     "Could not refresh — showing what this phone last had",
   "nav.audit": "Audit log",
+  "nav.myRecords": "What I recorded",
   "nav.animals": "Animals",
   "nav.herd": "Sheds and pens",
   "nav.breeds": "Breeds",
@@ -2273,7 +2274,7 @@ export const enCore = {
   "papers.languageSwitch": "The paper's language",
   "common.close": "Close",
   "common.messages": "Messages",
-  "nav.signOff": "Review",
+  "nav.signOff": "To check",
   "nav.backups": "Backups",
   "nav.settings": "Your settings",
   "feed.subtitle":
@@ -2534,7 +2535,7 @@ export const enCore = {
     "Only placed orders with feed still to arrive are offered. Check the supplier, reference and remaining quantity.",
   "stock.searchOrders": "Search feed, supplier or order reference…",
   "stock.noReceivableOrders":
-    "No placed orders have feed still to arrive for this selection. Open purchasing to record the order, or choose direct purchase / own harvest.",
+    "No placed orders have feed still to arrive for this selection. Open feed orders to record the order, or choose direct purchase / own harvest.",
   "stock.useOrder": "Enter delivery against this order",
   "stock.changeArrivalSource": "Choose a different arrival source",
   "stock.linkedOrder": "This delivery updates order {reference} · {supplier}",
@@ -2725,7 +2726,7 @@ export const enCore = {
     "Liters by day, session, pen and destination, with milk poured away under a withdrawal shown apart, for your own spreadsheet.",
   "dispatch.recordAction": "Record milk handed over",
   "dispatch.sheetDescription":
-    "Milk from the tank handed to a buyer. Its price goes to the money register.",
+    "Milk from the tank handed to a buyer. Its price goes to the money book.",
   "dispatch.worth":
     "{liters, plural, one {# liter} other {# liters}} × {currencySign}{price} = {currencySign}{amount}",
   "dispatch.dayBefore": "Day before",
@@ -2749,7 +2750,7 @@ export const enCore = {
   "money.totalOut": "Money out",
   "money.net": "Net",
   "money.awaitingCount": "Awaiting approval",
-  "money.register": "Money register",
+  "money.register": "Money book",
   "money.col.date": "Date",
   "money.col.what": "What",
   "money.col.with": "With",
@@ -3011,7 +3012,7 @@ export const enCore = {
   "costs.market_toll": "Market toll",
   "costs.trips": "Buying and selling trips",
   "costs.herd": "Herd costs",
-  "costs.overheads": "Running the farm",
+  "costs.overheads": "Overheads",
   "costs.overheadsHint":
     "Wages, rent, electricity and the like. Not charged to any animal, season or venture.",
   "costs.overheadsTotal": "All of it",
@@ -3162,7 +3163,7 @@ export const enCore = {
   "home.overdue": "Late",
   "home.yours": "Yours to do now",
   "home.signOff": "Waiting for sign-off",
-  "home.needsReview": "Needing a decision",
+  "home.needsReview": "Needs review",
   "home.monthlyCosts": "Not entered yet",
   "home.wageNotEntered": "Wage: {name}",
   "home.withdrawal": "Under withdrawal",
@@ -3171,8 +3172,8 @@ export const enCore = {
   "home.animalsIn": "{count, plural, one {# animal} other {# animals}}",
   "home.allClear": "Nothing needs you right now",
   "home.nothingRaised": "The day's work has not been raised yet",
-  "nav.theDay": "Farm today",
-  "owner.approvals": "Waiting on you",
+  "nav.theDay": "Running the day",
+  "owner.approvals": "Waiting for your sign-off",
   "owner.escalated": "Escalated to you",
   "owner.discardToday": "Discarded today",
   "owner.average":
@@ -3198,7 +3199,7 @@ export const enCore = {
   "owner.bySide": "Dairy {dairy} · fattening {fattening}",
   "owner.entries": "{count, plural, one {# entry} other {# entries}}",
   "owner.moneyTotal": "Total {amount}",
-  "owner.onTheFarm": "On the farm today",
+  "owner.onTheFarm": "What the manager is on",
   "owner.onTheFarmHint": "The manager is on these; they are here so you know.",
   "owner.nothingLate": "Nothing late and nothing running low",
   "owner.moneyMonth": "This month's money",
@@ -3666,6 +3667,7 @@ export const enCore = {
   "work.lateFor": "Late by {hours, plural, one {# hour} other {# hours}}",
   "work.counted": "Counted",
   "work.countReason": "Why it differs",
+  "signOff.tab": "Sign-off",
   "signOff.none": "Nothing to check",
   "signOff.approve": "Approve",
   "signOff.yoursToBeChecked": "Yours — somebody else checks it",
@@ -3766,7 +3768,7 @@ export const enCore = {
     "Someone corrected this since you opened it. Open it again to see what it says now.",
   "refusal.nothingToCorrect":
     "Nothing was changed, so there is nothing to correct",
-  "review.title": "Needs a look",
+  "review.title": "Needs review",
   "review.none": "Nothing waiting",
   "review.resolve": "Close this",
   "review.weightIsRight": "The weight on the scale is right",
@@ -4262,7 +4264,7 @@ export const enCore = {
   "nav.sale": "Sales",
   "nav.trips": "Trips",
   "trips.subtitle":
-    "Every outing to a livestock market, buying or selling, and what the day cost beyond the animals. A buying trip that brought nothing home is still written up: its cost is counted in what running the farm cost that month.",
+    "Every outing to a livestock market, buying or selling, and what the day cost beyond the animals. A buying trip that brought nothing home is still written up: its cost is counted in that month's overheads.",
   "trips.buying": "Buying trips",
   "trips.selling": "Selling trips",
   "trips.newBuying": "New buying trip",
@@ -4366,10 +4368,10 @@ export const enCore = {
   "months.col.perCow": "Per cow, a day",
   "months.col.sold": "Fattening sold · Margin",
   "months.col.fatteningCost": "Fattening cost",
-  "months.col.overheads": "Running the farm · a head a day",
-  "months.cardOverheads": "Running the farm {amount}, {perHead} a head a day",
+  "months.col.overheads": "Overheads · a head a day",
+  "months.cardOverheads": "Overheads {amount}, {perHead} a head a day",
   "months.yearOverheads":
-    "Running the farm over the year: {amount}, {perHead} a head a day over every animal here, the ventures' among them. Wages, rent and electricity: no side, season or venture above carries it.",
+    "Overheads over the year: {amount}, {perHead} a head a day over every animal here, the ventures' among them. Wages, rent and electricity: no side, season or venture above carries it.",
   "months.soFar": "so far",
   "months.one.title": "Monthly report — {month}",
   "months.one.subtitle":
@@ -4569,7 +4571,7 @@ export const enCore = {
   "sale.howSheLeft": "How she left the farm",
   "sale.soldTo": "Buyer",
   "sale.sheetDescription":
-    "Who took her, for how much, and the lorry she went on. The price goes to the money register.",
+    "Who took her, for how much, and the lorry she went on. The price goes to the money book.",
   "sale.lastWeighedOn": "Last weighed {kg} kg on {day}",
   "sale.shrinkLost": "{kg} kg lighter today ({percent}%)",
   "sale.shrinkGained":
