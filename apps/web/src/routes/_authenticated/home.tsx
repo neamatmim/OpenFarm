@@ -21,6 +21,7 @@ import { ManagerQueue, queueWaiting } from "@/components/home/manager-queue";
 import { PenProgress } from "@/components/home/pen-progress";
 import type { QueueKind } from "@/components/home/queue-kinds";
 import { QUEUE_KINDS } from "@/components/home/queue-kinds";
+import { SetupLeft } from "@/components/home/setup-left";
 import { VenturesAtWork } from "@/components/home/ventures-at-work";
 import {
   EmptyState,
@@ -62,6 +63,8 @@ const ManagerHome = () => {
     me.data?.roles.some(
       (role) => role === "owner" || role === "manager" || role === "vet"
     ) ?? false;
+  // The Owner opens every step of setting the farm up; the Manager the steps that are theirs too.
+  const isOwner = me.data?.roles.includes("owner") ?? false;
 
   // The Manager often opens this before anybody has opened Today, and the day's work is
   // raised by whoever opens the app first. Without this the screen would say the farm had
@@ -170,6 +173,7 @@ const ManagerHome = () => {
         title={t("nav.theDay")}
       />
 
+      <SetupLeft reader={isOwner ? "owner" : "manager"} />
       <SummaryFigures figures={figures} />
       <FeedPurchaseAttention />
       <SupplierAttention />

@@ -6,6 +6,8 @@ import {
 } from "@OpenFarm/i18n";
 import { Badge } from "@OpenFarm/ui/components/badge";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Checkbox } from "@OpenFarm/ui/components/checkbox";
+import { Label } from "@OpenFarm/ui/components/label";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -25,12 +27,13 @@ import {
   Section,
   StatusBadge,
 } from "@/components/page";
-import { FormField, NativeSelect } from "@/components/page-kit";
 import { whenWords } from "@/components/playbook/playbook-types";
 import { useLanguage } from "@/i18n/language-provider";
 import { useWordsIn } from "@/i18n/words-in";
 import { printAlone } from "@/lib/print-alone";
 import { useRefused } from "@/lib/refused";
+import { stillToTeach } from "@/lib/still-to-teach";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -328,20 +331,37 @@ const TrainedOn = ({
 }) => {
   const { t, language } = useLanguage();
   const refused = useRefused();
-  const [who, setWho] = useState("");
+  // Several at once: a morning's lesson teaches the whole shed, and the farm writes each of them down on their own.
+  const [who, setWho] = useState<string[]>([]);
+  const [marking, setMarking] = useState(false);
 
   const people = useQuery(orpc.people.list.queryOptions());
   const trained = useQuery(
     orpc.sops.training.queryOptions({ input: { definitionId } })
   );
-  const mark = useMutation(
-    orpc.sops.recordTraining.mutationOptions({
-      onSuccess: () => {
-        setWho("");
-      },
-      onError: refused,
-    })
-  );
+  const mark = useMutation(orpc.sops.recordTraining.mutationOptions({}));
+  const offered = stillToTeach(people.data?.people ?? [], trained.data ?? []);
+
+  /** Each ticked person marked in turn; one refused stops the rest, and those already marked stay marked. */
+  const handleMark = async () => {
+    setMarking(true);
+    let marked = 0;
+    try {
+      for (const userId of who) {
+        // One after another, not all at once: a refusal names the person it stopped at.
+        // oxlint-disable-next-line no-await-in-loop
+        await mark.mutateAsync({ userId, versionId });
+        marked += 1;
+      }
+      setWho([]);
+      setMarking(false);
+      toast.success(t("training.marked", { count: marked }));
+    } catch (error) {
+      setWho(who.slice(marked));
+      setMarking(false);
+      refused(error);
+    }
+  };
 
   return (
     <Section
@@ -354,36 +374,50 @@ const TrainedOn = ({
         className="flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault();
-          if (who) {
-            mark.mutate({ userId: who, versionId });
+          if (who.length > 0) {
+            void handleMark();
           }
         }}
       >
-        <FormField id="training-who" label={t("training.who")}>
-          <NativeSelect
-            id="training-who"
-            onChange={(event) => setWho(event.target.value)}
-            value={who}
-          >
-            <option value="">—</option>
-            {/* Only people who may still sign in: the farm will not record training for somebody whose access is
-                gone. */}
-            {(people.data?.people ?? [])
-              .filter((person) => !person.disabledAt)
-              .map((person) => (
-                <option key={person.id} value={person.id}>
-                  {person.name}
-                </option>
-              ))}
-          </NativeSelect>
-        </FormField>
-        <Button disabled={!who || mark.isPending} type="submit">
-          {mark.isPending ? (
+        <fieldset className="flex flex-col gap-1">
+          <legend className="mb-1 text-sm font-medium">
+            {t("training.who")}
+          </legend>
+          {/* Only people who may still sign in and have not been taught this Version: the farm would refuse the rest. */}
+          {offered.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              {t("training.everyone")}
+            </p>
+          ) : (
+            offered.map((person) => (
+              <Label
+                className="flex min-h-11 cursor-pointer items-center gap-2 font-normal md:min-h-8"
+                key={person.id}
+              >
+                <Checkbox
+                  checked={who.includes(person.id)}
+                  onCheckedChange={() =>
+                    setWho((ticked) =>
+                      ticked.includes(person.id)
+                        ? ticked.filter((one) => one !== person.id)
+                        : [...ticked, person.id]
+                    )
+                  }
+                />
+                {person.name}
+              </Label>
+            ))
+          )}
+        </fieldset>
+        <Button disabled={who.length === 0 || marking} type="submit">
+          {marking ? (
             <Spinner />
           ) : (
             <UserCheck aria-hidden data-icon="inline-start" />
           )}
-          {t("training.mark")}
+          {who.length > 1
+            ? t("training.markMany", { count: who.length })
+            : t("training.mark")}
         </Button>
       </form>
       {trained.data?.length ? (

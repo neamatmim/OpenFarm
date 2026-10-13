@@ -18,7 +18,7 @@ reliability is a headline promise — this is one farm, and the measures are pro
   2026-10-07). A failed monthly is tried again two hours later, up to four times, and the Owner is
   told of it.
 
-Whether it is actually happening is a question the app answers: **Admin → Backups** shows the
+Whether it is actually happening is a question the app answers: **Farm settings → Backups** (খামারের সেটিংস → খামারের কপি) shows the
 last copy that worked and every attempt since. A farm that has not been copied for two nights
 is one disk away from losing its own records, and that is the number to watch.
 
@@ -69,7 +69,7 @@ sudo -u openfarm-backup rclone config      # the off-site remote, kept in that u
 `/etc/openfarm/backup.env` holds `DATABASE_URL` (the owner's), `BACKUP_AGE_RECIPIENT` and
 `BACKUP_DESTINATION`; neither it nor `/var/lib/openfarm-backup` is readable by `openfarm`.
 
-**Then check the app.** Admin → Backups is where you see the timer doing its job, and a timer
+**Then check the app.** **Farm settings → Backups** is where you see the timer doing its job, and a timer
 that exists but fails every night looks exactly like a timer that works until somebody looks.
 Once the first copy is in, the farm watches too: when no copy has succeeded for a day and a
 half, the Owner gets an Alert in the app and on her phone, once for each gap. A farm that has
@@ -117,7 +117,7 @@ Once a quarter, and after any change to the database provider.
    - **Animals** — the herd is there, with the right count on each Side;
    - **a milking Instance** — yesterday's liters are the ones they remember, per cow;
    - **an Animal's history** — it reads back, and a Correction still shows what it replaced;
-   - **Admin → Audit** — the trail reaches further back than the backup is old.
+   - **Audit log** (অডিট লগ) — the trail reaches further back than the backup is old.
 3. **Write the result down** twice: a line in the farm's ops log with the date, the backup
    used and who witnessed it — and, in the restored system itself, dismiss an Alert or make
    a note so the drill leaves an Audit Event in the copy it was run against. A drill nobody
@@ -171,7 +171,7 @@ Work in this order:
    - `PRODUCTION_DATABASE_URL` in the password manager, which the next deploy migrates.
 
    Then run a copy by hand (`sudo systemctl start openfarm-backup.service`) and see it on
-   **Admin → Backups**.
+   **Farm settings → Backups** (খামারের সেটিংস → খামারের কপি).
 
 5. **Redo what was done since the copy to keep people out.** A copy carries the farm as it was:
    a phone taken off the list since, an Investor's access taken away, a PIN set anew, somebody who

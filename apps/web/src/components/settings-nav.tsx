@@ -9,6 +9,7 @@ import {
   Dna,
   FileSignature,
   Globe,
+  ListChecks,
   MoonStar,
   SlidersHorizontal,
   Smartphone,
@@ -33,7 +34,8 @@ interface SettingsSectionLink {
     | "/farm/shed-phones"
     | "/farm/breeds"
     | "/farm/eid-dates"
-    | "/farm/backups";
+    | "/farm/backups"
+    | "/farm/going-live";
   label: MessageKey;
   icon: LucideIcon;
   /** The Owner's alone, as its page is. */
@@ -41,7 +43,7 @@ interface SettingsSectionLink {
 }
 
 /** Every part of the farm's settings, in the order a farm is set up: what it is, how it behaves, its money, what
- *  its Investors see, who works on it, its lists, and last whether it is being copied off its machine. */
+ *  its Investors see, who works on it, its lists, whether it is being copied off its machine, and last how far it is from running on the app. */
 const SECTIONS: readonly SettingsSectionLink[] = [
   { to: "/farm", label: "settings.section.farm", icon: Building2 },
   {
@@ -72,6 +74,11 @@ const SECTIONS: readonly SettingsSectionLink[] = [
   { to: "/farm/breeds", label: "nav.breeds", icon: Dna },
   { to: "/farm/eid-dates", label: "settings.section.eid", icon: MoonStar },
   { to: "/farm/backups", label: "nav.backups", icon: Archive },
+  {
+    to: "/farm/going-live",
+    label: "settings.section.goingLive",
+    icon: ListChecks,
+  },
 ];
 
 /**

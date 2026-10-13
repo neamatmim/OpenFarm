@@ -534,3 +534,7 @@ One still gathering capital comes from its plan alone: every band bought at its 
 **SOP Card**: The one-page Bangla print/in-app sheet generated from a published SOP Version: name, steps, icons, evidence. The training material. _Avoid_: Manual, guide, cheat-sheet
 
 **Trained On**: The record that one person was taught one SOP Version, on a day, by somebody. Append-only: a new Version does not untrain anybody and training on it does not erase what they were taught before, because "who knew which procedure" is a question about a date that has already passed. _Avoid_: Certified, signed off (that is the Manager checking work), competent
+
+**Opening Count**: The Owner's word, on the tagging walk's day, of how many animals were counted standing in the sheds, kept beside how many the register held when it was written down. The opening register counts as put in only when the two agree; a count that differs is kept, and the farm goes and finds what differs and counts again. Said again, the latest stands and the trail keeps the rest. Not a **Head Count**, which is each Pen's, every evening. _Avoid_: Stock take, census, inventory
+
+**Paper Put Away**: The first farm day the farm kept no paper register, in the Owner's word: go-live's thirty days without paper are counted from it, that day the first. Said again — the paper came back and went away again — the count starts from the new day. _Avoid_: Go-live date, launch day

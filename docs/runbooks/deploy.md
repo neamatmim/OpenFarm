@@ -51,7 +51,7 @@ is the part that is easy to believe was done and was not:
       show it — at whatever zone the server keeps.
 - [ ] The off-site remote is on a **different provider**, not another bucket on the same one.
 - [ ] The nightly timer is installed and listed — see the restore runbook.
-- [ ] A first copy has run by hand and **Admin → Backups** shows it.
+- [ ] A first copy has run by hand and **Farm settings → Backups** (খামারের সেটিংস → খামারের কপি) shows it.
 - [ ] A first restore drill has been done. A backup nobody has restored is a hope.
 - [ ] TLS terminates in front of the app and plain HTTP redirects to HTTPS. The app binds to
       `127.0.0.1:3001`; it must not be exposed directly to the internet.
@@ -369,7 +369,7 @@ Open the app and look at four things:
 
 1. **Today** — the day's work is there.
 2. **To check** — the sign-off queue loads.
-3. **Settings → Being told** — this device can still agree to be told.
+3. **Your settings → Being told** (আপনার সেটিংস → জানানো) — this device can still agree to be told.
 4. **A bought-in bull's money tab** — her Hasil, her share of the outing that brought her,
    and her part of the month's Herd Costs read as figures rather than zeros. All three at
    zero after a few days of real work means something did not take. Set the Fodder Price on
@@ -378,6 +378,6 @@ Open the app and look at four things:
 
 If the first is empty and it should not be, the schedule has not run. It runs inside the app
 every five minutes, whether or not anybody has it open; opening the app does not start it.
-Wait five minutes, then look under **Admin → Backups** for when it last ran. If it has not,
+Wait five minutes, then look under **Farm settings → Backups** (খামারের সেটিংস → খামারের কপি) for when it last ran. If it has not,
 check that `OPENFARM_SCHEDULER` is not `off` in `/etc/openfarm/app.env`, and read
 `journalctl -u openfarm --since today` for the error it failed with.
