@@ -946,6 +946,7 @@ const FarmsOwnNow = () => {
             notRead.length > 0
               ? t("owner.accountsNotRead", { names: notRead.join(", ") })
               : undefined,
+          hintOnPhone: notRead.length > 0,
           icon: Landmark,
           tone: notRead.length > 0 ? "warning" : "neutral",
         },
@@ -969,24 +970,27 @@ export const CashTab = ({
   const { t } = useLanguage();
   const hands = useQuery(orpc.cash.inHand.queryOptions());
   const held = hands.data ?? [];
+  // The Farm's own money stands whether or not any hand holds notes: its accounts may hold it all.
   return (
-    <Loaded query={hands} skeleton={<TableSkeleton rows={3} />}>
-      {held.length === 0 ? (
-        <EmptyState icon={Banknote} title={t("cash.nobody")} />
-      ) : (
-        <div className="flex flex-col gap-6">
-          {isOwner ? <FarmsOwnNow /> : null}
-          <Section description={t("cash.hint")} title={t("cash.hands")}>
-            <HandsTable
-              rows={held.map((hand) => ({
-                hand,
-                mayHandOver: isOwner || hand.userId === myId,
-              }))}
-            />
-          </Section>
-          <FloatsOut isOwner={isOwner} />
-        </div>
-      )}
-    </Loaded>
+    <div className="flex flex-col gap-6">
+      {isOwner ? <FarmsOwnNow /> : null}
+      <Loaded query={hands} skeleton={<TableSkeleton rows={3} />}>
+        {held.length === 0 ? (
+          <EmptyState icon={Banknote} title={t("cash.nobody")} />
+        ) : (
+          <div className="flex flex-col gap-6">
+            <Section description={t("cash.hint")} title={t("cash.hands")}>
+              <HandsTable
+                rows={held.map((hand) => ({
+                  hand,
+                  mayHandOver: isOwner || hand.userId === myId,
+                }))}
+              />
+            </Section>
+            <FloatsOut isOwner={isOwner} />
+          </div>
+        )}
+      </Loaded>
+    </div>
   );
 };

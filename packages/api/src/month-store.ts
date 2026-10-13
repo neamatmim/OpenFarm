@@ -238,12 +238,17 @@ export const farmsOwnMoneyAt = async (
     handsHeldAt(db, farmId, new Date(at.getTime() - 1)),
     farmAccountsHeldAt(db, farmId, at),
   ]);
+  // A retired account nobody ever read was put away unused: no statement of it is awaited, so it is not counted as
+  // waiting for one, nor named.
+  const counted = accounts.filter(
+    (one) => !(one.retired && one.heldMoney === null)
+  );
   return {
     position: cashPositionOf({
       hands,
-      accounts: accounts.map((one) => one.heldMoney),
+      accounts: counted.map((one) => one.heldMoney),
     }),
-    notReadNames: accounts
+    notReadNames: counted
       .filter((one) => one.heldMoney === null)
       .map((one) => one.name),
   };

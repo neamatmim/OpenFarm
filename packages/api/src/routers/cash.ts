@@ -63,6 +63,7 @@ export const cashRouter = {
    *  the accounts never read named; the Owner's, as the month's report is. */
   farmsOwnNow: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
     .handler(async ({ context }) => {
       const { position, notReadNames } = await farmsOwnMoneyAt(
         context.db,

@@ -8,10 +8,15 @@ import { appRouter } from "./index";
 //
 // The Owner put ৳200,000 of their own notes into the farm on 28 April 2047. The bank account's April statement read
 // ৳100,000. A bKash number was listed on 1 May and nobody has read a statement of it: it counts nothing, and is named.
+// An old Nagad number, listed by mistake and retired the same day, was never read either: retired, it is not named.
 // On 10 May the Farm holds ৳300,000 of its own.
 
-const as = (role: "owner" | "manager", instant: string) =>
-  createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
+const as = (role: "owner" | "manager", instant: string, onShedPhone = false) =>
+  createTestClient(appRouter, {
+    as: role,
+    clock: new FakeClock(instant),
+    onShedPhone,
+  });
 
 const NOW = "2047-05-10T04:00:00.000Z";
 
@@ -42,6 +47,12 @@ beforeAll(async () => {
     name: "খামারের বিকাশ",
     number: "01711000000",
   });
+  const mistake = await later.client.farmAccounts.create({
+    kind: "mobile_money",
+    name: "পুরনো নগদ",
+    number: "01811000000",
+  });
+  await later.client.farmAccounts.retire({ id: mistake.id });
   await later.client.farmAccounts.check({
     id: bank.id,
     month: "2047-04",
@@ -73,6 +84,14 @@ describe("the Farm's own money now", () => {
     ]);
 
     expect(now.farmsOwnMoney).toBe(report.figures.atEnd.cash.farmsOwnMoney);
+  });
+
+  it("is not read on a Shed Phone, which anybody in the shed may pick up", async () => {
+    const { client: shed } = await as("owner", NOW, true);
+
+    await expect(shed.cash.farmsOwnNow()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
   });
 
   it("is the Owner's alone: a Manager reads their own hand, not the farm's whole", async () => {

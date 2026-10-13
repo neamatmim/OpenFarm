@@ -39,9 +39,9 @@ const FIGURE: Said = { bn: "হিসাব", en: "Figure" };
 /** The heading of a column of money. */
 const MONEY: Said = { bn: "টাকা", en: "Money" };
 /** The heading of the column of money that came in. */
-const MONEY_IN: Said = { bn: "আয়", en: "Money in" };
+const MONEY_IN: Said = { bn: "নগদ এসেছে", en: "Money in" };
 /** The heading of the column of money that went out. */
-const MONEY_OUT: Said = { bn: "ব্যয়", en: "Money out" };
+const MONEY_OUT: Said = { bn: "নগদ গেছে", en: "Money out" };
 
 /** The period's income against its expense, what it left, and the money still waiting for approval said beneath. */
 const totalsPart = ({ summary }: AccountantSummaryFacts): PaperSection => {
@@ -51,14 +51,17 @@ const totalsPart = ({ summary }: AccountantSummaryFacts): PaperSection => {
     heading: { bn: "সারাংশ", en: "Summary" },
     columns: [{ label: FIGURE }, { label: MONEY, figures: true }],
     rows: [
-      [{ bn: "আয়", en: "Income" }, sumSaid(summary.incomeMoney)],
-      [{ bn: "ব্যয়", en: "Expense" }, sumSaid(summary.expenseMoney)],
+      [{ bn: "নগদ এসেছে", en: "Money in" }, sumSaid(summary.incomeMoney)],
+      [{ bn: "নগদ গেছে", en: "Money out" }, sumSaid(summary.expenseMoney)],
     ],
-    foot: [{ bn: "নিট", en: "Net" }, sumSaid(summary.netMoney)],
+    foot: [
+      { bn: "নগদ আসা-যাওয়ার ফারাক", en: "Cash in less out" },
+      sumSaid(summary.netMoney),
+    ],
     note:
       awaiting.count > 0
         ? {
-            bn: `${formatNumber(awaiting.count, "bn")}টি হিসাব এখনো অনুমোদনের অপেক্ষায়: আয় ${sumSaid(awaiting.inMoney).bn}, ব্যয় ${sumSaid(awaiting.outMoney).bn}। এখানকার প্রতিটি অঙ্কে এগুলো ধরা আছে।`,
+            bn: `${formatNumber(awaiting.count, "bn")}টি হিসাব এখনো অনুমোদনের অপেক্ষায়: এসেছে ${sumSaid(awaiting.inMoney).bn}, গেছে ${sumSaid(awaiting.outMoney).bn}। এখানকার প্রতিটি অঙ্কে এগুলো ধরা আছে।`,
             en: `${formatNumber(awaiting.count, "en")} ${awaiting.count === 1 ? "entry is" : "entries are"} still awaiting approval: ${sumSaid(awaiting.inMoney).en} in, ${sumSaid(awaiting.outMoney).en} out. ${awaiting.count === 1 ? "It is" : "They are"} counted in every figure here.`,
           }
         : null,

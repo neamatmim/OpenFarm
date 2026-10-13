@@ -75,6 +75,9 @@ export interface Figure {
   label: string;
   value: ReactNode;
   hint?: ReactNode;
+  /** Keep this figure's line under it on a phone too, where the rest drop theirs: a line the figure cannot be read
+   *  without, such as an account it counts nothing for. */
+  hintOnPhone?: boolean;
   icon?: LucideIcon;
   tone?: Tone;
   /** The figure the page is read by, set larger than the rest — at most one. */
@@ -182,7 +185,7 @@ export const SummaryFigures = ({
           >
             {figure.value}
           </dd>
-          {hintsOnPhone && figure.hint ? (
+          {(hintsOnPhone || figure.hintOnPhone) && figure.hint ? (
             <dd className="text-muted-foreground text-xs">{figure.hint}</dd>
           ) : null}
         </div>

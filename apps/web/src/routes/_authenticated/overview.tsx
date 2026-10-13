@@ -126,22 +126,23 @@ const useFarmFigures = (
       {asMoney(own.data.farmsOwnMoney)}
     </Link>
   ) : undefined;
+  const notRead = own.data?.accountsNotReadNames ?? [];
   const figures: Figure[] = [
     milk,
     {
       label: t("owner.farmsOwnNow"),
       value: ownMoney ?? loading,
-      hint: (
-        <OwnMoneyHint
-          monthNet={money.data ? asMoney(net) : undefined}
-          notRead={own.data?.accountsNotReadNames ?? []}
-        />
-      ),
+      hint:
+        money.data || notRead.length > 0 ? (
+          <OwnMoneyHint
+            monthNet={money.data ? asMoney(net) : undefined}
+            notRead={notRead}
+          />
+        ) : undefined,
+      // An account counting nothing is said on a phone too: without it the figure reads as all the farm has.
+      hintOnPhone: notRead.length > 0,
       icon: Wallet,
-      tone:
-        (own.data?.accountsNotReadNames ?? []).length > 0
-          ? "warning"
-          : "neutral",
+      tone: notRead.length > 0 ? "warning" : "neutral",
     },
     {
       label: t("owner.herd"),

@@ -127,21 +127,23 @@ export const farmAccountsHeldAt = async (
   tx: Pick<Tx, "query">,
   farmId: string,
   at: Date
-): Promise<{ name: string; heldMoney: number | null }[]> => {
+): Promise<{ name: string; retired: boolean; heldMoney: number | null }[]> => {
   const accounts = await tx.query.farmAccount.findMany({
     where: { farmId },
-    columns: { id: true, name: true },
+    columns: { id: true, name: true, retiredAt: true },
     orderBy: { createdAt: "asc", id: "asc" },
   });
   return await Promise.all(
-    accounts.map(async ({ id, name }) => {
+    accounts.map(async ({ id, name, retiredAt }) => {
+      const retired = retiredAt !== null;
       const first = await firstReadingOf(tx, farmId, id);
       const readAt = first ? endOf(first.forMonth) : null;
       if (!(first && readAt && readAt <= at)) {
-        return { name, heldMoney: null };
+        return { name, retired, heldMoney: null };
       }
       return {
         name,
+        retired,
         heldMoney: heldAtEnd(
           first,
           await movedSince(tx, farmId, id, readAt),

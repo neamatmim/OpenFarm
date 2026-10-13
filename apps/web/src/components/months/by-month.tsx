@@ -105,11 +105,6 @@ export const YearFigures = ({ year }: { year: Stretch }) => {
   const perLiter = useMoneyRate();
   const { money, dairy, fattening } = year;
   const after = year.results?.farm.afterOverheadsMoney;
-  const cash = t("months.cardCash", {
-    net: asMoney(money.netMoney),
-    in: asMoney(money.inMoney),
-    out: asMoney(money.outMoney),
-  });
   return (
     <SummaryFigures
       figures={[
@@ -128,7 +123,11 @@ export const YearFigures = ({ year }: { year: Stretch }) => {
           : {
               label: t("months.yearAfterOverheads"),
               value: asMoney(after),
-              hint: cash,
+              hint: t("months.cardCash", {
+                net: asMoney(money.netMoney),
+                in: asMoney(money.inMoney),
+                out: asMoney(money.outMoney),
+              }),
               icon: Scale,
               tone: after < 0 ? "danger" : "neutral",
               lead: true,
@@ -547,11 +546,17 @@ const MonthCard = ({ month }: { month: Month }) => {
         </span>
       </div>
       <p className="text-muted-foreground text-sm">
-        {t("months.cardCash", {
-          net: asMoney(money.netMoney),
-          in: asMoney(money.inMoney),
-          out: asMoney(money.outMoney),
-        })}
+        {/* With the cash already on top, the line beneath says only what it is made of. */}
+        {after === undefined
+          ? t("owner.inAndOut", {
+              in: asMoney(money.inMoney),
+              out: asMoney(money.outMoney),
+            })
+          : t("months.cardCash", {
+              net: asMoney(money.netMoney),
+              in: asMoney(money.inMoney),
+              out: asMoney(money.outMoney),
+            })}
       </p>
       <p className="text-sm">
         {t("months.cardMilk", {

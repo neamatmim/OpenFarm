@@ -314,6 +314,6 @@ describe("the accountant's export", () => {
     expect(text).toContain(`${TRADER} · 30,000 taka`);
     expect(text).toContain(`${SHOP} · 5,250 taka`);
     expect(text).toContain("Total · 35,250 taka");
-    expect(text).toContain("Net · ");
+    expect(text).toContain("Cash in less out · ");
   });
 });

@@ -124,7 +124,9 @@ const MoneyPage = () => {
   const [payingWages, setPayingWages] = useState(false);
   const money = useQuery({
     ...orpc.money.list.queryOptions({ input: { from, to } }),
-    enabled: tab !== "supplierPayments",
+    // Read only under a tab that reads the period. The register's count of money waiting is the period's, so on another
+    // tab it is the last read of it this visit, or none until the register is opened.
+    enabled: readsThePeriod(tab),
   });
   const isOwner = me.data?.roles.includes("owner") ?? false;
   const entersMoney = isOwner || (me.data?.roles.includes("manager") ?? false);
