@@ -487,6 +487,242 @@ describe("the opening register", () => {
     expect(result.failed[1]?.reason).toContain("already");
     expect(result.failed[2]?.reason).toContain("D-91x3");
   });
+
+  it("takes rows pasted straight from a spreadsheet, whose cells come separated by tabs", async () => {
+    const csv = [
+      "tag\tsex\tside\tstate\tpen\tsource",
+      "D-9501\tfemale\tdairy\theifer\tপেন ১\tborn",
+    ].join("\n");
+
+    const result = await pens.owner.client.animals.importRegister({ csv });
+
+    expect(result.failed).toEqual([]);
+    expect(result.imported.map((row) => row.tagNumber)).toEqual(["D-9501"]);
+  });
+
+  it("keeps the number on her ear tag from a file a spreadsheet saved with a byte-order mark", async () => {
+    const csv = [
+      "﻿tag,sex,side,state,pen,source",
+      "D-9511,female,dairy,heifer,পেন ১,born",
+    ].join("\n");
+
+    const result = await pens.owner.client.animals.importRegister({ csv });
+
+    expect(result.imported.map((row) => row.tagNumber)).toEqual(["D-9511"]);
+  });
+
+  it("takes sex, side, state and source in Bangla, and in any case", async () => {
+    const csv = [
+      "tag,sex,side,state,pen,source",
+      "D-9521,স্ত্রী,দুগ্ধ,দোহনে,পেন ১,কেনা",
+      "F-9522,Male,Fattening,Quarantine,পেন ২,BOUGHT",
+      "F-9523,পুরুষ,মোটাতাজাকরণ,Ready for sale,পেন ২,Bought",
+    ].join("\n");
+
+    const result = await pens.owner.client.animals.importRegister({ csv });
+
+    expect(result.failed).toEqual([]);
+    const cow = await pens.owner.client.animals.get({ tagNumber: "D-9521" });
+    expect([cow.sex, cow.side, cow.state, cow.source]).toEqual([
+      "female",
+      "dairy",
+      "milking",
+      "bought",
+    ]);
+    const ready = await pens.owner.client.animals.get({ tagNumber: "F-9523" });
+    expect(ready.state).toBe("ready_for_sale");
+  });
+
+  it("passes over a row beginning #, as the template's example and its lists of pens and breeds are", async () => {
+    const csv = [
+      "tag,sex,side,state,pen,source",
+      "# D-0001,female,dairy,milking,পেন ১,bought",
+      "D-9531,female,dairy,heifer,পেন ১,born",
+    ].join("\n");
+
+    const result = await pens.owner.client.animals.importRegister({ csv });
+
+    expect(result.total).toBe(1);
+    expect(result.imported).toEqual([{ line: 3, tagNumber: "D-9531" }]);
+  });
+
+  it("does not take her twice when the whole register is pasted again: a row with no tag naming an animal already here by her old mark or official tag is refused", async () => {
+    const stamp = Date.now();
+    const csv = [
+      "sex,side,state,pen,source,official_tag,alias",
+      `female,dairy,heifer,পেন ১,born,,"লালি ${stamp};${stamp}"`,
+      `female,dairy,heifer,পেন ১,born,BINLI-${stamp},`,
+    ].join("\n");
+    const first = await pens.owner.client.animals.importRegister({ csv });
+    expect(first.imported).toHaveLength(2);
+
+    const again = await pens.owner.client.animals.importRegister({ csv });
+
+    expect(again.imported).toEqual([]);
+    expect(
+      again.failed.map(({ line, refusal, column, value }) => ({
+        line,
+        refusal,
+        column,
+        value,
+      }))
+    ).toEqual([
+      {
+        line: 2,
+        refusal: "register_already_on_the_farm",
+        column: "alias",
+        value: `লালি ${stamp};${stamp}`,
+      },
+      {
+        line: 3,
+        refusal: "register_already_on_the_farm",
+        column: "official_tag",
+        value: `BINLI-${stamp}`,
+      },
+    ]);
+    // A different cow who happens to share her old mark comes in by the number written on her ear.
+    const twin = await pens.owner.client.animals.importRegister({
+      csv: [
+        "tag,sex,side,state,pen,source,alias",
+        `D-9551,female,dairy,heifer,পেন ১,born,"লালি ${stamp};${stamp}"`,
+      ].join("\n"),
+    });
+    expect(twin.failed).toEqual([]);
+  });
+
+  it("checks a register without taking anybody in, and moves no number", async () => {
+    const before = await pens.owner.client.animals.list({});
+    const csv = [
+      "sex,side,state,pen,source",
+      "female,dairy,heifer,পেন ১,born",
+      "female,dairy,calf,No Such Pen,born",
+    ].join("\n");
+
+    const checked = await pens.owner.client.animals.importRegister({
+      csv,
+      check: true,
+    });
+
+    expect(checked.checked).toBe(true);
+    expect(checked.imported.map((row) => row.line)).toEqual([2]);
+    expect(checked.failed.map((row) => row.refusal)).toEqual([
+      "register_unknown_pen",
+    ]);
+    const after = await pens.owner.client.animals.list({});
+    expect(after.length).toBe(before.length);
+    const imported = await pens.owner.client.animals.importRegister({ csv });
+    expect(imported.imported.map((row) => row.tagNumber)).toEqual(
+      checked.imported.map((row) => row.tagNumber)
+    );
+  });
+
+  it("hands back only the rows it refused, under the header, to be put right and sent again", async () => {
+    const sent = [
+      "tag,sex,side,state,pen,source",
+      "D-9541,female,dairy,heifer,পেন ১,born",
+      'D-9542,female,dairy,heifer,"No Such Pen, east",born',
+      "D-9543,female,dairy,heifer,পেন ১,born",
+    ].join("\n");
+
+    const result = await pens.owner.client.animals.importRegister({
+      csv: sent,
+    });
+
+    expect(result.leftOver).toBe(
+      [
+        "tag,sex,side,state,pen,source",
+        'D-9542,female,dairy,heifer,"No Such Pen, east",born',
+      ].join("\n")
+    );
+  });
+
+  it("hands out a template that, imported as downloaded, takes in nobody and refuses nothing", async () => {
+    const template = await pens.owner.client.animals.registerTemplate();
+    const [header] = readFileSync(
+      new URL(
+        "../../../../docs/runbooks/opening-register-template.csv",
+        import.meta.url
+      ),
+      "utf-8"
+    ).split("\n");
+
+    expect(template.csv.replace("﻿", "").split("\r\n")[0]).toBe(header);
+    expect(template.csv).toContain("পেন ১");
+    const result = await pens.owner.client.animals.importRegister({
+      csv: template.csv,
+    });
+    expect([result.imported, result.failed]).toEqual([[], []]);
+  });
+});
+
+describe("a cow on the opening register who has calved before", () => {
+  it("is in a Lactation of her own when Dry, so her next calving is not read as her first", async () => {
+    const csv = [
+      "tag,sex,side,state,pen,source,expected_calving",
+      "D-9601,female,dairy,dry,পেন ১,bought,",
+    ].join("\n");
+
+    await pens.owner.client.animals.importRegister({ csv });
+
+    const cow = await pens.owner.client.animals.get({ tagNumber: "D-9601" });
+    expect(cow.lactationNumber).toBe(1);
+  });
+
+  it("keeps the Lactation the register says she is in", async () => {
+    const csv = [
+      "tag,sex,side,state,pen,source,calved_at,lactation",
+      "D-9611,female,dairy,milking,পেন ১,bought,2026-01-10,3",
+      "D-9612,female,dairy,dry,পেন ১,bought,,4",
+    ].join("\n");
+
+    const result = await pens.owner.client.animals.importRegister({ csv });
+
+    expect(result.failed).toEqual([]);
+    const milking = await pens.owner.client.animals.get({
+      tagNumber: "D-9611",
+    });
+    const dry = await pens.owner.client.animals.get({ tagNumber: "D-9612" });
+    expect([milking.lactationNumber, dry.lactationNumber]).toEqual([3, 4]);
+  });
+
+  it("refuses a Lactation no cow in that state can be in", async () => {
+    const csv = [
+      "tag,sex,side,state,pen,source,lactation",
+      "D-9621,female,dairy,milking,পেন ১,bought,0",
+      "D-9622,female,dairy,heifer,পেন ১,born,2",
+      "D-9623,female,dairy,dry,পেন ১,bought,1.5",
+    ].join("\n");
+
+    const result = await pens.owner.client.animals.importRegister({ csv });
+
+    expect(
+      result.failed.map(({ line, refusal, column, value }) => ({
+        line,
+        refusal,
+        column,
+        value,
+      }))
+    ).toEqual([
+      {
+        line: 2,
+        refusal: "register_lactation_not_of_state",
+        column: "lactation",
+        value: "0",
+      },
+      {
+        line: 3,
+        refusal: "register_lactation_not_of_state",
+        column: "lactation",
+        value: "2",
+      },
+      {
+        line: 4,
+        refusal: "register_value_unread",
+        column: "lactation",
+        value: "1.5",
+      },
+    ]);
+  });
 });
 
 describe("what the opening register says of a row", () => {

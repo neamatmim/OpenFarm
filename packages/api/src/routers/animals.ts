@@ -25,11 +25,14 @@ import {
   lactationView,
   sideOfState,
 } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
+import { LANGUAGES, translate } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { clearNoticesAbout } from "../alerts-store";
 import { herRecord } from "../animal-record";
+import { asACheck } from "../as-a-check";
 import type { Trail, Tx } from "../audit";
 import { audited } from "../audit";
 import { breedNamed } from "../breed-store";
@@ -61,7 +64,7 @@ import {
   weighInByHandCorrection,
   weighInByHandCorrectionInput,
 } from "../corrections/weigh-in-by-hand";
-import { parseCsvRecords } from "../csv";
+import { csvLineAsWritten, parseCsvTable, toCsv } from "../csv";
 import { tellOfTheDeath } from "../death-notice";
 import { adultDeathsOf, herdHealthOf } from "../deaths-store";
 import { assertWeighableAt, weighHerByHand } from "../effects/weigh-in";
@@ -113,6 +116,7 @@ import {
 import type { Raised } from "../notice";
 import { pushRaised } from "../push-send";
 import { arrivalDosesOwed } from "../put-off-store";
+import { languageOf } from "../reader-language";
 import { owingOnHerSale } from "../receivable-store";
 import { forbidden, requirePersonalSession, requireRole } from "../roles";
 import {
@@ -164,6 +168,8 @@ const importRowInput = z.object({
   state: z.enum(LIVE_STATES),
   /** The number already on her Ear Tag. Blank, she is given the next one. */
   tagNumber: tagInput.optional(),
+  /** The Lactation a cow in milk or Dry is in, where somebody knows it. Blank, she is in her first recorded one. */
+  lactationNumber: z.coerce.number().int().min(0).optional(),
 });
 type NewAnimal = z.infer<typeof importRowInput>;
 
@@ -417,15 +423,28 @@ const assertCalvedInThePast = (calvedAt: Date | undefined, now: Date) => {
   }
 };
 
+/** The States of a cow who has calved: in milk, or Dry between two Lactations. */
+const CALVED_STATES = new Set<AnimalState>(["milking", "dry"]);
+
 /** The Lactation a newly recorded Animal is already in. An Animal registered straight into
- *  Milking — the opening register's dairy cows — is in her first recorded Lactation; nobody
- *  types the number. Without a seeded calving date the start stays unknown: registering her
- *  is not a calving, and dating it today would say she is on day 0 of a Lactation she may be
- *  two hundred days into. */
-const openingLactation = (state: AnimalState, calvedAt: Date | undefined) =>
-  state === "milking"
-    ? { lactationNumber: 1, lactationStartedAt: calvedAt ?? null }
-    : { lactationNumber: 0, lactationStartedAt: null };
+ *  Milking or Dry — the opening register's dairy cows — has calved, so she is in her first
+ *  recorded Lactation unless the register says which; nobody has to type the number, and her
+ *  next calving is not read as her first. Without a seeded calving date the start stays unknown:
+ *  registering her is not a calving, and dating it today would say she is on day 0 of a Lactation
+ *  she may be two hundred days into. A Dry cow's last Lactation has ended, so it has no start. */
+const openingLactation = (
+  state: AnimalState,
+  calvedAt: Date | undefined,
+  given: number | undefined
+) => {
+  if (!CALVED_STATES.has(state)) {
+    return { lactationNumber: 0, lactationStartedAt: null };
+  }
+  return {
+    lactationNumber: given ?? 1,
+    lactationStartedAt: state === "milking" ? (calvedAt ?? null) : null,
+  };
+};
 
 /** The States a cow can be carrying in. */
 const CARRYING_STATES = new Set<AnimalState>([
@@ -560,7 +579,11 @@ const createAnimal = async (
         now,
         reason,
         extra: {
-          ...openingLactation(input.state, input.calvedAt),
+          ...openingLactation(
+            input.state,
+            input.calvedAt,
+            input.lactationNumber
+          ),
           ...calving,
         },
       });
@@ -584,10 +607,69 @@ const COLUMN_OF: Record<string, string> = {
   officialTag: "official_tag",
   tagNumber: "tag",
   aliases: "alias",
+  lactationNumber: "lactation",
 };
 
 /** The template's columns that hold a day. */
 const DATE_COLUMNS = new Set(["birth_date", "calved_at", "expected_calving"]);
+
+/** The register's columns, in the template's order: what the runbook's template and the one the screen hands out
+ *  head their columns with. */
+export const REGISTER_COLUMNS = [
+  "tag",
+  "sex",
+  "side",
+  "state",
+  "pen",
+  "source",
+  "breed",
+  "birth_date",
+  "calved_at",
+  "expected_calving",
+  "official_tag",
+  "alias",
+  "lactation",
+] as const;
+
+/** A word as a register may write it, in any case and with spaces or underscores alike. */
+const asWritten = (word: string) =>
+  word
+    .trim()
+    .toLowerCase()
+    .replaceAll(/[\s_]+/gu, "_");
+
+/** Each coded column's values by every way a register may write one: the code itself, and the words the screens show
+ *  for it in English and in Bangla — a register written from the screens, or on paper in Bangla, reads as written. */
+const codedWords = (
+  values: readonly string[],
+  keyOf: (value: string) => MessageKey
+): ReadonlyMap<string, string> =>
+  new Map(
+    values.flatMap((value) => [
+      [asWritten(value), value],
+      ...LANGUAGES.map(
+        (language) =>
+          [asWritten(translate(language, keyOf(value))), value] as const
+      ),
+    ])
+  );
+
+const CODED_COLUMNS: Record<string, ReadonlyMap<string, string>> = {
+  sex: codedWords(SEXES, (value) => `animals.sex.${value}` as MessageKey),
+  side: codedWords(SIDES, (value) => `animals.side.${value}` as MessageKey),
+  state: codedWords(LIVE_STATES, (value) => `state.${value}` as MessageKey),
+  source: codedWords(
+    ANIMAL_SOURCES,
+    (value) => `animals.source.${value}` as MessageKey
+  ),
+};
+
+/** A coded column's value as its code, however the register wrote it; one it does not know is left as written, for the
+ *  row to be refused naming it. */
+const codeOf = (column: string, written: string | undefined) =>
+  written === undefined
+    ? undefined
+    : (CODED_COLUMNS[column]?.get(asWritten(written)) ?? written);
 
 /** A register row refused: the server's English, and the refusal, column and what was written there, for the screen to
  *  say in the Manager's own language. */
@@ -679,6 +761,92 @@ const refusedOnTheFarm = (
       value: values.state ?? "",
     };
   }
+  if (
+    data.lactationNumber !== undefined &&
+    (CALVED_STATES.has(data.state)
+      ? data.lactationNumber < 1
+      : data.lactationNumber !== 0)
+  ) {
+    return {
+      reason: `no animal in state ${data.state} is in Lactation ${data.lactationNumber}`,
+      refusal: "register_lactation_not_of_state",
+      column: "lactation",
+      value: values.lactation ?? "",
+    };
+  }
+  return null;
+};
+
+/** Her old marks as one comparable set: the same marks in any order or case are the same animal's. */
+const marksKey = (aliases: readonly string[]) =>
+  aliases
+    .map((alias) => alias.toLowerCase())
+    .toSorted()
+    .join("\u0000");
+
+/** The animals already on the farm by what a row with no tag can be known by: her official tag, and her old marks with
+ *  her sex and Side. */
+interface AlreadyHere {
+  officialTags: ReadonlySet<string>;
+  marks: ReadonlySet<string>;
+}
+
+const marksOf = (one: { sex: string; side: string; aliases: string[] }) =>
+  `${one.sex}:${one.side}:${marksKey(one.aliases)}`;
+
+/** What the farm's live animals can be known by, read before the register's first row. */
+const alreadyHere = async (
+  db: Database,
+  farmId: string
+): Promise<AlreadyHere> => {
+  const herd = await db.query.animal.findMany({
+    where: { farmId, state: { in: [...LIVE_STATES] } },
+    columns: { officialTag: true, aliases: true, sex: true, side: true },
+  });
+  return {
+    officialTags: new Set(
+      herd.flatMap((one) =>
+        one.officialTag ? [one.officialTag.toLowerCase()] : []
+      )
+    ),
+    marks: new Set(
+      herd.filter((one) => one.aliases.length > 0).map((one) => marksOf(one))
+    ),
+  };
+};
+
+/**
+ * A row with no tag describing an animal the farm already has: her official tag, or her very marks with her sex and
+ * Side. Pasting the whole register again after putting a few rows right would otherwise give every such animal a second
+ * number. A different cow who shares an old mark comes in by the number written on her ear.
+ */
+const refusedAsAlreadyHere = (
+  data: NewAnimal,
+  values: Record<string, string>,
+  here: AlreadyHere
+): RowRefused | null => {
+  if (data.tagNumber !== undefined) {
+    return null;
+  }
+  if (
+    data.officialTag &&
+    here.officialTags.has(data.officialTag.toLowerCase())
+  ) {
+    return {
+      reason: `an animal with the official tag ${data.officialTag} is already on the farm`,
+      refusal: "register_already_on_the_farm",
+      column: "official_tag",
+      value: values.official_tag ?? "",
+    };
+  }
+  if (data.aliases.length > 0 && here.marks.has(marksOf(data))) {
+    return {
+      reason: `an animal marked ${data.aliases.join(";")} is already on the farm`,
+      refusal: "register_already_on_the_farm",
+      column: "alias",
+      value: values.alias ?? values.old_mark ?? "",
+    };
+  }
   return null;
 };
 
@@ -709,12 +877,13 @@ const pensByName = (
 
 /**
  * One row of the opening register as the Animal it describes, or why it cannot be one: a value the row cannot hold, a
- * Pen or a breed the farm does not have, or a State on the other Side's.
+ * Pen or a breed the farm does not have, a State on the other Side's, or an animal the farm already has.
  */
 const readRegisterRow = (
   values: Record<string, string>,
   penByName: ReadonlyMap<string, string>,
-  breeds: Parameters<typeof breedNamed>[0]
+  breeds: Parameters<typeof breedNamed>[0],
+  here: AlreadyHere
 ): { data: NewAnimal } | RowRefused => {
   const penNamed = (values.pen ?? "").toLowerCase();
   if (penByName.get(penNamed) === PEN_IN_TWO_SHEDS) {
@@ -726,11 +895,12 @@ const readRegisterRow = (
     };
   }
   const parsed = importRowInput.safeParse({
-    sex: values.sex,
-    side: values.side,
-    state: values.state,
+    sex: codeOf("sex", values.sex),
+    side: codeOf("side", values.side),
+    state: codeOf("state", values.state),
     penId: penByName.get(penNamed) ?? "",
-    source: values.source,
+    source: codeOf("source", values.source),
+    lactationNumber: values.lactation || undefined,
     breedId: values.breed
       ? (breedNamed(breeds, values.breed) ?? "")
       : undefined,
@@ -747,7 +917,101 @@ const readRegisterRow = (
   if (!parsed.success) {
     return unreadIn(parsed.error.issues, values);
   }
-  return refusedOnTheFarm(parsed.data, values) ?? { data: parsed.data };
+  return (
+    refusedOnTheFarm(parsed.data, values) ??
+    refusedAsAlreadyHere(parsed.data, values, here) ?? { data: parsed.data }
+  );
+};
+
+/** What one go at the opening register came to: who went in under which number, who went in short of something the
+ *  farm needs, every row refused with its line — and those rows again under the header, to be put right and sent. */
+interface RegisterTaken {
+  imported: { line: number; tagNumber: string }[];
+  failed: ({ line: number } & RowRefused)[];
+  /** Taken, but missing what the farm cannot do without. */
+  warned: { line: number; tagNumber: string; warning: string }[];
+  total: number;
+  /** The refused rows as they were written, under the header; nothing when every row went in. */
+  leftOver: string;
+}
+
+/** Takes the opening register's rows, each its own audited write, in the file's order. */
+const takeRegister = async (
+  context: FarmContext,
+  csv: string
+): Promise<RegisterTaken> => {
+  const { header, records } = parseCsvTable(csv, { comments: true });
+  if (records.length > IMPORT_MAX_ROWS) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `At most ${IMPORT_MAX_ROWS} rows at a time`,
+      data: { refusal: "too_many_rows" },
+    });
+  }
+  const pens = await context.db.query.pen.findMany({
+    // A register row names a Pen standing in use, not one retired.
+    where: { farmId: context.farm.id, retiredAt: { isNull: true } },
+    columns: { id: true, name: true },
+    with: { shed: { columns: { name: true } } },
+  });
+  // A breed is named as the list names it, in either language; the standard ones are on the list before the
+  // first row is read, so a register written on paper from the standard names needs nothing added first.
+  await giveStandardBreeds(context);
+  const breeds = await context.db.query.breed.findMany({
+    where: { farmId: context.farm.id },
+    columns: { id: true, nameBn: true, nameEn: true, retiredAt: true },
+  });
+  const penByName = pensByName(pens);
+  // The herd as it stood before this register: rows of the same file do not refuse each other.
+  const here = await alreadyHere(context.db, context.farm.id);
+
+  const taken: RegisterTaken = {
+    imported: [],
+    failed: [],
+    warned: [],
+    total: records.length,
+    leftOver: "",
+  };
+  const refusedRows: string[] = [];
+  const now = context.clock.now();
+
+  for (const record of records) {
+    const { line, values } = record;
+    const row = readRegisterRow(values, penByName, breeds, here);
+    if ("reason" in row) {
+      taken.failed.push({ line, ...row });
+      refusedRows.push(csvLineAsWritten(record.cells));
+      continue;
+    }
+    try {
+      // Deliberately sequential: each row is its own audited transaction (one bad row
+      // cannot undo the good ones) and tag numbers must be taken in file order.
+      // oxlint-disable-next-line no-await-in-loop
+      const created = await createAnimal(
+        context,
+        row.data,
+        now,
+        "opening register"
+      );
+      taken.imported.push({ line, tagNumber: created.tagNumber });
+      // A cow in milk with no calving day: nobody can say how long she has been in milk.
+      if (row.data.state === "milking" && !row.data.calvedAt) {
+        taken.warned.push({
+          line,
+          tagNumber: created.tagNumber,
+          warning: "register_no_calving_date",
+        });
+      }
+    } catch (error) {
+      // The farm's own refusal says why in its words; anything else — the database, the network — is not for the
+      // screen, which says only that the row could not be taken.
+      taken.failed.push({ line, ...refusedByTheFarm(error, values) });
+      refusedRows.push(csvLineAsWritten(record.cells));
+    }
+  }
+  if (refusedRows.length > 0) {
+    taken.leftOver = [csvLineAsWritten(header), ...refusedRows].join("\n");
+  }
+  return taken;
 };
 
 /** The Missing not yet found, as her page says it: where the round looked, and since when — and, once the Owner has
@@ -2115,71 +2379,73 @@ export const animalsRouter = {
 
   /** The opening register: one row per Animal, each keeping the number on her Ear Tag if it has one, old marks kept
    *  as aliases. Rows that cannot be imported are reported with their source line and reason; the rest are still
-   *  created. */
+   *  created. Asked only to check, every row is taken exactly as it would be and then nothing is kept: what would go in,
+   *  under which number, and what would be refused, with nothing written and no number moved. */
   importRegister: protectedProcedure
     .use(requireRole("owner", "manager"))
-    .input(z.object({ csv: z.string().min(1) }))
+    .input(
+      z.object({ csv: z.string().min(1), check: z.boolean().default(false) })
+    )
     .handler(async ({ context, input }) => {
-      const records = parseCsvRecords(input.csv);
-      if (records.length > IMPORT_MAX_ROWS) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: `At most ${IMPORT_MAX_ROWS} rows at a time`,
-          data: { refusal: "too_many_rows" },
-        });
+      if (!input.check) {
+        return { ...(await takeRegister(context, input.csv)), checked: false };
       }
+      const checked = await asACheck(context, (checking) =>
+        takeRegister(checking, input.csv)
+      );
+      return { ...checked, checked: true };
+    }),
+
+  /** A blank opening register to fill in: the template's columns, and under them an example row and the farm's own Pens
+   *  and breeds, each a row beginning `#` that the register passes over — imported as it comes, it takes in nobody. */
+  registerTemplate: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(async ({ context }) => {
+      const language = await languageOf(context.db, context.actor.id);
       const pens = await context.db.query.pen.findMany({
-        // A register row names a Pen standing in use, not one retired.
         where: { farmId: context.farm.id, retiredAt: { isNull: true } },
-        columns: { id: true, name: true },
+        columns: { name: true },
         with: { shed: { columns: { name: true } } },
+        orderBy: { name: "asc", id: "asc" },
       });
-      // A breed is named as the list names it, in either language; the standard ones are on the list before the
-      // first row is read, so a register written on paper from the standard names needs nothing added first.
       await giveStandardBreeds(context);
       const breeds = await context.db.query.breed.findMany({
-        where: { farmId: context.farm.id },
-        columns: { id: true, nameBn: true, nameEn: true, retiredAt: true },
+        where: { farmId: context.farm.id, retiredAt: { isNull: true } },
+        columns: { nameBn: true, nameEn: true },
+        orderBy: { nameEn: "asc", id: "asc" },
       });
-      const penByName = pensByName(pens);
-
-      const imported: { line: number; tagNumber: string }[] = [];
-      const failed: ({ line: number } & RowRefused)[] = [];
-      /** Taken, but missing what the farm cannot do without. */
-      const warned: { line: number; tagNumber: string; warning: string }[] = [];
-      const now = context.clock.now();
-
-      for (const record of records) {
-        const { line, values } = record;
-        const row = readRegisterRow(values, penByName, breeds);
-        if ("reason" in row) {
-          failed.push({ line, ...row });
-          continue;
-        }
-        try {
-          // Deliberately sequential: each row is its own audited transaction (one bad row
-          // cannot undo the good ones) and tag numbers must be taken in file order.
-          // oxlint-disable-next-line no-await-in-loop
-          const created = await createAnimal(
-            context,
-            row.data,
-            now,
-            "opening register"
-          );
-          imported.push({ line, tagNumber: created.tagNumber });
-          // A cow in milk with no calving day: nobody can say how long she has been in milk.
-          if (row.data.state === "milking" && !row.data.calvedAt) {
-            warned.push({
-              line,
-              tagNumber: created.tagNumber,
-              warning: "register_no_calving_date",
-            });
-          }
-        } catch (error) {
-          // The farm's own refusal says why in its words; anything else — the database, the network — is not for the
-          // screen, which says only that the row could not be taken.
-          failed.push({ line, ...refusedByTheFarm(error, values) });
-        }
-      }
-      return { imported, failed, warned, total: records.length };
+      const penNames = pens.map((one) => `${one.shed.name}/${one.name}`);
+      const breedNames = breeds.map((one) =>
+        language === "bn" ? one.nameBn : one.nameEn
+      );
+      const word = (key: MessageKey) => translate(language, key);
+      const example = [
+        "# D-0001",
+        word("animals.sex.female"),
+        word("animals.side.dairy"),
+        word("state.milking"),
+        penNames[0] ?? "",
+        word("animals.source.bought"),
+        breedNames[0] ?? "",
+        "2021-03-01",
+        "2026-06-10",
+        "",
+        "",
+        word("herd.template.exampleMark"),
+        "2",
+      ];
+      return {
+        fileName: "opening-register.csv",
+        csv: toCsv(REGISTER_COLUMNS, [
+          example,
+          [`# ${word("herd.template.howTo")}`],
+          [
+            `# ${translate(language, "herd.template.pens", { pens: penNames.join("; ") })}`,
+          ],
+          [
+            `# ${translate(language, "herd.template.breeds", { breeds: breedNames.join("; ") })}`,
+          ],
+        ]),
+      };
     }),
 };

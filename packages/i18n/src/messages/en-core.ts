@@ -1620,8 +1620,19 @@ export const enCore = {
     "After this move {head} will stand in {pen}, which is built for {capacity}.",
   "herd.import": "Opening register",
   "herd.importHelp":
-    "Paste the CSV, with the template's columns: tag, sex, side, state, pen, source, breed, birth_date, calved_at, expected_calving, official_tag, alias. Dates are written year-month-day, like 2025-03-15. tag is the number on her ear tag, like D-0001; left blank, she is given the next number",
+    "Paste the CSV, or cells copied from a spreadsheet, with the template's columns: tag, sex, side, state, pen, source, breed, birth_date, calved_at, expected_calving, official_tag, alias, lactation. sex, side, state and source may be written in Bangla or English, as the screens say them. Dates are written year-month-day, like 2025-03-15. tag is the number on her ear tag, like D-0001; left blank, she is given the next number. lactation is the one a cow in milk or dry is in; left blank, her first. A row beginning # is passed over",
   "herd.importRun": "Import",
+  "herd.importCheck": "Check without importing",
+  "herd.templateDownload": "Download the template",
+  "herd.checked":
+    "{count, plural, one {# row} other {# rows}} would go in — nothing has been imported yet",
+  "herd.leftOverHint":
+    "The rows that went in are gone from the box; only the ones refused are left, under the header, to put right and import again.",
+  "herd.template.howTo":
+    "Write one row for each animal under the header. A row beginning # is passed over: delete the # from the example to use it, or write your own rows below.",
+  "herd.template.pens": "Pens: {pens}",
+  "herd.template.breeds": "Breeds: {breeds}",
+  "herd.template.exampleMark": "Lali",
   "herd.imported": "{count} imported",
   "herd.failedRows":
     "{count, plural, one {# row} other {# rows}} could not be imported",
@@ -1645,6 +1656,10 @@ export const enCore = {
   "herd.row.registerNotTaken": "the farm could not take this row",
   "herd.row.penInTwoSheds":
     "two sheds have a pen by this name: write it as shed/pen",
+  "herd.row.registerAlreadyOnTheFarm":
+    "an animal with “{value}” in {column} is already on the farm — this row looks imported already; to bring in a different animal with the same mark, write the number on her ear tag",
+  "herd.row.registerLactationNotOfState":
+    "lactation “{value}” does not fit this row's state — a cow in milk or dry is in lactation 1 or more, any other animal 0",
   "herd.warnedRows":
     "{count, plural, one {# animal added without} other {# animals added without}} something the farm needs",
   "herd.row.registerNoCalvingDate":

@@ -6,7 +6,7 @@ export interface CsvRow {
   values: string[];
 }
 
-export const parseCsv = (text: string): CsvRow[] => {
+export const parseCsv = (text: string, separator = ","): CsvRow[] => {
   const rows: CsvRow[] = [];
   let values: string[] = [];
   let field = "";
@@ -52,7 +52,7 @@ export const parseCsv = (text: string): CsvRow[] => {
       quoted = true;
       content = true;
       field = "";
-    } else if (char === ",") {
+    } else if (char === separator) {
       endField();
     } else if (char === "\n") {
       endRow();
@@ -71,24 +71,59 @@ export const parseCsv = (text: string): CsvRow[] => {
 export interface CsvRecord {
   line: number;
   values: Record<string, string>;
+  /** The row's cells as written, in the header's order: what writes it back out again. */
+  cells: string[];
 }
 
-/** Rows keyed by their header, lower-cased and underscored, each with its source line. */
-export const parseCsvRecords = (text: string): CsvRecord[] => {
-  const [header, ...rest] = parseCsv(text);
+/** Cells copied out of a spreadsheet and pasted come separated by tabs: a header with tabs and no commas is read so. */
+const separatorOf = (text: string): string => {
+  const [header = ""] = text.split("\n", 1);
+  return header.includes("\t") && !header.includes(",") ? "\t" : ",";
+};
+
+/**
+ * A CSV as its header and its rows keyed by it, lower-cased and underscored, each with its source line. Asked to, a row
+ * whose first cell begins `#` is passed over — a template's example and its notes — and every other row keeps its line.
+ */
+export const parseCsvTable = (
+  text: string,
+  { comments = false }: { comments?: boolean } = {}
+): { header: string[]; records: CsvRecord[] } => {
+  // A byte-order mark before the first column's name, as a spreadsheet saving "CSV UTF-8" writes it, goes with the
+  // trimming of every field.
+  const [header, ...rest] = parseCsv(text, separatorOf(text));
   if (!header) {
-    return [];
+    return { header: [], records: [] };
   }
   const keys = header.values.map((key) =>
     key.toLowerCase().replaceAll(" ", "_")
   );
-  return rest.map((row) => ({
-    line: row.line,
-    values: Object.fromEntries(
-      keys.map((key, index) => [key, row.values[index] ?? ""])
-    ),
-  }));
+  const records = rest
+    .filter((row) => !(comments && row.values[0]?.startsWith("#")))
+    .map((row) => ({
+      line: row.line,
+      values: Object.fromEntries(
+        keys.map((key, index) => [key, row.values[index] ?? ""])
+      ),
+      cells: row.values,
+    }));
+  return { header: header.values, records };
 };
+
+/** Rows keyed by their header, lower-cased and underscored, each with its source line. */
+export const parseCsvRecords = (
+  text: string,
+  options: { comments?: boolean } = {}
+): CsvRecord[] => parseCsvTable(text, options).records;
+
+/** One row written back as it was read: a cell quoted only where it holds a comma, a quote or a line break, and nothing
+ *  else touched — what a person typed and is to put right, not a paper for a spreadsheet. */
+export const csvLineAsWritten = (cells: readonly string[]): string =>
+  cells
+    .map((cell) =>
+      /[",\r\n]/u.test(cell) ? `"${cell.replaceAll('"', '""')}"` : cell
+    )
+    .join(",");
 
 /** A field a spreadsheet would read as a formula: a buyer named "=HYPERLINK(...)" is a buyer name
  *  somebody should not be able to run on the accountant's computer. */

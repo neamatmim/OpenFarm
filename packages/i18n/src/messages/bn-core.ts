@@ -1483,8 +1483,18 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "{pen}-এ {capacity}টি ধরে; এই স্থানান্তরের পরে সেখানে থাকবে {head}টি।",
   "herd.import": "প্রারম্ভিক তালিকা",
   "herd.importHelp":
-    "নমুনার কলামগুলোসহ CSV পেস্ট করুন: tag, sex, side, state, pen, source, breed, birth_date, calved_at, expected_calving, official_tag, alias। তারিখ লিখুন বছর-মাস-দিন, যেমন 2025-03-15। tag হলো কানের ট্যাগে লেখা নম্বর, যেমন D-0001; খালি রাখলে পরের নম্বরটি দেওয়া হবে",
+    "নমুনার কলামগুলোসহ CSV পেস্ট করুন, বা স্প্রেডশিট থেকে কপি করা ঘর: tag, sex, side, state, pen, source, breed, birth_date, calved_at, expected_calving, official_tag, alias, lactation। sex, side, state ও source বাংলায় বা ইংরেজিতে লেখা যায়, পর্দায় যেভাবে লেখা থাকে। তারিখ লিখুন বছর-মাস-দিন, যেমন 2025-03-15। tag হলো কানের ট্যাগে লেখা নম্বর, যেমন D-0001; খালি রাখলে পরের নম্বরটি দেওয়া হবে। lactation হলো দোহনে বা শুকনো গাভী কোন দুগ্ধকালে আছে; খালি রাখলে প্রথমটি। # দিয়ে শুরু হওয়া সারি বাদ পড়ে",
   "herd.importRun": "আমদানি",
+  "herd.importCheck": "আমদানি না করে যাচাই করুন",
+  "herd.templateDownload": "নমুনা ফাইল নামান",
+  "herd.checked": "{count}টি সারি যোগ হবে — এখনো কিছুই আমদানি হয়নি",
+  "herd.leftOverHint":
+    "যে সারিগুলো যোগ হয়েছে সেগুলো বাক্স থেকে সরে গেছে; শুধু ফেরত আসা সারিগুলো শিরোনামের নিচে আছে, ঠিক করে আবার আমদানি করুন।",
+  "herd.template.howTo":
+    "শিরোনামের নিচে প্রতিটি পশুর জন্য একটি সারি লিখুন। # দিয়ে শুরু হওয়া সারি বাদ পড়ে: নমুনাটি কাজে লাগাতে তার # মুছুন, নয়তো নিচে নিজের সারি লিখুন।",
+  "herd.template.pens": "পেন: {pens}",
+  "herd.template.breeds": "জাত: {breeds}",
+  "herd.template.exampleMark": "লালি",
   "herd.imported": "{count}টি যোগ হয়েছে",
   "herd.failedRows": "{count}টি সারি আমদানি করা যায়নি",
   "herd.row.registerDateUnread":
@@ -1503,6 +1513,10 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "herd.row.notATagNumber": "«{value}» ট্যাগ নম্বর নয় — D-0001 এর মতো লিখুন",
   "herd.row.registerNotTaken": "খামার এই সারিটি নিতে পারেনি",
   "herd.row.penInTwoSheds": "দুটি শেডে এই নামে পেন আছে: শেড/পেন লিখুন",
+  "herd.row.registerAlreadyOnTheFarm":
+    "{column} কলামে «{value}» লেখা একটি পশু খামারে আগে থেকেই আছে — সারিটি মনে হয় আগেই আমদানি হয়েছে; একই চিহ্নের অন্য পশু আনতে তার কানের ট্যাগের নম্বর লিখুন",
+  "herd.row.registerLactationNotOfState":
+    "lactation «{value}» এই সারির অবস্থার সাথে মেলে না — দোহনে বা শুকনো গাভী প্রথম বা তার পরের কোনো দুগ্ধকালে থাকে, অন্য যেকোনো পশু শূন্যতে",
   "herd.warnedRows": "{count}টি পশু যোগ হয়েছে, কিন্তু খামারের দরকারি কিছু নেই",
   "herd.row.registerNoCalvingDate":
     "{tag} যোগ হয়েছে, কিন্তু calved_at নেই — কত দিন দুধ দিচ্ছে বলা যাবে না",
