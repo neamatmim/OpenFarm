@@ -3,7 +3,7 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 
 import LanguageToggle from "@/components/language-toggle";
 import { PAGE_LINE } from "@/components/page";
-import { GoToAnimal } from "@/components/shell/go-to-animal";
+import { GoTo } from "@/components/shell/go-to";
 import { NoticeBell } from "@/components/shell/notice-bell";
 import { SyncBanner } from "@/components/sync-banner";
 import { ThemeMenu } from "@/components/theme-menu";
@@ -32,7 +32,7 @@ export const TopBar = () => {
           <SyncBanner />
         </div>
         <div className={cn("flex shrink-0 items-center gap-1", BAR_END)}>
-          <GoToAnimal />
+          <GoTo />
           <NoticeBell />
           {/* On a phone the bar is the sync status's, and a language one tap away on a shared Shed Phone was pressed by
             mistake: both are in the account menu there. */}

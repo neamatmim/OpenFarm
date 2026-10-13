@@ -1696,7 +1696,8 @@ export const enCore = {
   "goTo.hint":
     "Type an animal's tag number or a page's name, as the menu says it; Enter opens it.",
   "goTo.matches": "Pages and animals by what was typed",
-  "goTo.placeholder": "D-0001, or monthly report",
+  "goTo.placeholder": "D-0001, or {page}",
+  "goTo.placeholderTag": "D-0001",
   "goTo.none": "No page by that name, and no animal by that number.",
   "animals.milkHeld": "Milk held",
   "animals.meatHeld": "Meat held",
@@ -4636,6 +4637,7 @@ export const enCore = {
   "sale.receipt": "Receipt",
   "sale.transportCard": "Transport card",
   "sale.noneToday": "Nothing sold today",
+  "sale.noneOnDay": "Nothing sold on {day}",
   "sale.missing.animal": "Choose the animal.",
   "sale.missing.buyer": "Write the buyer's name.",
   "sale.missing.price": "Write what she sold for.",
@@ -4676,6 +4678,8 @@ export const enCore = {
   "sale.groupTransport": "The lorry",
   "sale.todayHint":
     "Print a receipt once the buyer has finished — it covers everything he took today.",
+  "sale.dayHint":
+    "A receipt covers everything the buyer took that day; ask for it again here.",
   "sale.done": "{tag} is sold",
   "sale.again": "Use the last buyer and lorry again",
   "sale.noneReady": "Nothing is ready for sale",

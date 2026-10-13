@@ -14,11 +14,18 @@ export const codeAsTyped = (typed: string): string =>
 export const shedPhoneLink = (origin: string, code: string): string =>
   `${origin}/shed-phone${CODE_MARK}${encodeURIComponent(code)}`;
 
-/** The code a set-up link carried, from the page's own `location.hash`; nothing for a page opened any other way. */
+/** The code a set-up link carried, from the page's own `location.hash`; nothing for a page opened any other way, or
+ *  by a link cut short or garbled on its way — the code is then typed, as it always could be. */
 export const codeInTheLink = (hash: string): string | null => {
   if (!hash.startsWith(CODE_MARK)) {
     return null;
   }
-  const code = codeAsTyped(decodeURIComponent(hash.slice(CODE_MARK.length)));
+  let carried: string;
+  try {
+    carried = decodeURIComponent(hash.slice(CODE_MARK.length));
+  } catch {
+    return null;
+  }
+  const code = codeAsTyped(carried);
   return code === "" ? null : code;
 };

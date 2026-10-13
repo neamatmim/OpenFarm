@@ -1,3 +1,5 @@
+import { farmDayOf, isAFarmDay } from "@OpenFarm/domain";
+
 /** The Sales page's own tabs: the Selling Trips are on the Trips page alone. */
 export type SaleTab = "ready" | "sold";
 
@@ -9,24 +11,18 @@ export interface SaleSearch {
   day?: string;
 }
 
-/** Whether a "YYYY-MM-DD" is a day the calendar has. */
-const aDay = (day: string): boolean => {
-  if (!/^\d{4}-\d{2}-\d{2}$/u.test(day)) {
-    return false;
-  }
-  const date = new Date(`${day}T00:00:00Z`);
-  return (
-    Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === day
-  );
-};
-
-/** What the Sales page's address keeps: which tab, which animal to sell, and which day's sales are listed. */
-export const saleSearchOf = (search: Record<string, unknown>): SaleSearch => ({
+/** What the Sales page's address keeps: which tab, which animal to sell, and which day's sales are listed — a day the
+ *  calendar has and that has come, so one typed for tomorrow reads as today. */
+export const saleSearchOf = (
+  search: Record<string, unknown>,
+  today: string = farmDayOf(new Date())
+): SaleSearch => ({
   ...(search.tab === "sold" ? { tab: "sold" as const } : {}),
   ...(typeof search.sell === "string" && search.sell !== ""
     ? { sell: search.sell }
     : {}),
-  ...(typeof search.day === "string" && aDay(search.day)
+  ...(typeof search.day === "string" &&
+  isAFarmDay(search.day, { notAfter: today })
     ? { day: search.day }
     : {}),
 });

@@ -20,8 +20,8 @@ import type { Sellable } from "@/components/sale/ready-to-go";
 import { ReadyToGo } from "@/components/sale/ready-to-go";
 import type { SaleAnswers } from "@/components/sale/sale-sheet";
 import { NOTHING_TYPED, SaleSheet } from "@/components/sale/sale-sheet";
-import type { Sold } from "@/components/sale/todays-sales";
-import { TodaysSales } from "@/components/sale/todays-sales";
+import type { Sold } from "@/components/sale/sales-of-the-day";
+import { SalesOfTheDay } from "@/components/sale/sales-of-the-day";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useMoney } from "@/lib/money";
@@ -116,7 +116,13 @@ const SalePage = () => {
   const navigate = useNavigate({ from: Route.fullPath });
   const { tab = "ready", sell, day } = Route.useSearch();
   const today = farmDayOf(new Date());
-  const shownDay = day ?? today;
+  // An earlier day, if one was chosen: an address naming today is today, and asks the farm nothing twice.
+  const earlier = day !== undefined && day !== today ? day : null;
+  const shownDay = earlier ?? today;
+  const earlierSaid =
+    earlier === null
+      ? null
+      : formatDate(startOfFarmDay(earlier), language, "date");
   const [answers, setAnswers] = useState<SaleAnswers>(() => ({
     ...NOTHING_TYPED,
     tagNumber: sell ?? "",
@@ -126,10 +132,10 @@ const SalePage = () => {
   // The figures on top are today's whatever day the sold list is turned to; with no day chosen the two are one read.
   const soldToday = useQuery(orpc.papers.day.queryOptions({ input: {} }));
   const soldOnTheDay = useQuery({
-    ...orpc.papers.day.queryOptions({ input: { day: day ?? today } }),
-    enabled: day !== undefined,
+    ...orpc.papers.day.queryOptions({ input: { day: shownDay } }),
+    enabled: earlier !== null,
   });
-  const sold = day === undefined ? soldToday : soldOnTheDay;
+  const sold = earlier === null ? soldToday : soldOnTheDay;
   const me = useQuery(orpc.people.me.queryOptions());
   const mayCorrect =
     me.data?.roles.some((role) => role === "manager" || role === "owner") ??
@@ -178,12 +184,9 @@ const SalePage = () => {
           },
           {
             value: "sold",
-            label:
-              shownDay === today
-                ? t("sale.today")
-                : t("sale.onDay", {
-                    day: formatDate(startOfFarmDay(shownDay), language, "date"),
-                  }),
+            label: earlierSaid
+              ? t("sale.onDay", { day: earlierSaid })
+              : t("sale.today"),
             icon: ReceiptText,
             content: (
               <div className="flex flex-col gap-4">
@@ -212,7 +215,11 @@ const SalePage = () => {
                   query={sold}
                   skeleton={<Skeleton className="h-40 rounded-xl" />}
                 >
-                  <TodaysSales mayCorrect={mayCorrect} sold={sold.data ?? []} />
+                  <SalesOfTheDay
+                    day={earlierSaid}
+                    mayCorrect={mayCorrect}
+                    sold={sold.data ?? []}
+                  />
                 </Loaded>
               </div>
             ),

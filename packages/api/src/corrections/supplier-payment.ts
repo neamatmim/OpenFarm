@@ -1,6 +1,6 @@
 import { eq } from "@OpenFarm/db/operators";
 import { supplierPayment } from "@OpenFarm/db/schema/supplier";
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { isAFarmDay, startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
@@ -15,11 +15,7 @@ import {
   farmAccountShownOf,
   forgetTheMoneyOf,
 } from "../money-store";
-import {
-  assertInvoicePayments,
-  validSupplierDay,
-  supplierRefused,
-} from "../supplier-store";
+import { assertInvoicePayments, supplierRefused } from "../supplier-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput } from "./correction";
 
@@ -75,7 +71,7 @@ export const supplierPaymentCorrection: CorrectionKind<
     const amountMoney = to.amountMoney ?? row.amountMoney;
     const paidOn = to.paidOn ?? row.paidOn;
     enteredOn(paidOn, now);
-    if (!validSupplierDay(paidOn)) {
+    if (!isAFarmDay(paidOn)) {
       supplierRefused("supplier_invoice_days");
     }
     const invoice = await assertInvoicePayments(tx, row.farmId, row.invoiceId, {

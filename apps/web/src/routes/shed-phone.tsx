@@ -77,17 +77,6 @@ const subscribeHash = (changed: () => void) => {
 };
 const readHash = () => window.location.hash;
 
-/** Takes a set-up link's code off the address once it has opened the phone, so the phone's history keeps none. */
-const forgetTheLinkedCode = () => {
-  if (codeInTheLink(window.location.hash) !== null) {
-    window.history.replaceState(
-      window.history.state,
-      "",
-      window.location.pathname + window.location.search
-    );
-  }
-};
-
 /** The one act of a step, big enough for a thumb at every width: the button's own `md:` height would shrink it on a
  *  tablet in the office, so the height is said at `md` too. */
 const BIG_BUTTON = "h-14 w-full text-lg md:h-14 md:text-lg";
@@ -200,11 +189,16 @@ const DevicePage = () => {
     getActiveUser,
     () => null
   );
-  // A phone opened by the QR on the Manager's screen arrives with its code after the #, which the server never sees:
-  // the box shows it until somebody types, and it leaves the address once the phone is set up.
+  // A phone opened by the QR on the Manager's screen arrives with its code after the #, which the server never sees.
+  // Read in the browser (the server drew the page with no hash), it is put in the box at once — the box then holds
+  // it as if typed — and taken off the address straight after, below, so the phone's history keeps none of it.
   const hash = useSyncExternalStore(subscribeHash, readHash, () => "");
+  const linkedCode = codeInTheLink(hash);
   const [typedCode, setTypedCode] = useState<string | null>(null);
-  const code = typedCode ?? codeInTheLink(hash) ?? "";
+  if (linkedCode !== null && typedCode === null) {
+    setTypedCode(linkedCode);
+  }
+  const code = typedCode ?? "";
   const [chosen, setChosen] = useState<RosterEntry | null>(null);
   const [pin, setPin] = useState("");
   const [, forceTick] = useState(0);
@@ -221,6 +215,18 @@ const DevicePage = () => {
     }
   }, [where.data?.autoLockMinutes]);
   const navigate = useNavigate();
+  // The code, once in the box, leaves the address — through the router, so what it holds agrees — whether or not the
+  // phone was already set up when the link was opened.
+  useEffect(() => {
+    if (linkedCode !== null) {
+      navigate({
+        hash: "",
+        replace: true,
+        search: (previous) => previous,
+        to: "/shed-phone",
+      });
+    }
+  }, [linkedCode, navigate]);
 
   // Refresh the roster whenever there is signal; fall back to what the phone saved.
   const roster = useQuery({
@@ -239,8 +245,7 @@ const DevicePage = () => {
     orpc.devices.claim.mutationOptions({
       onSuccess: (result) => {
         setDeviceToken(result.token);
-        setTypedCode(null);
-        forgetTheLinkedCode();
+        setTypedCode("");
         toast.success(t("device.enrolled"));
       },
       onError: refused,

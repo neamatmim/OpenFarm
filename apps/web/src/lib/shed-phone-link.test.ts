@@ -19,6 +19,11 @@ describe("the shed phone's set-up link", () => {
     expect(codeInTheLink("#code=")).toBeNull();
   });
 
+  it("reads nothing, and never throws, from a link whose code was cut or garbled", () => {
+    expect(codeInTheLink("#code=%E0%A4")).toBeNull();
+    expect(codeInTheLink("#code=%")).toBeNull();
+  });
+
   it("cleans a code as the box does: spaces and dashes dropped, Bangla digits read, in capitals", () => {
     expect(codeAsTyped("ab12-cd ৩৪ef")).toBe("AB12CD34EF");
     expect(codeInTheLink("#code=ab12-cd34ef")).toBe("AB12CD34EF");

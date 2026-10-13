@@ -19,6 +19,12 @@ describe("the Sales page's address", () => {
     });
   });
 
+  it("reads a day still to come as today: nothing has been sold on it yet", () => {
+    expect(
+      saleSearchOf({ tab: "sold", day: "2026-10-15" }, "2026-10-14")
+    ).toEqual({ tab: "sold" });
+  });
+
   it("keeps which animal another page sent here to sell", () => {
     expect(saleSearchOf({ sell: "F-0007" })).toEqual({ sell: "F-0007" });
   });

@@ -1,12 +1,14 @@
+import type { MessageKey } from "@OpenFarm/i18n";
+
 import { tagMatches, tagNumbered, tagSought } from "@/lib/tag-search";
 
 import type { NavGroup } from "./navigation";
 
-/** How many of each the box offers as one is typed: enough to choose from, few enough to read at once. */
-const OFFERED = 6;
+/** How many of each the box shows as one is typed: enough to choose from, few enough to read at once. */
+const SHOWN = 6;
 
-/** One thing the box can open: a page the reader's menu holds, or an animal by her Tag Number. */
-export type Offer =
+/** One thing the Go to box can open: a page the reader's menu holds, or an animal by her Tag Number. */
+export type GoToChoice =
   | { kind: "place"; to: string; label: string }
   | { kind: "animal"; tag: string };
 
@@ -23,18 +25,18 @@ const tagsFor = (tags: readonly string[], needle: string): string[] => {
     ...(numbered === null ? [] : [numbered]),
     ...starting,
     ...holding,
-  ].slice(0, OFFERED);
+  ].slice(0, SHOWN);
 };
 
 /** The reader's pages whose menu words hold what is typed: those whose words start with it first. */
 const placesFor = (
   groups: readonly NavGroup[],
-  say: (key: string) => string,
+  say: (key: MessageKey) => string,
   typed: string
-): Offer[] => {
+): GoToChoice[] => {
   const sought = typed.toLocaleLowerCase();
-  const starting: Offer[] = [];
-  const holding: Offer[] = [];
+  const starting: GoToChoice[] = [];
+  const holding: GoToChoice[] = [];
   for (const item of groups.flatMap((group) => group.items)) {
     const label = say(item.label);
     const words = label.toLocaleLowerCase();
@@ -47,32 +49,36 @@ const placesFor = (
       label,
     });
   }
-  return [...starting, ...holding].slice(0, OFFERED);
+  return [...starting, ...holding].slice(0, SHOWN);
 };
 
+/** Whether what was typed reads as a Tag Number: a Side's letter and a dash — D-, F-, ডি- — or digits in it. */
+const readsAsATag = (sought: string): boolean => /^[DF]-|\d/u.test(sought);
+
 /**
- * What the box offers for what is typed: the reader's own pages, by the words their menu says them in, and the farm's
- * animals by Tag Number.
+ * What the Go to box shows for what is typed: the reader's own pages, by the words their menu says them in, and the
+ * farm's animals by Tag Number — the animals first when it reads as a tag, the pages first when it reads as words.
  */
-export const offeredFor = ({
+export const goToChoicesFor = ({
   places,
   say,
   tags,
   typed,
 }: {
   places: readonly NavGroup[];
-  say: (key: string) => string;
+  say: (key: MessageKey) => string;
   tags: readonly string[];
   typed: string;
-}): Offer[] => {
+}): GoToChoice[] => {
   const trimmed = typed.trim();
   if (!trimmed) {
     return [];
   }
-  const animals: Offer[] = tagsFor(tags, tagSought(trimmed)).map((tag) => ({
+  const sought = tagSought(trimmed);
+  const animals: GoToChoice[] = tagsFor(tags, sought).map((tag) => ({
     kind: "animal",
     tag,
   }));
-  // Pages first: no menu says a number, so a Tag Number typed matches no page and its animals lead all the same.
-  return [...placesFor(places, say, trimmed), ...animals];
+  const pages = placesFor(places, say, trimmed);
+  return readsAsATag(sought) ? [...animals, ...pages] : [...pages, ...animals];
 };

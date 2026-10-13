@@ -1551,7 +1551,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "goTo.hint":
     "পশুর ট্যাগ নম্বর বা মেনুতে যেভাবে লেখা সেভাবে পাতার নাম লিখুন; এন্টার চাপলে খুলবে।",
   "goTo.matches": "যা লেখা হলো তাতে মেলে এমন পাতা ও পশু",
-  "goTo.placeholder": "ডি-০০০১, বা মাসিক প্রতিবেদন",
+  "goTo.placeholder": "ডি-০০০১, বা {page}",
+  "goTo.placeholderTag": "ডি-০০০১",
   "goTo.none": "এই নামে কোনো পাতা বা এই নম্বরে কোনো পশু নেই।",
   "animals.milkHeld": "দুধ আটকে",
   "animals.meatHeld": "মাংস আটকে",
@@ -4322,6 +4323,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sale.receipt": "রসিদ",
   "sale.transportCard": "পরিবহন কার্ড",
   "sale.noneToday": "আজ কোনো বিক্রয় হয়নি",
+  "sale.noneOnDay": "{day} কোনো বিক্রয় হয়নি",
   "sale.missing.animal": "কোন পশু, বেছে নিন।",
   "sale.missing.buyer": "ক্রেতার নাম লিখুন।",
   "sale.missing.price": "বিক্রয়মূল্য লিখুন।",
@@ -4362,6 +4364,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sale.groupTransport": "গাড়ি",
   "sale.todayHint":
     "ক্রেতার কেনা শেষ হলে রসিদ ছাপুন — আজ তিনি যা নিয়েছেন সবই তাতে থাকবে।",
+  "sale.dayHint":
+    "রসিদে সেদিন ক্রেতা যা নিয়েছিলেন সবই থাকে; এখান থেকে আবার চাইতে পারেন।",
   "sale.done": "{tag} বিক্রয় হয়েছে",
   "sale.again": "শেষ ক্রেতা ও গাড়ি আবার নিন",
   "sale.noneReady": "বিক্রয়ের জন্য প্রস্তুত কোনো পশু নেই",

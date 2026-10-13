@@ -9,7 +9,7 @@ import {
   supplierPayment,
   supplierProfile,
 } from "@OpenFarm/db/schema/supplier";
-import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf, isAFarmDay, startOfFarmDay } from "@OpenFarm/domain";
 import {
   supplierAging,
   supplierBalance,
@@ -33,11 +33,6 @@ export const lockSupplierFarm = async (tx: Tx, farmId: string) => {
     .from(farm)
     .where(eq(farm.id, farmId))
     .for("update");
-};
-
-export const validSupplierDay = (day: string) => {
-  const date = startOfFarmDay(day);
-  return Number.isFinite(date.getTime()) && farmDayOf(date) === day;
 };
 
 /** Called under the farm lock. Supplier roles extend the existing trader identity, preserving every old purchase. */
@@ -83,8 +78,8 @@ export const invoiceInputOf = async (
   now: Date
 ) => {
   if (
-    !validSupplierDay(input.invoicedOn) ||
-    !validSupplierDay(input.dueOn) ||
+    !isAFarmDay(input.invoicedOn) ||
+    !isAFarmDay(input.dueOn) ||
     input.invoicedOn > receivedOn ||
     input.dueOn < input.invoicedOn
   ) {
@@ -609,7 +604,7 @@ export const paySupplier = async (
         }
         return { id: existing.id };
       }
-      if (!validSupplierDay(input.paidOn) || input.paidOn > farmDayOf(now)) {
+      if (!isAFarmDay(input.paidOn, { notAfter: farmDayOf(now) })) {
         supplierRefused("supplier_invoice_days");
       }
       const invoice = await assertInvoicePayments(
