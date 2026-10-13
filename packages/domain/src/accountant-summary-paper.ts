@@ -13,8 +13,8 @@ import { letterheadOf } from "./paper-template";
 import type { Said, Worded } from "./papers";
 import { SIDE_LABEL } from "./papers";
 
-/** What the accountant's summary prints from: the period's money added up (`summarizeMoney`), and who still owed the
- *  farm what on its last day. */
+/** What the accountant's summary prints from: the period's money added up (`summarizeMoney`), who still owed the farm
+ *  what on its last day, and whom the farm still owed. */
 export interface AccountantSummaryFacts {
   farm: FarmIdentity;
   /** The period's first and last farm days, "YYYY-MM-DD". */
@@ -23,6 +23,9 @@ export interface AccountantSummaryFacts {
   summary: MoneySummary;
   /** Who still owed the farm what on the period's last day — its **Receivable** — biggest first. */
   receivableAtTheEnd: readonly { name: string; owingMoney: number }[];
+  /** Whom the farm still owed what on the period's last day, for feed on their bills — **Owed to Suppliers** — biggest
+   *  first. */
+  owedToSuppliersAtTheEnd: readonly { name: string; owingMoney: number }[];
   producedAt: Said;
   producedBy: string;
 }
@@ -110,17 +113,17 @@ const sideSaid = (side: keyof typeof SIDE_LABEL | null): Said => {
   return { bn, en };
 };
 
-/** Who still owed the farm what on the period's last day, and all of it together. */
+/** Who owed whom what on the period's last day, one line each, and all of it together: buyers to the farm, or the farm to
+ *  its Suppliers. */
 const owedPart = (
-  owed: AccountantSummaryFacts["receivableAtTheEnd"]
+  owed: AccountantSummaryFacts["receivableAtTheEnd"],
+  heading: Said,
+  who: Said
 ): PaperSection => ({
   kind: "table",
-  heading: {
-    bn: "সময়কালের শেষে খামারের পাওনা",
-    en: "Owed to the farm at the period's end",
-  },
+  heading,
   columns: [
-    { label: { bn: "ক্রেতা", en: "Buyer" } },
+    { label: who },
     { label: { bn: "বাকি", en: "Owed" }, figures: true },
   ],
   rows: owed.map((one) => [one.name, sumSaid(one.owingMoney)]),
@@ -131,7 +134,7 @@ const owedPart = (
 /**
  * The accountant's summary on paper, for the farm's accountant: on the **Farm Identity** letterhead, read in Bangla or
  * English (ADR 0021), a period's income against expense and what it left, then the same money by Category, by
- * Counterparty and by Side, in and out, and who still owed the farm what at its end. Money the Owner has not approved
+ * Counterparty and by Side, in and out, who still owed the farm what at its end, and whom the farm still owed. Money the Owner has not approved
  * is counted, as it has moved, and said beneath the totals. The farm does not keep books; its accountant keeps them
  * from this and the CSV that goes with it.
  */
@@ -179,7 +182,28 @@ export const accountantSummaryPaper = (
         }))
       ),
       ...(facts.receivableAtTheEnd.length > 0
-        ? [owedPart(facts.receivableAtTheEnd)]
+        ? [
+            owedPart(
+              facts.receivableAtTheEnd,
+              {
+                bn: "সময়কালের শেষে খামারের পাওনা",
+                en: "Owed to the farm at the period's end",
+              },
+              { bn: "ক্রেতা", en: "Buyer" }
+            ),
+          ]
+        : []),
+      ...(facts.owedToSuppliersAtTheEnd.length > 0
+        ? [
+            owedPart(
+              facts.owedToSuppliersAtTheEnd,
+              {
+                bn: "সময়কালের শেষে সরবরাহকারীদের কাছে খামারের দেনা",
+                en: "Owed to suppliers at the period's end",
+              },
+              { bn: "সরবরাহকারী", en: "Supplier" }
+            ),
+          ]
         : []),
     ],
     closing: [],

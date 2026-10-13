@@ -432,6 +432,8 @@ describe("what the Farm had tied up at the end of May, and what it made on it", 
       venturesMoney: 100_000,
       storeMoney: 45_000,
       receivablesMoney: 36_000,
+      // The concentrate was paid for at the gate: the Farm owed its Suppliers nothing.
+      owedToSuppliersMoney: 0,
       totalMoney: 184_000,
       unpriced: 1,
     });

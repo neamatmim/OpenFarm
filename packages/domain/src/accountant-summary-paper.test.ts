@@ -38,6 +38,7 @@ const FACTS: AccountantSummaryFacts = {
     { name: "মো. কামাল", owingMoney: 30_000 },
     { name: "মা মিষ্টান্ন", owingMoney: 5250 },
   ],
+  owedToSuppliersAtTheEnd: [{ name: "সাভার ফিড হাউস", owingMoney: 38_000 }],
   producedAt: { bn: "৯ অক্টোবর ২০২৬", en: "9 October 2026" },
   producedBy: "মোঃ আব্দুল করিম",
 };
@@ -112,11 +113,21 @@ describe("the accountant's summary, on paper", () => {
           awaiting: { count: 0, inMoney: 0, outMoney: 0 },
         },
         receivableAtTheEnd: [],
+        owedToSuppliersAtTheEnd: [],
       }),
       "en"
     );
 
     expect(text).not.toContain("awaiting approval");
     expect(text).not.toContain("Owed to the farm");
+    expect(text).not.toContain("Owed to suppliers");
+  });
+
+  it("names each Supplier the farm still owed at the period's end, and all of it together", () => {
+    const text = paperText(accountantSummaryPaper(FACTS), "en");
+
+    expect(text).toContain("Owed to suppliers at the period's end");
+    expect(text).toContain("সাভার ফিড হাউস · 38,000 taka");
+    expect(text).toContain("Total · 38,000 taka");
   });
 });

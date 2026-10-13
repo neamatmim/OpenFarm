@@ -20,9 +20,30 @@ export interface ReceivablesByAge {
   ages: { age: ReceivableAge; owingMoney: number }[];
 }
 
-/** What some Receivables still owe, together. */
-const sum = (some: readonly { owingMoney: number }[]) =>
+/** What some debts still owe, together: a book of Receivables, or the bills the Farm owes its Suppliers. */
+export const owingTogether = (some: readonly { owingMoney: number }[]) =>
   roundMoney(some.reduce((total, one) => total + one.owingMoney, 0));
+
+/** Each age, and what of these was owing that long at `asOf`, by the days since each one's own day. Shared with what
+ *  the Farm owes its Suppliers, which an accountant ages the same way. */
+export const owingByAge = <Each extends { owingMoney: number }>(
+  owing: readonly Each[],
+  sinceOf: (one: Each) => string,
+  asOf: string
+): { age: ReceivableAge; owingMoney: number }[] =>
+  RECEIVABLE_AGES.map(({ age, upToDays }, index) => {
+    const fromDays =
+      index === 0 ? 0 : (RECEIVABLE_AGES[index - 1]?.upToDays ?? 0) + 1;
+    return {
+      age,
+      owingMoney: owingTogether(
+        owing.filter((one) => {
+          const days = farmDaysApart(sinceOf(one), asOf);
+          return days >= fromDays && days <= upToDays;
+        })
+      ),
+    };
+  });
 
 /**
  * What buyers still owed at the end of a farm day, grouped by the days since each Sale or Dispatch left — 0–7, 8–15,
@@ -39,22 +60,10 @@ export const receivablesByAge = (
 ): ReceivablesByAge => {
   const owing = items.filter((one) => one.owingMoney > 0);
   return {
-    owingMoney: sum(owing),
-    overdueMoney: sum(
+    owingMoney: owingTogether(owing),
+    overdueMoney: owingTogether(
       owing.filter((one) => isReceivableOverdue(one, asOf, receivableDays))
     ),
-    ages: RECEIVABLE_AGES.map(({ age, upToDays }, index) => {
-      const fromDays =
-        index === 0 ? 0 : (RECEIVABLE_AGES[index - 1]?.upToDays ?? 0) + 1;
-      return {
-        age,
-        owingMoney: sum(
-          owing.filter((one) => {
-            const days = farmDaysApart(one.leftOn, asOf);
-            return days >= fromDays && days <= upToDays;
-          })
-        ),
-      };
-    }),
+    ages: owingByAge(owing, (one) => one.leftOn, asOf),
   };
 };

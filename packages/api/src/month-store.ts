@@ -20,6 +20,8 @@ import {
   monthsFromTo,
   monthsOfFinancialYear,
   monthsReturnOf,
+  billsOwingAt,
+  owedToSuppliersByAge,
   receivablesByAge,
   roundMoney,
   sideResultsOf,
@@ -54,6 +56,7 @@ import {
 } from "./receivable-store";
 import { approvedSettlementOf } from "./settlement-store";
 import { movementsByItem } from "./stock-store";
+import { supplierBillsOf } from "./supplier-store";
 import { planAgainstActual } from "./venture-plan-store";
 import { ownedThenByOf, ownersOverTime } from "./venture-store";
 import { yearRulesOf } from "./year-store";
@@ -262,14 +265,15 @@ const cashAt = async (db: Database, farmId: string, at: Date) => {
 
 /**
  * Where the Farm stood at the end of a stretch — or now, for one still going (ADR 0023): what buyers owed, by age, what
- * the store held, in taka, the Farm's own money, and what it had tied up, at cost.
+ * it owed its Suppliers, by age, what the store held, in taka, the Farm's own money, and what it had tied up, at cost.
  */
 const atTheEndOf = async (
   db: Database,
   farm: EndFarm,
   until: Date,
   now: Date,
-  books: CapitalBooks
+  books: CapitalBooks,
+  bills: Awaited<ReturnType<typeof supplierBillsOf>>
 ) => {
   const end = until < now ? until : now;
   // Its last moment, and the farm day it ended on: its last, or today.
@@ -287,6 +291,10 @@ const atTheEndOf = async (
     lastDay,
     farm.receivableDays
   );
+  const owedToSuppliers = owedToSuppliersByAge(
+    billsOwingAt(bills, lastDay),
+    lastDay
+  );
   const store = storeValueOf({
     feed: [...feed.values()].map((movements) => stockLedger(movements, last)),
     medicine: [...medicine.values()],
@@ -294,16 +302,19 @@ const atTheEndOf = async (
   return {
     /** What buyers owed at its end, by the days since each Sale or Dispatch left, and what of it was overdue. */
     receivables,
+    /** What the Farm owed its Suppliers at its end, by the days since each bill's date, and what of it was past due. */
+    owedToSuppliers,
     /** What the store held at its end: the feed at its average price, the medicine at a dose's. */
     store,
     /** What the Farm had tied up at its end, at cost: its animals by Side, its capital in Ventures, the store, the
-     *  Receivables. */
+     *  Receivables — less what it owed its Suppliers for feed not yet paid for. */
     capital: capitalEmployedOf({
       at: last,
       animals: animalsAt(books, last),
       venturesMoney: venturesCapitalAt(books, end),
       storeMoney: store.totalMoney,
       receivablesMoney: receivables.owingMoney,
+      owedToSuppliersMoney: owedToSuppliers.owingMoney,
     }),
     /** The Farm's own money at its end: in the hands, less the Ventures', and in its Farm Accounts. */
     cash,
@@ -548,15 +559,19 @@ export const aMonth = async (
   const range = rangeOf(month);
   const earlier = rangeOf(before);
   const span = { from: earlier.from, until: range.until };
-  const books = await capitalBooksOf(db, farm.id);
+  // Read once for all three ends: the capital's books, and every bill the farm owes or owed its Suppliers.
+  const [books, bills] = await Promise.all([
+    capitalBooksOf(db, farm.id),
+    supplierBillsOf(db, farm.id),
+  ]);
   const [read, ventures, firstDay, end, endBefore, beganBefore] =
     await Promise.all([
       readOver(db, farm.id, span, now),
       venturesRunningIn(db, farm.id, range),
       firstDayKept(db, farm.id, today),
-      atTheEndOf(db, farm, range.until, now, books),
-      atTheEndOf(db, farm, earlier.until, now, books),
-      atTheEndOf(db, farm, earlier.from, now, books),
+      atTheEndOf(db, farm, range.until, now, books, bills),
+      atTheEndOf(db, farm, earlier.until, now, books, bills),
+      atTheEndOf(db, farm, earlier.from, now, books, bills),
     ]);
   const [thisMonth, monthBefore] = narrowedToEach(read.costs, [range, earlier]);
   // One for each range, always: a month falling back on the whole stretch's costs would say two months as one.

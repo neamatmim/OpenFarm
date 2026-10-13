@@ -11,6 +11,7 @@ import type { Side } from "./lifecycle";
 import { roundMoney } from "./money";
 import { changeBetween } from "./month-change";
 import { daySaid } from "./nominees";
+import type { OwedToSuppliers } from "./owed-to-suppliers";
 import { letterheadOf } from "./paper-template";
 import type { PaperDocument, PaperSection } from "./paper-template";
 import type { Said, Worded } from "./papers";
@@ -54,6 +55,8 @@ export interface MonthFigures {
   /** Where the Farm stood at the stretch's end — or now, for one still going. */
   atEnd: {
     receivables: ReceivablesByAge;
+    /** What the farm owed its Suppliers at the end, by age. */
+    owedToSuppliers: OwedToSuppliers;
     store: StoreValue;
     cash: CashPosition;
     capital: CapitalEmployed;
@@ -145,7 +148,29 @@ interface Figure {
   label: Said;
   kind: Kind;
   of: (figures: MonthFigures) => number | null;
+  /** Said only where this holds for the month or the month before; said always where there is no such test. */
+  onlyWhen?: (figures: MonthFigures) => boolean;
 }
+
+/** Whether the farm owed its Suppliers anything at a month's end: what says it is left out of a month that owed none,
+ *  beside a month before that owed none either. */
+const owedSuppliers = (figures: MonthFigures) =>
+  figures.atEnd.owedToSuppliers.owingMoney > 0;
+
+/** The lines of a part said for these two months: each one, unless it is only for months neither of these is. */
+const linesShown = (
+  lines: readonly Figure[],
+  {
+    figures,
+    figuresBefore,
+  }: Pick<MonthlyReportFacts, "figures" | "figuresBefore">
+) =>
+  lines.filter(
+    (line) =>
+      line.onlyWhen === undefined ||
+      line.onlyWhen(figures) ||
+      line.onlyWhen(figuresBefore)
+  );
 
 /** One part of the month: its heading and its lines, said the same on the paper and in the CSV. */
 interface Part {
@@ -250,6 +275,12 @@ const SUMMARY: Part = {
       of: (one) => one.atEnd.receivables.owingMoney,
     },
     {
+      label: { bn: "সরবরাহকারীদের কাছে দেনা", en: "Owed to suppliers" },
+      kind: "sum",
+      of: (one) => one.atEnd.owedToSuppliers.owingMoney,
+      onlyWhen: owedSuppliers,
+    },
+    {
       label: { bn: "ভান্ডার", en: "The store" },
       kind: "sum",
       of: (one) => one.atEnd.store.totalMoney,
@@ -297,7 +328,7 @@ const summaryPart = ({
     { label: monthSaid(before), figures: true },
     { label: { bn: "পরিবর্তন", en: "Change" }, figures: true },
   ],
-  rows: SUMMARY.lines.map((line) => [
+  rows: linesShown(SUMMARY.lines, { figures, figuresBefore }).map((line) => [
     line.label,
     figureSaid(line.kind, line.of(figures)),
     figureSaid(line.kind, line.of(figuresBefore)),
@@ -406,8 +437,8 @@ const AGE_SAID: Record<ReceivableAge, Said> = {
 /** What buyers owed at the month's end, by the days since it left, the whole, and what of it was overdue. */
 const RECEIVABLES: Part = {
   heading: {
-    bn: "মাস শেষে বাকি, কত দিনের",
-    en: "Owed at the month's end, by age",
+    bn: "মাস শেষে ক্রেতাদের কাছে বাকি, কত দিনের",
+    en: "Owed by buyers at the month's end, by age",
   },
   lines: [
     ...RECEIVABLE_AGES.map(({ age }) => ({
@@ -426,6 +457,43 @@ const RECEIVABLES: Part = {
       label: { bn: "এর মধ্যে মেয়াদ পেরোনো", en: "Of it overdue" },
       kind: "sum",
       of: (one) => one.atEnd.receivables.overdueMoney,
+    },
+  ],
+};
+
+/** What the farm owed its Suppliers at the month's end, by the days since each bill's date, the whole, and what of it
+ *  was past its due day (CONTEXT.md: **Owed to Suppliers**). */
+const OWED_TO_SUPPLIERS: Part = {
+  heading: {
+    bn: "মাস শেষে সরবরাহকারীদের কাছে দেনা, কত দিনের",
+    en: "Owed to suppliers at the month's end, by age",
+  },
+  lines: [
+    ...RECEIVABLE_AGES.map(({ age }) => ({
+      label: AGE_SAID[age],
+      kind: "sum" as const,
+      of: (one: MonthFigures) =>
+        one.atEnd.owedToSuppliers.ages.find((each) => each.age === age)
+          ?.owingMoney ?? 0,
+      onlyWhen: owedSuppliers,
+    })),
+    {
+      label: {
+        bn: "সরবরাহকারীদের কাছে মোট দেনা",
+        en: "Owed to suppliers in all",
+      },
+      kind: "sum",
+      of: (one) => one.atEnd.owedToSuppliers.owingMoney,
+      onlyWhen: owedSuppliers,
+    },
+    {
+      label: {
+        bn: "এর মধ্যে পরিশোধের দিন পেরোনো",
+        en: "Of it past its due day",
+      },
+      kind: "sum",
+      of: (one) => one.atEnd.owedToSuppliers.overdueMoney,
+      onlyWhen: owedSuppliers,
     },
   ],
 };
@@ -536,6 +604,16 @@ const CAPITAL: Part = {
       of: (one) => one.atEnd.capital.receivablesMoney,
     },
     {
+      label: {
+        bn: "সরবরাহকারীদের কাছে দেনা, বাদ",
+        en: "Owed to suppliers, taken off",
+      },
+      kind: "sum",
+      // Below nought, so the part's lines add up to its whole; nought, never minus nought, where none was owed.
+      of: (one) => 0 - one.atEnd.capital.owedToSuppliersMoney,
+      onlyWhen: owedSuppliers,
+    },
+    {
       label: { bn: "মোট পুঁজি", en: "Capital in all" },
       kind: "sum",
       of: (one) => one.atEnd.capital.totalMoney,
@@ -628,7 +706,7 @@ const partOf = (
     { label: monthSaid(month), figures: true },
     { label: monthSaid(before), figures: true },
   ],
-  rows: lines.map((line) => [
+  rows: linesShown(lines, { figures, figuresBefore }).map((line) => [
     line.label,
     figureSaid(line.kind, line.of(figures)),
     figureSaid(line.kind, line.of(figuresBefore)),
@@ -636,6 +714,11 @@ const partOf = (
   foot: null,
   note: null,
 });
+
+/** A part whose every line is only for some months, as a table where either month is one of them, and nothing where
+ *  neither is. */
+const partIfAny = (part: Part, facts: MonthlyReportFacts): PaperSection[] =>
+  linesShown(part.lines, facts).length > 0 ? [partOf(part, facts)] : [];
 
 /** The month's money by one way of adding it — by Category, or by Side — in and out, the month alone. */
 const moneyByPart = (
@@ -895,6 +978,7 @@ export const monthlyReportPaper = (
       partOf(CASH_FLOW, facts),
       partOf(CASH, facts),
       partOf(RECEIVABLES, facts),
+      ...partIfAny(OWED_TO_SUPPLIERS, facts),
       partOf(STORE, facts),
       partOf(CAPITAL, facts),
       partOf(MONTHS_RETURN, facts),
@@ -1024,7 +1108,7 @@ export const monthlyReportRows = (
   facts: MonthlyReportFacts
 ): MonthlyReportRow[] => {
   const rowsOf = ({ heading, lines }: Part): MonthlyReportRow[] =>
-    lines.map((line) => ({
+    linesShown(lines, facts).map((line) => ({
       part: heading,
       line: line.label,
       way: null,
@@ -1057,6 +1141,7 @@ export const monthlyReportRows = (
     ...rowsOf(CASH_FLOW),
     ...rowsOf(CASH),
     ...rowsOf(RECEIVABLES),
+    ...rowsOf(OWED_TO_SUPPLIERS),
     ...rowsOf(STORE),
     ...rowsOf(CAPITAL),
     ...rowsOf(MONTHS_RETURN),

@@ -346,6 +346,34 @@ export const verifyCorrectedInvoice = async (
   }
 };
 
+/**
+ * Every Supplier Invoice the farm keeps, with its Supplier's name, its dates, the loads come against it and what was
+ * paid on it — read once, for as many days' ends as a report asks (`billsOwingAt`; CONTEXT.md: **Owed to Suppliers**).
+ * Only invoices with something still to pay at some time are worth reading, but a bill paid up today was owing at an
+ * earlier month's end, so all are read: one farm's bills, a few a week.
+ */
+export const supplierBillsOf = async (db: Database | Tx, farmId: string) => {
+  const invoices = await db.query.supplierInvoice.findMany({
+    where: { farmId },
+    columns: { invoicedOn: true, dueOn: true },
+    with: {
+      supplier: { columns: { name: true } },
+      deliveries: {
+        columns: {
+          receivedOn: true,
+          priceMoney: true,
+          paidAtDeliveryMoney: true,
+        },
+      },
+      payments: { columns: { paidOn: true, amountMoney: true } },
+    },
+  });
+  return invoices.map(({ supplier, ...bill }) => ({
+    ...bill,
+    supplierName: supplier.name,
+  }));
+};
+
 export const suppliersList = async (
   db: Database | Tx,
   farmId: string,
