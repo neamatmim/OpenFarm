@@ -156,3 +156,15 @@ green after (api 366 files, domain 103, i18n 3, web 92) and the screens looked a
 | `34ba07fe` | D3–D5 | Today's work in Now / Later today / Done today with a real "all done"; after Finish, the next job in the same pen; the bottom bar counts what is owed now and what is To check. |
 
 Left: the 50-row cap on Done today and the flush ordering have no test (a `.tsx` hook); D8–D17 and groups E–G wait.
+
+## Built — step 4 (2026-10-13)
+
+The Owner: "continue". E1, E2, E4, E5, E7, E8 in three branches, each code-reviewed and every finding fixed before
+merging; main green after (api 370 files, domain 104, i18n 3, web 95) and the screens seen on the seed farm in both
+languages. E3 and E6 need the Owner's decision: [e3-e6-decisions.md](e3-e6-decisions.md).
+
+| Merge | Findings | What |
+|---|---|---|
+| `ad1ceac2` | E5, E8 | Owner's home names each bank/bKash account with an unread month (oldest + how many); a closed account refuses later readings; «Bank and mobile money charges» category (migration 20261013091352); money book filtered by method or account, saying where handovers are and when the 500-row cap bites; the Manager told the owner records supplier payments. |
+| `1e8948ec` | E1, E2, E7 | «The farm's own money» (hands + accounts, unread named) on the overview and Cash tab, one function with the monthly report; every cash figure says cash — «Cash in less out» / «নগদ আসা-যাওয়ার ফারাক», «নগদ এসেছে / নগদ গেছে» — and the year leads with the result after overheads; the period bar only on tabs that read it. |
+| `8fe57aa0` | E4 | «Owed to suppliers at the month's end, by age» on the report, paper, CSV and accountant summary, shown only when owed; Capital Employed takes it off (ADR 0023 addendum); one balance rule shared with Feed → Suppliers. |
