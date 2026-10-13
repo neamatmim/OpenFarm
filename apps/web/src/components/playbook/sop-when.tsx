@@ -35,6 +35,9 @@ import {
   withScheduleWeekdays,
 } from "@/lib/sop-draft";
 
+/** A Campaign Interval chosen fresh starts at the standard Campaigns' four months. */
+const STARTING_MONTHS = 4;
+
 /** A happening whose work the farm times by its own Parameters rather than days on the Trigger. */
 const farmTimed = (happening: HappeningTrigger): boolean =>
   happening.kind === "before_calving" ||
@@ -58,6 +61,9 @@ const ofKind = (
   }
   if (kind === "registration_renewal") {
     return { kind: "registration_renewal" };
+  }
+  if (kind === "every_months") {
+    return { kind: "every_months", months: STARTING_MONTHS };
   }
   const offsetDays =
     "offsetDays" in happening ? happening.offsetDays : undefined;
@@ -140,6 +146,25 @@ const TriggerDetail = ({
             </option>
           ))}
         </NativeSelect>
+      ) : null}
+      {happening.kind === "every_months" ? (
+        <div className="flex items-center gap-2">
+          <label
+            className="text-muted-foreground text-sm whitespace-nowrap"
+            htmlFor={`months-${index}`}
+          >
+            {t("sop.trigger.months")}
+          </label>
+          <FigureBox
+            className="w-24"
+            id={`months-${index}`}
+            // Emptied, it is no number yet, which the Playbook names a problem rather than taking as nought.
+            onFigure={(months) =>
+              onChange({ ...happening, months: months ?? Number.NaN })
+            }
+            value={happening.months}
+          />
+        </div>
       ) : null}
       {farmTimed(happening) ? (
         // A Heat's and a Service's work — and calving work — are timed by the farm's own
@@ -228,6 +253,7 @@ const TriggerFields = ({
             <option value="registration_renewal">
               {t("sop.trigger.registrationRenewal")}
             </option>
+            <option value="every_months">{t("sop.trigger.everyMonths")}</option>
           </NativeSelect>
           <TriggerDetail
             happening={happening}

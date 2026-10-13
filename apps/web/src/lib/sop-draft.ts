@@ -149,7 +149,8 @@ export type HappeningTrigger = Extract<
       | "prescription"
       | "notifiable_disease"
       | "before_calving"
-      | "registration_renewal";
+      | "registration_renewal"
+      | "every_months";
   }
 >;
 

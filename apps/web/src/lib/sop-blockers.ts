@@ -18,6 +18,7 @@ const STEP_BOXES: readonly [RegExp, MessageKey][] = [
 const TRIGGER_BOXES: readonly [RegExp, MessageKey][] = [
   [/\.times/u, "sop.times"],
   [/\.offsetDays/u, "sop.trigger.after"],
+  [/\.months/u, "sop.trigger.months"],
 ];
 
 /** Where in the procedure a problem is, as the editor names its parts: a Step by its number and the box in it, the
@@ -92,6 +93,10 @@ const SAID: Readonly<Record<string, MessageKey>> = {
   "a monthly schedule is not also fortnightly":
     "sop.problem.monthlyNotFortnightly",
   "count whole days, from none upwards": "sop.problem.wholeDays",
+  "a Campaign comes round in whole months, from one to twenty-four":
+    "sop.problem.intervalMonths",
+  "a Campaign comes round by its last dose, and this procedure gives no dose of a product to every animal":
+    "sop.problem.intervalNeedsDose",
   "a heat's work falls due in the farm's AI window, not days later":
     "sop.problem.heatTimed",
   "a service's work falls due the farm's days to a pregnancy check after it, not a number set here":

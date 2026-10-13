@@ -92,6 +92,8 @@ const trigger = z.discriminatedUnion("kind", [
     lead: z.string().trim().min(1).max(40),
   }),
   z.object({ kind: z.literal("registration_renewal") }),
+  // The Playbook says whether the months are whole and in range, in the Owner's words.
+  z.object({ kind: z.literal("every_months"), months: z.number() }),
 ]);
 
 /** Which animals the SOP concerns; absent means the whole herd. */

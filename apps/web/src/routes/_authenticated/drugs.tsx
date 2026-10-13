@@ -9,10 +9,12 @@ import {
   Pill,
   ShoppingCart,
   Syringe,
+  CalendarClock,
 } from "lucide-react";
 import { useState } from "react";
 
 import { BuyMedicineSheet } from "@/components/drugs/buy-medicine-sheet";
+import { CampaignsDueTab, owedNow } from "@/components/drugs/campaigns-due";
 import { ProductsTab } from "@/components/drugs/drug-products";
 import { PurchasesTab } from "@/components/drugs/drug-purchases";
 import type { DrugProduct } from "@/components/drugs/drug-types";
@@ -24,7 +26,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { TAB_SWITCH } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
-const TABS = ["products", "bought"] as const;
+const TABS = ["products", "bought", "campaigns"] as const;
 type Tab = (typeof TABS)[number];
 
 /** Products whose days nobody has written yet: nothing may be prescribed from them. */
@@ -68,6 +70,19 @@ const useListFigures = (products: DrugProduct[]): Figure[] => {
   ];
 };
 
+/** Who is reading the Drug List: a vet called in for a visit, who reads it to prescribe from; the farm's own Vet, who
+ *  keeps it; and whoever buys the medicine. Who is due a Campaign is the farm's own Vet's to see, and theirs who raise
+ *  the work. */
+const useReader = () => {
+  const me = useQuery(orpc.people.me.queryOptions());
+  const visiting = me.data?.scopes.vet?.kind === "cases";
+  const isVet = (me.data?.roles.includes("vet") ?? false) && !visiting;
+  const buys =
+    me.data?.roles.some((role) => role === "owner" || role === "manager") ??
+    false;
+  return { visiting, isVet, buys, seesCampaigns: buys || isVet };
+};
+
 /**
  * The farm's Drug List: what it treats animals with, and what each product costs the milk
  * and the meat in days.
@@ -77,22 +92,20 @@ const useListFigures = (products: DrugProduct[]): Figure[] => {
  * vet asking about the last thirty days. A product whose days are blank sits here saying so:
  * the farm owns it, and nothing may be prescribed from it yet.
  *
- * Whoever buys medicine — the Manager, and the Owner — has a second tab for what was bought, and medicine bought is one
- * button away from either.
+ * Whoever buys medicine — the Manager, and the Owner — has a second tab for what was bought, and the farm's own Vet and
+ * whoever buys a third, of the animals due a Campaign.
  */
 const DrugsPage = () => {
   const { t } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
   const { tab = "products", product: historyFor = "" } = Route.useSearch();
-  const me = useQuery(orpc.people.me.queryOptions());
   const drugs = useQuery(orpc.drugs.list.queryOptions());
   const [buying, setBuying] = useState<{ productId?: string } | null>(null);
-  // A vet called in for a visit reads the Drug List to prescribe from; keeping it is the farm's own Vet's.
-  const visiting = me.data?.scopes.vet?.kind === "cases";
-  const isVet = (me.data?.roles.includes("vet") ?? false) && !visiting;
-  const buys =
-    me.data?.roles.some((role) => role === "owner" || role === "manager") ??
-    false;
+  const { visiting, isVet, buys, seesCampaigns } = useReader();
+  const campaigns = useQuery({
+    ...orpc.treatments.campaignsDue.queryOptions(),
+    enabled: seesCampaigns,
+  });
   const products = drugs.data ?? [];
   const live = products.filter((product) => !product.retiredAt);
   const figures = useListFigures(products);
@@ -136,7 +149,7 @@ const DrugsPage = () => {
 
       {drugs.data ? <SummaryFigures figures={figures} /> : null}
 
-      {buys ? (
+      {seesCampaigns ? (
         <PageTabs
           onChange={(value) =>
             navigate({
@@ -152,24 +165,35 @@ const DrugsPage = () => {
               count: waitingOf(products),
               content: productsTab,
             },
+            ...(buys
+              ? [
+                  {
+                    value: "bought" as const,
+                    label: t("drugs.buy"),
+                    icon: ShoppingCart,
+                    content: (
+                      <Loaded query={drugs}>
+                        <PurchasesTab
+                          onProductChange={(productId) =>
+                            navigate({
+                              replace: true,
+                              search: { tab: "bought", product: productId },
+                            })
+                          }
+                          productId={historyFor}
+                          products={products}
+                        />
+                      </Loaded>
+                    ),
+                  },
+                ]
+              : []),
             {
-              value: "bought",
-              label: t("drugs.buy"),
-              icon: ShoppingCart,
-              content: (
-                <Loaded query={drugs}>
-                  <PurchasesTab
-                    onProductChange={(productId) =>
-                      navigate({
-                        replace: true,
-                        search: { tab: "bought", product: productId },
-                      })
-                    }
-                    productId={historyFor}
-                    products={products}
-                  />
-                </Loaded>
-              ),
+              value: "campaigns",
+              label: t("campaigns.tab"),
+              icon: CalendarClock,
+              count: owedNow(campaigns.data),
+              content: <CampaignsDueTab mayRaise={buys} />,
             },
           ]}
           value={tab}

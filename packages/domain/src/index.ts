@@ -106,6 +106,15 @@ export {
   implausibleAfterArrival,
   implausibleChange,
 } from "./fattening";
+export {
+  CAMPAIGN_SOON_DAYS,
+  addMonths,
+  campaignDueOf,
+  campaignIntervalOf,
+  campaignProductOf,
+  dueForACampaign,
+  penDueSince,
+} from "./campaign-interval";
 export type {
   ExpectedGain,
   FarmGainFigure,

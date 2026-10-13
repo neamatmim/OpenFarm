@@ -948,6 +948,15 @@ const HS_BQ_AFTER_DAYS = 14;
 const ANTHRAX_AFTER_DAYS = 21;
 /** FMD again, and a second drench, four months on (DLS: FMD every four to six months, deworming the same). */
 const BOOSTER_AFTER_DAYS = 120;
+/** The herd's own FMD Campaign and its deworming come round on the same four months (DLS: FMD every four to six months,
+ *  deworming the same) — the shorter end, so an animal is never counted protected longer than the guidance allows. */
+const HERD_CAMPAIGN_MONTHS = 4;
+
+/** A herd Campaign that comes round by its **Campaign Interval**. */
+const comesRound = (content: SopContent): SopContent => ({
+  ...content,
+  triggers: [{ kind: "every_months", months: HERD_CAMPAIGN_MONTHS }],
+});
 
 /** Every step of work raised about one bull is his alone. */
 const hisStep = (
@@ -1842,17 +1851,15 @@ export const standardPlaybook = (
   calfBq: calfBq(chosen.bqVaccine),
   weighIn: weighIn(),
   heiferWeighIn: heiferWeighIn(),
-  fmdVaccination: vaccination(
-    chosen.fmdVaccine,
-    "ক্ষুরা রোগের (এফএমডি) টিকা",
-    "FMD vaccination"
+  fmdVaccination: comesRound(
+    vaccination(chosen.fmdVaccine, "ক্ষুরা রোগের (এফএমডি) টিকা", "FMD vaccination")
   ),
   lsdVaccination: vaccination(
     chosen.lsdVaccine,
     "লাম্পি স্কিন রোগের টিকা",
     "Lumpy skin vaccination"
   ),
-  deworming: deworming(chosen.dewormer),
+  deworming: comesRound(deworming(chosen.dewormer)),
   treatmentDose: treatmentDose(),
   burial: burial(),
   dlsReport: dlsReport(),

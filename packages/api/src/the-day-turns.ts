@@ -15,6 +15,12 @@ import {
 import { audited } from "./audit";
 import type { Tx } from "./audit";
 import { pregnancyTimesOf } from "./breeding-store";
+import {
+  campaignSlotsFor,
+  campaignsComingRound,
+  campaignsOpen,
+  owedTheirCampaigns,
+} from "./campaign-interval-store";
 import type { Context } from "./context";
 import { milkAccountOn, tellOfUnaccountedMilk } from "./dispatch-store";
 import { dosesToTell, tellOfDoses } from "./dose-not-prescribed-store";
@@ -36,7 +42,6 @@ import {
   recentHappenings,
   renewalSlotsFor,
   TRIGGER_LOOKBACK_DAYS,
-  triggerKey,
 } from "./instances-store";
 import { papersToTell, tellAboutPapersDue } from "./investor-statement-notice";
 import {
@@ -57,7 +62,7 @@ import {
 } from "./reimbursement-store";
 import { settleWhatIsSettled } from "./settled-notices";
 import { textAgainWhatDidNotGo, textTheSafetyAlerts } from "./sms-send";
-import { contentOf } from "./sop-content";
+import { sopsInForce } from "./sops-in-force";
 import { soresToTell, tellOfSores } from "./sores-store";
 import { keepStandardKeys } from "./standards-kept";
 import { lowStockToTell, raiseLowStockAlerts, runningLow } from "./stock-store";
@@ -234,73 +239,9 @@ const rememberTheDayRaised = async (context: Turning, today: string) => {
     .where(eq(farm.id, context.farm.id));
 };
 
-/** How many of a procedure's Versions are looked back over for how long a trigger has been in force. */
-const VERSIONS_LOOKED_BACK = 12;
-
-/**
- * For each trigger of a procedure's newest Version, when it first came into force without a break: the publishing of
- * the oldest Version in the unbroken run, newest first, that carries the same trigger.
- */
-const inForceSinceByTrigger = (
-  versions: readonly { number: number; content: unknown; publishedAt: Date }[]
-): Map<string, Date> => {
-  const since = new Map<string, Date>();
-  const [newest, ...before] = versions;
-  if (!newest) {
-    return since;
-  }
-  for (const trigger of contentOf(newest).triggers) {
-    const key = triggerKey(trigger);
-    let from = newest.publishedAt;
-    for (const older of before) {
-      if (!contentOf(older).triggers.some((one) => triggerKey(one) === key)) {
-        break;
-      }
-      from = older.publishedAt;
-    }
-    since.set(key, from);
-  }
-  return since;
-};
-
 export const theDaysWork = async (context: Turning) => {
   const now = context.clock.now();
-  const definitions = await context.db.query.sopDefinition.findMany({
-    where: { farmId: context.farm.id, retiredAt: { isNull: true } },
-    with: {
-      currentVersion: true,
-      // The Versions before it, newest first: how long each trigger has been in force without a break.
-      versions: {
-        columns: { number: true, content: true, publishedAt: true },
-        orderBy: { number: "desc" },
-        limit: VERSIONS_LOOKED_BACK,
-      },
-    },
-  });
-  const sops = definitions
-    .filter((definition) => definition.currentVersion)
-    .map((definition) => {
-      const published =
-        definition.currentVersion?.publishedAt ?? definition.createdAt;
-      // Brought back from being retired after it was published, it is in force again from then: nothing that happened
-      // while it was retired is owed, nor caught up with.
-      const { restoredAt } = definition;
-      const restored = restoredAt !== null && restoredAt > published;
-      return {
-        definitionId: definition.id,
-        versionId: definition.currentVersion?.id ?? "",
-        content: contentOf({ content: definition.currentVersion?.content }),
-        triggersInForceSince: restored && restoredAt ? restoredAt : published,
-        // A trigger the Versions before it carried too has been in force since the first of them: a Move recorded on a
-        // phone before a change to the procedure's words, and sent after it, still raises its check.
-        triggerInForceSince: restored
-          ? undefined
-          : inForceSinceByTrigger(definition.versions),
-        // A procedure's first Version catches up with the animals already on their way; a later one does not raise
-        // again what the first raised.
-        catchesUp: !restored && definition.currentVersion?.number === 1,
-      };
-    });
+  const sops = await sopsInForce(context.db, context.farm.id);
   // As far back as the longest a procedure hangs work after an arrival or a State, so the one it catches up with
   // is found.
   const reachDays =
@@ -367,7 +308,20 @@ export const theDaysWork = async (context: Turning) => {
     },
     await openRenewalsOf(context.db, context.farm.id)
   );
-  const slots = [...onTheSchedule, ...byWhatHappened, ...forTheRenewal];
+  // A Campaign coming round: in each Pen holding an animal whose day has come, counted as the clock's work.
+  const campaigns = campaignsComingRound(sops);
+  const forTheCampaigns = campaignSlotsFor(
+    now,
+    campaigns,
+    await owedTheirCampaigns(context.db, context.farm.id, campaigns),
+    await campaignsOpen(context.db, context.farm.id, campaigns)
+  );
+  const slots = [
+    ...onTheSchedule,
+    ...byWhatHappened,
+    ...forTheRenewal,
+    ...forTheCampaigns,
+  ];
   if (slots.length === 0) {
     await rememberTheDayRaised(context, today);
     return { raised: 0 };
