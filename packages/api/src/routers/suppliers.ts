@@ -1,11 +1,5 @@
-import { eq } from "@OpenFarm/db/operators";
-import { counterparty } from "@OpenFarm/db/schema/fattening";
-import {
-  supplierInvoicePhoto,
-  supplierPayment,
-  supplierProfile,
-} from "@OpenFarm/db/schema/supplier";
-import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import { supplierInvoicePhoto } from "@OpenFarm/db/schema/supplier";
+import { farmDayOf } from "@OpenFarm/domain";
 import { supplierBalance } from "@OpenFarm/domain/supplier-credit";
 import { supplierPaymentPlan } from "@OpenFarm/domain/supplier-payment-plan";
 import { ORPCError } from "@orpc/server";
@@ -17,7 +11,6 @@ import {
   supplierPaymentCorrection,
   supplierPaymentCorrectionInput,
 } from "../corrections/supplier-payment";
-import { knownAs } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import {
@@ -27,21 +20,18 @@ import {
   receiptInput,
   referenceInput,
 } from "../money-inputs";
-import { accountSaid, bookingOf, bookMoney } from "../money-store";
 import { requirePersonalSession, requireRole } from "../roles";
 import {
   supplierPaymentPaper,
   supplierStatementPaper,
 } from "../supplier-papers";
 import {
-  assertInvoicePayments,
   invoiceDetails,
   lockSupplierFarm,
-  supplierRefused,
+  paySupplier,
+  saveSupplier,
   suppliersList,
-  validSupplierDay,
 } from "../supplier-store";
-import { seenWhenDone } from "../writes-seen";
 
 const read = protectedProcedure.use(requireRole("owner", "manager"));
 const write = read.use(requirePersonalSession());
@@ -55,21 +45,6 @@ const profileInput = {
   creditDays: z.number().int().min(0).max(365),
   note: z.string().trim().max(500).optional(),
 };
-
-const supplierContacts = (input: z.infer<typeof counterpartyInput>) => ({
-  name: input.name.normalize("NFC"),
-  address: input.address || null,
-  phone: input.phone || null,
-});
-const supplierTerms = (input: {
-  contactPerson?: string;
-  creditDays: number;
-  note?: string;
-}) => ({
-  contactPerson: input.contactPerson || null,
-  creditDays: input.creditDays,
-  note: input.note || null,
-});
 
 const paymentOnInvoice = (
   invoice: Awaited<ReturnType<typeof invoiceDetails>>,
@@ -265,92 +240,7 @@ export const suppliersRouter = {
         reason: reasonInput.optional(),
       })
     )
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      return await seenWhenDone(
-        context.db.transaction(async (tx) => {
-          await lockSupplierFarm(tx, context.farm.id);
-          const existing = await tx.query.supplierProfile.findFirst({
-            where: { farmId: context.farm.id, counterpartyId: input.id },
-          });
-          if (existing && input.version === undefined) {
-            return { id: existing.counterpartyId };
-          }
-          if (
-            existing &&
-            (input.version !== existing.version || !input.reason)
-          ) {
-            supplierRefused("supplier_changed");
-          }
-          if (!existing && input.version !== undefined) {
-            supplierRefused("supplier_missing");
-          }
-          if (
-            Boolean(existing?.retiredAt) !== input.retired &&
-            !context.roles.includes("owner")
-          ) {
-            throw new ORPCError("FORBIDDEN", {
-              data: { refusal: "owner_only" },
-            });
-          }
-          if (input.retired) {
-            const pending = await tx.query.feedPurchaseOrder.findFirst({
-              where: {
-                farmId: context.farm.id,
-                counterpartyId: input.id,
-                state: { in: ["requested", "approved", "ordered"] },
-              },
-              columns: { id: true },
-            });
-            if (pending) {
-              supplierRefused("supplier_open_orders");
-            }
-          }
-          const known = await knownAs(tx, context.farm.id, input.name);
-          if (known && known.id !== input.id) {
-            supplierRefused("supplier_exists");
-          }
-          const { id } = input;
-          const listed = await suppliersList(tx, context.farm.id, now);
-          const before = existing ? listed.find((row) => row.id === id) : null;
-          if (!existing) {
-            await tx.insert(counterparty).values({
-              id,
-              farmId: context.farm.id,
-              name: input.name.normalize("NFC"),
-              createdAt: now,
-            });
-            await tx.insert(supplierProfile).values({
-              counterpartyId: id,
-              farmId: context.farm.id,
-              createdAt: now,
-            });
-          }
-          await tx
-            .update(counterparty)
-            .set(supplierContacts(input))
-            .where(eq(counterparty.id, id));
-          await tx
-            .update(supplierProfile)
-            .set({
-              ...supplierTerms(input),
-              retiredAt: input.retired ? now : null,
-              version: existing ? existing.version + 1 : 1,
-            })
-            .where(eq(supplierProfile.counterpartyId, id));
-          const afterList = await suppliersList(tx, context.farm.id, now);
-          await audited(context).recordEvent(tx, {
-            entity: "supplier",
-            entityId: id,
-            action: existing ? "update" : "create",
-            reason: input.reason,
-            before,
-            after: afterList.find((row) => row.id === id),
-          });
-          return { id };
-        })
-      );
-    }),
+    .handler(({ context, input }) => saveSupplier(context, input)),
   pay: owner
     .input(
       z.object({
@@ -364,80 +254,7 @@ export const suppliersRouter = {
         note: z.string().trim().max(500).optional(),
       })
     )
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      return await seenWhenDone(
-        context.db.transaction(async (tx) => {
-          await lockSupplierFarm(tx, context.farm.id);
-          const existing = await tx.query.supplierPayment.findFirst({
-            where: { id: input.id },
-          });
-          if (existing) {
-            if (
-              existing.farmId !== context.farm.id ||
-              existing.invoiceId !== input.invoiceId ||
-              existing.recordedBy !== context.actor.id
-            ) {
-              supplierRefused("supplier_changed");
-            }
-            return { id: existing.id };
-          }
-          if (
-            !validSupplierDay(input.paidOn) ||
-            input.paidOn > farmDayOf(now)
-          ) {
-            supplierRefused("supplier_invoice_days");
-          }
-          const invoice = await assertInvoicePayments(
-            tx,
-            context.farm.id,
-            input.invoiceId,
-            {
-              payment: {
-                id: input.id,
-                amountMoney: input.amountMoney,
-                paidOn: input.paidOn,
-              },
-            }
-          );
-          await tx.insert(supplierPayment).values({
-            ...input,
-            farmId: context.farm.id,
-            note: input.note || null,
-            recordedBy: context.actor.id,
-            recordedByRole: context.roleUsed,
-            recordedAt: now,
-          });
-          await bookMoney(
-            tx,
-            bookingOf(
-              context,
-              context.roleUsed,
-              now,
-              accountSaid(["supplier_payment"], input)
-            ),
-            {
-              source: "supplier_payment",
-              sourceId: input.id,
-              amountMoney: input.amountMoney,
-              occurredAt: startOfFarmDay(input.paidOn),
-              counterpartyId: invoice.counterpartyId,
-              paymentMethod: input.paymentMethod,
-              categoryKey: "feed_in",
-            }
-          );
-          await audited(context).recordEvent(tx, {
-            entity: "supplier_payment",
-            entityId: input.id,
-            action: "create",
-            after: await tx.query.supplierPayment.findFirst({
-              where: { id: input.id },
-            }),
-          });
-          return { id: input.id };
-        })
-      );
-    }),
+    .handler(({ context, input }) => paySupplier(context, input)),
   correctPayment: owner
     .input(supplierPaymentCorrectionInput)
     .handler(({ context, input }) =>
