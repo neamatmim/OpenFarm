@@ -12,6 +12,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { DeathPhotoField } from "@/components/animal/death-photo";
@@ -245,6 +246,23 @@ const MortalitySheet = ({ detail, open, onOpenChange }: ActProps) => {
           />
         </FormField>
       </div>
+      {/* A cull that ends at a butcher is a Sale, not a Mortality: written here, the money he paid is lost. */}
+      {kind === "culled" ? (
+        <Notice
+          action={
+            <Button
+              nativeButton={false}
+              render={<Link search={{ sell: detail.tagNumber }} to="/sales" />}
+              size="sm"
+              variant="outline"
+            >
+              {t("sale.record")}
+            </Button>
+          }
+          title={t("mortality.culledToButcher")}
+          tone="info"
+        />
+      ) : null}
       <FormField id="mortality-cause" label={t("mortality.cause")}>
         <Input
           id="mortality-cause"

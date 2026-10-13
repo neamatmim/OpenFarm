@@ -2972,6 +2972,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "mortality.kind": "কীভাবে গেল",
   "mortality.died": "মারা গেছে",
   "mortality.culled": "বাদ দেওয়া হয়েছে",
+  "mortality.culledToButcher":
+    "কসাইয়ের কাছে বিক্রি? এটা মৃত্যু নয়, বিক্রয়: বিক্রয় হিসেবে লিখুন, তাহলে তিনি যে টাকা দিয়েছেন তা হিসাবে থাকবে।",
   "mortality.diagnosis": "ভেট যা নির্ণয় করেছেন",
   "mortality.diagnosisHint":
     "ভেট যে রোগ নির্ণয় করেছিলেন তাতেই মারা গেলে এটা জুড়ে দিন: তখন রেজিস্টারে রোগ আর অফিসের রেফারেন্স থাকবে।",
@@ -3707,6 +3709,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "calving.col.lactation": "দুগ্ধকাল",
   "refusal.staffOrManagerOnly": "বাচ্চা দেওয়ার রেকর্ড খামারকর্মী বা ম্যানেজার রাখেন",
   "refusal.calvingOfACowNotInCalf": "এই পশু বাচ্চা দেওয়ার মতো অবস্থায় নেই",
+  "refusal.noCalvingRecord":
+    "খামারে এখনো প্রসব রেকর্ডের কোনো নিয়ম নেই: প্লেবুক থেকে একটি গ্রহণ করুন",
   "refusal.calvingOfAMale": "ষাঁড় বাচ্চা দেয় না",
   "refusal.calvedInTheFuture": "বাচ্চা দেওয়ার সময় এখনের পরে হতে পারে না",
   "sop.trigger.registrationRenewal": "নিবন্ধন নবায়নের সময় হলে",
@@ -4195,6 +4199,9 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sale.missingRegistration":
     "খামারের নিবন্ধন নম্বর লেখা নেই — পরিবহন কার্ড দেওয়া যাবে না। খামারের পরিচয় পাতায় লিখুন।",
   "sale.otherAnimal": "তালিকার বাইরের পশু",
+  "sale.notReadyYet":
+    "{tag} বিক্রির জন্য প্রস্তুত বলে নিশ্চিত করা হয়নি, তাই বিক্রির আগের পরীক্ষা — ভেটের স্বাস্থ্য সনদ আর চলাচলের অনুমতি — তোলা হয়নি",
+  "sale.confirmFirst": "আগে প্রস্তুত নিশ্চিত করুন",
   "sale.noneToSell":
     "আজ কোনো গরু বিক্রি করা যায় না: খামারে থাকা ও মাংস আটকে রাখার সময় পার হওয়া কোনো গরু নেই",
   "sale.fromList": "তালিকা থেকে বাছুন",
@@ -4679,6 +4686,9 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "alerts.headCountDiffers":
     "সন্ধ্যার গণনায় {pen}-এ {counted}টি পশু পাওয়া গেছে, খাতায় আছে {expected}টি",
   "animals.markNotFound": "পাওয়া যাচ্ছে না বলে জানান",
+  "animals.calved": "বাচ্চা দিয়েছে",
+  "animals.confirmReady": "বিক্রির জন্য প্রস্তুত নিশ্চিত করুন",
+  "animals.sell": "বিক্রি করুন",
   "animals.markNotFoundHint":
     "পশুটি তার পেনে নেই। খোঁজা চলাকালীন সে পালেই থাকবে, আর আপনাকে ও মালিককে সাথে সাথে জানানো হবে।",
   "animals.markedNotFound": "{tag} পাওয়া যাচ্ছে না বলে লেখা হলো",

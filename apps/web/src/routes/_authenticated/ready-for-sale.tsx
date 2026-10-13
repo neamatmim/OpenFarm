@@ -1,5 +1,5 @@
 import { underMeatWithdrawal } from "@OpenFarm/domain";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { formatNumber } from "@OpenFarm/i18n";
 import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -9,11 +9,14 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { MarketPrice } from "@/components/fattening/animal-prices";
+import {
+  useConfirmReady,
+  useReadyRefused,
+} from "@/components/fattening/confirm-ready";
 import type {
   BoardRow,
   Suggestion,
 } from "@/components/fattening/fattening-types";
-import { fitOnFrom } from "@/components/fattening/fattening-types";
 import { KeepLongerDialog } from "@/components/fattening/keep-longer-dialog";
 import { NextEid } from "@/components/fattening/next-eid";
 import { ReadySuggestions } from "@/components/fattening/ready-suggestions";
@@ -21,7 +24,6 @@ import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import { SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
-import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
@@ -134,34 +136,13 @@ const SuggestionsBody = ({
  * something new to say.
  */
 const ReadyPage = () => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const [keeping, setKeeping] = useState<Suggestion | null>(null);
   const suggestions = useQuery(orpc.readyForSale.suggestions.queryOptions());
   const board = useQuery(orpc.fattening.list.queryOptions({ input: {} }));
 
-  const refused = useRefused();
-  // Under withdrawal, said with the day she is fit on; anything else in the farm's words, never the server's English.
-  const onError = (error: Error) => {
-    const fitOn = fitOnFrom(error);
-    if (fitOn) {
-      toast.error(
-        t("ready.underWithdrawal", {
-          when: formatDate(new Date(fitOn), language, "date"),
-        })
-      );
-      return;
-    }
-    refused(error);
-  };
-
-  const confirm = useMutation(
-    orpc.readyForSale.confirm.mutationOptions({
-      onSuccess: ({ tagNumber }) => {
-        toast.success(t("ready.confirmed", { tag: tagNumber }));
-      },
-      onError,
-    })
-  );
+  const onError = useReadyRefused();
+  const confirm = useConfirmReady();
   const setAside = useMutation(
     orpc.readyForSale.setAside.mutationOptions({
       onSuccess: ({ tagNumber }) => {

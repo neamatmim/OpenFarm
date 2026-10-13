@@ -65,6 +65,22 @@ export const calvingKeyOf = (her: {
   lactationNumber: number;
 }): string => `calving:${her.id}:${her.lactationNumber}`;
 
+/**
+ * Every Calving record opened about her — the milker finding her calving with no round open — has a cause beginning so:
+ * the cow, and the Lactation her calving ends. Not a calving cause (below), so her calving recorded on it does not call
+ * it off.
+ */
+export const calvedPrefixOf = (her: {
+  id: string;
+  lactationNumber: number;
+}): string => `calved:${her.id}:${her.lactationNumber}:`;
+
+/** The cause of the nth Calving record opened about her for one calving: one closed on "not calved yet" is not the last. */
+export const calvedCauseOf = (
+  her: { id: string; lactationNumber: number },
+  n: number
+): string => `${calvedPrefixOf(her)}${n}`;
+
 /** The cause calving work carries: its pregnancy's key, and which lead it keeps. */
 export const calvingCauseOf = (key: string, lead: CalvingLead): string =>
   `${key}:${lead}`;
