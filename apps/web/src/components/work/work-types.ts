@@ -12,6 +12,9 @@ export interface Animal {
   /** What she gave or weighed the time before, where the Step reads a figure against it. A phone's copy from before
    *  the farm said it has none. */
   last?: { figure: number; at: Date } | null;
+  /** On a Campaign that comes round, the day her last dose was given where it still covers her: passed as not due. A
+   *  phone's copy from before the farm said it has none. */
+  notDueSince?: string | null;
 }
 
 /** What finishing says: only work somebody signs off waits for them; the rest is finished when it is finished. */

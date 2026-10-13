@@ -6,9 +6,11 @@ import {
   campaignIntervalOf,
   campaignProductOf,
   dueForACampaign,
-  penDueSince,
+  mayPassAsNotDue,
+  notDueSince,
+  penDueBy,
 } from "./campaign-interval";
-import { findStructuralProblems } from "./sop";
+import { NOT_DUE_YET, findStructuralProblems, meaningOfSkip } from "./sop";
 import { standardPlaybook } from "./standard-playbook";
 
 const playbook = standardPlaybook({
@@ -48,13 +50,53 @@ describe("a Campaign's interval", () => {
     expect(dueForACampaign("2026-10-28", today)).toBeNull();
   });
 
-  it("raises a Pen's Campaign from the earliest day one of its animals came due, and not before any has", () => {
+  it("keys a Pen's Campaign on the latest day one of its animals came due, and nothing before any has", () => {
     const today = "2026-10-13";
-    expect(penDueSince(["2026-11-01", "2026-10-02", "2026-09-20"], today)).toBe(
-      "2026-09-20"
+    expect(penDueBy(["2026-11-01", "2026-10-02", "2026-09-20"], today)).toBe(
+      "2026-10-02"
     );
-    expect(penDueSince(["2026-11-01", "2026-12-02"], today)).toBeNull();
-    expect(penDueSince([], today)).toBeNull();
+    expect(penDueBy(["2026-11-01", "2026-12-02"], today)).toBeNull();
+    expect(penDueBy([], today)).toBeNull();
+  });
+
+  it("is not pinned by one animal left undosed: the others coming round again is a new day", () => {
+    // She was missed in January; the rest were dosed in June and come round in October.
+    expect(penDueBy(["2026-01-05", "2026-10-05"], "2026-10-13")).toBe(
+      "2026-10-05"
+    );
+  });
+
+  it("says an animal dosed within the interval is not due, from the day she was dosed", () => {
+    const today = "2026-10-13";
+    expect(notDueSince({ lastGivenOn: "2026-08-01", months: 4, today })).toBe(
+      "2026-08-01"
+    );
+    expect(
+      notDueSince({ lastGivenOn: "2026-06-13", months: 4, today })
+    ).toBeNull();
+    expect(notDueSince({ lastGivenOn: null, months: 4, today })).toBeNull();
+  });
+});
+
+describe("an animal passed on a Campaign's walk as not due", () => {
+  const dose = playbook.fmdVaccination.steps.find(
+    (step) => step.effect?.kind === "treatment"
+  );
+
+  it("is a farm's own reason a Campaign's dose may be passed with, meaning not due, and no other Step's", () => {
+    if (!dose) {
+      throw new Error("expected the Campaign's dose");
+    }
+    expect(mayPassAsNotDue(dose)).toBe(true);
+    expect(meaningOfSkip(dose, NOT_DUE_YET.bn)).toBe("not_due");
+    const milking = playbook.morningMilking.steps.find(
+      (step) => step.repeatPerAnimal
+    );
+    if (!milking) {
+      throw new Error("expected a milking step");
+    }
+    expect(mayPassAsNotDue(milking)).toBe(false);
+    expect(meaningOfSkip(milking, NOT_DUE_YET.bn)).toBeNull();
   });
 });
 

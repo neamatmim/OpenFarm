@@ -1694,6 +1694,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "auditField.byWhatHappened": "ঘটনা থেকে",
   "auditField.forTheRenewal": "নবায়নের জন্য",
   "auditField.penId": "পেন",
+  "auditField.penIds": "পেনগুলো",
   "auditField.id": "আইডি",
   "auditField.definitionId": "কার্যপ্রণালী",
   "auditField.money": "{currencySum}",

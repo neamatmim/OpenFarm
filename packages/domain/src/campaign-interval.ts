@@ -1,5 +1,5 @@
-import { addDays } from "./fattening";
-import type { SopContent } from "./sop";
+import { dayMoved } from "./farm-clock";
+import type { SopContent, Step, Trigger } from "./sop";
 
 /**
  * A **Campaign Interval**: the months between one Campaign's dose and the next for the same Animal. Counted per animal
@@ -11,38 +11,39 @@ import type { SopContent } from "./sop";
 export const CAMPAIGN_SOON_DAYS = 14;
 
 /** `day` plus `months` calendar months, as "YYYY-MM-DD"; a day past the end of a shorter month is that month's last. */
-export const addMonths = (day: string, months: number): string => {
-  const [year = 0, month = 1, date = 1] = day.split("-").map(Number);
-  const counted = year * 12 + (month - 1) + months;
-  const toYear = Math.floor(counted / 12);
-  const toMonth = (counted % 12) + 1;
-  const lastOfMonth = new Date(Date.UTC(toYear, toMonth, 0)).getUTCDate();
-  const toDate = Math.min(date, lastOfMonth);
-  return `${String(toYear).padStart(4, "0")}-${String(toMonth).padStart(2, "0")}-${String(toDate).padStart(2, "0")}`;
-};
+export const addMonths = (day: string, months: number): string =>
+  dayMoved(day, { months });
+
+/** A procedure's Campaign Interval Trigger, read once: nothing for a procedure that does not come round. */
+export const campaignIntervalTriggerOf = (
+  content: Pick<SopContent, "triggers">
+): Extract<Trigger, { kind: "every_months" }> | null =>
+  content.triggers.find(
+    (trigger): trigger is Extract<Trigger, { kind: "every_months" }> =>
+      trigger.kind === "every_months"
+  ) ?? null;
 
 /** The months a procedure's Campaign comes round in, or nothing for a procedure that does not come round. */
-export const campaignIntervalOf = (content: SopContent): number | null => {
-  for (const trigger of content.triggers) {
-    if (trigger.kind === "every_months") {
-      return trigger.months;
-    }
-  }
-  return null;
-};
+export const campaignIntervalOf = (
+  content: Pick<SopContent, "triggers">
+): number | null => campaignIntervalTriggerOf(content)?.months ?? null;
+
+/** Whether a Step is a Campaign's dose: given to every animal walked, of a product the Version names. */
+export const isCampaignDose = (
+  step: Pick<Step, "repeatPerAnimal" | "effect">
+): boolean =>
+  step.repeatPerAnimal &&
+  step.effect?.kind === "treatment" &&
+  Boolean(step.effect.productId);
 
 /** The product a Campaign gives every animal it walks — what her last dose is looked for by — or nothing. */
-export const campaignProductOf = (content: SopContent): string | null => {
-  for (const step of content.steps) {
-    if (
-      step.repeatPerAnimal &&
-      step.effect?.kind === "treatment" &&
-      step.effect.productId
-    ) {
-      return step.effect.productId;
-    }
-  }
-  return null;
+export const campaignProductOf = (
+  content: Pick<SopContent, "steps">
+): string | null => {
+  const dose = content.steps.find(isCampaignDose);
+  return dose?.effect?.kind === "treatment"
+    ? (dose.effect.productId ?? null)
+    : null;
 };
 
 /**
@@ -70,23 +71,47 @@ export const dueForACampaign = (
   if (dueOn <= today) {
     return "due";
   }
-  return dueOn <= addDays(today, CAMPAIGN_SOON_DAYS) ? "soon" : null;
+  return dueOn <= dayMoved(today, { days: CAMPAIGN_SOON_DAYS }) ? "soon" : null;
 };
 
 /**
- * The day a Pen's Campaign has been owed since: the earliest of its animals' due days that has come, or nothing while
- * none has. What the Campaign raised for it is keyed on — the same day while the same animals are owed it, so the turn
- * raises it once; a new day once they are dosed and come round again.
+ * The day a Pen's Campaign is keyed on: the latest of its animals' due days that has come, or nothing while none has.
+ * The latest, not the earliest — one animal left undosed keeps her old day, and keyed on her the Pen would never come
+ * round again however often the rest were dosed. Keyed on the latest, the same while the same animals are owed it, so a
+ * round left Missed is not raised again until a later day comes: the rest coming round, or another animal's day.
  */
-export const penDueSince = (
+export const penDueBy = (
   dueDays: readonly string[],
   today: string
 ): string | null => {
-  let earliest: string | null = null;
+  let latest: string | null = null;
   for (const day of dueDays) {
-    if (day <= today && (earliest === null || day < earliest)) {
-      earliest = day;
+    if (day <= today && (latest === null || day > latest)) {
+      latest = day;
     }
   }
-  return earliest;
+  return latest;
 };
+
+/**
+ * The day an animal was last dosed, where that dose still covers her — her next not yet come — so the Campaign's walk
+ * says "not due — dosed then" rather than dosing her again. Nothing for an animal never given it on the farm, who is
+ * walked as any other.
+ */
+export const notDueSince = ({
+  lastGivenOn,
+  months,
+  today,
+}: {
+  lastGivenOn: string | null;
+  months: number;
+  today: string;
+}): string | null =>
+  lastGivenOn !== null && addMonths(lastGivenOn, months) > today
+    ? lastGivenOn
+    : null;
+
+/** Whether an animal on this Step may be passed as not due: a Campaign's dose, which her last one may still cover. */
+export const mayPassAsNotDue = (
+  step: Pick<Step, "repeatPerAnimal" | "effect">
+): boolean => isCampaignDose(step);

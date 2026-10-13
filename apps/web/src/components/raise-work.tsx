@@ -46,12 +46,23 @@ export const RaiseWork = ({
   const sheds = useQuery({ ...orpc.sheds.list.queryOptions(), enabled: open });
   const raise = useMutation(
     orpc.work.raiseNow.mutationOptions({
-      onSuccess: ({ raised }) => {
-        toast.success(
-          raised > 0
-            ? t("work.raisedIn", { count: formatNumber(raised, language) })
-            : t("work.raisedAlready")
-        );
+      onSuccess: ({ raised, openAlready }) => {
+        if (raised > 0) {
+          toast.success(
+            t("work.raisedIn", { count: formatNumber(raised, language) })
+          );
+        }
+        // A Campaign already standing open in a Pen was not raised there again: walked where it stands.
+        if (openAlready > 0) {
+          toast.info(
+            t("work.raisedOpenAlready", {
+              count: formatNumber(openAlready, language),
+            })
+          );
+        }
+        if (raised === 0 && openAlready === 0) {
+          toast.success(t("work.raisedAlready"));
+        }
         setOpen(false);
         setPens(chosenAtFirst);
       },

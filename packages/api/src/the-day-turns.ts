@@ -19,6 +19,7 @@ import {
   campaignSlotsFor,
   campaignsComingRound,
   campaignsOpen,
+  herdOnTheFarm,
   owedTheirCampaigns,
 } from "./campaign-interval-store";
 import type { Context } from "./context";
@@ -256,10 +257,8 @@ export const theDaysWork = async (context: Turning) => {
         )
       )
     );
-  const animals = await context.db.query.animal.findMany({
-    where: { farmId: context.farm.id },
-    columns: { penId: true, side: true, state: true },
-  });
+  // The animals on the farm, read once for the clock's work and for the Campaigns coming round.
+  const animals = await herdOnTheFarm(context.db, context.farm.id);
   const breeding = {
     aiWindow: {
       startHours: context.farm.aiWindowStartHours,
@@ -310,12 +309,15 @@ export const theDaysWork = async (context: Turning) => {
   );
   // A Campaign coming round: in each Pen holding an animal whose day has come, counted as the clock's work.
   const campaigns = campaignsComingRound(sops);
-  const forTheCampaigns = campaignSlotsFor(
-    now,
-    campaigns,
-    await owedTheirCampaigns(context.db, context.farm.id, campaigns),
-    await campaignsOpen(context.db, context.farm.id, campaigns)
-  );
+  const [owed, open] = await Promise.all([
+    owedTheirCampaigns(context.db, context.farm.id, campaigns, animals, now),
+    campaignsOpen(
+      context.db,
+      context.farm.id,
+      campaigns.map((one) => one.definitionId)
+    ),
+  ]);
+  const forTheCampaigns = campaignSlotsFor(now, campaigns, owed, open);
   const slots = [
     ...onTheSchedule,
     ...byWhatHappened,

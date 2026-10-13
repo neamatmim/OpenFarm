@@ -1,5 +1,10 @@
 import type { Bilingual, Step } from "@OpenFarm/domain";
-import { WRITTEN_BY_MISTAKE, maySkip } from "@OpenFarm/domain";
+import {
+  NOT_DUE_YET,
+  WRITTEN_BY_MISTAKE,
+  mayPassAsNotDue,
+  maySkip,
+} from "@OpenFarm/domain";
 
 /**
  * The reasons this Step may be skipped with, as the phone can offer them — none, when it may not be
@@ -12,17 +17,21 @@ import { WRITTEN_BY_MISTAKE, maySkip } from "@OpenFarm/domain";
  * a Playbook make skippable, with no reasons against it.
  *
  * Answering with the reasons rather than with yes or no keeps the button and the sheet reading the same
- * list, so one cannot offer what the other has not got.
+ * list, so one cannot offer what the other has not got. An animal a Campaign's last dose still covers is offered the
+ * farm's own word for her, first: not due, dosed already.
  */
 export const skipReasonsOffered = (
   step: Pick<Step, "repeatPerAnimal" | "effect" | "skipReasons">,
   /** Putting an answer right, which may also say it was written by mistake. */
-  correcting = false
+  correcting = false,
+  /** Her last dose of this Campaign's product still covers her. */
+  notDue = false
 ): Bilingual[] => {
   if (!maySkip(step)) {
     return [];
   }
-  return correcting
+  const own = correcting
     ? [...step.skipReasons, WRITTEN_BY_MISTAKE]
     : step.skipReasons;
+  return notDue && mayPassAsNotDue(step) ? [NOT_DUE_YET, ...own] : own;
 };

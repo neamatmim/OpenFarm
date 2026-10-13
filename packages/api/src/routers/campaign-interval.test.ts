@@ -1,11 +1,13 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
+import { NOT_DUE_YET } from "@OpenFarm/domain";
 import {
   FakeClock,
   scratchDb,
   theFarm,
   thePerson,
 } from "@OpenFarm/test-harness";
+import { createRouterClient } from "@orpc/server";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -98,6 +100,13 @@ const campaignsIn = async (penId: string, at: string) => {
   const work = await staff.client.work.today({ penId });
   return work.filter((row) => row.definitionId === definitionId);
 };
+
+/** This Campaign's work still open about one animal: her dose put off, raised for her alone. */
+const openWorkAbout = (animalId: string) =>
+  scratchDb().query.sopInstance.findMany({
+    where: { definitionId, animalId, state: { in: ["due", "in_progress"] } },
+    columns: { id: true, penId: true },
+  });
 
 /** This file's Campaign's work in a list of the day's work. */
 const ours = (work: readonly { definitionId: string }[]) =>
@@ -232,7 +241,7 @@ describe("a Campaign the turn leaves alone", () => {
 });
 
 describe("a Campaign raised by hand", () => {
-  it("is raised in every Pen chosen at once, one piece of work for each, and asking again raises nothing more", async () => {
+  it("is raised in every Pen chosen at once, one piece of work for each, and asking again raises nothing more where it stands open", async () => {
     const clock = new FakeClock("2033-02-01T04:00:00.000Z");
     const first = await aPenOfHeifers(clock, 1);
     const second = await aPenOfHeifers(clock, 1);
@@ -248,7 +257,7 @@ describe("a Campaign raised by hand", () => {
         definitionId,
         penIds: [first.pen.id, second.pen.id],
       })
-    ).toEqual({ raised: 0 });
+    ).toEqual({ raised: 0, openAlready: 2 });
 
     const staff = await createTestClient(appRouter, { as: "staff", clock });
     for (const pen of [first.pen, second.pen]) {
@@ -341,5 +350,220 @@ describe("who is due a Campaign", () => {
     await expect(barn.client.treatments.campaignsDue()).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
+  });
+});
+
+describe("one heifer left undosed", () => {
+  it("neither blocks nor pins her Pen: her dose put off stands apart, and the rest come round again", async () => {
+    const { pen, heifers } = await aPenOfHeifers(
+      new FakeClock("2037-01-05T03:30:00.000Z"),
+      2
+    );
+    const [dosed, unwell] = heifers;
+    if (!(dosed && unwell)) {
+      throw new Error("expected two heifers");
+    }
+    const [round] = await campaignsIn(pen.id, "2037-05-05T04:00:00.000Z");
+    if (!round) {
+      throw new Error("expected the Campaign raised");
+    }
+    const staff = await createTestClient(appRouter, {
+      as: "staff",
+      clock: new FakeClock("2037-05-05T05:00:00.000Z"),
+    });
+    await staff.client.work.claim({ id: round.id });
+    await staff.client.work.completeStep({
+      instanceId: round.id,
+      stepId: "dose",
+      animalTag: dosed.tagNumber,
+      evidence: [true],
+    });
+    await staff.client.work.completeStep({
+      instanceId: round.id,
+      stepId: "dose",
+      animalTag: unwell.tagNumber,
+      evidence: [],
+      skipReason: "অসুস্থ — পরে দেওয়া হবে",
+    });
+    await staff.client.work.complete({ id: round.id });
+    // Her dose alone is put off, raised a week on, and nobody gives it: it stands open in the Pen all summer.
+    const hers = await openWorkAbout(unwell.id);
+    expect(hers).toEqual([expect.objectContaining({ penId: pen.id })]);
+
+    // Four months after the rest were dosed, the Pen comes round again however long she has waited.
+    const later = await campaignsIn(pen.id, "2037-09-05T04:00:00.000Z");
+    const again = later.filter((work) => work.animalId === null);
+    expect(again).toHaveLength(1);
+    expect(again[0]?.id).not.toBe(round.id);
+  });
+});
+
+describe("a Campaign already open in a Pen", () => {
+  it("is not raised there a second time by hand, and its heifers are listed as raised", async () => {
+    const first = await aPenOfHeifers(
+      new FakeClock("2038-01-05T03:30:00.000Z"),
+      1
+    );
+    const second = await aPenOfHeifers(
+      new FakeClock("2038-01-05T03:30:00.000Z"),
+      1
+    );
+    // The turn raises it in both Pens; Barn Staff have not walked either.
+    expect(
+      await campaignsIn(first.pen.id, "2038-05-05T04:00:00.000Z")
+    ).toHaveLength(1);
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2038-05-06T04:00:00.000Z"),
+    });
+
+    expect(
+      await manager.client.work.raiseNow({
+        definitionId,
+        penIds: [first.pen.id, second.pen.id],
+      })
+    ).toEqual({ raised: 0, openAlready: 2 });
+    const due = await manager.client.treatments.campaignsDue();
+    expect(
+      due
+        .find((one) => one.definitionId === definitionId)
+        ?.animals.filter((one) => one.penId === first.pen.id)
+    ).toEqual([expect.objectContaining({ raisedOpen: true })]);
+  });
+});
+
+describe("an animal passed as not due on a Campaign's walk", () => {
+  it("is shown dosed within the interval, passed so, and owed no dose later", async () => {
+    const { pen, heifers } = await aPenOfHeifers(
+      new FakeClock("2039-01-05T03:30:00.000Z"),
+      1
+    );
+    const [heifer] = heifers;
+    if (!heifer) {
+      throw new Error("expected a heifer");
+    }
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2039-02-01T04:00:00.000Z"),
+    });
+    await manager.client.work.raiseNow({ definitionId, penId: pen.id });
+    const [firstWalk] = await campaignsIn(pen.id, "2039-02-01T04:30:00.000Z");
+    if (!firstWalk) {
+      throw new Error("expected the first walk");
+    }
+    await doseThemAll(
+      firstWalk.id,
+      [heifer.tagNumber],
+      "2039-02-01T05:00:00.000Z"
+    );
+
+    const later = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2039-03-01T04:00:00.000Z"),
+    });
+    await later.client.work.raiseNow({ definitionId, penId: pen.id });
+    const [secondWalk] = await campaignsIn(pen.id, "2039-03-01T04:30:00.000Z");
+    if (!secondWalk) {
+      throw new Error("expected the second walk");
+    }
+    const staff = await createTestClient(appRouter, {
+      as: "staff",
+      clock: new FakeClock("2039-03-01T05:00:00.000Z"),
+    });
+    const board = await staff.client.work.get({ id: secondWalk.id });
+    expect(board.animals).toEqual([
+      expect.objectContaining({ id: heifer.id, notDueSince: "2039-02-01" }),
+    ]);
+    await staff.client.work.claim({ id: secondWalk.id });
+    await staff.client.work.completeStep({
+      instanceId: secondWalk.id,
+      stepId: "dose",
+      animalTag: heifer.tagNumber,
+      evidence: [],
+      skipReason: NOT_DUE_YET.bn,
+    });
+    await staff.client.work.complete({ id: secondWalk.id });
+
+    // Nothing is put off for her: no dose of hers raised for later.
+    expect(await openWorkAbout(heifer.id)).toEqual([]);
+  });
+
+  it("is refused for an animal whose dose has come", async () => {
+    const { pen, heifers } = await aPenOfHeifers(
+      new FakeClock("2040-01-05T03:30:00.000Z"),
+      1
+    );
+    const [heifer] = heifers;
+    if (!heifer) {
+      throw new Error("expected a heifer");
+    }
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2040-02-01T04:00:00.000Z"),
+    });
+    await manager.client.work.raiseNow({ definitionId, penId: pen.id });
+    const [walk] = await campaignsIn(pen.id, "2040-02-01T04:30:00.000Z");
+    if (!walk) {
+      throw new Error("expected the walk");
+    }
+    const staff = await createTestClient(appRouter, {
+      as: "staff",
+      clock: new FakeClock("2040-02-01T05:00:00.000Z"),
+    });
+    await staff.client.work.claim({ id: walk.id });
+    await expect(
+      staff.client.work.completeStep({
+        instanceId: walk.id,
+        stepId: "dose",
+        animalTag: heifer.tagNumber,
+        evidence: [],
+        skipReason: NOT_DUE_YET.bn,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "dose_is_due" } });
+  });
+});
+
+describe("who may read the Campaigns due", () => {
+  it("is not a vet called in for a visit", async () => {
+    const { context } = await createTestClient(appRouter, { as: "vet" });
+    const onAVisit = createRouterClient(appRouter, {
+      context: {
+        ...context,
+        roles: ["vet"],
+        visiting: true,
+        penIds: [],
+        caseAnimalIds: [],
+      },
+    });
+    await expect(onAVisit.treatments.campaignsDue()).rejects.toMatchObject({
+      data: { refusal: "visiting_vet" },
+    });
+  });
+});
+
+// Last: it publishes a new Version of the file's Campaign, which every test above reads.
+describe("an interval changed", () => {
+  it("does not start counting again: a heifer never dosed is counted from when she came, not from the new Version", async () => {
+    const { pen } = await aPenOfHeifers(
+      new FakeClock("2041-01-05T03:30:00.000Z"),
+      1
+    );
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2041-03-01T04:00:00.000Z"),
+    });
+    const sop = await owner.client.sops.get({ id: definitionId });
+    const content = sop.currentVersion?.content as SopContent;
+    await owner.client.sops.publish({
+      definitionId,
+      content: { ...content, triggers: [{ kind: "every_months", months: 5 }] },
+      note: "পাঁচ মাস অন্তর",
+      basedOnVersionId: sop.currentVersion?.id ?? null,
+    });
+
+    // Five months from 5 January, not from 1 March.
+    expect(await campaignsIn(pen.id, "2041-06-05T04:00:00.000Z")).toHaveLength(
+      1
+    );
   });
 });

@@ -7,9 +7,11 @@ import type {
   Step,
 } from "@OpenFarm/domain";
 import {
+  NOT_DUE_YET,
   feedUnitWord,
   MILK_DESTINATIONS,
   farFromLast,
+  mayPassAsNotDue,
   missingEvidence,
   nothingToNoteOf,
   outsideItsRange,
@@ -771,9 +773,18 @@ const useStartingAnswer = (
   const [values, setValues] = useState<Entered>(() =>
     enteredFrom(step, done, new Date())
   );
-  const [skipping, setSkipping] = useState(existing?.status === "skipped");
+  // An animal a Campaign's last dose still covers opens passed as not due, so nobody doses her twice by default.
+  const passedNotDue =
+    existing === undefined &&
+    Boolean(animal?.notDueSince) &&
+    mayPassAsNotDue(step);
+  const [skipping, setSkipping] = useState(
+    existing?.status === "skipped" || passedNotDue
+  );
   const [reason, setReason] = useState(
-    initialReason ?? existing?.skipReason ?? ""
+    initialReason ??
+      existing?.skipReason ??
+      (passedNotDue ? NOT_DUE_YET.bn : "")
   );
   const locked = Boolean(animal?.underMilkWithdrawal);
   const [destination, setDestination] = useState<MilkDestination>(
@@ -1108,7 +1119,11 @@ export const EvidenceSheet = ({
   // Asked of one place, not worked out here: the server refuses a skip by the same rule, and when this
   // screen had its own the two disagreed — a dose Step written with "ওষুধ শেষ" against it drew no
   // button at all. The reasons rather than a yes, so the button and the sheet cannot differ on them.
-  const skipReasons = skipReasonsOffered(step, correcting);
+  const skipReasons = skipReasonsOffered(
+    step,
+    correcting,
+    Boolean(animal?.notDueSince)
+  );
   const skippable = skipReasons.length > 0;
   // A Correction starts from what was fed, not from what the Ration owed: saving it unchanged keeps what went out.
   const recorded = factsOf(existing);

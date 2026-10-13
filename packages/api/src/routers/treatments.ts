@@ -1,4 +1,4 @@
-import { farmDayOf, tagNumberAsWritten } from "@OpenFarm/domain";
+import { tagNumberAsWritten } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -6,8 +6,10 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import {
   campaignsComingRound,
-  dueOrComingDue,
+  campaignsOpen,
+  herdOnTheFarm,
   owedTheirCampaigns,
+  soonestFirst,
 } from "../campaign-interval-store";
 import { correct } from "../corrections/correction";
 import {
@@ -190,16 +192,18 @@ export const treatmentsRouter = {
   campaignsDue: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
     .handler(async ({ context }) => {
-      const today = farmDayOf(context.clock.now());
+      const now = context.clock.now();
       const campaigns = campaignsComingRound(
         await sopsInForce(context.db, context.farm.id)
       );
-      const owed = await owedTheirCampaigns(
-        context.db,
-        context.farm.id,
-        campaigns
-      );
-      const [pens, products] = await Promise.all([
+      const herd = await herdOnTheFarm(context.db, context.farm.id);
+      const [owed, open, pens, products] = await Promise.all([
+        owedTheirCampaigns(context.db, context.farm.id, campaigns, herd, now),
+        campaignsOpen(
+          context.db,
+          context.farm.id,
+          campaigns.map((one) => one.definitionId)
+        ),
         context.db.query.pen.findMany({
           where: { farmId: context.farm.id },
           columns: { id: true, name: true },
@@ -225,13 +229,14 @@ export const treatmentsRouter = {
           nameBn: productNamed.get(campaign.productId)?.nameBn ?? null,
           nameEn: productNamed.get(campaign.productId)?.nameEn ?? null,
         },
-        animals: dueOrComingDue(
-          owed.get(campaign.definitionId) ?? [],
-          today
-        ).map((beast) => ({
-          ...beast,
-          penLabel: penNamed.get(beast.penId) ?? null,
-        })),
+        animals: soonestFirst(owed.get(campaign.definitionId) ?? []).map(
+          (beast) => ({
+            ...beast,
+            penLabel: penNamed.get(beast.penId) ?? null,
+            // Her Pen's Campaign already stands open: raised, waiting to be walked, not to be raised again.
+            raisedOpen: open.has(`${campaign.definitionId}:${beast.penId}`),
+          })
+        ),
       }));
     }),
 };

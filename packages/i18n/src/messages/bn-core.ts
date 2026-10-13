@@ -913,6 +913,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "আটকে রাখার সময় শুধু কমানো যায়। এখন যে দিন ও সময় আছে, তার আগের একটি বেছে নিন",
   "refusal.noWithdrawalDays":
     "পশুচিকিৎসক এই ওষুধের আটকে রাখার দিন লেখেননি, তাই এটি এখনো দেওয়া যাবে না",
+  "refusal.doseIsDue": "তার ডোজের সময় হয়েছে: দিন, নয়তো কেন অপেক্ষা তা বলুন।",
   "refusal.observationCorrected":
     "এই তালিকা খোলার পর ঘটনাটি সংশোধন হয়েছে। তার জায়গার ঘটনাটির উত্তর দিন",
   "refusal.feedOnARation":
@@ -1850,6 +1851,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sop.meaning.notFound": "নিখোঁজ পশু খোলে",
   "sop.meaning.unwell": "ম্যানেজার দেখবেন",
   "sop.meaning.nothingToNote": "এক চাপে পার",
+  "sop.meaning.notDue": "পরে কিছু পাওনা নয়",
+  "work.notDue": "পাওনা নয় — {day} দেওয়া",
   "sop.meaningLost": "“{was}”-এর কাজ ছিল: {means}। এই ধাপে এখন কিছুই তা করে না।",
   "sop.meaningLostWrite": "এর নতুন কথা লিখুন, তারপর এখানে সেটিকে দিন।",
   "sop.meaningGiveTo": "কাকে দেবেন…",
@@ -3237,6 +3240,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "campaigns.tab": "যাদের ক্যাম্পেইন পাওনা",
   "campaigns.due": "পাওনা",
   "campaigns.soon": "দুই সপ্তাহের মধ্যে",
+  "campaigns.raisedOpen": "তোলা হয়েছে — হাঁটা বাকি",
+  "work.raisedOpenAlready": "{count}টি পেনে আগেই খোলা — সেখানেই করুন",
   "campaigns.lastGiven": "শেষ দেওয়া",
   "campaigns.dueOn": "পাওনার দিন",
   "campaigns.noneGiven": "খামারে দেওয়া হয়নি",

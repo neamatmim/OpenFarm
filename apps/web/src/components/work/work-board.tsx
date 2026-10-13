@@ -1,9 +1,13 @@
 // The work page's board: its header, its tiles and step rows, who holds it, and how it closes.
 
 import type { Step } from "@OpenFarm/domain";
-import { heldFromThem, nothingToNoteOf } from "@OpenFarm/domain";
+import {
+  heldFromThem,
+  nothingToNoteOf,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDigits } from "@OpenFarm/i18n";
+import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { cn } from "@OpenFarm/ui/lib/utils";
@@ -504,7 +508,7 @@ export const AnimalTile = ({
   next: boolean;
   onOpen: () => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const standing = standingOf(completion, well);
   const { icon: StateIcon, label, tile, text } = TILE_LOOK[standing];
   const held = animal.underMilkWithdrawal && standing === "left";
@@ -552,6 +556,13 @@ export const AnimalTile = ({
       {animal.underMilkWithdrawal ? (
         <StatusBadge icon={Lock} tone="warning">
           {t("milk.withdrawalShort")}
+        </StatusBadge>
+      ) : null}
+      {animal.notDueSince && standing === "left" ? (
+        <StatusBadge tone="info">
+          {t("work.notDue", {
+            day: formatDate(startOfFarmDay(animal.notDueSince), language),
+          })}
         </StatusBadge>
       ) : null}
     </button>

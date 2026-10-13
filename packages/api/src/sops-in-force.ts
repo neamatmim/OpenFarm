@@ -1,5 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import type { SopContent } from "@OpenFarm/domain";
+import { campaignIntervalTriggerOf } from "@OpenFarm/domain";
 
 import { triggerKey } from "./instances-store";
 import { contentOf } from "./sop-content";
@@ -33,6 +34,24 @@ const inForceSinceByTrigger = (
   return since;
 };
 
+/**
+ * When a procedure's Campaign Interval first came into force without a break, whatever its months: the publishing of the
+ * oldest Version in the unbroken run, newest first, that comes round at all. Changing four months to five is the same
+ * interval put right, not a new one to start counting from; nothing for a procedure that does not come round.
+ */
+const intervalInForceSince = (
+  versions: readonly { number: number; content: unknown; publishedAt: Date }[]
+): Date | undefined => {
+  let since: Date | undefined;
+  for (const version of versions) {
+    if (campaignIntervalTriggerOf(contentOf(version)) === null) {
+      break;
+    }
+    since = version.publishedAt;
+  }
+  return since;
+};
+
 /** A procedure in force, as the work it raises reads it. */
 export interface SopInForce {
   definitionId: string;
@@ -44,6 +63,9 @@ export interface SopInForce {
   triggerInForceSince: Map<string, Date> | undefined;
   /** Its first Version, which nothing came before. */
   catchesUp: boolean;
+  /** When its Campaign Interval first came into force without a break, whatever its months; nothing for a procedure
+   *  that does not come round, or one brought back from retired. */
+  intervalInForceSince: Date | undefined;
 }
 
 /** The farm's procedures not retired and with a Version published, each with how long its triggers have stood. */
@@ -85,6 +107,9 @@ export const sopsInForce = async (
         // A procedure's first Version catches up with the animals already on their way; a later one does not raise
         // again what the first raised.
         catchesUp: !restored && definition.currentVersion?.number === 1,
+        intervalInForceSince: restored
+          ? undefined
+          : intervalInForceSince(definition.versions),
       };
     });
 };

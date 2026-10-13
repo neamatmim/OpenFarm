@@ -1,6 +1,6 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, Syringe } from "lucide-react";
+import { CalendarCheck, CalendarClock, Syringe } from "lucide-react";
 
 import {
   DataTable,
@@ -13,6 +13,7 @@ import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Loaded, Section, StatusBadge } from "@/components/page";
 import { RaiseWork } from "@/components/raise-work";
 import { useLanguage } from "@/i18n/language-provider";
+import { pensToRaise } from "@/lib/campaigns-due";
 import { orpc } from "@/utils/orpc";
 
 type Campaign = Awaited<
@@ -37,21 +38,31 @@ const LastCell = ({ row }: { row: { original: Owed } }) => {
   );
 };
 
-const DueCell = ({ row }: { row: { original: Owed } }) => {
+/** How she stands: her Pen's Campaign raised and waiting, due now, or coming due within the fortnight. */
+const Standing = ({ owed }: { owed: Owed }) => {
   const { t } = useLanguage();
-  return (
-    <span className="flex flex-wrap items-center gap-2 whitespace-nowrap">
-      <SaidDate at={row.original.dueOn} />
-      {row.original.standing === "due" ? (
-        <StatusBadge tone="warning">{t("campaigns.due")}</StatusBadge>
-      ) : (
-        <StatusBadge icon={CalendarClock} tone="info">
-          {t("campaigns.soon")}
-        </StatusBadge>
-      )}
-    </span>
+  if (owed.raisedOpen) {
+    return (
+      <StatusBadge icon={CalendarCheck} tone="neutral">
+        {t("campaigns.raisedOpen")}
+      </StatusBadge>
+    );
+  }
+  return owed.standing === "due" ? (
+    <StatusBadge tone="warning">{t("campaigns.due")}</StatusBadge>
+  ) : (
+    <StatusBadge icon={CalendarClock} tone="info">
+      {t("campaigns.soon")}
+    </StatusBadge>
   );
 };
+
+const DueCell = ({ row }: { row: { original: Owed } }) => (
+  <span className="flex flex-wrap items-center gap-2 whitespace-nowrap">
+    <SaidDate at={row.original.dueOn} />
+    <Standing owed={row.original} />
+  </span>
+);
 
 const column = createListColumns<Owed>();
 const owedColumns = column.columns([
@@ -113,14 +124,7 @@ const CampaignOwed = ({
     language === "en" && campaign.product.nameEn
       ? campaign.product.nameEn
       : campaign.product.nameBn;
-  // Raised in the Pens of the animals whose day has come; those coming due wait for theirs.
-  const pens = [
-    ...new Set(
-      campaign.animals
-        .filter((one) => one.standing === "due")
-        .map((one) => one.penId)
-    ),
-  ];
+  const pens = pensToRaise(campaign.animals);
   return (
     <Section
       action={
@@ -187,10 +191,13 @@ export const CampaignsDueTab = ({ mayRaise }: { mayRaise: boolean }) => {
   );
 };
 
-/** How many animals are owed a Campaign now, across them all: the tab's count. */
+/** How many animals are owed a Campaign now and not yet raised for, across them all: the tab's count. */
 export const owedNow = (campaigns: readonly Campaign[] | undefined): number =>
   (campaigns ?? []).reduce(
     (sum, campaign) =>
-      sum + campaign.animals.filter((one) => one.standing === "due").length,
+      sum +
+      campaign.animals.filter(
+        (one) => one.standing === "due" && !one.raisedOpen
+      ).length,
     0
   );

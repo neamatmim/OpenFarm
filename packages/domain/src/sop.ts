@@ -1,5 +1,10 @@
 import type { CalvingLead } from "./breeding";
 import { CALVING_RECORDERS, HEAT, SERVICE, isCalvingLead } from "./breeding";
+import {
+  campaignIntervalTriggerOf,
+  campaignProductOf,
+  mayPassAsNotDue,
+} from "./campaign-interval";
 import { farmDayOf } from "./farm-clock";
 import type { AnimalState, Side } from "./lifecycle";
 import { LIVE_STATES } from "./lifecycle";
@@ -209,6 +214,7 @@ export const SKIP_MEANINGS = [
   "not_found",
   "unwell",
   "nothing_to_note",
+  "not_due",
 ] as const;
 export type SkipMeaning = (typeof SKIP_MEANINGS)[number];
 
@@ -228,16 +234,33 @@ export const WRITTEN_BY_MISTAKE: SkipReason = {
   en: "Written by mistake",
 };
 
+/**
+ * The farm's own word for an animal on a Campaign's walk whose last dose still covers her: passed, not dosed again, and
+ * owed nothing later — unlike a dose put off, which is raised again for her alone. Offered on any Campaign's dose,
+ * whatever the Version's own reasons, and refused by the farm for an animal whose dose has come.
+ */
+export const NOT_DUE_YET: SkipReason = {
+  bn: "পাওনা নয় — আগেই দেওয়া",
+  en: "Not due — dosed already",
+  means: "not_due",
+};
+
 /** What the reason somebody skipped with means, read from the Step they skipped: nothing for a reason the farm does
  *  not act on, or a Step that was not skipped. Matched on the Bangla, because that is what a phone sends. */
 export const meaningOfSkip = (
-  step: Pick<Step, "skipReasons">,
+  step: Pick<Step, "skipReasons" | "repeatPerAnimal" | "effect">,
   skipReason: string | null | undefined
-): SkipMeaning | null =>
-  skipReason
-    ? (step.skipReasons.find((reason) => reason.bn === skipReason)?.means ??
-      null)
-    : null;
+): SkipMeaning | null => {
+  if (!skipReason) {
+    return null;
+  }
+  if (skipReason === NOT_DUE_YET.bn && mayPassAsNotDue(step)) {
+    return "not_due";
+  }
+  return (
+    step.skipReasons.find((reason) => reason.bn === skipReason)?.means ?? null
+  );
+};
 
 /** The reason a Step's animal is passed as well, with nothing to note, where the Step has one. */
 export const nothingToNoteOf = (
@@ -1090,13 +1113,8 @@ const sameIdProblems = (content: SopContent): string[] =>
  * by one must give that product to every animal it walks: with no dose to count from, it would come due for ever.
  */
 const intervalProblems = (content: SopContent): string[] =>
-  content.triggers.some((trigger) => trigger.kind === "every_months") &&
-  !content.steps.some(
-    (step) =>
-      step.repeatPerAnimal &&
-      step.effect?.kind === "treatment" &&
-      Boolean(step.effect.productId)
-  )
+  campaignIntervalTriggerOf(content) !== null &&
+  campaignProductOf(content) === null
     ? [
         "triggers: a Campaign comes round by its last dose, and this procedure gives no dose of a product to every animal",
       ]

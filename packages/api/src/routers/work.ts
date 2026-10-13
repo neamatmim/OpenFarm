@@ -4,6 +4,7 @@ import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import type { SopContent } from "@OpenFarm/domain";
 import {
   OPEN_INSTANCE_STATES,
+  campaignProductOf,
   awaitsSignOff,
   isEscalated,
   isOverdue,
@@ -21,6 +22,7 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { openCalvingRecord } from "../calving-record-store";
+import { campaignsOpen, notDueOnTheWalk } from "../campaign-interval-store";
 import { stepOf } from "../completion-store";
 import { correct, reasonInput } from "../corrections/correction";
 import {
@@ -282,6 +284,7 @@ export const workRouter = {
         });
       }
       let raised = 0;
+      let openAlready = 0;
       await audited(context).write(
         {
           entity: "sop_instance",
@@ -296,9 +299,19 @@ export const workRouter = {
             // oxlint-disable-next-line no-await-in-loop -- one Pen at a time, on the one transaction
             await requirePen(tx, context.farm.id, penId);
           }
+          // A Campaign already standing open in a Pen — raised by hand or by the turn — is walked there, not raised a
+          // second time beside it.
+          const open =
+            campaignProductOf(content) === null
+              ? new Set<string>()
+              : await campaignsOpen(tx, context.farm.id, [definition.id]);
+          const notOpen = penIds.filter(
+            (penId) => !open.has(`${definition.id}:${penId}`)
+          );
+          openAlready = penIds.length - notOpen.length;
           // Work about the whole farm is in no Pen, raised by hand as by the clock: once, whichever Pens were chosen.
           const raisedIn =
-            content.wholeFarm === true ? penIds.slice(0, 1) : penIds;
+            content.wholeFarm === true ? notOpen.slice(0, 1) : notOpen;
           const instances = await raiseDueInstances(
             tx,
             context.farm.id,
@@ -319,7 +332,7 @@ export const workRouter = {
           raised = instances.length;
         }
       );
-      return { raised };
+      return { raised, openAlready };
     }),
 
   /**
@@ -536,6 +549,14 @@ export const workRouter = {
         { ...instance, content },
         animals.map((beast) => beast.id)
       );
+      // On a Campaign that comes round, those its last dose still covers: passed as not due, not dosed again.
+      const covered = await notDueOnTheWalk(
+        context.db,
+        context.farm.id,
+        content,
+        animals.map((beast) => beast.id),
+        context.clock.now()
+      );
       // The Session the Instance's effects wrote, so the reconciliation — and the flag the
       // Manager is meant to act on — is read where the work itself is read.
       const milkingSession = await context.db.query.milkingSession.findFirst({
@@ -689,6 +710,9 @@ export const workRouter = {
           underMilkWithdrawal: underMilkWithdrawal(beast, now),
           /** What she gave or weighed the time before; nothing where the Step reads no figure, or she has none. */
           last: lasts.get(beast.id) ?? null,
+          /** The day her last dose of a Campaign that comes round was given, where it still covers her; nothing
+           *  otherwise. */
+          notDueSince: covered.get(beast.id) ?? null,
         })),
       };
     }),

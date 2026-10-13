@@ -986,6 +986,7 @@ export const enCore = {
     "A withdrawal can only be made shorter. Choose a day and time before the one it stands at",
   "refusal.noWithdrawalDays":
     "The vet has written no withdrawal days for this medicine, so it cannot be given yet",
+  "refusal.doseIsDue": "Her dose has come: give it, or say why it waits.",
   "refusal.observationCorrected":
     "That sighting was corrected since this list was opened. Answer the one in its place",
   "refusal.feedOnARation":
@@ -2007,6 +2008,8 @@ export const enCore = {
   "sop.meaning.notFound": "opens a missing animal",
   "sop.meaning.unwell": "the manager sees to her",
   "sop.meaning.nothingToNote": "passed in one tap",
+  "sop.meaning.notDue": "owed nothing later",
+  "work.notDue": "Not due — dosed {day}",
   "sop.meaningLost":
     "“{was}” did this: {means}. Nothing on this step does now.",
   "sop.meaningLostWrite":
@@ -3484,6 +3487,9 @@ export const enCore = {
   "campaigns.tab": "Campaigns due",
   "campaigns.due": "Due",
   "campaigns.soon": "Within a fortnight",
+  "campaigns.raisedOpen": "Raised — waiting to be walked",
+  "work.raisedOpenAlready":
+    "{count, plural, one {Already open in # pen — walk it there} other {Already open in # pens — walk them there}}",
   "campaigns.lastGiven": "Last given",
   "campaigns.dueOn": "Due on",
   "campaigns.noneGiven": "None on the farm",
