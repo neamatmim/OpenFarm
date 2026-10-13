@@ -1,4 +1,7 @@
 import type { Database } from "@OpenFarm/db";
+import { desc, eq } from "@OpenFarm/db/operators";
+import { counterparty } from "@OpenFarm/db/schema/fattening";
+import { dispatch } from "@OpenFarm/db/schema/milk";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import {
   MILK_ACCOUNT_DAYS,
@@ -61,6 +64,56 @@ export const dispatchesBetween = async (
     promisedBy: row.promisedBy,
     note: row.note,
   }));
+};
+
+/** A milk buyer as the last milk he took left him: what the Dispatch sheet fills in once he is picked. */
+export interface MilkBuyer {
+  /** His name as the farm keeps it, which a Dispatch sent with it finds again. */
+  name: string;
+  address: string | null;
+  phone: string | null;
+  /** The price his last milk went at, per liter. */
+  pricePerLiterMoney: number;
+  /** Whether he left owing for his last milk: a collection centre that pays on its round, not at the gate. */
+  paysLater: boolean;
+}
+
+/**
+ * Every Counterparty the farm has handed milk to, each by his last Dispatch, the most recent buyer first. His address is
+ * the Counterparty's where the farm has one, else what his last Dispatch wrote; his phone only the Counterparty keeps.
+ */
+export const milkBuyersOf = async (
+  db: Pick<Database, "selectDistinctOn">,
+  farmId: string
+): Promise<MilkBuyer[]> => {
+  const lastOfEach = await db
+    .selectDistinctOn([dispatch.buyerId], {
+      name: counterparty.name,
+      counterpartyAddress: counterparty.address,
+      dispatchAddress: dispatch.buyerAddress,
+      phone: counterparty.phone,
+      pricePerLiterMoney: dispatch.pricePerLiterMoney,
+      receivableMoney: dispatch.receivableMoney,
+      dispatchedAt: dispatch.dispatchedAt,
+      id: dispatch.id,
+    })
+    .from(dispatch)
+    .innerJoin(counterparty, eq(counterparty.id, dispatch.buyerId))
+    .where(eq(dispatch.farmId, farmId))
+    .orderBy(dispatch.buyerId, desc(dispatch.dispatchedAt), desc(dispatch.id));
+  return lastOfEach
+    .toSorted(
+      (a, b) =>
+        b.dispatchedAt.getTime() - a.dispatchedAt.getTime() ||
+        b.id.localeCompare(a.id)
+    )
+    .map((one) => ({
+      name: one.name,
+      address: one.counterpartyAddress ?? one.dispatchAddress,
+      phone: one.phone,
+      pricePerLiterMoney: Number(one.pricePerLiterMoney),
+      paysLater: one.receivableMoney > 0,
+    }));
 };
 
 /** Everything these Dispatches handed over, in liters. */

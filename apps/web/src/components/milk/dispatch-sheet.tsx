@@ -1,6 +1,6 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ComponentProps } from "react";
 import { useState } from "react";
 
@@ -14,6 +14,8 @@ import {
 import { ReceivableFields, BuyerOwes } from "@/components/receivable-fields";
 import { useLanguage } from "@/i18n/language-provider";
 import { dispatchProblem } from "@/lib/dispatch-validation";
+import type { MilkBuyerTerms } from "@/lib/milk-buyer-terms";
+import { buyerCalled, withBuyerTerms } from "@/lib/milk-buyer-terms";
 import type { ReceivableTyped } from "@/lib/receivable";
 import { NO_RECEIVABLE, receivableSent, somethingPaid } from "@/lib/receivable";
 import { useRefused } from "@/lib/refused";
@@ -96,7 +98,10 @@ const Worth = ({ form }: { form: Typed }) => {
 /**
  * Milk handed over at the gate, in a sheet beside the page: how much and at what price first, then the buyer as the
  * Safe Food Act wants them written, the delivery note and how it was paid, and what the collector measured. What is typed
- * stays when the sheet is closed without recording, so a buyer's phone looked up is not typed twice.
+ * stays when the sheet is closed without recording, so a buyer's phone looked up is not typed twice. A buyer the farm
+ * has handed milk to before is offered as his name is typed, and once named whole his last milk's price, address, phone
+ * and whether he paid later go into the boxes still free — a collection centre that pays on its round is then owed, not
+ * booked as paid.
  */
 export const DispatchSheet = ({
   open,
@@ -111,19 +116,42 @@ export const DispatchSheet = ({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
   const [receivable, setReceivable] = useState<ReceivableTyped>(NO_RECEIVABLE);
+  // The buyer whose last milk filled the sheet, so picking another takes his terms back out rather than keeping them.
+  const [filledFrom, setFilledFrom] = useState<MilkBuyerTerms | null>(null);
+  const buyers = useQuery({
+    ...orpc.milk.buyers.queryOptions(),
+    enabled: open,
+  });
   const record = useMutation(
     orpc.milk.dispatch.mutationOptions({
       onSuccess: () => {
         setForm(NOTHING_TYPED);
         setReceivable(NO_RECEIVABLE);
+        setFilledFrom(null);
         toast.success(t("dispatch.recorded"));
         onOpenChange(false);
       },
       onError: refused,
     })
   );
-  const handleType = (name: keyof Typed, value: string) =>
-    setForm((current) => ({ ...current, [name]: value }));
+  const handleType = (name: keyof Typed, value: string) => {
+    const picked =
+      name === "buyerName" ? buyerCalled(buyers.data ?? [], value) : null;
+    if (picked === null || picked.name === filledFrom?.name) {
+      setForm((current) => ({ ...current, [name]: value }));
+      return;
+    }
+    // A buyer the farm has handed milk to before, named whole: his last milk's terms go into the boxes still free.
+    const filled = withBuyerTerms(
+      { ...form, buyerName: value },
+      receivable,
+      picked,
+      filledFrom
+    );
+    setForm(filled.form);
+    setReceivable(filled.receivable);
+    setFilledFrom(picked);
+  };
   const worthMoney = worthOf(Number(form.liters), Number(form.price));
   const problem = dispatchProblem(form, receivable, worthMoney);
   const box = { draft: form, onType: handleType };
@@ -183,13 +211,33 @@ export const DispatchSheet = ({
       <Worth form={form} />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <DispatchInput
-          {...box}
-          autoComplete="off"
-          label={t("dispatch.buyer")}
-          name="buyerName"
-          required
-        />
+        <div className="flex flex-col gap-2">
+          <DispatchInput
+            {...box}
+            autoComplete="off"
+            label={t("dispatch.buyer")}
+            list="dispatch-buyers"
+            name="buyerName"
+            required
+          />
+          <datalist id="dispatch-buyers">
+            {(buyers.data ?? []).map((one) => (
+              <option key={one.name} value={one.name}>
+                {one.name}
+              </option>
+            ))}
+          </datalist>
+          {filledFrom ? (
+            <WorkedOut>
+              {t(
+                filledFrom.paysLater === true
+                  ? "dispatch.filledFromOwing"
+                  : "dispatch.filledFrom",
+                { name: filledFrom.name }
+              )}
+            </WorkedOut>
+          ) : null}
+        </div>
         <DispatchInput
           {...box}
           label={t("dispatch.buyerPhone")}
