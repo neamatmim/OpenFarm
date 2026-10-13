@@ -11,6 +11,7 @@ import { useTheirRecord } from "@/components/portal/portal-source";
 import { VentureAccountDetails } from "@/components/ventures/venture-account-details";
 import { useLanguage } from "@/i18n/language-provider";
 import { useWordsIn } from "@/i18n/words-in";
+import { howToPayLines } from "@/lib/how-to-pay-lines";
 import { useMoney } from "@/lib/money";
 import type { orpc } from "@/utils/orpc";
 
@@ -91,11 +92,18 @@ const NextSum = ({ next }: { next: MonthlySum | null }) => {
 export const HowToPay = ({
   paying,
   waitingMoney = 0,
+  mayTell,
+  gathering,
 }: {
   paying: Paying | null;
   /** What their Pay-in Notes still waiting say they sent: being checked, so the figure owed does not read as
    *  ignored (ADR 0018). */
   waitingMoney?: number;
+  /** Whether the portal takes a Pay-in Note from them on this Agreement: only then are they asked to tell the farm
+   *  the transfer. */
+  mayTell: boolean;
+  /** Whether the Venture is still Open: only then is the Cattle Part's decision date said. */
+  gathering: boolean;
 }) => {
   const { t } = useLanguage();
   const asMoney = useMoney();
@@ -105,9 +113,14 @@ export const HowToPay = ({
   }
   const phone = me.data?.farm?.phone ?? null;
   const { account } = paying;
-  // Paid by the month and running: what is due now leads, with the rest still to come under it. An answer cached before
-  // Ventures were paid by the month has none.
+  // Paid by the month and running: what is due now leads; what is still to pay on the Agreement is said once, by the
+  // payment allocation above. An answer cached before Ventures were paid by the month has none.
   const monthly = paying.monthly ?? null;
+  const lines = howToPayLines({
+    monthly: monthly !== null,
+    mayTell,
+    gathering,
+  });
   return (
     <Section description={t("portal.pay.hint")} title={t("portal.pay.title")}>
       <div className="flex flex-col gap-4">
@@ -119,11 +132,6 @@ export const HowToPay = ({
               </dt>
               <dd className="text-lg font-semibold tabular-nums">
                 {asMoney(monthly.dueMoney)}
-              </dd>
-              <dd className="text-muted-foreground text-xs">
-                {t("portal.pay.owedAltogether", {
-                  owed: asMoney(paying.owedMoney),
-                })}
               </dd>
             </div>
           ) : (
@@ -160,12 +168,14 @@ export const HowToPay = ({
             </div>
           )}
         </dl>
-        {monthly ? (
+        {lines.early ? (
           <p className="text-muted-foreground text-sm">
-            {t("portal.pay.early", { amount: asMoney(paying.owedMoney) })}
+            {lines.tellTheTransfer
+              ? `${t("portal.pay.ahead")} ${t("portal.pay.aheadTell")}`
+              : t("portal.pay.ahead")}
           </p>
         ) : null}
-        {monthly ? (
+        {lines.cattleDeadline ? (
           <p className="text-muted-foreground text-sm">
             {t("portal.pay.cattleDeadline")} <SaidDate at={paying.decideBy} />
           </p>

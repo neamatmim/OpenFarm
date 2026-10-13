@@ -159,6 +159,9 @@ export const enDesk = {
   "portal.owed.how": "How to pay",
   "portal.owed.notPaid":
     "{amount} was not paid on {venture}, which takes no more capital: your share is by what you paid.",
+  "portal.owed.due": "{amount} is due now on {venture}.",
+  "portal.owed.dueMissed":
+    "{amount} is due now on {venture}, {missed} of it missed.",
   "portal.noVenturesHint":
     "A Venture shows here once you have signed its Agreement with the farm, in person.",
   "portal.noPapersHint":
@@ -239,7 +242,6 @@ export const enDesk = {
   "portal.pay.hint":
     "By bank transfer, check or deposit slip from your own bank — never cash, and never through this portal.",
   "portal.pay.dueNow": "Due now",
-  "portal.pay.owedAltogether": "{owed} still to pay altogether",
   "portal.pay.next": "Next monthly sum",
   "portal.pay.noneLeft": "None left",
   "portal.pay.owed": "Still to pay",
@@ -2643,7 +2645,7 @@ export const enDesk = {
   "payments.monthly": "Monthly sums",
   "payments.monthlyTotal": "Total paid towards monthly sums",
   "payments.includesAdvance": "Includes {amount} paid ahead for future months",
-  "payments.balance": "Agreement balance remaining",
+  "payments.balance": "Still to pay on this Agreement",
   "payments.paid": "Paid",
   "payments.left": "Remaining",
   "payments.schedule": "Original payment schedule",
@@ -2652,6 +2654,10 @@ export const enDesk = {
     "Verify the bank receipt before recording. Money after this agreement’s cattle part stays in the running budget; it never covers someone else’s unpaid cattle part.",
   "portal.pay.early":
     "You may pay early, up to {amount} remaining on this Agreement. Record the actual bank transfer date and reference.",
+  "portal.pay.ahead":
+    "You may pay ahead of the schedule, up to what is still to pay on this Agreement.",
+  "portal.pay.aheadTell":
+    "Then tell the farm the transfer’s date and reference below.",
   "portal.pay.cattleDeadline":
     "Your Cattle Part must be received before buying starts. Decision date:",
   "payments.dueOn": "Due on",

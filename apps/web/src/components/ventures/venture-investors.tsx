@@ -51,6 +51,7 @@ import { Line, moneyOf } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { agreedInApp, paperOnFile } from "@/lib/agreed-in-app";
 import { useMoney } from "@/lib/money";
+import { paidLooksShort } from "@/lib/paid-short";
 import type { Venture } from "@/lib/ventures";
 import { takesCapitalNow } from "@/lib/ventures";
 import type { client } from "@/utils/orpc";
@@ -276,13 +277,22 @@ const SumsLine = ({ sums }: { sums: Agreement["sums"] | undefined }) => {
   );
 };
 
-/** What he has paid against what his Units are worth, the paid part in the warning's color until they agree. */
+/** What he has paid against what his Units are worth, the paid part in the warning's color while he is behind: until
+ *  they agree, or paid by the month, once he has missed a sum. */
 const PaidCell = ({ row }: InvestorCell) => {
   const asMoney = useMoney();
-  const { paidMoney, owedMoney, sums } = row.original;
+  const { paidMoney, owedMoney, sums, paymentAllocation } = row.original;
+  const short = paidLooksShort({
+    paidMoney,
+    owedMoney,
+    // Paid by the month: the allocation is the schedule's, there whether or not its sums have a standing yet. An
+    // answer cached from before either was said reads as paid before buying, as then.
+    monthly: Boolean(paymentAllocation ?? sums),
+    sums,
+  });
   return (
     <>
-      <span className={paidMoney === owedMoney ? undefined : "text-warning"}>
+      <span className={short ? "text-warning" : undefined}>
         {asMoney(paidMoney)}
       </span>
       <span className="text-muted-foreground">{` / ${asMoney(owedMoney)}`}</span>

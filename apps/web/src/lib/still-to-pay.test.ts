@@ -41,3 +41,62 @@ describe("what a paper still owes", () => {
     expect(owingOn(paper("open"))).toMatchObject({ kind: "to_pay" });
   });
 });
+
+// Paid by the month, the rest of the price is not owed today: only the Monthly Sums fallen due are. An Investor who had
+// paid every one read "still to pay" for the whole rest of the price on their home, and rang the farm.
+const byTheMonth = (
+  monthly: {
+    dueMoney: number;
+    missedMoney: number;
+    next: { dueOn: string; amount: number } | null;
+  } | null,
+  takesCapital = true
+) => ({
+  ...paper("fattening", takesCapital, 40_000),
+  monthly,
+});
+
+describe("what a paper paid by the month says is due", () => {
+  it("is nothing while every Monthly Sum fallen due is paid, however much of the price is still to come", () => {
+    expect(
+      owingOn(
+        byTheMonth({
+          dueMoney: 0,
+          missedMoney: 0,
+          next: { dueOn: "2088-02-10", amount: 6000 },
+        })
+      )
+    ).toBeNull();
+  });
+
+  it("is what has fallen due, with what of it is missed and the next sum after", () => {
+    expect(
+      owingOn(
+        byTheMonth({
+          dueMoney: 12_000,
+          missedMoney: 6000,
+          next: { dueOn: "2088-04-10", amount: 6000 },
+        })
+      )
+    ).toEqual({
+      kind: "due",
+      amountMoney: 12_000,
+      missedMoney: 6000,
+      next: { dueOn: "2088-04-10", amount: 6000 },
+    });
+  });
+
+  it("is not paid, as before, once the Venture takes no more", () => {
+    expect(owingOn(byTheMonth(null, false))).toEqual({
+      kind: "not_paid",
+      amountMoney: 60_000,
+    });
+  });
+
+  it("is the whole sum still to pay for a Venture paid before buying, as before", () => {
+    expect(owingOn({ ...paper("open", true), monthly: null })).toEqual({
+      kind: "to_pay",
+      amountMoney: 50_000,
+    });
+  });
+});

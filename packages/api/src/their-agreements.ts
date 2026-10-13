@@ -1,8 +1,8 @@
-import { takesCapital, unitsHeld } from "@OpenFarm/domain";
+import { sumsStandingOf, takesCapital, unitsHeld } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import { paperOnFile, theFarmsShare } from "./investor-store";
-import { termsInForceOn } from "./venture-store";
+import { paidForBy, termsInForceOn } from "./venture-store";
 
 /** Their Units as the portal counts them: those signed for while the Venture gathers (or was called off gathering),
  *  those paid for once it buys — what the Settlement will divide by, as `hisHolding` counts them on its page. */
@@ -14,6 +14,35 @@ const unitsCountedOn = (
   !run || run.state === "open" || run.state === "canceled"
     ? signed
     : unitsHeld(heldMoney, run.unitPriceMoney);
+
+/** Where one paper of a Venture paid by the month stands today, while the Venture still takes capital; null for one
+ *  paid before buying, or one that takes no more. */
+const monthlyStandingOf = (
+  units: number,
+  paidMoney: number,
+  run: (Parameters<typeof paidForBy>[0] & { state: string }) | undefined,
+  today: string
+) => {
+  if (!run || !takesCapital(run)) {
+    return null;
+  }
+  const { monthly } = paidForBy(run);
+  if (!monthly) {
+    return null;
+  }
+  const standing = sumsStandingOf({
+    units,
+    unitPriceMoney: run.unitPriceMoney,
+    monthly,
+    paidMoney,
+    today,
+  });
+  return {
+    dueMoney: standing.dueMoney,
+    missedMoney: standing.missedMoney,
+    next: standing.next,
+  };
+};
 
 /** One line of an Investor's money, as the Owner reads it on their page: capital that came in or went back on one
  *  of their Agreements, or a payout of what a Settlement owed them. */
@@ -85,6 +114,9 @@ export const theirAgreements = async (
         state: true,
         unitPriceMoney: true,
         capitalPaid: true,
+        cattlePartMoney: true,
+        monthlySums: true,
+        firstSumDueOn: true,
       },
     }),
     db.query.agreementPaper.findMany({
@@ -224,6 +256,14 @@ export const theirAgreements = async (
       paperOnFile: paperOnFile(one, kept.has(one.id)),
       /** Capital the Farm holds on this paper: what came in, less what went back. */
       capitalHeldMoney: heldOn.get(one.id) ?? 0,
+      /** Paid by the month and still taking capital: what has fallen due and is not paid, what of it is missed, and
+       *  the next sum still to pay — what the portal asks for, never the rest of the price. Null otherwise. */
+      monthly: monthlyStandingOf(
+        one.units,
+        heldOn.get(one.id) ?? 0,
+        run,
+        today
+      ),
       /** What an approved Settlement owes on this paper, and what became of it; null before one is approved. */
       settlement: settlementOn(shareOf.get(one.id), paidBy),
     };

@@ -148,6 +148,9 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "portal.owed.how": "কীভাবে দেবেন",
   "portal.owed.notPaid":
     "{venture}-এ {amount} দেওয়া হয়নি; এটি আর মূলধন নেয় না, তাই আপনার অংশ যা দিয়েছেন সেই অনুযায়ী।",
+  "portal.owed.due": "{venture}-এ এখন {amount} দেওয়ার কথা।",
+  "portal.owed.dueMissed":
+    "{venture}-এ এখন {amount} দেওয়ার কথা; এর মধ্যে {missed} সময়মতো আসেনি।",
   "portal.noVenturesHint":
     "খামারের সঙ্গে সামনাসামনি চুক্তি সই করলে ভেঞ্চারটি এখানে দেখা যাবে।",
   "portal.noPapersHint":
@@ -215,7 +218,6 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "portal.pay.hint":
     "নিজের ব্যাংক থেকে ট্রান্সফার, চেক বা জমার স্লিপে — কখনো নগদ নয়, আর এই পোর্টালের মাধ্যমে কখনো নয়।",
   "portal.pay.dueNow": "এখন দেওয়ার কথা",
-  "portal.pay.owedAltogether": "সব মিলিয়ে আরও {owed} দেওয়া বাকি",
   "portal.pay.next": "পরের মাসের {currencySum}",
   "portal.pay.noneLeft": "আর বাকি নেই",
   "portal.pay.owed": "আরও দিতে হবে",
@@ -2464,7 +2466,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "payments.monthly": "মাসের টাকা",
   "payments.monthlyTotal": "মাসের মোট জমা",
   "payments.includesAdvance": "এর মধ্যে ভবিষ্যৎ মাসের অগ্রিম {amount}",
-  "payments.balance": "চুক্তির মোট বাকি",
+  "payments.balance": "এই চুক্তিতে আরও দিতে হবে",
   "payments.paid": "জমা",
   "payments.left": "বাকি",
   "payments.schedule": "চুক্তির নির্ধারিত মাসের টাকার তালিকা",
@@ -2473,6 +2475,9 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
     "নথিভুক্ত করার আগে ব্যাংকে টাকা প্রাপ্তি যাচাই করুন। এই চুক্তির গরু কেনার অংশের অতিরিক্ত টাকা রক্ষণাবেক্ষণের বাজেটে জমা হবে; অন্য কারও বাকি গরু কেনার অংশে গণনা হবে না।",
   "portal.pay.early":
     "এই চুক্তির বাকি {amount} পর্যন্ত অগ্রিম দিতে পারবেন। ব্যাংকে টাকা পাঠানোর প্রকৃত তারিখ ও রেফারেন্স লিখুন।",
+  "portal.pay.ahead":
+    "এই চুক্তিতে যা দেওয়া বাকি, সে পর্যন্ত নির্ধারিত তারিখের আগেই দিতে পারবেন।",
+  "portal.pay.aheadTell": "তারপর নিচে ব্যাংকে টাকা পাঠানোর তারিখ ও রেফারেন্স খামারকে জানান।",
   "portal.pay.cattleDeadline":
     "গরু কেনা শুরুর আগে আপনার গরু কেনার অংশ জমা হতে হবে। সিদ্ধান্তের তারিখ:",
   "payments.dueOn": "নির্ধারিত তারিখ",
