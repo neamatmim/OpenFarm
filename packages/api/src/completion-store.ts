@@ -1,6 +1,8 @@
 import type { SopContent, Step } from "@OpenFarm/domain";
 import {
+  NOT_DUE_YET,
   WRITTEN_BY_MISTAKE,
+  mayPassAsNotDue,
   maySkip,
   missingEvidence,
   tagNumberAsWritten,
@@ -158,8 +160,10 @@ export const assertEvidenceComplete = (
       });
     }
     // A reason the Version never wrote would count her covered and mean nothing the farm acts on.
+    // So may the farm's own word for an animal a Campaign's last dose still covers — the effect checks that it does.
     const offered =
       (correcting && skipReason === WRITTEN_BY_MISTAKE.bn) ||
+      (skipReason === NOT_DUE_YET.bn && mayPassAsNotDue(step)) ||
       step.skipReasons.length === 0 ||
       step.skipReasons.some((reason) => reason.bn === skipReason);
     if (!offered) {

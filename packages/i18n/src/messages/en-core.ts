@@ -988,6 +988,7 @@ export const enCore = {
     "A withdrawal can only be made shorter. Choose a day and time before the one it stands at",
   "refusal.noWithdrawalDays":
     "The vet has written no withdrawal days for this medicine, so it cannot be given yet",
+  "refusal.doseIsDue": "Her dose has come: give it, or say why it waits.",
   "refusal.observationCorrected":
     "That sighting was corrected since this list was opened. Answer the one in its place",
   "refusal.feedOnARation":
@@ -2022,6 +2023,8 @@ export const enCore = {
   "sop.meaning.notFound": "opens a missing animal",
   "sop.meaning.unwell": "the manager sees to her",
   "sop.meaning.nothingToNote": "passed in one tap",
+  "sop.meaning.notDue": "owed nothing later",
+  "work.notDue": "Not due — dosed {day}",
   "sop.meaningLost":
     "“{was}” did this: {means}. Nothing on this step does now.",
   "sop.meaningLostWrite":
@@ -2117,6 +2120,10 @@ export const enCore = {
   "sop.problem.monthlyNotFortnightly":
     "choose monthly or every other week, not both",
   "sop.problem.wholeDays": "write whole days, from none upwards",
+  "sop.problem.intervalMonths":
+    "a campaign comes round in whole months, from one to twenty-four",
+  "sop.problem.intervalNeedsDose":
+    "a campaign comes round by each animal's last dose, and no step here gives every animal a product",
   "sop.problem.heatTimed":
     "a heat's work falls in the farm's AI window; leave the days empty",
   "sop.problem.serviceTimed":
@@ -3492,6 +3499,21 @@ export const enCore = {
   "drugs.subtitle":
     "What the farm treats animals with, and how many days milk and meat are held after each.",
   "drugs.tab.products": "Products",
+  "campaigns.tab": "Campaigns due",
+  "campaigns.due": "Due",
+  "campaigns.soon": "Within a fortnight",
+  "campaigns.raisedOpen": "Raised — waiting to be walked",
+  "work.raisedOpenAlready":
+    "{count, plural, one {Already open in # pen — walk it there} other {Already open in # pens — walk them there}}",
+  "campaigns.lastGiven": "Last given",
+  "campaigns.dueOn": "Due on",
+  "campaigns.noneGiven": "None on the farm",
+  "campaigns.raise":
+    "{count, plural, one {Raise it in # pen} other {Raise it in # pens}}",
+  "campaigns.noneOwed": "No animal is due this campaign in the next fortnight.",
+  "campaigns.noInterval": "No campaign comes round by itself yet",
+  "campaigns.noIntervalHint":
+    "Give a vaccination or a deworming in the playbook the months between doses, and the animals owed it are listed here.",
   "drugs.col.status": "Status",
   "drugs.col.perDose": "Per dose",
   "drugs.status.prescribable": "Can be prescribed",
@@ -3634,9 +3656,11 @@ export const enCore = {
   "work.raiseHint":
     "For work the clock does not raise — a weigh-in, a vaccination campaign, the calving pen, a stock count. It goes on today's list for that pen.",
   "work.raiseSop": "What to do",
-  "work.raisePen": "For which pen",
+  "work.raisePens": "In which pens",
+  "work.raiseEveryPen": "Every pen",
   "work.raiseSubmit": "Raise it",
-  "work.raised": "Raised — it is on today's list",
+  "work.raisedIn":
+    "{count, plural, one {Raised in # pen — it is on today's list} other {Raised in # pens — they are on today's list}}",
   "work.raisedAlready": "Already raised for that pen today",
   "people.pens": "Pens they work",
   "people.pensSave": "Save pens",
@@ -4093,6 +4117,10 @@ export const enCore = {
   "sop.trigger.registrationRenewal": "the registration coming up for renewal",
   "sop.trigger.beforeCalving": "Before a cow's expected calving",
   "sop.trigger.farmTimed": "The farm's days, set once for every cow",
+  "sop.trigger.everyMonths": "A campaign coming round",
+  "sop.trigger.months": "Months between",
+  "sop.trigger.monthsSaid":
+    "{months, plural, one {Every month} other {Every # months}}, from each animal's last dose",
   "calvingLead.dry_off": "Dry-off lead",
   "calvingLead.calving_prep": "Calving-prep lead",
   "refusal.expectedCalvingNeeded":

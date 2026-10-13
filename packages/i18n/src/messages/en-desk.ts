@@ -1813,6 +1813,7 @@ export const enDesk = {
   "auditField.byWhatHappened": "By what happened",
   "auditField.forTheRenewal": "For the renewal",
   "auditField.penId": "Pen",
+  "auditField.penIds": "Pens",
   "auditField.id": "Id",
   "auditField.definitionId": "Procedure",
   "auditField.money": "Money",

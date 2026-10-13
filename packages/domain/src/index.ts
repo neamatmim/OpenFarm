@@ -82,6 +82,7 @@ export {
 } from "./farm";
 export {
   atFarmTime,
+  dayMoved,
   farmDayOf,
   farmDaysApart,
   farmDaysBetween,
@@ -108,6 +109,19 @@ export {
   implausibleAfterArrival,
   implausibleChange,
 } from "./fattening";
+export {
+  CAMPAIGN_SOON_DAYS,
+  addMonths,
+  campaignDueOf,
+  campaignIntervalOf,
+  campaignIntervalTriggerOf,
+  campaignProductOf,
+  dueForACampaign,
+  isCampaignDose,
+  mayPassAsNotDue,
+  notDueSince,
+  penDueBy,
+} from "./campaign-interval";
 export type {
   ExpectedGain,
   FarmGainFigure,
@@ -464,6 +478,7 @@ export {
   maySkip,
   meaningOfSkip,
   choiceSaid,
+  NOT_DUE_YET,
   WRITTEN_BY_MISTAKE,
   nothingToNoteOf,
   missingEvidence,

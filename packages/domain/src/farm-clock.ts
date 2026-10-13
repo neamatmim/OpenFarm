@@ -107,6 +107,22 @@ export const farmDaysApart = (from: string, to: string): number =>
     (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS
   );
 
+/** A farm day moved by calendar months, then days — the 10th of April six months back and a day on is the 11th
+ *  of October. A month too short for the day ends it: the 31st of August six months back is the 29th of
+ *  February, never March. */
+export const dayMoved = (
+  day: string,
+  { months = 0, days = 0 }: { months?: number; days?: number }
+): string => {
+  const [year = 0, month = 1, date = 1] = day.split("-").map(Number);
+  const monthIndex = month - 1 + months;
+  const lastOfMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+  const moved = new Date(
+    Date.UTC(year, monthIndex, Math.min(date, lastOfMonth) + days)
+  );
+  return moved.toISOString().slice(0, "YYYY-MM-DD".length);
+};
+
 /** The farm days from `from` to `to`, both included, as the instants that bound them. */
 export const farmDaysBetween = (
   from: string,

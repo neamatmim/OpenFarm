@@ -50,6 +50,9 @@ const happeningWord = (happening: HappeningTrigger, t: Translate): string => {
     case "before_calving": {
       return t(`calvingLead.${happening.lead}`);
     }
+    case "every_months": {
+      return t("sop.trigger.monthsSaid", { months: happening.months });
+    }
     default: {
       return t("sop.trigger.registrationRenewal");
     }

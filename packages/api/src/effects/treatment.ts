@@ -5,6 +5,7 @@ import { expiryWindow } from "@OpenFarm/domain/lots";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
+import { assertStillCovered } from "../campaign-interval-store";
 import { recomputeWithdrawal } from "../health-store";
 import { lotOfDose } from "../medicine-stock";
 import { tell } from "../notice";
@@ -19,6 +20,7 @@ type TreatmentFacts = Pick<
   | "animalId"
   | "evidence"
   | "skipped"
+  | "skippedAs"
   | "completionId"
   | "recordedBy"
   | "recordedAt"
@@ -226,6 +228,18 @@ const followThePutOffDose = async (
   input: TreatmentFacts,
   campaignAnimalId: string | null
 ) => {
+  // Passed as not due: her last dose still covers her, so nothing is owed her later — the farm says so only once it has
+  // seen that it does.
+  if (input.skipped && input.skippedAs === "not_due" && campaignAnimalId) {
+    await assertStillCovered(
+      tx,
+      input.instance.farmId,
+      input.instance.id,
+      campaignAnimalId,
+      input.now
+    );
+    return;
+  }
   if (input.skipped) {
     await raiseThePutOff(
       tx,

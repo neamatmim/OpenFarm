@@ -336,6 +336,18 @@ type HappeningTrigger = Extract<
   { kind: "event" | "state" | "before_calving" }
 >;
 
+/** A Trigger whose work is raised somewhere other than by what happens to an animal: the clock's, the Registration's,
+ *  and a Campaign's coming round. */
+const raisedElsewhere = (
+  trigger: SopContent["triggers"][number]
+): trigger is Extract<
+  SopContent["triggers"][number],
+  { kind: "schedule" | "registration_renewal" | "every_months" }
+> =>
+  trigger.kind === "schedule" ||
+  trigger.kind === "registration_renewal" ||
+  trigger.kind === "every_months";
+
 /** Whether a happening is what this Trigger waits for. */
 const triggerMatches = (
   trigger: HappeningTrigger,
@@ -393,11 +405,8 @@ export const happeningSlotsFor = (
   const earliest = new Date(now.getTime() - TRIGGER_LOOKBACK_DAYS * DAY_MS);
   for (const sop of sops) {
     for (const trigger of sop.content.triggers) {
-      // The clock's work, and the farm's own Registration's, are raised elsewhere.
-      if (
-        trigger.kind === "schedule" ||
-        trigger.kind === "registration_renewal"
-      ) {
+      // The clock's work, the farm's own Registration's and a Campaign coming round are raised elsewhere.
+      if (raisedElsewhere(trigger)) {
         continue;
       }
       // Raised by the act itself, inside the transaction that records it. Nothing that happens

@@ -4,6 +4,13 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import {
+  campaignsComingRound,
+  campaignsOpen,
+  herdOnTheFarm,
+  owedTheirCampaigns,
+  soonestFirst,
+} from "../campaign-interval-store";
 import type { Recorder } from "../completion-store";
 import { correct } from "../corrections/correction";
 import {
@@ -15,10 +22,12 @@ import {
   recordDoseNotPrescribed,
 } from "../dose-not-prescribed-store";
 import { protectedProcedure } from "../index";
+import { penLabel } from "../instances-store";
 import type { RefusedOne } from "../one-of-several";
 import { eachOnce, refusedOne } from "../one-of-several";
 import { takeBackTheExcuse, excuseArrivalDose } from "../put-off-store";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
+import { sopsInForce } from "../sops-in-force";
 
 /** Whether a dose is needed is the Vet's to say. */
 const EXCUSED_BY_THE_VET = {
@@ -260,5 +269,61 @@ export const treatmentsRouter = {
           })
       );
       return { tagNumber: tagNumberAsWritten(input.tagNumber) };
+    }),
+
+  /**
+   * Who is **Due for a Campaign**: for each Campaign that comes round, every animal whose next dose by its interval has
+   * come, or comes within the fortnight, with her last dose and her day — soonest first. The Vet's to see, and the
+   * farm's who raise the Campaign.
+   */
+  campaignsDue: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .handler(async ({ context }) => {
+      const now = context.clock.now();
+      const campaigns = campaignsComingRound(
+        await sopsInForce(context.db, context.farm.id)
+      );
+      const herd = await herdOnTheFarm(context.db, context.farm.id);
+      const [owed, open, pens, products] = await Promise.all([
+        owedTheirCampaigns(context.db, context.farm.id, campaigns, herd, now),
+        campaignsOpen(
+          context.db,
+          context.farm.id,
+          campaigns.map((one) => one.definitionId)
+        ),
+        context.db.query.pen.findMany({
+          where: { farmId: context.farm.id },
+          columns: { id: true, name: true },
+          with: { shed: { columns: { name: true } } },
+        }),
+        campaigns.length === 0
+          ? []
+          : context.db.query.drugProduct.findMany({
+              where: {
+                farmId: context.farm.id,
+                id: { in: campaigns.map((one) => one.productId) },
+              },
+              columns: { id: true, nameBn: true, nameEn: true },
+            }),
+      ]);
+      const penNamed = new Map(pens.map((pen) => [pen.id, penLabel(pen)]));
+      const productNamed = new Map(products.map((one) => [one.id, one]));
+      return campaigns.map((campaign) => ({
+        definitionId: campaign.definitionId,
+        name: campaign.content.name,
+        months: campaign.months,
+        product: {
+          nameBn: productNamed.get(campaign.productId)?.nameBn ?? null,
+          nameEn: productNamed.get(campaign.productId)?.nameEn ?? null,
+        },
+        animals: soonestFirst(owed.get(campaign.definitionId) ?? []).map(
+          (beast) => ({
+            ...beast,
+            penLabel: penNamed.get(beast.penId) ?? null,
+            // Her Pen's Campaign already stands open: raised, waiting to be walked, not to be raised again.
+            raisedOpen: open.has(`${campaign.definitionId}:${beast.penId}`),
+          })
+        ),
+      }));
     }),
 };

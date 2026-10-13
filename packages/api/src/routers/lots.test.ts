@@ -170,6 +170,8 @@ const aStore = async (tag: string) => {
       animalTag: bull.tagNumber,
       evidence: [true],
     });
+    // Walked and finished: a Campaign left open in the Pen is walked there, never raised a second time beside it.
+    await staff.client.work.complete({ id: raised?.id ?? "" });
   };
   /** Feed given out of the store to the Pen, as the morning's feeding records it. */
   const feedOut = async (

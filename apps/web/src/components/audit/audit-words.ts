@@ -263,6 +263,7 @@ export const fieldChanges = (
 
 /** The fields of a record the trail has a word for: what a change touched, named as the screens name it. */
 const NAMED_FIELDS = new Set<string>([
+  "penIds",
   "nominationHow",
   "nominees",
   "photoKeptAt",

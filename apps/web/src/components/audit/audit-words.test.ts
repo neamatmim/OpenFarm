@@ -89,6 +89,16 @@ describe("why the farm raised work", () => {
         after: { definitionId: "sop-1", penId: "pen-1" },
       })
     ).toEqual([{ key: "audit.raised.byHand" }]);
+    // Raised in several Pens at once, the trail names the Pens.
+    expect(
+      whyRaised({
+        entity: "sop_instance",
+        entityId: "sop-1:2026-10-14T05:00:00.000Z",
+        action: "create",
+        after: { definitionId: "sop-1", penIds: ["pen-1", "pen-2"] },
+      })
+    ).toEqual([{ key: "audit.raised.byHand" }]);
+    expect(fieldLabelKey("penIds")).toBe("auditField.penIds");
     expect(
       whyRaised({
         entity: "user",
