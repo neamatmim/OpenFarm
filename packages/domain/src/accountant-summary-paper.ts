@@ -47,6 +47,21 @@ const MONEY_IN: Said = { bn: "নগদ এসেছে", en: "Money in" };
 const MONEY_OUT: Said = { bn: "নগদ গেছে", en: "Money out" };
 
 /**
+ * Where the money still awaiting approval is counted: everywhere, where all of it was income or expense; where each
+ * falls, where some was outside the results (ADR 0027), which no income or expense figure here holds.
+ */
+const whereAwaitingIs = (summary: MoneySummary): Said =>
+  summary.outsideTheResults.length === 0
+    ? {
+        bn: "এখানকার প্রতিটি অঙ্কে এগুলো ধরা আছে।",
+        en: `${summary.awaiting.count === 1 ? "It is" : "They are"} counted in every figure here.`,
+      }
+    : {
+        bn: "প্রতিটি যেখানে পড়ে সেখানেই ধরা আছে: আয়-ব্যয়ে, নয়তো আয়-ব্যয়ের বাইরে।",
+        en: `${summary.awaiting.count === 1 ? "It is" : "Each is"} counted where it falls: in the income and expense, or outside the results.`,
+      };
+
+/**
  * The period's income against its expense, what it left, and the money still waiting for approval said beneath. Money
  * outside the results (ADR 0027) is neither, so these are income and expense in earnest; the cash is said beside it.
  */
@@ -67,8 +82,8 @@ const totalsPart = ({ summary }: AccountantSummaryFacts): PaperSection => {
     note:
       awaiting.count > 0
         ? {
-            bn: `${formatNumber(awaiting.count, "bn")}টি হিসাব এখনো অনুমোদনের অপেক্ষায়: এসেছে ${sumSaid(awaiting.inMoney).bn}, গেছে ${sumSaid(awaiting.outMoney).bn}। এখানকার প্রতিটি অঙ্কে এগুলো ধরা আছে।`,
-            en: `${formatNumber(awaiting.count, "en")} ${awaiting.count === 1 ? "entry is" : "entries are"} still awaiting approval: ${sumSaid(awaiting.inMoney).en} in, ${sumSaid(awaiting.outMoney).en} out. ${awaiting.count === 1 ? "It is" : "They are"} counted in every figure here.`,
+            bn: `${formatNumber(awaiting.count, "bn")}টি হিসাব এখনো অনুমোদনের অপেক্ষায়: এসেছে ${sumSaid(awaiting.inMoney).bn}, গেছে ${sumSaid(awaiting.outMoney).bn}। ${whereAwaitingIs(summary).bn}`,
+            en: `${formatNumber(awaiting.count, "en")} ${awaiting.count === 1 ? "entry is" : "entries are"} still awaiting approval: ${sumSaid(awaiting.inMoney).en} in, ${sumSaid(awaiting.outMoney).en} out. ${whereAwaitingIs(summary).en}`,
           }
         : null,
   };
@@ -86,8 +101,10 @@ const inAndOutPart = (
         heading,
         rows: [],
         note: {
-          bn: "এই সময়ে খামারের টাকা নড়েনি।",
-          en: "The farm's money did not move in this period.",
+          // Said of income and expense, which these parts are, so a period where only money outside the results moved
+          // never reads as one where nothing did.
+          bn: "এই সময়ে কোনো আয় বা ব্যয় নেই।",
+          en: "No income or expense in this period.",
         },
       }
     : {

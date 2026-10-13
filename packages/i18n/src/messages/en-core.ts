@@ -2682,9 +2682,9 @@ export const enCore = {
   "refusal.capitalNotSentBack":
     "Every {currencyOne} the venture took needs a refund with its own reference",
   "refusal.neverTheAnimals":
-    "Wages, shed rent, utilities, repairs, shed hygiene, equipment and money coming in are never charged to the animals",
+    "Wages, shed rent, utilities, repairs, shed hygiene, equipment, money coming in, and money outside the results (the owner's own, a loan and its principal, a machine or building) are never charged to the animals",
   "refusal.neverMonthly":
-    "Only money going out that no record books may be marked as paid every month",
+    "Only money going out that no record books, and that is a cost, may be marked as paid every month: not the owner's drawings, a loan's principal or a machine",
   "refusal.wagesWatchedByPerson":
     "A wage is looked for by the person paid, not by the category",
   "refusal.rationNotSaved":
@@ -4434,12 +4434,12 @@ export const enCore = {
   "months.one.line": "Figure",
   "months.one.money": "The farm's money",
   "months.one.moneyHint":
-    "The farm's own money, added up as the accountant's summary adds it; categories and sides for this month only.",
+    "The cash is all the farm's own money that moved; the categories and sides are its income and expense, the month alone, and money outside the results is listed apart.",
   "months.one.byCategory": "Category",
   "months.one.bySide": "Side",
   "months.one.outsideTheResults": "Outside the results",
   "months.one.wholeFarm": "Whole farm",
-  "months.one.noMoney": "The farm's money did not move this month.",
+  "months.one.noMoney": "No income or expense this month.",
   "months.one.dairy": "Dairy",
   "months.one.dairyHint":
     "Milk sold, what a liter fetched, and what the farm's own cows cost.",

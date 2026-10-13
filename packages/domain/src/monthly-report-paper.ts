@@ -746,8 +746,10 @@ const moneyByPart = (
         heading,
         rows: [],
         note: {
-          bn: "এই মাসে খামারের টাকা নড়েনি।",
-          en: "The farm's money did not move this month.",
+          // Said of income and expense, which these parts are, so a month where only money outside the results moved
+          // never reads as one where nothing did.
+          bn: "এই মাসে কোনো আয় বা ব্যয় নেই।",
+          en: "No income or expense this month.",
         },
       }
     : {

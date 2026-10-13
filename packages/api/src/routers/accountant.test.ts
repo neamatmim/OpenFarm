@@ -151,20 +151,20 @@ describe("the accountant's export", () => {
     );
     const [header, ...rows] = (csv ?? "").slice(1).trim().split("\r\n");
     expect(header).toBe(
-      "date,direction,amount_money,category,category_en,counterparty,payment_method,side,record,record_id,reference,transaction_id,farm_account,approval,note"
+      "date,direction,amount_money,category,category_en,counterparty,payment_method,side,record,record_id,reference,transaction_id,farm_account,approval,note,outside_the_results"
     );
     const mine = (id: string) => rows.find((row) => row.includes(id));
     expect(mine(world.milk.id)).toBe(
-      `2040-03-05,in,5000.00,দুধ বিক্রি,Milk sales,মিল্ক ভিটা ${suffix},bank,dairy,dispatch,${world.milk.id},CH-2040,,,not_needed,`
+      `2040-03-05,in,5000.00,দুধ বিক্রি,Milk sales,মিল্ক ভিটা ${suffix},bank,dairy,dispatch,${world.milk.id},CH-2040,,,not_needed,,no`
     );
     expect(mine(world.bull.intakeId)).toBe(
-      `2040-03-05,out,30900.00,গরু কেনা,Cattle purchases,গাবতলী ${suffix},cash,fattening,intake,${world.bull.intakeId},${world.bull.tagNumber},,,awaiting_approval,`
+      `2040-03-05,out,30900.00,গরু কেনা,Cattle purchases,গাবতলী ${suffix},cash,fattening,intake,${world.bull.intakeId},${world.bull.tagNumber},,,awaiting_approval,,no`
     );
     expect(mine(world.power.id)).toBe(
-      `2040-03-05,out,3000.00,বিদ্যুৎ ও পানি,Utilities,পল্লী বিদ্যুৎ ${suffix},mobile_money,dairy,by_hand,${world.power.id},,,,not_needed,ফেব্রুয়ারির বিল`
+      `2040-03-05,out,3000.00,বিদ্যুৎ ও পানি,Utilities,পল্লী বিদ্যুৎ ${suffix},mobile_money,dairy,by_hand,${world.power.id},,,,not_needed,ফেব্রুয়ারির বিল,no`
     );
     expect(mine(world.wage.id)).toBe(
-      `2040-03-05,out,12000.00,মজুরি,Wages,রহিম ${suffix},cash,whole_farm,by_hand,${world.wage.id},2040-02,,,not_needed,`
+      `2040-03-05,out,12000.00,মজুরি,Wages,রহিম ${suffix},cash,whole_farm,by_hand,${world.wage.id},2040-02,,,not_needed,,no`
     );
     // A Vet visit to animals on both Sides is both Sides'; feed bought for the store is the whole farm's.
     expect(mine(world.visit.id)).toContain(",dairy+fattening,vet_fee,");

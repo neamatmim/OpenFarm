@@ -11,6 +11,7 @@ const money = (
   counterpartyName: null,
   sides: [{ side: null, amountMoney: over.amountMoney }],
   awaitingApproval: false,
+  outsideTheResults: false,
   ...over,
 });
 

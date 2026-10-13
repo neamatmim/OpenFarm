@@ -19,7 +19,7 @@ export interface MoneyToSummarize {
   sides: readonly SideShare[];
   awaitingApproval: boolean;
   /** Money that moved the cash and is neither income nor expense — the Owner's own, a loan, a machine (ADR 0027). */
-  outsideTheResults?: boolean;
+  outsideTheResults: boolean;
 }
 
 /** Money in and money out. */
@@ -109,7 +109,7 @@ export const summarizeMoney = (
       tally(awaiting, "awaiting", money.direction, money.amountMoney);
     }
     categoryNames.set(money.categoryBn, money.categoryEn);
-    if (money.outsideTheResults === true) {
+    if (money.outsideTheResults) {
       tally(outside, money.categoryBn, money.direction, money.amountMoney);
       continue;
     }

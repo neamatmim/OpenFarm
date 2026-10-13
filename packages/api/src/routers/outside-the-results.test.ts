@@ -21,14 +21,19 @@ const NOW = "2048-04-10T04:00:00.000Z";
 
 const category: Record<string, string> = {};
 
-const enter = async (key: string, amountMoney: number, occurredOn: string) => {
-  const { client } = await as(`${occurredOn}T04:00:00.000Z`);
-  const categoryId = category[key];
-  if (!categoryId) {
+/** The id of one of the farm's standard Categories; a test naming one the farm lacks fails, never asks about "". */
+const standard = (key: string): string => {
+  const id = category[key];
+  if (!id) {
     throw new Error(`No standard Category ${key}`);
   }
+  return id;
+};
+
+const enter = async (key: string, amountMoney: number, occurredOn: string) => {
+  const { client } = await as(`${occurredOn}T04:00:00.000Z`);
   await client.money.enter({
-    categoryId,
+    categoryId: standard(key),
     amountMoney,
     occurredOn,
     paymentMethod: "cash",
@@ -121,13 +126,51 @@ describe("money outside the results", () => {
     expect(said).toContain("Outside the results");
   });
 
+  it("are marked in the accountant's spreadsheet file, so it adds up as the paper does", async () => {
+    const { client } = await as(NOW);
+    const { csv } = await client.reports.accountantExport({
+      from: "2048-03-01",
+      to: "2048-03-31",
+      format: "csv",
+    });
+    const [header, ...rows] = (csv ?? "").slice(1).trim().split("\r\n");
+
+    expect(header?.split(",").at(-1)).toBe("outside_the_results");
+    expect(
+      rows
+        .find((row) => row.includes("Loan received"))
+        ?.split(",")
+        .at(-1)
+    ).toBe("yes");
+    expect(
+      rows
+        .find((row) => row.includes("Loan interest"))
+        ?.split(",")
+        .at(-1)
+    ).toBe("no");
+  });
+
   it("can never be charged to the animals", async () => {
     const { client } = await as(NOW);
     await expect(
       client.money.categories.setChargedToAnimals({
-        categoryId: category.machine_bought ?? "",
+        categoryId: standard("machine_bought"),
         chargedToAnimals: true,
       })
-    ).rejects.toThrow();
+    ).rejects.toMatchObject({ data: { refusal: "never_the_animals" } });
+  });
+
+  it("is never a cost the month owes, while a loan's interest may be", async () => {
+    const { client } = await as(NOW);
+    await expect(
+      client.money.categories.setPaidMonthly({
+        categoryId: standard("loan_repaid"),
+        paidMonthly: true,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "never_monthly" } });
+    const listed = await client.money.categories.list();
+    expect(
+      listed.find((one) => one.key === "loan_interest")?.monthlyMarkable
+    ).toBe(true);
   });
 });

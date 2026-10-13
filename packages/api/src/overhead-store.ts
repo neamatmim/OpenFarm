@@ -100,11 +100,11 @@ export const overheadMoneyIn = async (
     "buying_trip",
     trips.filter((one) => one.intakes.length === 0).map((one) => one.id)
   );
-  // Asked of the one rule that says what a Herd Cost is, so the costing and this can never disagree about a taka.
-  // Money outside the results (ADR 0027) — a loan, its principal paid back, a machine, the Owner's own — moved the cash
-  // and cost the place nothing.
   const handEntered = rows
+    // Money outside the results (ADR 0027) — a loan, its principal paid back, a machine, the Owner's own — moved the
+    // cash and cost the place nothing.
     .filter((one) => !isOutsideTheResults(one.category.key))
+    // Asked of the one rule that says what a Herd Cost is, so the costing and this can never disagree about a taka.
     .filter(
       (one) =>
         herdCostOf({

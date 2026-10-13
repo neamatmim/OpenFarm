@@ -94,6 +94,37 @@ describe("the accountant's summary, on paper", () => {
     expect(text).toContain("All the cash in less out: -316,070.95 taka");
   });
 
+  it("says the money awaiting approval is counted where it falls, where some was outside the results", () => {
+    const text = paperText(accountantSummaryPaper(FACTS), "en");
+
+    expect(text).toContain(
+      "Each is counted where it falls: in the income and expense, or outside the results."
+    );
+    expect(text).not.toContain("counted in every figure here");
+  });
+
+  it("says a period where only money outside the results moved had no income or expense, never that nothing moved", () => {
+    const text = paperText(
+      accountantSummaryPaper({
+        ...FACTS,
+        summary: {
+          ...FACTS.summary,
+          incomeMoney: 0,
+          expenseMoney: 0,
+          netMoney: 0,
+          byCategory: [],
+          byCounterparty: [],
+          bySide: [],
+        },
+      }),
+      "en"
+    );
+
+    expect(text).toContain("No income or expense in this period.");
+    expect(text).not.toContain("did not move");
+    expect(text).toContain("Loan received · 200,000 taka · —");
+  });
+
   it("has no part for money outside the results where none moved", () => {
     const text = paperText(
       accountantSummaryPaper({
@@ -128,7 +159,13 @@ describe("the accountant's summary, on paper", () => {
   });
 
   it("says the money awaiting approval, counted in, and who owed the farm at the period's end with their total", () => {
-    const text = paperText(accountantSummaryPaper(FACTS), "en");
+    const text = paperText(
+      accountantSummaryPaper({
+        ...FACTS,
+        summary: { ...FACTS.summary, outsideTheResults: [] },
+      }),
+      "en"
+    );
 
     expect(text).toContain(
       "15 entries are still awaiting approval: 347,000 taka in, 1,165,350 taka out. They are counted in every figure here."

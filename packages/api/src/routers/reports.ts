@@ -72,7 +72,8 @@ const accountantPaper = async (
 };
 
 /** The accountant's CSV: every Money Event of the period, with the record behind it and whether the Owner
- *  has approved it. Plain digits and plain words for whoever opens it in a spreadsheet. */
+ *  has approved it. Plain digits and plain words for whoever opens it in a spreadsheet. Money outside the results
+ *  (ADR 0027) is marked in a last column, so the file adds up to the paper's income and expense and its money apart. */
 const accountantCsv = (money: readonly ExportedMoney[]) =>
   toCsv(
     [
@@ -91,6 +92,7 @@ const accountantCsv = (money: readonly ExportedMoney[]) =>
       "farm_account",
       "approval",
       "note",
+      "outside_the_results",
     ],
     money.map((one) => [
       farmDayOf(one.occurredAt),
@@ -108,6 +110,7 @@ const accountantCsv = (money: readonly ExportedMoney[]) =>
       one.farmAccountName,
       one.approval === "awaiting" ? "awaiting_approval" : one.approval,
       one.note,
+      one.outsideTheResults ? "yes" : "no",
     ])
   );
 

@@ -381,7 +381,7 @@ export const moneyEntryProcedures = {
           !(mayBeEnteredByHand(existing.key) && mayBeChargedToAnimals(existing))
         ) {
           throw refusedByHand(
-            "Wages, shed rent, utilities, repairs, shed hygiene, equipment, money coming in and money a record books are never the animals' to carry",
+            "Wages, shed rent, utilities, repairs, shed hygiene, equipment, money coming in, money a record books and money outside the results are never the animals' to carry",
             "never_the_animals"
           );
         }
@@ -442,7 +442,7 @@ export const moneyEntryProcedures = {
         }
         if (input.paidMonthly && !mayBePaidMonthly(existing)) {
           throw refusedByHand(
-            "Only money going out that no record books may be marked as paid every month",
+            "Only money going out that no record books, and that is a cost, may be marked as paid every month",
             "never_monthly"
           );
         }
