@@ -1,4 +1,5 @@
-import type { MessageKey } from "@OpenFarm/i18n";
+import type { Language, MessageKey } from "@OpenFarm/i18n";
+import { formatNumber } from "@OpenFarm/i18n";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
@@ -378,6 +379,18 @@ export const BOTTOM_BAR: Record<Role, NavItem[]> = {
     },
   ],
 };
+
+/** The bar with how many wait at each of its places, by address, in the reader's own digits: nothing on a place where
+ *  none waits, or that nobody has counted, since a "0" badge is one more thing to read for nothing. */
+export const barWithCounts = (
+  items: readonly NavItem[],
+  waiting: Partial<Record<string, number>>,
+  language: Language
+): NavItem[] =>
+  items.map((item) => {
+    const count = waiting[item.to] ?? 0;
+    return count > 0 ? { ...item, count: formatNumber(count, language) } : item;
+  });
 
 /** Where each Role lands when it opens the app. */
 export const LANDING: Record<Role, "/overview" | "/home" | "/vet" | "/work"> = {

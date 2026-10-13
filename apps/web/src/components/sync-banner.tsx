@@ -9,7 +9,11 @@ import {
   DialogTrigger,
 } from "@OpenFarm/ui/components/dialog";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  partialMatchKey,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   CloudCheck,
@@ -33,8 +37,7 @@ import {
 import { herdReadIsDue } from "@/lib/herd-refresh";
 import type { OutboxState } from "@/lib/outbox";
 import { phoneOutbox } from "@/lib/outbox-client";
-import { refreshTheScreen } from "@/lib/refresh";
-import { client } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
 
 /** How often the phone tries what it is holding. Sending is cheap when there is nothing to
  *  send: the Outbox reads its own queue and stops. */
@@ -115,7 +118,13 @@ export const useOutboxSender = () => {
         // of date: a tile left green over an entry that was refused is the phone telling
         // the person a lie, and a dose taken moves the medicine on the shelf too.
         if (sent > 0 || verdicts.length > 0) {
-          refreshTheScreen(queryClient);
+          // The day's work is read again first, and waited for: what the phone still holds as finished empties with
+          // the Outbox's own list below, and a list read after that would offer the finished work back as owed.
+          const work = orpc.work.key();
+          await queryClient.invalidateQueries({ queryKey: work });
+          void queryClient.invalidateQueries({
+            predicate: (query) => !partialMatchKey(query.queryKey, work),
+          });
         }
         // Nobody is switched in on a locked Shed Phone: there is no herd of theirs to read.
         if (getDeviceToken() && !getSwitchToken()) {

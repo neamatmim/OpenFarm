@@ -1,6 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { eq, sql } from "@OpenFarm/db/operators";
+import { and, eq, inArray, sql } from "@OpenFarm/db/operators";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type {
@@ -1404,6 +1404,29 @@ export const heldByWithdrawal = async (
 /** A numeric column's figure, or nothing. */
 const figure = (value: string | null) =>
   value === null ? null : Number(value);
+
+/** How much work waits on a checker's word for these Roles, by the same rule as the queue: a count, for a badge read on
+ *  every page, where the queue itself — every piece with its Steps and its figures — would be far too much to ask. */
+export const workAwaitingSignOffCount = async (
+  db: Pick<Database, "select">,
+  farmId: string,
+  roles: readonly RoleName[]
+): Promise<number> => {
+  if (roles.length === 0) {
+    return 0;
+  }
+  const [row] = await db
+    .select({ waiting: sql<number>`count(*)::int` })
+    .from(sopInstance)
+    .where(
+      and(
+        eq(sopInstance.farmId, farmId),
+        eq(sopInstance.state, AWAITING_SIGN_OFF),
+        inArray(sopInstance.checkerRole, [...roles])
+      )
+    );
+  return row?.waiting ?? 0;
+};
 
 /**
  * The work waiting on a checker's word, oldest done first: done, with a checker Role, and that Role one this person

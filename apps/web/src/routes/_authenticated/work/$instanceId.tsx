@@ -127,11 +127,28 @@ const WorkPage = () => {
   });
   const finish = useMutation({
     ...keptOnThePhone,
-    mutationFn: () => finishInstance(queryClient, instanceKey, instanceId),
+    mutationFn: async () => {
+      await finishInstance(queryClient, instanceKey, instanceId);
+      // Held as finished on the day's list too, until the farm is asked again: once the Outbox has sent it on, the
+      // list must not offer it back as owed before it has been read afresh.
+      queryClient.setQueriesData<{ id: string; state: string }[]>(
+        { queryKey: orpc.work.today.key() },
+        (rows) =>
+          rows?.map((row) =>
+            row.id === instanceId ? { ...row, state: "completed" } : row
+          )
+      );
+    },
     onSuccess: () => {
       toast.success(t("work.finishKept"));
       void queryClient.invalidateQueries({ queryKey: ["outbox"] });
-      navigate({ to: "/work" });
+      // Back to the day's list with the next free job in this Pen offered at its top, from what the phone already
+      // holds: a milker finishing the milking goes straight on to the feeding, signal or none.
+      const penId = instance.data?.penId;
+      navigate({
+        to: "/work",
+        search: penId ? { after: instanceId, nextIn: penId } : {},
+      });
     },
     onError,
   });

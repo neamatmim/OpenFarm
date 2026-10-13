@@ -1,4 +1,5 @@
 import type { Database } from "@OpenFarm/db";
+import { sql } from "@OpenFarm/db/operators";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import type { SopContent } from "@OpenFarm/domain";
 import {
@@ -41,6 +42,7 @@ import { protectedProcedure } from "../index";
 import type { RaisedAlert } from "../instances-store";
 import {
   workAwaitingSignOff,
+  workAwaitingSignOffCount,
   alertParams,
   animalsForInstance,
   farmDayRange,
@@ -71,6 +73,9 @@ import {
 
 /** How much of the sign-off queue a screen is handed at once. */
 const SIGN_OFF_LIMIT = 100;
+
+/** The most of a day's done work listed on the phone: the latest of it, with how much there was in all beside. */
+const DONE_LISTED = 50;
 
 /**
  * Loads the Instance a checker may sign off, refusing if they may not: it must be waiting
@@ -393,6 +398,69 @@ export const workRouter = {
         };
       });
     }),
+
+  /** What was finished today in this person's Scope, last done first: the other half of the day's list, so a list with
+   *  nothing left on it reads as a morning done rather than work gone missing. Named and placed, nothing more — the
+   *  work itself is opened from its page — and only the latest of a long day listed, with how much there was in all.
+   *  Says which farm day it answers for, so a phone holding the answer overnight never shows yesterday's as today's. */
+  doneToday: protectedProcedure
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
+    .handler(async ({ context }) => {
+      const now = context.clock.now();
+      const { from, to } = farmDayRange(now);
+      const finishedToday = {
+        farmId: context.farm.id,
+        state: { in: ["completed" as const, "approved" as const] },
+        completedAt: { gte: from, lt: to },
+        ...workInScopeWhere(context.scope),
+      };
+      const [rows, all] = await Promise.all([
+        context.db.query.sopInstance.findMany({
+          where: finishedToday,
+          columns: { id: true, penId: true, completedAt: true },
+          with: {
+            // Its name alone: the Version's Steps and evidence are no part of a line saying it was done.
+            version: {
+              columns: {},
+              extras: { name: (version) => sql`${version.content} -> 'name'` },
+            },
+            pen: {
+              columns: { name: true },
+              with: { shed: { columns: { name: true } } },
+            },
+          },
+          orderBy: { completedAt: "desc", id: "desc" },
+          limit: DONE_LISTED,
+        }),
+        context.db.query.sopInstance.findMany({
+          where: finishedToday,
+          columns: { id: true },
+        }),
+      ]);
+      return {
+        day: farmDayOf(now),
+        count: all.length,
+        done: rows.map((row) => ({
+          id: row.id,
+          name: row.version.name as SopContent["name"],
+          penId: row.penId,
+          pen: row.pen,
+          completedAt: row.completedAt,
+        })),
+      };
+    }),
+
+  /** How much waits for this person's Sign-off, counted: the Manager's bar carries it on every page, where the queue
+   *  itself would be far too much to ask for there. */
+  signOffWaiting: protectedProcedure
+    .use(requireRole("owner", "manager", "staff", "vet"))
+    .handler(async ({ context }) => ({
+      waiting: await workAwaitingSignOffCount(
+        context.db,
+        context.farm.id,
+        context.roles
+      ),
+    })),
 
   /** Everything the pen board needs: the Version's Steps, the Pen's animals, and what has
    *  already been recorded. */
