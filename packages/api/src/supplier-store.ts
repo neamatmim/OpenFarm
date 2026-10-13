@@ -9,7 +9,7 @@ import {
   supplierPayment,
   supplierProfile,
 } from "@OpenFarm/db/schema/supplier";
-import { farmDayOf, invoiceOwingOn, startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import {
   supplierAging,
   supplierBalance,
@@ -347,18 +347,15 @@ export const verifyCorrectedInvoice = async (
 };
 
 /**
- * Every Supplier Invoice dated by the end of a farm day, with what it still owed at that day's end (CONTEXT.md: **Owed
- * to Suppliers**): the feed come against it by then, less what was paid at the gate and on the bill by then. A bill paid
- * up by then owes nothing and is left out. What the monthly report ages and the accountant's summary names.
+ * Every Supplier Invoice the farm keeps, with its Supplier's name, its dates, the loads come against it and what was
+ * paid on it — read once, for as many days' ends as a report asks (`billsOwingAt`; CONTEXT.md: **Owed to Suppliers**).
+ * Only invoices with something still to pay at some time are worth reading, but a bill paid up today was owing at an
+ * earlier month's end, so all are read: one farm's bills, a few a week.
  */
-export const supplierBillsAt = async (
-  db: Database | Tx,
-  farmId: string,
-  asOf: string
-) => {
+export const supplierBillsOf = async (db: Database | Tx, farmId: string) => {
   const invoices = await db.query.supplierInvoice.findMany({
-    where: { farmId, invoicedOn: { lte: asOf } },
-    columns: { id: true, invoicedOn: true, dueOn: true },
+    where: { farmId },
+    columns: { invoicedOn: true, dueOn: true },
     with: {
       supplier: { columns: { name: true } },
       deliveries: {
@@ -370,25 +367,11 @@ export const supplierBillsAt = async (
       },
       payments: { columns: { paidOn: true, amountMoney: true } },
     },
-    orderBy: { invoicedOn: "asc", id: "asc" },
   });
-  return invoices
-    .map((invoice) => ({
-      supplierName: invoice.supplier.name,
-      invoicedOn: invoice.invoicedOn,
-      dueOn: invoice.dueOn,
-      owingMoney: invoiceOwingOn(
-        {
-          deliveries: invoice.deliveries.map((one) => ({
-            ...one,
-            receivedOn: farmDayOf(one.receivedOn),
-          })),
-          payments: invoice.payments,
-        },
-        asOf
-      ),
-    }))
-    .filter((bill) => bill.owingMoney > 0);
+  return invoices.map(({ supplier, ...bill }) => ({
+    ...bill,
+    supplierName: supplier.name,
+  }));
 };
 
 export const suppliersList = async (

@@ -20,8 +20,8 @@ export interface ReceivablesByAge {
   ages: { age: ReceivableAge; owingMoney: number }[];
 }
 
-/** What some Receivables still owe, together. */
-const sum = (some: readonly { owingMoney: number }[]) =>
+/** What some debts still owe, together: a book of Receivables, or the bills the Farm owes its Suppliers. */
+export const owingTogether = (some: readonly { owingMoney: number }[]) =>
   roundMoney(some.reduce((total, one) => total + one.owingMoney, 0));
 
 /** Each age, and what of these was owing that long at `asOf`, by the days since each one's own day. Shared with what
@@ -36,7 +36,7 @@ export const owingByAge = <Each extends { owingMoney: number }>(
       index === 0 ? 0 : (RECEIVABLE_AGES[index - 1]?.upToDays ?? 0) + 1;
     return {
       age,
-      owingMoney: sum(
+      owingMoney: owingTogether(
         owing.filter((one) => {
           const days = farmDaysApart(sinceOf(one), asOf);
           return days >= fromDays && days <= upToDays;
@@ -60,8 +60,8 @@ export const receivablesByAge = (
 ): ReceivablesByAge => {
   const owing = items.filter((one) => one.owingMoney > 0);
   return {
-    owingMoney: sum(owing),
-    overdueMoney: sum(
+    owingMoney: owingTogether(owing),
+    overdueMoney: owingTogether(
       owing.filter((one) => isReceivableOverdue(one, asOf, receivableDays))
     ),
     ages: owingByAge(owing, (one) => one.leftOn, asOf),

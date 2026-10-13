@@ -1,59 +1,77 @@
 import { describe, expect, it } from "vitest";
 
-import { invoiceOwingOn, owedToSuppliersByAge } from "./owed-to-suppliers";
+import { atFarmTime } from "./farm-clock";
+import { billsOwingAt, owedToSuppliersByAge } from "./owed-to-suppliers";
+import { supplierBalance } from "./supplier-credit";
 
 // Read at the end of 31 May 2046.
 const AS_OF = "2046-05-31";
 
-describe("what one Supplier Invoice still owed at a day's end", () => {
-  const invoice = {
-    deliveries: [
-      // ৳10,000 of feed on the 10th, ৳2,000 of it paid at the gate.
-      {
-        receivedOn: "2046-05-10",
-        priceMoney: 10_000,
-        paidAtDeliveryMoney: 2000,
-      },
-      // A second load on the bill, after the month's end.
-      { receivedOn: "2046-06-03", priceMoney: 5000, paidAtDeliveryMoney: 0 },
-    ],
-    payments: [
-      { paidOn: "2046-05-20", amountMoney: 3000 },
-      // Paid after the month's end: still owed at it.
-      { paidOn: "2046-06-05", amountMoney: 5000 },
-    ],
-  };
+/** A load on a bill, come at a farm time on a farm day. */
+const load = (
+  day: string,
+  priceMoney: number,
+  paidAtDeliveryMoney: number,
+  time = "10:00"
+) => ({ receivedOn: atFarmTime(day, time), priceMoney, paidAtDeliveryMoney });
 
+const theBill = {
+  invoicedOn: "2046-05-10",
+  dueOn: "2046-05-20",
+  deliveries: [
+    // ৳10,000 of feed on the 10th, ৳2,000 of it paid at the gate.
+    load("2046-05-10", 10_000, 2000),
+    // A second load on the bill, after the month's end.
+    load("2046-06-03", 5000, 0),
+  ],
+  payments: [
+    { paidOn: "2046-05-20", amountMoney: 3000 },
+    // Paid after the month's end: still owed at it.
+    { paidOn: "2046-06-05", amountMoney: 5000 },
+  ],
+};
+
+describe("what each Supplier Invoice still owed at a day's end", () => {
   it("is the feed come by then, less what was paid at the gate and paid on it by then", () => {
-    expect(invoiceOwingOn(invoice, AS_OF)).toBe(5000);
+    expect(billsOwingAt([theBill], AS_OF)).toEqual([
+      { ...theBill, owingMoney: 5000 },
+    ]);
   });
 
-  it("counts nothing of a load that had not come, nor a payment not yet made", () => {
-    expect(invoiceOwingOn(invoice, "2046-05-09")).toBe(0);
-    expect(invoiceOwingOn(invoice, "2046-06-05")).toBe(5000);
+  it("counts a load come in the day's last minute, and none come the next day", () => {
+    const late = {
+      ...theBill,
+      deliveries: [
+        load("2046-05-31", 1000, 0, "23:59"),
+        load("2046-06-01", 2000, 0, "00:00"),
+      ],
+      payments: [],
+    };
+
+    expect(billsOwingAt([late], AS_OF)[0]?.owingMoney).toBe(1000);
   });
 
-  it("adds in paisa, so a bill of odd taka owes exactly what is left", () => {
+  it("leaves out a bill dated after the day, and one paid up by then", () => {
+    expect(billsOwingAt([theBill], "2046-05-09")).toEqual([]);
     expect(
-      invoiceOwingOn(
-        {
-          deliveries: [
-            {
-              receivedOn: "2046-05-01",
-              priceMoney: 0.1,
-              paidAtDeliveryMoney: 0,
-            },
-            {
-              receivedOn: "2046-05-01",
-              priceMoney: 0.2,
-              paidAtDeliveryMoney: 0,
-            },
-          ],
-          payments: [],
-        },
+      billsOwingAt(
+        [
+          {
+            ...theBill,
+            payments: [{ paidOn: "2046-05-20", amountMoney: 8000 }],
+          },
+        ],
         AS_OF
       )
-    ).toBe(0.3);
+    ).toEqual([]);
+  });
+
+  it("reads a bill as Feed → Suppliers reads its balance, once every load has come and every payment been made", () => {
+    const [owing] = billsOwingAt([theBill], "2046-07-01");
+
+    expect(owing?.owingMoney).toBe(
+      supplierBalance(theBill.deliveries, theBill.payments).owingMoney
+    );
   });
 });
 
@@ -65,7 +83,7 @@ const bill = (invoicedOn: string, owingMoney: number, dueOn = invoicedOn) => ({
 });
 
 describe("what the Farm owed its Suppliers, by how long since each bill", () => {
-  it("puts each bill still owing in its age by the days since its date: 0–7, 8–15, 16–30, 31–60, over 60", () => {
+  it("puts each bill in its age by the days since its date: 0–7, 8–15, 16–30, 31–60, over 60", () => {
     const owed = owedToSuppliersByAge(
       [
         bill("2046-05-31", 1000),
@@ -75,7 +93,6 @@ describe("what the Farm owed its Suppliers, by how long since each bill", () => 
         bill("2046-05-01", 16_000),
         bill("2046-04-01", 32_000),
         bill("2046-03-31", 64_000),
-        bill("2046-05-30", 0),
       ],
       AS_OF
     );

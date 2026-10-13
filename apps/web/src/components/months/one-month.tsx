@@ -31,6 +31,7 @@ import {
   useMoneyRate,
 } from "@/lib/money";
 import { saidMonth } from "@/lib/months";
+import { owedSuppliersIn } from "@/lib/owed-to-suppliers";
 import { useRefused } from "@/lib/refused";
 import { saveCsv } from "@/lib/save-csv";
 import type { client } from "@/utils/orpc";
@@ -158,6 +159,8 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
   const perLiter = useMoneyRate();
   const perHead = usePerHeadPerDay();
   const percent = usePercent();
+  // What the farm owed its Suppliers is said only where this month or the month before owed them something.
+  const owesSuppliers = owedSuppliersIn(now, before);
   const liters = (amount: number | null | undefined) =>
     amount === null || amount === undefined
       ? null
@@ -232,10 +235,14 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
         t("months.one.owedByBuyers"),
         (one) => one.atEnd?.receivables.owingMoney
       ),
-      compared(
-        t("months.one.owedToSuppliers"),
-        (one) => one.atEnd?.owedToSuppliers?.owingMoney
-      ),
+      ...(owesSuppliers
+        ? [
+            compared(
+              t("months.one.owedToSuppliers"),
+              (one) => one.atEnd?.owedToSuppliers?.owingMoney
+            ),
+          ]
+        : []),
       compared(t("months.one.theStore"), (one) => one.atEnd?.store.totalMoney),
       compared(
         t("months.one.farmsOwnMoney"),
@@ -301,31 +308,34 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
         one.atEnd ? asMoney(one.atEnd.receivables.overdueMoney) : null
       ),
     ],
-    owedToSuppliers: [
-      ...RECEIVABLE_AGES.map(({ age }) =>
-        both(t(`months.one.age.${age}`), (one) =>
-          one.atEnd?.owedToSuppliers
-            ? asMoney(
-                one.atEnd.owedToSuppliers.ages.find((each) => each.age === age)
-                  ?.owingMoney ?? 0
-              )
-            : null
-        )
-      ),
-      both(
-        t("months.one.owedToSuppliersInAll"),
-        (one) =>
-          one.atEnd?.owedToSuppliers
-            ? asMoney(one.atEnd.owedToSuppliers.owingMoney)
-            : null,
-        true
-      ),
-      both(t("months.one.pastItsDueDay"), (one) =>
-        one.atEnd?.owedToSuppliers
-          ? asMoney(one.atEnd.owedToSuppliers.overdueMoney)
-          : null
-      ),
-    ],
+    owedToSuppliers: owesSuppliers
+      ? [
+          ...RECEIVABLE_AGES.map(({ age }) =>
+            both(t(`months.one.age.${age}`), (one) =>
+              one.atEnd?.owedToSuppliers
+                ? asMoney(
+                    one.atEnd.owedToSuppliers.ages.find(
+                      (each) => each.age === age
+                    )?.owingMoney ?? 0
+                  )
+                : null
+            )
+          ),
+          both(
+            t("months.one.owedToSuppliersInAll"),
+            (one) =>
+              one.atEnd?.owedToSuppliers
+                ? asMoney(one.atEnd.owedToSuppliers.owingMoney)
+                : null,
+            true
+          ),
+          both(t("months.one.pastItsDueDay"), (one) =>
+            one.atEnd?.owedToSuppliers
+              ? asMoney(one.atEnd.owedToSuppliers.overdueMoney)
+              : null
+          ),
+        ]
+      : [],
     cashFlow: [
       both(t("months.one.began"), (one) =>
         one.cashFlow ? asMoney(one.cashFlow.openingMoney) : null
@@ -378,12 +388,17 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
           one.atEnd ? asMoney(one.atEnd.capital[key]) : null
         )
       ),
-      // Missing from an answer kept from before the capital took off what was owed to Suppliers.
-      both(t("months.one.owedToSuppliersTakenOff"), (one) =>
-        one.atEnd?.capital.owedToSuppliersMoney === undefined
-          ? null
-          : asMoney(one.atEnd.capital.owedToSuppliersMoney)
-      ),
+      // Below nought, so the lines add up to the whole; missing from an answer kept from before the capital took off
+      // what was owed to Suppliers.
+      ...(owesSuppliers
+        ? [
+            both(t("months.one.owedToSuppliersTakenOff"), (one) =>
+              one.atEnd?.capital.owedToSuppliersMoney === undefined
+                ? null
+                : asMoney(0 - one.atEnd.capital.owedToSuppliersMoney)
+            ),
+          ]
+        : []),
       both(
         t("months.one.capitalInAll"),
         (one) => (one.atEnd ? asMoney(one.atEnd.capital.totalMoney) : null),

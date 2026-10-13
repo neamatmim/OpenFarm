@@ -148,7 +148,29 @@ interface Figure {
   label: Said;
   kind: Kind;
   of: (figures: MonthFigures) => number | null;
+  /** Said only where this holds for the month or the month before; said always where there is no such test. */
+  onlyWhen?: (figures: MonthFigures) => boolean;
 }
+
+/** Whether the farm owed its Suppliers anything at a month's end: what says it is left out of a month that owed none,
+ *  beside a month before that owed none either. */
+const owedSuppliers = (figures: MonthFigures) =>
+  figures.atEnd.owedToSuppliers.owingMoney > 0;
+
+/** The lines of a part said for these two months: each one, unless it is only for months neither of these is. */
+const linesShown = (
+  lines: readonly Figure[],
+  {
+    figures,
+    figuresBefore,
+  }: Pick<MonthlyReportFacts, "figures" | "figuresBefore">
+) =>
+  lines.filter(
+    (line) =>
+      line.onlyWhen === undefined ||
+      line.onlyWhen(figures) ||
+      line.onlyWhen(figuresBefore)
+  );
 
 /** One part of the month: its heading and its lines, said the same on the paper and in the CSV. */
 interface Part {
@@ -256,6 +278,7 @@ const SUMMARY: Part = {
       label: { bn: "সরবরাহকারীদের কাছে দেনা", en: "Owed to suppliers" },
       kind: "sum",
       of: (one) => one.atEnd.owedToSuppliers.owingMoney,
+      onlyWhen: owedSuppliers,
     },
     {
       label: { bn: "ভান্ডার", en: "The store" },
@@ -305,7 +328,7 @@ const summaryPart = ({
     { label: monthSaid(before), figures: true },
     { label: { bn: "পরিবর্তন", en: "Change" }, figures: true },
   ],
-  rows: SUMMARY.lines.map((line) => [
+  rows: linesShown(SUMMARY.lines, { figures, figuresBefore }).map((line) => [
     line.label,
     figureSaid(line.kind, line.of(figures)),
     figureSaid(line.kind, line.of(figuresBefore)),
@@ -451,6 +474,7 @@ const OWED_TO_SUPPLIERS: Part = {
       of: (one: MonthFigures) =>
         one.atEnd.owedToSuppliers.ages.find((each) => each.age === age)
           ?.owingMoney ?? 0,
+      onlyWhen: owedSuppliers,
     })),
     {
       label: {
@@ -459,6 +483,7 @@ const OWED_TO_SUPPLIERS: Part = {
       },
       kind: "sum",
       of: (one) => one.atEnd.owedToSuppliers.owingMoney,
+      onlyWhen: owedSuppliers,
     },
     {
       label: {
@@ -467,6 +492,7 @@ const OWED_TO_SUPPLIERS: Part = {
       },
       kind: "sum",
       of: (one) => one.atEnd.owedToSuppliers.overdueMoney,
+      onlyWhen: owedSuppliers,
     },
   ],
 };
@@ -582,7 +608,9 @@ const CAPITAL: Part = {
         en: "Owed to suppliers, taken off",
       },
       kind: "sum",
-      of: (one) => one.atEnd.capital.owedToSuppliersMoney,
+      // Below nought, so the part's lines add up to its whole; nought, never minus nought, where none was owed.
+      of: (one) => 0 - one.atEnd.capital.owedToSuppliersMoney,
+      onlyWhen: owedSuppliers,
     },
     {
       label: { bn: "মোট পুঁজি", en: "Capital in all" },
@@ -677,7 +705,7 @@ const partOf = (
     { label: monthSaid(month), figures: true },
     { label: monthSaid(before), figures: true },
   ],
-  rows: lines.map((line) => [
+  rows: linesShown(lines, { figures, figuresBefore }).map((line) => [
     line.label,
     figureSaid(line.kind, line.of(figures)),
     figureSaid(line.kind, line.of(figuresBefore)),
@@ -685,6 +713,11 @@ const partOf = (
   foot: null,
   note: null,
 });
+
+/** A part whose every line is only for some months, as a table where either month is one of them, and nothing where
+ *  neither is. */
+const partIfAny = (part: Part, facts: MonthlyReportFacts): PaperSection[] =>
+  linesShown(part.lines, facts).length > 0 ? [partOf(part, facts)] : [];
 
 /** The month's money by one way of adding it — by Category, or by Side — in and out, the month alone. */
 const moneyByPart = (
@@ -944,7 +977,7 @@ export const monthlyReportPaper = (
       partOf(CASH_FLOW, facts),
       partOf(CASH, facts),
       partOf(RECEIVABLES, facts),
-      partOf(OWED_TO_SUPPLIERS, facts),
+      ...partIfAny(OWED_TO_SUPPLIERS, facts),
       partOf(STORE, facts),
       partOf(CAPITAL, facts),
       partOf(MONTHS_RETURN, facts),
@@ -1074,7 +1107,7 @@ export const monthlyReportRows = (
   facts: MonthlyReportFacts
 ): MonthlyReportRow[] => {
   const rowsOf = ({ heading, lines }: Part): MonthlyReportRow[] =>
-    lines.map((line) => ({
+    linesShown(lines, facts).map((line) => ({
       part: heading,
       line: line.label,
       way: null,

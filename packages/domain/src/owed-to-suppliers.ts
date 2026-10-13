@@ -1,40 +1,42 @@
-import { roundMoney } from "./money";
+import { startOfFarmDay } from "./farm-clock";
+import { addDays } from "./fattening";
 import type { ReceivableAge } from "./receivable-ages";
-import { owingByAge } from "./receivable-ages";
+import { owingByAge, owingTogether } from "./receivable-ages";
+import { supplierBalance } from "./supplier-credit";
 
-const paisa = (amount: number) => Math.round(amount * 100);
-
-/** What some bills still owe, together. */
-const together = (some: readonly { owingMoney: number }[]) =>
-  roundMoney(some.reduce((total, one) => total + one.owingMoney, 0));
+/** One Supplier Invoice as it stands in the farm's records: its dates, the loads come against it, and what was paid on
+ *  it, each when. */
+export interface SupplierBill {
+  invoicedOn: string;
+  dueOn: string;
+  deliveries: readonly {
+    receivedOn: Date;
+    priceMoney: number | null;
+    paidAtDeliveryMoney: number | null;
+  }[];
+  payments: readonly { paidOn: string; amountMoney: number }[];
+}
 
 /**
- * What one Supplier Invoice still owed at the end of a farm day (CONTEXT.md: **Owed to Suppliers**): the feed come
- * against it by then, less what was paid at the gate for it and what was paid on the bill by then. A load still to come
- * owes nothing yet, and a payment made after the day still owed at it. Added in paisa, as the bill's balance is.
+ * The bills that still owed something at the end of a farm day, each with what it owed (CONTEXT.md: **Owed to
+ * Suppliers**): the loads come against it by then, less what was paid at the gate and on the bill by then, read by the
+ * same rule as its balance on Feed → Suppliers. A load still to come owes nothing yet, a payment made after the day still
+ * owed at it, and a bill dated after the day, or paid up by then, is left out — here and nowhere else.
  */
-export const invoiceOwingOn = (
-  invoice: {
-    deliveries: readonly {
-      receivedOn: string;
-      priceMoney: number | null;
-      paidAtDeliveryMoney: number | null;
-    }[];
-    payments: readonly { paidOn: string; amountMoney: number }[];
-  },
+export const billsOwingAt = <Bill extends SupplierBill>(
+  bills: readonly Bill[],
   asOf: string
-): number => {
-  const came = invoice.deliveries.filter((one) => one.receivedOn <= asOf);
-  const owing =
-    came.reduce(
-      (sum, one) =>
-        sum + paisa(one.priceMoney ?? 0) - paisa(one.paidAtDeliveryMoney ?? 0),
-      0
-    ) -
-    invoice.payments
-      .filter((one) => one.paidOn <= asOf)
-      .reduce((sum, one) => sum + paisa(one.amountMoney), 0);
-  return owing / 100;
+): (Bill & { owingMoney: number })[] => {
+  // The day's end as an instant, worked out once, and every load compared with it.
+  const dayEnds = startOfFarmDay(addDays(asOf, 1));
+  return bills.flatMap((bill) => {
+    // A bill dated after the day owes nothing at it: no load comes before its bill's date (ADR 0026).
+    const { owingMoney } = supplierBalance(
+      bill.deliveries.filter((one) => one.receivedOn < dayEnds),
+      bill.payments.filter((one) => one.paidOn <= asOf)
+    );
+    return owingMoney > 0 ? [{ ...bill, owingMoney }] : [];
+  });
 };
 
 /** What the Farm owed its Suppliers at a day's end, by age (ADR 0023, 0026). */
@@ -46,17 +48,15 @@ export interface OwedToSuppliers {
 }
 
 /**
- * What the Farm still owed its Suppliers at the end of a farm day, each bill by the days since its date — 0–7, 8–15,
- * 16–30, 31–60, over 60, the ages buyers' Receivables are read in — and how much of it was past its due day.
+ * What the Farm still owed its Suppliers at the end of a farm day, from the bills owing then (`billsOwingAt`), each by
+ * the days since its date — 0–7, 8–15, 16–30, 31–60, over 60, the ages buyers' Receivables are read in — and how much of
+ * it was past its due day.
  */
 export const owedToSuppliersByAge = (
-  bills: readonly { invoicedOn: string; dueOn: string; owingMoney: number }[],
+  owing: readonly { invoicedOn: string; dueOn: string; owingMoney: number }[],
   asOf: string
-): OwedToSuppliers => {
-  const owing = bills.filter((one) => one.owingMoney > 0);
-  return {
-    owingMoney: together(owing),
-    overdueMoney: together(owing.filter((one) => one.dueOn < asOf)),
-    ages: owingByAge(owing, (one) => one.invoicedOn, asOf),
-  };
-};
+): OwedToSuppliers => ({
+  owingMoney: owingTogether(owing),
+  overdueMoney: owingTogether(owing.filter((one) => one.dueOn < asOf)),
+  ages: owingByAge(owing, (one) => one.invoicedOn, asOf),
+});

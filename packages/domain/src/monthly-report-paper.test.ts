@@ -398,6 +398,45 @@ describe("what the farm owed its suppliers at the month's end, on paper", () => 
   });
 });
 
+describe("a month that owed its suppliers nothing, beside a month before that owed nothing", () => {
+  const owedNothing = {
+    owingMoney: 0,
+    overdueMoney: 0,
+    ages: FACTS.figures.atEnd.owedToSuppliers.ages.map((one) => ({
+      ...one,
+      owingMoney: 0,
+    })),
+  };
+  const facts = {
+    ...FACTS,
+    figures: {
+      ...FACTS.figures,
+      atEnd: {
+        ...FACTS.figures.atEnd,
+        owedToSuppliers: owedNothing,
+        capital: {
+          ...FACTS.figures.atEnd.capital,
+          owedToSuppliersMoney: 0,
+          totalMoney: 184_000,
+        },
+      },
+    },
+  };
+
+  it("leaves out the suppliers' part, its line in the summary and its line in the capital, on paper and in the CSV", () => {
+    const text = paperText(monthlyReportPaper(facts), "en");
+    const rows = monthlyReportRows(facts);
+
+    expect(text).not.toContain("Owed to suppliers");
+    expect(
+      rows.filter((one) => one.line.en?.includes("suppliers") ?? false)
+    ).toEqual([]);
+    expect(
+      rows.filter((one) => one.part.en?.includes("suppliers") ?? false)
+    ).toEqual([]);
+  });
+});
+
 describe("what the store was worth at the month's end, on paper", () => {
   it("sets the feed, the medicine and the whole beside the month before's", () => {
     const text = paperText(monthlyReportPaper(FACTS), "en");
@@ -461,7 +500,7 @@ describe("what the farm had tied up, and what it made on it, on paper", () => {
     expect(text).toContain("The dairy herd · 3,000 taka · 0 taka");
     expect(text).toContain("In ventures · 100,000 taka · 0 taka");
     expect(text).toContain(
-      "Owed to suppliers, taken off · 38,000 taka · 0 taka"
+      "Owed to suppliers, taken off · -38,000 taka · 0 taka"
     );
     expect(text).toContain("Capital in all · 146,000 taka · 0 taka");
     expect(text).toContain(
@@ -658,6 +697,19 @@ describe("the Monthly Report of one month, a row a figure", () => {
       thisMonth: 30_000,
       monthBefore: 0,
     });
+  });
+
+  it("adds the capital's lines up to the capital in all, what was owed to suppliers taken off", () => {
+    const capital = monthlyReportRows(FACTS).filter(
+      (one) => one.part.en === "Capital employed at the month's end, at cost"
+    );
+    const whole = capital.find((one) => one.line.en === "Capital in all");
+    const parts = capital.filter((one) => one !== whole);
+
+    expect(parts.reduce((sum, one) => sum + (one.thisMonth ?? 0), 0)).toBe(
+      whole?.thisMonth
+    );
+    expect(whole?.thisMonth).toBe(146_000);
   });
 
   it("holds every line of the paper's figures, each named as the paper names it", () => {

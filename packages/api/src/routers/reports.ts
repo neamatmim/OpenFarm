@@ -1,6 +1,7 @@
 import type { MoneySummary } from "@OpenFarm/domain";
 import {
   accountantSummaryPaper,
+  billsOwingAt,
   farmDayOf,
   farmTimeOf,
   milkDispatchPaper,
@@ -23,12 +24,18 @@ import { madeOn } from "../paper-values";
 import { periodInput, periodOf } from "../period";
 import { receivableOfBuyers } from "../receivable-store";
 import { requirePersonalSession, requireRole } from "../roles";
-import { supplierBillsAt } from "../supplier-store";
+import { supplierBillsOf } from "../supplier-store";
 
 type FarmContext = Context & { farm: NonNullable<Context["farm"]> };
 
-/** The accountant's summary laid out on paper, read in Bangla or English: the period's money added up, and who still
- *  owed the farm what on its last day. */
+/** Whoever is owed or owes the most first, and by name among equals. */
+const biggestFirst = (
+  a: { name: string; owingMoney: number },
+  b: { name: string; owingMoney: number }
+) => b.owingMoney - a.owingMoney || a.name.localeCompare(b.name);
+
+/** The accountant's summary laid out on paper, read in Bangla or English: the period's money added up, who still owed
+ *  the farm what on its last day, and whom the farm still owed. */
 const accountantPaper = async (
   context: FarmContext & { actor: { name: string } },
   period: { from: string; to: string },
@@ -38,10 +45,10 @@ const accountantPaper = async (
   // still owed, as its payments up to then had left each bill.
   const [book, bills] = await Promise.all([
     receivableOfBuyers(context.db, context.farm.id, { asOf: period.to }),
-    supplierBillsAt(context.db, context.farm.id, period.to),
+    supplierBillsOf(context.db, context.farm.id),
   ]);
   const owedTo = new Map<string, number>();
-  for (const bill of bills) {
+  for (const bill of billsOwingAt(bills, period.to)) {
     owedTo.set(
       bill.supplierName,
       roundMoney((owedTo.get(bill.supplierName) ?? 0) + bill.owingMoney)
@@ -55,14 +62,10 @@ const accountantPaper = async (
     receivableAtTheEnd: book
       .filter((buyer) => buyer.owingMoney > 0)
       .map((buyer) => ({ name: buyer.name, owingMoney: buyer.owingMoney }))
-      .toSorted(
-        (a, b) => b.owingMoney - a.owingMoney || a.name.localeCompare(b.name)
-      ),
+      .toSorted(biggestFirst),
     owedToSuppliersAtTheEnd: [...owedTo]
       .map(([name, owingMoney]) => ({ name, owingMoney }))
-      .toSorted(
-        (a, b) => b.owingMoney - a.owingMoney || a.name.localeCompare(b.name)
-      ),
+      .toSorted(biggestFirst),
     producedAt: madeOn(context.clock.now()),
     producedBy: context.actor.name,
   });
