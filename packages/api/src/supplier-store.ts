@@ -2,7 +2,13 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, sql } from "@OpenFarm/db/operators";
 import { farm } from "@OpenFarm/db/schema/farm";
-import { supplierInvoice, supplierProfile } from "@OpenFarm/db/schema/supplier";
+import { counterparty } from "@OpenFarm/db/schema/fattening";
+import type { PaymentMethod } from "@OpenFarm/db/schema/money";
+import {
+  supplierInvoice,
+  supplierPayment,
+  supplierProfile,
+} from "@OpenFarm/db/schema/supplier";
 import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import {
   supplierAging,
@@ -14,7 +20,9 @@ import { ORPCError } from "@orpc/server";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Context } from "./context";
-import { counterpartyNamed } from "./counterparty-store";
+import { counterpartyNamed, knownAs } from "./counterparty-store";
+import { accountSaid, bookingOf, bookMoney } from "./money-store";
+import { seenWhenDone } from "./writes-seen";
 
 export const supplierRefused: (refusal: string) => never = (refusal) => {
   throw new ORPCError("BAD_REQUEST", { data: { refusal } });
@@ -377,7 +385,7 @@ export const suppliersList = async (
     invoices.map((row) => [row.id, row.counterpartyId])
   );
   const today = farmDayOf(now);
-  return profiles.map(({ counterparty, ...profile }) => {
+  return profiles.map(({ counterparty: contacts, ...profile }) => {
     const theirs = deliveries.filter(
       (row) => row.counterpartyId === profile.counterpartyId
     );
@@ -395,7 +403,7 @@ export const suppliersList = async (
         0
       );
     return {
-      ...counterparty,
+      ...contacts,
       ...profile,
       ...supplierBalance(theirs, paid),
       overdueMoney: Math.round(overdueMoney * 100) / 100,
@@ -410,4 +418,219 @@ export const suppliersList = async (
           .at(-1) ?? null,
     };
   });
+};
+
+/** Who keeps the farm's suppliers, on which farm, under which Role. */
+type Keeping = Context & {
+  farm: NonNullable<Context["farm"]>;
+  actor: NonNullable<Context["actor"]>;
+};
+
+const supplierContacts = (input: {
+  name: string;
+  address?: string;
+  phone?: string;
+}) => ({
+  name: input.name.normalize("NFC"),
+  address: input.address || null,
+  phone: input.phone || null,
+});
+const supplierTerms = (input: {
+  contactPerson?: string;
+  creditDays: number;
+  note?: string;
+}) => ({
+  contactPerson: input.contactPerson || null,
+  creditDays: input.creditDays,
+  note: input.note || null,
+});
+
+/** A supplier as the Owner or the Manager names them: who they are, how to reach them, and the credit they give. */
+export interface SupplierSaid {
+  id: string;
+  /** The version the change was made against; none for a new supplier. */
+  version?: number;
+  name: string;
+  address?: string;
+  phone?: string;
+  contactPerson?: string;
+  creditDays: number;
+  note?: string;
+  retired: boolean;
+  reason?: string;
+}
+
+/** Adds a supplier or changes one, once however often the same new one arrives; retiring or restoring is the Owner's,
+ *  and a supplier with orders still open is not retired. */
+export const saveSupplier = async (context: Keeping, input: SupplierSaid) => {
+  const now = context.clock.now();
+  return await seenWhenDone(
+    context.db.transaction(async (tx) => {
+      await lockSupplierFarm(tx, context.farm.id);
+      const existing = await tx.query.supplierProfile.findFirst({
+        where: { farmId: context.farm.id, counterpartyId: input.id },
+      });
+      if (existing && input.version === undefined) {
+        return { id: existing.counterpartyId };
+      }
+      if (existing && (input.version !== existing.version || !input.reason)) {
+        supplierRefused("supplier_changed");
+      }
+      if (!existing && input.version !== undefined) {
+        supplierRefused("supplier_missing");
+      }
+      if (
+        Boolean(existing?.retiredAt) !== input.retired &&
+        !context.roles.includes("owner")
+      ) {
+        throw new ORPCError("FORBIDDEN", {
+          data: { refusal: "owner_only" },
+        });
+      }
+      if (input.retired) {
+        const pending = await tx.query.feedPurchaseOrder.findFirst({
+          where: {
+            farmId: context.farm.id,
+            counterpartyId: input.id,
+            state: { in: ["requested", "approved", "ordered"] },
+          },
+          columns: { id: true },
+        });
+        if (pending) {
+          supplierRefused("supplier_open_orders");
+        }
+      }
+      const known = await knownAs(tx, context.farm.id, input.name);
+      if (known && known.id !== input.id) {
+        supplierRefused("supplier_exists");
+      }
+      const { id } = input;
+      const listed = await suppliersList(tx, context.farm.id, now);
+      const before = existing ? listed.find((row) => row.id === id) : null;
+      if (!existing) {
+        await tx.insert(counterparty).values({
+          id,
+          farmId: context.farm.id,
+          name: input.name.normalize("NFC"),
+          createdAt: now,
+        });
+        await tx.insert(supplierProfile).values({
+          counterpartyId: id,
+          farmId: context.farm.id,
+          createdAt: now,
+        });
+      }
+      await tx
+        .update(counterparty)
+        .set(supplierContacts(input))
+        .where(eq(counterparty.id, id));
+      await tx
+        .update(supplierProfile)
+        .set({
+          ...supplierTerms(input),
+          retiredAt: input.retired ? now : null,
+          version: existing ? existing.version + 1 : 1,
+        })
+        .where(eq(supplierProfile.counterpartyId, id));
+      const afterList = await suppliersList(tx, context.farm.id, now);
+      await audited(context).recordEvent(tx, {
+        entity: "supplier",
+        entityId: id,
+        action: existing ? "update" : "create",
+        reason: input.reason,
+        before,
+        after: afterList.find((row) => row.id === id),
+      });
+      return { id };
+    })
+  );
+};
+
+/** Money paid to a supplier against one invoice. */
+export interface SupplierPaymentSaid {
+  id: string;
+  invoiceId: string;
+  amountMoney: number;
+  paidOn: string;
+  paymentMethod: PaymentMethod;
+  farmAccountId?: string;
+  reference?: string;
+  note?: string;
+}
+
+/** Pays one invoice, once however often the same payment arrives: within what the invoice still owes, on a day it
+ *  could have been paid, and booked as the money it is. */
+export const paySupplier = async (
+  context: Keeping & { roleUsed: NonNullable<Context["roleUsed"]> },
+  input: SupplierPaymentSaid
+) => {
+  const now = context.clock.now();
+  return await seenWhenDone(
+    context.db.transaction(async (tx) => {
+      await lockSupplierFarm(tx, context.farm.id);
+      const existing = await tx.query.supplierPayment.findFirst({
+        where: { id: input.id },
+      });
+      if (existing) {
+        if (
+          existing.farmId !== context.farm.id ||
+          existing.invoiceId !== input.invoiceId ||
+          existing.recordedBy !== context.actor.id
+        ) {
+          supplierRefused("supplier_changed");
+        }
+        return { id: existing.id };
+      }
+      if (!validSupplierDay(input.paidOn) || input.paidOn > farmDayOf(now)) {
+        supplierRefused("supplier_invoice_days");
+      }
+      const invoice = await assertInvoicePayments(
+        tx,
+        context.farm.id,
+        input.invoiceId,
+        {
+          payment: {
+            id: input.id,
+            amountMoney: input.amountMoney,
+            paidOn: input.paidOn,
+          },
+        }
+      );
+      await tx.insert(supplierPayment).values({
+        ...input,
+        farmId: context.farm.id,
+        note: input.note || null,
+        recordedBy: context.actor.id,
+        recordedByRole: context.roleUsed,
+        recordedAt: now,
+      });
+      await bookMoney(
+        tx,
+        bookingOf(
+          context,
+          context.roleUsed,
+          now,
+          accountSaid(["supplier_payment"], input)
+        ),
+        {
+          source: "supplier_payment",
+          sourceId: input.id,
+          amountMoney: input.amountMoney,
+          occurredAt: startOfFarmDay(input.paidOn),
+          counterpartyId: invoice.counterpartyId,
+          paymentMethod: input.paymentMethod,
+          categoryKey: "feed_in",
+        }
+      );
+      await audited(context).recordEvent(tx, {
+        entity: "supplier_payment",
+        entityId: input.id,
+        action: "create",
+        after: await tx.query.supplierPayment.findFirst({
+          where: { id: input.id },
+        }),
+      });
+      return { id: input.id };
+    })
+  );
 };

@@ -1,5 +1,4 @@
 import { eq } from "@OpenFarm/db/operators";
-import { farm } from "@OpenFarm/db/schema/farm";
 import { feedPurchaseOrder } from "@OpenFarm/db/schema/feed";
 import { farmDayOf } from "@OpenFarm/domain";
 import { FEED_ESTIMATE_BASES } from "@OpenFarm/domain/feed-estimate";
@@ -11,23 +10,20 @@ import { FEED_PLAN_SCENARIOS } from "@OpenFarm/domain/feeding-plan";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { farmDay } from "../farm-clock";
-import { monthlyFeedEstimate } from "../feed-estimate-store";
 import {
   feedPurchases,
   lockFeedOrder,
   purchasingRefused,
+  readOrder,
+  requestFeedOrder,
 } from "../feed-purchasing-store";
-import { farmFeedingPlan } from "../feeding-plan-store";
 import { protectedProcedure } from "../index";
 import { monthInput } from "../money-inputs";
 import { requirePersonalSession, requireRole } from "../roles";
 import { quantityInput, sellerInput } from "../stock-store";
 import { purchaseOrderPaper } from "../supplier-papers";
-import { supplierNamed } from "../supplier-store";
-import { seenWhenDone } from "../writes-seen";
 
 const moneyInput = z.number().positive().max(100_000_000).multipleOf(0.01);
 const termsInput = {
@@ -46,8 +42,6 @@ const runTheStore = protectedProcedure
 const owner = protectedProcedure
   .use(requireRole("owner"))
   .use(requirePersonalSession());
-const readOrder = (tx: Tx, id: string) =>
-  tx.query.feedPurchaseOrder.findFirst({ where: { id } });
 
 export const feedPurchasingRouter = {
   paper: runTheStore
@@ -133,143 +127,7 @@ export const feedPurchasingRouter = {
           .optional(),
       })
     )
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      return await seenWhenDone(
-        context.db.transaction(async (tx) => {
-          // Serializes duplicate request ids and supplier creation for this farm.
-          await tx
-            .select({ id: farm.id })
-            .from(farm)
-            .where(eq(farm.id, context.farm.id))
-            .for("update");
-          const existing = await tx.query.feedPurchaseOrder.findFirst({
-            where: { id: input.id },
-          });
-          if (existing) {
-            if (
-              existing.farmId !== context.farm.id ||
-              existing.requestedBy !== context.actor.id
-            ) {
-              throw new ORPCError("CONFLICT", {
-                data: { refusal: "feed_order_changed" },
-              });
-            }
-            return { id: existing.id };
-          }
-          if (input.neededOn < farmDayOf(now)) {
-            purchasingRefused(
-              "feed_order_needed_day",
-              "Choose today or a later day for the feed to arrive"
-            );
-          }
-          if (
-            input.budgetMoney <
-            feedQuoteTotal(input.quantity, input.unitPriceMoney)
-          ) {
-            purchasingRefused(
-              "feed_order_budget_small",
-              "The spending limit must cover the quoted quantity and price"
-            );
-          }
-          const feed = await tx.query.feedItem.findFirst({
-            where: {
-              id: input.feedItemId,
-              farmId: context.farm.id,
-              retiredAt: { isNull: true },
-            },
-          });
-          if (!feed) {
-            throw new ORPCError("NOT_FOUND", {
-              message: "Choose a current feed from this farm",
-            });
-          }
-          const assignments = await tx.query.roleAssignment.findMany({
-            where: {
-              farmId: context.farm.id,
-              userId: input.assignedTo,
-              role: { in: ["owner", "manager"] },
-              revokedAt: { isNull: true },
-            },
-          });
-          if (
-            !assignments.some(
-              (assignment) =>
-                !assignment.expiresAt || assignment.expiresAt > now
-            )
-          ) {
-            purchasingRefused(
-              "feed_order_assignee",
-              "Assign this request to an active owner or manager of this farm"
-            );
-          }
-          let forecast: Record<string, unknown> | null = null;
-          if (input.forecast) {
-            const source =
-              input.forecast.basis === "planning"
-                ? await farmFeedingPlan(
-                    tx,
-                    context.farm,
-                    now,
-                    input.forecast.month,
-                    input.forecast.scenario
-                  )
-                : await monthlyFeedEstimate(
-                    tx,
-                    context.farm,
-                    now,
-                    input.forecast.month,
-                    input.forecast.basis
-                  );
-            const line = source.lines.find(
-              (row) => row.feedItemId === input.feedItemId
-            );
-            if (!line) {
-              purchasingRefused(
-                "feed_order_forecast_missing",
-                "This feed has no requirement in the selected forecast"
-              );
-            }
-            forecast = { ...input.forecast, asOf: now, line };
-          }
-          const supplierId = await supplierNamed(
-            tx,
-            context.farm.id,
-            input.supplier,
-            now,
-            input.supplierId
-          );
-          const profile = await tx.query.supplierProfile.findFirst({
-            where: { counterpartyId: supplierId, farmId: context.farm.id },
-          });
-          await tx.insert(feedPurchaseOrder).values({
-            id: input.id,
-            farmId: context.farm.id,
-            feedItemId: feed.id,
-            counterpartyId: supplierId,
-            assignedTo: input.assignedTo,
-            quantity: input.quantity.toFixed(1),
-            unitPriceMoney: input.unitPriceMoney,
-            budgetMoney: input.budgetMoney,
-            neededOn: input.neededOn,
-            leadDays: input.leadDays,
-            bufferDays: input.bufferDays,
-            creditDays: profile?.creditDays ?? 0,
-            note: input.note || null,
-            forecast,
-            requestedBy: context.actor.id,
-            requestedAt: now,
-          });
-          await audited(context).recordEvent(tx, {
-            entity: "feed_purchase_order",
-            entityId: input.id,
-            action: "create",
-            after: (await readOrder(tx, input.id)) ?? null,
-          });
-          return { id: input.id };
-        })
-      );
-    }),
+    .handler(({ context, input }) => requestFeedOrder(context, input)),
   approve: owner
     .input(
       z.object({ ...identity, ...termsInput, reason: reasonInput.optional() })

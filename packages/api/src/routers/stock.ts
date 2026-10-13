@@ -1,5 +1,5 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { FEED_IN_KINDS, FEED_PACKS, feedIn } from "@OpenFarm/db/schema/feed";
+import { FEED_IN_KINDS, FEED_PACKS } from "@OpenFarm/db/schema/feed";
 import type { FeedPack, FeedUnit } from "@OpenFarm/domain";
 import { FEED_IN_SHOWN, maundsOf, quantityOfPacks } from "@OpenFarm/domain";
 import { FEED_ESTIMATE_BASES } from "@OpenFarm/domain/feed-estimate";
@@ -7,7 +7,6 @@ import { expiryStanding, expiryWindow } from "@OpenFarm/domain/lots";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { audited } from "../audit";
 import { correct } from "../corrections/correction";
 import {
   feedArrivalCorrection,
@@ -15,10 +14,7 @@ import {
 } from "../corrections/feed-arrival";
 import { farmDay } from "../farm-clock";
 import { monthlyFeedEstimate } from "../feed-estimate-store";
-import {
-  lockFeedOrder,
-  validateOrderedDelivery,
-} from "../feed-purchasing-store";
+import { recordFeedIn } from "../feed-in-store";
 import { protectedProcedure } from "../index";
 import { assertNotExpiredWhenBought, lotFields } from "../lot-input";
 import {
@@ -27,32 +23,20 @@ import {
   paymentMethodInput,
   referenceInput,
 } from "../money-inputs";
-import { accountSaid, bookingOf } from "../money-store";
 import { requireRole } from "../roles";
 import {
   assertShapeOf,
-  bookPurchaseMoney,
   feedPriceInput,
   quantityInput,
-  readFeedArrival,
   receivedDay,
   sellerInput,
   adjustmentsOf,
   stockOnHand,
-  fodderValueOf,
   lastPurchaseOf,
   purchasePricesIn,
   scaleBySeller,
-  tellIfTheFeedCameDearer,
 } from "../stock-store";
-import {
-  deliveryInvoice,
-  lockSupplierFarm,
-  supplierNamed,
-  supplierRefused,
-  verifyDeliveryInvoice,
-} from "../supplier-store";
-import { seenWhenDone } from "../writes-seen";
+import { supplierRefused } from "../supplier-store";
 
 /**
  * How much came, in the feed's own unit: as typed, or worked out from the bags or maunds a trader's slip gives — one or
@@ -365,100 +349,17 @@ export const stockRouter = {
       const slip = quantityReceived(input, item);
       const weighed = weighedOnArrival(input, item);
       const quantity = weighed ?? slip;
-      await seenWhenDone(
-        context.db.transaction(async (tx) => {
-          await lockSupplierFarm(tx, context.farm.id);
-          const order = input.purchaseOrderId
-            ? await lockFeedOrder(tx, context.farm.id, input.purchaseOrderId)
-            : null;
-          // Another tap may have waited behind this order's delivery lock.
-          const existing = await tx.query.feedIn.findFirst({
-            where: { id, farmId: context.farm.id },
-          });
-          if (existing) {
-            if (
-              (existing.purchaseOrderId ?? undefined) !== input.purchaseOrderId
-            ) {
-              throw new ORPCError("CONFLICT", {
-                data: { refusal: "feed_order_changed" },
-              });
-            }
-            return;
-          }
-          const sellerId = input.seller
-            ? await supplierNamed(
-                tx,
-                context.farm.id,
-                input.seller,
-                now,
-                input.supplierId
-              )
-            : null;
-          if (order) {
-            await validateOrderedDelivery(
-              tx,
-              order,
-              { ...input, quantity: Number(quantity.toFixed(1)) },
-              sellerId
-            );
-          }
-          const funding = await deliveryInvoice(
-            tx,
-            context,
-            input,
-            sellerId,
-            now
-          );
-          await tx.insert(feedIn).values({
-            id,
-            farmId: context.farm.id,
-            feedItemId: item.id,
-            kind: input.kind,
-            purchaseOrderId: order?.id ?? null,
-            ...funding,
-            quantity: quantity.toFixed(1),
-            slipQuantity: weighed === null ? null : slip.toFixed(1),
-            packKind: input.pack?.kind ?? null,
-            packCount: input.pack ? String(input.pack.count) : null,
-            // A purchase is worth what the farm paid; a Harvest is worth what the farm says its own
-            // fodder is worth, taken from the Feed Item rather than typed by whoever cut it.
-            priceMoney:
-              input.kind === "harvest"
-                ? fodderValueOf(item, quantity)
-                : (input.priceMoney ?? null),
-            counterpartyId: sellerId,
-            receivedOn,
-            lotNumber: input.lotNumber ?? null,
-            expiresOn: input.expiresOn ?? null,
-            recordedBy: context.actor.id,
-            recordedByRole,
-            recordedAt: now,
-          });
-          await verifyDeliveryInvoice(
-            tx,
-            context.farm.id,
-            funding.supplierInvoiceId
-          );
-          await bookPurchaseMoney(
-            tx,
-            bookingOf(
-              context,
-              recordedByRole,
-              now,
-              accountSaid(["feed_in"], input)
-            ),
-            id,
-            input.paymentMethod
-          );
-          await tellIfTheFeedCameDearer(tx, context.farm, id, now);
-          await audited(context).recordEvent(tx, {
-            entity: "feed_in",
-            entityId: id,
-            action: "create",
-            after: await readFeedArrival(tx, id),
-          });
-        })
-      );
+      await recordFeedIn(context, {
+        id,
+        input,
+        item,
+        quantity,
+        slip,
+        weighed,
+        receivedOn,
+        recordedByRole,
+        now,
+      });
       return { id };
     }),
 
