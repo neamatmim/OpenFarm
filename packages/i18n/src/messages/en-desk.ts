@@ -2048,6 +2048,7 @@ export const enDesk = {
   "audit.entity.money_category": "Money category",
   "audit.entity.drug_product": "Medicine",
   "audit.entity.dispatch": "Milk dispatch",
+  "audit.entity.buyer_statement": "Buyer statement",
   "audit.entity.sop_training": "Training",
   "audit.entity.registration_certificate": "Registration certificate",
   "audit.entity.notifiable_disease": "Notifiable disease",

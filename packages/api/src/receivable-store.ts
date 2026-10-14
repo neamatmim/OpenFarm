@@ -28,6 +28,8 @@ import { z } from "zod";
 import type { Tx } from "./audit";
 import type { ChangeBy } from "./closed-month-store";
 import { aboutMoney, answerToClosedMonths } from "./closed-month-store";
+import type { DispatchPriced } from "./dispatch-store";
+import { worthAsItStands } from "./dispatch-store";
 import type { Raised } from "./notice";
 import { rememberingPeople, tell, whoHears } from "./notice";
 import { ownedThenByOf } from "./venture-store";
@@ -760,20 +762,49 @@ export const writtenOffByItem = async (
 
 /**
  * What a liter of a Dispatch fetched after all: what the milk came to, less whatever of its Receivable stays written off,
- * over its liters. The price itself where nothing was written off — nearly always.
+ * over its liters. The price itself where nothing was written off — nearly always — and what its Buyer Statement
+ * priced it at, over its liters, for milk whose price was to follow. Nothing while its price is still to follow: milk
+ * nobody has priced fetched nothing anybody knows yet, and every sum of what milk fetched leaves it out.
  */
 export const fetchedPerLiter = (
-  row: {
-    id: string;
-    liters: string | number;
-    pricePerLiterMoney: string | number;
-  },
+  row: DispatchPriced & { id: string },
   writtenOff: ReadonlyMap<string, number>
-): number => {
+): number | null => {
+  const worth = worthAsItStands(row);
+  if (worth === null) {
+    return null;
+  }
   const liters = Number(row.liters);
-  const price = Number(row.pricePerLiterMoney);
   const lost = writtenOff.get(row.id) ?? 0;
-  return liters > 0 && lost > 0 ? (liters * price - lost) / liters : price;
+  if (row.pricePerLiterMoney !== null && lost === 0) {
+    return Number(row.pricePerLiterMoney);
+  }
+  return liters > 0 ? (worth - lost) / liters : 0;
+};
+
+/**
+ * The Dispatches as what each liter fetched is summed: each priced one with its liters and what a liter of it fetched,
+ * and the milk still to follow apart, as liters — the reports say "so many liters, price to follow" rather than count
+ * them at nothing.
+ */
+export const milkFetched = (
+  rows: readonly (DispatchPriced & { id: string })[],
+  writtenOff: ReadonlyMap<string, number>
+): {
+  priced: { liters: number; pricePerLiterMoney: number }[];
+  toFollowLiters: number;
+} => {
+  const priced: { liters: number; pricePerLiterMoney: number }[] = [];
+  let toFollowLiters = 0;
+  for (const row of rows) {
+    const fetched = fetchedPerLiter(row, writtenOff);
+    if (fetched === null) {
+      toFollowLiters += Number(row.liters);
+    } else {
+      priced.push({ liters: Number(row.liters), pricePerLiterMoney: fetched });
+    }
+  }
+  return { priced, toFollowLiters: roundLiters(toFollowLiters) };
 };
 
 /** A Write-off as the trail records it. */

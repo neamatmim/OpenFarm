@@ -31,16 +31,26 @@ const monthlyMilkPrices = async (db: Database, farmId: string) => {
       dispatchedAt: true,
       liters: true,
       pricePerLiterMoney: true,
+      receivableMoney: true,
+      buyerStatementId: true,
     },
   });
-  // Milk a buyer never paid for, and the Owner wrote off, did not fetch its price.
+  // Milk a buyer never paid for, and the Owner wrote off, did not fetch its price; milk whose price is still to follow
+  // is no price yet, and a month's price is what its priced milk fetched.
   const writtenOff = await writtenOffByItem(db, farmId);
   return milkPricesByMonth(
-    rows.map((one) => ({
-      dispatchedAt: one.dispatchedAt,
-      liters: Number(one.liters),
-      pricePerLiterMoney: fetchedPerLiter(one, writtenOff),
-    }))
+    rows.flatMap((one) => {
+      const fetched = fetchedPerLiter(one, writtenOff);
+      return fetched === null
+        ? []
+        : [
+            {
+              dispatchedAt: one.dispatchedAt,
+              liters: Number(one.liters),
+              pricePerLiterMoney: fetched,
+            },
+          ];
+    })
   );
 };
 

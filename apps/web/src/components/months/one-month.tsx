@@ -41,7 +41,12 @@ export type OneMonth = Awaited<ReturnType<typeof client.monthlyReport.month>>;
 type Figures = OneMonth["figures"];
 /** The parts of a month's figures the management figures added (ADR 0023). */
 type NewParts = "results" | "atEnd" | "cashFlow" | "monthsReturn";
-type Unchanged = Omit<Figures, NewParts>;
+/** The dairy's figures as the phone may hold them: an answer kept from before the price could follow (ADR 0030) has no
+ *  liters whose price is to follow. */
+type KeptDairy = Omit<Figures["dairy"], "litersPriceToFollow"> & {
+  litersPriceToFollow?: number;
+};
+type Unchanged = Omit<Figures, NewParts | "dairy"> & { dairy: KeptDairy };
 type AtEnd = Figures["atEnd"];
 /** Where the Farm stood at a month's end as the phone may hold it: an answer kept from before the Farm said what it owed
  *  its Suppliers has neither that nor the capital's taking it off. */
@@ -152,6 +157,9 @@ export const MonthPart = ({
   );
 };
 
+/** The liters a month sent with its price to follow; none in a month kept from before the farm said it. */
+const toFollow = (one: KeptFigures) => one.dairy.litersPriceToFollow ?? 0;
+
 /** Each part's lines, worded and formatted for the reader, from the month's figures and the month before's. */
 export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
   const { t, language } = useLanguage();
@@ -161,6 +169,8 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
   const percent = usePercent();
   // What the farm owed its Suppliers is said only where this month or the month before owed them something.
   const owesSuppliers = owedSuppliersIn(now, before);
+  // Milk sent with its price to follow is said only where this month or the month before sent some.
+  const sentToFollow = toFollow(now) > 0 || toFollow(before) > 0;
   const liters = (amount: number | null | undefined) =>
     amount === null || amount === undefined
       ? null
@@ -257,6 +267,13 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
     dairy: [
       both(t("months.col.milk"), (one) => asMoney(one.dairy.milkSoldMoney)),
       both(t("months.one.litersSold"), (one) => liters(one.dairy.litersSold)),
+      ...(sentToFollow
+        ? [
+            both(t("months.one.litersPriceToFollow"), (one) =>
+              liters(toFollow(one))
+            ),
+          ]
+        : []),
       both(t("months.one.fetchedPerLiter"), (one) =>
         one.dairy.fetchedPerLiterMoney === null
           ? null

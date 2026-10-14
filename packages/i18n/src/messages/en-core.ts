@@ -2787,6 +2787,95 @@ export const enCore = {
     "{count, plural, one {# dispatch} other {# dispatches}} · {currencySign}{amount}",
   "dispatch.kpi.mismatchesHint": "Waiting for you to look",
   "dispatch.reportsHint": "Choose the dates; each record below covers them.",
+  "dispatch.priceToFollow": "Price to follow",
+  "dispatch.priceToFollowHint":
+    "A collection centre that tests fat and SNF and pays by its own statement: no price now and nothing paid. The buyer's statement sets it.",
+  "dispatch.priceToFollowShort": "Price to follow",
+  "dispatch.byStatement": "by statement",
+  "dispatch.priceOrToFollow":
+    "Price per liter ({currencySign}) — empty: price to follow",
+  "dispatch.kpi.priceToFollowHint": "{liters} L price to follow",
+  "statement.tab": "Buyer statements",
+  "statement.title": "Buyer statements",
+  "statement.listHint":
+    "Each buyer's statement beside the milk the farm sent him in its days: his liters against ours, his amount, and the milk it priced.",
+  "statement.none": "No buyer statement recorded yet",
+  "statement.record": "Record a buyer's statement",
+  "statement.sheetDescription":
+    "The buyer's own statement for some days: his liters and what he pays. It prices the milk sent him in those days with its price to follow, and that becomes what he owes.",
+  "statement.save": "Record the statement",
+  "statement.recorded": "Statement recorded — the milk it covers is priced",
+  "statement.pickBuyer": "Choose the buyer",
+  "statement.fromDay": "First day it covers",
+  "statement.toDay": "Last day it covers",
+  "statement.statedOn": "Date on the statement",
+  "statement.payBy": "He pays by (empty: the farm's days for credit)",
+  "statement.liters": "His liters",
+  "statement.amount": "His amount ({currencySign})",
+  "statement.number": "Statement number",
+  "statement.rate": "His rate per liter ({currencySign})",
+  "statement.photo": "Photo of the statement",
+  "statement.seePhoto": "See the photo",
+  "statement.hidePhoto": "Hide the photo",
+  "statement.farmSent":
+    "The farm sent him {liters} L in these days; {count, plural, one {# dispatch has} other {# dispatches have}} the price to follow.",
+  "statement.difference": "His count less ours: {liters} L ({percent}%)",
+  "statement.differenceNoPercent": "His count less ours: {liters} L",
+  "statement.pricedAtGate":
+    "{liters} L was priced at the gate: {currencySign}{amount}, left as it is.",
+  "statement.willPrice":
+    "It prices {liters} L with the price to follow at {currencySign}{amount}, spread by liters.",
+  "statement.amountBeside":
+    "None of it was to follow: his amount less what the farm priced is {currencySign}{amount}.",
+  "statement.theirLiters": "His {liters} L",
+  "statement.ourLiters": "ours {liters} L",
+  "statement.amountLabel": "His amount",
+  "statement.rateSaid": "{currencySign}{rate} a liter by his rate",
+  "statement.priced":
+    "Priced {count, plural, one {# dispatch} other {# dispatches}}: {currencySign}{amount} owed",
+  "statement.void": "Void it",
+  "statement.voidTitle": "Void {name}'s statement",
+  "statement.voidHint":
+    "A wrong statement. The milk it priced goes back to its price to follow, owing nothing, for the right one to price.",
+  "statement.voided": "Voided — its milk is back to price to follow",
+  "statement.voidedBadge": "Voided",
+  "statement.voidedWhy": "Voided: {reason}",
+  "statement.waiting": "Milk with its price to follow",
+  "statement.waitingHint":
+    "Sent and waiting for its buyer's statement. Late once his period and ten days more have gone by.",
+  "statement.noneWaiting": "No milk is waiting for its price",
+  "statement.waitingLine":
+    "{count, plural, one {# dispatch} other {# dispatches}} · {liters} L",
+  "statement.since": "since",
+  "statement.late": "{liters} L late",
+  "statement.attention": "A buyer's statement is late",
+  "statement.attentionHint":
+    "{count, plural, one {# buyer has} other {# buyers have}} milk sent with the price to follow and no statement past its time: {liters} L in all.",
+  "statement.seeWaiting": "See the milk",
+  "statement.missing.buyer": "Choose the buyer.",
+  "statement.missing.days": "Give its first and last day, in order.",
+  "statement.missing.statedOn":
+    "Give the statement's date: on or after its last day.",
+  "statement.missing.payBy": "He cannot pay by a day before the statement.",
+  "statement.missing.liters": "Give his liters.",
+  "statement.missing.amount": "Give his amount.",
+  "refusal.statementOverlaps":
+    "A statement of his for some of these days is recorded already",
+  "refusal.statementBelowPriced":
+    "His amount is no more than the milk already priced at the gate: put those prices right first",
+  "refusal.statementCoversIt":
+    "His statement for those days is recorded: give this milk its price, or the owner voids the statement first",
+  "refusal.statementNumberTaken":
+    "A statement of his with that number is recorded already",
+  "refusal.statementPaidOn":
+    "His payments, or a write-off, stand on the milk it priced: put those right first",
+  "refusal.statementVoided": "That statement is voided already",
+  "refusal.statementDays":
+    "Its days are not in order: first, last, its date — none after today — then the day he pays by",
+  "refusal.pricedByStatement":
+    "Its buyer's statement priced it: the owner voids the statement first",
+  "refusal.priceToFollowPaid":
+    "Nothing is paid at the gate for milk whose price is to follow",
   "refusal.dispatchedInTheFuture": "Milk cannot have left later than now",
   "refusal.periodTooLong":
     "One report covers two years at most: the longest year the farm can have",
@@ -4494,6 +4583,7 @@ export const enCore = {
     "That financial year has not begun yet. Pick another one above.",
   "months.milkSold": "Milk sold over the year",
   "months.milkSoldHint": "{liters} L · a liter fetched {fetched}",
+  "months.priceToFollowHint": "{liters} L price to follow, in no money here",
   "months.dairyCost": "What the dairy cows cost",
   "months.dairyCostHint": "{perLiter} a liter sent to bulk",
   "months.margins": "Margins on fattening sold",
@@ -4542,6 +4632,7 @@ export const enCore = {
   "months.one.dairyHint":
     "Milk sold, what a liter fetched, and what the farm's own cows cost.",
   "months.one.litersSold": "Liters sold",
+  "months.one.litersPriceToFollow": "Liters, price to follow",
   "months.one.fetchedPerLiter": "Fetched a liter",
   "months.one.litersToBulk": "Milk to bulk",
   "months.one.costPerLiter": "Cost a liter",
@@ -4662,6 +4753,7 @@ export const enCore = {
   "months.closing.from.receivableWriteOff": "Receivable written off",
   "months.closing.from.cashCount": "Cash count",
   "months.closing.from.bankCheck": "Bank check",
+  "months.closing.from.buyerStatement": "Buyer statement",
   "months.closing.col.record": "Record",
   "months.closing.col.before": "Before",
   "months.closing.col.after": "After",

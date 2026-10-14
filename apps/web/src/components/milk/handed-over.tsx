@@ -36,7 +36,7 @@ import {
 import { orpc } from "@/utils/orpc";
 
 import type { Dispatch, MilkDay } from "./milk-types";
-import { shiftDay, worthOf } from "./milk-types";
+import { perLiterOf, shiftDay, worthOfRow } from "./milk-types";
 
 /** The Manager puts a Dispatch right — when it left, liters, price, buyer, delivery note, fat and SNF, its note, what was paid
  *  then or the day promised — with the reason. */
@@ -47,7 +47,8 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
     // A collection typed in after midnight is put back on the day the milk left.
     dispatchedAt: moment(dispatch.dispatchedAt),
     liters: amount(dispatch.liters),
-    pricePerLiterMoney: amount(dispatch.pricePerLiterMoney),
+    // Left empty, its price is to follow, for the buyer's statement to set.
+    pricePerLiterMoney: optionalFigure(dispatch.pricePerLiterMoney),
     buyer: counterparty(dispatch.buyerName),
     deliveryNote: note(dispatch.deliveryNote),
     fatPercent: optionalFigure(dispatch.fatPercent ?? null),
@@ -55,10 +56,7 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
     note: note(dispatch.note ?? null),
     // Left out of a day cached before Receivable was written down: paid in full, as every such Dispatch was.
     paidNowMoney: figure(
-      paidAtTheGate(
-        worthOf(dispatch.liters, dispatch.pricePerLiterMoney),
-        dispatch.receivableMoney ?? 0
-      )
+      paidAtTheGate(worthOfRow(dispatch) ?? 0, dispatch.receivableMoney ?? 0)
     ),
     promisedBy: promisedDay(dispatch.promisedBy ?? null),
   });
@@ -92,7 +90,7 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
         />
         <CorrectionAnswer
           inputMode="decimal"
-          label={t("dispatch.price")}
+          label={t("dispatch.priceOrToFollow")}
           onChange={(value) => correcting.set("pricePerLiterMoney", value)}
           type="number"
           value={correcting.typed.pricePerLiterMoney ?? ""}
@@ -198,15 +196,34 @@ const LitersCell = ({ row }: { row: { original: DispatchRow } }) => {
   );
 };
 
-const PriceCell = ({ row }: { row: { original: DispatchRow } }) => {
-  const { language } = useLanguage();
+/** A Dispatch's price a liter: its own, its buyer's statement's — said so — or that its price is still to follow. */
+const PriceSaid = ({ row }: { row: Dispatch }) => {
+  const { t, language } = useLanguage();
+  const perLiter = perLiterOf(row);
+  if (perLiter === null) {
+    return (
+      <span className="text-warning whitespace-nowrap">
+        {t("dispatch.priceToFollowShort")}
+      </span>
+    );
+  }
   return (
     <span className="whitespace-nowrap">
       {currencySign()}
-      {formatNumber(row.original.pricePerLiterMoney, language)}
+      {formatNumber(perLiter, language)}
+      {row.buyerStatementId ? (
+        <span className="text-muted-foreground text-xs">
+          {" "}
+          · {t("dispatch.byStatement")}
+        </span>
+      ) : null}
     </span>
   );
 };
+
+const PriceCell = ({ row }: { row: { original: DispatchRow } }) => (
+  <PriceSaid row={row.original} />
+);
 
 const FatCell = ({ row }: { row: { original: DispatchRow } }) => (
   <Percent value={row.original.fatPercent} />
@@ -242,7 +259,8 @@ const dispatchColumns = column.columns([
     cell: LitersCell,
     meta: { align: "end" },
   }),
-  column.accessor("pricePerLiterMoney", {
+  column.accessor((one) => perLiterOf(one) ?? undefined, {
+    id: "pricePerLiterMoney",
     header: listHeader("dispatch.price"),
     cell: PriceCell,
     meta: { align: "end" },
@@ -281,10 +299,9 @@ const DispatchCard = ({ row }: { row: DispatchRow }) => {
         />
         <span className="font-semibold tabular-nums">
           {formatNumber(row.liters, language)} {t("dispatch.liters")}
-          <span className="text-muted-foreground text-xs font-normal">
-            {" "}
-            · {currencySign()}
-            {formatNumber(row.pricePerLiterMoney, language)}
+          <span className="text-xs font-normal">
+            {" · "}
+            <PriceSaid row={row} />
           </span>
         </span>
         <span className="text-muted-foreground text-xs">

@@ -11,10 +11,14 @@ export interface MilkBuyerTerms {
   name: string;
   address: string | null;
   phone: string | null;
-  pricePerLiterMoney: number;
+  /** His last price at the gate; nothing where all his milk went with its price to follow. */
+  pricePerLiterMoney: number | null;
   /** Whether he takes his milk on credit, as most of his recent Dispatches did. Missing from an answer kept from before
    *  the farm said it: read as paying at the gate, as every buyer was. */
   paysLater?: boolean;
+  /** Whether his last milk went with its price to follow, for his statement to set. Missing from an answer kept from
+   *  before the farm said it: read as priced at the gate, as every buyer's was. */
+  priceToFollow?: boolean;
 }
 
 /** The boxes of the sheet a buyer's name and terms go into, as typed. */
@@ -31,10 +35,16 @@ export interface BuyerTyping<Form extends TermsTyped> {
   receivable: ReceivableTyped;
   /** The buyer whose terms filled the sheet, so naming another — or nobody the farm knows — takes them back out. */
   filledFrom: MilkBuyerTerms | null;
+  /** Sent with its price to follow, for the buyer's statement to set: no price, nothing paid. */
+  priceToFollow: boolean;
 }
 
 /** Nothing said of the money, and nobody's terms in the boxes: the sheet as it opens. */
-export const NOBODY_PICKED = { receivable: NO_RECEIVABLE, filledFrom: null };
+export const NOBODY_PICKED = {
+  receivable: NO_RECEIVABLE,
+  filledFrom: null,
+  priceToFollow: false,
+};
 
 /** The farm's milk buyer by the name typed, compared as the farm compares names, or nobody while it names none whole. */
 export const buyerCalled = <Buyer extends MilkBuyerTerms>(
@@ -46,8 +56,15 @@ export const buyerCalled = <Buyer extends MilkBuyerTerms>(
 const termsTyped = (buyer: MilkBuyerTerms | null) => ({
   buyerAddress: buyer?.address ?? "",
   buyerPhone: buyer?.phone ?? "",
-  price: buyer ? String(buyer.pricePerLiterMoney) : "",
+  price:
+    buyer?.pricePerLiterMoney === null || buyer === null
+      ? ""
+      : String(buyer.pricePerLiterMoney),
 });
+
+/** Whether a buyer's milk goes with its price to follow; nobody's, not. */
+const toFollowOf = (buyer: MilkBuyerTerms | null): boolean =>
+  buyer?.priceToFollow === true;
 
 /** All of it on credit, nothing paid at the gate: a buyer who takes his milk on credit and pays on his round. */
 const ALL_ON_CREDIT: ReceivableTyped = {
@@ -86,9 +103,11 @@ export const afterNaming = <Form extends TermsTyped>(
   const free = (box: keyof typeof his) =>
     form[box].trim() === "" || (before !== null && form[box] === theirs[box]);
   const moneyFree =
-    sameReceivable(typing.receivable, NO_RECEIVABLE) ||
+    (sameReceivable(typing.receivable, NO_RECEIVABLE) &&
+      !typing.priceToFollow) ||
     (before !== null &&
-      sameReceivable(typing.receivable, receivableOf(before)));
+      sameReceivable(typing.receivable, receivableOf(before)) &&
+      typing.priceToFollow === toFollowOf(before));
   return {
     form: {
       ...form,
@@ -98,5 +117,6 @@ export const afterNaming = <Form extends TermsTyped>(
     },
     receivable: moneyFree ? receivableOf(picked) : typing.receivable,
     filledFrom: picked,
+    priceToFollow: moneyFree ? toFollowOf(picked) : typing.priceToFollow,
   };
 };

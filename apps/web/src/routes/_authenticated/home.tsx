@@ -26,6 +26,7 @@ import type { QueueKind } from "@/components/home/queue-kinds";
 import { QUEUE_KINDS } from "@/components/home/queue-kinds";
 import { SetupLeft } from "@/components/home/setup-left";
 import { VenturesAtWork } from "@/components/home/ventures-at-work";
+import { PriceToFollowAttention } from "@/components/milk/buyer-statements";
 import { EnterMoneySheet } from "@/components/money-entry";
 import {
   EmptyState,
@@ -192,6 +193,7 @@ const ManagerHome = () => {
       <CoveringToday />
       <FeedPurchaseAttention />
       <SupplierAttention />
+      <PriceToFollowAttention />
 
       {/* One column that shrinks to the phone: a grid's own column grows to its widest unbroken line, and a Tag Number
           beside a long date pushed both cards off the screen. On a wide screen what waits and the Ventures share the

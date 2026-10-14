@@ -14,6 +14,7 @@ const FIGURES = {
   dairy: {
     milkSoldMoney: 9300,
     litersSold: 150,
+    litersPriceToFollow: 0,
     fetchedPerLiterMoney: 62,
     chargedMoney: 4100,
     litersToBulk: 140,
@@ -130,6 +131,7 @@ const NOTHING = {
   dairy: {
     milkSoldMoney: 0,
     litersSold: 0,
+    litersPriceToFollow: 0,
     fetchedPerLiterMoney: null,
     chargedMoney: 0,
     litersToBulk: 0,
@@ -843,5 +845,38 @@ describe("what was changed after a month was closed, on paper", () => {
   it("is left off a month that changed no closed month", () => {
     const en = paperText(monthlyReportPaper(FACTS), "en");
     expect(en).not.toContain("Changed after closing");
+  });
+});
+
+describe("milk sent with its price to follow, on paper (ADR 0030)", () => {
+  const facts = {
+    ...FACTS,
+    figures: {
+      ...FACTS.figures,
+      dairy: { ...FACTS.figures.dairy, litersPriceToFollow: 250 },
+    },
+  };
+
+  it("says its liters apart from the milk sold, and says it is in no money above", () => {
+    const en = paperText(monthlyReportPaper(facts), "en");
+    const bn = paperText(monthlyReportPaper(facts), "bn");
+
+    expect(en).toContain("Liters, price to follow");
+    expect(en).toContain(
+      "250 liters of milk went with the price to follow, for the buyer's statement to set; they are in no money above."
+    );
+    expect(bn).toContain("দাম পরে ঠিক হবে এমন দুধ");
+    expect(bn).toContain("২৫০ লিটার দুধ দাম পরে ঠিক হবে বলে গেছে");
+    expect(
+      monthlyReportRows(facts).find(
+        (one) => one.line.en === "Liters, price to follow"
+      )?.thisMonth
+    ).toBe(250);
+  });
+
+  it("says nothing of it in months that sent none", () => {
+    const en = paperText(monthlyReportPaper(FACTS), "en");
+
+    expect(en).not.toContain("price to follow");
   });
 });

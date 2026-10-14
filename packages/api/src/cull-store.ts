@@ -11,7 +11,7 @@ import {
 
 import { repeatBreedersOn } from "./breeding-store";
 import { farmCosts, keepChargesOf } from "./cost-store";
-import { fetchedPerLiter, writtenOffByItem } from "./receivable-store";
+import { milkFetched, writtenOffByItem } from "./receivable-store";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -76,16 +76,18 @@ export const cullList = async (
   const since = new Date(now.getTime() - farm.cullMilkPriceDays * DAY_MS);
   const dispatched = await db.query.dispatch.findMany({
     where: { farmId: farm.id, dispatchedAt: { gte: since, lte: now } },
-    columns: { id: true, liters: true, pricePerLiterMoney: true },
+    columns: {
+      id: true,
+      liters: true,
+      pricePerLiterMoney: true,
+      receivableMoney: true,
+      buyerStatementId: true,
+    },
   });
-  // Milk a buyer never paid for, and the Owner wrote off, did not fetch its price.
+  // Milk a buyer never paid for, and the Owner wrote off, did not fetch its price; milk whose price is still to follow
+  // is no price yet.
   const writtenOff = await writtenOffByItem(db, farm.id);
-  const price = milkPriceOf(
-    dispatched.map((one) => ({
-      liters: Number(one.liters),
-      pricePerLiterMoney: fetchedPerLiter(one, writtenOff),
-    }))
-  );
+  const price = milkPriceOf(milkFetched(dispatched, writtenOff).priced);
   const stoodBy = groupedBy(costs.history, (line) => line.animalId);
   return {
     /** What a liter fetched in the farm's Dispatches over its milk price window; nothing where none left. */

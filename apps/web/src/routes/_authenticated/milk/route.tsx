@@ -4,17 +4,25 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { FileText, Milk, Scale, TrendingDown, Truck } from "lucide-react";
+import {
+  FileText,
+  Milk,
+  ReceiptText,
+  Scale,
+  TrendingDown,
+  Truck,
+} from "lucide-react";
 import { useState } from "react";
 
 import { GivingLessList } from "@/components/giving-less";
 import { MilkMismatches } from "@/components/milk-mismatches";
+import { BuyerStatementsTab } from "@/components/milk/buyer-statements";
 import { DispatchSheet } from "@/components/milk/dispatch-sheet";
 import { HandedOverTab } from "@/components/milk/handed-over";
 import { MilkAccountCard } from "@/components/milk/milk-account";
 import { MilkRecordsTab } from "@/components/milk/milk-records";
 import type { MilkDay } from "@/components/milk/milk-types";
-import { worthOf } from "@/components/milk/milk-types";
+import { milkMoneyOf } from "@/components/milk/milk-types";
 import { EmptyState, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
@@ -23,12 +31,19 @@ import { onlyFor } from "@/lib/guard";
 import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
-const TABS = ["handedOver", "mismatches", "givingLess", "records"] as const;
+const TABS = [
+  "handedOver",
+  "statements",
+  "mismatches",
+  "givingLess",
+  "records",
+] as const;
 type Tab = (typeof TABS)[number];
 
 /** Each tab at its own address, the first at the page's own. */
 const TAB_PATHS = {
   handedOver: "/milk",
+  statements: "/milk/statements",
   mismatches: "/milk/reconciliation",
   givingLess: "/milk/giving-less",
   records: "/milk/records",
@@ -54,10 +69,8 @@ const useMilkFigures = ({
   const notYet = failed ? "—" : <Skeleton className="h-8 w-28" />;
   const liters = (value: number) =>
     `${formatNumber(value, language)} ${t("dispatch.liters")}`;
-  const worth = (milkDay?.dispatches ?? []).reduce(
-    (sum, one) => sum + worthOf(one.liters, one.pricePerLiterMoney),
-    0
-  );
+  // Milk whose price is still to follow is said in liters beside the money, never counted at nothing.
+  const money = milkMoneyOf(milkDay?.dispatches ?? []);
   const dayWord = formatDate(new Date(`${day}T12:00:00`), language);
   return [
     {
@@ -70,10 +83,19 @@ const useMilkFigures = ({
       label: t("dispatch.handedOver"),
       value: milkDay ? liters(milkDay.dispatchedLiters) : notYet,
       hint: milkDay
-        ? t("dispatch.kpi.handedOverHint", {
-            count: milkDay.dispatches.length,
-            amount: Math.round(worth),
-          })
+        ? [
+            t("dispatch.kpi.handedOverHint", {
+              count: milkDay.dispatches.length,
+              amount: Math.round(money.amount),
+            }),
+            money.litersToFollow > 0
+              ? t("dispatch.kpi.priceToFollowHint", {
+                  liters: money.litersToFollow,
+                })
+              : null,
+          ]
+            .filter((one) => one !== null)
+            .join(" · ")
         : dayWord,
       icon: Truck,
     },
@@ -107,6 +129,8 @@ const MilkPage = () => {
   const mayRecord =
     me.data?.roles.some((role) => role === "owner" || role === "manager") ??
     false;
+  // A wrong Buyer Statement is the Owner's to void.
+  const isOwner = me.data?.roles.includes("owner") ?? false;
   const figures = useMilkFigures({
     day,
     milkDay: milkDay.data,
@@ -149,6 +173,14 @@ const MilkPage = () => {
                   onRecord={() => setRecording(true)}
                 />
               </div>
+            ),
+          },
+          {
+            value: "statements",
+            label: t("statement.tab"),
+            icon: ReceiptText,
+            content: (
+              <BuyerStatementsTab mayRecord={mayRecord} mayVoid={isOwner} />
             ),
           },
           {

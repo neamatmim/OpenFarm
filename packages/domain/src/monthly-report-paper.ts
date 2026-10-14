@@ -33,6 +33,8 @@ export interface MonthFigures {
   dairy: {
     milkSoldMoney: number;
     litersSold: number;
+    /** Milk sent in it whose price is still to follow, for its buyer's statement to set: in no money (ADR 0030). */
+    litersPriceToFollow: number;
     fetchedPerLiterMoney: number | null;
     chargedMoney: number;
     litersToBulk: number;
@@ -427,6 +429,13 @@ const DAIRY: Part = {
       label: { bn: "বিক্রি হওয়া দুধ", en: "Liters sold" },
       kind: "liters",
       of: (one) => one.dairy.litersSold,
+    },
+    {
+      // Milk a processor will price by its own statement: liters the month sent, in no money until then.
+      label: { bn: "দাম পরে ঠিক হবে এমন দুধ", en: "Liters, price to follow" },
+      kind: "liters",
+      of: (one) => one.dairy.litersPriceToFollow,
+      onlyWhen: (one) => one.dairy.litersPriceToFollow > 0,
     },
     {
       label: { bn: "লিটারে পাওয়া", en: "Fetched a liter" },
@@ -972,6 +981,15 @@ const unpricedKgOf = (figures: MonthFigures) =>
 const uncostedDosesOf = (figures: MonthFigures) =>
   figures.dairy.uncostedDoses + figures.fattening.uncostedDoses;
 
+/** The milk the month sent with its price to follow, said as in no money (ADR 0030); nothing where it sent none. */
+const priceToFollowSaid = (liters: number): Said | null =>
+  liters > 0
+    ? {
+        bn: `${formatNumber(liters, "bn")} লিটার দুধ দাম পরে ঠিক হবে বলে গেছে, ক্রেতার বিল তা ঠিক করবে; ওপরের কোনো টাকায় তা নেই।`,
+        en: `${formatNumber(liters, "en")} ${liters === 1 ? "liter" : "liters"} of milk went with the price to follow, for the buyer's statement to set; ${liters === 1 ? "it is" : "they are"} in no money above.`,
+      }
+    : null;
+
 /** What the month's figures leave out, and the money still waiting: said, never shown as nothing. */
 const leftOut = (figures: MonthFigures): Said[] => {
   const kg = unpricedKgOf(figures);
@@ -981,6 +999,7 @@ const leftOut = (figures: MonthFigures): Said[] => {
   const { accountsNotRead } = figures.atEnd.cash;
   const { unpriced: unpricedAnimals } = figures.atEnd.capital;
   return [
+    priceToFollowSaid(figures.dairy.litersPriceToFollow),
     kg > 0
       ? {
           bn: `${formatNumber(kg, "bn")} কেজি নিজের জমির ঘাস এই মাসে দাম ছাড়া খাওয়ানো হয়েছে; এর খরচ ওপরে নেই।`,

@@ -50,7 +50,7 @@ import { THE_FARMS_PURSE } from "./money-store";
 import type { OverheadMoneyOn } from "./overhead-store";
 import { overheadMoneyIn, overheadsOf } from "./overhead-store";
 import {
-  fetchedPerLiter,
+  milkFetched,
   receivableOfBuyers,
   writtenOffByItem,
 } from "./receivable-store";
@@ -107,7 +107,9 @@ interface Read {
     id: string;
     dispatchedAt: Date;
     liters: string;
-    pricePerLiterMoney: string;
+    pricePerLiterMoney: string | null;
+    receivableMoney: number;
+    buyerStatementId: string | null;
   }[];
   /** What stays written off of each Dispatch: milk a buyer never paid for did not fetch its price. */
   writtenOff: ReadonlyMap<string, number>;
@@ -144,14 +146,12 @@ const figuresOver = (
   const within = (at: Date) => at >= from && at < until;
   const sides = costsBySide(costs, { from, until });
   const cash = summarizeMoney(money.filter((one) => within(one.occurredAt)));
-  const milk = milkPriceOf(
-    dispatched
-      .filter((one) => within(one.dispatchedAt))
-      .map((one) => ({
-        liters: Number(one.liters),
-        pricePerLiterMoney: fetchedPerLiter(one, writtenOff),
-      }))
+  // Milk whose price is still to follow is liters, not money: said apart, never counted at a price nobody has set.
+  const fetched = milkFetched(
+    dispatched.filter((one) => within(one.dispatchedAt)),
+    writtenOff
   );
+  const milk = milkPriceOf(fetched.priced);
   const sold = sides.soldFattening.animals;
   const overheads = overheadsOf(
     overheadMoney,
@@ -189,6 +189,8 @@ const figuresOver = (
     dairy: {
       milkSoldMoney: milk?.amount ?? 0,
       litersSold: milk?.liters ?? 0,
+      /** Milk sent in it whose price is still to follow, for its buyer's statement to set: in no money above. */
+      litersPriceToFollow: fetched.toFollowLiters,
       /** What a liter fetched; nothing where no milk left. */
       fetchedPerLiterMoney: milk?.moneyPerLiter ?? null,
       /** Everything charged to the dairy side's animals in it. */
@@ -427,6 +429,8 @@ const readOver = async (
           dispatchedAt: true,
           liters: true,
           pricePerLiterMoney: true,
+          receivableMoney: true,
+          buyerStatementId: true,
         },
       }),
       overheadMoneyIn(db, farmId, span),

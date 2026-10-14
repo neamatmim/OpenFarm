@@ -32,7 +32,16 @@ export interface DispatchRow {
   buyerName: string;
   buyerAddress: string | null;
   deliveryNote: string | null;
-  pricePerLiterMoney: number;
+  /** Nothing while its price is to follow, and once a Buyer Statement has priced it: what a liter fetched is then its
+   *  worth over its liters. */
+  pricePerLiterMoney: number | null;
+  /** Sent with its price to follow, and no Buyer Statement has priced it yet: liters, and no money. */
+  priceToFollow: boolean;
+  /** The Buyer Statement that priced it, where its price was to follow. */
+  buyerStatementId: string | null;
+  /** What its milk came to — its liters at its price, or what its Buyer Statement priced it at — and nothing while its
+   *  price is still to follow. */
+  worthMoney: number | null;
   fatPercent: number | null;
   snfPercent: number | null;
   /** What the buyer still owed for it as it left, and the farm day he promised to pay by, when he named one. */
@@ -40,6 +49,40 @@ export interface DispatchRow {
   promisedBy: string | null;
   note: string | null;
 }
+
+/** What a Dispatch's milk came to: its liters at its price, to the poisha. */
+export const worthOfDispatch = (row: {
+  liters: string | number;
+  pricePerLiterMoney: string | number;
+}): number => roundMoney(Number(row.liters) * Number(row.pricePerLiterMoney));
+
+/** A Dispatch as whether its price is to follow, and what it came to, are read from it. */
+export interface DispatchPriced {
+  liters: string | number;
+  pricePerLiterMoney: string | number | null;
+  receivableMoney: number;
+  buyerStatementId: string | null;
+}
+
+/** Sent with its price to follow, and not yet priced by a Buyer Statement. */
+export const isPriceToFollow = (
+  row: Pick<DispatchPriced, "pricePerLiterMoney" | "buyerStatementId">
+): boolean => row.pricePerLiterMoney === null && row.buyerStatementId === null;
+
+/**
+ * What a Dispatch's milk came to as it stands: its liters at its price; for milk whose price was to follow, what its
+ * Buyer Statement priced it at — all of it owed, as nothing was paid at the gate — and nothing while its price is still
+ * to follow. Every sum of milk money reads it here, so none counts milk nobody has priced.
+ */
+export const worthAsItStands = (row: DispatchPriced): number | null => {
+  if (row.pricePerLiterMoney !== null) {
+    return worthOfDispatch({
+      liters: row.liters,
+      pricePerLiterMoney: row.pricePerLiterMoney,
+    });
+  }
+  return row.buyerStatementId === null ? null : row.receivableMoney;
+};
 
 /** Every Dispatch in a stretch of time, oldest first, with the buyer as the farm had them that day. */
 export const dispatchesBetween = async (
@@ -58,7 +101,11 @@ export const dispatchesBetween = async (
     buyerName: row.buyerName,
     buyerAddress: row.buyerAddress,
     deliveryNote: row.deliveryNote,
-    pricePerLiterMoney: Number(row.pricePerLiterMoney),
+    pricePerLiterMoney:
+      row.pricePerLiterMoney === null ? null : Number(row.pricePerLiterMoney),
+    priceToFollow: isPriceToFollow(row),
+    buyerStatementId: row.buyerStatementId,
+    worthMoney: worthAsItStands(row),
     fatPercent: row.fatPercent === null ? null : Number(row.fatPercent),
     snfPercent: row.snfPercent === null ? null : Number(row.snfPercent),
     receivableMoney: row.receivableMoney,
@@ -124,12 +171,6 @@ export const readDispatch = async (tx: Tx, id: string) => {
     : null;
 };
 
-/** What a Dispatch's milk came to: its liters at its price, to the poisha. */
-export const worthOfDispatch = (row: {
-  liters: string | number;
-  pricePerLiterMoney: string | number;
-}): number => roundMoney(Number(row.liters) * Number(row.pricePerLiterMoney));
-
 /** How far back the farm looks for its milk buyers: a buyer who has taken nothing for half a year is not offered. */
 const MILK_BUYERS_DAYS = 180;
 
@@ -138,18 +179,24 @@ const RECENT_RUN = 5;
 
 /** A milk buyer as his recent milk left him: what the Dispatch sheet fills in once he is picked. */
 export interface MilkBuyer {
+  /** The Counterparty his milk is booked to, which his Buyer Statements name. */
+  counterpartyId: string;
   /** His name as the farm keeps it, which a Dispatch sent with it finds again. */
   name: string;
   address: string | null;
   phone: string | null;
-  /** The price his last milk went at, per liter. */
-  pricePerLiterMoney: number;
+  /** The price his last milk priced at the gate went at, per liter; nothing where all of it went with its price to
+   *  follow. */
+  pricePerLiterMoney: number | null;
   /**
    * Whether he takes his milk on credit: more of his last five Dispatches left with all of it on credit than not — a
    * collection center that pays on its round. A Dispatch he paid any of at the gate counts as paid at the gate, so a
-   * buyer who pays a part each time is not offered as taking it all on credit.
+   * buyer who pays a part each time is not offered as taking it all on credit. Milk sent with its price to follow was
+   * paid nothing at the gate.
    */
   paysLater: boolean;
+  /** Whether his last milk went with its price to follow, for his statement to set: the sheet offers his next so. */
+  priceToFollow: boolean;
 }
 
 /**
@@ -167,6 +214,7 @@ export const milkBuyersOf = async (
   );
   const rows = await db
     .select({
+      counterpartyId: counterparty.id,
       name: counterparty.name,
       liters: dispatch.liters,
       pricePerLiterMoney: dispatch.pricePerLiterMoney,
@@ -192,16 +240,29 @@ export const milkBuyersOf = async (
     // oxlint-disable-next-line no-await-in-loop
     const known = await knownAs(db, farmId, last.name);
     const run = theirs.slice(0, RECENT_RUN);
-    const allOnCredit = run.filter(
-      (one) =>
-        one.receivableMoney > 0 && one.receivableMoney >= worthOfDispatch(one)
+    const allOnCredit = run.filter((one) =>
+      one.pricePerLiterMoney === null
+        ? true
+        : one.receivableMoney > 0 &&
+          one.receivableMoney >=
+            worthOfDispatch({
+              ...one,
+              pricePerLiterMoney: one.pricePerLiterMoney,
+            })
     ).length;
+    const lastPriced = theirs.find((one) => one.pricePerLiterMoney !== null);
     buyers.push({
+      counterpartyId: known?.id ?? last.counterpartyId,
       name: known?.name ?? last.name,
       address: known?.address ?? null,
       phone: known?.phone ?? null,
-      pricePerLiterMoney: Number(last.pricePerLiterMoney),
+      pricePerLiterMoney:
+        lastPriced?.pricePerLiterMoney === undefined ||
+        lastPriced.pricePerLiterMoney === null
+          ? null
+          : Number(lastPriced.pricePerLiterMoney),
       paysLater: allOnCredit > run.length - allOnCredit,
+      priceToFollow: last.pricePerLiterMoney === null,
     });
   }
   return buyers;
@@ -222,7 +283,10 @@ export const bookDispatchMoney = async (
   if (!row) {
     return;
   }
-  const paidMoney = paidAtTheGate(worthOfDispatch(row), row.receivableMoney);
+  const paidMoney = paidAtTheGate(
+    worthAsItStands(row) ?? 0,
+    row.receivableMoney
+  );
   if (
     paidMoney > 0 ||
     (await moneySnapshotOf(tx, row.farmId, "dispatch", row.id))

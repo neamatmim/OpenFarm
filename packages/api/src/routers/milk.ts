@@ -14,7 +14,17 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
-import { correct } from "../corrections/correction";
+import {
+  assertNoStatementCovers,
+  besideInput,
+  priceToFollowOf,
+  recordStatement,
+  statementBesideOf,
+  statementInput,
+  statementsOf,
+  voidStatement,
+} from "../buyer-statement-store";
+import { correct, reasonInput } from "../corrections/correction";
 import {
   dispatchCorrection,
   dispatchCorrectionInput,
@@ -50,7 +60,13 @@ import {
   promisedByInput,
   tellIfLentAfterWriteOff,
 } from "../receivable-store";
-import { requireRole } from "../roles";
+import { refuse } from "../refuse";
+import {
+  OWNER_ONLY,
+  requireOnly,
+  requirePersonalSession,
+  requireRole,
+} from "../roles";
 import { isPenInScope, requireLookUp } from "../scope";
 
 /** How many of a cow's recent milkings to hand back; enough for a fortnight of two-a-day
@@ -89,25 +105,40 @@ export const milkRouter = {
   dispatch: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(
-      z.object({
-        ...dispatchFields,
-        deliveryNote: dispatchFields.deliveryNote.optional(),
-        fatPercent: dispatchFields.fatPercent.optional(),
-        snfPercent: dispatchFields.snfPercent.optional(),
-        note: dispatchFields.note.optional(),
-        buyer: buyerInput,
-        paymentMethod: paymentMethodInput,
-        /** Which Farm Account mobile money or bank money went into or came out of. */
-        farmAccountId: farmAccountIdInput,
-        /** Its transaction ID, or the check's or slip's number. */
-        reference: referenceInput,
-        /** What the buyer paid there and then; left out, all of it. Less than the milk came to, and the rest is his
-         *  Receivable. */
-        paidNowMoney: paidNowInput.optional(),
-        /** The day he promised to pay the rest by, when he named one. A milk buyer who pays on a round often does
-         *  not, so it is never asked for. */
-        promisedBy: promisedByInput.optional(),
-      })
+      z
+        .object({
+          ...dispatchFields,
+          /** Left out only where its price is to follow. */
+          pricePerLiterMoney: dispatchFields.pricePerLiterMoney.optional(),
+          /** Sent with its price to follow, for the buyer's statement to set: liters and no money until it does. */
+          priceToFollow: z.literal(true).optional(),
+          deliveryNote: dispatchFields.deliveryNote.optional(),
+          fatPercent: dispatchFields.fatPercent.optional(),
+          snfPercent: dispatchFields.snfPercent.optional(),
+          note: dispatchFields.note.optional(),
+          buyer: buyerInput,
+          paymentMethod: paymentMethodInput,
+          /** Which Farm Account mobile money or bank money went into or came out of. */
+          farmAccountId: farmAccountIdInput,
+          /** Its transaction ID, or the check's or slip's number. */
+          reference: referenceInput,
+          /** What the buyer paid there and then; left out, all of it. Less than the milk came to, and the rest is his
+           *  Receivable. */
+          paidNowMoney: paidNowInput.optional(),
+          /** The day he promised to pay the rest by, when he named one. A milk buyer who pays on a round often does
+           *  not, so it is never asked for. */
+          promisedBy: promisedByInput.optional(),
+        })
+        // A price, or its price to follow: never both, never neither.
+        .refine(
+          (said) =>
+            (said.pricePerLiterMoney === undefined) ===
+            (said.priceToFollow === true),
+          {
+            message: "A price, or its price to follow",
+            path: ["priceToFollow"],
+          }
+        )
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
@@ -116,15 +147,29 @@ export const milkRouter = {
         throw new ORPCError("FORBIDDEN");
       }
       assertNotLater(input.dispatchedAt, now);
-      const receivable = receivableOrRefuse(
-        receivableAtTheGate({
-          worthMoney: worthOfDispatch(input),
-          paidNowMoney: input.paidNowMoney,
-          promisedBy: input.promisedBy,
-          leftOn: farmDayOf(input.dispatchedAt),
-          promiseRequired: false,
-        })
-      );
+      const price = input.pricePerLiterMoney;
+      // Milk whose price is to follow was paid nothing at the gate and is owed nothing yet: its statement sets both.
+      if (price === undefined && (input.paidNowMoney ?? 0) > 0) {
+        throw refuse(
+          "price_to_follow_paid",
+          "Nothing is paid at the gate for milk whose price is to follow"
+        );
+      }
+      const receivable =
+        price === undefined
+          ? { receivableMoney: 0, promisedBy: null }
+          : receivableOrRefuse(
+              receivableAtTheGate({
+                worthMoney: worthOfDispatch({
+                  liters: input.liters,
+                  pricePerLiterMoney: price,
+                }),
+                paidNowMoney: input.paidNowMoney,
+                promisedBy: input.promisedBy,
+                leftOn: farmDayOf(input.dispatchedAt),
+                promiseRequired: false,
+              })
+            );
       const id = newId(now);
       await audited(context).write(
         {
@@ -141,6 +186,14 @@ export const milkRouter = {
             input.buyer,
             now
           );
+          if (price === undefined) {
+            await assertNoStatementCovers(
+              tx,
+              context.farm.id,
+              buyer.buyerId,
+              input.dispatchedAt
+            );
+          }
           await tx.insert(dispatch).values({
             id,
             farmId: context.farm.id,
@@ -148,7 +201,7 @@ export const milkRouter = {
             liters: input.liters.toFixed(2),
             ...buyer,
             deliveryNote: input.deliveryNote ?? null,
-            pricePerLiterMoney: input.pricePerLiterMoney.toFixed(2),
+            pricePerLiterMoney: twoPlaces(price),
             fatPercent: twoPlaces(input.fatPercent),
             snfPercent: twoPlaces(input.snfPercent),
             ...receivable,
@@ -267,6 +320,69 @@ export const milkRouter = {
     .use(requireRole("owner", "manager"))
     .handler(({ context }) =>
       milkBuyersOf(context.db, context.farm.id, context.clock.now())
+    ),
+
+  /**
+   * The farm's **Buyer Statements**, the latest days first, each beside the farm's own milk to him in its days — his
+   * liters against the farm's, and what it priced. The Manager's, who records them, and the Owner's.
+   */
+  statements: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(({ context }) => statementsOf(context.db, context.farm.id)),
+
+  /** A statement as it is typed, beside the farm's own milk to him in its days, and what of it would be refused. */
+  statementBeside: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(besideInput)
+    .handler(({ context, input }) =>
+      statementBesideOf(context.db, context.farm.id, input)
+    ),
+
+  /**
+   * Records a buyer's statement and prices the milk sent him in its days with its price to follow, making what he owes
+   * for it his Receivable (ADR 0030). The Manager's or the Owner's; in a month the Owner has closed, hers alone. Once
+   * however often the phone sends it.
+   */
+  recordStatement: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(statementInput)
+    .handler(({ context, input }) => recordStatement(context, input)),
+
+  /** The Owner voids a wrong statement, with her reason: the milk it priced goes back to its price to follow. */
+  voidStatement: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string(), reason: reasonInput }))
+    .handler(({ context, input }) => voidStatement(context, input)),
+
+  /** A statement's photograph, read on its own so the list carries none. */
+  statementPhoto: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      const photo = await context.db.query.buyerStatementPhoto.findFirst({
+        where: { statementId: input.id, farmId: context.farm.id },
+        columns: { contentType: true, data: true },
+      });
+      if (!photo) {
+        throw new ORPCError("NOT_FOUND", { message: "No photo kept" });
+      }
+      return photo;
+    }),
+
+  /**
+   * Every buyer with milk whose price is still to follow, the longest waiting first, with how much of it is late: the
+   * homes say so, and the Statements tab lists it.
+   */
+  priceToFollow: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(({ context }) =>
+      priceToFollowOf(
+        context.db,
+        context.farm.id,
+        farmDayOf(context.clock.now())
+      )
     ),
 
   /** The week's milk: into the tank, out of the gate, still in the tank, and what nobody can account for. */

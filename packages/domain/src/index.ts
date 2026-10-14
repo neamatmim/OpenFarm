@@ -511,6 +511,15 @@ export {
   isReceivableRefusal,
   paidAtTheGate,
 } from "./receivable";
+export {
+  PRICE_TO_FOLLOW_DEFAULT_PERIOD_DAYS,
+  PRICE_TO_FOLLOW_GRACE_DAYS,
+  isPriceToFollowOverdue,
+  litersCompared,
+  priceToFollowOverdueFrom,
+  spreadByLiters,
+  statementPeriodDays,
+} from "./buyer-statement";
 export type {
   ApprovedTerms,
   EnteredBefore,
