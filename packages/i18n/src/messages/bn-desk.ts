@@ -1613,8 +1613,8 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "investors.capHint":
     "খামারের সেটিংয়ে ঠিক করা সীমা — এক ব্যবসায় বিশজন মানুষ থাকলে সেটা কোম্পানি হয়ে যায়",
   "investors.unitsHeld": "হাতে থাকা ইউনিট",
-  "investors.thisMonth": "এ মাসের মাসের টাকা",
-  "investors.sumsTitle": "এ মাসের মাসের টাকা",
+  "investors.thisMonth": "মাসের টাকা, এ মাসে",
+  "investors.sumsTitle": "এ মাসে যাঁদের মাসের টাকা বাকি",
   "investors.sumsHint":
     "মাসে মাসে টাকা দেওয়া সব ভেঞ্চারে কাকে মাসের টাকার জন্য ফোন করবেন: আগে যাদের বাকি পড়েছে, তারপর যাদের দেরি, তারপর যাদের দেওয়ার দিন এসেছে। খামার তাদের কিছু পাঠায় না; ফোন আপনিই করবেন।",
   "investors.sumsMissed": "বাকি পড়েছে",
