@@ -159,6 +159,12 @@ const EXAMPLE: NoticeFacts = {
     sentOn: "2038-01-05",
     way: "mobile_money",
   },
+  offer_agreed: {
+    offerId: "offer-1",
+    ventureId: "venture-1",
+    venture: "কোরবানি ২০৩৮",
+    investor: "আবুল হাশেম মিয়া",
+  },
   credit_after_write_off: {
     counterpartyId: "buyer-1",
     buyer: "করিম ব্যাপারী",

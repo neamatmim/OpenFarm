@@ -329,6 +329,27 @@ const QUESTIONS = {
       await stillMissed(context.db, context.farm.id, farmDayOf(now))
     ),
   investor_statement_due: papersStillDue,
+  // An Agreement agreed in the portal waits for her only while it is still agreed: approved, withdrawn by either of
+  // them, or the agreement taken back, it waits for nothing.
+  offer_agreed: async (context, open) => {
+    const offerIds = open.map((one) =>
+      one.entityId.slice(one.entityId.indexOf(":") + 1)
+    );
+    const waiting = await context.db.query.agreementOffer.findMany({
+      where: {
+        farmId: context.farm.id,
+        id: { in: offerIds },
+        agreedAt: { isNotNull: true },
+        approvedAt: { isNull: true },
+        withdrawnAt: { isNull: true },
+      },
+      columns: { id: true, ventureId: true },
+    });
+    return keysOf(
+      "offer_agreed",
+      waiting.map((one) => `${one.ventureId}:${one.id}`)
+    );
+  },
   withdrawal_ending: holdsStillEnding,
   pen_sores_seen: async (context, open) =>
     keysOf(

@@ -972,10 +972,12 @@ export {
   lostBeforeWeaning,
 } from "./calf-losses";
 export {
+  ASKING,
   CAPITAL_PAID,
   SUM_DUE_DAY,
   SUM_MISSED_AFTER_DAYS,
   TAKES_MONTHLY_SUMS,
+  askThisMonth,
   capitalItMayHold,
   cattleMoneyOf,
   monthlyPaymentAllocationOf,
@@ -986,6 +988,8 @@ export {
   towardsTheFloor,
 } from "./monthly-sums";
 export type {
+  AskThisMonth,
+  Asking,
   CapitalPaid,
   MonthlySum,
   MonthlyPaymentAllocation,

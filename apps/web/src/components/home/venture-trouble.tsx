@@ -67,6 +67,31 @@ const SAYS: {
       months: trouble.months.map((one) => saidMonth(one, language)).join(", "),
     }),
   },
+  sums_missed: {
+    key: "ventureTrouble.sumsMissed",
+    parts: (trouble, language) => ({
+      missed: formatNumber(trouble.missedMoney, language),
+    }),
+  },
+  reimbursement_due: {
+    key: "ventureTrouble.reimbursementDue",
+    parts: (trouble, language) => ({
+      month: saidMonth(trouble.month, language),
+      owed: formatNumber(trouble.owedMoney, language),
+    }),
+  },
+  statements_due: {
+    key: "ventureTrouble.statementsDue",
+    parts: (trouble) => ({ count: trouble.count }),
+  },
+  requests_waiting: {
+    key: "ventureTrouble.requestsWaiting",
+    parts: (trouble) => ({ count: trouble.count }),
+  },
+  payouts_unsent: {
+    key: "ventureTrouble.payoutsUnsent",
+    parts: (trouble) => ({ count: trouble.count }),
+  },
 };
 
 /** One thing wrong with one Venture, in the reader's own language and numerals — Pay-in Notes leading straight to

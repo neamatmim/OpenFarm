@@ -126,7 +126,44 @@ export type VentureTrouble =
   | { word: "running_budget_low"; leftMoney: number }
   | { word: "past_wind_up"; standing: number }
   | { word: "bank_disagrees"; months: string[] }
-  | { word: "bank_stale"; months: string[] };
+  | { word: "bank_stale"; months: string[] }
+  | { word: "sums_missed"; missedMoney: number }
+  | { word: "reimbursement_due"; month: string; owedMoney: number }
+  | { word: "statements_due"; count: number }
+  | { word: "requests_waiting"; count: number }
+  | { word: "payouts_unsent"; count: number };
+
+/**
+ * The money, papers and answers a Venture waits on her for, each said only when there is something: Monthly Sums its
+ * Investors have missed, the month just over it owes the Farm, this month's progress statements, Requests to Join, and
+ * payouts approved but not sent. Every one missing from an answer kept from before it was counted, and read as nothing.
+ */
+const waitingOnHer = (venture: Venture): VentureTrouble[] => {
+  const troubles: VentureTrouble[] = [];
+  const missedMoney = venture.sumsMissedMoney ?? 0;
+  if (missedMoney > 0) {
+    troubles.push({ word: "sums_missed", missedMoney });
+  }
+  const owed = venture.reimbursementDue ?? null;
+  if (owed) {
+    troubles.push({
+      word: "reimbursement_due",
+      month: owed.month,
+      owedMoney: owed.owedMoney,
+    });
+  }
+  const counted = [
+    ["statements_due", venture.statementsDue],
+    ["requests_waiting", venture.requestsWaiting],
+    ["payouts_unsent", venture.payoutsUnsent],
+  ] as const;
+  for (const [word, count] of counted) {
+    if ((count ?? 0) > 0) {
+      troubles.push({ word, count: count ?? 0 });
+    }
+  }
+  return troubles;
+};
 
 /**
  * Everything about one Venture that wants the Owner.
@@ -183,6 +220,7 @@ export const troubleWith = (venture: Venture): VentureTrouble[] => {
       troubles.push({ word: "bank_disagrees", months: disagreed });
     }
   }
+  troubles.push(...waitingOnHer(venture));
   return troubles;
 };
 

@@ -29,7 +29,10 @@ import { accountSaid, bookMoney, bookingOf } from "../../money-store";
 import { missedByEach } from "../../monthly-sums-store";
 import { closePayInNotes, waitingNotesByVenture } from "../../pay-in-notes";
 import { projectionBasisOf, projectionOf } from "../../projection-store";
-import { owedTheFarmByEach } from "../../reimbursement-store";
+import {
+  owedTheFarmByEach,
+  owingTheFarmByEach,
+} from "../../reimbursement-store";
 import {
   answerRequest,
   closeRequests,
@@ -68,6 +71,11 @@ import {
   windUpEndsOn,
   withWindowsInForce,
 } from "../../venture-store";
+import {
+  payoutsUnsentByEach,
+  requestsWaitingByEach,
+  statementsDueByEach,
+} from "../../venture-waiting-store";
 import type { Context } from "./shared";
 import { openInput, planned } from "./shared";
 
@@ -306,25 +314,42 @@ export const lifecycleProcedures = {
         columns: { ventureId: true },
       });
       const approved = new Set(settled.map((one) => one.ventureId));
-      const owed = await owedTheFarmByEach(
+      const owed = await owingTheFarmByEach(
         context.db,
         context.farm.id,
         rows,
         farmDayOf(context.clock.now())
       );
-      const notes = await waitingNotesByVenture(
-        context.db,
-        context.farm.id,
-        ids
-      );
+      const [notes, requests, statements, payouts] = await Promise.all([
+        waitingNotesByVenture(context.db, context.farm.id, ids),
+        requestsWaitingByEach(context.db, context.farm.id, ids),
+        statementsDueByEach(
+          context.db,
+          context.farm.id,
+          rows,
+          context.clock.now()
+        ),
+        payoutsUnsentByEach(context.db, context.farm.id, ids),
+      ]);
       return rows.map((one) => ({
         ...ventureView(one, held.get(one.id), signed.get(one.id), {
           warnBelowMoney: context.farm.runningBudgetWarnMoney,
           bank: checked.get(one.id) ?? NEVER_CHECKED,
           windUpDays: context.farm.windUpDays,
           stillHers: stillHers.get(one.id) ?? 0,
-          owedTheFarmMoney: owed.get(one.id) ?? 0,
+          owedTheFarmMoney: owed.get(one.id)?.owedMoney ?? 0,
         }),
+        /** The month just over it owes the Farm and has had no Reimbursement for, and how much; nothing once its
+         *  Settlement is approved, which could not have been while a month was owed. */
+        reimbursementDue: approved.has(one.id)
+          ? null
+          : (owed.get(one.id)?.monthDue ?? null),
+        /** How many of its Investors have not been handed this month's progress statement. */
+        statementsDue: statements.get(one.id) ?? 0,
+        /** How many Requests to Join it has that wait for the Owner's answer. */
+        requestsWaiting: requests.get(one.id) ?? 0,
+        /** How many payouts its approved Settlement owes that have not gone out. */
+        payoutsUnsent: payouts.get(one.id) ?? 0,
         /** Whether its Settlement has been approved. From then every Investor is being paid on figures
          *  written down, so the acts that would move them — a month reimbursed, the Owner's own money in,
          *  the terms amended — are refused, and the screen should stop offering them. */

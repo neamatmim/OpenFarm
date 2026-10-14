@@ -97,18 +97,26 @@ export const aMonthsReimbursement = async (
   };
 };
 
+/** What one Venture owes the Farm today, and the month just over where it has had no Reimbursement and came to more
+ *  than nothing — the transfer the Owner has still to make. */
+export interface OwingTheFarm {
+  owedMoney: number;
+  monthDue: { month: string; owedMoney: number } | null;
+}
+
 /**
- * What each of these Ventures owes the Farm today: every month it ran not yet repaid, this month so far, and what
- * months already repaid have moved by since — money its account still holds that is the Farm's, so not money left to
- * keep its animals with. The farm's costing is worked out once for the lot, and not at all when none is running.
+ * What each of these Ventures owes the Farm today, as `owedTheFarmByEach` says it, and beside it the month just over
+ * when it has had no Reimbursement of its own and came to more than nothing: one costing for both, so the figure on a
+ * Venture and the month it says is due never disagree.
  */
-export const owedTheFarmByEach = async (
+export const owingTheFarmByEach = async (
   db: Reader,
   farmId: string,
   ventures: readonly { id: string; state: string; createdAt: Date }[],
   today: string
-): Promise<Map<string, number>> => {
-  const owed = new Map<string, number>();
+): Promise<Map<string, OwingTheFarm>> => {
+  const owed = new Map<string, OwingTheFarm>();
+  const lastMonth = monthBefore(today);
   const running = ventures.filter((one) =>
     (RUNNING as readonly string[]).includes(one.state)
   );
@@ -154,12 +162,33 @@ export const owedTheFarmByEach = async (
       monthsFromTo(farmDayOf(venture.createdAt).slice(0, 7), today.slice(0, 7)),
       repaid.filter((one) => one.ventureId === venture.id)
     );
-    owed.set(
-      venture.id,
-      roundMoney(months.reduce((sum, one) => sum + one.stillOwedMoney, 0))
-    );
+    const justOver = months.find((one) => one.month === lastMonth);
+    owed.set(venture.id, {
+      owedMoney: roundMoney(
+        months.reduce((sum, one) => sum + one.stillOwedMoney, 0)
+      ),
+      monthDue:
+        justOver && !justOver.repaid && justOver.stillOwedMoney > 0
+          ? { month: lastMonth, owedMoney: justOver.stillOwedMoney }
+          : null,
+    });
   }
   return owed;
+};
+
+/**
+ * What each of these Ventures owes the Farm today: every month it ran not yet repaid, this month so far, and what
+ * months already repaid have moved by since — money its account still holds that is the Farm's, so not money left to
+ * keep its animals with. The farm's costing is worked out once for the lot, and not at all when none is running.
+ */
+export const owedTheFarmByEach = async (
+  db: Reader,
+  farmId: string,
+  ventures: readonly { id: string; state: string; createdAt: Date }[],
+  today: string
+): Promise<Map<string, number>> => {
+  const owing = await owingTheFarmByEach(db, farmId, ventures, today);
+  return new Map([...owing].map(([id, one]) => [id, one.owedMoney]));
 };
 
 /** One telling waiting to be made: which Venture owes which month, how much, and the id it is filed under. */

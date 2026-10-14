@@ -18,6 +18,7 @@ import {
   portalInUse,
   standingOf,
 } from "@/components/investors/portal-access";
+import { SumsToRingSection } from "@/components/investors/sums-to-ring";
 import {
   EmptyState,
   Loaded,
@@ -32,6 +33,7 @@ import { FilterBar, NativeSelect, SummaryFigures } from "@/components/page-kit";
 import { NotesWaitingNotice } from "@/components/ventures/venture-pay-in-notes";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { sumsByInvestor } from "@/lib/sums-to-ring";
 import { orpc } from "@/utils/orpc";
 
 /** What the list answers, with how the farm stands against the cap it may not go past. */
@@ -123,6 +125,8 @@ const InvestorsPage = () => {
   const [recording, setRecording] = useState(false);
   const [looking, setLooking] = useState("");
   const investors = useQuery(orpc.investors.list.queryOptions());
+  const sums = useQuery(orpc.investors.monthlySums.queryOptions());
+  const byInvestor = sums.data ? sumsByInvestor(sums.data.rows) : undefined;
   const people = investors.data?.people ?? [];
   const counted = investors.data;
   const figures = useInvestorFigures(counted);
@@ -152,6 +156,8 @@ const InvestorsPage = () => {
       <SummaryFigures figures={figures} />
       {/* What Investors say they have sent, waiting for the Owner to find in the Venture Accounts (ADR 0018). */}
       <NotesWaitingNotice />
+      {/* Whom to ring this month about their Monthly Sums, missed first: the Owner's to call (2026-10-02). */}
+      <SumsToRingSection sums={sums.data} />
       {counted?.nearingTheCap ? (
         <Notice
           title={t("investors.nearingTheCap", {
@@ -194,7 +200,11 @@ const InvestorsPage = () => {
             {shown.length === 0 ? (
               <EmptyState bare icon={Search} title={t("investors.noneFound")} />
             ) : (
-              <InvestorsTable investors={shown} showPortal={showPortal} />
+              <InvestorsTable
+                investors={shown}
+                showPortal={showPortal}
+                sums={byInvestor}
+              />
             )}
           </Section>
         )}

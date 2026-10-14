@@ -23,6 +23,8 @@ import { lockTheFarm } from "./farm-lock";
 import { readAgreement, unitsTaken } from "./investor-store";
 import { assertReadAsKept, keepPaper, stillAsKept } from "./kept-paper";
 import { assertNamable, nomineesToSign } from "./nominations";
+import type { Raised } from "./notice";
+import { tell } from "./notice";
 import type { OfferWords } from "./offer-lifecycle";
 import {
   approvedAlready,
@@ -497,23 +499,51 @@ export const offerToAgree = async (
  * An Investor agrees, from their own portal sign-in, to the paper offered to them — the paper they read, whose
  * fingerprint they send back, refused when it is not the one kept — sealed by a Signing Code the farm sent them
  * (ADR 0022), whose proof is kept with it. Refused for an offer not theirs, one withdrawn, and while the farm's switch
- * is off. Agreeing again changes nothing, and asks no code.
+ * is off. Agreeing again changes nothing, and asks no code. The Owner is told in the same write that it waits for her
+ * approval; what was told is returned, for the caller to push once it has closed.
  */
 export const agreeToOffer = async (
   context: Acting & Pick<Context, "callerAddress" | "callerAgent">,
   investorId: string,
   input: { offerId: string; paperHash: string; code: string }
-): Promise<void> => {
+): Promise<Raised[]> => {
   const offer = await offerToAgree(context, investorId, input.offerId);
   assertReadAsKept(offer, input.paperHash);
   if (offer.agreedAt) {
-    return;
+    return [];
   }
-  await sealAgreement(
+  return await sealAgreement(
     context,
     investorId,
     { ...inApp(context, offer.id), paperHash: offer.paperHash },
-    input.code
+    input.code,
+    async (tx, now) => {
+      const [run, him] = await Promise.all([
+        tx.query.venture.findFirst({
+          where: { id: offer.ventureId, farmId: context.farm.id },
+          columns: { name: true },
+        }),
+        tx.query.investor.findFirst({
+          where: { id: investorId, farmId: context.farm.id },
+          columns: { name: true },
+        }),
+      ]);
+      return await tell(
+        tx,
+        context.farm.id,
+        {
+          kind: "offer_agreed",
+          about: { id: `${offer.ventureId}:${offer.id}` },
+          facts: {
+            offerId: offer.id,
+            ventureId: offer.ventureId,
+            venture: run?.name ?? "",
+            investor: him?.name ?? "",
+          },
+        },
+        now
+      );
+    }
   );
 };
 

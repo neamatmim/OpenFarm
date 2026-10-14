@@ -27,6 +27,7 @@ import {
   readInvestor,
   theSamePerson,
 } from "../investor-store";
+import { toRingThisMonth } from "../monthly-sums-store";
 import {
   approveNominationOffer,
   nominationOffersOf,
@@ -277,6 +278,21 @@ const assertTheSameKind = async (
 };
 
 export const investorsRouter = {
+  /**
+   * This month's Monthly Sums across every Venture paid by the month, as the Owner rings about them: missed, then late,
+   * then due this month, each with the phone. A list for her to call from; the farm tells the Investor nothing.
+   */
+  monthlySums: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .handler(async ({ context }) => {
+      const today = farmDayOf(context.clock.now());
+      return {
+        today,
+        rows: await toRingThisMonth(context.db, context.farm.id, today),
+      };
+    }),
+
   /**
    * The people whose money is in the farm's Ventures, with how many Units each holds across the Ventures
    * still running, and whether the farm is nearing the cap it may not go past.
