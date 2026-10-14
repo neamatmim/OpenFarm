@@ -11,7 +11,7 @@ const worthOf = (stock: readonly { amount: number; price: number | null }[]) =>
  * Hand at its average price, and each medicine's doses at what a dose cost then — the prices the animals are charged at.
  * A book below nothing holds nothing. Stock that has no price — fodder from the farm's own fields, a medicine never
  * bought — adds nothing, and is counted so the figure can say so. Silage still in the pit (a **Feed Making** whose made
- * feed has not come out) is feed the farm holds, at what went into it (ADR 0030): out of Stock on Hand, as nobody can
+ * feed has not come out) is feed the farm holds, at what went into it (ADR 0031): out of Stock on Hand, as nobody can
  * feed it yet, but not out of what the farm has tied up.
  */
 export const storeValueOf = ({

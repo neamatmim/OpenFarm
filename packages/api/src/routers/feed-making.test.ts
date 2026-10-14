@@ -5,7 +5,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 /**
- * Feed made on the farm (CONTEXT.md **Feed Making**, ADR 0030): a home-mixed concentrate made the same day, and silage
+ * Feed made on the farm (CONTEXT.md **Feed Making**, ADR 0031): a home-mixed concentrate made the same day, and silage
  * packed into a pit and opened a month on. Its inputs leave the store, its made feed comes in worth what went into it,
  * and no money moves — it is a transfer inside the store, not a purchase.
  */
@@ -518,6 +518,236 @@ describe("putting a making right", () => {
         changes: { quantity: { from: arrival?.quantity ?? 0, to: 1 } },
       })
     ).rejects.toMatchObject({ data: { refusal: "made_feed_is_its_making" } });
+  });
+});
+
+describe("the store from the day it was made on", () => {
+  // 100 kg of corn on 1 July; a Making on the 3rd takes 80 of it into a mix.
+  let corn = "";
+  let mixA = "";
+  let pellet = "";
+  let firstMix = "";
+
+  beforeAll(async () => {
+    const manager = await as("manager", "2080-07-01T03:00:00.000Z");
+    for (const [key, bn] of [
+      ["corn", "ভুট্টা দানা"],
+      ["mixA", "মিশ্রণ ক"],
+      ["pellet", "পেলেট"],
+    ] as const) {
+      // oxlint-disable-next-line no-await-in-loop -- one name index
+      const made = await manager.client.feed.items.create({
+        name: { bn: `${bn} ${suffix}` },
+      });
+      if (key === "corn") {
+        corn = made.id;
+      } else if (key === "mixA") {
+        mixA = made.id;
+      } else {
+        pellet = made.id;
+      }
+    }
+    await manager.client.stock.receive({
+      feedItemId: corn,
+      kind: "purchase",
+      quantity: 100,
+      priceMoney: 3000,
+      seller: { name: `ফিড হাউস ${suffix}` },
+      receivedOn: "2080-07-01",
+    });
+    const mixer = await as("manager", "2080-07-03T05:00:00.000Z");
+    ({ id: firstMix } = await mixer.client.feedMaking.make({
+      outputFeedItemId: mixA,
+      madeOn: "2080-07-03",
+      inputs: [{ feedItemId: corn, quantity: 80 }],
+      cameOut: { quantity: 80 },
+    }));
+    // The next day 50 kg of that mix is pressed into pellets.
+    const presser = await as("manager", "2080-07-04T05:00:00.000Z");
+    await presser.client.feedMaking.make({
+      outputFeedItemId: pellet,
+      madeOn: "2080-07-04",
+      inputs: [{ feedItemId: mixA, quantity: 50 }],
+      cameOut: { quantity: 50 },
+    });
+  });
+
+  it("refuses a Making dated back that the store could only spare by going below nothing later", async () => {
+    // On the 2nd the store held 100 — but 80 went into the mix on the 3rd, so only 20 could ever be spared.
+    const late = await as("manager", "2080-07-06T05:00:00.000Z");
+    await expect(
+      late.client.feedMaking.make({
+        outputFeedItemId: pellet,
+        madeOn: "2080-07-02",
+        inputs: [{ feedItemId: corn, quantity: 30 }],
+        cameOut: { quantity: 30 },
+      })
+    ).rejects.toMatchObject({
+      data: {
+        refusal: "not_enough_in_the_store",
+        short: [{ feedItemId: corn, onHand: 20 }],
+      },
+    });
+  });
+
+  it("refuses what went in put right upwards past what the store had", async () => {
+    const manager = await as("manager", "2080-07-06T06:00:00.000Z");
+    await expect(
+      manager.client.feedMaking.correct({
+        id: firstMix,
+        reason: "১১০ কেজি দেওয়া হয়েছিল",
+        changes: {
+          inputs: {
+            from: [{ feedItemId: corn, quantity: 80 }],
+            to: [{ feedItemId: corn, quantity: 110 }],
+          },
+        },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "not_enough_in_the_store" } });
+  });
+
+  it("refuses the day it was made moved back before the feed came", async () => {
+    const manager = await as("manager", "2080-07-06T06:00:00.000Z");
+    await expect(
+      manager.client.feedMaking.correct({
+        id: firstMix,
+        reason: "৩০ জুন মেশানো",
+        changes: { madeOn: { from: "2080-07-03", to: "2080-06-30" } },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "not_enough_in_the_store" } });
+  });
+
+  it("refuses its made feed moved past the Making that drew on it", async () => {
+    // The pellets were pressed from this mix on the 4th: the mix cannot have come out on the 5th.
+    const manager = await as("manager", "2080-07-06T06:00:00.000Z");
+    await expect(
+      manager.client.feedMaking.correct({
+        id: firstMix,
+        reason: "৫ তারিখে বের হয়েছিল",
+        changes: { cameOutOn: { from: "2080-07-03", to: "2080-07-05" } },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "making_output_used" } });
+  });
+
+  it("refuses less made than the Making after it drew", async () => {
+    const manager = await as("manager", "2080-07-06T06:00:00.000Z");
+    await expect(
+      manager.client.feedMaking.correct({
+        id: firstMix,
+        reason: "৪০ কেজি হয়েছিল",
+        changes: { quantity: { from: 80, to: 40 } },
+      })
+    ).rejects.toMatchObject({
+      data: {
+        refusal: "not_enough_in_the_store",
+        short: [{ feedItemId: mixA }],
+      },
+    });
+  });
+
+  it("is never voided once any of the feed it made was used, though its own Lot still reads full", async () => {
+    // Mix bought before it was made: the bought Lot is drawn first, so the made Lot «left» reads all 30 — yet the
+    // pellets pressed after it was made came out of a store whose price it was already in.
+    const manager = await as("manager", "2080-07-10T03:00:00.000Z");
+    await manager.client.stock.receive({
+      feedItemId: mixA,
+      kind: "purchase",
+      quantity: 100,
+      priceMoney: 5000,
+      seller: { name: `ফিড হাউস ${suffix}` },
+      receivedOn: "2080-07-10",
+    });
+    const mixing = await as("manager", "2080-07-10T04:00:00.000Z");
+    const made = await mixing.client.feedMaking.make({
+      outputFeedItemId: mixA,
+      madeOn: "2080-07-10",
+      inputs: [{ feedItemId: corn, quantity: 10 }],
+      cameOut: { quantity: 30 },
+    });
+    const pressing = await as("manager", "2080-07-10T05:00:00.000Z");
+    await pressing.client.feedMaking.make({
+      outputFeedItemId: pellet,
+      madeOn: "2080-07-10",
+      inputs: [{ feedItemId: mixA, quantity: 20 }],
+      cameOut: { quantity: 20 },
+    });
+    const arrivals = await pressing.client.stock.feedIn({ feedItemId: mixA });
+    expect(arrivals.find((one) => one.making?.id === made.id)?.left).toBe(30);
+    await expect(
+      pressing.client.feedMaking.correct({
+        id: made.id,
+        reason: "দুবার লেখা",
+        changes: { voided: { from: false, to: true } },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "making_output_used" } });
+  });
+});
+
+describe("a pit's opening put right", () => {
+  it("runs from the day it was opened, while what went in keeps the packing's window", async () => {
+    const manager = await as("manager", "2080-09-01T04:00:00.000Z");
+    const { id: grass } = await manager.client.feed.items.create({
+      name: { bn: `ঘাস গর্ত ${suffix}` },
+    });
+    const { id: pitFeed } = await manager.client.feed.items.create({
+      name: { bn: `গর্তের সাইলেজ ${suffix}` },
+    });
+    await manager.client.stock.receive({
+      feedItemId: grass,
+      kind: "purchase",
+      quantity: 1000,
+      priceMoney: 3000,
+      seller: { name: `ফিড হাউস ${suffix}` },
+      receivedOn: "2080-09-01",
+    });
+    const packed = await manager.client.feedMaking.make({
+      outputFeedItemId: pitFeed,
+      madeOn: "2080-09-01",
+      inputs: [{ feedItemId: grass, quantity: 1000 }],
+    });
+    // Opened forty days on; his typing put right the next day — forty-one days after the packing.
+    const opening = await as("manager", "2080-10-11T04:00:00.000Z");
+    await opening.client.feedMaking.cameOut({
+      id: packed.id,
+      quantity: 9000,
+      cameOutOn: "2080-10-11",
+    });
+    const nextDay = await as("manager", "2080-10-12T04:00:00.000Z");
+    await nextDay.client.feedMaking.correct({
+      id: packed.id,
+      reason: "৯০০ কেজি, ৯০০০ নয়",
+      changes: { quantity: { from: 9000, to: 900 } },
+    });
+    await expect(
+      nextDay.client.feedMaking.correct({
+        id: packed.id,
+        reason: "ঘাস ৯৫০ কেজি",
+        changes: {
+          inputs: {
+            from: [{ feedItemId: grass, quantity: 1000 }],
+            to: [{ feedItemId: grass, quantity: 950 }],
+          },
+        },
+      })
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      data: { refusal: { word: "window_closed" } },
+    });
+  });
+});
+
+describe("a ready day", () => {
+  it("is silage's: a mix in the store today has none", async () => {
+    const manager = await as("manager", "2081-03-04T05:00:00.000Z");
+    await expect(
+      manager.client.feedMaking.make({
+        outputFeedItemId: items.mix ?? "",
+        madeOn: "2081-03-04",
+        readyOn: "2081-04-04",
+        inputs: [{ feedItemId: items.bran ?? "", quantity: 1 }],
+        cameOut: { quantity: 1 },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "ready_day_is_for_a_pit" } });
   });
 });
 

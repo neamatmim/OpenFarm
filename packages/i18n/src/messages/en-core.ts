@@ -2684,7 +2684,7 @@ export const enCore = {
   "making.cameOut": "It came out",
   "making.cameOutTitle": "Silage opened: how much came out",
   "making.cameOutHint":
-    "What came out comes into the store today, priced at what went into the pit over what came out.",
+    "What came out comes into the store on the day it was opened, priced at what went into the pit over what came out.",
   "making.cameOutOn": "Opened on",
   "making.cameOutSaved": "In the store",
   "making.lost": "{amount} {unit} less than went in ({percent}%)",
@@ -2692,15 +2692,17 @@ export const enCore = {
   "making.correct": "Correct this making",
   "making.inputAmount": "{feed} ({unit})",
   "refusal.notEnoughInTheStore":
-    "The store did not hold that much of a feed that day. Check what went in.",
+    "The store could not spare that much, then or since: {feeds} at most. Check what went in.",
   "refusal.madeFromItself": "A feed cannot be made from itself.",
   "refusal.inputTwice": "Each feed goes in once.",
   "refusal.makingAlreadyOut":
     "It has already come out. Correct what came out instead.",
   "refusal.outBeforeItWasMade": "It cannot come out before it was made.",
   "refusal.makingOutputUsed":
-    "{gone} of what it made has already gone from the store, so it cannot be voided or made less than that.",
+    "Some of what it made has already been fed or made into other feed, so it cannot be voided, nor come out after that. Put the amount right instead.",
   "refusal.makingNotOutYet": "Nothing has come out of it yet.",
+  "refusal.readyDayIsForAPit":
+    "Only silage still in the pit has a day it should be ready.",
   "refusal.readyBeforeItWasMade": "Silage is ready after it is packed.",
   "refusal.madeFeedIsItsMaking":
     "Made feed is corrected on the making that made it.",

@@ -1,10 +1,10 @@
--- Feed made on the farm (ADR 0030): a Feed Making takes its inputs out of the store and brings its made feed in as a
+-- Feed made on the farm (ADR 0031): a Feed Making takes its inputs out of the store and brings its made feed in as a
 -- Feed In of the new kind `made`, worth what went into it.
 CREATE TABLE "feed_making" (
 	"id" text PRIMARY KEY,
 	"farm_id" text NOT NULL,
 	"output_feed_item_id" text NOT NULL,
-	"made_on" timestamp with time zone NOT NULL,
+	"made_on" text NOT NULL,
 	"ready_on" text,
 	"note" text,
 	"recorded_by" text,

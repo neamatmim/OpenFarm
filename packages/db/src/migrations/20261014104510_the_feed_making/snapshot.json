@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "080de31e-0a3d-47a8-aecf-b56b53285233",
+  "id": "24fdbf71-5928-4df5-9308-d098b5693c92",
   "prevIds": [
     "e7ed0de2-4d9e-4be5-b86d-14c64e7c9b0c"
   ],
@@ -7050,7 +7050,7 @@
       "table": "feed_making"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "text",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,

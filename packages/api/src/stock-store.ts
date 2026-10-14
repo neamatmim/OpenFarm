@@ -2,10 +2,13 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, notInArray, sql } from "@OpenFarm/db/operators";
 import type { FEED_IN_KINDS } from "@OpenFarm/db/schema/feed";
-import { feeding, stockCount } from "@OpenFarm/db/schema/feed";
+import {
+  RECEIVED_FEED_IN_KINDS,
+  feeding,
+  stockCount,
+} from "@OpenFarm/db/schema/feed";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import type {
-  MakingRead,
   MakingWorth,
   PurchasePrice,
   SellerOnTheScale,
@@ -40,6 +43,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
+import { loadMakings, makingRead } from "./making-shape";
 import type { Booking } from "./money-store";
 import {
   bookMoney,
@@ -100,57 +104,6 @@ const MS_PER_SECOND = 1000;
 /** One delivery of feed as its Lot: what came, its bag's number and day. */
 type FeedLot = LotIn & { lotNumber: string | null };
 
-/**
- * Every Feed Making as the store reads it: its inputs, and its made feed once it came out — each at the moment it
- * happened, as a delivery is (`cameInAt`). One being put right is left out, so it is judged against the store as it
- * stood without it.
- */
-const makingsRead = async (
-  db: Pick<Database, "query">,
-  farmId: string,
-  excludingMaking: string | undefined
-): Promise<MakingRead[]> => {
-  const rows = await db.query.feedMaking.findMany({
-    where: {
-      farmId,
-      ...(excludingMaking ? { id: { ne: excludingMaking } } : {}),
-    },
-    columns: {
-      id: true,
-      outputFeedItemId: true,
-      madeOn: true,
-      recordedAt: true,
-    },
-    with: {
-      inputs: { columns: { feedItemId: true, quantity: true } },
-      madeFeed: {
-        columns: {
-          id: true,
-          quantity: true,
-          receivedOn: true,
-          recordedAt: true,
-        },
-      },
-    },
-  });
-  return rows.map((row) => ({
-    id: row.id,
-    madeAt: cameInAt(row.madeOn, row.recordedAt),
-    outputFeedItemId: row.outputFeedItemId,
-    inputs: row.inputs.map((one) => ({
-      feedItemId: one.feedItemId,
-      quantity: Number(one.quantity),
-    })),
-    madeFeed: row.madeFeed
-      ? {
-          arrivalId: row.madeFeed.id,
-          at: cameInAt(row.madeFeed.receivedOn, row.madeFeed.recordedAt),
-          quantity: Number(row.madeFeed.quantity),
-        }
-      : null,
-  }));
-};
-
 /** The farm's store: every movement by Feed Item, and what each Feed Making was worth. */
 export interface FeedStore {
   movements: Map<string, StockMovement[]>;
@@ -160,7 +113,7 @@ export interface FeedStore {
 /**
  * Every movement in and out of the farm's store, by Feed Item: what came in, what each Feeding gave,
  * and what each Stock Count found — and what each Feed Making took out and brought in, at what went into it
- * (`bringMakingsIn`, ADR 0030). Feedings are read in the database, a line per item per session,
+ * (`bringMakingsIn`, ADR 0031). Feedings are read in the database, a line per item per session,
  * because a year of twice-daily feeding across a farm's Pens is thousands of sessions.
  */
 const everyMovement = async (
@@ -171,7 +124,7 @@ const everyMovement = async (
   // Corrections call this inside a transaction. Its PostgreSQL client may only execute one query at a time.
   const arrivals = await db.query.feedIn.findMany({
     // Made feed is its Making's to bring in, at what went into it (`bringMakingsIn`).
-    where: { farmId, kind: { ne: "made" } },
+    where: { farmId, kind: { in: [...RECEIVED_FEED_IN_KINDS] } },
     columns: {
       id: true,
       feedItemId: true,
@@ -237,8 +190,11 @@ const everyMovement = async (
       quantity: Number(row.given),
     });
   }
-  const makings = await makingsRead(db, farmId, excludingMaking);
-  return { movements: byItem, makings: bringMakingsIn(byItem, makings) };
+  const makings = await loadMakings(db, farmId, excludingMaking);
+  return {
+    movements: byItem,
+    makings: bringMakingsIn(byItem, makings.map(makingRead)),
+  };
 };
 
 /**

@@ -1,6 +1,9 @@
-import { SMALLEST_FEED_AMOUNT } from "@OpenFarm/domain";
+import { SMALLEST_FEED_AMOUNT, feedUnitWord } from "@OpenFarm/domain";
+import { formatNumber } from "@OpenFarm/i18n";
 
-// A Feed Making as the sheet holds it while it is typed (CONTEXT.md **Feed Making**, ADR 0030): what it makes, what
+import { namesIn } from "@/lib/names-in";
+
+// A Feed Making as the sheet holds it while it is typed (CONTEXT.md **Feed Making**, ADR 0031): what it makes, what
 // goes in, and whether it is a mix in the store today or silage that comes out of the pit later. Kept apart from the
 // sheet so what the farm is sent, and what is still missing, is worked out — and tested — in one place.
 
@@ -141,3 +144,79 @@ export const makingOfDraft = (draft: MakingDraft) => ({
   ...howItComes(draft),
   ...(draft.note.trim() === "" ? {} : { note: draft.note.trim() }),
 });
+
+/** Inputs in one order, as the farm compares them. */
+const byFeed = <T extends { feedItemId: string }>(lines: readonly T[]) =>
+  lines.toSorted((a, b) => a.feedItemId.localeCompare(b.feedItemId));
+
+/**
+ * What went into a Making as its Correction's rows now say it, beside what the farm holds: whether it changed, whether
+ * the farm could take it — every row a feed and an amount, each feed once, and at least one — and what it is sent as.
+ */
+export const inputsPutRight = (
+  held: readonly { feedItemId: string; quantity: number }[],
+  rows: readonly DraftLine[]
+): {
+  changed: boolean;
+  ready: boolean;
+  to: { feedItemId: string; quantity: number }[];
+} => {
+  const to = byFeed(
+    rows.map((one) => ({
+      feedItemId: one.feedItemId,
+      quantity: amountOf(one.quantity) ?? 0,
+    }))
+  );
+  const ready =
+    to.length > 0 &&
+    rows.every(
+      (one) => one.feedItemId !== "" && amountOf(one.quantity) !== null
+    ) &&
+    new Set(to.map((one) => one.feedItemId)).size === to.length;
+  const was = byFeed(held);
+  const changed =
+    to.length !== was.length ||
+    to.some(
+      (one, at) =>
+        one.feedItemId !== was[at]?.feedItemId ||
+        one.quantity !== was[at]?.quantity
+    );
+  return { changed, ready, to };
+};
+
+/**
+ * A refusal that the store could not spare what a Making took, with each feed it names and the most that could have
+ * been spared of it said in the reader's language and digits, as `feeds` beside it — the sentence the screens say it in
+ * names them. Any other refusal as it came.
+ */
+export const shortNamed = (
+  error: unknown,
+  items: readonly {
+    id: string;
+    nameBn: string;
+    nameEn?: string | null;
+    unit: string;
+  }[],
+  language: "bn" | "en"
+): unknown => {
+  const data = (
+    error as {
+      data?: {
+        refusal?: unknown;
+        short?: { feedItemId: string; onHand: number }[];
+      };
+    } | null
+  )?.data;
+  if (data?.refusal !== "not_enough_in_the_store" || !data.short) {
+    return error;
+  }
+  const feeds = data.short
+    .map((one) => {
+      const item = items.find((each) => each.id === one.feedItemId);
+      const name = item ? namesIn(item, language).shown : "";
+      return `${name} ${formatNumber(one.onHand, language)} ${feedUnitWord(item?.unit ?? "kg", language)}`;
+    })
+    .join(" · ");
+  // What a refusal is read by on the screens: its code and its data.
+  return { code: (error as { code?: unknown }).code, data: { ...data, feeds } };
+};

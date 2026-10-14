@@ -1,7 +1,12 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { FEED_PACKS } from "@OpenFarm/db/schema/feed";
+import { FEED_PACKS, RECEIVED_FEED_IN_KINDS } from "@OpenFarm/db/schema/feed";
 import type { FeedPack, FeedUnit } from "@OpenFarm/domain";
-import { FEED_IN_SHOWN, maundsOf, quantityOfPacks } from "@OpenFarm/domain";
+import {
+  FEED_IN_SHOWN,
+  madeUnitPriceOf,
+  maundsOf,
+  quantityOfPacks,
+} from "@OpenFarm/domain";
 import { FEED_ESTIMATE_BASES } from "@OpenFarm/domain/feed-estimate";
 import { expiryStanding, expiryWindow } from "@OpenFarm/domain/lots";
 import { ORPCError } from "@orpc/server";
@@ -17,6 +22,8 @@ import { monthlyFeedEstimate } from "../feed-estimate-store";
 import { recordFeedIn } from "../feed-in-store";
 import { protectedProcedure } from "../index";
 import { assertNotExpiredWhenBought, lotFields } from "../lot-input";
+import type { LoadedMaking } from "../making-shape";
+import { MAKING_WITH, inputsSaid } from "../making-shape";
 import {
   farmAccountIdInput,
   monthInput,
@@ -95,14 +102,7 @@ const weighedOnArrival = (
 };
 
 /** The Feed Making a made Feed In came from, as the history lists it. */
-interface MadeBy {
-  id: string;
-  inputs: {
-    feedItemId: string;
-    quantity: string;
-    feedItem: { nameBn: string; nameEn: string | null; unit: string };
-  }[];
-}
+type MadeBy = Pick<LoadedMaking, "id" | "inputs">;
 
 /**
  * What a Feed In cost, and a unit of it: a Purchase what was paid, set beside the last Purchase of the same feed; a
@@ -130,24 +130,13 @@ const whatItCost = (
   const worth = makings.get(making.id)?.worthMoney ?? null;
   return {
     priceMoney: worth,
-    unitPriceMoney: worth !== null && quantity > 0 ? worth / quantity : null,
+    unitPriceMoney: madeUnitPriceOf(worth, quantity),
   };
 };
 
 /** What went into made feed, as the history says it beneath; nothing for feed bought or cut. */
 const madeFrom = (making: MadeBy | null) =>
-  making
-    ? {
-        id: making.id,
-        inputs: making.inputs.map((one) => ({
-          feedItemId: one.feedItemId,
-          nameBn: one.feedItem.nameBn,
-          nameEn: one.feedItem.nameEn,
-          unit: one.feedItem.unit,
-          quantity: Number(one.quantity),
-        })),
-      }
-    : null;
+  making ? { id: making.id, inputs: inputsSaid(making.inputs) } : null;
 
 export const stockRouter = {
   /** Monthly buying quantities and cost estimates are for the people who keep the farm's store. */
@@ -203,17 +192,7 @@ export const stockRouter = {
           seller: { columns: { name: true } },
           making: {
             columns: { id: true },
-            with: {
-              inputs: {
-                columns: { feedItemId: true, quantity: true },
-                with: {
-                  feedItem: {
-                    columns: { nameBn: true, nameEn: true, unit: true },
-                  },
-                },
-                orderBy: { id: "asc" },
-              },
-            },
+            with: { inputs: MAKING_WITH.inputs },
           },
         },
         orderBy: { receivedOn: "desc", id: "desc" },
@@ -325,7 +304,7 @@ export const stockRouter = {
         purchaseOrderId: z.string().uuid().optional(),
         feedItemId: z.string(),
         // Bought or cut: made feed comes in only through the Feed Making that made it.
-        kind: z.enum(["purchase", "harvest"]),
+        kind: z.enum(RECEIVED_FEED_IN_KINDS),
         /** How much, in the feed's own unit — or, for feed counted in kilos, the bags or maunds it came as. */
         quantity: quantityInput.optional(),
         pack: z

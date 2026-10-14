@@ -2482,7 +2482,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "making.cameOut": "খোলা হয়েছে",
   "making.cameOutTitle": "সাইলেজ খোলা: কতটা বের হলো",
   "making.cameOutHint":
-    "যা বের হলো তা আজ গুদামে আসবে — গর্তে যা দেওয়া হয়েছিল তার দামকে যা বের হলো তা দিয়ে ভাগ করে দাম।",
+    "যা বের হলো তা খোলার দিনেই গুদামে আসবে — গর্তে যা দেওয়া হয়েছিল তার দামকে যা বের হলো তা দিয়ে ভাগ করে দাম।",
   "making.cameOutOn": "খোলার দিন",
   "making.cameOutSaved": "গুদামে এসেছে",
   "making.lost": "যা দেওয়া হয়েছিল তার চেয়ে {amount} {unit} কম ({percent}%)",
@@ -2490,15 +2490,16 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "making.correct": "এই বানানো সংশোধন",
   "making.inputAmount": "{feed} ({unit})",
   "refusal.notEnoughInTheStore":
-    "সেদিন গুদামে একটি খাদ্য এতটা ছিল না। কী কী দেওয়া হলো দেখে নিন।",
+    "সেদিন বা তার পরে গুদাম এতটা দিতে পারত না: সবচেয়ে বেশি {feeds}। কী কী দেওয়া হলো দেখে নিন।",
   "refusal.madeFromItself": "কোনো খাদ্য নিজেকে দিয়ে বানানো যায় না।",
   "refusal.inputTwice": "প্রতিটি খাদ্য একবারই দিন।",
   "refusal.makingAlreadyOut":
     "এটি আগেই খোলা হয়েছে। বরং যা বের হয়েছিল তা সংশোধন করুন।",
   "refusal.outBeforeItWasMade": "বানানোর আগে খোলা যায় না।",
   "refusal.makingOutputUsed":
-    "যা বানানো হয়েছিল তার {gone} এর মধ্যেই গুদাম থেকে চলে গেছে — তাই বাতিল করা বা এর কম করা যাবে না।",
+    "যা বানানো হয়েছিল তার কিছুটা এর মধ্যেই খাওয়ানো হয়েছে বা অন্য খাদ্যে দেওয়া হয়েছে — তাই বাতিল করা বা তার পরে বের হওয়া দেখানো যাবে না। বরং পরিমাণ সংশোধন করুন।",
   "refusal.makingNotOutYet": "এখনো এর কিছু বের হয়নি।",
+  "refusal.readyDayIsForAPit": "শুধু গর্তে থাকা সাইলেজেরই খোলার দিন থাকে।",
   "refusal.readyBeforeItWasMade": "সাইলেজ গর্তে ভরার পরেই খোলার মতো হয়।",
   "refusal.madeFeedIsItsMaking":
     "বানানো খাদ্য যে বানানো থেকে এসেছে, সেখানেই সংশোধন করুন।",

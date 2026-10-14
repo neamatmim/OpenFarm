@@ -1,19 +1,25 @@
 /**
- * Feed made on the farm (CONTEXT.md **Feed Making**, ADR 0030): a home-mixed concentrate made the same day, or silage
+ * Feed made on the farm (CONTEXT.md **Feed Making**, ADR 0031): a home-mixed concentrate made the same day, or silage
  * packed into a pit and opened a month on. Its inputs leave the store the moment it was made, its made feed comes in
  * when it came out, worth what went into it — worked out by the store (`bringMakingsIn`), never kept on a row. A
  * transfer inside the store: no Money Event, no Feed Purchase price to compare, no Feeding to charge.
  */
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { eq } from "@OpenFarm/db/operators";
-import { feedIn, feedMaking, feedMakingInput } from "@OpenFarm/db/schema/feed";
-import type { MakingWorth } from "@OpenFarm/domain";
+import { eq, sql } from "@OpenFarm/db/operators";
+import {
+  feedIn,
+  feedMaking,
+  feedMakingInput,
+  feeding,
+} from "@OpenFarm/db/schema/feed";
 import {
   farmDayOf,
+  leastOnHandFrom,
+  madeUnitPriceOf,
   makingLossOf,
   roundKg,
   startOfFarmDay,
-  stockLedger,
+  takenFromBetween,
 } from "@OpenFarm/domain";
 import { cameInAt, expiryWindow } from "@OpenFarm/domain/lots";
 import { ORPCError } from "@orpc/server";
@@ -22,12 +28,26 @@ import { z } from "zod";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Context } from "./context";
+import {
+  refuseSettledVentures,
+  venturesCharged,
+} from "./corrections/correction";
 import { lockTheFarm } from "./farm-lock";
-import { quantityInput, feedStoreOf, stockOnHand } from "./stock-store";
+import type { LoadedMaking } from "./making-shape";
+import {
+  MAKING_WITH,
+  inputsSaid,
+  loadMaking,
+  loadMakings,
+  madeAtOf,
+  makingRead,
+} from "./making-shape";
+import type { FeedStore } from "./stock-store";
+import { feedStoreOf, quantityInput, stockOnHand } from "./stock-store";
 import { seenWhenDone } from "./writes-seen";
 
-/** Who makes feed, on which farm, under which Role. */
-type Making = Context & {
+/** Whoever makes feed, on which farm, under which Role. */
+type Maker = Context & {
   farm: NonNullable<Context["farm"]>;
   actor: NonNullable<Context["actor"]>;
 };
@@ -92,67 +112,155 @@ export const assertInputsMake = async (
   }
 };
 
+/** The store as it stood before a write, and as it would stand without the Making written at all. */
+interface StoreBefore {
+  before: FeedStore;
+  without: FeedStore;
+}
+
 /**
- * Refuses inputs the store did not hold the moment they were taken out — read as it stood without this making, so one
- * put right is judged against the store as if it had never been written. Every feed that falls short is named, with
- * what the store held of it.
+ * Refuses a write that would take the store below nothing at any moment from `from` on — a Making dated back past the
+ * week's Feedings, inputs put right upwards, a mix's made feed brought in after another Making drew on it — where the
+ * store was not already that low before it. Read as the store now stands, inside the write. Every feed that falls short
+ * is named, with the most the store could have spared of it without this Making.
  */
-export const assertTheStoreHeld = async (
+export const assertTheStoreHolds = async (
   tx: Tx,
   farmId: string,
-  inputs: MakingInputs,
-  madeAt: Date,
-  excludingMaking?: string
+  { before, without }: StoreBefore,
+  items: Iterable<string>,
+  from: Date
 ) => {
-  const { movements } = await feedStoreOf(tx, farmId, { excludingMaking });
-  const short = inputs.flatMap((one) => {
-    const { onHand } = stockLedger(movements.get(one.feedItemId) ?? [], madeAt);
-    return roundKg(one.quantity) > onHand
-      ? [{ feedItemId: one.feedItemId, onHand: Math.max(0, onHand) }]
-      : [];
+  const after = await feedStoreOf(tx, farmId);
+  const short = [...new Set(items)].flatMap((feedItemId) => {
+    const was = leastOnHandFrom(before.movements.get(feedItemId) ?? [], from);
+    const now = leastOnHandFrom(after.movements.get(feedItemId) ?? [], from);
+    if (!(now < 0 && now < was)) {
+      return [];
+    }
+    const spare = leastOnHandFrom(
+      without.movements.get(feedItemId) ?? [],
+      from
+    );
+    return [{ feedItemId, onHand: Math.max(0, spare) }];
   });
   if (short.length > 0) {
     throw refused(
       "not_enough_in_the_store",
-      "A making takes no more than the store held",
+      "A making takes no more than the store held, then or since",
       { short }
     );
   }
 };
 
-/** What of a making's made feed has already gone from the store — fed, or found short at a count. */
-export const goneOfMadeFeed = async (
-  tx: Tx,
-  farm: { id: string; expiryWarnDays: number },
-  madeFeed: { id: string; feedItemId: string; quantity: string },
-  now: Date
-): Promise<number> => {
-  const lines = await stockOnHand(
-    tx,
-    farm.id,
-    expiryWindow(now, farm.expiryWarnDays)
-  );
-  const lot = lines
-    .find((one) => one.feedItemId === madeFeed.feedItemId)
-    ?.lots.find((one) => one.arrivalId === madeFeed.id);
-  return roundKg(Number(madeFeed.quantity) - (lot?.left ?? 0));
+/**
+ * Whether any of a Making's made feed has been used — fed, or made into another feed — from the moment it came in, or
+ * between then and a later moment. Read off the Feed Item's store rather than its Lot's «left»: a Lot with no expiry is
+ * drawn last, so a mix fed out the day it was made could read as untouched while its price was already in every Feeding.
+ */
+export const madeFeedUsed = (
+  store: FeedStore,
+  making: Pick<LoadedMaking, "id" | "outputFeedItemId">,
+  until?: Date
+): boolean => {
+  const cameIn = store.makings.get(making.id)?.cameInAt;
+  return cameIn
+    ? takenFromBetween(
+        store.movements.get(making.outputFeedItemId) ?? [],
+        cameIn,
+        until
+      )
+    : false;
 };
 
-/** A making as the trail keeps it: what it made, when, what went in, and what came out. */
-export const readMaking = async (tx: Tx, id: string) => {
-  const row = await tx.query.feedMaking.findFirst({
-    where: { id },
-    with: {
-      inputs: {
-        columns: { feedItemId: true, quantity: true },
-        orderBy: { feedItemId: "asc" },
-      },
-      madeFeed: {
-        columns: { id: true, quantity: true, receivedOn: true },
-      },
-    },
+/** Refused: some of what it made has been used, so it cannot be voided, nor its feed moved past that use. */
+export const madeFeedUsedRefusal = () =>
+  refused(
+    "making_output_used",
+    "Some of what it made has been used; put the amount right, or count the store"
+  );
+
+/**
+ * The Feed Items whose price a change to these, from a moment, moves: themselves, and every feed made from them since,
+ * and what was made from that in its turn, down the chain — concentrate mixed from bran is priced through the bran.
+ */
+export const pricedThrough = async (
+  db: Tx,
+  farmId: string,
+  items: Iterable<string>,
+  from: Date
+): Promise<Set<string>> => {
+  const loaded = await loadMakings(db, farmId);
+  const makings = loaded.map(makingRead);
+  const reached = new Set(items);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const one of makings) {
+      if (
+        one.madeAt >= from &&
+        !reached.has(one.outputFeedItemId) &&
+        one.inputs.some((input) => reached.has(input.feedItemId))
+      ) {
+        reached.add(one.outputFeedItemId);
+        grew = true;
+      }
+    }
+  }
+  return reached;
+};
+
+/** The Ventures whose Animals were fed any of these feeds, or feed made from them, from a moment on. */
+export const venturesFedThrough = async (
+  tx: Tx,
+  farmId: string,
+  items: Iterable<string>,
+  from: Date
+): Promise<readonly string[]> => {
+  const reached = await pricedThrough(tx, farmId, items, from);
+  return venturesCharged(tx, farmId, (costs) =>
+    costs.charges.filter(
+      (one) => one.kind === "feed" && reached.has(one.fromId) && one.at >= from
+    )
+  );
+};
+
+/**
+ * Refuses made feed brought in — a mix, a pit opened, one dated back — whose price would move what a settled Venture's
+ * Animals were charged for it, or for feed made from it, as a Feed In put right is refused. Asked only where it could:
+ * a farm with a settled Venture, and a Feeding of the feed at or after the moment it came in.
+ */
+const refuseSettledFeedings = async (
+  tx: Tx,
+  farmId: string,
+  feedItemId: string,
+  from: Date
+) => {
+  const settled = await tx.query.venture.findFirst({
+    where: { farmId, state: "settled" },
+    columns: { id: true },
   });
-  return row ?? null;
+  if (!settled) {
+    return;
+  }
+  const reached = [...(await pricedThrough(tx, farmId, [feedItemId], from))];
+  const fedSince = await tx.execute(
+    sql`select 1 from ${feeding}, jsonb_array_elements(${feeding.lines}) as line
+         where ${feeding.farmId} = ${farmId} and ${feeding.fedAt} >= ${from}
+           and line->>'feedItemId' in (${sql.join(
+             reached.map((id) => sql`${id}`),
+             sql`, `
+           )})
+         limit 1`
+  );
+  if (fedSince.rows.length === 0) {
+    return;
+  }
+  await refuseSettledVentures(
+    tx,
+    farmId,
+    await venturesFedThrough(tx, farmId, [feedItemId], from)
+  );
 };
 
 /** Writes a making's inputs, in place of any it had. */
@@ -176,10 +284,10 @@ export const writeInputs = async (
   );
 };
 
-/** Brings a making's made feed into the store: a Feed In of kind `made`, the only way one is written. */
-export const bringOut = async (
+/** Writes the Feed In a Making's made feed comes into the store as — of kind `made`, the only way one is written. */
+const writeMadeFeedIn = async (
   tx: Tx,
-  context: Making,
+  maker: Maker,
   making: { id: string; outputFeedItemId: string },
   quantity: number,
   cameOutOn: Date,
@@ -187,18 +295,25 @@ export const bringOut = async (
 ) => {
   await tx.insert(feedIn).values({
     id: newId(now),
-    farmId: context.farm.id,
+    farmId: maker.farm.id,
     feedItemId: making.outputFeedItemId,
     kind: "made",
     feedMakingId: making.id,
     quantity: roundKg(quantity).toFixed(1),
     priceMoney: null,
     receivedOn: cameOutOn,
-    recordedBy: context.actor.id,
-    recordedByRole: context.roleUsed ?? "manager",
+    recordedBy: maker.actor.id,
+    recordedByRole: maker.roleUsed ?? "manager",
     recordedAt: now,
   });
 };
+
+/** When made feed came into the store: its day, the moment written where that was the day — never before it was
+ *  made (`bringMakingsIn`). */
+export const madeFeedInAt = (cameOutOn: Date, recordedAt: Date, madeAt: Date) =>
+  new Date(
+    Math.max(cameInAt(cameOutOn, recordedAt).getTime(), madeAt.getTime())
+  );
 
 /** What a making is asked to be. */
 export interface MakingSaid {
@@ -212,29 +327,43 @@ export interface MakingSaid {
   note?: string;
 }
 
-/**
- * Makes feed: its inputs out of the store, and — for a mix — its made feed in, the same moment. Behind the Farm's one
- * lock, which every write of the store's feed takes, so two makings never both take the last sack of bran. The same id
- * again is the same making, however often a tap sends it.
- */
-export const makeFeed = async (context: Making, said: MakingSaid) => {
-  const now = context.clock.now();
-  const recordedByRole = context.roleUsed;
-  if (!recordedByRole) {
-    throw new ORPCError("FORBIDDEN");
+/** A ready day is silage's, and after it was packed. */
+const assertReadyDay = (said: MakingSaid) => {
+  if (!said.readyOn) {
+    return;
   }
-  const madeOn = dayGone(said.madeOn, now, "made_in_the_future");
-  if (said.readyOn && (said.cameOut || said.readyOn < said.madeOn)) {
+  if (said.cameOut) {
+    throw refused(
+      "ready_day_is_for_a_pit",
+      "Only silage still to come out has a day it should be ready"
+    );
+  }
+  if (said.readyOn < said.madeOn) {
     throw refused(
       "ready_before_it_was_made",
       "Silage is ready after it was packed"
     );
   }
+};
+
+/**
+ * Makes feed: its inputs out of the store, and — for a mix — its made feed in, the same moment. Behind the Farm's one
+ * lock, which every write of the store's feed takes, so two makings never both take the last sack of bran. The same id
+ * again is the same making, however often a tap sends it.
+ */
+export const makeFeed = async (maker: Maker, said: MakingSaid) => {
+  const now = maker.clock.now();
+  const recordedByRole = maker.roleUsed;
+  if (!recordedByRole) {
+    throw new ORPCError("FORBIDDEN");
+  }
+  const madeOn = dayGone(said.madeOn, now, "made_in_the_future");
+  assertReadyDay(said);
   await seenWhenDone(
-    context.db.transaction(async (tx) => {
-      await lockTheFarm(tx, context.farm.id);
+    maker.db.transaction(async (tx) => {
+      await lockTheFarm(tx, maker.farm.id);
       const existing = await tx.query.feedMaking.findFirst({
-        where: { id: said.id, farmId: context.farm.id },
+        where: { id: said.id, farmId: maker.farm.id },
         columns: { id: true },
       });
       if (existing) {
@@ -242,49 +371,60 @@ export const makeFeed = async (context: Making, said: MakingSaid) => {
       }
       await assertInputsMake(
         tx,
-        context.farm.id,
+        maker.farm.id,
         said.outputFeedItemId,
         said.inputs
       );
-      // Written on its own day, it was made the moment it was written down: the store is read then.
-      await assertTheStoreHeld(
-        tx,
-        context.farm.id,
-        said.inputs,
-        cameInAt(madeOn, now)
-      );
+      const before = await feedStoreOf(tx, maker.farm.id);
       await tx.insert(feedMaking).values({
         id: said.id,
-        farmId: context.farm.id,
+        farmId: maker.farm.id,
         outputFeedItemId: said.outputFeedItemId,
-        madeOn,
+        madeOn: said.madeOn,
         readyOn: said.readyOn ?? null,
         note: said.note?.trim() || null,
-        recordedBy: context.actor.id,
+        recordedBy: maker.actor.id,
         recordedByRole,
         recordedAt: now,
       });
       await writeInputs(
         tx,
-        { id: said.id, farmId: context.farm.id },
+        { id: said.id, farmId: maker.farm.id },
         said.inputs,
         now
       );
       if (said.cameOut) {
-        await bringOut(
+        await writeMadeFeedIn(
           tx,
-          context,
+          maker,
           { id: said.id, outputFeedItemId: said.outputFeedItemId },
           said.cameOut.quantity,
           madeOn,
           now
         );
       }
-      await audited(context).recordEvent(tx, {
+      // Written on its own day, it was made the moment it was written down: the store is judged from then.
+      const madeAt = madeAtOf({ madeOn: said.madeOn, recordedAt: now });
+      await assertTheStoreHolds(
+        tx,
+        maker.farm.id,
+        { before, without: before },
+        [said.outputFeedItemId, ...said.inputs.map((one) => one.feedItemId)],
+        madeAt
+      );
+      if (said.cameOut) {
+        await refuseSettledFeedings(
+          tx,
+          maker.farm.id,
+          said.outputFeedItemId,
+          madeAt
+        );
+      }
+      await audited(maker).recordEvent(tx, {
         entity: "feed_making",
         entityId: said.id,
         action: "create",
-        after: await readMaking(tx, said.id),
+        after: (await loadMaking(tx, maker.farm.id, said.id)) ?? null,
       });
     })
   );
@@ -296,18 +436,15 @@ export const makeFeed = async (context: Making, said: MakingSaid) => {
  * Correction of what came out the first time. The same amount on the same day again is the same opening.
  */
 export const takeOutOfThePit = async (
-  context: Making,
+  maker: Maker,
   said: { id: string; quantity: number; cameOutOn: string }
 ) => {
-  const now = context.clock.now();
+  const now = maker.clock.now();
   const cameOutOn = dayGone(said.cameOutOn, now, "out_in_the_future");
   await seenWhenDone(
-    context.db.transaction(async (tx) => {
-      await lockTheFarm(tx, context.farm.id);
-      const making = await tx.query.feedMaking.findFirst({
-        where: { id: said.id, farmId: context.farm.id },
-        with: { madeFeed: { columns: { quantity: true, receivedOn: true } } },
-      });
+    maker.db.transaction(async (tx) => {
+      await lockTheFarm(tx, maker.farm.id);
+      const making = await loadMaking(tx, maker.farm.id, said.id);
       if (!making) {
         throw new ORPCError("NOT_FOUND", {
           message: "No such making",
@@ -326,20 +463,25 @@ export const takeOutOfThePit = async (
           "It has already come out; put what came out right instead"
         );
       }
-      if (cameOutOn < making.madeOn) {
+      if (said.cameOutOn < making.madeOn) {
         throw refused(
           "out_before_it_was_made",
           "It cannot come out before it was made"
         );
       }
-      const before = await readMaking(tx, making.id);
-      await bringOut(tx, context, making, said.quantity, cameOutOn, now);
-      await audited(context).recordEvent(tx, {
+      await writeMadeFeedIn(tx, maker, making, said.quantity, cameOutOn, now);
+      await refuseSettledFeedings(
+        tx,
+        maker.farm.id,
+        making.outputFeedItemId,
+        madeFeedInAt(cameOutOn, now, madeAtOf(making))
+      );
+      await audited(maker).recordEvent(tx, {
         entity: "feed_making",
         entityId: making.id,
         action: "update",
-        before,
-        after: await readMaking(tx, making.id),
+        before: making,
+        after: (await loadMaking(tx, maker.farm.id, making.id)) ?? null,
       });
     })
   );
@@ -362,15 +504,8 @@ export const makingsOf = async (
   const rows = await db.query.feedMaking.findMany({
     where: { farmId: farm.id },
     with: {
+      ...MAKING_WITH,
       output: { columns: { nameBn: true, nameEn: true, unit: true } },
-      inputs: {
-        columns: { feedItemId: true, quantity: true },
-        with: {
-          feedItem: { columns: { nameBn: true, nameEn: true, unit: true } },
-        },
-        orderBy: { id: "asc" },
-      },
-      madeFeed: { columns: { id: true, quantity: true, receivedOn: true } },
       recorder: { columns: { name: true } },
     },
     orderBy: { madeOn: "desc", recordedAt: "desc", id: "desc" },
@@ -386,29 +521,27 @@ export const makingsOf = async (
     )
   );
   return rows.map((row) => {
-    const worth: MakingWorth | undefined = store.makings.get(row.id);
+    const worth = store.makings.get(row.id);
     const priceOf = new Map(
       (worth?.inputs ?? []).map((one) => [one.feedItemId, one.unitPriceMoney])
     );
     const madeQuantity = row.madeFeed ? Number(row.madeFeed.quantity) : null;
     const worthMoney = worth?.worthMoney ?? null;
+    const inputs = inputsSaid(row.inputs);
     return {
       id: row.id,
       outputFeedItemId: row.outputFeedItemId,
       nameBn: row.output.nameBn,
       nameEn: row.output.nameEn,
       unit: row.output.unit,
+      /** The farm day it was mixed or packed. */
       madeOn: row.madeOn,
       readyOn: row.readyOn,
       note: row.note,
       recordedByName: row.recorder?.name ?? null,
-      inputs: row.inputs.map((one) => ({
-        feedItemId: one.feedItemId,
-        nameBn: one.feedItem.nameBn,
-        nameEn: one.feedItem.nameEn,
-        unit: one.feedItem.unit,
-        quantity: Number(one.quantity),
-        /** What a unit of it was taken out at: the store's price then; nothing where it had none. */
+      /** What went in, each at what a unit of it was taken out at: the store's price then; nothing where it had none. */
+      inputs: inputs.map((one) => ({
+        ...one,
         unitPriceMoney: priceOf.get(one.feedItemId) ?? null,
       })),
       /** What went in was worth, in taka; nothing while an input has no price. */
@@ -425,18 +558,15 @@ export const makingsOf = async (
           : null,
       /** What a unit of the made feed came to: what went in over what came out. */
       unitPriceMoney:
-        worthMoney !== null && madeQuantity !== null && madeQuantity > 0
-          ? worthMoney / madeQuantity
-          : null,
+        madeQuantity === null
+          ? null
+          : madeUnitPriceOf(worthMoney, madeQuantity),
       /** What was lost between what went in and what came out, where every input is in the made feed's unit. */
       loss:
         madeQuantity === null
           ? null
           : makingLossOf({
-              inputs: row.inputs.map((one) => ({
-                quantity: Number(one.quantity),
-                unit: one.feedItem.unit,
-              })),
+              inputs,
               output: { quantity: madeQuantity, unit: row.output.unit },
             }),
     };

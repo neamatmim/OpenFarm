@@ -388,51 +388,110 @@ const MOVEMENT_ORDER: Record<StockMovement["kind"], number> = {
   count: 2,
 };
 
+/** The order a store's movements happened in: by the moment, and at the same moment feed that came in before the
+ *  Feedings that took from it, and the count last. */
+export const inStoreOrder = (a: StockMovement, b: StockMovement): number =>
+  a.at.getTime() - b.at.getTime() ||
+  MOVEMENT_ORDER[a.kind] - MOVEMENT_ORDER[b.kind];
+
+/** A store part way through being replayed: how much is in it, what that is worth, and what a unit of it costs. */
+export interface StoreState {
+  onHand: number;
+  value: number;
+  price: number | null;
+}
+
+/** A store before anything moved in it. */
+export const emptyStore = (): StoreState => ({
+  onHand: 0,
+  value: 0,
+  price: null,
+});
+
+/** One movement taken into a store being replayed, in place: the one rule every reading of the store's price uses. */
+export const stepStore = (state: StoreState, one: StockMovement): void => {
+  if (one.kind === "count") {
+    // The count is what is there. What it cost a unit does not change because somebody counted:
+    // the store is worth what was counted, at the price it already had.
+    state.onHand = one.counted;
+    state.value = state.price === null ? 0 : one.counted * state.price;
+  } else if (one.kind === "out") {
+    const unitPrice = state.price ?? 0;
+    state.onHand -= one.quantity;
+    state.value =
+      state.onHand > 0
+        ? Math.max(0, state.value - unitPrice * one.quantity)
+        : 0;
+  } else {
+    const cost = one.priceMoney ?? 0;
+    // A store at or below nothing starts again from what came in: there is nothing left to average the
+    // new lot with, and what the pens already ate of it before it was written down was charged when
+    // they ate it — so only the part still standing carries its share of the cost.
+    if (state.onHand <= 0) {
+      const standing = Math.max(0, one.quantity + state.onHand);
+      state.onHand += one.quantity;
+      state.value = one.quantity > 0 ? (cost * standing) / one.quantity : 0;
+    } else {
+      state.onHand += one.quantity;
+      state.value += cost;
+    }
+    if (one.priceMoney !== null || state.price !== null) {
+      state.price = state.onHand > 0 ? state.value / state.onHand : state.price;
+    }
+  }
+};
+
 /** The store replayed, one movement at a time, in the order things happened. */
 const replayStore = (
   movements: readonly StockMovement[],
   afterEach?: (at: Date, price: number | null) => void
 ): { onHand: number; price: number | null } => {
-  const inOrder = movements.toSorted(
-    (a, b) =>
-      a.at.getTime() - b.at.getTime() ||
-      // Feed that came in on a day is in the store before that day's Feedings take from it.
-      MOVEMENT_ORDER[a.kind] - MOVEMENT_ORDER[b.kind]
-  );
-  let onHand = 0;
-  let value = 0;
-  let price: number | null = null;
-  for (const one of inOrder) {
-    if (one.kind === "count") {
-      // The count is what is there. What it cost a unit does not change because somebody counted:
-      // the store is worth what was counted, at the price it already had.
-      onHand = one.counted;
-      value = price === null ? 0 : one.counted * price;
-    } else if (one.kind === "out") {
-      const unitPrice = price ?? 0;
-      onHand -= one.quantity;
-      value = onHand > 0 ? Math.max(0, value - unitPrice * one.quantity) : 0;
-    } else {
-      const cost = one.priceMoney ?? 0;
-      // A store at or below nothing starts again from what came in: there is nothing left to average the
-      // new lot with, and what the pens already ate of it before it was written down was charged when
-      // they ate it — so only the part still standing carries its share of the cost.
-      if (onHand <= 0) {
-        const standing = Math.max(0, one.quantity + onHand);
-        onHand += one.quantity;
-        value = one.quantity > 0 ? (cost * standing) / one.quantity : 0;
-      } else {
-        onHand += one.quantity;
-        value += cost;
-      }
-      if (one.priceMoney !== null || price !== null) {
-        price = onHand > 0 ? value / onHand : price;
-      }
-    }
-    afterEach?.(one.at, price);
+  const state = emptyStore();
+  for (const one of movements.toSorted(inStoreOrder)) {
+    stepStore(state, one);
+    afterEach?.(one.at, state.price);
   }
-  return { onHand, price };
+  return { onHand: state.onHand, price: state.price };
 };
+
+/**
+ * The least the store held from a moment on — at that moment, and after every movement since — as it is booked. What
+ * a Feed Making may take without the store going below nothing at any time after it, a Feeding later the same week
+ * included.
+ */
+export const leastOnHandFrom = (
+  movements: readonly StockMovement[],
+  from: Date
+): number => {
+  const state = emptyStore();
+  let least = Number.POSITIVE_INFINITY;
+  let reached = false;
+  for (const one of movements.toSorted(inStoreOrder)) {
+    if (!reached && one.at > from) {
+      reached = true;
+      least = state.onHand;
+    }
+    stepStore(state, one);
+    if (reached) {
+      least = Math.min(least, state.onHand);
+    }
+  }
+  return roundKg(reached ? least : state.onHand);
+};
+
+/** Whether anything was taken from the store — fed, or made into another feed — at or after one moment and before
+ *  another, where one is given. */
+export const takenFromBetween = (
+  movements: readonly StockMovement[],
+  from: Date,
+  until?: Date
+): boolean =>
+  movements.some(
+    (one) =>
+      one.kind === "out" &&
+      one.at >= from &&
+      (until === undefined || one.at < until)
+  );
 
 /**
  * What is in the store, and what a unit of it cost: a moving weighted average, recomputed on each
@@ -746,11 +805,7 @@ export const lastFellBelow = (
   movements: readonly StockMovement[],
   level: number
 ): Date | null => {
-  const inOrder = movements.toSorted(
-    (a, b) =>
-      a.at.getTime() - b.at.getTime() ||
-      MOVEMENT_ORDER[a.kind] - MOVEMENT_ORDER[b.kind]
-  );
+  const inOrder = movements.toSorted(inStoreOrder);
   let onHand = 0;
   let fell: Date | null = null;
   for (const one of inOrder) {

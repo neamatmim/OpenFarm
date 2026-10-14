@@ -24,7 +24,10 @@ delegated the open choices; each is decided below on the recommendation, and why
   out every time the store is read (`bringMakingsIn`, in the same replay the costs, the store's value and Stock on Hand
   read), not stored on the row. A Purchase put right, or a Fodder Price set at last on a cut that went into the pit,
   re-prices what was made from it and every Feeding of it since, without anybody remembering to. Makings are read in
-  the order they were made, so a feed made from a made feed reads that feed at its own made price.
+  the order they were made, so a feed made from a made feed reads that feed at its own made price. Each Feed Item's
+  store is read forward once per reading however many Makings take from it: a daily five-input mix over three years
+  (133,000 movements, 1,095 Makings) is brought in in about 25 ms, where reading each input's whole history again for
+  each Making took 2.4 s on every read of the store.
 - **Silage enters the store when the pit is opened, at what came out.** Its inputs leave the store the day it is packed;
   the made feed comes in on the day it is opened, by the amount that came out, typed then (`feedMaking.cameOut`). A mix
   is the same record with both on the same day. Chosen over bringing it in at packing with an expected amount, put right
@@ -40,12 +43,18 @@ delegated the open choices; each is decided below on the recommendation, and why
     store value (and so Capital Employed, ADR 0023) counts a pit packed by then and not yet opened at what went into it
     (`inThePitAt`). Only Stock on Hand leaves it out.
   - The person packing may say when it should be ready («আনুমানিক খোলার দিন»), shown beside it on «Made on the farm»;
-    nobody is told by Notice.
-- **The store must have held it.** A Making takes no more of any input than the store held the moment it was made, read
-  as the store stood without it (`not_enough_in_the_store`, naming each feed short and what it held). A Feeding may take
-  the store below nothing — a lorry nobody wrote down — but a Making is the Manager's own act at the store, and a mix
-  made from bran the books never had would carry no price for it. A Making is never made from the feed it makes, nor
-  takes one feed twice, nor a retired feed.
+    nobody is told by Notice. A mix has no ready day (`ready_day_is_for_a_pit`).
+  - A pit opened and written up on a later day is dated by its day's start, which can fall before the moment it was
+    packed that same day; its made feed then comes in at the packing, never before it (`bringMakingsIn`).
+- **The store must have held it, then and since.** A Making takes no more of any input than the store could spare from
+  the moment it was made on: the least it held at that moment or after any movement since — so a Making dated back
+  past the week's Feedings, which the store held that morning but fed out by Friday, is refused
+  (`not_enough_in_the_store`, naming each feed short and the most that could have been spared of it, which the screens
+  say by name). The same rule judges every Correction, the store read before and after it: inputs put right upwards,
+  the day moved back, less made than a later Making or Feeding drew on. It refuses only where the write takes the
+  store below nothing where it was not already that low. A Feeding may take the store below nothing — a lorry nobody
+  wrote down — but a Making is the Manager's own act at the store, and a mix made from bran the books never had would
+  carry no price for it. A Making is never made from the feed it makes, nor takes one feed twice, nor a retired feed.
 - **Fodder with no price leaves the made feed unpriced**, never priced on what had one, and never refused. That is how
   a Harvest with no Fodder Price behaves: the store holds it, a Pen fed from it is "unpriced", a Venture month waits on
   it (`a_price_is_missing`). When the Owner sets the first Fodder Price the cut takes it (2026-10-06), and the made feed
@@ -60,13 +69,26 @@ delegated the open choices; each is decided below on the recommendation, and why
 - **Who.** The Owner and the Manager, as the store is theirs (roles matrix: Feed stock). Barn Staff and the Vet never:
   it carries prices. Online only, as a delivery is; the screen's own id makes a second tap the same Making.
 - **Put right or voided** like a Feed In: a Correction with a reason, the Manager in his Correction Window and the Owner
-  at any time, on the trail (`feed_making`). What went in, the day it was made, how much came out and the day: each may
-  be put right, judged again against the store as it stood without it; moving a mix's day moves the day it came out
-  with it. **Some of the made feed already fed** — gone from its Lot, fed or found short at a count — and the Making is
-  never voided (`making_output_used`), nor put right to less than what has gone: those Feedings happened and were
-  charged at its price. The amount can still be put right, which re-prices them; or a Stock Count says what is really
-  there. A Correction that would re-price a settled Venture's Feedings is refused, as a Feed In's is
-  (`venture_is_settled`), and takes the Farm's lock first.
+  at any time, on the trail (`feed_making`). What went in — a feed added or taken away — the day it was made, how much
+  came out and the day: each may be put right, judged again against the store as above; moving a mix's day moves the
+  day it came out with it. What came out and the day are put right in the window of the opening that wrote them, not
+  the packing a month before; what went in keeps the packing's (`CorrectionKind.entryFor`).
+- **Used is any use of the made feed.** Once anything was taken from the made feed's Feed Item — fed, or made into
+  another feed — at or after the moment the made feed came in, the Making is never voided, and its made feed never
+  moved to come in after that use (`making_output_used`): those Feedings happened and were charged at its price. Read
+  off the store, not the made Lot's «left»: a Lot with no expiry is drawn last, so a mix fed out the day it was made
+  could read as untouched. The amount can still be put right, which re-prices them, as long as the store does not go
+  below nothing for it; or a Stock Count says what is really there. A Feeding a Shed Phone held offline and sent after
+  its Making was voided is not refused (barn work never is, ADR 0002): it shows as the store running short, like any
+  feeding past what was written down coming in.
+- **A settled Venture is never re-priced through made feed.** Its Animals' feed was priced through every Making down
+  the chain — bran into a mix, the mix into pellets. A Feed In put right refuses where it moves the price of any feed
+  made from it since, not only its own Feed Item; a Making put right refuses for its output, its inputs and everything
+  made from them since; and a Making made, or a pit opened, whose made feed would move the price of Feedings a settled
+  Venture was charged — dated back before them — is refused too (`venture_is_settled`). Asked only where a settled
+  Venture exists and the feed was fed from that moment, so a day's mix never loads the costing.
+- **Days are farm days.** `feed_making.made_on` and `ready_on` are kept as the farm's day, `YYYY-MM-DD`, as most days
+  in the schema are; the made feed's day is its Feed In's `received_on`, as every Feed In's is.
 - **A Closed Month** (ADR 0028) does not refuse it, as it does not refuse a Harvest or a Feeding: no money moves. A
   Making written late into a closed month can move that month's feed charges and store value — the known limit that
   ADR names for barn records and the Owner's prices.

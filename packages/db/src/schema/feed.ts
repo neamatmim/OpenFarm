@@ -324,15 +324,18 @@ export const feedPurchaseOrder = pgTable(
   ]
 );
 
-/** How feed reaches the store: bought from somebody, cut from the farm's own fields, or made on the farm from other
- *  feed — a **Feed Making**'s made feed, which only that Making brings in. */
-export const FEED_IN_KINDS = ["purchase", "harvest", "made"] as const;
+/** How feed is received at the store's door: bought from somebody, or cut from the farm's own fields. */
+export const RECEIVED_FEED_IN_KINDS = ["purchase", "harvest"] as const;
+
+/** How feed reaches the store: as received, or made on the farm from other feed — a **Feed Making**'s made feed,
+ *  which only that Making brings in. */
+export const FEED_IN_KINDS = [...RECEIVED_FEED_IN_KINDS, "made"] as const;
 
 /**
  * A **Feed Making**: one Feed Item made on the farm from others — a home-mixed concentrate, or silage packed into a pit
  * or bags. Its inputs (`feedMakingInput`) leave the store the moment it was made; what it made comes in as a Feed In of
  * kind `made` — the same moment for a mix, the day the pit is opened for silage — worth what went into it, worked out
- * from the store every time it is read and never typed (ADR 0030). A transfer inside the store: it books no money.
+ * from the store every time it is read and never typed (ADR 0031). A transfer inside the store: it books no money.
  */
 export const feedMaking = pgTable(
   "feed_making",
@@ -345,9 +348,10 @@ export const feedMaking = pgTable(
     outputFeedItemId: text("output_feed_item_id")
       .notNull()
       .references(() => feedItem.id),
-    /** The farm's day it was mixed or packed: its inputs left the store then. */
-    madeOn: timestamp("made_on", { withTimezone: true }).notNull(),
-    /** For silage: the farm day it should be ready to open, as the person packing it said. Nothing for a mix. */
+    /** The farm day it was mixed or packed, `YYYY-MM-DD`, as the farm keeps a day: its inputs left the store then. */
+    madeOn: text("made_on").notNull(),
+    /** For silage: the farm day, `YYYY-MM-DD`, it should be ready to open, as the person packing it said. Nothing for a
+     *  mix. */
     readyOn: text("ready_on"),
     /** Which pit or which bags, as the farm calls them. */
     note: text("note"),

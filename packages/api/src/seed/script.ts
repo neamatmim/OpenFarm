@@ -148,7 +148,7 @@ const keepTheStore = ({ farm, days, on }: Script) => {
         });
       }
     });
-    // The last fortnight, the Manager mixes a little concentrate himself from what the lorry brought (ADR 0030): a Feed
+    // The last fortnight, the Manager mixes a little concentrate himself from what the lorry brought (ADR 0031): a Feed
     // Making on the Feed page's «Made on the farm», its inputs out of the store and the mix in at what went in.
     if (day >= addDays(today, -14)) {
       on(day, "11:30", "home mix", async (f) => {

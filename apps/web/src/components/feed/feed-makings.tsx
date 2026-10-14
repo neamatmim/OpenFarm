@@ -48,12 +48,15 @@ import { orpc } from "@/utils/orpc";
 
 import { OtherName, TwoNames } from "./feed-name";
 import type { FeedItemRow, StockLine } from "./feed-types";
-import type { MakingDraft } from "./making-draft";
+import type { DraftLine, MakingDraft } from "./making-draft";
 import {
   blankDraft,
   blankLine,
   choosingOutput,
+  inputsPutRight,
+  lineKey,
   makingOfDraft,
+  shortNamed,
   whatIsMissing,
 } from "./making-draft";
 
@@ -190,7 +193,8 @@ export const MakeFeedSheet = ({
   const refused = useRefused();
   const make = useMutation(
     orpc.feedMaking.make.mutationOptions({
-      onError: refused,
+      // A store that could not spare it names each feed and what it could have.
+      onError: (error) => refused(shortNamed(error, items, language)),
       onSuccess: () => {
         toast.success(t("making.saved"));
         setDraft(blankDraft(farmDayOf(new Date())));
@@ -421,7 +425,7 @@ const CameOutDialog = ({
         <Input
           id={`${prefix}-on`}
           max={farmDayOf(new Date())}
-          min={farmDayOf(new Date(making.madeOn))}
+          min={making.madeOn}
           onChange={(event) => setOn(event.target.value)}
           type="date"
           value={on}
@@ -431,86 +435,106 @@ const CameOutDialog = ({
   );
 };
 
-/** The key a making's input answer goes under, in the Correction's answers. */
-const inputAnswer = (feedItemId: string) => `input:${feedItemId}`;
+/** What the Feed page knows of its feeds, for a making's rows. */
+interface Feeds {
+  items: readonly FeedItemRow[];
+  stock: ReadonlyMap<string, StockLine>;
+}
+
+/** A making's inputs as rows to put right. */
+const rowsOf = (making: Making): DraftLine[] =>
+  making.inputs.map((one) => ({
+    key: lineKey(),
+    feedItemId: one.feedItemId,
+    quantity: String(one.quantity),
+  }));
 
 /**
- * A making written up wrong: how much of each feed went in, the day, how much came out and when — or voided, never
- * made. With the reason, as every Correction is.
+ * A making written up wrong: what went in — a feed taken away or one added — the day, how much came out and when, or
+ * voided, never made. With the reason, as every Correction is.
  */
-const MakingCorrection = ({ making }: { making: Making }) => {
+const MakingCorrection = ({
+  making,
+  feeds,
+}: {
+  making: Making;
+  feeds: Feeds;
+}) => {
   const { t, language } = useLanguage();
   // As the farm compares them: one order, by the feed.
   const held = making.inputs
     .map((one) => ({ feedItemId: one.feedItemId, quantity: one.quantity }))
     .toSorted((a, b) => a.feedItemId.localeCompare(b.feedItemId));
+  const [rows, setRows] = useState<DraftLine[]>(() => rowsOf(making));
+  const inputs = inputsPutRight(held, rows);
   const correcting = useCorrecting({
     voided: voiding(),
-    madeOn: day(making.madeOn),
+    madeOn: day(startOfFarmDay(making.madeOn)),
     ...(making.madeFeed
       ? {
           quantity: figure(making.madeFeed.quantity, SMALLEST_FEED_AMOUNT),
           cameOutOn: day(making.madeFeed.cameOutOn),
         }
       : {}),
-    ...Object.fromEntries(
-      held.map((one) => [
-        inputAnswer(one.feedItemId),
-        figure(one.quantity, SMALLEST_FEED_AMOUNT),
-      ])
-    ),
   });
   const correct = useMutation(orpc.feedMaking.correct.mutationOptions({}));
   return (
     <CorrectionDialog
-      onOpen={correcting.handleOpen}
-      onSave={async (reason) => {
-        const asked = correcting.changes();
-        const inputsChanged = held.some(
-          (one) => asked[inputAnswer(one.feedItemId)] !== undefined
-        );
-        const changes = Object.fromEntries(
-          Object.entries(asked).filter(([name]) => !name.startsWith("input:"))
-        );
-        await correct.mutateAsync({
-          id: making.id,
-          reason,
-          changes: {
-            ...changes,
-            ...(inputsChanged
-              ? {
-                  inputs: {
-                    from: held,
-                    to: held.map((one) => ({
-                      feedItemId: one.feedItemId,
-                      quantity: Number(
-                        asked[inputAnswer(one.feedItemId)]?.to ?? one.quantity
-                      ),
-                    })),
-                  },
-                }
-              : {}),
-          },
-        });
+      onOpen={() => {
+        correcting.handleOpen();
+        setRows(rowsOf(making));
       }}
-      ready={correcting.changed}
+      onSave={async (reason) => {
+        try {
+          await correct.mutateAsync({
+            id: making.id,
+            reason,
+            changes: {
+              ...correcting.changes(),
+              ...(inputs.changed
+                ? { inputs: { from: held, to: inputs.to } }
+                : {}),
+            },
+          });
+        } catch (error) {
+          // A store that could not spare it names each feed and what it could have.
+          throw shortNamed(error, feeds.items, language);
+        }
+      }}
+      ready={inputs.ready && (correcting.changed || inputs.changed)}
       title={t("making.correct")}
     >
-      {making.inputs.map((one) => (
-        <CorrectionAnswer
-          inputMode="decimal"
-          key={one.feedItemId}
-          label={t("making.inputAmount", {
-            feed: namesIn(one, language).shown,
-            unit: feedUnitWord(one.unit, language),
-          })}
-          onChange={(value) =>
-            correcting.set(inputAnswer(one.feedItemId), value)
-          }
-          type="number"
-          value={correcting.typed[inputAnswer(one.feedItemId)] ?? ""}
-        />
-      ))}
+      <fieldset className="flex flex-col gap-3">
+        <legend className="mb-2 text-sm font-medium">
+          {t("making.inputs")}
+        </legend>
+        {rows.map((line) => (
+          <InputRow
+            items={feeds.items.filter(
+              (one) =>
+                one.id !== making.outputFeedItemId &&
+                (!one.retiredAt ||
+                  held.some((each) => each.feedItemId === one.id))
+            )}
+            key={line.key}
+            line={line}
+            onChange={(changed) =>
+              setRows(rows.map((one) => (one.key === line.key ? changed : one)))
+            }
+            onRemove={() => setRows(rows.filter((one) => one.key !== line.key))}
+            stock={feeds.stock}
+          />
+        ))}
+        <Button
+          className="self-start"
+          onClick={() => setRows([...rows, blankLine()])}
+          type="button"
+          variant="outline"
+        >
+          <Plus aria-hidden data-icon="inline-start" />
+          {t("making.addInput")}
+        </Button>
+      </fieldset>
       <CorrectionAnswer
         label={t("making.madeOn")}
         onChange={(value) => correcting.set("madeOn", value)}
@@ -550,13 +574,14 @@ const MakingCorrection = ({ making }: { making: Making }) => {
 interface MakingRow extends Making {
   mayCorrect: boolean;
   onOpenPit: (making: Making) => void;
+  feeds: Feeds;
 }
 
 const MadeOnCell = ({ row }: { row: { original: MakingRow } }) => {
   const { language } = useLanguage();
   return (
     <span className="whitespace-nowrap">
-      {formatDate(row.original.madeOn, language)}
+      {formatDate(startOfFarmDay(row.original.madeOn), language)}
     </span>
   );
 };
@@ -666,7 +691,9 @@ const MakingActions = ({ row }: { row: MakingRow }) => {
           {t("making.cameOut")}
         </Button>
       ) : null}
-      {row.mayCorrect ? <MakingCorrection making={row} /> : null}
+      {row.mayCorrect ? (
+        <MakingCorrection feeds={row.feeds} making={row} />
+      ) : null}
     </div>
   );
 };
@@ -677,7 +704,7 @@ const ActionsCell = ({ row }: { row: { original: MakingRow } }) => (
 
 const makingColumn = createListColumns<MakingRow>();
 const makingColumns = makingColumn.columns([
-  makingColumn.accessor((one) => new Date(one.madeOn).getTime(), {
+  makingColumn.accessor((one) => one.madeOn, {
     id: "madeOn",
     header: listHeader("making.col.madeOn"),
     cell: MadeOnCell,
@@ -720,7 +747,7 @@ const MakingCard = ({ row }: { row: MakingRow }) => {
           <span className="font-medium">{namesIn(row, language).shown}</span>
           <OtherName named={row} />
           <span className="text-muted-foreground text-xs">
-            {formatDate(row.madeOn, language)}
+            {formatDate(startOfFarmDay(row.madeOn), language)}
             {row.note ? ` · ${row.note}` : ""}
           </span>
         </div>
@@ -754,12 +781,17 @@ export const MakingsTab = ({
   const makings = useQuery(orpc.feedMaking.list.queryOptions());
   const [making, setMaking] = useState(false);
   const [opening, setOpening] = useState<Making | null>(null);
+  const feeds: Feeds = {
+    items,
+    stock: new Map(stock.map((line) => [line.feedItemId, line])),
+  };
   const rows = (makings.data ?? []).map((one) => ({
     ...one,
     // An answer cached before losses were said has none.
     loss: one.loss ?? null,
     mayCorrect: mayRecord,
     onOpenPit: setOpening,
+    feeds,
   }));
   const table = useListTable({
     columns: makingColumns,

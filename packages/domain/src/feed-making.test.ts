@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import type { StockMovement } from "./feed";
-import { fedPerDayOf, priceHistory, stockLedger } from "./feed";
+import {
+  fedPerDayOf,
+  leastOnHandFrom,
+  priceHistory,
+  stockLedger,
+  takenFromBetween,
+} from "./feed";
 import type { MakingRead } from "./feed-making";
 import { bringMakingsIn, inThePitAt, makingLossOf } from "./feed-making";
 
@@ -169,6 +175,91 @@ describe("a Feed Making in the store", () => {
       },
     ]);
     expect(fedPerDayOf(store.get("maize") ?? [], at("2042-05-03"))).toBe(0);
+  });
+});
+
+describe("a pit opened and written up later", () => {
+  it("comes in no earlier than it was packed, though it is dated by the day it was opened", () => {
+    const store = storeOf({
+      maize: [bought("2042-05-01T04:00:00Z", 1000, 3000)],
+    });
+    // Packed and opened the same day, the opening written up a week later: dated by the day's start, 00:00.
+    bringMakingsIn(store, [
+      {
+        id: "pit",
+        madeAt: at("2042-05-01T06:00:00Z"),
+        outputFeedItemId: "silage",
+        inputs: [{ feedItemId: "maize", quantity: 1000 }],
+        madeFeed: {
+          arrivalId: "opened",
+          at: at("2042-04-30T18:00:00Z"),
+          quantity: 900,
+        },
+      },
+    ]);
+    const silage = store.get("silage") ?? [];
+    expect(silage.map((one) => one.at.toISOString())).toEqual([
+      "2042-05-01T06:00:00.000Z",
+    ]);
+  });
+});
+
+describe("the least the store held from a moment on", () => {
+  // 100 kg of bran on the 1st, 20 fed each day from the 2nd to the 5th.
+  const fed = (day: number): StockMovement => ({
+    kind: "out",
+    at: at(`2042-05-0${day}T03:00:00Z`),
+    quantity: 20,
+  });
+  const bran = [
+    bought("2042-05-01T03:00:00Z", 100, 4000),
+    fed(2),
+    fed(3),
+    fed(4),
+    fed(5),
+  ];
+
+  it("is what was left after the last Feeding, not what was there that morning", () => {
+    expect(leastOnHandFrom(bran, at("2042-05-02T00:00:00Z"))).toBe(20);
+    expect(leastOnHandFrom(bran, at("2042-05-01T12:00:00Z"))).toBe(20);
+  });
+
+  it("is what the store holds now, from a moment after everything", () => {
+    expect(leastOnHandFrom(bran, at("2042-05-09T00:00:00Z"))).toBe(20);
+  });
+
+  it("starts again from a count", () => {
+    const counted: StockMovement = {
+      kind: "count",
+      at: at("2042-05-04T09:00:00Z"),
+      counted: 0,
+    };
+    expect(
+      leastOnHandFrom([...bran, counted], at("2042-05-02T00:00:00Z"))
+    ).toBe(-20);
+  });
+});
+
+describe("taken from the store", () => {
+  const bran = [
+    bought("2042-05-01T03:00:00Z", 100, 4000),
+    {
+      kind: "out",
+      at: at("2042-05-03T03:00:00Z"),
+      quantity: 20,
+    } satisfies StockMovement,
+  ];
+
+  it("is any Feeding or Making at or after a moment, and before another where one is given", () => {
+    expect(takenFromBetween(bran, at("2042-05-03T03:00:00Z"))).toBe(true);
+    expect(takenFromBetween(bran, at("2042-05-03T03:00:01Z"))).toBe(false);
+    expect(
+      takenFromBetween(
+        bran,
+        at("2042-05-01T00:00:00Z"),
+        at("2042-05-03T03:00:00Z")
+      )
+    ).toBe(false);
   });
 });
 

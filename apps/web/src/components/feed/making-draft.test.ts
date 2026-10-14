@@ -3,9 +3,90 @@ import { describe, expect, it } from "vitest";
 import {
   blankDraft,
   choosingOutput,
+  inputsPutRight,
   makingOfDraft,
+  shortNamed,
   whatIsMissing,
 } from "./making-draft";
+
+/** The feeds a refusal names, as `shortNamed` said them. */
+const feedsOf = (error: unknown) =>
+  (error as { data: { feeds?: string } }).data.feeds;
+
+describe("what went in, put right", () => {
+  const held = [
+    { feedItemId: "bran", quantity: 400 },
+    { feedItemId: "salt", quantity: 10 },
+  ];
+
+  it("is no change while the rows say what the farm holds, in any order", () => {
+    expect(
+      inputsPutRight(held, [
+        { key: "b", feedItemId: "salt", quantity: "10" },
+        { key: "a", feedItemId: "bran", quantity: "400" },
+      ])
+    ).toMatchObject({ changed: false, ready: true });
+  });
+
+  it("adds a feed and takes one away", () => {
+    expect(
+      inputsPutRight(held, [
+        { key: "a", feedItemId: "bran", quantity: "380" },
+        { key: "c", feedItemId: "maize", quantity: "20" },
+      ])
+    ).toEqual({
+      changed: true,
+      ready: true,
+      to: [
+        { feedItemId: "bran", quantity: 380 },
+        { feedItemId: "maize", quantity: 20 },
+      ],
+    });
+  });
+
+  it("is not ready with a feed twice, a row half typed, or nothing at all", () => {
+    expect(
+      inputsPutRight(held, [
+        { key: "a", feedItemId: "bran", quantity: "1" },
+        { key: "b", feedItemId: "bran", quantity: "2" },
+      ]).ready
+    ).toBe(false);
+    expect(
+      inputsPutRight(held, [{ key: "a", feedItemId: "", quantity: "2" }]).ready
+    ).toBe(false);
+    expect(inputsPutRight(held, []).ready).toBe(false);
+  });
+});
+
+describe("a store that could not spare it", () => {
+  const items = [
+    { id: "bran", nameBn: "গমের ভুসি", nameEn: "Wheat bran", unit: "kg" },
+    { id: "molasses", nameBn: "চিটাগুড়", nameEn: "Molasses", unit: "liter" },
+  ];
+  const refusal = {
+    code: "BAD_REQUEST",
+    data: {
+      refusal: "not_enough_in_the_store",
+      short: [
+        { feedItemId: "bran", onHand: 20 },
+        { feedItemId: "molasses", onHand: 2.5 },
+      ],
+    },
+  };
+  it("names each feed and what could be spared, in the reader's language and digits", () => {
+    expect(feedsOf(shortNamed(refusal, items, "bn"))).toBe(
+      "গমের ভুসি ২০ কেজি · চিটাগুড় ২.৫ লিটার"
+    );
+    expect(feedsOf(shortNamed(refusal, items, "en"))).toBe(
+      "Wheat bran 20 kg · Molasses 2.5 liters"
+    );
+  });
+
+  it("leaves any other refusal as it came", () => {
+    const other = { data: { refusal: "made_from_itself" } };
+    expect(shortNamed(other, items, "bn")).toBe(other);
+  });
+});
 
 const LAST_MIX = {
   inputs: [

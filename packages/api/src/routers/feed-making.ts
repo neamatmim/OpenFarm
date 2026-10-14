@@ -18,7 +18,7 @@ import { requireRole } from "../roles";
 import { quantityInput } from "../stock-store";
 
 /**
- * Feed made on the farm (CONTEXT.md **Feed Making**, ADR 0030): a home-mixed concentrate, or silage. The store's, so
+ * Feed made on the farm (CONTEXT.md **Feed Making**, ADR 0031): a home-mixed concentrate, or silage. The store's, so
  * the Manager's to record and the Owner's, who may do anything the Manager does; it carries prices, so never the barn
  * staff's or the Vet's.
  */

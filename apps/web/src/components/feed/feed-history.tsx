@@ -4,6 +4,7 @@ import {
   SMALLEST_FEED_AMOUNT,
   feedUnitEach,
   feedUnitWord,
+  isMadeFeed,
 } from "@OpenFarm/domain";
 import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { cn } from "@OpenFarm/ui/lib/utils";
@@ -292,7 +293,7 @@ const LotCell = ({ row }: { row: { original: ArrivalRow } }) => (
 );
 
 const CorrectCell = ({ row }: { row: { original: ArrivalRow } }) =>
-  row.original.mayCorrect && row.original.kind !== "made" ? (
+  row.original.mayCorrect && !isMadeFeed(row.original) ? (
     <ArrivalCorrection arrival={row.original} />
   ) : null;
 
@@ -383,7 +384,7 @@ const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
           standing={row.standing}
         />
       </div>
-      {row.mayCorrect && row.kind !== "made" ? (
+      {row.mayCorrect && !isMadeFeed(row) ? (
         <ArrivalCorrection arrival={row} />
       ) : null}
     </div>

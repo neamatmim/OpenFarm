@@ -70,6 +70,36 @@ export const venturesCharged = async (
   return [...new Set(theirs)].filter((one) => one !== null);
 };
 
+/**
+ * Refuses a write that would move what a settled Venture was settled on: its figures were frozen at approval and every
+ * Investor was paid on them, so late news lands as a Settlement Adjustment instead. Every settled one is named, so that
+ * somebody told no has somewhere to go: a Settlement Adjustment is raised on one Venture at a time, and a feed's price
+ * can stand in the way of several.
+ */
+export const refuseSettledVentures = async (
+  tx: Tx,
+  farmId: string,
+  ventureIds: readonly string[]
+): Promise<void> => {
+  if (ventureIds.length === 0) {
+    return;
+  }
+  const settled = await tx.query.venture.findMany({
+    where: { id: { in: [...ventureIds] }, farmId, state: "settled" },
+    columns: { id: true, name: true },
+    orderBy: { name: "asc", id: "asc" },
+  });
+  if (settled.length !== 0) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That Venture is settled; raise a Settlement Adjustment instead",
+      data: {
+        refusal: "venture_is_settled",
+        ventures: settled.map((one) => ({ id: one.id, name: one.name })),
+      },
+    });
+  }
+};
+
 /** A Correction carries a reason. Every one of them, whatever is being put right. */
 export const reasonInput = z.string().trim().min(1).max(200);
 
@@ -216,6 +246,11 @@ export interface CorrectionKind<
    * a fact that was never an entry, which has no window: only the Roles that may correct it.
    */
   entry: ((row: Row) => EntryFacts) | null;
+  /**
+   * The entry a Correction of these values runs its window from, where a record was entered in parts — silage packed
+   * on one day and opened forty on — and each part is put right in the window of its own entry. Nothing to use `entry`.
+   */
+  entryFor?: (row: Row, changes: C) => EntryFacts | undefined;
   /** Refuses a record outside the Scope of the Role the Correction is made under. */
   requireInScope?: (scope: Scope, row: Row) => void;
   /** The values it holds, as a screen shows them — today, for a value that is read off the day, as a Venture's
@@ -329,7 +364,8 @@ const workingToCorrect = <
   context: Recorder,
   kind: CorrectionKind<Row, C, Outcome, Extra>,
   row: Row,
-  now: Date
+  now: Date,
+  changes: C
 ): Corrector => {
   const theirs = PRECEDENCE.filter(
     (role) =>
@@ -337,7 +373,7 @@ const workingToCorrect = <
       (kind.rolesFor?.(row) ?? kind.roles).includes(role) &&
       !(role === "vet" && context.visiting && !kind.visitingVet)
   );
-  const entry = kind.entry?.(row);
+  const entry = kind.entryFor?.(row, changes) ?? kind.entry?.(row);
   const verdictFor = (roles: readonly RoleName[]) =>
     entry
       ? mayCorrect({
@@ -444,33 +480,11 @@ export const correct = async <
       }
       // Whether this is theirs to put right at all, first: somebody who may not correct it is told so, not sent to raise
       // a Settlement Adjustment they cannot, nor handed the names of the Ventures it touches.
-      const working = workingToCorrect(context, kind, row, now);
+      const working = workingToCorrect(context, kind, row, now, input.changes);
       const role = working.roleUsed;
       corrector = working;
       const theirs = (await kind.venturesOf?.(tx, row, input.changes)) ?? [];
-      if (theirs.length !== 0) {
-        const settled = await tx.query.venture.findMany({
-          where: {
-            id: { in: [...theirs] },
-            farmId: context.farm.id,
-            state: "settled",
-          },
-          columns: { id: true, name: true },
-          orderBy: { name: "asc", id: "asc" },
-        });
-        if (settled.length !== 0) {
-          throw new ORPCError("BAD_REQUEST", {
-            message:
-              "That Venture is settled; raise a Settlement Adjustment instead",
-            data: {
-              refusal: "venture_is_settled",
-              // Which ones, named, so that somebody told no has somewhere to go: a Settlement Adjustment is
-              // raised on one Venture at a time, and a feed arrival's price can stand in the way of several.
-              ventures: settled.map((one) => ({ id: one.id, name: one.name })),
-            },
-          });
-        }
-      }
+      await refuseSettledVentures(tx, context.farm.id, theirs);
 
       const shown = await kind.shown(tx, row, { now });
       if (changed.some(({ field, from }) => !same(from, shown[field]))) {

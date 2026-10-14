@@ -13,7 +13,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 /**
- * Feed made on the farm, fed (ADR 0030): a Venture's bull eating a home mix is charged at what went into it, the bran
+ * Feed made on the farm, fed (ADR 0031): a Venture's bull eating a home mix is charged at what went into it, the bran
  * mixed into it is charged to nobody — it is a transfer inside the store — and a making some of whose feed has been
  * eaten is put right, never voided.
  */
@@ -171,6 +171,19 @@ describe("made feed, fed", () => {
     expect(bySide.unallocated).toMatchObject({ feedMoney: 0 });
   });
 
+  it("is never moved to a day after it was eaten: the mix made the day after the bull ate it", async () => {
+    // The mix was made on the 9th and the bull ate it on the 10th; made on the 11th, it would come out on the 11th
+    // with it, and the 10th's Feeding would have eaten feed that was not there, at no price.
+    const manager = await as("manager", "2083-01-11T03:00:00.000Z");
+    await expect(
+      manager.client.feedMaking.correct({
+        id: makingId,
+        reason: "১১ তারিখে মেশানো",
+        changes: { madeOn: { from: "2083-01-09", to: "2083-01-11" } },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "making_output_used" } });
+  });
+
   it("is never voided once some of it has been eaten", async () => {
     const manager = await as("manager", "2083-01-11T04:00:00.000Z");
     await expect(
@@ -180,7 +193,7 @@ describe("made feed, fed", () => {
         changes: { voided: { from: false, to: true } },
       })
     ).rejects.toMatchObject({
-      data: { refusal: "making_output_used", gone: 10 },
+      data: { refusal: "making_output_used" },
     });
   });
 
@@ -192,7 +205,12 @@ describe("made feed, fed", () => {
         reason: "৫ কেজি হয়েছিল",
         changes: { quantity: { from: 80, to: 5 } },
       })
-    ).rejects.toMatchObject({ data: { refusal: "making_output_used" } });
+    ).rejects.toMatchObject({
+      data: {
+        refusal: "not_enough_in_the_store",
+        short: [{ feedItemId: mixId }],
+      },
+    });
     // 4,000 taka over 40 kg is 100 a kilo: the ten the bull ate now cost 1,000.
     await manager.client.feedMaking.correct({
       id: makingId,
