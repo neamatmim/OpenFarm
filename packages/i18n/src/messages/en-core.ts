@@ -2023,6 +2023,7 @@ export const enCore = {
   "sop.removeAnswer": "Remove this answer",
   "sop.addAnswer.note": "Ask for a note",
   "sop.addAnswer.photo": "Ask for a photo",
+  "sop.addAnswer.bodyCondition": "Ask body condition",
   "sop.draftKept": "You were writing “{name}” on this device",
   "sop.draftCarryOn": "Carry on writing",
   "sop.draftLetGo": "Let it go",
@@ -2086,6 +2087,8 @@ export const enCore = {
   "sop.problem.noEvidence": "say what is recorded",
   "sop.problem.rangeBackwards": "the least is more than the most",
   "sop.problem.noChoices": "write at least one thing to choose",
+  "sop.problem.bodyConditionScale":
+    "body condition is asked as its five scores, one to five — take it out and ask it again",
   "sop.problem.sameValue": "two choices are the same; make each one different",
   "sop.problem.sameId":
     "two steps share the name “{value}”; remove one and add it again",
@@ -4346,6 +4349,13 @@ export const enCore = {
   "nav.fattening": "Fattening",
   "gain.title": "Gain and projection",
   "gain.daysOnFeed": "Days on feed",
+  "bodyCondition.title": "Body condition",
+  "bodyCondition.short": "Condition {score}",
+  "bodyCondition.up": "Up from {score}",
+  "bodyCondition.down": "Down from {score}",
+  "bodyCondition.same": "As before",
+  "bodyCondition.hint":
+    "Judged by eye at her weigh-ins, as she goes dry and when she calves, where somebody could judge it.",
   "gain.now": "Weighs now",
   "gain.sinceIntake": "Since intake",
   "gain.recent": "Lately",

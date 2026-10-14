@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { BODY_CONDITION } from "./body-condition";
 import type { SopContent, Step } from "./sop";
 import {
   describeChanges,
@@ -313,8 +314,9 @@ describe("the words above a shaped Step's answers", () => {
     const service = playbook.insemination.steps[0]?.evidence ?? [];
     // Only the labels are compared; the choices' own words are the farm's to word.
     const any = { bn: "—" };
-    expect(labels(calving)).toEqual(
-      labels(
+    // The calving's own answers, and after them the Body Condition the Playbook asks of her too.
+    expect(labels(calving)).toEqual([
+      ...labels(
         draftFrom(CALVING_STEP, {
           unassisted: any,
           assisted: any,
@@ -324,8 +326,9 @@ describe("the words above a shaped Step's answers", () => {
           alive: any,
           stillborn: any,
         })
-      )
-    );
+      ),
+      BODY_CONDITION.label,
+    ]);
     expect(labels(service)).toEqual(
       labels(draftFrom(SERVICE_STEP, { ai: any, natural: any }))
     );

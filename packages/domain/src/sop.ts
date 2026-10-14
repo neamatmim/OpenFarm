@@ -1,3 +1,4 @@
+import { offersTheFiveScores } from "./body-condition";
 import type { CalvingLead } from "./breeding";
 import { CALVING_RECORDERS, HEAT, SERVICE, isCalvingLead } from "./breeding";
 import {
@@ -47,6 +48,11 @@ export const EVIDENCE_TYPES = [
 ] as const;
 export type EvidenceType = (typeof EVIDENCE_TYPES)[number];
 
+/** What an answer means to the farm beyond its words, for the few it reads back wherever a Step asks them: stable where
+ *  the words are not, as a skip reason's meaning is. */
+export const EVIDENCE_MEANINGS = ["body_condition"] as const;
+export type EvidenceMeaning = (typeof EVIDENCE_MEANINGS)[number];
+
 export interface Choice {
   value: string;
   label: Bilingual;
@@ -64,6 +70,8 @@ export interface Evidence {
   max?: number;
   /** choice: what may be picked. */
   choices?: Choice[];
+  /** What the farm reads this answer as, wherever the Step asks it: Body Condition, the Playbook's own slot. */
+  means?: EvidenceMeaning;
 }
 
 /**
@@ -1120,6 +1128,29 @@ const intervalProblems = (content: SopContent): string[] =>
       ]
     : [];
 
+/** What is wrong with one answer a Step asks: a range that runs backwards, a choice with nothing to choose, Body
+ *  Condition asked as anything but its five scores. */
+const answerProblems = (evidence: Evidence, path: string): string[] => {
+  const problems: string[] = [];
+  if (
+    evidence.type === "number" &&
+    evidence.min !== undefined &&
+    evidence.max !== undefined &&
+    evidence.min > evidence.max
+  ) {
+    problems.push(`${path}: the range runs backwards`);
+  }
+  if (evidence.type === "choice" && (evidence.choices?.length ?? 0) === 0) {
+    problems.push(`${path}.choices: a choice needs something to choose`);
+  }
+  if (evidence.means === "body_condition" && !offersTheFiveScores(evidence)) {
+    problems.push(
+      `${path}: body condition is asked as the five scores, one to five`
+    );
+  }
+  return problems;
+};
+
 /** Structural problems that are not about language: an SOP with no steps, a malformed time,
  *  a number with no range, a choice with nothing to choose. */
 export const findStructuralProblems = (content: SopContent): string[] => {
@@ -1157,18 +1188,12 @@ export const findStructuralProblems = (content: SopContent): string[] => {
       );
     }
     for (const [evidenceIndex, evidence] of step.evidence.entries()) {
-      const path = `steps[${stepIndex}].evidence[${evidenceIndex}]`;
-      if (
-        evidence.type === "number" &&
-        evidence.min !== undefined &&
-        evidence.max !== undefined &&
-        evidence.min > evidence.max
-      ) {
-        problems.push(`${path}: the range runs backwards`);
-      }
-      if (evidence.type === "choice" && (evidence.choices?.length ?? 0) === 0) {
-        problems.push(`${path}.choices: a choice needs something to choose`);
-      }
+      problems.push(
+        ...answerProblems(
+          evidence,
+          `steps[${stepIndex}].evidence[${evidenceIndex}]`
+        )
+      );
     }
     problems.push(...effectProblems(step, stepIndex));
   }

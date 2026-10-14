@@ -7,6 +7,7 @@ import { Plus, Scale, Tag } from "lucide-react";
 import { useState } from "react";
 
 import { MoveTable, WeighInTable } from "@/components/animal-histories";
+import { BodyConditionReadings } from "@/components/body-condition";
 import { CorrectionDialog } from "@/components/correction-dialog";
 import {
   NEXT_EID,
@@ -216,6 +217,8 @@ export const WeightMovesTab = ({
           <EmptyState bare icon={Scale} title={t("gain.noneYet")} />
         )}
       </Section>
+
+      <BodyConditionReadings readings={detail.bodyCondition} />
 
       <Section
         action={

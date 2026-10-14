@@ -23,6 +23,7 @@ import {
 } from "@/components/animal/death-photo";
 import { HerLactation } from "@/components/animal/her-lactation";
 import { VoidWriteOff } from "@/components/animal/take-it-back";
+import { LatestBodyCondition } from "@/components/body-condition";
 import {
   CorrectionAnswer,
   CorrectionChoice,
@@ -462,6 +463,11 @@ const AboutHer = ({ detail }: { detail: AnimalDetail }) => {
               {" · "}
               {formatDate(new Date(latest.weighedAt), language, "date")}
             </span>
+          </Fact>
+        ) : null}
+        {(detail.bodyCondition ?? []).length > 0 ? (
+          <Fact label={t("bodyCondition.title")}>
+            <LatestBodyCondition readings={detail.bodyCondition} />
           </Fact>
         ) : null}
       </FactGrid>

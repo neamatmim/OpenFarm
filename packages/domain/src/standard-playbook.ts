@@ -3,6 +3,7 @@
  * adopts one — reads it, names the farm's own Pen or product where it asks for one, and publishes it. Until then it
  * raises no work, because it is not in the database at all.
  */
+import { BODY_CONDITION } from "./body-condition";
 import { HEAT } from "./breeding";
 import type { Evidence, SopContent, Step } from "./sop";
 import { CALVED, STAYS_A_HEIFER, UNWELL, UNWELL_URGENT } from "./sop";
@@ -352,7 +353,9 @@ const dryOff = (): SopContent => ({
       id: "dry",
       text: { bn: "দোহন বন্ধ করুন", en: "Stop milking her" },
       repeatPerAnimal: true,
-      evidence: [{ type: "tick", required: true }],
+      // Her flesh as she goes dry, while she is in front of somebody: what she carries into the dry period is what she
+      // calves on.
+      evidence: [{ type: "tick", required: true }, BODY_CONDITION],
       skipReasons: [{ bn: "পাওয়া যায়নি", en: "Not found" }],
       effect: { kind: "dry_off" },
     },
@@ -442,25 +445,14 @@ const calvingRecord = (): SopContent => ({
           "তৃতীয় বাছুর জীবিত কি না",
           "Third calf, alive or not",
         ]),
+        // After the calves, which the Calving's shape fixes: her flesh at calving, as she starts her Lactation.
+        BODY_CONDITION,
       ],
       skipReasons: [{ bn: "এখনো বাচ্চা দেয়নি", en: "Not calved yet" }],
       effect: { kind: "calving" },
     },
   ],
 });
-
-/** Body condition on the common five-point scale. */
-const CONDITION_SCORE = choice(
-  false,
-  [
-    ["1", "১ — খুব রোগা", "1 — very thin"],
-    ["2", "২ — রোগা", "2 — thin"],
-    ["3", "৩ — ঠিক আছে", "3 — moderate"],
-    ["4", "৪ — ভালো গোশত", "4 — good flesh"],
-    ["5", "৫ — খুব মোটা", "5 — fat"],
-  ],
-  ["শরীরের অবস্থা (জানলে)", "Body condition (if you can judge it)"]
-);
 
 const weighIn = (): SopContent => ({
   name: { bn: "ওজন নেওয়া", en: "Weigh-in" },
@@ -495,7 +487,7 @@ const weighIn = (): SopContent => ({
         },
         // Body condition, one to five, for whoever has an eye for it (DLS GLPP 2023 §16.2.4.1.2): kept with the
         // weight, never asked of anybody who has not.
-        CONDITION_SCORE,
+        BODY_CONDITION,
       ],
       skipReasons: [{ bn: "ক্রাশে ওঠেনি", en: "Would not go up the crush" }],
       effect: { kind: "weigh_in" },
@@ -542,7 +534,7 @@ const heiferWeighIn = (): SopContent => ({
           min: HEIFER_WEIGHT_KG.min,
           max: HEIFER_WEIGHT_KG.max,
         },
-        CONDITION_SCORE,
+        BODY_CONDITION,
       ],
       skipReasons: [{ bn: "দাঁড়িপাল্লা বা ফিতা নেই", en: "No scale or tape to hand" }],
       effect: { kind: "weigh_in" },

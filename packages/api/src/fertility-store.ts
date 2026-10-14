@@ -8,6 +8,8 @@ import {
   startOfFarmDay,
 } from "@OpenFarm/domain";
 
+import type { LatestBodyCondition } from "./body-condition-store";
+import { latestBodyConditions } from "./body-condition-store";
 import { isOnTheFarm } from "./instances-store";
 
 /** The stretch the herd's figures read over: a year, so a season's calvings and the Attempts after them are in it. */
@@ -35,9 +37,17 @@ export const fertilityOn = async (
 ): Promise<{
   year: HerdFertility;
   months: (HerdFertility & { month: string })[];
-  cows: ReturnType<typeof cowsSinceCalving>;
-  /** How the year's cows were dried off: their dry periods and how long they milked (domain `dry-offs.ts`). */
-  dryOffs: HerdDryOffs;
+  /** Each with her latest Body Condition, judged at her Dry-off or her Calving — nothing where nobody judged her. */
+  cows: (ReturnType<typeof cowsSinceCalving>[number] & {
+    bodyCondition: LatestBodyCondition | null;
+  })[];
+  /** How the year's cows were dried off: their dry periods and how long they milked (domain `dry-offs.ts`), each cow
+   *  dried off outside the aim with her latest Body Condition. */
+  dryOffs: Omit<HerdDryOffs, "outsideTarget"> & {
+    outsideTarget: (HerdDryOffs["outsideTarget"][number] & {
+      bodyCondition: LatestBodyCondition | null;
+    })[];
+  };
 }> => {
   const rows = await db.query.animal.findMany({
     where: { farmId, sex: "female" },
@@ -104,13 +114,33 @@ export const fertilityOn = async (
       .map((one) => one.id)
   );
   const yearAgo = new Date(now.getTime() - FERTILITY_DAYS * DAY_MS);
+  const cows = cowsSinceCalving(
+    herd.filter((one) => standing.has(one.id)),
+    now
+  );
+  const dryOffs = herdDryOffs(rows, { from: yearAgo, until: now });
+  const idOfTag = new Map(rows.map((one) => [one.tagNumber, one.id]));
+  const judged = await latestBodyConditions(db, farmId, [
+    ...new Set([
+      ...cows.map((cow) => cow.cowId),
+      ...dryOffs.outsideTarget.flatMap(
+        (one) => idOfTag.get(one.tagNumber) ?? []
+      ),
+    ]),
+  ]);
   return {
     year: herdFertility(herd, { from: yearAgo, until: now }),
     months,
-    cows: cowsSinceCalving(
-      herd.filter((one) => standing.has(one.id)),
-      now
-    ),
-    dryOffs: herdDryOffs(rows, { from: yearAgo, until: now }),
+    cows: cows.map((cow) => ({
+      ...cow,
+      bodyCondition: judged.get(cow.cowId) ?? null,
+    })),
+    dryOffs: {
+      ...dryOffs,
+      outsideTarget: dryOffs.outsideTarget.map((one) => ({
+        ...one,
+        bodyCondition: judged.get(idOfTag.get(one.tagNumber) ?? "") ?? null,
+      })),
+    },
   };
 };

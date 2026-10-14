@@ -86,6 +86,11 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.observation.animalId,
     }),
     retags: r.many.retag({ from: r.animal.id, to: r.retag.animalId }),
+    /** Every Step done or skipped about her, whatever the work was. */
+    stepCompletions: r.many.stepCompletion({
+      from: r.animal.id,
+      to: r.stepCompletion.animalId,
+    }),
     milkRecords: r.many.milkRecord({
       from: r.animal.id,
       to: r.milkRecord.animalId,

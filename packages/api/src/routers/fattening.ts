@@ -5,6 +5,7 @@ import { z } from "zod";
 import { pricesOnTheSide } from "../animal-price-store";
 import { audited } from "../audit";
 import { outOfTheirBand } from "../band-store";
+import { latestBodyConditions } from "../body-condition-store";
 import {
   againstExpectedGains,
   underExpectedGains,
@@ -44,6 +45,12 @@ export const fatteningRouter = {
         againstExpectedGains(context.db, context.farm),
       ]);
       const onRationOf = new Map(onRations.map((one) => [one.animalId, one]));
+      // Each animal's latest Body Condition, asked at her Weigh-ins: read once for the board.
+      const conditions = await latestBodyConditions(
+        context.db,
+        context.farm.id,
+        rows.map((row) => row.id)
+      );
       // A male calf weaned onto this side was never bought, so it has no Intake and no gain
       // since one — but it is standing in the pen being fed, and a board that left it out would
       // be hiding a whole cohort from the Owner. It appears with what is knowable about it.
@@ -53,6 +60,8 @@ export const fatteningRouter = {
           return {
             ...rest,
             ...view,
+            /** Her latest Body Condition and when she was judged, or nothing where nobody has judged her. */
+            bodyCondition: conditions.get(rest.id) ?? null,
             // What her Pen's Ration should put on her — cut for her being deshi or female — and what she has put on
             // since she has been eating it: nothing where the Ration says no Expected Gain.
             onRation: onRation

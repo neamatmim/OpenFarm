@@ -122,6 +122,16 @@ export {
   notDueSince,
   penDueBy,
 } from "./campaign-interval";
+export type { BodyConditionScore } from "./body-condition";
+export {
+  BODY_CONDITION,
+  BODY_CONDITION_SCORES,
+  asksBodyConditionIn,
+  bodyConditionIn,
+  bodyConditionSlot,
+  bodyConditionWords,
+  judgedAtOf,
+} from "./body-condition";
 export type {
   ExpectedGain,
   FarmGainFigure,
@@ -443,6 +453,7 @@ export type {
   FarmEvent,
   SopChange,
   SkipMeaning,
+  EvidenceMeaning,
   SkipReason,
   SopContent,
   Step,
@@ -460,6 +471,7 @@ export {
   PHOTO_MAX_BYTES,
   THUMB_MAX_BYTES,
   SKIP_MEANINGS,
+  EVIDENCE_MEANINGS,
   STAYS_A_HEIFER,
   STEP_EFFECT_KINDS,
   TRIGGER_KINDS,
