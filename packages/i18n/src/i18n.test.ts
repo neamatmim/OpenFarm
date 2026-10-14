@@ -119,6 +119,19 @@ describe("messages", () => {
     expect(bare).toEqual([]);
   });
 
+  it("writes every plural in the one shape translate reads", () => {
+    // translate reads `{count, plural, one {…} other {…}}` and nothing else: an `=0 {…}` branch, or any other, is
+    // left on the screen as written — the alerts bell said «{count, plural, =0 …}» aloud to a screen reader.
+    const read = /\{(?<name>\w+), plural, one \{[^{}]*\} other \{[^{}]*\}\}/gu;
+    const unread = (["en", "bn"] as const).flatMap((language) =>
+      Object.entries(language === "en" ? en : bn)
+        .filter(([, message]) => message.replace(read, "").includes("plural,"))
+        .map(([key]) => `${language}: ${key}`)
+    );
+
+    expect(unread).toEqual([]);
+  });
+
   it("Bangla covers every English key with no strays", () => {
     expect(findTranslationGaps("bn")).toEqual({ missing: [], stray: [] });
   });

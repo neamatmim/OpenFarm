@@ -28,7 +28,9 @@ export const NoticeBell = () => {
   return (
     <>
       <Button
-        aria-label={t("alerts.bell", { count })}
+        aria-label={
+          count > 0 ? t("alerts.bell", { count }) : t("alerts.bellNone")
+        }
         className="relative size-9"
         onClick={() => setOpen(true)}
         size="icon"
