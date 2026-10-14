@@ -29,6 +29,7 @@ import { intakesRouter } from "./intakes";
 import { investorStatementsRouter } from "./investor-statements";
 import { investorsRouter } from "./investors";
 import { languageRouter } from "./language";
+import { licensesRouter } from "./licenses";
 import { milkRouter } from "./milk";
 import { moneyRouter } from "./money";
 import { monthlyReportRouter } from "./monthly-report";
@@ -76,6 +77,7 @@ type AppRouterShape = {
   drugs: typeof drugsRouter;
   eidDates: typeof eidDatesRouter;
   farm: typeof farmRouter;
+  licenses: typeof licensesRouter;
   financialYears: typeof financialYearsRouter;
   farmAccounts: typeof farmAccountsRouter;
   fattening: typeof fatteningRouter;
@@ -138,6 +140,7 @@ export const appRouter: AppRouterShape = {
   drugs: drugsRouter,
   eidDates: eidDatesRouter,
   farm: farmRouter,
+  licenses: licensesRouter,
   financialYears: financialYearsRouter,
   farmAccounts: farmAccountsRouter,
   fattening: fatteningRouter,

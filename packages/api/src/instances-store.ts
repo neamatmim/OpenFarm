@@ -49,7 +49,6 @@ import {
 import type { Tx } from "./audit";
 import type { Raised } from "./notice";
 import { rememberingPeople, tell } from "./notice";
-import { renewalCause } from "./registration-store";
 import { contentOf } from "./sop-content";
 import {
   attemptKeyOf,
@@ -117,24 +116,34 @@ export interface Happening {
   state: AnimalState;
 }
 
+/** A paper the farm renews — its DLS Registration, or one of its Licenses — as the work that renews it is raised. */
+export interface PaperComingDue {
+  /** The Trigger whose procedures renew it. */
+  trigger: "registration_renewal" | "license_renewal";
+  expiresOn: Date | null;
+  renewalLeadDays: number;
+  /** The cause its work is raised under, for the certificate running out then. */
+  causeOf: (expiresOn: Date) => string;
+  /** The SOPs whose work renewing this paper is still open: given none more until it is done. */
+  stillOpen?: ReadonlySet<string>;
+}
+
 /**
- * The renewal of the farm's DLS Registration, once it has come within the farm's renewal lead of running
- * out: one piece of work for the whole farm, in no Pen, for each SOP that renews it. Raised when the lead
- * begins and due when the Registration runs out, so it is on the Owner's list for the whole of the lead and
- * late only once the farm is unregistered. Keyed on the expiry, so it is raised once for each certificate
+ * The renewal of a paper the farm holds — its DLS Registration, or one of its Licenses (ADR 0030) — once it has come
+ * within the farm's renewal lead of running out: one piece of work for the whole farm, in no Pen, for each SOP that
+ * renews it. Raised when the lead begins and due when the paper runs out, so it is on the Owner's list for the whole of
+ * the lead and late only once the paper has lapsed. Keyed on the expiry, so it is raised once for each certificate
  * however often the farm is opened — and again, a year on, for the renewed one.
  */
 export const renewalSlotsFor = (
   now: Date,
   sops: { definitionId: string; versionId: string; content: SopContent }[],
-  registration: { expiresOn: Date | null; renewalLeadDays: number },
-  /** The SOPs whose renewal work is still open: given none more until it is done. */
-  stillOpen: ReadonlySet<string> = new Set()
+  paper: PaperComingDue
 ): DueSlot[] => {
-  const { expiresOn } = registration;
+  const { expiresOn, stillOpen = new Set<string>() } = paper;
   if (
     expiresOn === null ||
-    now < renewalOpensAt(expiresOn, registration.renewalLeadDays)
+    now < renewalOpensAt(expiresOn, paper.renewalLeadDays)
   ) {
     return [];
   }
@@ -142,9 +151,7 @@ export const renewalSlotsFor = (
     .filter(
       (sop) =>
         !stillOpen.has(sop.definitionId) &&
-        sop.content.triggers.some(
-          (trigger) => trigger.kind === "registration_renewal"
-        )
+        sop.content.triggers.some((trigger) => trigger.kind === paper.trigger)
     )
     .map((sop) => ({
       definitionId: sop.definitionId,
@@ -155,7 +162,7 @@ export const renewalSlotsFor = (
       graceMinutes: sop.content.graceMinutes,
       assignedRole: sop.content.assignedRole,
       checkerRole: sop.content.checkerRole,
-      cause: renewalCause(expiresOn),
+      cause: paper.causeOf(expiresOn),
     }));
 };
 
@@ -336,16 +343,23 @@ type HappeningTrigger = Extract<
   { kind: "event" | "state" | "before_calving" }
 >;
 
-/** A Trigger whose work is raised somewhere other than by what happens to an animal: the clock's, the Registration's,
- *  and a Campaign's coming round. */
+/** A Trigger whose work is raised somewhere other than by what happens to an animal: the clock's, the Registration's
+ *  and the Licenses', and a Campaign's coming round. */
 const raisedElsewhere = (
   trigger: SopContent["triggers"][number]
 ): trigger is Extract<
   SopContent["triggers"][number],
-  { kind: "schedule" | "registration_renewal" | "every_months" }
+  {
+    kind:
+      | "schedule"
+      | "registration_renewal"
+      | "license_renewal"
+      | "every_months";
+  }
 > =>
   trigger.kind === "schedule" ||
   trigger.kind === "registration_renewal" ||
+  trigger.kind === "license_renewal" ||
   trigger.kind === "every_months";
 
 /** Whether a happening is what this Trigger waits for. */

@@ -79,7 +79,10 @@ export {
   identityView,
   registrationStanding,
   renewalOpensAt,
+  runningOut,
 } from "./farm";
+export type { LicenseKind } from "./licenses";
+export { LICENSE_KINDS, LICENSE_KIND_SAID, licenseNamed } from "./licenses";
 export {
   atFarmTime,
   dayMoved,
@@ -122,6 +125,7 @@ export {
   notDueSince,
   penDueBy,
 } from "./campaign-interval";
+export { DRILL_EVERY_MONTHS, drillStanding } from "./restore-drill";
 export type {
   ExpectedGain,
   FarmGainFigure,
@@ -196,6 +200,7 @@ export {
   NO_GUARANTEE,
   NO_GUARANTEE_LINES,
   inLanguage,
+  vetOnPaper,
 } from "./papers";
 export type { NotifiableLetter } from "./letter";
 export { notifiableLetterPaper } from "./letter";
@@ -468,6 +473,7 @@ export {
   UNWELL_URGENT,
   appliesToAnimal,
   isWholeFarmWork,
+  isRenewalTrigger,
   scheduleFallsOn,
   describeChanges,
   isClinicalStep,

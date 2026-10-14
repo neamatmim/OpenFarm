@@ -87,6 +87,19 @@ export const inLanguage = (words: Worded, language: Language): string => {
   return words[language].trim() ? words[language] : words.bn;
 };
 
+/**
+ * The Vet as a paper names the one who prescribed or diagnosed: their name, and beside it their Bangladesh Veterinary
+ * Council registration number where the farm has written it down — as the council's certificate prints it, so it is not
+ * put into Bangla digits.
+ */
+export const vetOnPaper = (name: string, bvcNumber: string | null): Said =>
+  bvcNumber
+    ? {
+        bn: `${name} (বিভিসি নং ${bvcNumber})`,
+        en: `${name} (BVC no. ${bvcNumber})`,
+      }
+    : { bn: name, en: name };
+
 /** One line of a document: what it is, and what it says. */
 export interface DocumentRow {
   label: Said;

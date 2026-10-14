@@ -232,6 +232,7 @@ describe("the Registration and its renewal", () => {
     });
     expect(renewal.renewal).toEqual({
       expiresOn: new Date("2041-03-30T18:00:00.000Z"),
+      license: null,
     });
     expect(await renewalWork("2041-01-03T04:00:00.000Z")).toHaveLength(1);
     // The Manager putting a typed expiry right within the year raises nothing more.

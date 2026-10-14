@@ -29,6 +29,7 @@ import { dlsReportEffect } from "./dls-report";
 import { dryOffEffect } from "./dry-off";
 import { feedingEffect } from "./feeding";
 import { headCountEffect } from "./head-count";
+import { licenseRenewalEffect } from "./license-renewal";
 import { lotNumberEffect } from "./lot-number";
 import { medicineCountEffect } from "./medicine-count";
 import { bulkTotalEffect, milkRecordEffect } from "./milk";
@@ -55,6 +56,14 @@ export type EffectResult =
       expiresOn: Date;
       previousExpiresOn: Date | null;
       /** The Registration has moved on since this renewal, so the newer one is put right instead. */
+      standsAside: StandingAside | null;
+    }
+  | {
+      kind: "license_renewal";
+      licenseId: string;
+      expiresOn: Date;
+      previousExpiresOn: Date | null;
+      /** The License has moved on since this renewal, so the newer one is put right instead. */
       standsAside: StandingAside | null;
     }
   | {
@@ -225,7 +234,7 @@ export interface EffectInput {
   counts: StockCountLine[];
   /** What was counted of each medicine, in doses, for a Step that counts the medicine. */
   medicineCounts: MedicineCountLine[];
-  /** The new expiry and the renewed certificate, for the Step that renews the Registration. */
+  /** The new expiry and the renewed certificate, for the Step that renews the Registration or a License. */
   renewal?: RenewalEntry;
   /** How often this Playbook entry feeds — from the Version doing the feeding, so a farm with
    *  more than one feeding routine divides by the one that raised this work. */
@@ -259,7 +268,7 @@ export type StandingAsideBecause =
   | "service_checked"
   /** The Pen is on no Ration now, so what was fed cannot be set against one. */
   | "no_ration"
-  /** The Registration has moved on since this renewal: the newer one is put right instead. */
+  /** The Registration or the License has moved on since this renewal: the newer one is put right instead. */
   | "renewal_superseded";
 
 /**
@@ -333,6 +342,7 @@ const EFFECTS: Record<
   head_count: headCountEffect,
   cash_count: cashCountEffect,
   registration_renewal: renewalEffect,
+  license_renewal: licenseRenewalEffect,
 };
 
 /** The Effect a Step declares, or nothing for a Step that writes only its Evidence. */
@@ -390,7 +400,7 @@ export const STANDING_ASIDE_SAID: Record<StandingAsideBecause, string> = {
   no_ration:
     "This pen is on no ration now, so what was fed cannot be set against one",
   renewal_superseded:
-    "The Registration has moved on since this renewal; put the newer one right instead",
+    "The paper has moved on since this renewal; put the newer one right instead",
 };
 
 /** Facts as a Correction compares them — plain values, part by part. */

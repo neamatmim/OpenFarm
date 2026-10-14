@@ -151,7 +151,7 @@ const refuseExpiryBeforeIssue = async (
 
 /** The Owner hears of each change the Manager makes to the farm's settings — how many, and by whom; what each was and is
  *  now is in the trail (the Owner's decision of 2026-10-04). Nothing for the Owner's own changes. */
-const tellTheOwnerOfTheChange = async (
+export const tellTheOwnerOfTheChange = async (
   context: {
     roles: readonly RoleName[];
     actor: { name: string };

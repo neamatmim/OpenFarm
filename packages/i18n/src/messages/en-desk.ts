@@ -2050,6 +2050,9 @@ export const enDesk = {
   "audit.entity.dispatch": "Milk dispatch",
   "audit.entity.sop_training": "Training",
   "audit.entity.registration_certificate": "Registration certificate",
+  "audit.entity.license": "License",
+  "audit.entity.license_certificate": "License certificate",
+  "audit.entity.restore_drill": "Restore drill",
   "audit.entity.notifiable_disease": "Notifiable disease",
   "audit.entity.feed_in": "Feed arrival",
   "audit.entity.dls_report": "DLS report",
@@ -2076,6 +2079,8 @@ export const enDesk = {
   "digest.sopProposed":
     "{count, plural, one {# proposal} other {# proposals}} waiting",
   "digest.registrationRenewal": "The registration is due for renewal",
+  "digest.licenseRenewal": "A license is due for renewal",
+  "digest.restoreDrillOverdue": "The restore drill is overdue",
   "digest.dayNotTurning": "The farm's schedule has stopped",
   "digest.backupOverdue": "The farm is not being copied",
   "digest.serverFailing": "The server is failing",

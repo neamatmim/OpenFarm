@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { Certificate } from "@/components/certificate";
 import { SettingsSection } from "@/components/farm-parameters";
+import { LicensesSection } from "@/components/licenses";
 import { Notice, Page, PageHeader } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -302,6 +303,7 @@ const IdentityPage = () => {
         id="farm-certificate"
         updatedAt={farm.certificateUpdatedAt}
       />
+      <LicensesSection id="farm-licenses" />
     </Page>
   );
 };

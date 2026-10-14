@@ -13,6 +13,7 @@ import { theDayTurns } from "./the-day-turns";
 import type { Quiet } from "./the-machinery-notices";
 import {
   backupGap,
+  drillOverdue,
   monthlyCopyFailed,
   dayNotTurning,
   serverFailing,
@@ -90,6 +91,11 @@ const markFinished = async (
 
 const errorMessage = causesOf;
 
+/** The record a telling is trailed under, where it is not the schedule's own. */
+const TRAILED_UNDER: Partial<
+  Record<Quiet["kind"], "backup_run" | "restore_drill">
+> = { backup_overdue: "backup_run", restore_drill_overdue: "restore_drill" };
+
 /**
  * Tells the Owner the farm's own machinery has gone quiet, once for each stretch of it, and pushes it at once.
  *
@@ -113,8 +119,7 @@ const tellTheOwnerIfItHasGoneQuiet = async (
     }
     const raised = await audited(context).write(
       {
-        entity:
-          first.kind === "backup_overdue" ? "backup_run" : "scheduler_state",
+        entity: TRAILED_UNDER[first.kind] ?? "scheduler_state",
         entityId: first.id,
         action: "update",
         after: { toldTheOwner: fresh.map((one) => one.kind) },
@@ -162,6 +167,7 @@ const turnFarmDay = async ({
         dayNotTurning({ failed: turnError !== null, lastOkAt, now: startedAt }),
         await backupGap(db, startedAt),
         await monthlyCopyFailed(db, startedAt),
+        await drillOverdue(db, farm.id, startedAt),
         serverFailing(startedAt),
       ]);
       if (turnError) {

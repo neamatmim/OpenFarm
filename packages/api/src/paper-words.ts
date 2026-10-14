@@ -77,7 +77,12 @@ export const doseOnPaper = (dose: {
     meatWithdrawalDays: number | null;
   };
   giver: { name: string } | null;
-  prescription: { vet: { name: string } | null } | null;
+  prescription: {
+    vet: {
+      name: string;
+      roles?: readonly { bvcNumber: string | null }[];
+    } | null;
+  } | null;
 }): DoseOnPaper => {
   // What this dose alone held her for, which is not the same as what she is held for today: a Vet may have cut the hold
   // short, and the papers say so where they say she is clear. Read as the gate reads it — the days kept on the dose — so
@@ -91,6 +96,7 @@ export const doseOnPaper = (dose: {
     givenOn: farmDayOf(dose.givenAt),
     meatClearOn: days ? farmDayOf(withdrawalEndsAt(dose.givenAt, days)) : null,
     prescribedBy: dose.prescription?.vet?.name ?? null,
+    prescriberBvc: dose.prescription?.vet?.roles?.[0]?.bvcNumber ?? null,
     advice: dose.instanceId === null ? (dose.advice ?? "") : null,
     givenBy: dose.giver?.name ?? null,
   };

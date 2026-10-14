@@ -103,6 +103,8 @@ const LEADS = {
   low_stock: { to: "/feed", label: "alerts.openTheStore" },
   money_awaiting_approval: { to: "/money", label: "alerts.openTheMoney" },
   registration_renewal_due: "what it names",
+  license_renewal_due: "what it names",
+  restore_drill_overdue: TO_THE_BACKUPS,
   investor_statement_due: { investors: "alerts.makeThePaper" },
   reimbursement_due: "reimbursing",
   day_not_turning: TO_THE_BACKUPS,

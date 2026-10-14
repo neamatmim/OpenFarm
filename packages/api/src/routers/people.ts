@@ -1,12 +1,13 @@
 import { auth, setPasswordFor } from "@OpenFarm/auth";
 import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
-import { eq } from "@OpenFarm/db/operators";
+import { and, eq } from "@OpenFarm/db/operators";
 import { user } from "@OpenFarm/db/schema/auth";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import {
   ACTIVE_ROLE,
   INVITE_LAPSE_DAYS,
   ROLES,
+  roleAssignment,
 } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ASSIGNMENT } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
@@ -157,6 +158,67 @@ export const peopleRouter = {
       return { userId: whose };
     }),
 
+  /**
+   * A Vet's Bangladesh Veterinary Council registration number, on their Vet Role here, printed beside their name on
+   * every paper that names them prescribing or diagnosing. Their own, or written down by whoever runs the farm from the
+   * council's certificate, as a phone number is. Cleared by sending nothing.
+   */
+  setBvcNumber: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .input(
+      z.object({
+        /** Whose. Left out, your own. */
+        userId: z.string().optional(),
+        bvcNumber: z.string().trim().min(1).max(40).nullish(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const whose = input.userId ?? context.actor.id;
+      const runsTheFarm =
+        context.roleUsed === "owner" || context.roleUsed === "manager";
+      if (!(whose === context.actor.id || runsTheFarm)) {
+        throw new ORPCError("FORBIDDEN", {
+          message:
+            "Only the Vet, or whoever runs the farm, writes down a BVC number",
+          data: { refusal: "your_own_bvc_number" },
+        });
+      }
+      const theirs = await rolesOf(context.db, context.farm.id, whose);
+      if (!theirs.includes("vet")) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A BVC number is a Vet's",
+          data: { refusal: "bvc_is_a_vets" },
+        });
+      }
+      const ofTheirVetRole = and(
+        eq(roleAssignment.farmId, context.farm.id),
+        eq(roleAssignment.userId, whose),
+        eq(roleAssignment.role, "vet")
+      );
+      const readBvc = async (tx: Tx) => {
+        const row = await tx.query.roleAssignment.findFirst({
+          where: { farmId: context.farm.id, userId: whose, role: "vet" },
+          columns: { bvcNumber: true },
+        });
+        return row ?? null;
+      };
+      await audited(context).write(
+        {
+          entity: "user",
+          entityId: whose,
+          action: "update",
+          before: readBvc,
+          after: readBvc,
+        },
+        (tx) =>
+          tx
+            .update(roleAssignment)
+            .set({ bvcNumber: input.bvcNumber ?? null })
+            .where(ofTheirVetRole)
+      );
+      return { userId: whose };
+    }),
+
   /** The signed-in person's password, given again for an act that asks for it (`requirePasswordGiven`). */
   givePassword: protectedProcedure
     // Every act that asks for it again is the Owner's alone.
@@ -217,7 +279,12 @@ export const peopleRouter = {
           with: {
             roles: {
               where: { farmId, ...ACTIVE_ROLE },
-              columns: { role: true, scope: true, expiresAt: true },
+              columns: {
+                role: true,
+                scope: true,
+                expiresAt: true,
+                bvcNumber: true,
+              },
             },
           },
           orderBy: { name: "asc" },
@@ -263,6 +330,8 @@ export const peopleRouter = {
           visitUntil:
             p.roles.find((r) => r.role === "vet" && r.scope === "visiting")
               ?.expiresAt ?? null,
+          /** A Vet's BVC registration number; null for everyone else. */
+          bvcNumber: p.roles.find((r) => r.role === "vet")?.bvcNumber ?? null,
           /** The Pens whose work is theirs. */
           penIds: assignments
             .filter((row) => row.userId === p.id)
@@ -307,7 +376,12 @@ export const peopleRouter = {
         with: {
           roles: {
             where: { farmId: context.farm.id, ...ACTIVE_ROLE },
-            columns: { role: true, scope: true, expiresAt: true },
+            columns: {
+              role: true,
+              scope: true,
+              expiresAt: true,
+              bvcNumber: true,
+            },
           },
         },
       });
@@ -332,6 +406,9 @@ export const peopleRouter = {
           person.roles.find(
             (role) => role.role === "vet" && role.scope === "visiting"
           )?.expiresAt ?? null,
+        /** A Vet's BVC registration number, printed beside their name on the papers they sign; null for everyone else. */
+        bvcNumber:
+          person.roles.find((role) => role.role === "vet")?.bvcNumber ?? null,
         /** The Pens whose work is theirs. */
         penIds: await pensOf(context.db, context.farm.id, input.userId),
         /** Whether they have a PIN to switch in on a Shed Phone with; never the PIN. */

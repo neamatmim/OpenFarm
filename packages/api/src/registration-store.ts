@@ -10,24 +10,16 @@ import {
   OPEN_INSTANCE_STATES,
   farmDayOf,
   identityView,
-  startOfFarmDay,
 } from "@OpenFarm/domain";
-import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import type { Raised } from "./notice";
 import { rememberingPeople, tell } from "./notice";
 import type { PhotoInput } from "./photo-input";
+import type { RenewablePaper, RenewalEntry } from "./renewal-store";
+import { renewPaper } from "./renewal-store";
 
-/** What the renewal SOP's closing Step records: the new expiry, when the renewed certificate was issued, and
- *  its photograph. */
-export interface RenewalEntry {
-  /** The farm day the renewed certificate says it expires. */
-  expiresOn: string;
-  /** The farm day it was issued, when the certificate says. */
-  issuedOn?: string;
-  certificate?: PhotoInput;
-}
+export type { RenewalEntry } from "./renewal-store";
 
 /** The prefix every renewal's work is raised under. */
 const RENEWAL_CAUSE = "registration:";
@@ -176,24 +168,63 @@ export const keepCertificate = async (
   return kept?.id ?? id;
 };
 
+/** Where the farm's Registration keeps what a renewal reads and writes: its expiry on the farm itself, its renewals
+ *  and its certificate's photographs beside it. */
+const registrationPaper = (farmId: string): RenewablePaper => ({
+  called: "Registration",
+  expiresOn: async (tx) => {
+    const standing = await tx.query.farm.findFirst({
+      where: { id: farmId },
+      columns: { registrationExpiresOn: true },
+    });
+    return standing?.registrationExpiresOn ?? null;
+  },
+  renewalOf: (tx, completionId) =>
+    tx.query.registrationRenewal.findFirst({
+      where: { completionId },
+      columns: { id: true, previousExpiresOn: true, expiresOn: true },
+    }),
+  keepRenewal: async (
+    tx,
+    { already, completionId, previousExpiresOn, expiresOn, by, now }
+  ) => {
+    await (already
+      ? tx
+          .update(registrationRenewal)
+          .set({ expiresOn, renewedBy: by, renewedAt: now })
+          .where(eq(registrationRenewal.id, already.id))
+      : tx.insert(registrationRenewal).values({
+          id: newId(now),
+          farmId,
+          completionId,
+          previousExpiresOn,
+          expiresOn,
+          renewedBy: by,
+          renewedAt: now,
+        }));
+  },
+  setExpiry: async (tx, expiresOn, issuedOn) => {
+    await tx
+      .update(farm)
+      .set({
+        registrationExpiresOn: expiresOn,
+        ...(issuedOn === undefined ? {} : { registrationIssuedOn: issuedOn }),
+      })
+      .where(eq(farm.id, farmId));
+  },
+  keepCertificate: (tx, photo, taken) =>
+    keepCertificate(tx, farmId, photo, taken),
+});
+
 /**
- * Renews the farm's Registration from the renewal SOP's closing Step: the new expiry replaces the old one,
- * and the renewed certificate's photograph replaces the old one's. Keyed on the Completion, so a corrected
- * renewal puts the same renewal right against the expiry it replaced, rather than renewing a second time.
- *
- * A renewal to a day before the expiry it replaces is not a renewal, and is refused; so is a first renewal
- * with no photograph of the certificate, which is the thing an inspector asks to see; and so is a correction
- * of a renewal the farm has since moved past — renewed again, or its expiry put right by hand — which would
- * otherwise quietly undo the newer one.
+ * Renews the farm's Registration from the renewal SOP's closing Step, as any paper the farm renews is renewed
+ * (`renewPaper`): the new expiry replaces the old one, and the renewed certificate's photograph is kept as the newest.
  */
-export const renewRegistration = async (
+export const renewRegistration = (
   tx: Tx,
   {
     farmId,
-    completionId,
-    renewal,
-    by,
-    now,
+    ...renewing
   }: {
     farmId: string;
     completionId: string;
@@ -201,82 +232,4 @@ export const renewRegistration = async (
     by: string;
     now: Date;
   }
-): Promise<{
-  expiresOn: Date;
-  previousExpiresOn: Date | null;
-  /** The Registration has moved on since this renewal: nothing was written. */
-  superseded: boolean;
-}> => {
-  if (!renewal) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A renewal says when the renewed certificate expires",
-      data: { refusal: "renewal_needs_expiry" },
-    });
-  }
-  const standing = await tx.query.farm.findFirst({
-    where: { id: farmId },
-    columns: { registrationExpiresOn: true },
-  });
-  const already = await tx.query.registrationRenewal.findFirst({
-    where: { completionId },
-    columns: { id: true, previousExpiresOn: true, expiresOn: true },
-  });
-  // A correction measures against the expiry this renewal replaced, not the one it wrote.
-  const previousExpiresOn = already
-    ? already.previousExpiresOn
-    : (standing?.registrationExpiresOn ?? null);
-  if (
-    already &&
-    standing?.registrationExpiresOn?.getTime() !== already.expiresOn.getTime()
-  ) {
-    return {
-      expiresOn: already.expiresOn,
-      previousExpiresOn,
-      superseded: true,
-    };
-  }
-  const expiresOn = startOfFarmDay(renewal.expiresOn);
-  if (previousExpiresOn !== null && expiresOn < previousExpiresOn) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A renewed Registration runs out after the one it replaces",
-      data: { refusal: "renewal_not_later" },
-    });
-  }
-  if (!(already || renewal.certificate)) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A renewal keeps a photograph of the renewed certificate",
-      data: { refusal: "renewal_needs_certificate" },
-    });
-  }
-  await (already
-    ? tx
-        .update(registrationRenewal)
-        .set({ expiresOn, renewedBy: by, renewedAt: now })
-        .where(eq(registrationRenewal.id, already.id))
-    : tx.insert(registrationRenewal).values({
-        id: newId(now),
-        farmId,
-        completionId,
-        previousExpiresOn,
-        expiresOn,
-        renewedBy: by,
-        renewedAt: now,
-      }));
-  await tx
-    .update(farm)
-    .set({
-      registrationExpiresOn: expiresOn,
-      ...(renewal.issuedOn === undefined
-        ? {}
-        : { registrationIssuedOn: startOfFarmDay(renewal.issuedOn) }),
-    })
-    .where(eq(farm.id, farmId));
-  if (renewal.certificate) {
-    await keepCertificate(tx, farmId, renewal.certificate, {
-      by,
-      now,
-      completionId,
-    });
-  }
-  return { expiresOn, previousExpiresOn, superseded: false };
-};
+) => renewPaper(tx, registrationPaper(farmId), renewing);

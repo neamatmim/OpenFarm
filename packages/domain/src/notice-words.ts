@@ -9,6 +9,7 @@ import {
 import type { AlertKind } from "./alerts";
 import { ALERT_KINDS } from "./alerts";
 import { feedUnitEach, feedUnitWord } from "./feed-units";
+import { licenseNamed } from "./licenses";
 import type { LotFacts, NoticeFacts, WorkFacts } from "./notice-facts";
 import { URGENT_SIGHT_WORDS } from "./standard-playbook";
 
@@ -332,6 +333,14 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
   }),
   registration_renewal_due: (facts, language) => ({
     date: saidDate(facts.expiresOn, language),
+  }),
+  license_renewal_due: (facts, language) => ({
+    license: licenseNamed(facts, language),
+    number: facts.number,
+    date: saidDate(facts.expiresOn, language),
+  }),
+  restore_drill_overdue: (facts, language) => ({
+    since: saidDate(facts.since, language),
   }),
   // The occasion arrives already worded, because the word the code keeps would print `buying_closed` into the
   // middle of a Bangla sentence.

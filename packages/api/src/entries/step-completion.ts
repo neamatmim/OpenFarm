@@ -286,7 +286,7 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
 
     heldRefusal: (input) =>
       input.renewal
-        ? "The Registration's renewal is recorded from the Owner's own phone, with signal"
+        ? "A renewal of the Registration or a License is recorded from the Owner's own phone, with signal"
         : undefined,
 
     apply: async (

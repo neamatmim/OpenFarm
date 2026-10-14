@@ -13,6 +13,7 @@ import { lowStockNoticeId, runningLow } from "./stock-store";
 import type { Turning } from "./the-day-turns";
 import {
   backupGap,
+  drillOverdue,
   monthlyCopyFailed,
   serverFailing,
 } from "./the-machinery-notices";
@@ -280,6 +281,11 @@ const QUESTIONS = {
       "receivable_overdue",
       overdue.flatMap((buyer) => buyer.items.map((item) => overdueKey(item)))
     );
+  },
+  // A drill written down since moves the day the next is due, and with it the stretch the notice named.
+  restore_drill_overdue: async (context, _open, now) => {
+    const overdue = await drillOverdue(context.db, context.farm.id, now);
+    return keysOf("restore_drill_overdue", overdue ? [overdue.id] : []);
   },
   monthly_copy_failed: async (context, _open, now) => {
     const failed = await monthlyCopyFailed(context.db, now);

@@ -1,7 +1,8 @@
 import type { DoseRoute } from "@OpenFarm/domain";
-import { farmDayOf, withdrawalEndsAt } from "@OpenFarm/domain";
+import { farmDayOf, vetOnPaper, withdrawalEndsAt } from "@OpenFarm/domain";
 
 import { meatDaysOf, milkDaysOf } from "../health-store";
+import { bvcOf, vetForPaper } from "../vet-on-paper";
 import type { Db, Register } from "./register";
 import { NOTHING } from "./register";
 
@@ -17,6 +18,8 @@ export interface TreatmentRow {
   course: string | null;
   givenBy: string | null;
   prescribedBy: string | null;
+  /** The prescribing Vet's BVC registration number, where the farm has it. */
+  prescriberBvc: string | null;
   milkClearOn: string | null;
   meatClearOn: string | null;
 }
@@ -61,7 +64,7 @@ const treatmentsBetween = async (
         },
         with: {
           diagnosis: { columns: { disease: true } },
-          vet: { columns: { name: true } },
+          vet: vetForPaper(farmId),
         },
       },
     },
@@ -91,6 +94,7 @@ const treatmentsBetween = async (
           : null,
         givenBy: one.giver?.name ?? null,
         prescribedBy: prescription?.vet?.name ?? null,
+        prescriberBvc: bvcOf(prescription?.vet),
         // The days kept on the dose, as her Withdrawal is worked out (health-store): days lowered on the Drug List
         // since free nobody, and the register said they did.
         milkClearOn: clearOn(milkDaysOf(one)),
@@ -165,7 +169,11 @@ export const TREATMENT_REGISTER: Register<TreatmentRow> = {
       paper: {
         bn: "প্রেসক্রিপশন",
         en: "Prescribed by",
-        said: (row) => row.prescribedBy ?? NOTHING,
+        // Their BVC number beside their name, as the council registers them.
+        said: (row, say) =>
+          row.prescribedBy
+            ? say.said(vetOnPaper(row.prescribedBy, row.prescriberBvc))
+            : NOTHING,
       },
       csv: { header: "prescribed_by", value: (row) => row.prescribedBy },
     },
@@ -186,6 +194,13 @@ export const TREATMENT_REGISTER: Register<TreatmentRow> = {
           row.meatClearOn ? say.day(row.meatClearOn) : NOTHING,
       },
       csv: { header: "meat_withdrawal_ends", value: (row) => row.meatClearOn },
+    },
+    // After the DLS template's columns, so a spreadsheet laid out on the template still reads them where it did.
+    {
+      csv: {
+        header: "prescriber_bvc_number",
+        value: (row) => row.prescriberBvc,
+      },
     },
   ],
   kept: (rows) => ({ doses: rows.length }),
