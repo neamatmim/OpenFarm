@@ -67,6 +67,10 @@ const readAsTheyWorked =
       push: context.push,
       sms: context.sms,
       evenIfLeft: true,
+      // On this Manager's farm, said outright: work from their own phone names no Shed Phone to take the farm from,
+      // and left unsaid the farm was whichever the database answered first — on a database holding more than one,
+      // somebody else's, where the person who did the work holds no Role.
+      farmId: context.farm?.id ?? null,
     });
     const roleUsed = pickRoleUsed(theirs.roles, [
       "owner",
