@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   STATEMENT_OPENS,
+  amountApartSaid,
+  signedSaid,
   besideAsked,
   statementProblem,
   statementSent,
@@ -65,5 +67,26 @@ describe("a buyer's statement as it is typed", () => {
       amountMoney: 88_830,
       fatPercent: 4.1,
     });
+  });
+});
+
+describe("a recorded statement's amount beside what the farm priced", () => {
+  it("is said only for a standing statement with a gap, its minus before the sign in both languages", () => {
+    const standing = { voided: null, amountDifferenceMoney: -1200 };
+
+    expect(amountApartSaid(standing, "en")).toBe("−৳1,200");
+    expect(amountApartSaid(standing, "bn")).toBe("−৳১,২০০");
+    expect(
+      amountApartSaid({ ...standing, amountDifferenceMoney: 0 }, "en")
+    ).toBeNull();
+    expect(
+      amountApartSaid({ ...standing, voided: { reason: "ভুল" } }, "en")
+    ).toBeNull();
+  });
+
+  it("says the liters his count differs by with the same minus", () => {
+    expect(signedSaid(-5, "en")).toBe("−5");
+    expect(signedSaid(-1.67, "bn")).toBe("−১.৬৭");
+    expect(signedSaid(12.5, "en")).toBe("12.5");
   });
 });

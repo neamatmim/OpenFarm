@@ -124,6 +124,12 @@ describe("milk whose price is to follow, left too long", () => {
     expect(statementPeriodEndOf("2026-10-01", fortnight)).toBe("2026-10-15");
     // And back from it, for milk older than his last statement that none has priced.
     expect(statementPeriodEndOf("2026-08-25", fortnight)).toBe("2026-08-31");
+    // A whole period before his last statement's last day is the last day of the period before it, and the day after
+    // is the first of his last statement's own.
+    expect(statementPeriodEndOf("2026-08-31", fortnight)).toBe("2026-08-31");
+    expect(statementPeriodEndOf("2026-09-01", fortnight)).toBe("2026-09-15");
+    expect(statementPeriodEndOf("2026-08-17", fortnight)).toBe("2026-08-31");
+    expect(statementPeriodEndOf("2026-08-16", fortnight)).toBe("2026-08-16");
   });
 
   it("is late once the end of its period and ten days more have gone by, whichever day of the period it left", () => {

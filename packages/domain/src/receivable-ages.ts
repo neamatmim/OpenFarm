@@ -46,12 +46,15 @@ export const owingByAge = <Each extends { owingMoney: number }>(
   });
 
 /**
- * What buyers still owed at the end of a farm day, grouped by the days since each Sale or Dispatch left — 0–7, 8–15,
+ * What buyers still owed at the end of a farm day, grouped by the days since each Sale or Dispatch left — or, for milk
+ * a Buyer Statement priced, since the statement was recorded — 0–7, 8–15,
  * 16–30, 31–60, over 60 — and how much of it was overdue that day, by the promise the farm chases.
  */
 export const receivablesByAge = (
   items: readonly {
     leftOn: string;
+    /** When it became owed where later than it left: milk a Buyer Statement priced (ADR 0033). */
+    owedFrom?: string;
     owingMoney: number;
     promisedBy: string | null;
   }[],
@@ -64,6 +67,6 @@ export const receivablesByAge = (
     overdueMoney: owingTogether(
       owing.filter((one) => isReceivableOverdue(one, asOf, receivableDays))
     ),
-    ages: owingByAge(owing, (one) => one.leftOn, asOf),
+    ages: owingByAge(owing, (one) => one.owedFrom ?? one.leftOn, asOf),
   };
 };

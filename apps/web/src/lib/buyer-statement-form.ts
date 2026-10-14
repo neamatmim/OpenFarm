@@ -1,6 +1,25 @@
-import type { MessageKey } from "@OpenFarm/i18n";
+import type { Language, MessageKey } from "@OpenFarm/i18n";
+import { formatNumber } from "@OpenFarm/i18n";
 
+import { saidAsMoney } from "./money";
 import type { Photo } from "./photo";
+
+/** A figure that may go below nothing — liters his count is short by, a part of the farm's — its minus in front, as a
+ *  sum's is, never a hyphen. */
+export const signedSaid = (amount: number, language: Language): string =>
+  `${amount < 0 ? "−" : ""}${formatNumber(Math.abs(amount), language)}`;
+
+/**
+ * What a standing statement's amount leaves beside everything the farm priced in its days, as money with its minus
+ * before the sign; nothing for a voided statement, which priced nothing, or where the two agree.
+ */
+export const amountApartSaid = (
+  statement: { voided: unknown; amountDifferenceMoney: number },
+  language: Language
+): string | null =>
+  statement.voided !== null || statement.amountDifferenceMoney === 0
+    ? null
+    : saidAsMoney(statement.amountDifferenceMoney, language);
 
 // A buyer's statement as the sheet types it, and what the farm is sent of it (ADR 0033). Here rather than in the sheet,
 // because which box stops the save, and what is sent, are easier read — and tested — apart from the markup.

@@ -1,6 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { counterparty } from "@OpenFarm/db/schema/fattening";
 import { dispatch } from "@OpenFarm/db/schema/milk";
+import { sameName } from "@OpenFarm/domain";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
@@ -708,5 +709,221 @@ describe("a buyer the farm kept under two spellings", () => {
     expect(
       await sentOn(manager.client, "2084-03-02", onTheSecond)
     ).toMatchObject({ priceToFollow: false, worthMoney: 5800 });
+
+    // He pays it, named either way: one man, one book — nothing left owing under the other spelling.
+    await manager.client.receivables.pay({
+      buyer: `TWIN CENTER ${suffix}`,
+      kind: "milk",
+      amountMoney: 5800,
+      paidOn: "2084-03-17",
+      paymentMethod: "cash",
+    });
+    const everyone = await manager.client.receivables.list();
+    const twins = everyone.filter((one) =>
+      sameName(one.name, `twin center ${suffix}`)
+    );
+
+    expect(twins.reduce((sum, one) => sum + one.owingMoney, 0)).toBe(0);
+  });
+
+  it("is let send his milk with its price to follow when, under both names, he takes it on credit", async () => {
+    const manager = await as("manager", "2084-04-05T06:00:00.000Z");
+    const farmId = theFarm().id;
+    const first = uuidv7(new Date("2084-01-03T00:00:00.000Z"));
+    const second = uuidv7(new Date("2084-01-04T00:00:00.000Z"));
+    const name = `Twin Two ${suffix}`;
+    await scratchDb()
+      .insert(counterparty)
+      .values([
+        {
+          id: first,
+          farmId,
+          name,
+          createdAt: new Date("2084-01-03T00:00:00.000Z"),
+        },
+        {
+          id: second,
+          farmId,
+          name: name.toUpperCase(),
+          createdAt: new Date("2084-01-04T00:00:00.000Z"),
+        },
+      ]);
+    // A can paid at the gate under the first spelling; three on credit under the second.
+    const sent = (day: string, buyerId: string, receivableMoney: number) => ({
+      id: uuidv7(new Date(`${day}T01:00:00.000Z`)),
+      farmId,
+      dispatchedAt: new Date(`${day}T01:00:00.000Z`),
+      liters: "10.00",
+      buyerId,
+      buyerName: name,
+      pricePerLiterMoney: "50.00",
+      receivableMoney,
+      recordedByRole: "manager" as const,
+      recordedAt: new Date(`${day}T01:00:00.000Z`),
+    });
+    await scratchDb()
+      .insert(dispatch)
+      .values([
+        sent("2084-04-01", first, 0),
+        sent("2084-04-02", second, 500),
+        sent("2084-04-03", second, 500),
+        sent("2084-04-04", second, 500),
+      ]);
+    const offered = await buyerCalled(manager.client, name);
+
+    expect(offered?.paysLater).toBe(true);
+    await manager.client.milk.dispatch({
+      dispatchedAt: new Date("2084-04-05T01:00:00.000Z"),
+      liters: 10,
+      buyer: { name },
+      priceToFollow: true,
+    });
+  });
+});
+
+describe("money paid before a statement was recorded", () => {
+  it("never pins a statement: money paid ahead goes back ahead when the statement is voided", async () => {
+    const manager = await as("manager", "2085-10-25T06:00:00.000Z");
+    const buyer = center("আগাম");
+    await manager.client.milk.dispatch({
+      dispatchedAt: new Date("2085-10-03T01:00:00.000Z"),
+      liters: 100,
+      buyer,
+      priceToFollow: true,
+    });
+    await manager.client.receivables.pay({
+      buyer: buyer.name,
+      kind: "milk",
+      amountMoney: 5000,
+      paidOn: "2085-10-25",
+      paymentMethod: "cash",
+      note: "আগাম দিল",
+    });
+    const his = await buyerCalled(manager.client, buyer.name);
+    const later = await as("manager", "2085-11-03T06:00:00.000Z");
+    const statement = {
+      id: uuidv7(),
+      counterpartyId: his?.counterpartyId ?? "",
+      fromDay: "2085-10-01",
+      toDay: "2085-10-15",
+      statedOn: "2085-11-02",
+      payBy: "2085-11-20",
+      liters: 100,
+      amountMoney: 6000,
+    };
+    await later.client.milk.recordStatement(statement);
+
+    expect(await owingOf(later.client, buyer.name)).toBe(1000);
+
+    const owner = await as("owner", "2085-11-04T06:00:00.000Z");
+    await owner.client.milk.voidStatement({
+      id: statement.id,
+      reason: "ভুল দর",
+    });
+    const after = await owner.client.receivables.ofBuyer({ name: buyer.name });
+
+    expect(
+      after?.kinds.find((one) => one.kind === "milk")?.paidAheadMoney
+    ).toBe(5000);
+  });
+
+  it("keeps what an earlier payment cleared, though the statement is dated before it", async () => {
+    const manager = await as("manager", "2085-12-25T06:00:00.000Z");
+    const buyer = center("আগের তারিখ");
+    const toFollow = await manager.client.milk.dispatch({
+      dispatchedAt: new Date("2085-12-03T01:00:00.000Z"),
+      liters: 100,
+      buyer,
+      priceToFollow: true,
+    });
+    const onCredit = await manager.client.milk.dispatch({
+      dispatchedAt: new Date("2085-12-22T01:00:00.000Z"),
+      liters: 100,
+      buyer,
+      pricePerLiterMoney: 50,
+      paidNowMoney: 0,
+    });
+    await manager.client.receivables.pay({
+      buyer: buyer.name,
+      kind: "milk",
+      amountMoney: 5000,
+      paidOn: "2085-12-25",
+      paymentMethod: "cash",
+    });
+    const his = await buyerCalled(manager.client, buyer.name);
+    // Dated the 20th, before his payment; recorded only on the 3rd of next month.
+    const later = await as("manager", "2086-01-03T06:00:00.000Z");
+    const statement = {
+      id: uuidv7(),
+      counterpartyId: his?.counterpartyId ?? "",
+      fromDay: "2085-12-01",
+      toDay: "2085-12-15",
+      statedOn: "2085-12-20",
+      payBy: "2086-01-20",
+      liters: 100,
+      amountMoney: 6000,
+    };
+    await later.client.milk.recordStatement(statement);
+
+    const owing = await later.client.receivables.ofBuyer({ name: buyer.name });
+    const items = owing?.kinds.flatMap((one) => one.items) ?? [];
+
+    expect(items.find((one) => one.id === onCredit.id)?.owingMoney).toBe(0);
+    expect(items.find((one) => one.id === toFollow.id)?.owingMoney).toBe(6000);
+    expect(owing?.overdueSince).toBeNull();
+
+    const owner = await as("owner", "2086-01-04T06:00:00.000Z");
+    await owner.client.milk.voidStatement({
+      id: statement.id,
+      reason: "ভুল",
+    });
+  });
+});
+
+describe("a statement voided after the month it was recorded in is closed", () => {
+  it("is listed against that month too: what buyers owed at its end changes", async () => {
+    const manager = await as("manager", "2086-09-10T06:00:00.000Z");
+    const buyer = center("সেপ্টেম্বরের বিল");
+    await manager.client.milk.dispatch({
+      dispatchedAt: new Date("2086-08-05T01:00:00.000Z"),
+      liters: 100,
+      buyer,
+      priceToFollow: true,
+    });
+    const his = await buyerCalled(manager.client, buyer.name);
+    const statement = {
+      id: uuidv7(),
+      counterpartyId: his?.counterpartyId ?? "",
+      fromDay: "2086-08-01",
+      toDay: "2086-08-31",
+      statedOn: "2086-09-05",
+      payBy: "2086-09-30",
+      liters: 100,
+      amountMoney: 6000,
+    };
+    await manager.client.milk.recordStatement(statement);
+    const owner = await as("owner", "2086-10-08T06:00:00.000Z");
+    await owner.client.monthlyReport.close({ month: "2086-08" });
+    await owner.client.monthlyReport.close({ month: "2086-09" });
+    await owner.client.monthlyReport.reopen({
+      month: "2086-08",
+      reason: "দেরিতে আসা বিল",
+    });
+
+    await owner.client.milk.voidStatement({ id: statement.id, reason: "ভুল" });
+
+    const october = await owner.client.monthlyReport.month({
+      month: "2086-10",
+    });
+
+    expect(october.changedAfterClosing).toContainEqual(
+      expect.objectContaining({
+        month: "2086-09",
+        source: "buyer_statement",
+        recordId: statement.id,
+        change: "voided",
+        beforeMoney: 6000,
+      })
+    );
   });
 });

@@ -2607,7 +2607,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "statement.willPrice":
     "দাম পরে ঠিক হওয়ার {liters} লিটারের দাম এটি ঠিক করবে {currencySign}{amount}, লিটার অনুযায়ী ভাগ করে।",
   "statement.amountBeside":
-    "এর কোনো দুধের দাম পরে ঠিক হওয়ার কথা ছিল না: তার টাকা বাদ খামারের ঠিক করা দাম {currencySign}{amount}।",
+    "এর কোনো দুধের দাম পরে ঠিক হওয়ার কথা ছিল না: তার টাকা বাদ খামারের ঠিক করা দাম {amount}।",
   "statement.theirLiters": "তার {liters} লিটার",
   "statement.ourLiters": "আমাদের {liters} লিটার",
   "statement.amountLabel": "তার টাকা",
@@ -2654,7 +2654,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.priceToFollowPaysAtGate":
     "সে গেটেই দুধের দাম দেয়: দাম দিন, নয়তো বাকিতে দিন",
   "statement.amountBesideRecorded":
-    "তার টাকা বাদ এই দিনগুলোতে খামারের ঠিক করা সব দাম: {currencySign}{amount}",
+    "তার টাকা বাদ এই দিনগুলোতে খামারের ঠিক করা সব দাম: {amount}",
   "refusal.priceToFollowPaid":
     "যে দুধের দাম পরে ঠিক হবে তার জন্য গেটে কিছু দেওয়া হয় না",
   "refusal.dispatchedInTheFuture": "দুধ এখনের পরে যেতে পারে না",

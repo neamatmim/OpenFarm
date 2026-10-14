@@ -11,7 +11,6 @@ import {
   nameAsCompared,
   paidAtTheGate,
   roundLiters,
-  roundMoney,
   startOfFarmDay,
   worthOfMilkSent,
 } from "@OpenFarm/domain";
@@ -20,7 +19,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
-import { counterpartyNamed, knownAs } from "./counterparty-store";
+import { counterpartyNamed, knownAs, sameBuyerIds } from "./counterparty-store";
 import type { Booking } from "./money-store";
 import { bookMoney, moneySnapshotOf } from "./money-store";
 import type { Raised } from "./notice";
@@ -56,7 +55,8 @@ export interface DispatchRow {
 export const worthOfDispatch = (row: {
   liters: string | number;
   pricePerLiterMoney: string | number;
-}): number => roundMoney(Number(row.liters) * Number(row.pricePerLiterMoney));
+}): number =>
+  worthOfMilkSent({ ...row, receivableMoney: 0, buyerStatementId: null }) ?? 0;
 
 /** A Dispatch as whether its price is to follow, and what it came to, are read from it. */
 export type DispatchPriced = MilkSent;
@@ -284,7 +284,7 @@ export const assertNothingPaidToFollow = (paidMoney: number) => {
  * price to follow there would leave milk nobody will ever send a statement for.
  */
 export const assertMayFollow = async (
-  tx: Pick<Database, "query">,
+  tx: Pick<Database, "query" | "select">,
   farmId: string,
   buyerId: string,
   now: Date
@@ -293,7 +293,12 @@ export const assertMayFollow = async (
     now.getTime() - MILK_BUYERS_DAYS * 24 * 60 * 60 * 1000
   );
   const recent = await tx.query.dispatch.findMany({
-    where: { farmId, buyerId, dispatchedAt: { gte: since } },
+    where: {
+      farmId,
+      // Under every name the farm kept him by, as the sheet reads his terms (`milkBuyersOf`).
+      buyerId: { in: await sameBuyerIds(tx, farmId, buyerId) },
+      dispatchedAt: { gte: since },
+    },
     columns: { liters: true, pricePerLiterMoney: true, receivableMoney: true },
     orderBy: { dispatchedAt: "desc", id: "desc" },
     limit: RECENT_RUN,

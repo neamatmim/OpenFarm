@@ -204,7 +204,7 @@ const readBook = async (
       },
       with: {
         buyer: { columns: { name: true, phone: true } },
-        buyerStatement: { columns: { statedOn: true } },
+        buyerStatement: { columns: { recordedAt: true } },
       },
     }),
     db.query.receivablePayment.findMany({
@@ -234,13 +234,13 @@ const readBook = async (
   ]);
   return {
     sales,
-    // Milk its Buyer Statement priced was owed only from the statement's date: not yet owed as at a day before it.
+    // Milk its Buyer Statement priced was owed only from when the statement was recorded: not yet owed as at a day before.
     dispatches: dispatches.filter(
       (one) =>
         !(
           only?.asOf &&
           one.buyerStatement &&
-          one.buyerStatement.statedOn > only.asOf
+          farmDayOf(one.buyerStatement.recordedAt) > only.asOf
         )
     ),
     payments,
@@ -325,8 +325,11 @@ const itemsByBuyer = (
         writtenOff.get(one.id) ?? 0,
         written.get(one.id) ?? []
       ),
-      // Priced by its Buyer Statement, it is owed from the statement's date: his payments before it were for other milk.
-      ...(one.buyerStatement ? { owedFrom: one.buyerStatement.statedOn } : {}),
+      // Priced by its Buyer Statement, it is owed from when the statement was recorded: nothing recorded later moves
+      // what an earlier payment cleared.
+      ...(one.buyerStatement
+        ? { owedFrom: farmDayOf(one.buyerStatement.recordedAt) }
+        : {}),
     });
   }
   for (const one of payments) {
@@ -929,14 +932,15 @@ export const creditOf = async (
   };
 };
 
-/** What it left owing as a Closed Month weighs it: the amount, when, whose purse, and to whom and by when as one. */
+/** What it left owing as a Closed Month weighs it: the amount, when, whose purse and to whom — not the day he promised,
+ *  which moves nothing he owed. */
 const creditWeighed = (one: CreditStands | null) =>
   one
     ? {
         at: one.at,
         amountMoney: one.receivableMoney,
         purseVentureId: one.purseVentureId,
-        rest: `${one.counterpartyId}|${one.promisedBy ?? ""}`,
+        rest: one.counterpartyId,
       }
     : undefined;
 
@@ -1047,20 +1051,26 @@ export const lockTheBuyer = async (tx: Tx, counterpartyId: string) => {
   );
 };
 
-/** What a buyer's payments have cleared of each Sale or Dispatch of his, read from his book once. */
-export const paidOnItems = async (
+/** Which of a buyer's payments cleared anything of these Sales or Dispatches of his, read from his book once. */
+export const paymentsClearing = async (
   db: Db,
   farmId: string,
-  counterpartyId: string
-): Promise<Map<string, number>> => {
+  counterpartyId: string,
+  itemIds: readonly string[]
+): Promise<string[]> => {
   const [his] = await receivableOfBuyers(db, farmId, {
     counterpartyId,
     settledToo: true,
   });
-  return new Map(
-    (his?.kinds ?? []).flatMap((kind) =>
-      kind.items.map((item) => [item.id, item.paidMoney] as const)
-    )
+  const items = new Set(itemIds);
+  return (his?.kinds ?? []).flatMap((kind) =>
+    kind.payments
+      .filter((payment) =>
+        payment.cleared.some(
+          (part) => items.has(part.itemId) && part.amountMoney > 0
+        )
+      )
+      .map((payment) => payment.id)
   );
 };
 

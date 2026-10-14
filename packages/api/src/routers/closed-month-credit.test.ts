@@ -120,16 +120,35 @@ describe("milk sent on credit into a closed month", () => {
     );
   });
 
-  it("put right is the Owner's alone too: a later promise moves what was overdue at the month's end", async () => {
+  it("put right is the Owner's alone too where it moves what he owed", async () => {
     const manager = await as("manager", MAY);
 
     await expect(
       manager.client.milk.correctDispatch({
         id: aprilDispatchId,
-        reason: "পরে দেবে বলেছে",
-        changes: { promisedBy: { from: null, to: "2091-05-30" } },
+        reason: "লিটার ভুল",
+        changes: { liters: { from: 100, to: 90 } },
       })
     ).rejects.toMatchObject(MONTH_CLOSED);
+  });
+});
+
+describe("a promise moved on credit of a closed month", () => {
+  it("changes nothing he owed, so it is neither refused nor listed", async () => {
+    const bull = await aBull();
+    const owner = await as("owner", MAY);
+    const sold = await owner.client.sales.record(soldOnCredit(bull.tagNumber));
+
+    await owner.client.sales.correct({
+      id: sold.id,
+      reason: "পরে দেবে বলেছে",
+      changes: { promisedBy: { from: "2091-05-20", to: "2091-05-30" } },
+    });
+
+    const changes = await changedInMay();
+    const listed = changes.filter((one) => one.recordId === sold.id);
+
+    expect(listed.map((one) => one.change)).toEqual(["entered"]);
   });
 });
 

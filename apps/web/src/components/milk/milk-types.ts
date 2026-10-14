@@ -20,7 +20,12 @@ export const shiftDay = (day: string, days: number): string => {
 
 /** What a Dispatch comes to: its liters at its price, to the paisa. */
 export const worthOf = (liters: number, pricePerLiter: number): number =>
-  Math.round(liters * pricePerLiter * 100) / 100;
+  worthOfMilkSent({
+    liters,
+    pricePerLiterMoney: pricePerLiter,
+    receivableMoney: 0,
+    buyerStatementId: null,
+  }) ?? 0;
 
 /** A Dispatch as its money is read on the page: a day kept from before the farm said what each came to has no
  *  `worthMoney`, no statement and nothing owed said, and every one of those was priced at the gate. */

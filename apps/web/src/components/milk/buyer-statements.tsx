@@ -30,10 +30,13 @@ import { useLanguage } from "@/i18n/language-provider";
 import type { StatementTyped } from "@/lib/buyer-statement-form";
 import {
   STATEMENT_OPENS,
+  amountApartSaid,
+  signedSaid,
   besideAsked,
   statementProblem,
   statementSent,
 } from "@/lib/buyer-statement-form";
+import { saidAsMoney } from "@/lib/money";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
@@ -145,7 +148,7 @@ const FIGURE = { inputMode: "decimal", step: "0.01", type: "number" } as const;
 
 /** The statement beside the farm's own milk to him in its days, as it is typed: what the Manager checks before saving. */
 const Beside = ({ form }: { form: StatementTyped }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const asked = useDeferredValue(besideAsked(form));
   const beside = useQuery({
     ...orpc.milk.statementBeside.queryOptions({
@@ -176,11 +179,11 @@ const Beside = ({ form }: { form: StatementTyped }) => {
         <p className={short ? "text-warning font-medium" : undefined}>
           {one.differencePercent === null
             ? t("statement.differenceNoPercent", {
-                liters: one.differenceLiters,
+                liters: signedSaid(one.differenceLiters, language),
               })
             : t("statement.difference", {
-                liters: one.differenceLiters,
-                percent: one.differencePercent,
+                liters: signedSaid(one.differenceLiters, language),
+                percent: signedSaid(one.differencePercent, language),
               })}
         </p>
         {one.pricedLiters > 0 ? (
@@ -201,7 +204,7 @@ const Beside = ({ form }: { form: StatementTyped }) => {
         ) : (
           <p>
             {t("statement.amountBeside", {
-              amount: one.amountDifferenceMoney,
+              amount: saidAsMoney(one.amountDifferenceMoney, language),
             })}
           </p>
         )}
@@ -443,10 +446,10 @@ const StatementLine = ({
   statement: Statement;
   mayVoid: boolean;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const short = statement.differenceLiters < 0;
   // His amount not matched by what the farm priced in its days — a can priced at the gate written in since, say.
-  const amountApart = statement.amountDifferenceMoney !== 0;
+  const amountApart = amountApartSaid(statement, language);
   // Voided, it says so; standing, the Owner may void it.
   let standing: ReactNode = null;
   if (statement.voided) {
@@ -479,11 +482,11 @@ const StatementLine = ({
         <span className={short ? "text-warning font-medium" : undefined}>
           {statement.differencePercent === null
             ? t("statement.differenceNoPercent", {
-                liters: statement.differenceLiters,
+                liters: signedSaid(statement.differenceLiters, language),
               })
             : t("statement.difference", {
-                liters: statement.differenceLiters,
-                percent: statement.differencePercent,
+                liters: signedSaid(statement.differenceLiters, language),
+                percent: signedSaid(statement.differencePercent, language),
               })}
         </span>
         <span>
@@ -510,7 +513,7 @@ const StatementLine = ({
         {amountApart ? (
           <span className="text-warning font-medium">
             {t("statement.amountBesideRecorded", {
-              amount: statement.amountDifferenceMoney,
+              amount: amountApart,
             })}
           </span>
         ) : null}

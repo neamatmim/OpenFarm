@@ -124,13 +124,14 @@ it. A closed month's Receivable is to stand as closed, so now:
 
 - **A Sale or a Dispatch left owing answers to the closed month by what it left owing** (`answerForCredit`): written,
   put right or voided, what the record left owing as it stood and as it will stand — its day, the amount, the buyer
-  and the day he promised, and for a Sale whose purse — is weighed as money is. A change into, out of or within a
+  and for a Sale whose purse (not the day he promised, which moves nothing he owed) — is weighed as money is. A change into, out of or within a
   closed month is the Owner's alone; anybody else is refused `month_closed`. Hers is kept under "Changed after
   closing" as the Sale or the Dispatch, by the buyer and, for a Sale, her tag, with what the month held of it owed
   before and after. A partly paid one is asked twice, once for its money and once for what is owed, and listed so.
 - **A Correction that gives milk sent with its price to follow a price** leaves it owed, and is asked the same way.
 - **A Buyer Statement** answers for the milk it prices or gives back, by the months that milk left in (ADR 0033); the
   Dispatches it priced answer through it, not on their own.
-- **What was owed at a month's end** is read as owed then: milk a Buyer Statement priced is owed from the statement's
-  date, so a statement dated after a closed month leaves that month's Receivable as it was closed, while the milk it
-  priced counts in the milk sold of the month it left — the Owner's change, and listed.
+- **What was owed at a month's end** is read as owed then: milk a Buyer Statement priced is owed from when the
+  statement was recorded, so a statement recorded after a closed month leaves that month's Receivable as it was closed,
+  while the milk it priced counts in the milk sold of the month it left — the Owner's change, and listed. Voided once
+  the month it was recorded in is closed, it is listed against that month too.

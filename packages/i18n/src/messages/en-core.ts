@@ -2826,7 +2826,7 @@ export const enCore = {
   "statement.willPrice":
     "It prices {liters} L with the price to follow at {currencySign}{amount}, spread by liters.",
   "statement.amountBeside":
-    "None of it was to follow: his amount less what the farm priced is {currencySign}{amount}.",
+    "None of it was to follow: his amount less what the farm priced is {amount}.",
   "statement.theirLiters": "His {liters} L",
   "statement.ourLiters": "ours {liters} L",
   "statement.amountLabel": "His amount",
@@ -2877,7 +2877,7 @@ export const enCore = {
   "refusal.priceToFollowPaysAtGate":
     "He pays for his milk at the gate: give it its price, or send it on credit",
   "statement.amountBesideRecorded":
-    "His amount less everything the farm priced in its days: {currencySign}{amount}",
+    "His amount less everything the farm priced in its days: {amount}",
   "refusal.priceToFollowPaid":
     "Nothing is paid at the gate for milk whose price is to follow",
   "refusal.dispatchedInTheFuture": "Milk cannot have left later than now",

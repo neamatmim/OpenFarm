@@ -32,12 +32,12 @@ import {
   monthKeyOf,
 } from "./closed-month-store";
 import type { Context } from "./context";
-import { sameBuyerIds } from "./counterparty-store";
+import { knownAs, sameBuyerIds } from "./counterparty-store";
 import { dispatchFields, twoPlaces, worthOfDispatch } from "./dispatch-store";
 import { farmDay } from "./farm-clock";
 import { lockTheFarm } from "./farm-lock";
 import { photoInput } from "./photo-input";
-import { paidOnItems } from "./receivable-store";
+import { paymentsClearing } from "./receivable-store";
 import { refuse } from "./refuse";
 import { seenWhenDone } from "./writes-seen";
 
@@ -316,13 +316,15 @@ export const readStatement = async (tx: Tx, id: string) => {
 };
 
 /**
- * What a statement's priced milk comes to in each month it was sent in, as a **Closed Month** weighs it: the milk is
- * money of the month it left in, so a statement that prices milk of a month the Owner has closed is hers alone to
- * record or void, and kept for the next paper (ADR 0028, 0033).
+ * What a statement's priced milk comes to in each month it touches, as a **Closed Month** weighs it: the milk is money
+ * of the month it left in, and what the buyer owes for it is owed from the month the statement was recorded in — so a
+ * statement that prices milk of a month the Owner has closed, or is voided once the month it was recorded in is
+ * closed, is hers alone, and kept for the next paper (ADR 0028, 0033).
  */
 const weighedByMonth = (
   shares: readonly { dispatchedAt: Date; amountMoney: number }[],
-  counterpartyId: string
+  counterpartyId: string,
+  recordedAt: Date
 ) => {
   const byMonth = new Map<string, { at: Date; amountMoney: number }>();
   for (const one of shares) {
@@ -331,6 +333,15 @@ const weighedByMonth = (
     byMonth.set(month, {
       at: had?.at ?? one.dispatchedAt,
       amountMoney: roundMoney((had?.amountMoney ?? 0) + one.amountMoney),
+    });
+  }
+  // The month it was recorded in, owed at its end, where none of its milk left in it.
+  if (shares.length > 0 && !byMonth.has(monthKeyOf(recordedAt))) {
+    byMonth.set(monthKeyOf(recordedAt), {
+      at: recordedAt,
+      amountMoney: roundMoney(
+        shares.reduce((sum, one) => sum + one.amountMoney, 0)
+      ),
     });
   }
   return [...byMonth.values()].map((one) => ({
@@ -355,13 +366,14 @@ const aboutTheBuyer =
 const answerForStatement = async (
   tx: Tx,
   by: ChangeBy,
-  statement: { id: string; counterpartyId: string },
+  statement: { id: string; counterpartyId: string; recordedAt: Date },
   shares: readonly { dispatchedAt: Date; amountMoney: number }[],
   way: "recorded" | "voided"
 ) => {
   const changes: ChangeToWeigh[] = weighedByMonth(
     shares,
-    statement.counterpartyId
+    statement.counterpartyId,
+    statement.recordedAt
   ).map((weighed) => ({
     recordId: statement.id,
     source: "buyer_statement",
@@ -427,20 +439,21 @@ type Recording = Context & {
 /** Prices the milk a statement covers with its shares: all of each owed, by the day he pays by. */
 const priceTheMilk = async (
   tx: Tx,
-  statementId: string,
+  statement: { id: string; buyerId: string; payBy: string },
   toFollow: readonly DispatchIn[],
-  shares: ReadonlyMap<string, number>,
-  payBy: string
+  shares: ReadonlyMap<string, number>
 ) => {
   for (const one of toFollow) {
-    // One row each, a handful a statement.
+    // One row each, a handful a statement. Booked to the man as the farm finds him by name, so milk sent under a second
+    // spelling of his is owed where his payments are taken; the name it left under stays as it stood that day.
     // oxlint-disable-next-line no-await-in-loop
     await tx
       .update(dispatch)
       .set({
-        buyerStatementId: statementId,
+        buyerId: statement.buyerId,
+        buyerStatementId: statement.id,
         receivableMoney: shares.get(one.id) ?? 0,
-        promisedBy: payBy,
+        promisedBy: statement.payBy,
       })
       .where(eq(dispatch.id, one.id));
   }
@@ -475,14 +488,18 @@ export const recordStatement = async (
         }
         return { id: already.id };
       }
-      const buyer = await tx.query.counterparty.findFirst({
+      const named = await tx.query.counterparty.findFirst({
         where: { id: said.counterpartyId, farmId },
-        columns: { id: true },
+        columns: { id: true, name: true },
       });
-      if (!buyer) {
+      if (!named) {
         throw refuse("no_such_buyer", "The farm has no such buyer");
       }
-      const buyerIds = await sameBuyerIds(tx, farmId, buyer.id);
+      // The man as the farm finds him by name — the one his payments are taken under — whichever spelling was chosen.
+      const found = await knownAs(tx, farmId, named.name);
+      const buyerId = found?.id ?? named.id;
+      const buyer = { id: buyerId };
+      const buyerIds = await sameBuyerIds(tx, farmId, buyerId);
       const days = { fromDay: said.fromDay, toDay: said.toDay };
       if (await overlapping(tx, farmId, buyerIds, days)) {
         throw refuse(
@@ -522,11 +539,16 @@ export const recordStatement = async (
         recordedAt: now,
       });
       const shares = spreadByLiters(beside.spreadMoney, beside.toFollow);
-      await priceTheMilk(tx, said.id, beside.toFollow, shares, payBy);
+      await priceTheMilk(
+        tx,
+        { id: said.id, buyerId, payBy },
+        beside.toFollow,
+        shares
+      );
       await answerForStatement(
         tx,
         changeByOf(context, now),
-        { id: said.id, counterpartyId: buyer.id },
+        { id: said.id, counterpartyId: buyerId, recordedAt: now },
         beside.toFollow.map((one) => ({
           dispatchedAt: one.dispatchedAt,
           amountMoney: shares.get(one.id) ?? 0,
@@ -559,7 +581,8 @@ export const recordStatement = async (
 const assertNothingStandsOnIt = async (
   tx: Tx,
   farmId: string,
-  priced: readonly { id: string; buyerId: string }[]
+  priced: readonly { id: string; buyerId: string }[],
+  recordedAt: Date
 ) => {
   const ids = priced.map((one) => one.id);
   const writtenOff =
@@ -577,8 +600,22 @@ const assertNothingStandsOnIt = async (
   }
   for (const buyerId of new Set(priced.map((one) => one.buyerId))) {
     // oxlint-disable-next-line no-await-in-loop -- one book a buyer, nearly always one
-    const paid = await paidOnItems(tx, farmId, buyerId);
-    if (ids.some((id) => (paid.get(id) ?? 0) > 0)) {
+    const paidOnIt = await paymentsClearing(tx, farmId, buyerId, ids);
+    // Only money recorded since the statement stands on its milk: money he paid before — ahead, or for other milk the
+    // statement then sorted ahead of — goes back where it was when the statement is voided.
+    const since =
+      paidOnIt.length === 0
+        ? undefined
+        : // oxlint-disable-next-line no-await-in-loop -- as above
+          await tx.query.receivablePayment.findFirst({
+            where: {
+              farmId,
+              id: { in: paidOnIt },
+              recordedAt: { gte: recordedAt },
+            },
+            columns: { id: true },
+          });
+    if (since) {
       throw refuse(
         "statement_paid_on",
         "His payments have cleared some of the milk it priced: put the payment right first"
@@ -626,7 +663,7 @@ export const voidStatement = async (
           receivableMoney: true,
         },
       });
-      await assertNothingStandsOnIt(tx, farmId, priced);
+      await assertNothingStandsOnIt(tx, farmId, priced, row.recordedAt);
       const ids = priced.map((one) => one.id);
       if (ids.length > 0) {
         await tx

@@ -19,7 +19,10 @@ delegated the open choices; these are the recommendations, taken.
   milk he paid for at the gate is refused (`price_to_follow_pays_at_gate`): milk nobody will send a statement for would
   wait forever. The sheet offers the box only for such a buyer, and ticks it where his last milk went so; the milk
   buyers' list counts it as taken on credit. A buyer kept under two spellings from before names were compared is one
-  buyer to his statements: his milk under either is set beside them and priced by them.
+  buyer: his terms are read across both, as the sheet reads them; his milk under either is set beside his statements
+  and priced by them; and a statement is recorded under — and books the milk it prices to — the name the farm finds
+  him by (`knownAs`), the one his payments are taken under, so what he pays clears what he owes in one book. The name
+  each Dispatch left under stays as it stood that day.
 - **A Buyer Statement** («ক্রেতার বিল») is recorded by the Manager or the Owner from the buyer's paper: the buyer, the
   first and last farm day it covers, its date, the day he pays by (left out: its date and the farm's days for
   Receivable), his liters and his amount, and as he gives them his number, average fat and SNF, his rate and a photo.
@@ -39,13 +42,16 @@ delegated the open choices; these are the recommendations, taken.
   equals — so the same statement always prices the same milk the same way (`spreadByLiters`, worked in whole numbers a
   float cannot get wrong). Each priced Dispatch then owes all its share, by the day he pays by: his **Receivable**,
   which the existing Receivable Payment clears. No Money Event is written: nothing was paid at the gate.
-- **Owed from the statement's date.** A statement-priced Dispatch left the farm on its own day but became owed on the
-  statement's date. His payments clear what he owes in the order it became owed — a Sale or a Dispatch from the day it
-  left, statement-priced milk from its statement's date — so a payment made before the statement went to what he owed
-  then (the milk he took on credit at a price), never to milk nobody had priced; and read as at a day before the
-  statement's date — a month's end, the accountant's day — that milk is not yet owed. The statement's date rather than
-  the day it was typed in: it is the buyer's own word of when he owes it, and a statement entered late is no less
-  owed from then. Its age and overdue still count from the day it left and the day he pays by.
+- **Owed from when the statement was recorded.** A statement-priced Dispatch left the farm on its own day but became
+  owed when the farm recorded the statement. His payments clear what he owes in the order it became owed — a Sale or a
+  Dispatch from the day it left, statement-priced milk from the day its statement was recorded — so a payment the farm
+  took before the statement went to what he owed then (the milk he took on credit at a price), never to milk nobody had
+  priced; read as at a day before it was recorded — a month's end, the accountant's day — that milk is not yet owed;
+  and it is aged from then. Recorded, not the date printed on it: **nothing recorded later rewrites what an earlier
+  payment cleared** — a statement printed on the 20th and typed in on the 3rd would otherwise sort ahead of milk taken
+  on credit on the 22nd and take the payment of the 25th off it, change what the accountant was told that payment
+  cleared, and send the 22nd's milk overdue though he paid it. Money he paid ahead may still go to the statement's milk
+  as it would to any he owes next. Overdue counts from the day he pays by.
   Milk priced at the gate is left as it was; where none of the statement's milk was to follow, his amount is only
   compared with what the farm priced, and the difference said. An amount no more than the milk already priced at the
   gate, with milk to follow, is refused (`statement_below_priced`): the gate prices are put right first.
@@ -57,12 +63,16 @@ delegated the open choices; these are the recommendations, taken.
   priced at the gate it may be, and it is compared.
 - **A wrong statement is voided by the Owner, with a reason**, never deleted. The milk it priced goes back to its price
   to follow, owing nothing, and its overdue notices are dismissed; the voided statement stays on the list, marked, with
-  the reason. Refused while his payments have cleared any of that milk, or some was written off
-  (`statement_paid_on`): the payment or the Write-off is put right first, as a Dispatch's are (the Owner, 2026-10-07).
+  the reason. Refused only while money recorded since the statement has cleared some of that milk, or some was written
+  off (`statement_paid_on`): the payment or the Write-off is put right first, as a Dispatch's are (the Owner,
+  2026-10-07). Money taken before the statement — paid ahead, say — that it soaked up simply goes back where it was:
+  voiding a wrong statement never asks the Owner to void a true payment.
   A statement is not corrected in place: voided, and the right one recorded.
-- **A Closed Month (ADR 0028).** The milk a statement prices is money of the month it left in, as a Dispatch's is. A
-  statement that prices milk of a month the Owner has closed, or voids one that did, is hers alone (`month_closed` to
-  anybody else); hers is kept under "Changed after closing" for each closed month it touched, by the buyer, as
+- **A Closed Month (ADR 0028).** The milk a statement prices is money of the month it left in, as a Dispatch's is, and
+  what he owes for it is owed at the end of the month it was recorded in. A statement that touches a month the Owner
+  has closed — prices milk of it, or is voided once the month it was recorded in is closed — is hers alone
+  (`month_closed` to anybody else); hers is kept under "Changed after closing" for each closed month it touched, by the
+  buyer, as
   `buyer_statement`, with what the month held of it before and after. Milk and cattle left owing on credit answer to a
   closed month the same way (ADR 0028 addendum), and so does a Correction that gives milk to follow a price.
 - **A Correction may send a price to follow, or give one.** A price put on milk whose price was to follow leaves it all
@@ -89,7 +99,7 @@ delegated the open choices; these are the recommendations, taken.
   says "Price to follow", or its statement's rate "by statement".
 - **Receivable, its ages and overdue, the money book and the accountant's exports** read Receivable and Money Events
   only, so milk to follow is in none of them until its statement prices it — then it is Receivable that left on its
-  own day and is owed from the statement's date (above).
+  own day and is owed from when its statement was recorded (above).
 - **The dispatch record** (Safe Food Act) never printed a price, and does not now.
 
 ## Why
