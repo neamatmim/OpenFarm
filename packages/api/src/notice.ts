@@ -4,6 +4,7 @@ import type { AlertKind } from "@OpenFarm/db/schema/alert";
 import { alert } from "@OpenFarm/db/schema/alert";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import type { NoticeFacts } from "@OpenFarm/domain";
+import { farmDayOf } from "@OpenFarm/domain";
 
 import {
   doersOf,
@@ -321,6 +322,8 @@ export interface About {
   /** Exactly these people, in place of the kind's audience worked out afresh: for news owed to whoever a thing already
    *  reached — the proposer of a change, the pockets a death reached. Still only those at the farm. */
   people?: readonly string[];
+  /** When it is told: a Pen's news goes to whoever covers somebody away that day, not to the one away. Set by `tell`. */
+  at?: Date;
 }
 
 /**
@@ -338,7 +341,10 @@ const asked = (part: AudiencePart, about: About): string | null => {
     return `roles:${[...part.roles].toSorted().join(",")}`;
   }
   if (part === "thePeopleOfHerPen") {
-    return about.penId ? `pen:${about.penId}` : null;
+    // By the day too: who works a Pen turns on that day's Covers.
+    return about.penId
+      ? `pen:${about.penId}:${about.at ? farmDayOf(about.at) : ""}`
+      : null;
   }
   if (part === "whoDoesThisWork") {
     return about.assignedRole ? `roles:${about.assignedRole}` : null;
@@ -360,7 +366,9 @@ const somePeople = async (
     return about.person ? [about.person] : [];
   }
   if (part === "thePeopleOfHerPen") {
-    return about.penId ? await peopleOfThePen(tx, farmId, about.penId) : [];
+    return about.penId
+      ? await peopleOfThePen(tx, farmId, about.penId, about.at)
+      : [];
   }
   if (part === "whoDoesThisWork") {
     return about.assignedRole
@@ -371,8 +379,8 @@ const somePeople = async (
     return [];
   }
   return part === "whoeverDidIt"
-    ? await doersOf(tx, farmId, about.work)
-    : await peopleOnTheWork(tx, farmId, about.work);
+    ? await doersOf(tx, farmId, about.work, about.at)
+    : await peopleOnTheWork(tx, farmId, about.work, about.at);
 };
 
 /** Everyone a kind of Notice reaches, each lot of them worked out and counted once. */
@@ -541,7 +549,7 @@ export const tell = async <Kind extends AlertKind>(
     tx,
     farmId,
     notice.kind,
-    notice.about,
+    { ...notice.about, at: notice.about.at ?? now },
     remembering
   );
   const written = {

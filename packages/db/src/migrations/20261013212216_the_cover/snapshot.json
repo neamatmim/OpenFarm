@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "ba75a0b2-2949-448a-9c74-d38a6fc4833e",
+  "id": "2804b5d3-caaf-4b85-93c9-31b545a6af48",
   "prevIds": [
     "a49c525e-786d-4d3f-a1c6-a96ae306ae78"
   ],
@@ -25091,6 +25091,41 @@
       "method": "btree",
       "concurrently": false,
       "name": "cover_farm_day_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "cover"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "farm_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "absent_user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "day",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "\"ended_at\" is null",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "cover_standing_uidx",
       "entityType": "indexes",
       "schema": "public",
       "table": "cover"

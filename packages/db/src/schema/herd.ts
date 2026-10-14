@@ -386,6 +386,10 @@ export const cover = pgTable(
       table.day
     ),
     index("cover_farm_day_idx").on(table.farmId, table.day),
+    // One standing Cover for one person on one day: a new one ends the last before it is written.
+    uniqueIndex("cover_standing_uidx")
+      .on(table.farmId, table.absentUserId, table.day)
+      .where(sql`${table.endedAt} is null`),
     check(
       "cover_not_themselves",
       sql`${table.absentUserId} <> ${table.coverUserId}`

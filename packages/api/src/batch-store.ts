@@ -11,7 +11,7 @@ import { stepCorrection } from "./corrections/step-completion";
 import { animalPhotoEntry } from "./entries/animal-photo";
 import { claimEntry } from "./entries/claim";
 import type { EntryKind, EntryRefusal } from "./entries/entry";
-import { recordHeld, refusalOf } from "./entries/entry";
+import { recordHeld, refusalOf, withPensHeldThen } from "./entries/entry";
 import { finishEntry } from "./entries/finish";
 import { moveEntry } from "./entries/move";
 import { observationEntry } from "./entries/observation";
@@ -20,6 +20,7 @@ import { stepPhotoEntry } from "./entries/step-photo";
 import { lockTheFarm } from "./farm-lock";
 import type { RaisedAlert } from "./instances-store";
 import { tell } from "./notice";
+import { workingAs } from "./scope";
 import type { Entry, EntryResult } from "./sync-entries";
 import { entryInput } from "./sync-entries";
 import {
@@ -66,7 +67,7 @@ const ENTRIES = {
  * this entry's own savepoint, and judged at when it was made: the phone's time, put forward by as much as the phone
  * was found behind, and never later than the farm heard of it.
  */
-const correctHeld = (
+const correctHeld = async (
   tx: Tx,
   context: Recorder,
   entry: Extract<Entry, { kind: "step_correction" }>,
@@ -76,8 +77,14 @@ const correctHeld = (
   const madeAt = new Date(
     Math.min(receivedAt.getTime(), entry.recordedAt.getTime() + phoneBehindMs)
   );
-  return correct(
-    { ...context, db: tx as unknown as Database, clock: { now: () => madeAt } },
+  // Their Pens as they were when they made it, a Cover of that day among them, as every held entry is read: worked out
+  // afresh from their own Pens, never from the Scope the gate gave this request, which holds today's Cover.
+  const own = context.roleUsed
+    ? { ...context, ...workingAs(context, context.roleUsed) }
+    : context;
+  const asThen = await withPensHeldThen(tx, own, madeAt);
+  return await correct(
+    { ...asThen, db: tx as unknown as Database, clock: { now: () => madeAt } },
     stepCorrection,
     { id: entry.completionId, reason: entry.reason, changes: entry.changes }
   );

@@ -2,7 +2,7 @@ import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { ORPCError, os } from "@orpc/server";
 
 import type { Actor, Context } from "./context";
-import { workingAs } from "./scope";
+import { workingWithTheirCover } from "./cover-store";
 
 export type { RoleName } from "@OpenFarm/db/schema/farm";
 export { ROLES } from "@OpenFarm/db/schema/farm";
@@ -87,26 +87,33 @@ const roleGate = (
   allowed: readonly RoleName[],
   { refusal, visitingVet = false }: { refusal?: Refusal } & OpenToAVisit = {}
 ) =>
-  os.$context<Context & { actor: Actor }>().middleware(({ context, next }) => {
-    const roleUsed = roleFor(context, allowed);
-    // On a Shed Phone a person is Barn Staff alone: what a Role they hold away from it may do is theirs from their
-    // own phone, and they are told so rather than that they lack the Role.
-    const fromTheirOwnPhone =
-      !roleUsed && pickRoleUsed(context.rolesOffThePhone, allowed) !== null;
-    if (fromTheirOwnPhone) {
-      throw forbidden(PERSONAL_PHONE_ONLY);
-    }
-    if (!roleUsed || !context.farm) {
-      throw refusal ? forbidden(refusal) : new ORPCError("FORBIDDEN");
-    }
-    if (roleUsed === "vet" && context.visiting && !visitingVet) {
-      throw forbidden(VISITING_VET);
-    }
-    // What they may see and record under the Role this work is done under, worked out once it is chosen.
-    return next({
-      context: { ...workingAs(context, roleUsed), farm: context.farm },
+  os
+    .$context<Context & { actor: Actor }>()
+    .middleware(async ({ context, next }) => {
+      const roleUsed = roleFor(context, allowed);
+      // On a Shed Phone a person is Barn Staff alone: what a Role they hold away from it may do is theirs from their
+      // own phone, and they are told so rather than that they lack the Role.
+      const fromTheirOwnPhone =
+        !roleUsed && pickRoleUsed(context.rolesOffThePhone, allowed) !== null;
+      if (fromTheirOwnPhone) {
+        throw forbidden(PERSONAL_PHONE_ONLY);
+      }
+      if (!roleUsed || !context.farm) {
+        throw refusal ? forbidden(refusal) : new ORPCError("FORBIDDEN");
+      }
+      if (roleUsed === "vet" && context.visiting && !visitingVet) {
+        throw forbidden(VISITING_VET);
+      }
+      // What they may see and record under the Role this work is done under, worked out once it is chosen — Barn Staff
+      // with today's Cover among their Pens, which is asked only of somebody working as Barn Staff. Their own `penIds`
+      // stay their own, so work a phone held from an earlier day is read with that day's Cover, never today's.
+      return next({
+        context: {
+          ...(await workingWithTheirCover(context, roleUsed)),
+          farm: context.farm,
+        },
+      });
     });
-  });
 
 /** Runs after requireAuth (the principal is already known good). Requires any of `allowed` — and, for a procedure a
  *  visiting Vet may call, `{ visitingVet: true }` last — and narrows the context: the Role used, the Farm and their

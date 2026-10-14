@@ -32,22 +32,36 @@ export const coversRouter = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       let id = "";
+      let released: string[] = [];
       return await audited(context).write(
         {
           entity: "cover",
           entityId: () => id,
           action: "create",
-          after: { ...input, day: farmDayOf(now) },
+          after: () =>
+            Promise.resolve({ ...input, day: farmDayOf(now), released }),
         },
         async (tx) => {
-          const row = await setCover(tx, {
+          const set = await setCover(tx, {
             farmId: context.farm.id,
             ...input,
             by: context.actor.id,
             now,
           });
-          ({ id } = row);
-          return row;
+          ({ id } = set.row);
+          ({ released } = set);
+          // The Cover this one replaced ended here: its own line on the trail, beside this one's.
+          for (const old of set.replaced) {
+            // oxlint-disable-next-line no-await-in-loop -- at most one standing Cover is replaced
+            await audited(context).recordEvent(tx, {
+              entity: "cover",
+              entityId: old,
+              action: "update",
+              before: { endedAt: null },
+              after: { endedAt: now, replacedBy: set.row.id },
+            });
+          }
+          return set.row;
         }
       );
     }),

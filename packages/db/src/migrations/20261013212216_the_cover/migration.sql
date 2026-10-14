@@ -14,6 +14,7 @@ CREATE TABLE "cover" (
 --> statement-breakpoint
 CREATE INDEX "cover_farm_cover_day_idx" ON "cover" ("farm_id","cover_user_id","day");--> statement-breakpoint
 CREATE INDEX "cover_farm_day_idx" ON "cover" ("farm_id","day");--> statement-breakpoint
+CREATE UNIQUE INDEX "cover_standing_uidx" ON "cover" ("farm_id","absent_user_id","day") WHERE "ended_at" is null;--> statement-breakpoint
 ALTER TABLE "cover" ADD CONSTRAINT "cover_farm_id_farm_id_fkey" FOREIGN KEY ("farm_id") REFERENCES "farm"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "cover" ADD CONSTRAINT "cover_absent_user_id_user_id_fkey" FOREIGN KEY ("absent_user_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "cover" ADD CONSTRAINT "cover_cover_user_id_user_id_fkey" FOREIGN KEY ("cover_user_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint

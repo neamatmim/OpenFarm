@@ -1,3 +1,4 @@
+import { farmDayOf } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserRoundCheck } from "lucide-react";
@@ -6,7 +7,12 @@ import { useState } from "react";
 import { RecordList, Section } from "@/components/page";
 import { NativeSelect } from "@/components/page-kit";
 import { useT } from "@/i18n/language-provider";
-import { nameIn, whoMayBeAway, whoMayCover } from "@/lib/covering";
+import {
+  nameIn,
+  standingToday,
+  whoMayBeAway,
+  whoMayCover,
+} from "@/lib/covering";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -47,7 +53,11 @@ export const CoveringToday = () => {
   );
   const end = useMutation(
     orpc.covers.end.mutationOptions({
-      onError: refused,
+      // Ended already, or from a day gone: said, and the list read again so it stops offering it.
+      onError: async (error) => {
+        refused(error);
+        await settled();
+      },
       onSuccess: async () => {
         toast.success(t("cover.ended"));
         await settled();
@@ -62,8 +72,9 @@ export const CoveringToday = () => {
     return null;
   }
   const coverChoices = away ? whoMayCover(everybody, away) : [];
-  const standing = (today.data?.covers ?? []).filter(
-    (one) => one.endedAt === null
+  const standing = standingToday(
+    today.data?.covers ?? [],
+    farmDayOf(new Date())
   );
   const readyToSet = away !== "" && cover !== "" && !set.isPending;
 

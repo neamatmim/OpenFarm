@@ -1,13 +1,15 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import type { AuditAction } from "@OpenFarm/db/schema/audit";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
-import { isExitState, tagNumberAsWritten } from "@OpenFarm/domain";
+import { farmDayOf, isExitState, tagNumberAsWritten } from "@OpenFarm/domain";
 import type { AuditEntity } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { SnapshotValue, Tx } from "../audit";
 import { audited } from "../audit";
 import type { Recorder } from "../completion-store";
+import type { CoverDay } from "../cover-store";
+import { coverDayOf, coveredPensIn } from "../cover-store";
 import { requireAnimal } from "../herd-store";
 import { isLate, lateEntry } from "../late";
 import {
@@ -181,33 +183,65 @@ export const recordNow = async <Input, Result>(
 };
 
 /**
- * A Staff member's Scope as it stood when the work was done: a Pen handed to somebody else after she milked it, while
- * the phone was still out of signal, was hers when she did the work. The world moved after it, and work is not refused
- * for that (ADR 0004).
+ * Each recorder's Covers by farm day, read once for a Batch: one person's two hundred entries of a day ask the same
+ * question two hundred times. Keyed on the recorder the Batch holds for them, so it goes when the Batch does.
  */
-const withPensHeldThen = async (
+const coverDaysOf = new WeakMap<object, Map<string, Promise<CoverDay>>>();
+
+/** The recorder's Covers of the farm day `doneAt` falls in, from the Batch's memory when it has asked already. */
+const coverDayFor = (
   tx: Tx,
   context: Recorder,
-  doneAt: Date
+  doneAt: Date,
+  memoryOf: object
+): Promise<CoverDay> => {
+  const days = coverDaysOf.get(memoryOf) ?? new Map();
+  coverDaysOf.set(memoryOf, days);
+  const day = farmDayOf(doneAt);
+  const known = days.get(day);
+  if (known) {
+    return known;
+  }
+  const asked = coverDayOf(tx, context.farm.id, context.actor.id, day);
+  days.set(day, asked);
+  return asked;
+};
+
+/**
+ * A Staff member's Scope as it stood when the work was done: a Pen handed to somebody else after she milked it, while
+ * the phone was still out of signal, was hers when she did the work. The world moved after it, and work is not refused
+ * for that (ADR 0004). And a Cover is read for the day the work was done, never for today: Pens covered that day were
+ * theirs to work in that day however late the phone brings it in, and Pens covered today were not theirs on an
+ * earlier day. Every held path shares this — the Batch, a held Correction and work taken in from Needs Review.
+ */
+export const withPensHeldThen = async (
+  tx: Tx,
+  context: Recorder,
+  doneAt: Date,
+  memoryOf: object = context
 ): Promise<Recorder> => {
   const { scope } = context;
   if (scope.kind !== "pens" && scope.kind !== "pens_or_cases") {
     return context;
   }
-  const since = await tx.query.penAssignment.findMany({
-    where: {
-      farmId: context.farm.id,
-      userId: context.actor.id,
-      createdAt: { lte: doneAt },
-      endedAt: { gt: doneAt },
-    },
-    columns: { penId: true },
-  });
-  if (since.length === 0) {
+  const [since, coverDay] = await Promise.all([
+    tx.query.penAssignment.findMany({
+      where: {
+        farmId: context.farm.id,
+        userId: context.actor.id,
+        createdAt: { lte: doneAt },
+        endedAt: { gt: doneAt },
+      },
+      columns: { penId: true },
+    }),
+    coverDayFor(tx, context, doneAt, memoryOf),
+  ]);
+  const covered = coveredPensIn(coverDay, doneAt);
+  if (since.length === 0 && covered.length === 0) {
     return context;
   }
   const penIds = [
-    ...new Set([...scope.penIds, ...since.map((one) => one.penId)]),
+    ...new Set([...scope.penIds, ...since.map((one) => one.penId), ...covered]),
   ];
   return { ...context, scope: { ...scope, penIds } };
 };
@@ -256,7 +290,8 @@ export const recordHeld = async <Input, Result>(
   const context = await withPensHeldThen(
     tx,
     { ...recorder, ...workingAs(recorder, roleUsed) },
-    doneAt
+    doneAt,
+    recorder
   );
   const times: EntryTimes = {
     id: held.id,

@@ -1,4 +1,4 @@
-import { penAssignment } from "@OpenFarm/db/schema/herd";
+import { cover as coverTable, penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
 import {
   DAY,
@@ -39,8 +39,12 @@ const cleaning = (): SopContent => ({
 });
 
 let penOfTheAbsent = "";
+/** A Pen nobody keeps until a test hands it to the one away. */
+let penLater = "";
 let theirCover = "";
 let theAbsent = "";
+/** The cover's Outbox count: one phone's numbers never repeat, and the first describe's entry took number one. */
+let sequence = 100;
 
 /** A Pen with a heifer in it, for cleaning to be raised in. */
 const aPen = async (
@@ -66,6 +70,7 @@ const aPen = async (
 beforeAll(async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
   penOfTheAbsent = await aPen(owner, "away");
+  penLater = await aPen(owner, "later");
   await createTestPrincipal("staff", new Date());
   await createTestPrincipal("otherStaff", new Date());
   theAbsent = thePerson("staff").id;
@@ -85,13 +90,15 @@ beforeAll(async () => {
 /** The farm's noon on a day of its own, so no test in this file meets another's Cover. */
 const noonOf = (day: string) => `${day}T06:00:00.000Z`;
 
-/** The Manager covers the absent milker's Pens for the day at `at`. */
-const coverOn = async (at: string) => {
+/** The Manager covers the absent milker's Pens for the day at `at`, the day's work raised first unless told not to. */
+const coverOn = async (at: string, { raise = true } = {}) => {
   const manager = await createTestClient(appRouter, {
     as: "manager",
     clock: new FakeClock(at),
   });
-  await manager.client.work.ensureDue();
+  if (raise) {
+    await manager.client.work.ensureDue();
+  }
   const set = await manager.client.covers.set({
     absentUserId: theAbsent,
     coverUserId: theirCover,
@@ -231,5 +238,187 @@ describe("covering somebody away", () => {
       ],
     });
     expect(sent.results.map((one) => one.outcome)).toEqual(["applied"]);
+  });
+});
+
+/** A cleaning step as the cover's phone holds it: done at `at`. Each entry its own number on the cover's Outbox. */
+const cleaned = (instanceId: string, at: string) => {
+  sequence += 1;
+  return {
+    id: `cover-step-${sequence}-${instanceId}`,
+    seq: sequence,
+    recordedAt: new Date(at),
+    kind: "step_completion" as const,
+    instanceId,
+    stepId: "clean",
+    evidence: [true],
+  };
+};
+
+/** The next day at the same hour. */
+const dayAfter = (at: string) =>
+  new Date(new Date(at).getTime() + DAY).toISOString();
+
+/** What the cover's own phone is told of one entry it sends at `at`. */
+const sentByTheCover = async (
+  at: string,
+  entry: ReturnType<typeof cleaned>
+) => {
+  const phone = await theCoverAt(at);
+  const sent = await phone.client.sync.batch({
+    key: `cover-batch-${entry.id}`,
+    entries: [entry],
+  });
+  return sent.results[0];
+};
+
+/** This file's cleaning in a Pen, as the Manager reads the farm at `at`, the morning's first. */
+const cleaningOfThePen = async (penId: string, at: string) => {
+  const manager = await createTestClient(appRouter, {
+    as: "manager",
+    clock: new FakeClock(at),
+  });
+  await manager.client.work.ensureDue();
+  const all = await manager.client.work.today({ penId });
+  return all
+    .filter(
+      (one) =>
+        (one.version.content as SopContent).name.en === `Cleaning ${suffix}`
+    )
+    .toSorted((a, b) => +new Date(a.dueAt) - +new Date(b.dueAt));
+};
+
+describe("a Cover read as it stood", () => {
+  it("lets the Manager take in, from Needs Review, what the cover recorded that day and a phone brought in late", async () => {
+    const at = noonOf("2089-05-10");
+    await coverOn(at);
+    const [job] = await onTheCoversListAt(at);
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock(at),
+    });
+    await manager.client.work.closeAsMissed({
+      id: job?.id ?? "",
+      reason: "কেউ ছিল না",
+    });
+
+    const entry = cleaned(job?.id ?? "", at);
+    expect(await sentByTheCover(dayAfter(at), entry)).toMatchObject({
+      outcome: "kept",
+    });
+    const nextDay = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock(dayAfter(at)),
+    });
+    const queue = await nextDay.client.reviewQueue.list();
+    const waiting = queue.find((row) => row.entityId === entry.id);
+    await nextDay.client.reviewQueue.takeIn({ id: waiting?.id ?? "" });
+    expect(
+      await scratchDb().query.stepCompletion.findFirst({
+        where: { id: entry.id },
+        columns: { id: true },
+      })
+    ).toBeDefined();
+  });
+
+  it("never lends work of an earlier day the Cover set today", async () => {
+    const earlier = noonOf("2089-05-20");
+    const [job] = await cleaningOfThePen(penOfTheAbsent, earlier);
+    await coverOn(dayAfter(earlier), { raise: false });
+
+    expect(
+      await sentByTheCover(dayAfter(earlier), cleaned(job?.id ?? "", earlier))
+    ).toMatchObject({ refusal: { category: "not_yours" } });
+  });
+
+  it("tells the cover of the absent milker's work going late, and not the one away", async () => {
+    // Half past six on the farm: the morning's cleaning, due at five with an hour's grace, has gone late.
+    const at = "2089-05-30T00:30:00.000Z";
+    const { manager } = await coverOn(at, { raise: false });
+    const [morning] = await cleaningOfThePen(penOfTheAbsent, at);
+    await manager.client.alerts.sweep();
+
+    const told = async (as: "staff" | "otherStaff") => {
+      const who = await createTestClient(appRouter, {
+        as,
+        clock: new FakeClock(at),
+      });
+      const mine = await who.client.alerts.mine({ entityId: morning?.id });
+      return mine.map((one) => one.kind);
+    };
+    expect(await told("otherStaff")).toContain("instance_overdue");
+    expect(await told("staff")).not.toContain("instance_overdue");
+  });
+
+  it("lets the cover take the work the one away had already taken", async () => {
+    const at = noonOf("2089-06-05");
+    const [job] = await cleaningOfThePen(penOfTheAbsent, at);
+    const absent = await createTestClient(appRouter, {
+      as: "staff",
+      clock: new FakeClock(at),
+    });
+    await absent.client.work.claim({ id: job?.id ?? "" });
+    await coverOn(at, { raise: false });
+
+    const cover = await theCoverAt(at);
+    await cover.client.work.claim({ id: job?.id ?? "" });
+    const taken = await scratchDb().query.sopInstance.findFirst({
+      where: { id: job?.id ?? "" },
+      columns: { claimedBy: true },
+    });
+    expect(taken?.claimedBy).toBe(theirCover);
+  });
+
+  it("keeps one Cover standing for one person on one day, and puts the one it replaced on the trail as ended", async () => {
+    const at = noonOf("2089-06-10");
+    const { manager, set: first } = await coverOn(at, { raise: false });
+    const second = await manager.client.covers.set({
+      absentUserId: theAbsent,
+      coverUserId: theirCover,
+    });
+
+    const today = await manager.client.covers.today();
+    expect(
+      today.covers.filter((one) => one.endedAt === null).map((one) => one.id)
+    ).toEqual([second.id]);
+    const trail = await scratchDb().query.auditEvent.findMany({
+      where: { entity: "cover", entityId: first.id, action: "update" },
+      columns: { id: true },
+    });
+    expect(trail).toHaveLength(1);
+    await expect(
+      scratchDb()
+        .insert(coverTable)
+        .values({
+          id: `cover-twice-${suffix}`,
+          farmId: theFarm().id,
+          absentUserId: theAbsent,
+          coverUserId: theirCover,
+          day: "2089-06-10",
+          setBy: thePerson("manager").id,
+          setAt: new Date(at),
+        })
+    ).rejects.toThrow();
+  });
+
+  it("reads the absent milker's Pens as they stood on the Cover's day, not as they stand after", async () => {
+    const at = noonOf("2089-06-20");
+    await coverOn(at);
+    const [laterJob] = await cleaningOfThePen(penLater, at);
+    // Handed to the one away only the next day: on the Cover's day it was nobody's.
+    await scratchDb()
+      .insert(penAssignment)
+      .values({
+        id: `pa-cover-later-${penLater}`,
+        farmId: theFarm().id,
+        userId: theAbsent,
+        penId: penLater,
+        createdAt: new Date(dayAfter(at)),
+      })
+      .onConflictDoNothing();
+
+    expect(
+      await sentByTheCover(dayAfter(at), cleaned(laterJob?.id ?? "", at))
+    ).toMatchObject({ refusal: { category: "not_yours" } });
   });
 });

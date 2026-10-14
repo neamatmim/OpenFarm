@@ -26,6 +26,15 @@ export const whoMayCover = (
 ): PersonForCover[] =>
   barnStaff(people).filter((person) => person.id !== awayId);
 
+/**
+ * The Covers standing today, from an answer that may have been kept from an earlier day: a Cover ends with its day, so
+ * one from yesterday is not standing whatever the kept answer says.
+ */
+export const standingToday = <T extends { day: string; endedAt: unknown }>(
+  covers: readonly T[],
+  today: string
+): T[] => covers.filter((one) => one.day === today && one.endedAt === null);
+
 /** A person's name from the list, or nothing for somebody it no longer holds. */
 export const nameIn = (people: readonly PersonForCover[], id: string): string =>
   people.find((person) => person.id === id)?.name ?? "";

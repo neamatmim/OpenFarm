@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { PersonForCover } from "./covering";
-import { whoMayBeAway, whoMayCover } from "./covering";
+import { standingToday, whoMayBeAway, whoMayCover } from "./covering";
 
 const person = (
   id: string,
@@ -16,6 +16,19 @@ const PEOPLE = [
   person("karim", ["staff"], ["pen-b"], "2026-10-01"),
   person("manager", ["manager"], []),
 ];
+
+describe("the Covers standing today", () => {
+  it("leaves out a Cover from a kept answer of an earlier day, and one ended early", () => {
+    const covers = [
+      { id: "yesterday", day: "2089-04-09", endedAt: null },
+      { id: "ended", day: "2089-04-10", endedAt: "2089-04-10T05:00:00Z" },
+      { id: "standing", day: "2089-04-10", endedAt: null },
+    ];
+    expect(standingToday(covers, "2089-04-10").map((one) => one.id)).toEqual([
+      "standing",
+    ]);
+  });
+});
 
 describe("who a Cover is offered", () => {
   it("offers as away only Barn Staff still here who keep a Pen", () => {
