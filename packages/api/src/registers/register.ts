@@ -8,6 +8,7 @@ import type {
 import {
   dayMoved,
   farmDayOf,
+  inLanguage,
   registerDocument,
   startOfFarmDay,
 } from "@OpenFarm/domain";
@@ -45,6 +46,8 @@ export interface Saying {
   word: (key: MessageKey) => string;
   /** A figure in this language's digits. */
   figure: (value: number) => string;
+  /** Words the farm keeps in both languages, in this one. */
+  said: (words: Said) => string;
 }
 
 /**
@@ -143,6 +146,7 @@ export const sayingIn = (language: Language): Saying => ({
   day: (farmDay) => formatDate(startOfFarmDay(farmDay), language, "date"),
   word: (key) => translate(language, key),
   figure: (value) => formatNumber(value, language),
+  said: (words) => inLanguage(words, language),
 });
 
 /** The farm's two languages' sayings, which every paper is written in. */

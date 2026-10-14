@@ -29,6 +29,7 @@ import {
 } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { SummaryFigures } from "@/components/page-kit";
+import { RestoreDrillSection } from "@/components/restore-drill";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
@@ -350,6 +351,7 @@ const BackupsPage = () => {
         <SummaryFigures figures={figures} />
       </Loaded>
       <Worries schedule={schedule.data} state={state} />
+      <RestoreDrillSection />
       <Section
         description={t("backups.historyWhy")}
         title={t("backups.history")}

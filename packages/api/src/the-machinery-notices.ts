@@ -1,4 +1,6 @@
 import type { Database } from "@OpenFarm/db";
+import { DRILL_STANDS } from "@OpenFarm/db/schema/backup";
+import { drillStanding, farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import { failuresInTheLastHour } from "./failures-seen";
@@ -29,6 +31,7 @@ export interface Quiet {
     | "backup_overdue"
     | "day_not_turning"
     | "monthly_copy_failed"
+    | "restore_drill_overdue"
     | "server_failing";
   id: string;
   since: Date;
@@ -87,6 +90,56 @@ export const backupGap = async (
     kind: "backup_overdue",
     id: lastGood ? `backup:${lastGood.id}` : "backup:never",
     since: counted.startedAt,
+  };
+};
+
+/**
+ * The farm's **Restore Drill** and the next one's day: the latest day a drill that stands was done — one written down
+ * late for an older day changes nothing, and one put right stands no more — the first good copy the farm ever took, and
+ * what `drillStanding` makes of them on the farm's day of `now`. Read by the Backups page and the notice alike, so the
+ * two never disagree about when it is due.
+ */
+export const drillStandingOf = async (
+  db: Pick<Database, "query"> | Tx,
+  farmId: string,
+  now: Date
+) => {
+  const [last, firstGood] = await Promise.all([
+    db.query.restoreDrill.findFirst({
+      where: { farmId, ...DRILL_STANDS },
+      orderBy: { doneOn: "desc", recordedAt: "desc", id: "desc" },
+      columns: { doneOn: true },
+    }),
+    db.query.backupRun.findFirst({
+      where: { ok: "yes" },
+      orderBy: { startedAt: "asc", id: "asc" },
+      columns: { startedAt: true },
+    }),
+  ]);
+  return drillStanding({
+    lastDrillOn: last ? farmDayOf(last.doneOn) : null,
+    firstGoodCopyOn: firstGood ? farmDayOf(firstGood.startedAt) : null,
+    today: farmDayOf(now),
+  });
+};
+
+/**
+ * Whether the quarter's Restore Drill has gone by undone. Named by the day it fell due, so it is told once for each
+ * quarter missed however often the timer looks — and a drill written down since moves the day, which is what settles it.
+ */
+export const drillOverdue = async (
+  db: Pick<Database, "query"> | Tx,
+  farmId: string,
+  now: Date
+): Promise<Quiet | null> => {
+  const { dueOn, overdue } = await drillStandingOf(db, farmId, now);
+  if (!(overdue && dueOn)) {
+    return null;
+  }
+  return {
+    kind: "restore_drill_overdue",
+    id: `drill:${dueOn}`,
+    since: startOfFarmDay(dueOn),
   };
 };
 

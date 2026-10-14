@@ -29,7 +29,7 @@ export const DECISION_KINDS = [
   "missing",
   "storeCount",
   "ventures",
-  "registration",
+  "renewals",
   "approvals",
   "proposals",
   "money",

@@ -53,6 +53,7 @@ import {
   whatChangedFor,
 } from "../instances-store";
 import { lastFiguresOfWork } from "../last-figures";
+import { licenseOfCause } from "../license-store";
 import { tell } from "../notice";
 import { pushRaised } from "../push-send";
 import { raiseThePutOff } from "../put-off-store";
@@ -210,6 +211,45 @@ const resolveWorkId = async (
     throw new ORPCError("NOT_FOUND");
   }
   return completion.instanceId;
+};
+
+/**
+ * What a renewal's closing Step is shown of the paper it renews: when it runs out now — the Registration's, or the
+ * License's the work was raised for — and which License that is. Nothing for work that renews nothing.
+ */
+const renewalShown = async (
+  context: {
+    db: Pick<Database, "query">;
+    farm: { id: string; registrationExpiresOn: Date | null };
+  },
+  content: SopContent,
+  cause: string | null
+) => {
+  const renews = (kind: "registration_renewal" | "license_renewal") =>
+    content.steps.some((step) => step.effect?.kind === kind);
+  if (renews("registration_renewal")) {
+    return { expiresOn: context.farm.registrationExpiresOn, license: null };
+  }
+  if (!renews("license_renewal")) {
+    return null;
+  }
+  const licenseId = licenseOfCause(cause);
+  const license = licenseId
+    ? await context.db.query.farmLicense.findFirst({
+        where: { id: licenseId, farmId: context.farm.id },
+        columns: { kind: true, name: true, number: true, expiresOn: true },
+      })
+    : undefined;
+  return license
+    ? {
+        expiresOn: license.expiresOn,
+        license: {
+          kind: license.kind,
+          name: license.name,
+          number: license.number,
+        },
+      }
+    : { expiresOn: null, license: null };
 };
 
 export const workRouter = {
@@ -680,12 +720,9 @@ export const workRouter = {
                 fed.herdWeightKg === null ? null : Number(fed.herdWeightKg),
             }
           : null,
-        // What the Registration runs out on now, for the Step that renews it to a later day.
-        renewal: content.steps.some(
-          (step) => step.effect?.kind === "registration_renewal"
-        )
-          ? { expiresOn: context.farm.registrationExpiresOn }
-          : null,
+        // What the Registration — or the License the work was raised for — runs out on now, for the Step that renews it
+        // to a later day, and which License that is.
+        renewal: await renewalShown(context, content, instance.cause),
         stockCount: stockCount && {
           items: stockCount.items.map(({ id, ...item }) => ({
             feedItemId: id,

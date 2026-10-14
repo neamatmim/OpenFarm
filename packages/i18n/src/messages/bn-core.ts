@@ -599,6 +599,12 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "এই কোডটি তাঁকে দিন। সাইন ইন পাতায় কোডটি দিয়ে তিনি নিজের পাসওয়ার্ড বেছে নেবেন — খামার কারও পাসওয়ার্ড ঠিক করে দেয় না।",
   "people.newPasswordCode": "নতুন পাসওয়ার্ড কোড",
   "people.correctName": "নাম সংশোধন",
+  "people.bvc.title": "বিভিসি নিবন্ধন",
+  "people.bvc.why":
+    "বাংলাদেশ ভেটেরিনারি কাউন্সিলের নিবন্ধন নম্বর, কাউন্সিলের সনদে যেভাবে লেখা। চিকিৎসার রেজিস্টার, রোগের ইতিহাস, পশুর কাগজ আর প্রাণিসম্পদ অফিসের চিঠিতে ভেটের নামের পাশে ছাপা হয়।",
+  "people.bvc.number": "বিভিসি নিবন্ধন নম্বর",
+  "people.bvc.save": "নম্বর রাখুন",
+  "people.bvc.saved": "বিভিসি নম্বর রাখা হয়েছে",
   "people.name": "নাম",
   "people.email": "ইমেইল",
   "people.roles": "ভূমিকা",
@@ -1692,6 +1698,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "animals.fromCampaign": "অভিযান",
   "animals.observationWithdrawn": "প্রত্যাহার করা হয়েছে",
   "sop.effect.registration_renewal": "নিবন্ধন নবায়ন করে",
+  "sop.effect.license_renewal": "লাইসেন্স নবায়ন করে",
   "sop.effect.observation": "যা দেখা গেল (স্বাস্থ্য/গরম)",
   "sop.choices": "কী কী বেছে নেওয়া যাবে",
   "sop.choicesHelp": "কমা দিয়ে, বাংলায়",
@@ -1982,6 +1989,14 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sop.problem.whoseMedicine": "ওষুধ ম্যানেজার গোনেন",
   "sop.problem.whoseCash": "নগদ টাকা ম্যানেজার বা মালিক গোনেন",
   "sop.problem.whoseRenewal": "নিবন্ধন মালিক নবায়ন করেন",
+  "sop.problem.whoseLicenseRenewal": "লাইসেন্স মালিক নবায়ন করেন",
+  "sop.problem.licenseNeedsStep":
+    "কোনো লাইসেন্স নবায়নের সময় হলে এই কাজ তোলা হয়, কিন্তু এখানে কোনো ধাপ তা নবায়ন করে না",
+  "sop.problem.licenseOnly":
+    "এখানে একটি ধাপ লাইসেন্স নবায়ন করে, আর সে কাজ তোলে কেবল লাইসেন্স নবায়নের সময় হওয়া",
+  "sop.problem.oneKindOfPaper": "একটি নিয়ম নিবন্ধন অথবা লাইসেন্স নবায়ন করে, দুটোই নয়",
+  "sop.problem.wrongPaper":
+    "লাইসেন্স নবায়নের কাজ সেই লাইসেন্সই নবায়ন করে, অথচ এখানে একটি ধাপ নিবন্ধন নবায়ন করে",
   "sop.problem.whoseCalving": "বাচ্চা দেওয়া খামারকর্মী বা ম্যানেজার লেখেন",
   "sop.problem.whosePregnancy": "গর্ভ পরীক্ষা ভেটের কাজ",
   "sop.problem.whoseReport": "ডিএলএস-এর রিপোর্ট ম্যানেজার বা মালিক নেন",
@@ -2952,9 +2967,15 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "work.closedAsMissed":
     "ম্যানেজার এই কাজ হয়নি হিসেবে বন্ধ করেছেন — এতে আর কিছু লেখা যাবে না",
   "renewal.runsOut": "নিবন্ধনের মেয়াদ শেষ হবে {date}",
+  "renewal.licenseRunsOut": "{license} {number}-এর মেয়াদ শেষ হবে {date}",
   "renewal.newExpiry": "নবায়িত সনদের মেয়াদ শেষ হবে",
   "renewal.certificate": "নবায়িত সনদের ছবি",
-  "refusal.renewalNotLater": "নবায়িত নিবন্ধনের মেয়াদ আগেরটির পরে শেষ হতে হবে",
+  "refusal.renewalNotLater":
+    "নবায়িত নিবন্ধন বা লাইসেন্সের মেয়াদ আগেরটির পরে শেষ হতে হবে",
+  "refusal.renewalNamesNoLicense": "এই কাজ খামারের কোনো লাইসেন্সের জন্য তোলা হয়নি",
+  "refusal.bvcIsAVets": "শুধু ভেটেরই বিভিসি নম্বর থাকে",
+  "refusal.yourOwnBvcNumber":
+    "বিভিসি নম্বর ভেট নিজে, অথবা খামার যিনি চালান তিনি লেখেন",
   "refusal.renewalNeedsCertificate": "নবায়নে নবায়িত সনদের ছবি রাখতে হয়",
   "refusal.renewalNeedsExpiry": "নবায়নে নবায়িত সনদের মেয়াদ কবে শেষ তা বলতে হয়",
   "certificate.title": "নিবন্ধন সনদ",
@@ -2964,11 +2985,17 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "certificate.take": "সনদের ছবি তুলুন",
   "certificate.hint":
     "সনদের পরিষ্কার ছবি — তোলার সঙ্গে সঙ্গেই রাখা হয়। সনদ নবায়ন হলে আবার তুলুন।",
-  "owner.registrationRenewal": "নিবন্ধন নবায়ন",
+  "owner.papersToRenew": "নিবন্ধন ও লাইসেন্স নবায়ন",
   "owner.registrationEnding": "নিবন্ধনের মেয়াদ শেষ {date}: নবায়ন করুন",
   "owner.registrationExpired": "নিবন্ধনের মেয়াদ শেষ হয়ে গেছে {date}",
+  "owner.licenseEnding": "{license} {number}-এর মেয়াদ শেষ {date}: নবায়ন করুন",
+  "owner.licenseExpired": "{license} {number}-এর মেয়াদ শেষ হয়ে গেছে {date}",
   "alerts.registrationRenewal":
     "নিবন্ধনের মেয়াদ শেষ {date}: নবায়নের কাজ আপনার তালিকায়",
+  "alerts.licenseRenewal":
+    "{license} {number}-এর মেয়াদ শেষ {date}: নবায়নের কাজ আপনার তালিকায়",
+  "alerts.restoreDrillOverdue":
+    "এই ত্রৈমাসিকের রিস্টোর মহড়া {since} তারিখে করার কথা ছিল, এখনও লেখা হয়নি। খামারের কপি পাতায় দেখুন।",
   "alerts.dayNotTurning":
     "{since} থেকে খামারের সময়সূচি ঠিকমতো চলেনি: কাজ তৈরি না-ও হতে পারে, খবর না-ও যেতে পারে। খামারের কপি পাতায় দেখুন।",
   "alerts.workMissed":
@@ -3836,6 +3863,43 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "backups.kpi.failedHint": "শেষ {count}টি চেষ্টার মধ্যে",
   "backups.history": "প্রতিটি কপির চেষ্টা",
   "backups.historyWhy": "নতুনটি আগে, ব্যর্থগুলোও সহ।",
+  "backups.drill.title": "রিস্টোর মহড়া",
+  "backups.drill.why":
+    "প্রতি তিন মাসে একবার একটি কপি আলাদা সার্ভারে ফিরিয়ে এনে অ্যাপে মিলিয়ে দেখা হয়, রানবুকে যেমন লেখা। ভালো হোক বা না হোক, লিখে রাখা হয়।",
+  "backups.drill.dueOn": "পরের মহড়া {day} তারিখে।",
+  "backups.drill.overdue": "মহড়া {day} তারিখে করার কথা ছিল",
+  "backups.drill.overdueWhat":
+    "গত রাতের কপি ফিরিয়ে এনে মিলিয়ে দেখুন, তারপর মহড়াটি এখানে লিখে রাখুন।",
+  "backups.drill.noCopy": "এখনও কোনো কপি সফল হয়নি, তাই ফিরিয়ে আনার মতো কিছু নেই।",
+  "backups.drill.doneBy": "{day}, করেছেন {name}",
+  "backups.drill.writtenBy": "লিখেছেন {name}",
+  "backups.drill.who": "যিনি করেছেন",
+  "backups.drill.whoMe": "আমি",
+  "backups.drill.puttingRight": "এটি কি কোনোটি সংশোধন করছে?",
+  "backups.drill.puttingRightHint": "ভুল লেখা মহড়া এটির জায়গায় সংশোধন হয়।",
+  "backups.drill.anotherDrill": "না, এটি আলাদা মহড়া",
+  "backups.drill.theDrillOf": "এটি {day}-এর মহড়া সংশোধন করে",
+  "backups.drill.refused.alreadyPutRight": "সেই মহড়া আগেই সংশোধন হয়েছে",
+  "refusal.drillDoneByWhoRunsTheFarm":
+    "মহড়া করেন সেদিন যিনি মালিক বা ম্যানেজার ছিলেন",
+  "backups.drill.copyWas": "ফিরিয়ে আনা কপি: {copy}",
+  "backups.drill.wentWell": "ভালোভাবে হয়েছে",
+  "backups.drill.wentBadly": "ভালোভাবে হয়নি",
+  "backups.drill.none": "এখনও কোনো মহড়া লেখা হয়নি",
+  "backups.drill.record": "মহড়া লিখে রাখুন",
+  "backups.drill.recordWhy":
+    "কবে করা হলো, কেমন হলো, কোন কপি ফিরিয়ে আনা হলো আর কী মিলিয়ে দেখা হলো।",
+  "backups.drill.doneOn": "করার তারিখ",
+  "backups.drill.how": "কেমন হলো",
+  "backups.drill.backupUsed": "ফিরিয়ে আনা কপি",
+  "backups.drill.backupUsedHint": "কপির তারিখ, অথবা ফাইলের নাম",
+  "backups.drill.note": "নোট",
+  "backups.drill.noteHint": "কী মিলিয়ে দেখা হলো, আর ভালোভাবে না হলে কী পাওয়া যায়নি",
+  "backups.drill.save": "লিখে রাখুন",
+  "backups.drill.saved": "মহড়া লিখে রাখা হয়েছে",
+  "backups.drill.refused.notDoneYet": "মহড়া করার পরেই লিখে রাখা যায়",
+  "backups.drill.refused.whatWentWrong":
+    "মহড়া ভালোভাবে না হলে কী ভুল হলো তা লিখতে হবে",
   "common.print": "প্রিন্ট করুন",
   "common.notFound": "পাওয়া যায়নি",
   "sop.effect.weigh_in": "ওজন রেকর্ড",
@@ -3928,6 +3992,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.calvingOfAMale": "ষাঁড় বাচ্চা দেয় না",
   "refusal.calvedInTheFuture": "বাচ্চা দেওয়ার সময় এখনের পরে হতে পারে না",
   "sop.trigger.registrationRenewal": "নিবন্ধন নবায়নের সময় হলে",
+  "sop.trigger.licenseRenewal": "কোনো লাইসেন্স নবায়নের সময় হলে",
   "sop.trigger.beforeCalving": "গাভীর বাচ্চা দেওয়ার আগে",
   "sop.trigger.farmTimed": "খামারের নির্ধারিত দিন, সব গাভীর জন্য একই",
   "sop.trigger.everyMonths": "নির্দিষ্ট মাস পরপর ক্যাম্পেইন",
@@ -4735,6 +4800,45 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "identity.registrationHint":
     "সনদে যেমন লেখা আছে। পরিবহন কার্ড আর পরিদর্শকের কাগজে এই নম্বর থাকে।",
   "identity.unsaved": "পরিবর্তন এখনো সংরক্ষণ হয়নি",
+  "licenses.title": "অন্যান্য লাইসেন্স",
+  "licenses.why":
+    "ডিএলএস নিবন্ধনের পাশে খামারের অন্য কাগজ: ট্রেড লাইসেন্স, পরিবেশ ছাড়পত্র, ফায়ার লাইসেন্স। প্রতিটির মেয়াদ কবে শেষ, এখানে লেখা থাকে। প্লেবুকে লাইসেন্স নবায়নের সময় হলে তোলা হয় এমন নিয়ম থাকলে, খামারের নবায়নের সময় থাকতেই নবায়নের কাজ মালিকের তালিকায় ওঠে।",
+  "licenses.noProcedure": "কোনো নিয়ম এখনও লাইসেন্স নবায়ন করে না",
+  "licenses.noProcedureWhat":
+    "খামার জানায় কোনটির মেয়াদ কবে শেষ, কিন্তু প্লেবুকে নবায়নের সময় হলে তোলা হয় এমন নিয়ম না লেখা পর্যন্ত কাউকে নবায়নের কাজ দেওয়া হয় না।",
+  "identity.noRenewalProcedure": "কোনো নিয়ম এখনও নিবন্ধন নবায়ন করে না",
+  "licenses.none": "এখনও কোনো লাইসেন্স লেখা হয়নি",
+  "licenses.add": "লাইসেন্স যোগ করুন",
+  "licenses.edit": "লাইসেন্স সংশোধন",
+  "licenses.sheetWhy": "সনদে যেমন লেখা আছে।",
+  "licenses.save": "লাইসেন্স রাখুন",
+  "licenses.saved": "লাইসেন্স রাখা হয়েছে",
+  "licenses.kind": "ধরন",
+  "licenses.kindOther": "অন্য",
+  "licenses.name": "এটির নাম",
+  "licenses.number": "লাইসেন্স নম্বর",
+  "licenses.issuer": "যিনি দিয়েছেন",
+  "licenses.issuerHint": "ইউনিয়ন পরিষদ, পৌরসভা, সিটি কর্পোরেশন বা অধিদপ্তর",
+  "licenses.issuedOn": "দেওয়ার তারিখ",
+  "licenses.expiresOn": "মেয়াদ শেষ",
+  "licenses.expiresHint": "যে লাইসেন্সের মেয়াদ শেষ হয় না, তার জন্য খালি রাখুন",
+  "licenses.days": "দেওয়া {issued} · মেয়াদ শেষ {expires}",
+  "licenses.standing.valid": "বৈধ",
+  "licenses.standing.endingSoon": "শিগগির নবায়ন করুন",
+  "licenses.standing.expired": "মেয়াদ শেষ",
+  "licenses.standing.noExpiry": "মেয়াদ শেষ হয় না",
+  "licenses.certificate": "লাইসেন্সের সনদ",
+  "licenses.noCertificate": "সনদের ছবি এখনও তোলা হয়নি",
+  "licenses.showCertificate": "সনদ দেখুন",
+  "licenses.hideCertificate": "সনদ লুকান",
+  "licenses.retire": "আর নেই",
+  "licenses.retired": "তালিকা থেকে সরানো হয়েছে",
+  "licenses.retireTitle": "{name} তালিকা থেকে সরাবেন?",
+  "licenses.retireWhy":
+    "এর নবায়নের কাজ আর তোলা হবে না। খামারের ছিল এমন লাইসেন্স হিসেবে অডিট লগে থেকে যাবে।",
+  "licenses.refused.needsAName": "লাইসেন্সটির নাম লিখুন",
+  "licenses.refused.expiresBeforeIssued":
+    "দেওয়ার আগেই লাইসেন্সের মেয়াদ শেষ হতে পারে না",
   "identity.onThisPage": "এই পাতায়",
   "standsAside.movedSince": "এটি করার পরে তাকে আবার স্থানান্তর করা হয়েছে",
   "standsAside.cannotReturnToMilk": "এখান থেকে তাকে আবার দুধে ফেরানো যায় না",
@@ -4747,7 +4851,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "standsAside.noRation":
     "এই পেন এখন কোনো রেশনে নেই, তাই যা খাওয়ানো হয়েছে তা মেলানো যায় না",
   "standsAside.renewalSuperseded":
-    "এই নবায়নের পর নিবন্ধন বদলেছে; নতুনটি সংশোধন করুন",
+    "এই নবায়নের পর নিবন্ধন বা লাইসেন্স বদলেছে; নতুনটি সংশোধন করুন",
   // Money and weights, said the same way to the Owner and to an Investor.
   "money.capitalIn": "মূলধন পাওয়া গেছে",
   "money.payout": "হিসাব নিকাশের পরিশোধ",

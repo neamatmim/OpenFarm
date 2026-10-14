@@ -30,7 +30,12 @@ import { tell } from "../notice";
 import type { OwnersFigure } from "../owners-figures";
 import { theOwnersFigures, withoutTheOwnersFigures } from "../owners-figures";
 import { photoInput } from "../photo-input";
-import { certificatesOf, keepCertificate } from "../registration-store";
+import {
+  certificatesOf,
+  keepCertificate,
+  renewalCause,
+} from "../registration-store";
+import { followTheExpiry } from "../renewal-store";
 import type { RoleName } from "../roles";
 import {
   OWNER_ONLY,
@@ -151,7 +156,7 @@ const refuseExpiryBeforeIssue = async (
 
 /** The Owner hears of each change the Manager makes to the farm's settings — how many, and by whom; what each was and is
  *  now is in the trail (the Owner's decision of 2026-10-04). Nothing for the Owner's own changes. */
-const tellTheOwnerOfTheChange = async (
+export const tellTheOwnerOfTheChange = async (
   context: {
     roles: readonly RoleName[];
     actor: { name: string };
@@ -549,7 +554,21 @@ export const farmRouter = {
             registrationExpiresOn: onFarmDay(input.registrationExpiresOn),
           });
           await refuseExpiryBeforeIssue(tx, farmId, changes);
+          const was = await tx.query.farm.findFirst({
+            where: { id: farmId },
+            columns: { registrationExpiresOn: true },
+          });
           await tx.update(farm).set(changes).where(eq(farm.id, farmId));
+          // The renewal work raised for the expiry it replaced follows it, or is owed no more (ADR 0032).
+          await followTheExpiry(tx, {
+            farmId,
+            previous: was?.registrationExpiresOn ?? null,
+            expiresOn: changes.registrationExpiresOn,
+            causeOf: renewalCause,
+            renewalLeadDays: context.farm.registrationRenewalLeadDays,
+            now: context.clock.now(),
+            trail: audited(context).recordEvent,
+          });
           // Printed on every transport card, receipt and Investor paper: the Owner hears when the Manager changes them.
           await tellTheOwnerOfTheChange(context, tx, changes);
         }

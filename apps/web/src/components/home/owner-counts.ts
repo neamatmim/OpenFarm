@@ -9,11 +9,17 @@ export type NeedsYou = Awaited<
 export type OwnerKind =
   | "missing"
   | "storeCount"
-  | "registration"
+  | "renewals"
   | "approvals"
   | "proposals"
   | "money"
   | "review";
+
+/** The Registration and each License coming up for renewal or run out — no License in an answer a phone kept from
+ *  before the farm kept them. */
+export const papersToRenew = (needsYou: NeedsYou): number =>
+  (needsYou.registrationRenewal ? 1 : 0) +
+  (needsYou.licenseRenewals?.length ?? 0);
 
 /** How many entries of money wait for the Owner's word — all of them, as the farm counts them, where the list shows the
  *  oldest few; in an answer a phone kept from before it did, the rows it was sent. */
@@ -55,7 +61,7 @@ export const ownerCountsOf = (
   // Missing from an answer a phone kept from before a Missing was written down.
   missing: needsYou.missing?.length ?? 0,
   storeCount: needsYou.storeCount ? 1 : 0,
-  registration: needsYou.registrationRenewal ? 1 : 0,
+  renewals: papersToRenew(needsYou),
   approvals: needsYou.approvals.length,
   proposals: needsYou.proposals.length,
   money:
@@ -81,4 +87,4 @@ export const decisionsWaiting = (needsYou: NeedsYou): number =>
   needsYou.proposals.length +
   needsYou.needsReview.length +
   moneyAwaitingCount(needsYou) +
-  (needsYou.registrationRenewal ? 1 : 0);
+  papersToRenew(needsYou);

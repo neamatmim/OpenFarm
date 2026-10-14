@@ -188,6 +188,9 @@ export type StepEffect =
   | { kind: "cash_count" }
   /** The farm's DLS Registration renewed: the new expiry, and the renewed certificate's photo. */
   | { kind: "registration_renewal" }
+  /** One of the farm's Licenses renewed — the one its work was raised for: the new expiry, and the renewed
+   *  certificate's photo (ADR 0032). */
+  | { kind: "license_renewal" }
   /** The Lot Number a vaccination Campaign was given from, asked once for the Pen. */
   | { kind: "lot_number" };
 
@@ -211,6 +214,7 @@ export const STEP_EFFECT_KINDS = [
   "head_count",
   "cash_count",
   "registration_renewal",
+  "license_renewal",
   "lot_number",
 ] as const;
 
@@ -295,6 +299,7 @@ export const TRIGGER_KINDS = [
   "notifiable_disease",
   "before_calving",
   "registration_renewal",
+  "license_renewal",
   "every_months",
 ] as const;
 export type TriggerKind = (typeof TRIGGER_KINDS)[number];
@@ -385,6 +390,9 @@ export type Trigger =
    *  renewal lead, not a number here, so the queue and the work say "renew" on the same day. Raised once
    *  for each expiry. */
   | { kind: "registration_renewal" }
+  /** One of the farm's Licenses comes within the same renewal lead of running out: raised once for each License and
+   *  each expiry, on the Registration's machinery (ADR 0032). */
+  | { kind: "license_renewal" }
   /** A Campaign's **Campaign Interval**: raised in each Pen holding an animal whose last dose of the Campaign's
    *  product is so many months behind her — or who has had none since she was first counted — once for that turn. */
   | { kind: "every_months"; months: number };
@@ -609,10 +617,10 @@ const medicineCountStepProblems = (step: Step, path: string): string[] =>
     ? [`${path}.effect: the medicine is counted once, not once per animal`]
     : [];
 
-/** The Registration is renewed once, for the farm: no animal is renewed. */
+/** The Registration or a License is renewed once, for the farm: no animal is renewed. */
 const renewalStepProblems = (step: Step, path: string): string[] =>
   step.repeatPerAnimal
-    ? [`${path}.effect: the Registration is renewed once, not once per animal`]
+    ? [`${path}.effect: a paper is renewed once, not once per animal`]
     : [];
 
 /** What a Step that records a Campaign's Lot Number has to ask for: the number off the vial, written and
@@ -638,6 +646,7 @@ const SHAPED_STEPS: Partial<
   stock_count: stockCountStepProblems,
   medicine_count: medicineCountStepProblems,
   registration_renewal: renewalStepProblems,
+  license_renewal: renewalStepProblems,
   lot_number: lotNumberStepProblems,
 };
 
@@ -724,6 +733,7 @@ const TIMED_BY_THEMSELVES = [
   "prescription",
   "notifiable_disease",
   "registration_renewal",
+  "license_renewal",
 ] as const;
 
 const isTimedByItself = (
@@ -863,6 +873,7 @@ const RAISED_BY_ITS_RECORD: ReadonlySet<string> = new Set([
   "prescription",
   "notifiable_disease",
   "registration_renewal",
+  "license_renewal",
 ]);
 
 /**
@@ -911,7 +922,35 @@ const PAIRS: {
     missingTrigger:
       "triggers: a step here records a report delivered, and nothing but a notifiable diagnosis raises one",
   },
+  // A License's renewal knows which License from the work it closes, and only a License coming due raises that work.
+  {
+    trigger: "license_renewal",
+    effect: "license_renewal",
+    missingStep:
+      "steps: this work is raised by a License coming up for renewal, and no step here renews it",
+    missingTrigger:
+      "triggers: a step here renews a License, and nothing but a License coming up for renewal raises one",
+  },
 ];
+
+/** Work raised for a License renews that License, and the Registration's renews the Registration: one procedure renewing
+ *  the other's paper, or raised by both, would move the wrong one. */
+const renewsTheWrongPaper = (content: SopContent): string[] => {
+  const raisedBy = (kind: Trigger["kind"]) =>
+    content.triggers.some((trigger) => trigger.kind === kind);
+  const forLicenses = raisedBy("license_renewal");
+  return [
+    ...(forLicenses && raisedBy("registration_renewal")
+      ? ["triggers: a procedure renews the Registration or a License, not both"]
+      : []),
+    ...(forLicenses &&
+    content.steps.some((step) => step.effect?.kind === "registration_renewal")
+      ? [
+          "steps: a License's renewal work renews that License, and a step here renews the Registration",
+        ]
+      : []),
+  ];
+};
 
 const pairProblems = (content: SopContent): string[] => {
   const problems: string[] = [];
@@ -1041,6 +1080,11 @@ const WHOSE_STEPS: readonly {
     problem: "a procedure that renews the Registration is the Owner's",
   },
   {
+    effect: "license_renewal",
+    roles: ["owner"],
+    problem: "a procedure that renews a License is the Owner's",
+  },
+  {
     effect: "calving",
     roles: CALVING_RECORDERS,
     problem:
@@ -1048,17 +1092,26 @@ const WHOSE_STEPS: readonly {
   },
 ];
 
-/** The Step effects work about the whole farm may carry: nothing that needs a Pen or an animal — the Registration, and
- *  the store, which is one however many Pens stand full. */
+/** The Step effects work about the whole farm may carry: nothing that needs a Pen or an animal — the Registration and
+ *  the Licenses, and the store, which is one however many Pens stand full. */
 const FARM_WORK_EFFECTS: ReadonlySet<StepEffect["kind"]> = new Set<
   StepEffect["kind"]
->(["registration_renewal", "stock_count", "medicine_count", "cash_count"]);
+>([
+  "registration_renewal",
+  "license_renewal",
+  "stock_count",
+  "medicine_count",
+  "cash_count",
+]);
 
-/** Whether an SOP's work is about the whole farm rather than about a Pen: the Registration's renewal, or work
- *  marked so — the footbath, the visitor book. */
+/** The Triggers that raise a paper's renewal: the Registration's, or one of the Licenses'. */
+export const isRenewalTrigger = (trigger: Pick<Trigger, "kind">): boolean =>
+  trigger.kind === "registration_renewal" || trigger.kind === "license_renewal";
+
+/** Whether an SOP's work is about the whole farm rather than about a Pen: a paper's renewal, or work marked so — the
+ *  footbath, the visitor book. */
 export const isWholeFarmWork = (content: SopContent): boolean =>
-  content.wholeFarm === true ||
-  content.triggers.some((trigger) => trigger.kind === "registration_renewal");
+  content.wholeFarm === true || content.triggers.some(isRenewalTrigger);
 
 /**
  * Work about the whole farm is in no Pen and about no animal, so its Steps are walked once, and nothing in them may
@@ -1071,7 +1124,7 @@ const farmWorkProblems = (content: SopContent): string[] => {
   }
   const raisedInAPen = content.wholeFarm
     ? content.triggers.flatMap((trigger, index) =>
-        trigger.kind === "schedule" || trigger.kind === "registration_renewal"
+        trigger.kind === "schedule" || isRenewalTrigger(trigger)
           ? []
           : [
               `triggers[${index}]: work about the whole farm is raised by the clock, not by something that happened in a Pen`,
@@ -1156,6 +1209,7 @@ const answerProblems = (evidence: Evidence, path: string): string[] => {
 export const findStructuralProblems = (content: SopContent): string[] => {
   const problems: string[] = [
     ...pairProblems(content),
+    ...renewsTheWrongPaper(content),
     ...intervalProblems(content),
     ...oneOfEachProblems(content),
     ...lotNumberPlaceProblems(content),

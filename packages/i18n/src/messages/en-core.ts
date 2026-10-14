@@ -643,6 +643,12 @@ export const enCore = {
   "people.newPasswordCode": "New password code",
   "people.name": "Name",
   "people.correctName": "Correct the name",
+  "people.bvc.title": "BVC registration",
+  "people.bvc.why":
+    "The Bangladesh Veterinary Council number, as the council's certificate prints it. Printed beside the vet's name on the treatment register, the disease history, an animal's papers and the letter to the livestock office.",
+  "people.bvc.number": "BVC registration number",
+  "people.bvc.save": "Save the number",
+  "people.bvc.saved": "BVC number saved",
   "people.email": "Email",
   "people.roles": "Roles",
   "people.status": "Status",
@@ -1844,6 +1850,7 @@ export const enCore = {
   "animals.fromCampaign": "campaign",
   "animals.observationWithdrawn": "Withdrawn",
   "sop.effect.registration_renewal": "Renews the registration",
+  "sop.effect.license_renewal": "Renews the license",
   "sop.effect.observation": "What was seen (health, heat)",
   "sop.choices": "What may be chosen",
   "sop.choicesHelp": "Comma separated, in Bangla",
@@ -2156,6 +2163,15 @@ export const enCore = {
   "sop.problem.whoseMedicine": "the medicine is counted by the manager",
   "sop.problem.whoseCash": "the cash is counted by a manager or the owner",
   "sop.problem.whoseRenewal": "the registration is renewed by the owner",
+  "sop.problem.whoseLicenseRenewal": "a license is renewed by the owner",
+  "sop.problem.licenseNeedsStep":
+    "a license coming up for renewal raises this work, and no step here renews it",
+  "sop.problem.licenseOnly":
+    "a step here renews a license, and only a license coming up for renewal raises that work",
+  "sop.problem.oneKindOfPaper":
+    "a procedure renews the registration or a license, not both",
+  "sop.problem.wrongPaper":
+    "a license's renewal work renews that license, and a step here renews the registration",
   "sop.problem.whoseCalving":
     "a calving is recorded by barn staff or the manager",
   "sop.problem.whosePregnancy": "a pregnancy check is the vet's",
@@ -3190,10 +3206,16 @@ export const enCore = {
   "work.closedAsMissed":
     "Closed as missed by the manager — nothing more is recorded on it",
   "renewal.runsOut": "The registration runs out on {date}",
+  "renewal.licenseRunsOut": "{license} {number} runs out on {date}",
   "renewal.newExpiry": "The renewed certificate runs out on",
   "renewal.certificate": "Photograph of the renewed certificate",
   "refusal.renewalNotLater":
-    "A renewed registration runs out after the one it replaces",
+    "A renewed registration or license runs out after the one it replaces",
+  "refusal.renewalNamesNoLicense":
+    "This work was raised for no license the farm holds",
+  "refusal.bvcIsAVets": "Only a vet has a BVC number",
+  "refusal.yourOwnBvcNumber":
+    "Only the vet, or whoever runs the farm, writes down a BVC number",
   "refusal.renewalNeedsCertificate":
     "A renewal keeps a photograph of the renewed certificate",
   "refusal.renewalNeedsExpiry":
@@ -3205,11 +3227,17 @@ export const enCore = {
   "certificate.take": "Photograph the certificate",
   "certificate.hint":
     "A clear photograph of the certificate, kept the moment it is taken. Take it again when the certificate is renewed.",
-  "owner.registrationRenewal": "Registration renewal",
+  "owner.papersToRenew": "Registration and licenses",
   "owner.registrationEnding": "The registration runs out on {date}: renew it",
   "owner.registrationExpired": "The registration ran out on {date}",
+  "owner.licenseEnding": "{license} {number} runs out on {date}: renew it",
+  "owner.licenseExpired": "{license} {number} ran out on {date}",
   "alerts.registrationRenewal":
     "The registration runs out on {date}: its renewal is on your list",
+  "alerts.licenseRenewal":
+    "{license} {number} runs out on {date}: its renewal is on your list",
+  "alerts.restoreDrillOverdue":
+    "The quarter's restore drill was due on {since} and has not been written down. See Backups.",
   "alerts.dayNotTurning":
     "The farm's schedule has not run cleanly since {since}: work may not be raised and notices may not go. See Backups.",
   "alerts.workMissed":
@@ -4123,6 +4151,47 @@ export const enCore = {
     "{count, plural, one {Of the last try} other {Of the last # tries}}",
   "backups.history": "Every copy tried",
   "backups.historyWhy": "Newest first, failures included.",
+  "backups.drill.title": "Restore drill",
+  "backups.drill.why":
+    "Once a quarter a copy is restored on a scratch server and checked in the app, as the runbook says. Written down whether or not it went well.",
+  "backups.drill.dueOn": "The next drill is due on {day}.",
+  "backups.drill.overdue": "The drill was due on {day}",
+  "backups.drill.overdueWhat":
+    "Restore last night's copy, check it, and write the drill down here.",
+  "backups.drill.noCopy":
+    "No copy has worked yet, so there is nothing to restore.",
+  "backups.drill.doneBy": "{day}, done by {name}",
+  "backups.drill.writtenBy": "Written down by {name}",
+  "backups.drill.who": "Done by",
+  "backups.drill.whoMe": "Me",
+  "backups.drill.puttingRight": "Is this putting one right?",
+  "backups.drill.puttingRightHint":
+    "A drill written down wrong is put right by this one in its place.",
+  "backups.drill.anotherDrill": "No, a drill of its own",
+  "backups.drill.theDrillOf": "It puts right the drill of {day}",
+  "backups.drill.refused.alreadyPutRight":
+    "That drill has already been put right",
+  "refusal.drillDoneByWhoRunsTheFarm":
+    "A drill is done by whoever was the owner or a manager that day",
+  "backups.drill.copyWas": "Copy restored: {copy}",
+  "backups.drill.wentWell": "Went well",
+  "backups.drill.wentBadly": "Did not go well",
+  "backups.drill.none": "No drill written down yet",
+  "backups.drill.record": "Write down a drill",
+  "backups.drill.recordWhy":
+    "The day it was done, how it went, the copy restored and what was checked.",
+  "backups.drill.doneOn": "Done on",
+  "backups.drill.how": "How it went",
+  "backups.drill.backupUsed": "Copy restored",
+  "backups.drill.backupUsedHint": "Its day, or its file's name",
+  "backups.drill.note": "Note",
+  "backups.drill.noteHint":
+    "What was checked, and, if it did not go well, what was missing",
+  "backups.drill.save": "Write it down",
+  "backups.drill.saved": "The drill is written down",
+  "backups.drill.refused.notDoneYet": "A drill is written down once it is done",
+  "backups.drill.refused.whatWentWrong":
+    "A drill that did not go well says what went wrong",
   "common.print": "Print",
   "common.notFound": "Not found",
   "sop.effect.weigh_in": "Weigh-in",
@@ -4224,6 +4293,7 @@ export const enCore = {
   "refusal.calvingOfAMale": "A bull does not calve",
   "refusal.calvedInTheFuture": "A calving cannot be later than now",
   "sop.trigger.registrationRenewal": "the registration coming up for renewal",
+  "sop.trigger.licenseRenewal": "a license coming up for renewal",
   "sop.trigger.beforeCalving": "Before a cow's expected calving",
   "sop.trigger.farmTimed": "The farm's days, set once for every cow",
   "sop.trigger.everyMonths": "A campaign coming round",
@@ -5083,6 +5153,46 @@ export const enCore = {
   "identity.registrationHint":
     "As the certificate prints it. The transport card and the inspector's papers carry the number.",
   "identity.unsaved": "Changes not saved yet",
+  "licenses.title": "Other licenses",
+  "licenses.why":
+    "The farm's papers beside its DLS registration: the trade license, the environmental clearance, the fire license. Each says here when it runs out. A procedure in the Playbook raised by a license coming up for renewal puts its renewal on the owner's list the farm's renewal lead before.",
+  "licenses.noProcedure": "No procedure renews a license yet",
+  "licenses.noProcedureWhat":
+    "The farm says when each one runs out, and nobody is given its renewal as work until a procedure raised by its renewal is written in the Playbook.",
+  "identity.noRenewalProcedure": "No procedure renews the registration yet",
+  "licenses.none": "No licenses written down yet",
+  "licenses.add": "Add a license",
+  "licenses.edit": "Correct the license",
+  "licenses.sheetWhy": "As the certificate prints it.",
+  "licenses.save": "Save the license",
+  "licenses.saved": "License saved",
+  "licenses.kind": "Kind",
+  "licenses.kindOther": "Other",
+  "licenses.name": "What it is called",
+  "licenses.number": "License number",
+  "licenses.issuer": "Issued by",
+  "licenses.issuerHint":
+    "The Union Parishad, municipality, city corporation or department",
+  "licenses.issuedOn": "Issued on",
+  "licenses.expiresOn": "Expires on",
+  "licenses.expiresHint": "Left empty for a license that does not run out",
+  "licenses.days": "Issued {issued} · expires {expires}",
+  "licenses.standing.valid": "Valid",
+  "licenses.standing.endingSoon": "Renew soon",
+  "licenses.standing.expired": "Run out",
+  "licenses.standing.noExpiry": "Does not run out",
+  "licenses.certificate": "The license's certificate",
+  "licenses.noCertificate": "No photograph of the certificate yet",
+  "licenses.showCertificate": "Show the certificate",
+  "licenses.hideCertificate": "Hide the certificate",
+  "licenses.retire": "No longer held",
+  "licenses.retired": "Taken off the list",
+  "licenses.retireTitle": "Take {name} off the list?",
+  "licenses.retireWhy":
+    "Its renewal is no longer raised. It stays in the trail as a license the farm held.",
+  "licenses.refused.needsAName": "Say what the license is called",
+  "licenses.refused.expiresBeforeIssued":
+    "A license cannot run out before it was issued",
   "identity.onThisPage": "On this page",
   "standsAside.movedSince": "She has been moved since this was done",
   "standsAside.cannotReturnToMilk": "She cannot be put back in milk from here",
@@ -5096,7 +5206,7 @@ export const enCore = {
   "standsAside.noRation":
     "This pen is on no ration now, so what was fed cannot be set against one",
   "standsAside.renewalSuperseded":
-    "The registration has moved on since this renewal; put the newer one right instead",
+    "The registration or license has moved on since this renewal; put the newer one right instead",
   // Money and weights, said the same way to the Owner and to an Investor.
   "money.capitalIn": "Capital received",
   "money.payout": "Settlement payout",

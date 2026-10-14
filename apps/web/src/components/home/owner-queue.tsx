@@ -1,4 +1,4 @@
-import { farmDayOf } from "@OpenFarm/domain";
+import { farmDayOf, licenseNamed } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -317,24 +317,67 @@ const ReviewGroup = ({ needsYou, headless }: GroupProps) => {
   );
 };
 
-/** The Registration running out, where it is. */
+/** A License running out on the Owner's list: to its renewal work once raised, to the farm page until then. */
+const LicenseRenewalRow = ({
+  renewal,
+}: {
+  renewal: NonNullable<NeedsYou["licenseRenewals"]>[number];
+}) => {
+  const { t, language } = useLanguage();
+  const said = t(
+    renewal.expired ? "owner.licenseExpired" : "owner.licenseEnding",
+    {
+      license: licenseNamed(renewal, language),
+      number: renewal.number,
+      date: renewal.expiresOn
+        ? formatDate(renewal.expiresOn, language, "date")
+        : "—",
+    }
+  );
+  return (
+    <QueueRow
+      title={
+        renewal.instanceId ? (
+          <Link
+            className={ROW_LINK}
+            params={{ instanceId: renewal.instanceId }}
+            to="/work/$instanceId"
+          >
+            {said}
+          </Link>
+        ) : (
+          <Link className={ROW_LINK} hash="farm-licenses" to="/farm">
+            {said}
+          </Link>
+        )
+      }
+      trailing={<Opens />}
+    />
+  );
+};
+
+/** The Registration and the Licenses running out, where each is. */
 const RenewalGroup = ({ needsYou, headless }: GroupProps) => {
   const { t } = useLanguage();
   return (
     <QueueGroup
       headless={headless}
       icon={FileBadge}
-      label={t("owner.registrationRenewal")}
-      rows={
-        needsYou.registrationRenewal
+      label={t("owner.papersToRenew")}
+      rows={[
+        ...(needsYou.registrationRenewal
           ? [
               <RenewalRow
                 key="renewal"
                 renewal={needsYou.registrationRenewal}
               />,
             ]
-          : []
-      }
+          : []),
+        // Missing from an answer a phone kept from before the farm kept Licenses.
+        ...(needsYou.licenseRenewals ?? []).map((renewal) => (
+          <LicenseRenewalRow key={renewal.licenseId} renewal={renewal} />
+        )),
+      ]}
       tone="warning"
     />
   );
@@ -450,7 +493,7 @@ const KindList = ({
     case "ventures": {
       return <VentureTroubles headless={headless} ventures={ventures} />;
     }
-    case "registration": {
+    case "renewals": {
       return <RenewalGroup headless={headless} needsYou={needsYou} />;
     }
     case "approvals": {
@@ -528,10 +571,10 @@ export const NeedsYouTabs = ({
       count: ventures.length,
     },
     {
-      value: "registration",
-      label: t("owner.registrationRenewal"),
+      value: "renewals",
+      label: t("owner.papersToRenew"),
       icon: FileBadge,
-      count: counts.registration,
+      count: counts.renewals,
     },
     {
       value: "approvals",

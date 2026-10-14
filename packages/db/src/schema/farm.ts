@@ -351,6 +351,10 @@ export const roleAssignment = pgTable(
     scope: text("scope", { enum: VET_SCOPES }),
     /** When access granted for a visit ends. Null for a Role that does not run out. */
     expiresAt: timestamp("expires_at", { withTimezone: true }),
+    /** For the Vet role: their Bangladesh Veterinary Council registration number, as the council's certificate prints
+     *  it — printed beside their name wherever a paper names the Vet who prescribed or diagnosed. Null for every other
+     *  Role, and for a Vet who has not given it. Kept when the Role is revoked: the papers they signed still name it. */
+    bvcNumber: text("bvc_number"),
   },
   (table) => [
     uniqueIndex("role_assignment_user_role_uidx").on(
@@ -538,3 +542,90 @@ export const financialYearChange = pgTable(
 
 /** A Year Change still in force: never withdrawn. */
 export const YEAR_CHANGE_IN_FORCE = { withdrawnAt: { isNull: true } } as const;
+
+/** The kinds of **License** a farm in Bangladesh holds beside its DLS Registration: the trade license from the Union
+ *  Parishad, the municipality or the city corporation; the Department of Environment's clearance; the Fire Service's
+ *  license; and any other, which the farm names itself. */
+export const LICENSE_KINDS = ["trade", "environment", "fire", "other"] as const;
+export type LicenseKind = (typeof LICENSE_KINDS)[number];
+
+/**
+ * A **License**: one of the Farm's papers from an authority other than the DLS — its number, who issued it, the days it
+ * runs between, and its certificate's photograph. Renewed as the Registration is (ADR 0032): the renewal work raised for
+ * the Owner the renewal lead before it runs out, its closing Step recording the new expiry and certificate. Retired,
+ * never deleted: a license the farm no longer holds is still what it held.
+ */
+export const farmLicense = pgTable(
+  "farm_license",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: LICENSE_KINDS }).notNull(),
+    /** What an `other` license is called, as the farm writes it. Null for the kinds the farm knows by name. */
+    name: text("name"),
+    number: text("number").notNull(),
+    /** The office that issued it, as the certificate says: "Savar Pourashava", say. */
+    issuer: text("issuer"),
+    issuedOn: timestamp("issued_on", { withTimezone: true }),
+    /** When it runs out, the start of that farm day; null for one that does not, which is never renewed. */
+    expiresOn: timestamp("expires_on", { withTimezone: true }),
+    createdBy: text("created_by").references(() => user.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
+  },
+  (table) => [index("farm_license_farm_idx").on(table.farmId)]
+);
+
+/** A License the farm still holds: never retired. */
+export const LICENSE_HELD = { retiredAt: { isNull: true } } as const;
+
+/** A photograph of a License's certificate, kept for ever as the Registration's are: the newest is the certificate now. */
+export const licenseCertificate = pgTable(
+  "license_certificate",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    licenseId: text("license_id")
+      .notNull()
+      .references(() => farmLicense.id, { onDelete: "cascade" }),
+    contentType: text("content_type").notNull(),
+    /** Downscaled on the device before upload, base64. */
+    data: text("data").notNull(),
+    /** The renewal Step that took it, when a renewal did; null for one taken on the farm page. */
+    completionId: text("completion_id"),
+    takenBy: text("taken_by").references(() => user.id),
+    takenAt: timestamp("taken_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    index("license_certificate_license_idx").on(table.licenseId, table.takenAt),
+    uniqueIndex("license_certificate_completion_uidx")
+      .on(table.completionId)
+      .where(sql`${table.completionId} is not null`),
+  ]
+);
+
+/** One renewal of a License, as its renewal Step recorded it: keyed on the Completion, as a Registration's renewal is. */
+export const licenseRenewal = pgTable(
+  "license_renewal",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    licenseId: text("license_id")
+      .notNull()
+      .references(() => farmLicense.id, { onDelete: "cascade" }),
+    completionId: text("completion_id").notNull(),
+    previousExpiresOn: timestamp("previous_expires_on", { withTimezone: true }),
+    expiresOn: timestamp("expires_on", { withTimezone: true }).notNull(),
+    renewedBy: text("renewed_by").references(() => user.id),
+    renewedAt: timestamp("renewed_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("license_renewal_completion_uidx").on(table.completionId),
+  ]
+);

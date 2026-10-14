@@ -1798,6 +1798,10 @@ export const enDesk = {
   "audit.calledOffBy.sop_retired": "Called off: the procedure was retired",
   "audit.calledOffBy.released": "Called off: he is out of quarantine",
   "audit.calledOffBy.excused": "Called off: the vet excused the dose",
+  "audit.calledOffBy.license_retired":
+    "Called off: the farm no longer holds the license",
+  "audit.calledOffBy.renewal_not_due":
+    "Called off: its expiry was put right, and it is not due for renewal yet",
   "audit.raisedAgainBy.calving_expected_again":
     "Raised again: her calving is expected again",
   "audit.before": "Before",
@@ -2050,6 +2054,9 @@ export const enDesk = {
   "audit.entity.dispatch": "Milk dispatch",
   "audit.entity.sop_training": "Training",
   "audit.entity.registration_certificate": "Registration certificate",
+  "audit.entity.license": "License",
+  "audit.entity.license_certificate": "License certificate",
+  "audit.entity.restore_drill": "Restore drill",
   "audit.entity.notifiable_disease": "Notifiable disease",
   "audit.entity.feed_in": "Feed arrival",
   "audit.entity.feed_making": "Feed made on the farm",
@@ -2077,6 +2084,8 @@ export const enDesk = {
   "digest.sopProposed":
     "{count, plural, one {# proposal} other {# proposals}} waiting",
   "digest.registrationRenewal": "The registration is due for renewal",
+  "digest.licenseRenewal": "A license is due for renewal",
+  "digest.restoreDrillOverdue": "The restore drill is overdue",
   "digest.dayNotTurning": "The farm's schedule has stopped",
   "digest.backupOverdue": "The farm is not being copied",
   "digest.serverFailing": "The server is failing",

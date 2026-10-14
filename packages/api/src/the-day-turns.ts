@@ -45,6 +45,7 @@ import {
   TRIGGER_LOOKBACK_DAYS,
 } from "./instances-store";
 import { papersToTell, tellAboutPapersDue } from "./investor-statement-notice";
+import { licenseRenewalSlots, tellOfLicenseRenewals } from "./license-store";
 import {
   raiseStoreNotices,
   storeNoticesUntold,
@@ -56,7 +57,11 @@ import { tell } from "./notice";
 import type { Raised } from "./notice";
 import { carryThePost, carryWhatWasHeld, pushRaised } from "./push-send";
 import { overdueToTell, raiseOverdueReceivable } from "./receivable-store";
-import { openRenewalsOf, tellOfRenewals } from "./registration-store";
+import {
+  openRenewalsOf,
+  renewalCause,
+  tellOfRenewals,
+} from "./registration-store";
 import {
   reimbursementsToTell,
   tellAboutReimbursementsDue,
@@ -297,16 +302,17 @@ export const theDaysWork = async (context: Turning) => {
     ),
     breeding
   );
-  // Work about the whole farm: its Registration coming up for renewal.
-  const forTheRenewal = renewalSlotsFor(
-    now,
-    sops,
-    {
+  // Work about the whole farm: its Registration or one of its Licenses coming up for renewal (ADR 0032).
+  const forTheRenewal = [
+    ...renewalSlotsFor(now, sops, {
+      trigger: "registration_renewal",
       expiresOn: context.farm.registrationExpiresOn,
       renewalLeadDays: context.farm.registrationRenewalLeadDays,
-    },
-    await openRenewalsOf(context.db, context.farm.id)
-  );
+      causeOf: renewalCause,
+      stillOpen: await openRenewalsOf(context.db, context.farm.id),
+    }),
+    ...(await licenseRenewalSlots(context.db, context.farm, sops, now)),
+  ];
   // A Campaign coming round: in each Pen holding an animal whose day has come, counted as the clock's work.
   const campaigns = campaignsComingRound(sops);
   const [owed, open] = await Promise.all([
@@ -362,6 +368,7 @@ export const theDaysWork = async (context: Turning) => {
         raised = raisedBy(instances, byWhatHappened, forTheRenewal);
         // The Owner hears of a renewal in the evening's post, the day its work is raised.
         await tellOfRenewals(tx, context.farm, instances, now);
+        await tellOfLicenseRenewals(tx, context.farm.id, instances, now);
         // Whoever is on urgent work about an animal hears of it the moment it is raised, pushed once the write closes.
         urgent = await tellOfUrgentUnwell(tx, context.farm.id, instances, now);
         await flagHeatsThatArrivedTooLate(

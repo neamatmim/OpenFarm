@@ -185,6 +185,54 @@ describe("what a Step is still missing", () => {
   });
 });
 
+/** A renewal procedure raised by these Triggers, whose one Step carries this Effect. */
+const renewal = (
+  triggers: SopContent["triggers"],
+  effect: NonNullable<Step["effect"]>["kind"]
+): SopContent => ({
+  name: { bn: "লাইসেন্স নবায়ন" },
+  purpose: { bn: "লাইসেন্স সময়মতো নবায়ন" },
+  triggers,
+  assignedRole: "owner",
+  checkerRole: null,
+  graceMinutes: 1440,
+  steps: [
+    {
+      id: "renewed",
+      text: { bn: "নতুন মেয়াদ ও সনদের ছবি দিন" },
+      repeatPerAnimal: false,
+      evidence: [{ type: "tick", required: true }],
+      skipReasons: [],
+      effect: { kind: effect },
+    },
+  ],
+});
+
+describe("a procedure that renews a License", () => {
+  it("is raised by a License coming up for renewal, about the whole farm, and the Owner's", () => {
+    const content = renewal([{ kind: "license_renewal" }], "license_renewal");
+    expect(findStructuralProblems(content)).toEqual([]);
+    expect(
+      findStructuralProblems({ ...content, assignedRole: "manager" })
+    ).toContain(
+      "assignedRole: a procedure that renews a License is the Owner's"
+    );
+  });
+
+  it("renews the License its work was raised for, never the Registration, and is raised by nothing else", () => {
+    expect(
+      findStructuralProblems(
+        renewal([{ kind: "license_renewal" }], "registration_renewal")
+      ).join(" ")
+    ).toContain("renews the Registration");
+    expect(
+      findStructuralProblems(
+        renewal([{ kind: "registration_renewal" }], "license_renewal")
+      ).join(" ")
+    ).toContain("nothing but a License coming up for renewal");
+  });
+});
+
 describe("work about the whole farm", () => {
   const { biosecurity } = standardPlaybook();
 

@@ -12,6 +12,7 @@ import { ORPCError } from "@orpc/server";
 
 import { LATEST_JOINING } from "./fattening-store";
 import { animalSummaryColumns } from "./herd-store";
+import { vetForPaper } from "./vet-on-paper";
 
 /**
  * How much of her record to read. Her page shows a screenful; her Animal Passport shows what a buyer or a
@@ -97,7 +98,7 @@ export const herRecord = async (
           giver: { columns: { name: true } },
           /** Whose prescription it was. A buyer and a slaughter vet are both entitled to ask,
            *  and "prescribed" without a name is not an answer. */
-          prescription: { with: { vet: { columns: { name: true } } } },
+          prescription: { with: { vet: vetForPaper(farmId) } },
         },
       },
       weighIns: {

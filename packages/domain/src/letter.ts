@@ -3,6 +3,7 @@ import { daySaid } from "./nominees";
 import type { PaperDocument } from "./paper-template";
 import { letterheadOf } from "./paper-template";
 import type { Said } from "./papers";
+import { vetOnPaper } from "./papers";
 
 /** What the letter to the Upazila Livestock Officer has to say, from what the farm knows. */
 export interface NotifiableLetter {
@@ -15,6 +16,8 @@ export interface NotifiableLetter {
   /** The farm day the disease was found. */
   diagnosedOn: string;
   vetName: string;
+  /** Their Bangladesh Veterinary Council registration number, where the farm has written it down. */
+  vetBvcNumber?: string | null;
   /** What the farm has already given the animal, by product. The office's next question. */
   treatedWith: Said[];
   /** Who is sending it, and the farm day it is sent: a letter is dated by its day, not its minute. */
@@ -90,7 +93,7 @@ export const notifiableLetterPaper = (
           },
           {
             label: { bn: "শনাক্তকারী ভেটেরিনারিয়ান", en: "Diagnosing vet" },
-            value: letter.vetName,
+            value: vetOnPaper(letter.vetName, letter.vetBvcNumber ?? null),
           },
           { label: { bn: "গৃহীত ব্যবস্থা", en: "Measures taken" }, value: treated },
         ],

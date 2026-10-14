@@ -20,6 +20,27 @@ export const goodUntilOf = (expiresOn: Date): Date =>
   new Date(expiresOn.getTime() + DAY_MS);
 
 /**
+ * Whether a paper the farm renews — its Registration, or one of its Licenses — has run out, or is within the renewal
+ * lead of running out. Neither, for one that does not run out.
+ */
+export const runningOut = (
+  expiresOn: Date | null,
+  now: Date,
+  renewalLeadDays: number
+): { expired: boolean; endingSoon: boolean } => {
+  const goodUntil =
+    expiresOn === null ? null : goodUntilOf(expiresOn).getTime();
+  const expired = goodUntil !== null && goodUntil <= now.getTime();
+  return {
+    expired,
+    endingSoon:
+      !expired &&
+      goodUntil !== null &&
+      goodUntil - now.getTime() <= renewalLeadDays * DAY_MS,
+  };
+};
+
+/**
  * The farm's identity as a screen reads it, with the two things about a registration anybody
  * actually asks: has it run out, and is it about to.
  *
@@ -34,19 +55,17 @@ export const identityView = (
   now: Date,
   renewalLeadDays: number
 ) => {
-  const expiresOn = farm.registrationExpiresOn;
-  const goodUntil =
-    expiresOn === null ? null : goodUntilOf(expiresOn).getTime();
-  const expired = goodUntil !== null && goodUntil <= now.getTime();
+  const { expired, endingSoon } = runningOut(
+    farm.registrationExpiresOn,
+    now,
+    renewalLeadDays
+  );
   return {
     ...farm,
     /** Nothing written down at all: the transport card cannot be printed complete. */
     registrationMissing: !farm.registrationNumber,
     registrationExpired: expired,
-    registrationEndingSoon:
-      !expired &&
-      goodUntil !== null &&
-      goodUntil - now.getTime() <= renewalLeadDays * DAY_MS,
+    registrationEndingSoon: endingSoon,
   };
 };
 

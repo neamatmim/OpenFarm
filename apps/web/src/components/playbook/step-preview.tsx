@@ -20,6 +20,7 @@ const FILLED_BY_THE_FARM: ReadonlySet<string> = new Set([
   "stock_count",
   "medicine_count",
   "registration_renewal",
+  "license_renewal",
 ]);
 
 /**

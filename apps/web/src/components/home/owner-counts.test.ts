@@ -64,6 +64,20 @@ describe("what waits on the Owner", () => {
     expect(ownerCountsOf(both)).toMatchObject({ money: 2 });
   });
 
+  it("counts each License coming up for renewal beside the Registration, as a decision of hers", () => {
+    const renewing = {
+      ...NOTHING,
+      registrationRenewal: {
+        expiresOn: null,
+        expired: false,
+        instanceId: null,
+      },
+      licenseRenewals: [{ licenseId: "trade" }, { licenseId: "fire" }],
+    } as unknown as NeedsYou;
+    expect(ownerCountsOf(renewing)).toMatchObject({ renewals: 3 });
+    expect(decisionsWaiting(renewing)).toBe(3);
+  });
+
   it("counts an answer kept from before the newer kinds as nothing of them", () => {
     const old = {
       approvals: [],

@@ -36,6 +36,7 @@ import {
   MovementLog,
   RegisterPeriod,
 } from "@/components/health-registers";
+import { InspectorLicenses } from "@/components/licenses";
 import {
   EmptyState,
   Notice,
@@ -228,6 +229,9 @@ const RegistrationTab = ({
           <EmptyState icon={ImageOff} title={t("certificate.none")} />
         )}
       </Section>
+
+      {/* The farm's other Licenses, each with its certificate, as the Registration is shown (ADR 0032). */}
+      <InspectorLicenses />
 
       <Section
         action={printButton("herd_summary")}

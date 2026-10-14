@@ -9,6 +9,7 @@ import { dayOrNone } from "./paper-saying";
 import type { PaperDocument, PaperSection } from "./paper-template";
 import { letterheadOf } from "./paper-template";
 import type { DocumentRow, Said, Worded } from "./papers";
+import { vetOnPaper } from "./papers";
 
 /**
  * Whether her meat may be sold today, and when it may if not, and a Vet's shortening of the hold when there has been
@@ -35,6 +36,8 @@ export interface DoseOnPaper {
   meatClearOn: string | null;
   /** The Vet who prescribed it, or nothing for a dose given on a campaign over her Pen, or without a Prescription. */
   prescribedBy: string | null;
+  /** That Vet's BVC registration number, where the farm has it. */
+  prescriberBvc: string | null;
   /** For a dose given without a Prescription, who advised it and why; nothing for a course's dose or a campaign's. */
   advice: string | null;
   givenBy: string | null;
@@ -95,9 +98,10 @@ const standingRows = (standing: WithdrawalStanding): DocumentRow[] => {
 /** Where a dose came from: a Vet's prescription, a campaign over her Pen, or advice without a Prescription. */
 const doseSource = (dose: DoseOnPaper): Said => {
   if (dose.prescribedBy) {
+    const vet = vetOnPaper(dose.prescribedBy, dose.prescriberBvc);
     return {
-      bn: `ব্যবস্থাপত্র: ${dose.prescribedBy}`,
-      en: `Prescribed by ${dose.prescribedBy}`,
+      bn: `ব্যবস্থাপত্র: ${vet.bn}`,
+      en: `Prescribed by ${vet.en}`,
     };
   }
   return dose.advice === null

@@ -118,10 +118,13 @@ Once a quarter, and after any change to the database provider.
    - **a milking Instance** — yesterday's liters are the ones they remember, per cow;
    - **an Animal's history** — it reads back, and a Correction still shows what it replaced;
    - **Audit log** (অডিট লগ) — the trail reaches further back than the backup is old.
-3. **Write the result down** twice: a line in the farm's ops log with the date, the backup
-   used and who witnessed it — and, in the restored system itself, dismiss an Alert or make
-   a note so the drill leaves an Audit Event in the copy it was run against. A drill nobody
-   recorded is a drill nobody did.
+3. **Write the result down** twice: in the live farm, on **Backups → Restore drill → Write
+   down a drill** (খামারের কপি → রিস্টোর মহড়া), with the day, the copy used, whether it went well
+   and what was checked — a drill that went badly says what was missing — and, in the restored
+   system itself, dismiss an Alert or make a note so the drill leaves an Audit Event in the copy
+   it was run against. A drill nobody recorded is a drill nobody did: the Backups page says
+   when the next is due, and the Owner is told once a quarter has gone by without one
+   (ADR 0032).
 4. If anything is missing, the drill has done its job. Do not tidy it away — find out why
    before the next nightly runs.
 5. **Drop the scratch database** once the drill is written down. It holds the whole farm — every

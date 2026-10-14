@@ -82,6 +82,13 @@ const EXAMPLE: NoticeFacts = {
     categoryEn: "Feed",
   },
   registration_renewal_due: { expiresOn: "2038-06-30" },
+  license_renewal_due: {
+    kind: "trade",
+    name: null,
+    number: "TL/SAV/1234",
+    expiresOn: "2038-06-30T00:00:00.000Z",
+  },
+  restore_drill_overdue: { since: "2038-03-01T00:00:00.000Z" },
   investor_statement_due: {
     ventureId: "venture-1",
     venture: "কোরবানি ২০৩৮",
@@ -299,6 +306,31 @@ describe("what a Notice's words are filled with", () => {
     expect(stillHereSaid(2)).toContain("(2 of them a venture's)");
     // A farm day is the day it is, never midnight UTC read on the farm's clock.
     expect(stillHereSaid(0)).toContain("12");
+  });
+
+  it("names a License coming up for renewal by its kind in the reader's language, an other by the farm's own name", () => {
+    const trade = EXAMPLE.license_renewal_due;
+    expect(
+      translate(
+        "bn",
+        "alerts.licenseRenewal",
+        noticeFilling("license_renewal_due", trade, "bn")
+      )
+    ).toContain("ট্রেড লাইসেন্স TL/SAV/1234");
+    expect(
+      translate(
+        "en",
+        "alerts.licenseRenewal",
+        noticeFilling("license_renewal_due", trade, "en")
+      )
+    ).toContain("Trade license TL/SAV/1234 runs out on 30 June 2038");
+    expect(
+      noticeFilling(
+        "license_renewal_due",
+        { ...trade, kind: "other", name: "বয়লার সনদ" },
+        "en"
+      ).license
+    ).toBe("বয়লার সনদ");
   });
 
   it("names feed and medicine in the reader's language, the Bangla where no English was kept", () => {

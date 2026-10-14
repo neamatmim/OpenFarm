@@ -116,6 +116,16 @@ const SAID: Readonly<Record<string, MessageKey>> = {
     "sop.problem.whoseCash",
   "a procedure that renews the Registration is the Owner's":
     "sop.problem.whoseRenewal",
+  "a procedure that renews a License is the Owner's":
+    "sop.problem.whoseLicenseRenewal",
+  "this work is raised by a License coming up for renewal, and no step here renews it":
+    "sop.problem.licenseNeedsStep",
+  "a step here renews a License, and nothing but a License coming up for renewal raises one":
+    "sop.problem.licenseOnly",
+  "a procedure renews the Registration or a License, not both":
+    "sop.problem.oneKindOfPaper",
+  "a License's renewal work renews that License, and a step here renews the Registration":
+    "sop.problem.wrongPaper",
   "a procedure that records a calving is Barn Staff's or the Manager's":
     "sop.problem.whoseCalving",
   "a procedure that records a pregnancy check is the Vet's":

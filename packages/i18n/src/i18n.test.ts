@@ -102,6 +102,8 @@ describe("messages", () => {
       "says",
       "this",
       "ends",
+      // "{number} runs out" is a License's number, not a count.
+      "runs",
       "owes",
       // "{amount} less" is a sum of money, not a count.
       "less",

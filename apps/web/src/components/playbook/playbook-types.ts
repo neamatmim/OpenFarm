@@ -53,6 +53,9 @@ const happeningWord = (happening: HappeningTrigger, t: Translate): string => {
     case "every_months": {
       return t("sop.trigger.monthsSaid", { months: happening.months });
     }
+    case "license_renewal": {
+      return t("sop.trigger.licenseRenewal");
+    }
     default: {
       return t("sop.trigger.registrationRenewal");
     }

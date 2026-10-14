@@ -1021,6 +1021,21 @@ const sellTheReady = ({ farm, on }: Script) => {
       });
     }
   );
+  // The quarter's Restore Drill, three weeks ago: last night's copy restored by the Owner on a scratch server and
+  // written down by her. The farm opens with the next one some ten weeks off, not overdue.
+  on(
+    addDays(today, -20),
+    "16:00",
+    "the restore drill written down",
+    async (f) => {
+      await f.as.owner.backups.recordDrill({
+        doneOn: addDays(today, -20),
+        wentWell: true,
+        backupUsed: "nightly",
+        note: "পাল, দুধ, পশুর ইতিহাস আর অডিট লগ সব ফিরে এসেছে",
+      });
+    }
+  );
   // Home from the livestock market, the Owner writes down what a kilo went for there: what the farm's own bulls are priced at, and
   // what keeping each one another fortnight is weighed against.
   on(addDays(today, -9), "20:00", "the Owner prices the market", async (f) => {

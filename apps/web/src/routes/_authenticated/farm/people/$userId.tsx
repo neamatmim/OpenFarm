@@ -23,6 +23,7 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { PageTabs } from "@/components/page-kit";
+import { BvcNumberSection } from "@/components/people/bvc-number";
 import { RoleBadges, useAddressShown } from "@/components/people/people-table";
 import { AccessTab } from "@/components/people/person-access";
 import { SignInsTab, TrainingTab } from "@/components/people/person-sign-ins";
@@ -145,18 +146,27 @@ const PersonPage = () => {
                   label: t("people.tab.access"),
                   icon: ShieldCheck,
                   content: (
-                    <AccessTab
-                      gone={gone}
-                      isOwner={isOwner}
-                      isSelf={isSelf}
-                      name={them.name}
-                      penIds={them.penIds ?? []}
-                      roles={them.roles ?? []}
-                      pinSet={them.pinSet ?? false}
-                      shedPhoneOnly={shedPhoneOnly}
-                      userId={userId}
-                      visitUntil={them.visitUntil ?? null}
-                    />
+                    <>
+                      <AccessTab
+                        gone={gone}
+                        isOwner={isOwner}
+                        isSelf={isSelf}
+                        name={them.name}
+                        penIds={them.penIds ?? []}
+                        roles={them.roles ?? []}
+                        pinSet={them.pinSet ?? false}
+                        shedPhoneOnly={shedPhoneOnly}
+                        userId={userId}
+                        visitUntil={them.visitUntil ?? null}
+                      />
+                      {/* A Vet's council number, printed on the papers they sign. */}
+                      {them.roles?.includes("vet") ? (
+                        <BvcNumberSection
+                          bvcNumber={them.bvcNumber ?? null}
+                          userId={userId}
+                        />
+                      ) : null}
+                    </>
                   ),
                 },
                 // Where somebody is signed in is shown only to whoever may sign them out of it.

@@ -1,4 +1,5 @@
 import type { ReviewReason } from "./alerts";
+import type { LicenseKind } from "./licenses";
 
 // What a Notice of each kind carries: the facts it is raised with, stored as they were then, and read back by the
 // words it says. Here rather than beside who hears it, because the farm's list and the phone both read them and
@@ -239,6 +240,16 @@ export interface NoticeFacts {
     categoryEn: string | null;
   };
   registration_renewal_due: { expiresOn: string | null };
+  /** Which License, as the farm knows it — its kind, the name it wrote for an `other`, its number — and when it runs
+   *  out, as an ISO instant. */
+  license_renewal_due: {
+    kind: LicenseKind;
+    name: string | null;
+    number: string;
+    expiresOn: string | null;
+  };
+  /** The farm day the quarter's Restore Drill fell due, as the start of that day. */
+  restore_drill_overdue: { since: string };
   investor_statement_due: {
     ventureId: string;
     venture: string;

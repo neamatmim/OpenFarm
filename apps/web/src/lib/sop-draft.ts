@@ -150,6 +150,7 @@ export type HappeningTrigger = Extract<
       | "notifiable_disease"
       | "before_calving"
       | "registration_renewal"
+      | "license_renewal"
       | "every_months";
   }
 >;
@@ -229,7 +230,13 @@ const OWN_LOT_NUMBER: Evidence = { type: "note", required: false };
  *  animal. */
 const DONE_ONCE_WITH_A_TICK: ReadonlySet<StepEffect["kind"]> = new Set<
   StepEffect["kind"]
->(["feeding", "stock_count", "medicine_count", "registration_renewal"]);
+>([
+  "feeding",
+  "stock_count",
+  "medicine_count",
+  "registration_renewal",
+  "license_renewal",
+]);
 
 /** The effects done once for the Pen or the farm rather than animal by animal. */
 const DONE_ONCE: ReadonlySet<StepEffect["kind"]> = new Set<StepEffect["kind"]>([

@@ -46,6 +46,16 @@ describe("the letter to the Upazila Livestock Officer, on paper", () => {
     expect(en).toContain("Measures taken: Penicillin given");
   });
 
+  it("gives the diagnosing vet's BVC number beside their name, where the farm has it", () => {
+    const sent = notifiableLetterPaper({ ...LETTER, vetBvcNumber: "BVC-0457" });
+    expect(paperText(sent, "bn")).toContain(
+      "শনাক্তকারী ভেটেরিনারিয়ান: ডা. করিম (বিভিসি নং BVC-0457)"
+    );
+    expect(paperText(sent, "en")).toContain(
+      "Diagnosing vet: ডা. করিম (BVC no. BVC-0457)"
+    );
+  });
+
   it("says when nothing has been given yet, and refuses a letter with a hole in it", () => {
     expect(
       paperText(notifiableLetterPaper({ ...LETTER, treatedWith: [] }), "en")

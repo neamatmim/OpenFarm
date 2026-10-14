@@ -22,6 +22,7 @@ import {
   penLabel,
   workAwaitingSignOff,
 } from "../instances-store";
+import { licenseRenewalsDue } from "../license-store";
 import { lostInAYear, missingNow } from "../missing-store";
 import { awaitingApproval, termsOf } from "../money-store";
 import { monthlyCostsNow } from "../monthly-costs-store";
@@ -288,6 +289,12 @@ export const overviewRouter = {
           storeCount,
           /** The Registration coming up for renewal, or run out, and the work raised for it. */
           registrationRenewal: await renewalDue(context.db, context.farm, now),
+          /** Each License coming up for renewal, or run out, and the work raised for it (ADR 0032). */
+          licenseRenewals: await licenseRenewalsDue(
+            context.db,
+            context.farm,
+            now
+          ),
         },
         tiles: {
           /** A recorded zero is a reading; a session still awaiting its records is not. */

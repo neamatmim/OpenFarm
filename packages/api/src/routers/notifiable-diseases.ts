@@ -13,6 +13,7 @@ import type { FarmList } from "../farm-list";
 import { assertNameFree, bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
+import { bvcOf, vetForPaper } from "../vet-on-paper";
 
 const name = z.object({
   bn: z.string().trim().min(1).max(120),
@@ -70,7 +71,7 @@ const buildLetter = async (
     where: { id: diagnosisId, farmId: context.farm.id },
     with: {
       animal: { columns: { tagNumber: true } },
-      vet: { columns: { name: true } },
+      vet: vetForPaper(context.farm.id),
       report: { columns: { id: true, withdrawnAt: true } },
       /** What has been given for it, so the letter can say what the farm has already done. */
       prescriptions: {
@@ -97,6 +98,7 @@ const buildLetter = async (
       disease: found.disease,
       diagnosedOn: farmDayOf(found.diagnosedAt),
       vetName: found.vet.name,
+      vetBvcNumber: bvcOf(found.vet),
       // What the farm has already done about it, which is what the office asks next: each product once.
       treatedWith: [
         ...new Map(

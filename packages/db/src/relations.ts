@@ -67,6 +67,18 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.user.id,
     }),
   },
+  restoreDrill: {
+    doer: r.one.user({
+      from: r.restoreDrill.doneBy,
+      to: r.user.id,
+      optional: false,
+    }),
+    recorder: r.one.user({
+      from: r.restoreDrill.recordedBy,
+      to: r.user.id,
+      optional: false,
+    }),
+  },
   shed: {
     pens: r.many.pen({ from: r.shed.id, to: r.pen.shedId }),
   },

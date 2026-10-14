@@ -112,6 +112,8 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   money_awaiting_approval: { audience: [theOwner], entity: "money_event" },
   // The Registration is in the Owner's name, and renewing it is theirs to do.
   registration_renewal_due: { audience: [theOwner], entity: "sop_instance" },
+  // So are the farm's other Licenses, renewed on the same machinery (ADR 0032).
+  license_renewal_due: { audience: [theOwner], entity: "sop_instance" },
   // Whose money it is, is the Owner's business and nobody else's — the Manager reads a Venture's
   // figures but never its Investors. And producing the paper is the Owner's act besides.
   investor_statement_due: { audience: [theOwner], entity: "venture" },
@@ -122,6 +124,8 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   day_not_turning: { audience: [theOwner], entity: "scheduler_state" },
   backup_overdue: { audience: [theOwner], entity: "backup_run" },
   monthly_copy_failed: { audience: [theOwner], entity: "backup_run" },
+  // The Restore Drill restores a copy on the server, which only the Owner has a login on (the drill's runbook).
+  restore_drill_overdue: { audience: [theOwner], entity: "restore_drill" },
   // The server failing to answer is counted on the process, not on any row: filed with the schedule, as the day not
   // turning is.
   server_failing: { audience: [theOwner], entity: "scheduler_state" },

@@ -66,6 +66,11 @@ export const DELIVERY = {
   // Ninety days is time enough: the Owner reads it with the evening's post (notification channels: DLS
   // renewal due → Owner, digest).
   registration_renewal_due: { when: "digest" },
+  // A License's renewal is the same errand at another office, read with the same post.
+  license_renewal_due: { when: "digest" },
+  // A quarter's Restore Drill gone by is the evening's reading: the copies are still being taken, and a drill is an
+  // afternoon's work planned, not a fire.
+  restore_drill_overdue: { when: "digest" },
   // An Investor's paper is owed, not overdue: the Owner writes it when she sits down to the evening's
   // post, and a phone that buzzes for a letter is a phone nobody answers for a withdrawal.
   investor_statement_due: { when: "digest" },
@@ -258,6 +263,14 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   registration_renewal_due: {
     app: "alerts.registrationRenewal",
     digest: "digest.registrationRenewal",
+  },
+  license_renewal_due: {
+    app: "alerts.licenseRenewal",
+    digest: "digest.licenseRenewal",
+  },
+  restore_drill_overdue: {
+    app: "alerts.restoreDrillOverdue",
+    digest: "digest.restoreDrillOverdue",
   },
   day_not_turning: {
     app: "alerts.dayNotTurning",

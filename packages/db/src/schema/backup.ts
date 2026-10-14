@@ -1,4 +1,14 @@
-import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
+
+import { user } from "./auth";
+import { farm } from "./farm";
 
 /** What a copy was taken for. Nightlies age out; monthlies are kept for as long as the farm
  *  keeps anything, which is for ever (Audit trail and correction rules). */
@@ -36,3 +46,40 @@ export const backupRun = pgTable(
   },
   (table) => [index("backup_run_idx").on(table.startedAt)]
 );
+
+/**
+ * A **Restore Drill**: the quarterly rehearsal of losing the farm's database — a backup restored into a scratch
+ * environment and checked by the Manager in the app (docs/runbooks/restore-drill.md) — written down in the farm it
+ * rehearsed, whether or not it went well. Never edited: one written down wrong is put right by another written down
+ * in its place.
+ */
+export const restoreDrill = pgTable(
+  "restore_drill",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    /** The farm day it was done, its start. */
+    doneOn: timestamp("done_on", { withTimezone: true }).notNull(),
+    wentWell: boolean("went_well").notNull(),
+    /** Which copy was restored, as the runbook asks: its day, or its file's name. */
+    backupUsed: text("backup_used"),
+    /** What was checked, and — required when it did not go well — what was missing. */
+    note: text("note"),
+    /** Who did it: the Owner or a Manager, who rehearse it between them. The one writing it down, unless they say. */
+    doneBy: text("done_by")
+      .notNull()
+      .references(() => user.id),
+    recordedBy: text("recorded_by")
+      .notNull()
+      .references(() => user.id),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
+    /** The drill written down to put this one right, when one was: this one then stands no more. Null while it stands. */
+    putRightBy: text("put_right_by"),
+  },
+  (table) => [index("restore_drill_farm_idx").on(table.farmId, table.doneOn)]
+);
+
+/** A Restore Drill that stands: not put right by another written down in its place. Use in relational `where`s. */
+export const DRILL_STANDS = { putRightBy: { isNull: true } } as const;

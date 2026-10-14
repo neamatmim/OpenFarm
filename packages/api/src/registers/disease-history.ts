@@ -1,6 +1,7 @@
 import type { ExitState } from "@OpenFarm/domain";
-import { farmDayOf, isExitState } from "@OpenFarm/domain";
+import { farmDayOf, isExitState, vetOnPaper } from "@OpenFarm/domain";
 
+import { bvcOf, vetForPaper } from "../vet-on-paper";
 import type { Db, Register, Saying } from "./register";
 
 /** What became of an animal since she was diagnosed: still on the farm, or gone and when. */
@@ -16,6 +17,8 @@ export interface DiagnosisRow {
   tagNumber: string;
   disease: string;
   diagnosedBy: string;
+  /** The diagnosing Vet's BVC registration number, where the farm has it. */
+  diagnoserBvc: string | null;
   notifiable: boolean;
   reportReference: string | null;
   outcome: Outcome;
@@ -38,7 +41,7 @@ const diagnosesBetween = async (
       animal: {
         columns: { tagNumber: true, state: true, stateChangedAt: true },
       },
-      vet: { columns: { name: true } },
+      vet: vetForPaper(farmId),
       report: { columns: { reference: true, withdrawnAt: true } },
     },
     orderBy: { diagnosedAt: "asc", id: "asc" },
@@ -53,6 +56,7 @@ const diagnosesBetween = async (
       tagNumber: row.animal.tagNumber,
       disease: row.disease,
       diagnosedBy: row.vet.name,
+      diagnoserBvc: bvcOf(row.vet),
       notifiable: report !== null && report !== undefined,
       reportReference: report?.reference ?? null,
       outcome: {
@@ -101,7 +105,14 @@ export const DISEASE_HISTORY: Register<DiagnosisRow> = {
       }`,
   },
   columns: [
-    { paper: { bn: "ভেট", en: "Vet", said: (row) => row.diagnosedBy } },
+    {
+      paper: {
+        bn: "ভেট",
+        en: "Vet",
+        said: (row, say) =>
+          say.said(vetOnPaper(row.diagnosedBy, row.diagnoserBvc)),
+      },
+    },
     {
       paper: {
         bn: "ডিএলএস রেফারেন্স",

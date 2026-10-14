@@ -62,6 +62,9 @@ const ofKind = (
   if (kind === "registration_renewal") {
     return { kind: "registration_renewal" };
   }
+  if (kind === "license_renewal") {
+    return { kind: "license_renewal" };
+  }
   if (kind === "every_months") {
     return { kind: "every_months", months: STARTING_MONTHS };
   }
@@ -252,6 +255,9 @@ const TriggerFields = ({
             </option>
             <option value="registration_renewal">
               {t("sop.trigger.registrationRenewal")}
+            </option>
+            <option value="license_renewal">
+              {t("sop.trigger.licenseRenewal")}
             </option>
             <option value="every_months">{t("sop.trigger.everyMonths")}</option>
           </NativeSelect>

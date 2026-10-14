@@ -286,6 +286,7 @@ describe("the health registers", () => {
         course: "1/4",
         givenBy: expect.any(String),
         prescribedBy: expect.any(String),
+        prescriberBvc: null,
         milkClearOn: "2044-03-05",
         meatClearOn: "2044-03-22",
       },
@@ -300,6 +301,7 @@ describe("the health registers", () => {
         course: null,
         givenBy: expect.any(String),
         prescribedBy: null,
+        prescriberBvc: null,
         milkClearOn: "2044-03-23",
         meatClearOn: "2044-04-03",
       },
@@ -406,7 +408,7 @@ describe("the health registers", () => {
     });
     const [header, ...rows] = (sheet.csv ?? "").slice(1).trim().split("\r\n");
     expect(header).toBe(
-      "date,tag,diagnosis,drug,dose,route,course,given_by,prescribed_by,milk_withdrawal_ends,meat_withdrawal_ends"
+      "date,tag,diagnosis,drug,dose,route,course,given_by,prescribed_by,milk_withdrawal_ends,meat_withdrawal_ends,prescriber_bvc_number"
     );
     // Plain words and farm days for a spreadsheet; the campaign's dose with its prescription columns empty.
     const ourRows = rows.filter((row) =>
@@ -415,13 +417,13 @@ describe("the health registers", () => {
     expect(ourRows).toHaveLength(2);
     expect(ourRows[0]).toMatch(
       new RegExp(
-        `^2044-03-01,${world.mastitisCow.tagNumber},ওলান প্রদাহ,অক্সিটেট্রাসাইক্লিন ${suffix},১০ মিলি,intramuscular,1/4,[^,]+,[^,]+,2044-03-05,2044-03-22$`,
+        `^2044-03-01,${world.mastitisCow.tagNumber},ওলান প্রদাহ,অক্সিটেট্রাসাইক্লিন ${suffix},১০ মিলি,intramuscular,1/4,[^,]+,[^,]+,2044-03-05,2044-03-22,$`,
         "u"
       )
     );
     expect(ourRows[1]).toMatch(
       new RegExp(
-        `^2044-03-20,${world.mastitisCow.tagNumber},,আলবেন্ডাজল ${suffix},,,,[^,]+,,2044-03-23,2044-04-03$`,
+        `^2044-03-20,${world.mastitisCow.tagNumber},,আলবেন্ডাজল ${suffix},,,,[^,]+,,2044-03-23,2044-04-03,$`,
         "u"
       )
     );
@@ -461,6 +463,7 @@ describe("the health registers", () => {
         tagNumber: world.mastitisCow.tagNumber,
         disease: "ওলান প্রদাহ",
         diagnosedBy: expect.any(String),
+        diagnoserBvc: null,
         notifiable: false,
         reportReference: null,
         outcome: { kind: "on_the_farm", on: null },
@@ -471,6 +474,7 @@ describe("the health registers", () => {
         tagNumber: world.anthraxCow.tagNumber,
         disease: world.disease,
         diagnosedBy: expect.any(String),
+        diagnoserBvc: null,
         notifiable: true,
         reportReference: "ULO/2044/০০৭",
         outcome: { kind: "died", on: "2044-03-12" },
@@ -481,6 +485,7 @@ describe("the health registers", () => {
         tagNumber: world.mastitisCow.tagNumber,
         disease: "জ্বর, কারণ অজানা",
         diagnosedBy: expect.any(String),
+        diagnoserBvc: null,
         notifiable: false,
         reportReference: null,
         outcome: { kind: "on_the_farm", on: null },

@@ -3,12 +3,14 @@ import type { FactsAsShown } from "@OpenFarm/api/effects/effect";
 import type {
   Bilingual,
   Evidence,
+  LicenseKind,
   MilkDestination,
   Step,
 } from "@OpenFarm/domain";
 import {
   NOT_DUE_YET,
   feedUnitWord,
+  licenseNamed,
   MILK_DESTINATIONS,
   farFromLast,
   mayPassAsNotDue,
@@ -166,7 +168,13 @@ interface StockCountBoard {
   counted: { feedItemId: string; counted: number; reason: string | null }[];
 }
 
-/** The farm day a year after the Registration runs out now: where a renewed certificate usually lands. */
+/** What the work's board says of the paper a renewal renews: when it runs out now, and which License, when it is one. */
+interface RenewalBoard {
+  expiresOn: Date | null;
+  license?: { kind: LicenseKind; name: string | null; number: string } | null;
+}
+
+/** The farm day a year after the paper runs out now: where a renewed certificate usually lands. */
 const aYearOn = (expiresOn: Date | null): string => {
   if (!expiresOn) {
     return "";
@@ -184,13 +192,17 @@ const aYearOn = (expiresOn: Date | null): string => {
  */
 const useRenewal = (
   step: Step,
-  board: { expiresOn: Date | null } | null | undefined,
+  board: RenewalBoard | null | undefined,
   correcting: boolean,
   recorded: FactsAsShown["renewal"],
   initial?: StepAnswer["renewal"]
 ) => {
-  const renews = step.effect?.kind === "registration_renewal";
+  const renews =
+    step.effect?.kind === "registration_renewal" ||
+    step.effect?.kind === "license_renewal";
   const runsOutOn = board?.expiresOn ?? null;
+  // An answer kept from before the board said which License carries none.
+  const license = board?.license ?? null;
   const [expiresOn, setExpiresOn] = useState(
     () => initial?.expiresOn ?? recorded?.expiresOn ?? aYearOn(runsOutOn)
   );
@@ -202,6 +214,7 @@ const useRenewal = (
   return {
     renews,
     runsOutOn,
+    license,
     expiresOn,
     setExpiresOn,
     issuedOn,
@@ -233,6 +246,7 @@ const RenewalFields = ({
   }
   const {
     runsOutOn,
+    license,
     expiresOn,
     issuedOn,
     certificate,
@@ -241,13 +255,26 @@ const RenewalFields = ({
     setCertificate: onCertificate,
   } = renewing;
   const certificateTaken = certificate !== null;
+  const date = runsOutOn
+    ? formatDate(new Date(runsOutOn), language, "date")
+    : "";
   return (
     <div className="space-y-3">
-      {runsOutOn ? (
+      {/* Which License this work renews, and when it runs out now. */}
+      {license ? (
         <p className="text-muted-foreground text-sm">
-          {t("renewal.runsOut", {
-            date: formatDate(new Date(runsOutOn), language, "date"),
-          })}
+          {runsOutOn
+            ? t("renewal.licenseRunsOut", {
+                license: licenseNamed(license, language),
+                number: license.number,
+                date,
+              })
+            : `${licenseNamed(license, language)} ${license.number}`}
+        </p>
+      ) : null}
+      {runsOutOn && !license ? (
+        <p className="text-muted-foreground text-sm">
+          {t("renewal.runsOut", { date })}
         </p>
       ) : null}
       <div className="space-y-1">
@@ -1091,8 +1118,8 @@ export const EvidenceSheet = ({
   stockCount?: StockCountBoard | null;
   /** What to count, in doses, for a Step that counts the medicine. */
   medicineCount?: MedicineCountBoard | null;
-  /** When the Registration runs out now, for the Step that renews it. */
-  renewal?: { expiresOn: Date | null } | null;
+  /** When the Registration, or the License the work was raised for, runs out now, for the Step that renews it. */
+  renewal?: RenewalBoard | null;
   /** Photographs and certificate still held with an answer the farm refused. */
   initialPhotos?: Taken;
   initialRenewal?: StepAnswer["renewal"];

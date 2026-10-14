@@ -13,6 +13,7 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { FormField } from "@/components/page-kit";
+import { BvcNumberSection } from "@/components/people/bvc-number";
 import { useLanguage } from "@/i18n/language-provider";
 import {
   askToBeTold,
@@ -228,7 +229,21 @@ const MyNumber = () => {
   );
 };
 
-/** What each person sets for themselves: whether this device is told things, and the number the farm may text. */
+/** A Vet's own BVC number, which the papers they sign print beside their name. */
+const MyBvcNumber = () => {
+  const me = useQuery(orpc.people.me.queryOptions());
+  const isVet = me.data?.roles.includes("vet") ?? false;
+  const mine = useQuery({
+    ...orpc.people.get.queryOptions({ input: { userId: me.data?.id ?? "" } }),
+    enabled: isVet,
+  });
+  return isVet && mine.data ? (
+    <BvcNumberSection bvcNumber={mine.data.bvcNumber ?? null} />
+  ) : null;
+};
+
+/** What each person sets for themselves: whether this device is told things, the number the farm may text, and — a
+ *  Vet — their council number. */
 const SettingsPage = () => {
   const { t } = useLanguage();
   return (
@@ -239,6 +254,7 @@ const SettingsPage = () => {
       />
       <BeingTold />
       <MyNumber />
+      <MyBvcNumber />
     </Page>
   );
 };
