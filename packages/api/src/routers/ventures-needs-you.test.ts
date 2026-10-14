@@ -58,6 +58,7 @@ const invited = invitingInvestors({ prefix: "016", run: suffix }, JANUARY);
 let asked = "";
 let feeding = "";
 let settled = "";
+let sprayId = "";
 
 beforeAll(async () => {
   const owner = await at(JANUARY);
@@ -107,6 +108,7 @@ beforeAll(async () => {
     nameBn: `মাছি স্প্রে ${suffix}`,
     direction: "out",
   });
+  sprayId = spray.id;
   await owner.money.categories.setChargedToAnimals({
     categoryId: spray.id,
     chargedToAnimals: true,
@@ -134,14 +136,34 @@ beforeAll(async () => {
     note: `spray ${suffix}`,
   });
 
-  // A Venture that bought nothing, settled the day it began buying: its payout approved and not yet sent.
+  // A Venture that bought nothing, settled the day it began buying: one Investor's payout approved and not yet sent,
+  // and another who signed and paid nothing, whose share comes to nothing to send.
   settled = await opened(owner, "নিষ্পত্তি");
   await putCapitalIn(
     owner,
-    { id: settled, units: 20, unitPriceMoney: 50_000 },
+    { id: settled, units: 10, unitPriceMoney: 50_000 },
     `${suffix}-settled`,
     "2079-01-02"
   );
+  const paidNothing = await owner.investors.record({
+    name: `কিছু দেননি ${suffix}`,
+    phone: `0175${`${Date.now()}`.slice(-7)}`,
+  });
+  const unpaid = await owner.ventures.agreements.sign({
+    ventureId: settled,
+    investorId: paidNothing.id,
+    units: 10,
+    investorsPercent: 60,
+    arbitrator: `মাওলানা ${suffix}`,
+    stampValueMoney: 300,
+    stampedOn: "2079-01-02",
+    stampSerial: `NY-UNPAID-${suffix}`,
+  });
+  await owner.ventures.agreements.keepPaper({
+    agreementId: unpaid.id,
+    contentType: "image/jpeg",
+    data: "aGVsbG8=",
+  });
   await owner.ventures.startBuying({ id: settled });
   await owner.ventures.settlement.approve({ ventureId: settled });
 });
@@ -176,12 +198,33 @@ describe("what on a Venture waits for the Owner", () => {
     });
   });
 
-  it("counts this month's progress statements not yet made, once a month of the run is over", async () => {
-    // Its first month is still running: nothing is owed yet.
-    expect(await rowOf("2079-01-25T04:00:00.000Z", feeding)).toMatchObject({
-      statementsDue: 0,
+  it("names last month as owed with what its transfer would carry, a repaid month's late cost included", async () => {
+    // January was repaid on the 5th of February; a January cost written later carries into February's transfer, though
+    // February itself cost the bull nothing.
+    const late = await at("2079-02-20T06:00:00.000Z");
+    await late.money.enter({
+      categoryId: sprayId,
+      amountMoney: 1500,
+      occurredOn: "2079-01-28",
+      counterparty: { name: `দোকান ${suffix}` },
+      paymentMethod: "cash",
+      side: "fattening",
+      note: `late spray ${suffix}`,
     });
 
+    const march = "2079-03-05T04:00:00.000Z";
+    const owner = await at(march);
+    const figure = await owner.ventures.consumption({
+      ventureId: feeding,
+      month: "2079-02",
+    });
+    expect(figure.totalMoney).toBeGreaterThan(0);
+    expect(await rowOf(march, feeding)).toMatchObject({
+      reimbursementDue: { month: "2079-02", owedMoney: figure.totalMoney },
+    });
+  });
+
+  it("counts this month's progress statements not yet made", async () => {
     const march = "2079-03-03T04:00:00.000Z";
     expect(await rowOf(march, feeding)).toMatchObject({ statementsDue: 1 });
 
@@ -198,5 +241,101 @@ describe("what on a Venture waits for the Owner", () => {
 
   it("counts the payouts approved and not yet sent", async () => {
     expect(await rowOf(JANUARY, settled)).toMatchObject({ payoutsUnsent: 1 });
+  });
+});
+
+describe("the progress statements a Venture's card counts", () => {
+  const MARCH_FIRST = "2079-03-01T04:00:00.000Z";
+  const MARCH_THIRD = "2079-03-03T04:00:00.000Z";
+
+  /** A Venture opened on the first of March, buying from the same day, with the Farm's own Units where asked. */
+  const buyingFromMarch = async (name: string, farmUnits = 0) => {
+    const owner = await at(MARCH_FIRST);
+    const venture = await owner.ventures.open({
+      name: `${name} ${suffix}`,
+      ...TERMS,
+      decideBy: "2079-03-01",
+    });
+    await owner.ventures.setBankAccount({
+      id: venture.id,
+      bank: "Test bank",
+      accountName: "Venture account",
+      accountNumber: `NY-${venture.id}`,
+    });
+    if (farmUnits > 0) {
+      const farms = await owner.ventures.agreements.farmTakes({
+        ventureId: venture.id,
+        units: farmUnits,
+      });
+      await owner.ventures.takeCapital({
+        agreementId: farms.id,
+        amountMoney: farmUnits * TERMS.unitPriceMoney,
+        movedOn: "2079-03-01",
+        paymentMethod: "bank",
+        reference: `FARM-${name}-${suffix}`,
+      });
+    }
+    await putCapitalIn(
+      owner,
+      {
+        id: venture.id,
+        units: TERMS.units - farmUnits,
+        unitPriceMoney: TERMS.unitPriceMoney,
+      },
+      `${suffix}-${name}`,
+      "2079-03-01"
+    );
+    await owner.ventures.startBuying({ id: venture.id });
+    return venture.id;
+  };
+
+  /** Whether the Owner's list still holds this Venture's notice that its statements are due, after a sweep. */
+  const noticeStands = async (when: string, ventureId: string) => {
+    const owner = await at(when);
+    await owner.alerts.sweep();
+    const mine = await owner.alerts.mine({ about: ventureId });
+    return mine.some((one) => one.kind === "investor_statement_due");
+  };
+
+  it("never counts the Farm's own Units, which are no Investor to hand a paper to", async () => {
+    const ventureId = await buyingFromMarch("খামারের অংশ", 10);
+
+    expect(await rowOf(MARCH_THIRD, ventureId)).toMatchObject({
+      statementsDue: 1,
+    });
+  });
+
+  it("agrees with the notice: owed in a Venture's first month, and not once its paper is made", async () => {
+    const ventureId = await buyingFromMarch("প্রথম মাস");
+
+    expect(await rowOf(MARCH_THIRD, ventureId)).toMatchObject({
+      statementsDue: 1,
+    });
+    expect(await noticeStands(MARCH_THIRD, ventureId)).toBe(true);
+
+    const owner = await at(MARCH_THIRD);
+    const [agreement] = await owner.ventures.agreements.list({ ventureId });
+    await owner.investorStatements.progress({
+      agreementId: agreement?.id ?? "",
+    });
+
+    expect(await rowOf(MARCH_THIRD, ventureId)).toMatchObject({
+      statementsDue: 0,
+    });
+    expect(await noticeStands(MARCH_THIRD, ventureId)).toBe(false);
+  });
+
+  it("agrees with the notice about a paper made before the notice was raised", async () => {
+    const ventureId = await buyingFromMarch("আগে দেওয়া");
+    const owner = await at(MARCH_FIRST);
+    const [agreement] = await owner.ventures.agreements.list({ ventureId });
+    await owner.investorStatements.progress({
+      agreementId: agreement?.id ?? "",
+    });
+
+    expect(await rowOf(MARCH_THIRD, ventureId)).toMatchObject({
+      statementsDue: 0,
+    });
+    expect(await noticeStands(MARCH_THIRD, ventureId)).toBe(false);
   });
 });

@@ -36,6 +36,13 @@ const RowToRing = ({
           days: formatNumber(row.daysBehind, language),
           day: day(row.behindSince ?? row.dueOn),
         });
+  // A Cattle Part not all in is no Monthly Sum, and is said by its own name; missing from an answer kept from before
+  // it was said.
+  const cattlePart = row.cattlePartMoney ?? 0;
+  const said =
+    cattlePart > 0
+      ? t("investors.sumsCattlePart", { amount: asMoney(cattlePart) })
+      : when;
   return (
     <li className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 flex-col gap-0.5">
@@ -59,7 +66,7 @@ const RowToRing = ({
           >
             {row.venture}
           </Link>
-          {` · ${when}`}
+          {` · ${said}`}
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2">

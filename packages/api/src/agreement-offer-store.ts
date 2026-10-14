@@ -533,7 +533,8 @@ export const agreeToOffer = async (
         context.farm.id,
         {
           kind: "offer_agreed",
-          about: { id: `${offer.ventureId}:${offer.id}` },
+          // One telling per agreeing: an Investor who took theirs back and agrees again is told of again.
+          about: { id: `${offer.ventureId}:${offer.id}:${now.getTime()}` },
           facts: {
             offerId: offer.id,
             ventureId: offer.ventureId,

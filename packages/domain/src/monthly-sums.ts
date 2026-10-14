@@ -254,6 +254,8 @@ export interface SumsStanding {
   /** The day the oldest sum fell due that is not yet paid — since when he has been behind — or nothing while nothing
    *  due is owed. */
   oldestOwedOn: string | null;
+  /** What of his Cattle Part is not yet in: owed from before buying began, so behind whatever the day. */
+  cattlePartOwedMoney: number;
 }
 
 /**
@@ -314,6 +316,9 @@ export const sumsStandingOf = ({
     lastMissedOn: missed.at(-1)?.dueOn ?? null,
     oldestOwedOn:
       cleared.find((one) => !one.cleared && one.dueOn <= today)?.dueOn ?? null,
+    cattlePartOwedMoney: roundMoney(
+      allocation.cattleRequiredMoney - allocation.cattlePaidMoney
+    ),
   };
 };
 
@@ -329,7 +334,9 @@ export interface AskThisMonth {
   dueMoney: number;
   /** Of that, what is past its seven days. */
   missedMoney: number;
-  /** The day the sum asked for falls due — the oldest owed, or the one coming this month. */
+  /** Of that, his Cattle Part not yet in — said by its name, since it is no Monthly Sum. */
+  cattlePartMoney: number;
+  /** The day the sum asked for falls due — the oldest owed, or the one coming this month; today for a Cattle Part. */
   dueOn: string;
   /** Since when they have been behind, and how many days that is; nothing for a sum not yet late. */
   behindSince: string | null;
@@ -343,17 +350,18 @@ const daysFrom = (from: string, to: string) =>
   );
 
 /**
- * What the Owner rings an Investor about this month, or nothing: missed when any sum is past its seven days; late when
- * a sum fell due before today and is not paid; due when one falls due today, or later this month with nothing behind
- * it. Read off `sumsStandingOf`, never worked out a second way.
+ * What the Owner rings an Investor about this month, or nothing: missed when any sum is past its seven days, or the
+ * Cattle Part is not all in — owed since before buying began; late when a sum fell due before today and is not paid;
+ * due when one falls due today, or later this month with nothing behind it. Read off `sumsStandingOf`, never worked out
+ * a second way.
  */
 export const askThisMonth = (
   standing: SumsStanding,
   today: string
 ): AskThisMonth | null => {
   const { oldestOwedOn: behind, next } = standing;
-  if (standing.dueMoney > 0 && behind !== null) {
-    const late = behind < today;
+  if (standing.dueMoney > 0) {
+    const late = behind !== null && behind < today;
     let asking: Asking = late ? "late" : "due";
     if (standing.missedMoney > 0) {
       asking = "missed";
@@ -362,9 +370,10 @@ export const askThisMonth = (
       standing: asking,
       dueMoney: standing.dueMoney,
       missedMoney: standing.missedMoney,
-      dueOn: behind,
+      cattlePartMoney: standing.cattlePartOwedMoney,
+      dueOn: behind ?? today,
       behindSince: late ? behind : null,
-      daysBehind: late ? daysFrom(behind, today) : null,
+      daysBehind: late && behind !== null ? daysFrom(behind, today) : null,
     };
   }
   if (next && next.dueOn.slice(0, 7) === today.slice(0, 7)) {
@@ -372,6 +381,7 @@ export const askThisMonth = (
       standing: "due",
       dueMoney: next.amount,
       missedMoney: 0,
+      cattlePartMoney: 0,
       dueOn: next.dueOn,
       behindSince: null,
       daysBehind: null,

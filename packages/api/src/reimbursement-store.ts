@@ -1,10 +1,13 @@
 import type { Database } from "@OpenFarm/db";
+import type { VentureState } from "@OpenFarm/domain";
 import {
   farmDayOf,
+  isRunning,
   monthBefore,
   monthOf,
   monthsFromTo,
   roundMoney,
+  RUNNING_STATES,
   startOfFarmDay,
   WHAT_THE_FARM_IS_OWED,
 } from "@OpenFarm/domain";
@@ -17,9 +20,8 @@ import { ownedThenByOf } from "./venture-store";
 
 type Reader = Pick<Database | Tx, "query">;
 
-/** The Ventures whose animals the Farm is feeding: not one still Open, which has bought nothing, nor one whose run is
- *  over. */
-const RUNNING = ["buying", "fattening", "selling"] as const;
+// The Ventures whose animals the Farm is feeding are the running ones (`isRunning`): not one still Open, which has
+// bought nothing, nor one whose run is over.
 
 /**
  * One month's Reimbursement as the farm works it out: what a Venture's Animals consumed that month of what the Farm
@@ -118,7 +120,7 @@ export const owingTheFarmByEach = async (
   const owed = new Map<string, OwingTheFarm>();
   const lastMonth = monthBefore(today);
   const running = ventures.filter((one) =>
-    (RUNNING as readonly string[]).includes(one.state)
+    isRunning(one.state as VentureState)
   );
   if (running.length === 0) {
     return owed;
@@ -163,13 +165,23 @@ export const owingTheFarmByEach = async (
       repaid.filter((one) => one.ventureId === venture.id)
     );
     const justOver = months.find((one) => one.month === lastMonth);
+    // The month just over, as its transfer would be made: its own figure and what earlier repaid months have moved by
+    // since, worked out by the one function the sheet, the transfer and the evening's notice read.
+    const transfer =
+      justOver && !justOver.repaid
+        ? // oxlint-disable-next-line no-await-in-loop -- one Venture at a time, on the one costing worked out above
+          await aMonthsReimbursement(db, farmId, venture.id, lastMonth, {
+            costs,
+            ownedThenBy,
+          })
+        : null;
     owed.set(venture.id, {
       owedMoney: roundMoney(
         months.reduce((sum, one) => sum + one.stillOwedMoney, 0)
       ),
       monthDue:
-        justOver && !justOver.repaid && justOver.stillOwedMoney > 0
-          ? { month: lastMonth, owedMoney: justOver.stillOwedMoney }
+        transfer && transfer.totalMoney > 0
+          ? { month: lastMonth, owedMoney: transfer.totalMoney }
           : null,
     });
   }
@@ -222,7 +234,7 @@ export const reimbursementsToTell = async (
 ): Promise<ReimbursementDue[]> => {
   const month = monthBefore(farmDayOf(now));
   const running = await db.query.venture.findMany({
-    where: { farmId, state: { in: [...RUNNING] } },
+    where: { farmId, state: { in: [...RUNNING_STATES] } },
     columns: { id: true, name: true },
   });
   if (running.length === 0) {

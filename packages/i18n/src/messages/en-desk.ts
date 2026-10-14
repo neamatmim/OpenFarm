@@ -1720,6 +1720,7 @@ export const enDesk = {
   "investors.sumsDueOn": "due on {day}",
   "investors.sumsBehindFor":
     "behind {days, plural, one {# day} other {# days}}, since {day}",
+  "investors.sumsCattlePart": "{amount} of the cattle part not yet in",
   "investors.recordedCount": "Names on file",
   "investors.search": "Search a name or a phone",
   "investors.noneFound": "Nobody here by that name",

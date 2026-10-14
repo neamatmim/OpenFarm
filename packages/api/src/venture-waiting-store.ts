@@ -1,16 +1,13 @@
 import type { Database } from "@OpenFarm/db";
-import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
+import {
+  monthBegan,
+  owesPapers,
+  papersOwedOf,
+} from "./investor-statement-notice";
 
 type Reader = Pick<Database | Tx, "query">;
-
-/** The Ventures whose Investors are owed a progress statement each month: those whose animals are being kept. */
-const RUNNING: ReadonlySet<string> = new Set([
-  "buying",
-  "fattening",
-  "selling",
-]);
 
 /** How many of each Venture's Requests to Join still wait for the Owner's answer. */
 export const requestsWaitingByEach = async (
@@ -32,7 +29,8 @@ export const requestsWaitingByEach = async (
   return waiting;
 };
 
-/** How many of each Venture's approved payouts have not yet gone out: a share with no payout movement against it. */
+/** How many of each Venture's approved payouts have not yet gone out: a share with money to send and no payout
+ *  movement against it. A share that comes to nothing has nothing to send. */
 export const payoutsUnsentByEach = async (
   db: Reader,
   farmId: string,
@@ -55,6 +53,7 @@ export const payoutsUnsentByEach = async (
       farmId,
       settlementId: { in: settlements.map((one) => one.id) },
       paidMovementId: { isNull: true },
+      payoutMoney: { gt: 0 },
     },
     columns: { settlementId: true },
   });
@@ -68,56 +67,20 @@ export const payoutsUnsentByEach = async (
 };
 
 /**
- * How many of each running Venture's Investors have not been handed this month's progress statement yet: owed once a
- * month of the run is over — a Venture opened this month owes none — and made when its paper is exported for them, as
- * the evening's sweep counts it when it settles the notice.
+ * How many of each running Venture's Investors have not been handed this month's progress statement yet — read by the
+ * one rule the telling and the sweep that settles it read (`papersOwedOf`), so the card and the notice never disagree.
  */
 export const statementsDueByEach = async (
   db: Reader,
   farmId: string,
-  ventures: readonly { id: string; state: string; createdAt: Date }[],
+  ventures: readonly { id: string; state: string }[],
   now: Date
 ): Promise<Map<string, number>> => {
-  const due = new Map<string, number>();
-  const monthBegan = startOfFarmDay(`${farmDayOf(now).slice(0, 7)}-01`);
-  const owing = ventures.filter(
-    (one) => RUNNING.has(one.state) && one.createdAt < monthBegan
+  const owing = await papersOwedOf(
+    db,
+    farmId,
+    ventures.filter((one) => owesPapers(one)).map((one) => one.id),
+    () => monthBegan(now)
   );
-  if (owing.length === 0) {
-    return due;
-  }
-  const agreements = await db.query.investmentAgreement.findMany({
-    where: { farmId, ventureId: { in: owing.map((one) => one.id) } },
-    columns: { id: true, ventureId: true, investorId: true },
-  });
-  // The Farm's own capital is no Investor to hand a paper to.
-  const people = agreements.filter((one) => one.investorId !== null);
-  if (people.length === 0) {
-    return due;
-  }
-  const made = await db.query.auditEvent.findMany({
-    where: {
-      farmId,
-      entity: "investment_agreement",
-      entityId: { in: people.map((one) => one.id) },
-      action: "export",
-      receivedAt: { gte: monthBegan },
-    },
-    columns: { entityId: true, after: true },
-  });
-  const handed = new Set(
-    made
-      .filter(
-        (event) =>
-          (event.after as { paper?: unknown } | null)?.paper ===
-          "progress_statement"
-      )
-      .map((event) => event.entityId)
-  );
-  for (const one of people) {
-    if (!handed.has(one.id)) {
-      due.set(one.ventureId, (due.get(one.ventureId) ?? 0) + 1);
-    }
-  }
-  return due;
+  return new Map([...owing].map(([id, one]) => [id, one.owed]));
 };

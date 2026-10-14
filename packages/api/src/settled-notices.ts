@@ -1,9 +1,10 @@
 import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
 import { alert } from "@OpenFarm/db/schema/alert";
-import type { AlertKind } from "@OpenFarm/domain";
-import { farmDayOf } from "@OpenFarm/domain";
+import type { AlertKind, VentureState } from "@OpenFarm/domain";
+import { farmDayOf, isRunning } from "@OpenFarm/domain";
 
 import { withdrawalNoticeId } from "./health-store";
+import { owesPapers, papersOwedOf } from "./investor-statement-notice";
 import { whatTheStoreHasToSay } from "./lot-notices";
 import { stillMissed } from "./monthly-sums-store";
 import { overdueKey, overdueReceivable } from "./receivable-store";
@@ -22,13 +23,6 @@ import {
 
 /** The work states in which work is no longer owed: done, approved, missed and closed, or called off. */
 const WORK_OVER = new Set(["completed", "approved", "missed", "called_off"]);
-
-/** The Venture states in which a month's Reimbursement is still asked for. */
-const RUNNING_VENTURES: ReadonlySet<string> = new Set([
-  "buying",
-  "fattening",
-  "selling",
-]);
 
 /** The notices still showing, of these kinds, with what they are about and when they were raised. */
 const showing = (context: Turning, kinds: readonly AlertKind[]) =>
@@ -169,9 +163,10 @@ const reimbursementsStillOwed: StillSo = async (context, open) => {
       columns: { ventureId: true, forMonth: true },
     }),
   ]);
+  // A month's Reimbursement is asked for only while the Venture is running.
   const running = new Set(
     ventures
-      .filter((one) => RUNNING_VENTURES.has(one.state))
+      .filter((one) => isRunning(one.state as VentureState))
       .map((one) => one.id)
   );
   const closed = new Set(settled.map((one) => one.ventureId));
@@ -192,7 +187,8 @@ const reimbursementsStillOwed: StillSo = async (context, open) => {
 };
 
 /** A Venture's progress paper still due: the Venture still running, and the paper not yet made for every one of its
- *  Investors since the notice was raised. */
+ *  Investors since the notice was raised — read by the one rule its card reads (`papersOwedOf`). A month's notice is
+ *  never raised for a paper already made that month, so the card counting from the month's first day agrees. */
 const papersStillDue: StillSo = async (context, open) => {
   const still: string[] = [];
   for (const one of open) {
@@ -203,41 +199,18 @@ const papersStillDue: StillSo = async (context, open) => {
       columns: { state: true },
     });
     // Settled or called off since: its books are shut, and no progress paper is owed.
-    if (!(venture && RUNNING_VENTURES.has(venture.state))) {
+    if (!(venture && owesPapers(venture))) {
       continue;
     }
     // oxlint-disable-next-line no-await-in-loop -- as above
-    const agreements = await context.db.query.investmentAgreement.findMany({
-      where: { farmId: context.farm.id, ventureId },
-      columns: { id: true, investorId: true },
-    });
-    const people = agreements.filter(
-      (agreement) => agreement.investorId !== null
+    const owing = await papersOwedOf(
+      context.db,
+      context.farm.id,
+      [ventureId],
+      () => one.createdAt
     );
-    // oxlint-disable-next-line no-await-in-loop -- as above
-    const made = await context.db.query.auditEvent.findMany({
-      where: {
-        farmId: context.farm.id,
-        entity: "investment_agreement",
-        entityId: { in: people.map((agreement) => agreement.id) },
-        action: "export",
-        receivedAt: { gte: one.createdAt },
-      },
-      columns: { entityId: true, after: true },
-    });
-    const sent = new Set(
-      made
-        .filter(
-          (event) =>
-            (event.after as { paper?: unknown } | null)?.paper ===
-            "progress_statement"
-        )
-        .map((event) => event.entityId)
-    );
-    if (
-      people.length === 0 ||
-      people.some((agreement) => !sent.has(agreement.id))
-    ) {
+    const standing = owing.get(ventureId);
+    if (!standing || standing.holders === 0 || standing.owed > 0) {
       still.push(one.entityId);
     }
   }
@@ -329,12 +302,12 @@ const QUESTIONS = {
       await stillMissed(context.db, context.farm.id, farmDayOf(now))
     ),
   investor_statement_due: papersStillDue,
-  // An Agreement agreed in the portal waits for her only while it is still agreed: approved, withdrawn by either of
-  // them, or the agreement taken back, it waits for nothing.
+  // An Agreement agreed in the portal waits for her only while that agreeing could still be approved: the same
+  // agreement still standing — not taken back, nor agreed afresh since, which is told of anew — neither approved nor
+  // withdrawn, and its Venture still Open, as approving asks.
   offer_agreed: async (context, open) => {
-    const offerIds = open.map((one) =>
-      one.entityId.slice(one.entityId.indexOf(":") + 1)
-    );
+    // Filed as `venture:offer:the moment agreed`; one whose moment is not the offer's agreedAt now is an agreeing gone.
+    const offerIds = open.map((one) => one.entityId.split(":")[1] ?? "");
     const waiting = await context.db.query.agreementOffer.findMany({
       where: {
         farmId: context.farm.id,
@@ -343,11 +316,24 @@ const QUESTIONS = {
         approvedAt: { isNull: true },
         withdrawnAt: { isNull: true },
       },
-      columns: { id: true, ventureId: true },
+      columns: { id: true, ventureId: true, agreedAt: true },
     });
+    const ventures = await context.db.query.venture.findMany({
+      where: {
+        farmId: context.farm.id,
+        id: { in: waiting.map((one) => one.ventureId) },
+        state: "open",
+      },
+      columns: { id: true },
+    });
+    const stillOpen = new Set(ventures.map((one) => one.id));
     return keysOf(
       "offer_agreed",
-      waiting.map((one) => `${one.ventureId}:${one.id}`)
+      waiting
+        .filter((one) => stillOpen.has(one.ventureId) && one.agreedAt)
+        .map(
+          (one) => `${one.ventureId}:${one.id}:${one.agreedAt?.getTime() ?? ""}`
+        )
     );
   },
   withdrawal_ending: holdsStillEnding,

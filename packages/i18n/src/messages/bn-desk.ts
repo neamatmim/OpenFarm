@@ -1607,6 +1607,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "investors.sumsDue": "দেওয়ার দিন",
   "investors.sumsDueOn": "{day} তারিখে দেওয়ার কথা",
   "investors.sumsBehindFor": "{day} থেকে {days} দিন পিছিয়ে",
+  "investors.sumsCattlePart": "গরু কেনার অংশের {amount} এখনো আসেনি",
   "investors.recordedCount": "খাতায় যত নাম",
   "investors.search": "নাম বা ফোন খুঁজুন",
   "investors.noneFound": "এই নামে এখানে কেউ নেই",

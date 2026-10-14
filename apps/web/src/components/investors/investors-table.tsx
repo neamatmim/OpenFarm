@@ -1,3 +1,4 @@
+import { ASKING } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Link } from "@tanstack/react-router";
 
@@ -215,10 +216,9 @@ const portalColumn = column.accessor(
     cell: PortalCell,
   }
 );
-/** Where this month's standing sorts: missed first, then late, then due, then nothing. */
-const SUMS_ORDER = ["missed", "late", "due"];
+// This month's standing sorts as the call list rings: missed first, then late, then due, then nothing.
 const sumsColumn = column.accessor(
-  (row) => (row.sums ? SUMS_ORDER.indexOf(row.sums.standing) : undefined),
+  (row) => (row.sums ? ASKING.indexOf(row.sums.standing) : undefined),
   {
     id: "sums",
     header: listHeader("investors.thisMonth"),

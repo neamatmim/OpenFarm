@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  askThisMonth,
   capitalItMayHold,
   cattleMoneyOf,
   monthlyPaymentAllocationOf,
@@ -176,6 +177,7 @@ describe("where an Agreement stands against its Monthly Sums", () => {
       sums: 4,
       lastMissedOn: null,
       oldestOwedOn: null,
+      cattlePartOwedMoney: 0,
     });
   });
 
@@ -230,6 +232,7 @@ describe("where an Agreement stands against its Monthly Sums", () => {
       sums: 4,
       lastMissedOn: null,
       oldestOwedOn: null,
+      cattlePartOwedMoney: 0,
     });
   });
 
@@ -260,6 +263,29 @@ describe("whether a Venture takes capital", () => {
     expect(takesCapital({ ...monthly, state: "selling" })).toBe(false);
     expect(takesCapital({ ...before, state: "open" })).toBe(true);
     expect(takesCapital({ ...before, state: "buying" })).toBe(false);
+  });
+});
+
+describe("what the Owner rings about this month", () => {
+  it("counts a Cattle Part not yet in as behind, and says so, before any sum is due", () => {
+    // 1,00,000 of three Units' 1,20,000 Cattle Part in, and February's sum not yet due.
+    expect(askThisMonth(standing(100_000, "2074-02-01"), "2074-02-01")).toEqual(
+      {
+        standing: "missed",
+        dueMoney: 20_000,
+        missedMoney: 20_000,
+        cattlePartMoney: 20_000,
+        dueOn: "2074-02-01",
+        behindSince: null,
+        daysBehind: null,
+      }
+    );
+  });
+
+  it("says no Cattle Part once it is all in", () => {
+    expect(
+      askThisMonth(standing(120_000, "2074-02-12"), "2074-02-12")
+    ).toMatchObject({ standing: "late", cattlePartMoney: 0, daysBehind: 2 });
   });
 });
 

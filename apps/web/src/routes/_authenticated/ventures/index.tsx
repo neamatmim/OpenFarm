@@ -65,8 +65,9 @@ const tabOf = (venture: Venture): Tab =>
  */
 const useVentureFigures = (
   ventures: Venture[] | undefined,
-  /** Whether the list is narrowed to the Ventures that want her, and how to narrow or widen it. */
-  needs: { shown: boolean; toggle: () => void }
+  /** How many want her, worked out once by the page; whether the list is narrowed to them, and how to narrow or
+   *  widen it. */
+  needs: { count: number; shown: boolean; toggle: () => void }
 ): Figure[] => {
   const { t, language } = useLanguage();
   // Everything the Running tab holds, Open runs included: a tile that counts four while the tab under it
@@ -77,7 +78,7 @@ const useVentureFigures = (
     (sum, one) => sum + (one.balanceMoney ?? 0),
     0
   );
-  const needHer = venturesNeedingHer(ventures).length;
+  const needHer = needs.count;
   const loading = <Skeleton className="h-8 w-24" />;
   const asMoney = useMoney();
   return [
@@ -170,6 +171,7 @@ const VenturesPage = () => {
   const wanting = new Set(venturesNeedingHer(all).map((one) => one.id));
   const anyVenture = all.length !== 0;
   const figures = useVentureFigures(ventures.data, {
+    count: wanting.size,
     shown: needs,
     toggle: () =>
       navigate({
