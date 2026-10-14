@@ -97,7 +97,8 @@ RESPONDERS.dryOff = (_step, beast, { farm, herd }) => {
       }
     });
   }
-  return { evidence: [true] };
+  // Judged as she goes dry: kept in fair flesh on the seed farm.
+  return { evidence: [true, "3"] };
 };
 
 RESPONDERS.calvingPrep = (_step, beast, { farm, herd }) => {
@@ -129,8 +130,18 @@ RESPONDERS.calvingRecord = (_step, beast, { farm, herd, day }) => {
   cow.expectedCalving = null;
   cow.nextHeat = addDays(day, farm.random.int(48, 75));
   return {
-    evidence: [calvedAt.toISOString(), ease, sex, outcome, "", "", "", ""],
+    // The calves, then her Body Condition at calving.
+    evidence: [calvedAt.toISOString(), ease, sex, outcome, "", "", "", "", "3"],
   };
+};
+
+/** A bull's Body Condition at his Weigh-in, by how well he is gaining: no draw of the seed's dice, so the herd it
+ *  grows is the same as before the weigh-in asked it. */
+const conditionOf = (dailyGainKg: number): string => {
+  if (dailyGainKg < 0.5) {
+    return "2";
+  }
+  return dailyGainKg < 0.8 ? "3" : "4";
 };
 
 RESPONDERS.weighIn = (_step, beast, { farm, herd, day }) => {
@@ -144,7 +155,10 @@ RESPONDERS.weighIn = (_step, beast, { farm, herd, day }) => {
   const expected =
     bull.weightKg + bull.dailyGainKg * daysBetween(bull.arrivedOn, day);
   return {
-    evidence: [Math.round(expected * farm.random.between(0.996, 1.004))],
+    evidence: [
+      Math.round(expected * farm.random.between(0.996, 1.004)),
+      conditionOf(bull.dailyGainKg),
+    ],
   };
 };
 

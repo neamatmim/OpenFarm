@@ -122,6 +122,14 @@ export {
   notDueSince,
   penDueBy,
 } from "./campaign-interval";
+export type { BodyConditionScore } from "./body-condition";
+export {
+  BODY_CONDITION,
+  BODY_CONDITION_SCORES,
+  asksBodyConditionIn,
+  bodyConditionIn,
+  bodyConditionSlot,
+} from "./body-condition";
 export type {
   ExpectedGain,
   FarmGainFigure,

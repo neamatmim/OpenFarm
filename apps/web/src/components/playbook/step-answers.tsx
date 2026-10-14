@@ -7,6 +7,11 @@ import { Plus, Trash2 } from "lucide-react";
 import { SUBHEADING } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
 import {
+  mayAskBodyCondition,
+  mayTakeAnswerOut,
+  withBodyConditionAsked,
+} from "@/lib/body-condition";
+import {
   ADDABLE_ANSWERS,
   answersFixed,
   withAnswerAdded,
@@ -19,7 +24,8 @@ import {
  * Every answer a Step asks after its first, with its words and whether it must be given: the editor drew only the
  * first, so a service turned milk record still asked for a straw number nobody could see. A note or a photograph may
  * be added — the cash count's figure and note, a tick and a photo — and taken out again; a Step whose effect asks its
- * own answers shows them as they are.
+ * own answers shows them as they are. Body Condition may be asked of any Step walked animal by animal, after whatever
+ * it asks.
  */
 export const StepAnswers = ({
   step,
@@ -30,6 +36,8 @@ export const StepAnswers = ({
 }) => {
   const t = useT();
   const fixed = answersFixed(step);
+  // Body Condition, the Playbook's own slot, may be asked of any Step walked animal by animal — a calving's included.
+  const askable = mayAskBodyCondition(step);
   const rest = step.evidence.slice(1);
   return (
     <div className="flex flex-col gap-2">
@@ -83,7 +91,7 @@ export const StepAnswers = ({
                     />
                     {t("sop.required")}
                   </label>
-                  {fixed ? null : (
+                  {mayTakeAnswerOut(step, at) ? (
                     <Button
                       aria-label={t("sop.removeAnswer")}
                       onClick={() => onChange(withoutAnswer(step, at))}
@@ -93,27 +101,40 @@ export const StepAnswers = ({
                     >
                       <Trash2 aria-hidden />
                     </Button>
-                  )}
+                  ) : null}
                 </li>
               );
             })}
           </ul>
         </>
       ) : null}
-      {fixed ? null : (
+      {fixed && !askable ? null : (
         <div className="flex flex-wrap gap-2">
-          {ADDABLE_ANSWERS.map((type) => (
+          {fixed
+            ? null
+            : ADDABLE_ANSWERS.map((type) => (
+                <Button
+                  key={type}
+                  onClick={() => onChange(withAnswerAdded(step, type))}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <Plus aria-hidden data-icon="inline-start" />
+                  {t(`sop.addAnswer.${type}`)}
+                </Button>
+              ))}
+          {askable ? (
             <Button
-              key={type}
-              onClick={() => onChange(withAnswerAdded(step, type))}
+              onClick={() => onChange(withBodyConditionAsked(step))}
               size="sm"
               type="button"
               variant="outline"
             >
               <Plus aria-hidden data-icon="inline-start" />
-              {t(`sop.addAnswer.${type}`)}
+              {t("sop.addAnswer.bodyCondition")}
             </Button>
-          ))}
+          ) : null}
         </div>
       )}
     </div>

@@ -28,6 +28,10 @@ import { herRecord } from "../animal-record";
 import { asACheck } from "../as-a-check";
 import type { Trail, Tx } from "../audit";
 import { audited } from "../audit";
+import {
+  BODY_CONDITION_SHOWN,
+  bodyConditionsOf,
+} from "../body-condition-store";
 import { breedNamed } from "../breed-store";
 import {
   expectedCalvingWithinReach,
@@ -1312,6 +1316,12 @@ export const animalsRouter = {
             intakeView(intake)
           )
         : null;
+      const judged = await bodyConditionsOf(
+        context.db,
+        context.farm.id,
+        [her.id],
+        BODY_CONDITION_SHOWN
+      );
       const [heats, services, checks] = await Promise.all([
         heatsOf(context.db, her.id),
         servicesOf(context.db, her.id),
@@ -1382,6 +1392,8 @@ export const animalsRouter = {
         sale: herSale,
         /** For a calf born here: her first colostrum, her navel, her weight — every Step done to her in her first day. */
         firstDay: await herFirstDay(context.db, context.farm.id, her),
+        /** Her Body Condition as the farm judged it at her Weigh-ins, her Dry-off and her Calving, the latest first. */
+        bodyCondition: judged.get(her.id) ?? [],
         /** The round could not find her, and nobody has marked her Found: where it looked, and since when. */
         missing: await missingShown(context.db, her.id),
         heats,
