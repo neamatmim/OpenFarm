@@ -25,6 +25,7 @@ import {
   receivablesByAge,
   roundMoney,
   sideResultsOf,
+  inThePitAt,
   stockLedger,
   storeValueOf,
   summarizeMoney,
@@ -55,7 +56,7 @@ import {
   writtenOffByItem,
 } from "./receivable-store";
 import { approvedSettlementOf } from "./settlement-store";
-import { movementsByItem } from "./stock-store";
+import { feedStoreOf } from "./stock-store";
 import { supplierBillsOf } from "./supplier-store";
 import { planAgainstActual } from "./venture-plan-store";
 import { ownedThenByOf, ownersOverTime } from "./venture-store";
@@ -279,7 +280,7 @@ const atTheEndOf = async (
   const lastDay = farmDayOf(last);
   const [buyers, feed, medicine, cash] = await Promise.all([
     receivableOfBuyers(db, farm.id, { asOf: lastDay }),
-    movementsByItem(db, farm.id),
+    feedStoreOf(db, farm.id),
     // Every count up to then set against it: no count is being put right.
     bookAt(db, farm.id, last, ""),
     cashAt(db, farm.id, end),
@@ -294,7 +295,10 @@ const atTheEndOf = async (
     lastDay
   );
   const store = storeValueOf({
-    feed: [...feed.values()].map((movements) => stockLedger(movements, last)),
+    feed: [...feed.movements.values()].map((movements) =>
+      stockLedger(movements, last)
+    ),
+    inThePit: inThePitAt(feed.makings, last),
     medicine: [...medicine.values()],
   });
   return {

@@ -1,5 +1,5 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { FEED_IN_KINDS, FEED_PACKS } from "@OpenFarm/db/schema/feed";
+import { FEED_PACKS } from "@OpenFarm/db/schema/feed";
 import type { FeedPack, FeedUnit } from "@OpenFarm/domain";
 import { FEED_IN_SHOWN, maundsOf, quantityOfPacks } from "@OpenFarm/domain";
 import { FEED_ESTIMATE_BASES } from "@OpenFarm/domain/feed-estimate";
@@ -32,6 +32,7 @@ import {
   sellerInput,
   adjustmentsOf,
   stockOnHand,
+  feedStoreOf,
   lastPurchaseOf,
   purchasePricesIn,
   scaleBySeller,
@@ -93,6 +94,61 @@ const weighedOnArrival = (
   return input.weighed;
 };
 
+/** The Feed Making a made Feed In came from, as the history lists it. */
+interface MadeBy {
+  id: string;
+  inputs: {
+    feedItemId: string;
+    quantity: string;
+    feedItem: { nameBn: string; nameEn: string | null; unit: string };
+  }[];
+}
+
+/**
+ * What a Feed In cost, and a unit of it: a Purchase what was paid, set beside the last Purchase of the same feed; a
+ * Harvest its Fodder Price's worth; made feed what went into it, over what came out — worked out with the store, never
+ * set beside a purchase, and nothing while something that went in has no price.
+ */
+const whatItCost = (
+  row: { id: string; priceMoney: number | null },
+  quantity: number,
+  making: MadeBy | null,
+  {
+    prices,
+    makings,
+  }: {
+    prices: ReadonlyMap<string, { unitPriceMoney: number }>;
+    makings: ReadonlyMap<string, { worthMoney: number | null }>;
+  }
+): { priceMoney: number | null; unitPriceMoney: number | null } => {
+  if (!making) {
+    return {
+      priceMoney: row.priceMoney,
+      unitPriceMoney: prices.get(row.id)?.unitPriceMoney ?? null,
+    };
+  }
+  const worth = makings.get(making.id)?.worthMoney ?? null;
+  return {
+    priceMoney: worth,
+    unitPriceMoney: worth !== null && quantity > 0 ? worth / quantity : null,
+  };
+};
+
+/** What went into made feed, as the history says it beneath; nothing for feed bought or cut. */
+const madeFrom = (making: MadeBy | null) =>
+  making
+    ? {
+        id: making.id,
+        inputs: making.inputs.map((one) => ({
+          feedItemId: one.feedItemId,
+          nameBn: one.feedItem.nameBn,
+          nameEn: one.feedItem.nameEn,
+          unit: one.feedItem.unit,
+          quantity: Number(one.quantity),
+        })),
+      }
+    : null;
+
 export const stockRouter = {
   /** Monthly buying quantities and cost estimates are for the people who keep the farm's store. */
   monthlyEstimate: protectedProcedure
@@ -145,6 +201,20 @@ export const stockRouter = {
         with: {
           feedItem: { columns: { nameBn: true, nameEn: true, unit: true } },
           seller: { columns: { name: true } },
+          making: {
+            columns: { id: true },
+            with: {
+              inputs: {
+                columns: { feedItemId: true, quantity: true },
+                with: {
+                  feedItem: {
+                    columns: { nameBn: true, nameEn: true, unit: true },
+                  },
+                },
+                orderBy: { id: "asc" },
+              },
+            },
+          },
         },
         orderBy: { receivedOn: "desc", id: "desc" },
         limit: FEED_IN_SHOWN,
@@ -154,6 +224,8 @@ export const stockRouter = {
         context.farm.expiryWarnDays
       );
       const lines = await stockOnHand(context.db, context.farm.id, window);
+      // Made feed is worth what went into it, worked out with the store rather than kept on the row.
+      const { makings } = await feedStoreOf(context.db, context.farm.id);
       const prices = await purchasePricesIn(
         context.db,
         context.farm.id,
@@ -164,7 +236,7 @@ export const stockRouter = {
           line.lots.map((one) => [one.arrivalId, one] as const)
         )
       );
-      return rows.map(({ feedItem, seller, ...row }) => {
+      return rows.map(({ feedItem, seller, making, ...row }) => {
         const quantity = Number(row.quantity);
         return {
           id: row.id,
@@ -183,11 +255,13 @@ export const stockRouter = {
           pack: row.packKind
             ? { kind: row.packKind, count: Number(row.packCount) }
             : null,
-          priceMoney: row.priceMoney,
-          /** What a unit of it cost, and how far that moved on the last purchase of the same feed; nothing for a
-           *  Harvest. */
-          unitPriceMoney: prices.get(row.id)?.unitPriceMoney ?? null,
+          ...whatItCost(row, quantity, making, {
+            prices,
+            makings,
+          }),
           priceChangePercent: prices.get(row.id)?.changePercent ?? null,
+          /** The Feed Making that made it, and what went into it; nothing for feed bought or cut. */
+          making: madeFrom(making),
           sellerName: seller?.name ?? null,
           receivedOn: row.receivedOn,
           lotNumber: row.lotNumber,
@@ -250,7 +324,8 @@ export const stockRouter = {
         id: z.string().uuid().optional(),
         purchaseOrderId: z.string().uuid().optional(),
         feedItemId: z.string(),
-        kind: z.enum(FEED_IN_KINDS),
+        // Bought or cut: made feed comes in only through the Feed Making that made it.
+        kind: z.enum(["purchase", "harvest"]),
         /** How much, in the feed's own unit — or, for feed counted in kilos, the bags or maunds it came as. */
         quantity: quantityInput.optional(),
         pack: z

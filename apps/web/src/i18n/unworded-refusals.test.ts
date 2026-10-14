@@ -204,6 +204,7 @@ const UNWORDED_THROWS: string[] = [
   "effects/treatment.ts: This work is not a dose of any prescription",
   "entries/entry.ts: BAD_REQUEST",
   "entries/entry.ts: This is not this person's to record",
+  "feed-making-store.ts: FORBIDDEN",
   "herd-store.ts: An animal in state … cannot move to",
   "herd-store.ts: An animal reaches … by a record of it — a",
   "herd-store.ts: Only an animal who has left the farm can come ba",

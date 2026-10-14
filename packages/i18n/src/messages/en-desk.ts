@@ -2052,6 +2052,7 @@ export const enDesk = {
   "audit.entity.registration_certificate": "Registration certificate",
   "audit.entity.notifiable_disease": "Notifiable disease",
   "audit.entity.feed_in": "Feed arrival",
+  "audit.entity.feed_making": "Feed made on the farm",
   "audit.entity.dls_report": "DLS report",
   "audit.entity.abortion": "Abortion",
   "audit.entity.withdrawal": "Withdrawal",

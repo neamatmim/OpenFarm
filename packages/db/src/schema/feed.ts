@@ -324,8 +324,71 @@ export const feedPurchaseOrder = pgTable(
   ]
 );
 
-/** How feed reaches the store: bought from somebody, or cut from the farm's own fields. */
-export const FEED_IN_KINDS = ["purchase", "harvest"] as const;
+/** How feed reaches the store: bought from somebody, cut from the farm's own fields, or made on the farm from other
+ *  feed — a **Feed Making**'s made feed, which only that Making brings in. */
+export const FEED_IN_KINDS = ["purchase", "harvest", "made"] as const;
+
+/**
+ * A **Feed Making**: one Feed Item made on the farm from others — a home-mixed concentrate, or silage packed into a pit
+ * or bags. Its inputs (`feedMakingInput`) leave the store the moment it was made; what it made comes in as a Feed In of
+ * kind `made` — the same moment for a mix, the day the pit is opened for silage — worth what went into it, worked out
+ * from the store every time it is read and never typed (ADR 0030). A transfer inside the store: it books no money.
+ */
+export const feedMaking = pgTable(
+  "feed_making",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    /** What it makes: the Feed Item its made feed comes into the store as. */
+    outputFeedItemId: text("output_feed_item_id")
+      .notNull()
+      .references(() => feedItem.id),
+    /** The farm's day it was mixed or packed: its inputs left the store then. */
+    madeOn: timestamp("made_on", { withTimezone: true }).notNull(),
+    /** For silage: the farm day it should be ready to open, as the person packing it said. Nothing for a mix. */
+    readyOn: text("ready_on"),
+    /** Which pit or which bags, as the farm calls them. */
+    note: text("note"),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    index("feed_making_farm_idx").on(table.farmId, table.madeOn),
+    index("feed_making_output_idx").on(table.farmId, table.outputFeedItemId),
+  ]
+);
+
+/** One Feed Item a Feed Making took out of the store, in that feed's own unit. */
+export const feedMakingInput = pgTable(
+  "feed_making_input",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    feedMakingId: text("feed_making_id")
+      .notNull()
+      .references(() => feedMaking.id, { onDelete: "cascade" }),
+    feedItemId: text("feed_item_id")
+      .notNull()
+      .references(() => feedItem.id),
+    quantity: numeric("quantity", { precision: 12, scale: 1 }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("feed_making_input_item_uidx").on(
+      table.feedMakingId,
+      table.feedItemId
+    ),
+    index("feed_making_input_item_idx").on(table.farmId, table.feedItemId),
+    check(
+      "feed_making_input_quantity_not_negative",
+      sql`${table.quantity} >= 0`
+    ),
+  ]
+);
 
 /**
  * Feed coming into the store: a Purchase from a supplier at a price, or a Harvest from the farm's own
@@ -349,6 +412,9 @@ export const feedIn = pgTable(
     purchaseOrderId: text("purchase_order_id").references(
       (): AnyPgColumn => feedPurchaseOrder.id
     ),
+    /** The Feed Making whose made feed this is: set exactly for kind `made`, and once — a Making brings its feed in
+     *  once. */
+    feedMakingId: text("feed_making_id").references(() => feedMaking.id),
     supplierInvoiceId: text("supplier_invoice_id").references(
       () => supplierInvoice.id
     ),
@@ -364,7 +430,8 @@ export const feedIn = pgTable(
      *  kilos. Kept so the arrival reads as the trader's slip did; cleared when a Correction puts the quantity right. */
     packKind: text("pack_kind", { enum: FEED_PACKS }),
     packCount: numeric("pack_count", { precision: 10, scale: 1 }),
-    /** What the whole lot cost, in taka. Null for a harvest. */
+    /** What the whole lot cost, in taka. A harvest's is its Fodder Price's worth, null while it has none; made feed's
+     *  is always null here, as it is worked out from what went into it each time the store is read. */
     priceMoney: numericMoney("price_money"),
     /** The seller: who the farm bought it from, as on an Intake. Null for a harvest. */
     counterpartyId: text("counterparty_id").references(() => counterparty.id),
@@ -391,6 +458,11 @@ export const feedIn = pgTable(
     ),
     index("feed_in_order_idx").on(table.farmId, table.purchaseOrderId),
     index("feed_in_invoice_idx").on(table.farmId, table.supplierInvoiceId),
+    uniqueIndex("feed_in_making_uidx").on(table.feedMakingId),
+    check(
+      "feed_in_made_by_a_making",
+      sql`(${table.kind} = 'made') = (${table.feedMakingId} IS NOT NULL)`
+    ),
     check(
       "feed_in_payment_check",
       sql`(${table.supplierInvoiceId} IS NULL AND ${table.paidAtDeliveryMoney} IS NULL) OR (${table.supplierInvoiceId} IS NOT NULL AND ${table.kind} = 'purchase' AND ${table.priceMoney} IS NOT NULL AND ${table.paidAtDeliveryMoney} IS NOT NULL AND ${table.paidAtDeliveryMoney} >= 0 AND ${table.paidAtDeliveryMoney} <= ${table.priceMoney})`

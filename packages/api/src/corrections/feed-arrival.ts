@@ -1,6 +1,7 @@
 import { eq } from "@OpenFarm/db/operators";
 import { feedIn } from "@OpenFarm/db/schema/feed";
 import { farmDayOf, roundMoney, startOfFarmDay } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { clearNoticesAbout } from "../alerts-store";
@@ -125,6 +126,13 @@ export const feedArrivalCorrection: CorrectionKind<
   shownAs: { seller: (to) => to.name },
   trail: (tx, row) => readFeedArrival(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
+    // Made feed is what its Feed Making says came out: put right there, where its inputs and its worth are.
+    if (row.kind === "made") {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "Made feed is put right on the making that made it",
+        data: { refusal: "made_feed_is_its_making" },
+      });
+    }
     const order = row.purchaseOrderId
       ? await lockFeedOrder(tx, row.farmId, row.purchaseOrderId)
       : null;

@@ -350,6 +350,8 @@ export {
   stockLedger,
   unitPriceOf,
 } from "./feed";
+export type { MakingRead, MakingWorth } from "./feed-making";
+export { bringMakingsIn, inThePitAt, makingLossOf } from "./feed-making";
 export type { AdultDeaths, HeadRecord, SideDeaths } from "./adult-deaths";
 export { ADULT_DEATH_CAUSES, adultDeaths } from "./adult-deaths";
 export type { Bought } from "./last-buys";

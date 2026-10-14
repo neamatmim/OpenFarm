@@ -38,4 +38,19 @@ describe("what the store held, in taka", () => {
       })
     ).toEqual({ feedMoney: 0, medicineMoney: 0, totalMoney: 0, unpriced: 2 });
   });
+
+  it("counts silage still in the pit as feed, at what went into it", () => {
+    expect(
+      storeValueOf({
+        feed: [{ onHand: 100, averagePriceMoney: 40 }],
+        medicine: [],
+        inThePit: { worthMoney: 40_000, unpriced: 1 },
+      })
+    ).toEqual({
+      feedMoney: 44_000,
+      medicineMoney: 0,
+      totalMoney: 44_000,
+      unpriced: 1,
+    });
+  });
 });

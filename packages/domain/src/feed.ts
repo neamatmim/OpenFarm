@@ -368,7 +368,14 @@ export type StockMovement =
       /** The delivery it was, and what its bag says, for reading what is left of each. */
       lot?: { id: string; lotNumber: string | null; expiresOn: string | null };
     }
-  | { kind: "out"; at: Date; quantity: number }
+  | {
+      kind: "out";
+      at: Date;
+      quantity: number;
+      /** The Feed Making it was taken out for, where it was made into another feed rather than fed: it leaves the
+       *  store all the same, but no Pen ate it, so it is not how fast the feed is fed. */
+      into?: string;
+    }
   /** A Stock Count: what was really there. It wins over whatever the store was thought to hold. The Step it was
    *  recorded in, where it is known, so a count being recorded again can be left out of what it is compared against. */
   | { kind: "count"; at: Date; counted: number; completionId?: string };
@@ -488,11 +495,12 @@ export const shortfallOf = (
 };
 
 /** One arrival of feed, as its price per unit is read: a Purchase has one, a Harvest never — its worth is the farm's
- *  own word for its fodder, not what anybody charged. */
+ *  own word for its fodder, not what anybody charged — and made feed never: its worth is what went into it, which is
+ *  no price anybody was asked. */
 export interface ArrivalPriced {
   id: string;
   feedItemId: string;
-  kind: "purchase" | "harvest";
+  kind: "purchase" | "harvest" | "made";
   quantity: number;
   priceMoney: number | null;
   receivedOn: Date;
@@ -581,7 +589,8 @@ export const fedPerDayOf = (
   let fed = 0;
   let fedLately = false;
   for (const one of movements) {
-    if (one.kind !== "out" || one.at > now) {
+    // Made into another feed is not fed: a day's ten tonnes packed into a silage pit is no rate anybody feeds at.
+    if (one.kind !== "out" || one.into !== undefined || one.at > now) {
       continue;
     }
     firstFedAt = Math.min(firstFedAt, one.at.getTime());

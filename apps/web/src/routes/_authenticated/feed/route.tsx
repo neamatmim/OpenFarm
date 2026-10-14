@@ -4,6 +4,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
+  Blend,
   ClipboardList,
   CalendarDays,
   Coins,
@@ -21,6 +22,7 @@ import { useState } from "react";
 import { ArrivalsTab, CountsTab } from "@/components/feed/feed-history";
 import { ItemsTab } from "@/components/feed/feed-items";
 import { LeftoversTab } from "@/components/feed/feed-leftovers";
+import { MakingsTab } from "@/components/feed/feed-makings";
 import { FeedPurchasesTab } from "@/components/feed/feed-purchases";
 import { RationsTab } from "@/components/feed/feed-rations";
 import { StockTab } from "@/components/feed/feed-stock";
@@ -53,6 +55,7 @@ const TABS = [
   "purchases",
   "suppliers",
   "feedIn",
+  "made",
   "counts",
   "leftovers",
   "rations",
@@ -68,6 +71,7 @@ const TAB_PATHS = {
   purchases: "/feed/purchases",
   suppliers: "/feed/suppliers",
   feedIn: "/feed/feed-in",
+  made: "/feed/made",
   counts: "/feed/stock-counts",
   leftovers: "/feed/leftovers",
   rations: "/feed/rations",
@@ -287,6 +291,20 @@ const FeedPage = () => {
                   arrivals={arrivals.data ?? []}
                   items={feedItems}
                   mayCorrect={mayRecord}
+                />
+              </Loaded>
+            ),
+          },
+          {
+            value: "made",
+            label: t("feed.tab.made"),
+            icon: Blend,
+            content: (
+              <Loaded query={stock}>
+                <MakingsTab
+                  items={feedItems}
+                  mayRecord={mayRecord}
+                  stock={lines}
                 />
               </Loaded>
             ),

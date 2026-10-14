@@ -45,6 +45,7 @@ import { useMoney } from "@/lib/money";
 import { namesIn } from "@/lib/names-in";
 import { orpc } from "@/utils/orpc";
 
+import { inputsSaid } from "./feed-makings";
 import { OtherName, TwoNames } from "./feed-name";
 import type { Adjustment, Arrival, FeedItemRow } from "./feed-types";
 import { PriceChange } from "./price-change";
@@ -127,22 +128,41 @@ const ReceivedOnCell = ({ row }: { row: { original: ArrivalRow } }) => (
   <DayCell value={row.original.receivedOn} />
 );
 
+/** What made feed was made from, beneath it: the inputs its Feed Making took out of the store. Nothing for feed bought
+ *  or cut — or on an answer a phone kept from before feed was made on the farm. */
+const MadeFrom = ({ arrival }: { arrival: Arrival }) => {
+  const { t, language } = useLanguage();
+  const making = arrival.making ?? null;
+  return making ? (
+    <span className="text-muted-foreground text-xs">
+      {t("stock.madeFrom", { inputs: inputsSaid(making.inputs, language) })}
+    </span>
+  ) : null;
+};
+
 const ArrivalItemCell = ({ row }: { row: { original: ArrivalRow } }) => (
-  <TwoNames className="font-medium" named={row.original} />
+  <div className="flex flex-col">
+    <TwoNames className="font-medium" named={row.original} />
+    <MadeFrom arrival={row.original} />
+  </div>
 );
 
-/** Bought or cut from the farm's own land, as a word with its color. */
-const KindBadge = ({ harvest }: { harvest: boolean }) => {
+/** Bought, cut from the farm's own land, or made on the farm, as a word with its color. */
+const KIND_BADGE = {
+  purchase: { tone: "info", word: "stock.purchase" },
+  harvest: { tone: "success", word: "stock.harvest" },
+  made: { tone: "neutral", word: "stock.made" },
+} as const;
+
+const KindBadge = ({ kind }: { kind: Arrival["kind"] }) => {
   const { t } = useLanguage();
-  return (
-    <StatusBadge tone={harvest ? "success" : "info"}>
-      {harvest ? t("stock.harvest") : t("stock.purchase")}
-    </StatusBadge>
-  );
+  // A word this screen does not know yet reads as bought, as every arrival once was.
+  const badge = KIND_BADGE[kind] ?? KIND_BADGE.purchase;
+  return <StatusBadge tone={badge.tone}>{t(badge.word)}</StatusBadge>;
 };
 
 const KindCell = ({ row }: { row: { original: ArrivalRow } }) => (
-  <KindBadge harvest={row.original.kind === "harvest"} />
+  <KindBadge kind={row.original.kind} />
 );
 
 /** What a trader's slip would say of a delivery: the bags or maunds it was typed as, or — for feed weighed in kg
@@ -272,7 +292,9 @@ const LotCell = ({ row }: { row: { original: ArrivalRow } }) => (
 );
 
 const CorrectCell = ({ row }: { row: { original: ArrivalRow } }) =>
-  row.original.mayCorrect ? <ArrivalCorrection arrival={row.original} /> : null;
+  row.original.mayCorrect && row.original.kind !== "made" ? (
+    <ArrivalCorrection arrival={row.original} />
+  ) : null;
 
 const arrivalColumn = createListColumns<ArrivalRow>();
 const arrivalColumns = arrivalColumn.columns([
@@ -285,7 +307,7 @@ const arrivalColumns = arrivalColumn.columns([
     header: listHeader("stock.col.item"),
     cell: ArrivalItemCell,
   }),
-  arrivalColumn.accessor((one) => (one.kind === "harvest" ? 1 : 0), {
+  arrivalColumn.accessor((one) => one.kind, {
     id: "kind",
     header: listHeader("stock.kind"),
     cell: KindCell,
@@ -334,7 +356,7 @@ const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{namesIn(row, language).shown}</span>
-          <KindBadge harvest={row.kind === "harvest"} />
+          <KindBadge kind={row.kind} />
         </div>
         <OtherName named={row} />
         <span className="font-semibold tabular-nums">
@@ -349,7 +371,7 @@ const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
         </span>
         <span className="text-muted-foreground text-xs">
           {formatDate(row.receivedOn, language)}
-          {row.kind === "harvest" || row.priceMoney === null
+          {row.kind !== "purchase" || row.priceMoney === null
             ? ""
             : ` · ${asMoney(row.priceMoney)} · ${row.sellerName ?? ""}`}
         </span>
@@ -361,14 +383,16 @@ const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
           standing={row.standing}
         />
       </div>
-      {row.mayCorrect ? <ArrivalCorrection arrival={row} /> : null}
+      {row.mayCorrect && row.kind !== "made" ? (
+        <ArrivalCorrection arrival={row} />
+      ) : null}
     </div>
   );
 };
 
 const arrivalCard = (row: ArrivalRow) => <ArrivalCard row={row} />;
 
-type KindFilter = "" | "purchase" | "harvest";
+type KindFilter = "" | "purchase" | "harvest" | "made";
 
 /** Every Feed Item a history names, once, for its filter. */
 const ItemFilter = ({
@@ -459,6 +483,7 @@ export const ArrivalsTab = ({
               { value: "", label: t("audit.all") },
               { value: "purchase", label: t("stock.purchase") },
               { value: "harvest", label: t("stock.harvest") },
+              { value: "made", label: t("stock.made") },
             ]}
             value={kind}
           />

@@ -311,6 +311,35 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.feedIn.counterpartyId,
       to: r.counterparty.id,
     }),
+    /** The Feed Making that made it, for made feed. */
+    making: r.one.feedMaking({
+      from: r.feedIn.feedMakingId,
+      to: r.feedMaking.id,
+    }),
+  },
+  feedMaking: {
+    output: r.one.feedItem({
+      from: r.feedMaking.outputFeedItemId,
+      to: r.feedItem.id,
+      optional: false,
+    }),
+    inputs: r.many.feedMakingInput({
+      from: r.feedMaking.id,
+      to: r.feedMakingInput.feedMakingId,
+    }),
+    /** What it made, once it came into the store. */
+    madeFeed: r.one.feedIn({
+      from: r.feedMaking.id,
+      to: r.feedIn.feedMakingId,
+    }),
+    recorder: r.one.user({ from: r.feedMaking.recordedBy, to: r.user.id }),
+  },
+  feedMakingInput: {
+    feedItem: r.one.feedItem({
+      from: r.feedMakingInput.feedItemId,
+      to: r.feedItem.id,
+      optional: false,
+    }),
   },
   calving: {
     dam: r.one.animal({

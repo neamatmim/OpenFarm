@@ -19,6 +19,7 @@ import { farmRouter } from "./farm";
 import { farmAccountsRouter } from "./farm-accounts";
 import { fatteningRouter } from "./fattening";
 import { feedRouter } from "./feed";
+import { feedMakingRouter } from "./feed-making";
 import { feedPurchasingRouter } from "./feed-purchasing";
 import { feedingPlansRouter } from "./feeding-plans";
 import { financialYearsRouter } from "./financial-years";
@@ -81,6 +82,7 @@ type AppRouterShape = {
   fattening: typeof fatteningRouter;
   goingLive: typeof goingLiveRouter;
   feed: typeof feedRouter;
+  feedMaking: typeof feedMakingRouter;
   feedPurchasing: typeof feedPurchasingRouter;
   feedingPlans: typeof feedingPlansRouter;
   sheds: typeof shedsRouter;
@@ -143,6 +145,7 @@ export const appRouter: AppRouterShape = {
   fattening: fatteningRouter,
   goingLive: goingLiveRouter,
   feed: feedRouter,
+  feedMaking: feedMakingRouter,
   feedPurchasing: feedPurchasingRouter,
   feedingPlans: feedingPlansRouter,
   sheds: shedsRouter,

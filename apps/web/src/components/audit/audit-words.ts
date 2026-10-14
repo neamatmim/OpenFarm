@@ -43,6 +43,7 @@ export const ENTITIES = [
   "registration_certificate",
   "notifiable_disease",
   "feed_in",
+  "feed_making",
   "feed_purchase_order",
   "supplier",
   "supplier_invoice",
