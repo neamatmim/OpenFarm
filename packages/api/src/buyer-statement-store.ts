@@ -309,7 +309,7 @@ export const readStatement = async (tx: Tx, id: string) => {
   }
   const priced = await tx.query.dispatch.findMany({
     where: { buyerStatementId: id },
-    columns: { id: true, receivableMoney: true },
+    columns: { id: true, buyerId: true, receivableMoney: true },
     orderBy: { dispatchedAt: "asc", id: "asc" },
   });
   return { ...row, priced };
@@ -335,8 +335,9 @@ const weighedByMonth = (
       amountMoney: roundMoney((had?.amountMoney ?? 0) + one.amountMoney),
     });
   }
-  // The month it was recorded in, owed at its end, where none of its milk left in it.
-  if (shares.length > 0 && !byMonth.has(monthKeyOf(recordedAt))) {
+  // The month it was recorded in at all it made owed at that month's end — milk of earlier months among it — which is
+  // what its Receivable moves by; the milk of that month itself is within it.
+  if (shares.length > 0) {
     byMonth.set(monthKeyOf(recordedAt), {
       at: recordedAt,
       amountMoney: roundMoney(
@@ -567,6 +568,14 @@ export const recordStatement = async (
         entity: "buyer_statement",
         entityId: said.id,
         action: "create",
+        // The milk it prices as it stood, under the name each was booked to: a statement books it to the name he is
+        // found by, and the trail keeps where it came from.
+        before: {
+          priced: beside.toFollow.map((one) => ({
+            id: one.id,
+            buyerId: one.buyerId,
+          })),
+        },
         after: (read) => readStatement(read, said.id),
       });
       return { id: said.id };
@@ -575,8 +584,9 @@ export const recordStatement = async (
 };
 
 /**
- * Refused while his payments have cleared any of the milk a statement priced, or some was written off: those are put
- * right first, as a Dispatch's are. Each buyer's book read once, however many Dispatches it priced.
+ * Refused while money recorded since the statement has cleared some of the milk it priced, or some was written off:
+ * those are put right first, as a Dispatch's are. Money taken before the statement that it soaked up — paid ahead —
+ * stands on nothing: voided, it goes back where it was. Each buyer's book read once, however many Dispatches it priced.
  */
 const assertNothingStandsOnIt = async (
   tx: Tx,

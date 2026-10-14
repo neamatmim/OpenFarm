@@ -65,8 +65,11 @@ export const CATEGORY_OF_RECEIVABLE: Record<ReceivableKind, CategoryKey> = {
 export interface OwedItem {
   id: string;
   leftOn: string;
-  /** The day it became owed where later than it left: milk its Buyer Statement priced, from the statement's date. */
+  /** The day it became owed where later than it left: milk its Buyer Statement priced, from the day the statement was
+   *  recorded. */
   owedFrom?: string;
+  /** The moment it became owed: when it left, or when its Buyer Statement was recorded. */
+  owedAt?: Date;
   /** A Sale's animal by her tag; a Dispatch by its liters. */
   tagNumber: string | null;
   liters: number | null;
@@ -133,6 +136,7 @@ const owedItem = (
 ): OwedItem => ({
   id: one.id,
   leftOn: farmDayOf(leftAt),
+  owedAt: leftAt,
   ...label,
   receivableMoney: one.receivableMoney,
   paidMoney: 0,
@@ -328,7 +332,10 @@ const itemsByBuyer = (
       // Priced by its Buyer Statement, it is owed from when the statement was recorded: nothing recorded later moves
       // what an earlier payment cleared.
       ...(one.buyerStatement
-        ? { owedFrom: farmDayOf(one.buyerStatement.recordedAt) }
+        ? {
+            owedFrom: farmDayOf(one.buyerStatement.recordedAt),
+            owedAt: one.buyerStatement.recordedAt,
+          }
         : {}),
     });
   }

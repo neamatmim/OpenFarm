@@ -31,12 +31,11 @@ import type { StatementTyped } from "@/lib/buyer-statement-form";
 import {
   STATEMENT_OPENS,
   amountApartSaid,
-  signedSaid,
   besideAsked,
   statementProblem,
   statementSent,
 } from "@/lib/buyer-statement-form";
-import { saidAsMoney } from "@/lib/money";
+import { saidAsMoneyRate, saidAsSigned } from "@/lib/money";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
@@ -179,11 +178,11 @@ const Beside = ({ form }: { form: StatementTyped }) => {
         <p className={short ? "text-warning font-medium" : undefined}>
           {one.differencePercent === null
             ? t("statement.differenceNoPercent", {
-                liters: signedSaid(one.differenceLiters, language),
+                liters: saidAsSigned(one.differenceLiters, language),
               })
             : t("statement.difference", {
-                liters: signedSaid(one.differenceLiters, language),
-                percent: signedSaid(one.differencePercent, language),
+                liters: saidAsSigned(one.differenceLiters, language),
+                percent: saidAsSigned(one.differencePercent, language),
               })}
         </p>
         {one.pricedLiters > 0 ? (
@@ -204,7 +203,7 @@ const Beside = ({ form }: { form: StatementTyped }) => {
         ) : (
           <p>
             {t("statement.amountBeside", {
-              amount: saidAsMoney(one.amountDifferenceMoney, language),
+              amount: saidAsMoneyRate(one.amountDifferenceMoney, language),
             })}
           </p>
         )}
@@ -482,11 +481,11 @@ const StatementLine = ({
         <span className={short ? "text-warning font-medium" : undefined}>
           {statement.differencePercent === null
             ? t("statement.differenceNoPercent", {
-                liters: signedSaid(statement.differenceLiters, language),
+                liters: saidAsSigned(statement.differenceLiters, language),
               })
             : t("statement.difference", {
-                liters: signedSaid(statement.differenceLiters, language),
-                percent: signedSaid(statement.differencePercent, language),
+                liters: saidAsSigned(statement.differenceLiters, language),
+                percent: saidAsSigned(statement.differencePercent, language),
               })}
         </span>
         <span>

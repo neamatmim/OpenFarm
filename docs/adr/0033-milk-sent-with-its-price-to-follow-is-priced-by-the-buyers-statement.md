@@ -22,7 +22,10 @@ delegated the open choices; these are the recommendations, taken.
   buyer: his terms are read across both, as the sheet reads them; his milk under either is set beside his statements
   and priced by them; and a statement is recorded under — and books the milk it prices to — the name the farm finds
   him by (`knownAs`), the one his payments are taken under, so what he pays clears what he owes in one book. The name
-  each Dispatch left under stays as it stood that day.
+  each Dispatch left under stays as it stood that day, and the statement's trail keeps the name each was booked to
+  before and after. **The move is kept when the statement is voided**: it is the same man, the milk goes back to its
+  price to follow under the name his next statement will be recorded under, and moving it back would split his book
+  again for nothing.
 - **A Buyer Statement** («ক্রেতার বিল») is recorded by the Manager or the Owner from the buyer's paper: the buyer, the
   first and last farm day it covers, its date, the day he pays by (left out: its date and the farm's days for
   Receivable), his liters and his amount, and as he gives them his number, average fat and SNF, his rate and a photo.
@@ -43,7 +46,8 @@ delegated the open choices; these are the recommendations, taken.
   float cannot get wrong). Each priced Dispatch then owes all its share, by the day he pays by: his **Receivable**,
   which the existing Receivable Payment clears. No Money Event is written: nothing was paid at the gate.
 - **Owed from when the statement was recorded.** A statement-priced Dispatch left the farm on its own day but became
-  owed when the farm recorded the statement. His payments clear what he owes in the order it became owed — a Sale or a
+  owed when the farm recorded the statement. His payments clear what he owes in the order it became owed, to the
+  moment — milk taken on credit that morning is owed before a statement recorded that afternoon — a Sale or a
   Dispatch from the day it left, statement-priced milk from the day its statement was recorded — so a payment the farm
   took before the statement went to what he owed then (the milk he took on credit at a price), never to milk nobody had
   priced; read as at a day before it was recorded — a month's end, the accountant's day — that milk is not yet owed;
@@ -72,8 +76,9 @@ delegated the open choices; these are the recommendations, taken.
   what he owes for it is owed at the end of the month it was recorded in. A statement that touches a month the Owner
   has closed — prices milk of it, or is voided once the month it was recorded in is closed — is hers alone
   (`month_closed` to anybody else); hers is kept under "Changed after closing" for each closed month it touched, by the
-  buyer, as
-  `buyer_statement`, with what the month held of it before and after. Milk and cattle left owing on credit answer to a
+  buyer, as `buyer_statement`, with what the month held of it before and after: a month its milk left in at that
+  milk's share, the month it was recorded in at all it made owed at that month's end, earlier months' milk among it.
+  Milk and cattle left owing on credit answer to a
   closed month the same way (ADR 0028 addendum), and so does a Correction that gives milk to follow a price.
 - **A Correction may send a price to follow, or give one.** A price put on milk whose price was to follow leaves it all
   owed unless the Correction says he paid at the gate; a guessed price taken off sends it back to follow, refused while
@@ -88,11 +93,19 @@ delegated the open choices; these are the recommendations, taken.
 ## Every reader of a Dispatch's money
 
 - What a Dispatch came to is read in one place (`worthOfMilkSent`, in the domain, which the farm and the screen both
-  read): liters at the price, or its statement's share, or nothing while the price is to follow. What a liter fetched (`fetchedPerLiter`) is nothing for such milk.
+  read): liters at the price, or its statement's share, or nothing while the price is to follow. What a liter fetched
+  (`fetchedPerLiter`) is nothing for such milk.
 - **The Monthly Report**, its paper and its CSV: milk sold, liters sold and what a liter fetched count only priced milk;
   the milk still to follow is a line of its own, "Liters, price to follow" / «দাম পরে ঠিক হবে এমন দুধ», shown only in a
   month that sent some, and the paper says it is in no money above. Priced by a statement later, the milk counts in the
   month it left. Side Results, margins and Capital read the same figure.
+- **A month whose milk a statement priced after it ended ties up by saying so.** That milk is in the month's milk
+  sold, but owed only from the statement, so in nothing buyers owed at the month's end. The report, its paper and its
+  CSV say it on a line of its own beside the milk money — "Priced after the month ended" / «মাস শেষ হওয়ার পরে দাম ঠিক
+  হয়েছে» — and the paper says what, how many liters, and the days the statements were recorded on. This is ADR 0023's
+  way: a difference between two figures read from different places is shown on its own line, named for what makes
+  it, never forced. Reading the month's milk money as it stood at its end was the other way, and it would leave the
+  milk counted in no month at all.
 - **The cull list's milk price and the dairy returns' monthly milk prices** average priced milk only: milk nobody has
   priced is no price.
 - **The milk page**: the day's money leaves it out and says its liters beside ("N L price to follow"); each Dispatch

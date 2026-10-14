@@ -42,9 +42,18 @@ type Figures = OneMonth["figures"];
 /** The parts of a month's figures the management figures added (ADR 0023). */
 type NewParts = "results" | "atEnd" | "cashFlow" | "monthsReturn";
 /** The dairy's figures as the phone may hold them: an answer kept from before the price could follow (ADR 0033) has no
- *  liters whose price is to follow. */
-type KeptDairy = Omit<Figures["dairy"], "litersPriceToFollow"> & {
+ *  liters whose price is to follow, nor milk priced after its month. */
+type KeptDairy = Omit<
+  Figures["dairy"],
+  | "litersPriceToFollow"
+  | "pricedAfterMoney"
+  | "pricedAfterLiters"
+  | "pricedAfterOn"
+> & {
   litersPriceToFollow?: number;
+  pricedAfterMoney?: number;
+  pricedAfterLiters?: number;
+  pricedAfterOn?: readonly string[];
 };
 type Unchanged = Omit<Figures, NewParts | "dairy"> & { dairy: KeptDairy };
 type AtEnd = Figures["atEnd"];
@@ -160,6 +169,9 @@ export const MonthPart = ({
 /** The liters a month sent with its price to follow; none in a month kept from before the farm said it. */
 const toFollow = (one: KeptFigures) => one.dairy.litersPriceToFollow ?? 0;
 
+/** Of a month's milk sold, what a statement priced once it was over: owed from then, so in nothing owed at its end. */
+const pricedAfterOf = (one: KeptFigures) => one.dairy.pricedAfterMoney ?? 0;
+
 /** Each part's lines, worded and formatted for the reader, from the month's figures and the month before's. */
 export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
   const { t, language } = useLanguage();
@@ -171,6 +183,7 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
   const owesSuppliers = owedSuppliersIn(now, before);
   // Milk sent with its price to follow is said only where this month or the month before sent some.
   const sentToFollow = toFollow(now) > 0 || toFollow(before) > 0;
+  const pricedAfterAny = pricedAfterOf(now) > 0 || pricedAfterOf(before) > 0;
   const liters = (amount: number | null | undefined) =>
     amount === null || amount === undefined
       ? null
@@ -271,6 +284,13 @@ export const useMonthLines = (now: KeptFigures, before: KeptFigures) => {
         ? [
             both(t("months.one.litersPriceToFollow"), (one) =>
               liters(toFollow(one))
+            ),
+          ]
+        : []),
+      ...(pricedAfterAny
+        ? [
+            both(t("months.one.pricedAfter"), (one) =>
+              asMoney(pricedAfterOf(one))
             ),
           ]
         : []),

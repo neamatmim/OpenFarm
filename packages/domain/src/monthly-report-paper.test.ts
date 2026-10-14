@@ -15,6 +15,9 @@ const FIGURES = {
     milkSoldMoney: 9300,
     litersSold: 150,
     litersPriceToFollow: 0,
+    pricedAfterMoney: 0,
+    pricedAfterLiters: 0,
+    pricedAfterOn: [],
     fetchedPerLiterMoney: 62,
     chargedMoney: 4100,
     litersToBulk: 140,
@@ -132,6 +135,9 @@ const NOTHING = {
     milkSoldMoney: 0,
     litersSold: 0,
     litersPriceToFollow: 0,
+    pricedAfterMoney: 0,
+    pricedAfterLiters: 0,
+    pricedAfterOn: [],
     fetchedPerLiterMoney: null,
     chargedMoney: 0,
     litersToBulk: 0,
@@ -878,5 +884,34 @@ describe("milk sent with its price to follow, on paper (ADR 0033)", () => {
     const en = paperText(monthlyReportPaper(FACTS), "en");
 
     expect(en).not.toContain("price to follow");
+    expect(en).not.toContain("Priced after the month");
+  });
+
+  it("says what of the milk sold a statement priced after the month ended, so the month ties with what was owed at its end", () => {
+    const priced = {
+      ...FACTS,
+      figures: {
+        ...FACTS.figures,
+        dairy: {
+          ...FACTS.figures.dairy,
+          pricedAfterMoney: 6000,
+          pricedAfterLiters: 100,
+          pricedAfterOn: ["2026-06-03"],
+        },
+      },
+    };
+    const en = paperText(monthlyReportPaper(priced), "en");
+    const bn = paperText(monthlyReportPaper(priced), "bn");
+
+    expect(en).toContain("Priced after the month ended");
+    expect(en).toContain(
+      "6,000 taka of the milk sold (100 liters) was priced after the month ended, by a buyer's statement recorded on 3 June 2026; owed from then, it is in no money owed at the month's end."
+    );
+    expect(bn).toContain("মাস শেষ হওয়ার পরে দাম ঠিক হয়েছে");
+    expect(
+      monthlyReportRows(priced).find(
+        (one) => one.line.en === "Priced after the month ended"
+      )?.thisMonth
+    ).toBe(6000);
   });
 });

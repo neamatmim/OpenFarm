@@ -155,8 +155,11 @@ export interface ReceivableItem {
   /** The farm day it left. */
   leftOn: string;
   /** The farm day it became owed, where that is later than it left: milk sent with its price to follow is owed from
-   *  its Buyer Statement's date (ADR 0033). Left out, the day it left. */
+   *  the day its Buyer Statement was recorded (ADR 0033). Left out, the day it left. */
   owedFrom?: string;
+  /** The moment it became owed — when it left, or when its Buyer Statement was recorded — which orders two owed the
+   *  same day. Left out, the same day orders by the day it left. */
+  owedAt?: Date;
   /** What he still owed as it left. */
   receivableMoney: number;
   promisedBy: string | null;
@@ -197,7 +200,8 @@ export interface ReceivableStanding {
   paidAheadMoney: number;
   /** What stays written off of it, in all. */
   writtenOffMoney: number;
-  /** The day the oldest thing still owing left, or nothing when nothing is. */
+  /** The day the oldest thing still owing became owed — the day it left, or the day its Buyer Statement was recorded —
+   *  as its age is read; nothing when nothing is. */
   oldestOn: string | null;
   /** The soonest day he promised for what is still owing, or nothing when he promised none. */
   soonestPromise: string | null;
@@ -211,10 +215,10 @@ const byDayThenId =
 
 /**
  * A buyer's Receivable of one kind, cleared oldest first — as a trader's khata is. Each payment, in the order it came, pays
- * off the oldest thing still owing, by the day it became owed; what is left of it is paid ahead, which the next thing he
- * owes uses up first. Milk priced later by his statement became owed on the statement's date, so a payment made before
- * it clears what he owed then, not milk nobody had priced (ADR 0033). Worked on read and never stored, so a Correction
- * to an old Sale or payment re-flows without rewriting what a payment was for.
+ * off the oldest thing still owing, by the moment it became owed; what is left of it is paid ahead, which the next thing
+ * he owes uses up first. Milk priced later by his statement became owed when the statement was recorded, so a payment
+ * taken before it — that very morning, too — clears what he owed then, not milk nobody had priced (ADR 0033). Worked on
+ * read and never stored, so a Correction to an old Sale or payment re-flows without rewriting what a payment was for.
  */
 export const receivableStanding = (
   items: readonly ReceivableItem[],
@@ -225,6 +229,7 @@ export const receivableStanding = (
     .toSorted(
       (a, b) =>
         (a.owedFrom ?? a.leftOn).localeCompare(b.owedFrom ?? b.leftOn) ||
+        (a.owedAt && b.owedAt ? a.owedAt.getTime() - b.owedAt.getTime() : 0) ||
         byDayThenId<ReceivableItem>((one) => one.leftOn)(a, b)
     );
   // Two purses per item: what is still open, and what the Owner wrote off. Money pays the open first, everything
@@ -293,7 +298,8 @@ export const receivableStanding = (
     owingMoney: total((one) => one.owingMoney),
     paidAheadMoney: roundMoney(paidIn - clearedMoney),
     writtenOffMoney: total((one) => one.writtenOffMoney),
-    oldestOn: stillOwing.map((one) => one.leftOn).toSorted()[0] ?? null,
+    oldestOn:
+      stillOwing.map((one) => one.owedFrom ?? one.leftOn).toSorted()[0] ?? null,
     soonestPromise: soonestPromise ?? null,
   };
 };

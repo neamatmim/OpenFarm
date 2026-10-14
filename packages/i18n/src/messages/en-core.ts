@@ -4637,6 +4637,7 @@ export const enCore = {
     "Milk sold, what a liter fetched, and what the farm's own cows cost.",
   "months.one.litersSold": "Liters sold",
   "months.one.litersPriceToFollow": "Liters, price to follow",
+  "months.one.pricedAfter": "Priced after the month ended",
   "months.one.fetchedPerLiter": "Fetched a liter",
   "months.one.litersToBulk": "Milk to bulk",
   "months.one.costPerLiter": "Cost a liter",

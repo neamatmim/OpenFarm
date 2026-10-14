@@ -4312,6 +4312,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "বিক্রি হওয়া দুধ, এক লিটারে কত পাওয়া গেল, আর খামারের নিজের গাভীদের খরচ।",
   "months.one.litersSold": "বিক্রি হওয়া দুধ",
   "months.one.litersPriceToFollow": "দাম পরে ঠিক হবে এমন দুধ",
+  "months.one.pricedAfter": "মাস শেষ হওয়ার পরে দাম ঠিক হয়েছে",
   "months.one.fetchedPerLiter": "লিটারে পাওয়া",
   "months.one.litersToBulk": "সংগ্রহে যাওয়া দুধ",
   "months.one.costPerLiter": "লিটারে খরচ",

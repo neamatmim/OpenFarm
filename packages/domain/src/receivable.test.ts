@@ -218,8 +218,33 @@ describe("a buyer's Receivable, cleared oldest first", () => {
       { id: "credit", owingMoney: 0 },
       { id: "statement", owingMoney: 6000 },
     ]);
-    // Still the day the oldest of what he owes left the farm.
-    expect(standing.oldestOn).toBe("2026-10-03");
+    // Owing since the statement made it owed: as its age is read.
+    expect(standing.oldestOn).toBe("2026-11-02");
+  });
+
+  it("clears by the moment each became owed: milk taken on credit in the morning before a statement recorded that afternoon", () => {
+    const day = "2026-10-20";
+    const standing = receivableStanding(
+      [
+        {
+          // Sent ten days before, its statement recorded at four in the afternoon.
+          ...item("statement", "2026-10-10", 6000),
+          owedFrom: day,
+          owedAt: new Date("2026-10-20T10:00:00.000Z"),
+        },
+        {
+          // Taken on credit at seven in the morning, and paid for that morning.
+          ...item("morning", day, 500),
+          owedAt: new Date("2026-10-20T01:00:00.000Z"),
+        },
+      ],
+      [paid("p1", day, 500)]
+    );
+
+    expect(standing.items).toMatchObject([
+      { id: "morning", owingMoney: 0 },
+      { id: "statement", owingMoney: 6000 },
+    ]);
   });
 
   it("clears the oldest first when he pays part", () => {

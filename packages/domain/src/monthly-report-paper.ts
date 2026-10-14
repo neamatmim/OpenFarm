@@ -35,6 +35,11 @@ export interface MonthFigures {
     litersSold: number;
     /** Milk sent in it whose price is still to follow, for its buyer's statement to set: in no money (ADR 0033). */
     litersPriceToFollow: number;
+    /** Of the milk sold, what Buyer Statements recorded after it ended priced, its liters, and the farm days they were
+     *  recorded on: owed from then, so in no Receivable at its end (ADR 0033). */
+    pricedAfterMoney: number;
+    pricedAfterLiters: number;
+    pricedAfterOn: readonly string[];
     fetchedPerLiterMoney: number | null;
     chargedMoney: number;
     litersToBulk: number;
@@ -436,6 +441,16 @@ const DAIRY: Part = {
       kind: "liters",
       of: (one) => one.dairy.litersPriceToFollow,
       onlyWhen: (one) => one.dairy.litersPriceToFollow > 0,
+    },
+    {
+      // Of the milk sold, what a statement priced once the month was over: why the month's money owed does not hold it.
+      label: {
+        bn: "মাস শেষ হওয়ার পরে দাম ঠিক হয়েছে",
+        en: "Priced after the month ended",
+      },
+      kind: "sum",
+      of: (one) => one.dairy.pricedAfterMoney,
+      onlyWhen: (one) => one.dairy.pricedAfterMoney > 0,
     },
     {
       label: { bn: "লিটারে পাওয়া", en: "Fetched a liter" },
@@ -990,6 +1005,32 @@ const priceToFollowSaid = (liters: number): Said | null =>
       }
     : null;
 
+/** Days said together in a sentence: "3 June 2026 and 18 June 2026". */
+const daysTogether = (days: readonly string[]): Said => {
+  const said = days.map(daySaid);
+  return {
+    bn: said.map((one) => one.bn).join(" ও "),
+    en: said.map((one) => one.en).join(" and "),
+  };
+};
+
+/**
+ * Of the milk sold in the month, what a Buyer Statement recorded after it ended priced: in its milk money, yet owed only
+ * from the statement, so in nothing buyers owed at its end — said, so the month ties with its end (ADR 0033).
+ */
+const pricedAfterSaid = (dairy: MonthFigures["dairy"]): Said | null => {
+  if (dairy.pricedAfterMoney <= 0) {
+    return null;
+  }
+  const money = sumSaid(dairy.pricedAfterMoney);
+  const days = daysTogether(dairy.pricedAfterOn);
+  const many = dairy.pricedAfterOn.length > 1;
+  return {
+    bn: `বিক্রি হওয়া দুধের ${money.bn} (${formatNumber(dairy.pricedAfterLiters, "bn")} লিটার) মাস শেষ হওয়ার পরে দাম ঠিক হয়েছে, ${days.bn} তারিখে লেখা ক্রেতার বিলে; তখন থেকে পাওনা, তাই মাস শেষের বাকিতে নেই।`,
+    en: `${money.en} of the milk sold (${formatNumber(dairy.pricedAfterLiters, "en")} ${dairy.pricedAfterLiters === 1 ? "liter" : "liters"}) was priced after the month ended, by ${many ? "buyers' statements" : "a buyer's statement"} recorded on ${days.en}; owed from then, it is in no money owed at the month's end.`,
+  };
+};
+
 /** What the month's figures leave out, and the money still waiting: said, never shown as nothing. */
 const leftOut = (figures: MonthFigures): Said[] => {
   const kg = unpricedKgOf(figures);
@@ -1000,6 +1041,7 @@ const leftOut = (figures: MonthFigures): Said[] => {
   const { unpriced: unpricedAnimals } = figures.atEnd.capital;
   return [
     priceToFollowSaid(figures.dairy.litersPriceToFollow),
+    pricedAfterSaid(figures.dairy),
     kg > 0
       ? {
           bn: `${formatNumber(kg, "bn")} কেজি নিজের জমির ঘাস এই মাসে দাম ছাড়া খাওয়ানো হয়েছে; এর খরচ ওপরে নেই।`,

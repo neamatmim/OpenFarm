@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   STATEMENT_OPENS,
   amountApartSaid,
-  signedSaid,
   besideAsked,
   statementProblem,
   statementSent,
 } from "./buyer-statement-form";
+import { saidAsSigned } from "./money";
 
 const typed = {
   ...STATEMENT_OPENS,
@@ -84,9 +84,19 @@ describe("a recorded statement's amount beside what the farm priced", () => {
     ).toBeNull();
   });
 
-  it("says the liters his count differs by with the same minus", () => {
-    expect(signedSaid(-5, "en")).toBe("−5");
-    expect(signedSaid(-1.67, "bn")).toBe("−১.৬৭");
-    expect(signedSaid(12.5, "en")).toBe("12.5");
+  it("keeps the paisa of a gap under a taka", () => {
+    expect(
+      amountApartSaid({ voided: null, amountDifferenceMoney: 0.4 }, "en")
+    ).toBe("৳0.4");
+    expect(
+      amountApartSaid({ voided: null, amountDifferenceMoney: -0.4 }, "en")
+    ).toBe("−৳0.4");
+  });
+
+  it("says the liters his count differs by with the same minus, and never a minus nought", () => {
+    expect(saidAsSigned(-5, "en")).toBe("−5");
+    expect(saidAsSigned(-1.67, "bn")).toBe("−১.৭");
+    expect(saidAsSigned(12.5, "en")).toBe("12.5");
+    expect(saidAsSigned(-0.01, "en")).toBe("0");
   });
 });

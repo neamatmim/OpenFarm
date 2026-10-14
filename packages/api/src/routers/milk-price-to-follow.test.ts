@@ -696,8 +696,9 @@ describe("a buyer the farm kept under two spellings", () => {
         recordedAt: new Date("2084-03-02T01:00:00.000Z"),
       });
 
+    const statementId = uuidv7();
     await manager.client.milk.recordStatement({
-      id: uuidv7(),
+      id: statementId,
       counterpartyId: first,
       fromDay: "2084-03-01",
       toDay: "2084-03-15",
@@ -709,6 +710,18 @@ describe("a buyer the farm kept under two spellings", () => {
     expect(
       await sentOn(manager.client, "2084-03-02", onTheSecond)
     ).toMatchObject({ priceToFollow: false, worthMoney: 5800 });
+    // The milk it moved to the name he is found by is on the trail, from the name it was booked to.
+    const trail = await scratchDb().query.auditEvent.findFirst({
+      where: { entity: "buyer_statement", entityId: statementId },
+      columns: { before: true, after: true },
+    });
+
+    expect(trail?.before).toMatchObject({
+      priced: [{ id: onTheSecond, buyerId: second }],
+    });
+    expect(trail?.after).toMatchObject({
+      priced: [{ id: onTheSecond, buyerId: first }],
+    });
 
     // He pays it, named either way: one man, one book — nothing left owing under the other spelling.
     await manager.client.receivables.pay({
@@ -925,5 +938,87 @@ describe("a statement voided after the month it was recorded in is closed", () =
         beforeMoney: 6000,
       })
     );
+  });
+
+  it("weighs the month it was recorded in at all it made owed, its milk of an earlier month among it", async () => {
+    const manager = await as("manager", "2087-11-20T06:00:00.000Z");
+    const buyer = center("দুই মাসের বিল");
+    await manager.client.milk.dispatch({
+      dispatchedAt: new Date("2087-10-20T01:00:00.000Z"),
+      liters: 100,
+      buyer,
+      priceToFollow: true,
+    });
+    await manager.client.milk.dispatch({
+      dispatchedAt: new Date("2087-11-05T01:00:00.000Z"),
+      liters: 60,
+      buyer,
+      priceToFollow: true,
+    });
+    const his = await buyerCalled(manager.client, buyer.name);
+    const statement = {
+      id: uuidv7(),
+      counterpartyId: his?.counterpartyId ?? "",
+      fromDay: "2087-10-16",
+      toDay: "2087-11-15",
+      statedOn: "2087-11-18",
+      payBy: "2087-12-10",
+      liters: 160,
+      amountMoney: 8000,
+    };
+    await manager.client.milk.recordStatement(statement);
+    const owner = await as("owner", "2087-12-08T06:00:00.000Z");
+    await owner.client.monthlyReport.close({ month: "2087-11" });
+
+    await owner.client.milk.voidStatement({ id: statement.id, reason: "ভুল" });
+
+    const december = await owner.client.monthlyReport.month({
+      month: "2087-12",
+    });
+
+    // November's end owed all ৳8,000 of it, October's ৳5,000 among it.
+    expect(december.changedAfterClosing).toContainEqual(
+      expect.objectContaining({
+        month: "2087-11",
+        recordId: statement.id,
+        change: "voided",
+        beforeMoney: 8000,
+      })
+    );
+  });
+});
+
+describe("a month whose milk a statement priced after it ended", () => {
+  it("says so beside its milk money, so it ties with what was owed at its end", async () => {
+    const manager = await as("manager", "2088-02-03T06:00:00.000Z");
+    const buyer = center("পরে ঠিক");
+    await manager.client.milk.dispatch({
+      dispatchedAt: new Date("2088-01-10T01:00:00.000Z"),
+      liters: 100,
+      buyer,
+      priceToFollow: true,
+    });
+    const his = await buyerCalled(manager.client, buyer.name);
+    await manager.client.milk.recordStatement({
+      id: uuidv7(),
+      counterpartyId: his?.counterpartyId ?? "",
+      fromDay: "2088-01-01",
+      toDay: "2088-01-31",
+      statedOn: "2088-02-02",
+      payBy: "2088-02-20",
+      liters: 100,
+      amountMoney: 6000,
+    });
+    const owner = await as("owner", "2088-02-04T06:00:00.000Z");
+
+    const january = await owner.client.monthlyReport.month({
+      month: "2088-01",
+    });
+
+    expect(january.figures.dairy).toMatchObject({
+      pricedAfterMoney: 6000,
+      pricedAfterLiters: 100,
+      pricedAfterOn: ["2088-02-03"],
+    });
   });
 });
