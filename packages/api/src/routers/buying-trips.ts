@@ -201,6 +201,7 @@ export const buyingTripsRouter = {
       await audited(context).write(
         {
           entity: "buying_trip",
+          reachesMoney: true,
           entityId: id,
           action: "create",
           after: (tx) => readTrip(tx, context.farm.id, id),

@@ -316,6 +316,7 @@ export const ventureMovementCorrection: CorrectionKind<
 > = {
   entity: "venture_movement",
   table: ventureMovement,
+  money: true,
   roles: ["owner"],
   missing: "No such movement",
   load: loadMovement,

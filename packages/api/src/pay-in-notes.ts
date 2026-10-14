@@ -31,6 +31,7 @@ import type { Raised } from "./notice";
 import { tell } from "./notice";
 import { photoInput } from "./photo-input";
 import { pushRaised } from "./push-send";
+import { refuse } from "./refuse";
 import type { VentureRow } from "./venture-act";
 import { actOnVenture } from "./venture-act";
 import { accountOf, takenAgainst } from "./venture-store";
@@ -79,9 +80,6 @@ export const notFoundInput = z.object({
   line: z.string().trim().min(1).max(PAY_IN_LINE_MOST),
 });
 
-const refused = (refusal: string, message: string, data = {}) =>
-  new ORPCError("BAD_REQUEST", { message, data: { refusal, ...data } });
-
 /** Somebody else's note, or none at all: no such note to anybody who asks. */
 const noSuchNote = () =>
   new ORPCError("NOT_FOUND", {
@@ -91,12 +89,12 @@ const noSuchNote = () =>
 
 /** A note answered, withdrawn or closed: nothing is left to do to it. */
 const noteNotWaiting = () =>
-  refused("pay_in_note_not_waiting", "This note is not waiting any more");
+  refuse("pay_in_note_not_waiting", "This note is not waiting any more");
 
 /** Off until the Owner turns it on, once the lawyer and the Shariah scholar have seen it. */
 const assertSwitchedOn = (farm: { payInNotes: boolean }) => {
   if (!farm.payInNotes) {
-    throw refused(
+    throw refuse(
       "pay_in_notes_off",
       "The farm is not taking Pay-in Notes in the portal"
     );
@@ -106,7 +104,7 @@ const assertSwitchedOn = (farm: { payInNotes: boolean }) => {
 /** A day still to come is money not yet sent. */
 const assertNotAhead = (sentOn: string, now: Date) => {
   if (sentOn > farmDayOf(now)) {
-    throw refused("pay_in_day_ahead", "That day has not come yet");
+    throw refuse("pay_in_day_ahead", "That day has not come yet");
   }
 };
 
@@ -252,13 +250,13 @@ const mayNoteSay = async (
     columns: { name: true, retiredAt: true },
   });
   if (!them || them.retiredAt) {
-    throw refused(
+    throw refuse(
       "investor_retired",
       "A retired Investor's notes are not taken"
     );
   }
   if (!takesCapital(standing)) {
-    throw refused(
+    throw refuse(
       "venture_takes_no_capital",
       "This Venture takes no more capital"
     );
@@ -266,7 +264,7 @@ const mayNoteSay = async (
   // The portal tells an Investor never to pay anywhere it does not show: with no Venture Account written, there is
   // nowhere they should have sent it.
   if (!accountOf(standing)) {
-    throw refused(
+    throw refuse(
       "venture_has_no_account",
       "The farm has not written this Venture's account yet"
     );
@@ -282,13 +280,13 @@ const mayNoteSay = async (
     leavingOut
   );
   if (!onFile) {
-    throw refused(
+    throw refuse(
       "agreement_has_no_paper",
       "The stamped Agreement is not on file yet"
     );
   }
   if (amountMoney > roomMoney) {
-    throw refused(
+    throw refuse(
       "pay_in_over_owed",
       `This Agreement is owed ${roomMoney} more, counting the notes still waiting`,
       { roomMoney }

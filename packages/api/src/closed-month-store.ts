@@ -11,6 +11,7 @@ import {
   moneyEvent,
 } from "@OpenFarm/db/schema/money";
 import {
+  MONEY_SOURCE_WORD,
   farmDayOf,
   monthBefore,
   monthRangeOf,
@@ -31,33 +32,38 @@ export interface ChangeBy {
   now: Date;
 }
 
-/** The one rule of who the Owner is, as a Closed Month and the Approval Threshold both ask: whoever holds her Role. */
-export const isTheOwner = (roles: readonly string[]): boolean =>
+/** Whether whoever writes money holds the Owner's Role: what the Approval Threshold and a **Closed Month** ask of it. */
+export const writesAsTheOwner = (roles: readonly string[]): boolean =>
   roles.includes("owner");
 
-/** Who this request is, as a change to a Closed Month is asked about and kept. */
+/**
+ * Who this request is, as a change to a Closed Month is asked about and kept — and when, by the farm's own clock: a
+ * Correction a phone held is judged at when it was made, but a month closed since is closed to it all the same.
+ */
 export const changeByOf = (
   context: {
     farm: { id: string };
     actor: { id: string };
     roles: readonly string[];
+    heardAt?: Date;
   },
   now: Date
 ): ChangeBy => ({
   farmId: context.farm.id,
   actorId: context.actor.id,
-  byTheOwner: isTheOwner(context.roles),
-  now,
+  byTheOwner: writesAsTheOwner(context.roles),
+  now: context.heardAt ?? now,
 });
 
 /** The month a moment falls in, on the farm's own clock: "YYYY-MM". */
 export const monthKeyOf = (at: Date): string => farmDayOf(at).slice(0, 7);
 
 /**
- * Which of these months the farm has closed and not reopened. Asked behind the Farm's one lock, which every
- * transaction that can reach a past month takes at its start (`audited`, `correct`), so taking it here again is only
- * a guard. Only a month already over can be closed, so money in this month or after is never asked about — the
- * database is not read for the day's ordinary money.
+ * Which of these months the farm has closed and not reopened. Asked behind the Farm's one lock, which every write that
+ * can book or move money in a month gone by takes at its start, before any row of its own (an audited write marked
+ * `reachesMoney`, a Correction of a kind marked `money`, a sync batch with an entry made in a month gone by), so
+ * taking it here again is only a guard, already held. Only a month already over can be closed, so money in this month
+ * or after is never asked about — the database is not read, and the Farm not locked, for the day's ordinary money.
  */
 const closedAmong = async (
   tx: Tx,
@@ -279,29 +285,7 @@ export const aboutMoney =
 /** What each record a change was made to is called, as the screen says it and the paper and CSV say it in both
  *  languages: a Money Event by the record its money came from, as the money book names it. */
 export const RECORD_WORD = {
-  dispatch: "money.from.dispatch",
-  intake: "money.from.intake",
-  buying_trip: "money.from.buyingTrip",
-  selling_trip: "money.from.sellingTrip",
-  sale: "money.from.sale",
-  feed_in: "money.from.feedIn",
-  medicine_purchase: "money.from.medicinePurchase",
-  vet_fee: "money.from.vetFee",
-  sale_broker: "money.from.saleBroker",
-  wage_draw: "money.from.wageDraw",
-  internal_sale_in: "money.from.internalSaleIn",
-  internal_sale_out: "money.from.internalSaleOut",
-  reimbursement: "money.from.reimbursement",
-  settlement_adjustment: "money.from.settlementAdjustment",
-  farm_share: "money.from.farmShare",
-  farm_loss: "money.from.farmLoss",
-  venture_made_good: "money.from.ventureMadeGood",
-  venture_capital_out: "money.from.ventureCapitalOut",
-  venture_capital_back: "money.from.ventureCapitalBack",
-  venture_capital_return: "money.from.ventureCapitalReturn",
-  receivable_payment: "money.from.receivablePayment",
-  supplier_payment: "suppliers.payment",
-  by_hand: "money.from.byHand",
+  ...MONEY_SOURCE_WORD,
   handover: "months.closing.from.handover",
   receivable_write_off: "months.closing.from.receivableWriteOff",
   cash_count: "months.closing.from.cashCount",

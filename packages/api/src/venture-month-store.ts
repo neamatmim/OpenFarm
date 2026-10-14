@@ -42,8 +42,6 @@ import {
   paidForBy,
 } from "./venture-store";
 
-/** A "YYYY-MM" month as the farm's own days begin and end it, the end not counted in. */
-
 /**
  * The months a Venture ran: from the month it was opened to the later of the month its Settlement was approved and the
  * month its last money moved — its payouts follow the approval — or, called off, the month its last money moved, as the

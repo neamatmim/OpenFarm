@@ -30,6 +30,7 @@ import type { ChangeBy } from "./closed-month-store";
 import { aboutMoney, answerToClosedMonths } from "./closed-month-store";
 import type { Raised } from "./notice";
 import { rememberingPeople, tell, whoHears } from "./notice";
+import { ownedThenByOf } from "./venture-store";
 
 /** The farm day a buyer promised to pay what he still owed by. */
 export { farmDay as promisedByInput } from "./farm-clock";
@@ -780,6 +781,39 @@ export const readWriteOff = async (tx: Tx, id: string) =>
   (await tx.query.receivableWriteOff.findFirst({ where: { id } })) ?? null;
 
 /**
+ * When the Sale or Dispatch a Write-off writes off left the farm, and whose it was: the day it was sold or sent, by its
+ * own record — a Sale left wholly on credit books no money, so its money cannot date it — and, for a Sale, whoever
+ * owned her that day. Milk is the Farm's.
+ */
+const itemDated = async (
+  tx: Tx,
+  farmId: string,
+  row: { source: (typeof RECEIVABLE_SOURCES)[number]; sourceId: string }
+): Promise<{ occurredAt: Date; purseVentureId: string | null } | null> => {
+  if (row.source === "dispatch") {
+    const sent = await tx.query.dispatch.findFirst({
+      where: { id: row.sourceId, farmId },
+      columns: { dispatchedAt: true },
+    });
+    return sent
+      ? { occurredAt: sent.dispatchedAt, purseVentureId: null }
+      : null;
+  }
+  const sold = await tx.query.sale.findFirst({
+    where: { id: row.sourceId, farmId },
+    columns: { soldAt: true, animalId: true },
+  });
+  if (!sold) {
+    return null;
+  }
+  const ownerOn = await ownedThenByOf(tx, farmId);
+  return {
+    occurredAt: sold.soldAt,
+    purseVentureId: ownerOn(sold.animalId, sold.soldAt),
+  };
+};
+
+/**
  * A Write-off written or put right, as a **Closed Month** has its say: it lowers what the Sale or Dispatch it writes off
  * fetched, so it falls in that one's month — the Owner's alone once she has closed it, as writing off always is, and
  * kept for the next paper with the buyer and, for a Sale, her tag (ADR 0028).
@@ -797,10 +831,7 @@ export const answerForWriteOff = async (
   /** What it came to before a Correction: nothing for one written now. */
   wasMoney?: number
 ): Promise<void> => {
-  const item = await tx.query.moneyEvent.findFirst({
-    where: { farmId: by.farmId, source: row.source, sourceId: row.sourceId },
-    columns: { occurredAt: true, purseVentureId: true },
-  });
+  const item = await itemDated(tx, by.farmId, row);
   if (!item) {
     return;
   }

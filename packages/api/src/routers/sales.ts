@@ -192,6 +192,7 @@ export const salesRouter = {
           // Keyed on the Sale, so putting it right later is a Correction pointing at this event
           // rather than an edit nothing links back to.
           entity: "sale",
+          reachesMoney: true,
           entityId: id,
           action: "create",
           after: (tx) => readSale(tx, id),

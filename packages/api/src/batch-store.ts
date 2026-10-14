@@ -5,6 +5,7 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { audited } from "./audit";
+import { monthKeyOf } from "./closed-month-store";
 import type { Recorder } from "./completion-store";
 import { correct } from "./corrections/correction";
 import { stepCorrection } from "./corrections/step-completion";
@@ -77,7 +78,13 @@ const correctHeld = (
     Math.min(receivedAt.getTime(), entry.recordedAt.getTime() + phoneBehindMs)
   );
   return correct(
-    { ...context, db: tx as unknown as Database, clock: { now: () => madeAt } },
+    {
+      ...context,
+      db: tx as unknown as Database,
+      clock: { now: () => madeAt },
+      // Whether a month is closed is asked as the farm stands when it hears of it, not as the phone stood.
+      heardAt: receivedAt,
+    },
     stepCorrection,
     { id: entry.completionId, reason: entry.reason, changes: entry.changes }
   );
@@ -423,6 +430,12 @@ const applyEntries = async (
 /** Who an entry is to be written as: the person who recorded it, which on a Shed Phone need not be whoever sent it. */
 export type RecorderFor = (entry: Entry) => Promise<Recorder>;
 
+/** Whether any of a batch's entries was made in a month gone by: one that may reach a Closed Month (ADR 0028). */
+const madeInAPastMonth = (entries: readonly Entry[], receivedAt: Date) =>
+  entries.some(
+    (entry) => monthKeyOf(entry.recordedAt) < monthKeyOf(receivedAt)
+  );
+
 /**
  * A whole batch, in one transaction. Held here rather than in the router because a router
  * that opens its own transaction is a router that can write without a trail — the rule the
@@ -450,8 +463,11 @@ export const applyBatch = async (
 }> =>
   await seenWhenDone(
     db.transaction(async (tx) => {
-      // The Farm first, as every write that can reach its money takes it: a Cash Count is one (`lockTheFarm`).
-      await lockTheFarm(tx, context.farm.id);
+      // The Farm first, before any row, only where an entry was made in a month gone by: a Cash Count held across a
+      // month's end asks whether that month is closed. Today's work never waits on the Farm (`lockTheFarm`).
+      if (madeInAPastMonth(input.entries, receivedAt)) {
+        await lockTheFarm(tx, context.farm.id);
+      }
       const reserved = await reserveBatch(tx, {
         key: input.key,
         farmId: context.farm.id,

@@ -64,8 +64,6 @@ import { yearRulesOf } from "./year-store";
 /** How far back the Owner reads the farm month by month: a year, this month among them. */
 export const MONTHS_READ = 12;
 
-/** A "YYYY-MM" month as the farm's own days begin and end it. */
-
 /** Each Venture that has not been called off, against the plan it opened on: what the plan said it would make, what it
  *  is projected to make now while it runs, and what it made once it settled. */
 const venturesAgainstPlan = async (

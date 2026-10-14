@@ -321,6 +321,7 @@ export const moneyRouter = {
       await audited(context).write(
         {
           entity: "vet_fee",
+          reachesMoney: true,
           entityId: id,
           action: "create",
           after: (tx) => readFee(tx, id),

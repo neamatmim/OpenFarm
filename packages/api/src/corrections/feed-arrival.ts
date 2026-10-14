@@ -88,6 +88,7 @@ export const feedArrivalCorrection: CorrectionKind<
 > = {
   entity: "feed_in",
   table: feedIn,
+  money: true,
   roles: ["owner", "manager"],
   /**
    * An arrival is what the costing prices this Feed Item's feedings from: its price and its quantity both

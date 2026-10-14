@@ -178,6 +178,14 @@ export interface CorrectionKind<
   /** Whether a Vet called in for a visit may put it right as the Vet. */
   visitingVet?: boolean;
   /**
+   * Whether putting it right can book or move money, or another figure a **Closed Month** asks about — a Handover, a
+   * Write-off, a Cash Count — or count what a Venture's rules count: then the Farm's lock is taken first, before its
+   * row, as every write of money takes it, so no two such writes take the Farm and a row in opposite orders (ADR
+   * 0028). Said of the record where only some of its kind can, as a Step whose Effect counts the cash. Nothing for the
+   * rest, which never wait on the Farm.
+   */
+  money?: boolean | ((row: Row) => boolean);
+  /**
    * The Ventures whose records this one belongs to, of which there may be none, one or several.
    *
    * A Correction to a settled Venture's records is refused: its figures were frozen at approval and every
@@ -367,6 +375,24 @@ const workingToCorrect = <
   );
 };
 
+/** Whether a Correction can reach money (`money`): asked of the record as it stands, read without holding it. */
+const reachesMoney = async <Row>(
+  tx: Tx,
+  kind: {
+    money?: boolean | ((row: Row) => boolean);
+    load: (tx: Tx, farmId: string, id: string) => Promise<Row | undefined>;
+  },
+  farmId: string,
+  id: string
+): Promise<boolean> => {
+  const { money } = kind;
+  if (typeof money !== "function") {
+    return money === true;
+  }
+  const row = await kind.load(tx, farmId, id);
+  return row !== undefined && money(row);
+};
+
 /**
  * Puts a record right (the glossary's Correction). On one transaction, holding the record: it finds the Role that may
  * correct it and works under that Role's Scope; refuses a value the record no longer holds, with the values it holds
@@ -399,10 +425,12 @@ export const correct = async <
   let corrector: Corrector | undefined;
   const outcome = await seenWhenDone(
     context.db.transaction(async (tx) => {
-      // The Farm first, for every kind, before its row: the lock every write that can reach the Farm's money takes at
-      // its start, so a Correction and a month closing, or two Corrections, never wait on each other (`lockTheFarm`).
-      await lockTheFarm(tx, context.farm.id);
-
+      // The Farm first, before the row, for a kind whose Correction can reach money (`money`): the lock every write of
+      // money takes at its start, so a Correction and a month closing, or two such Corrections, never wait on each
+      // other. Asked of the record as it stands, read without holding it.
+      if (await reachesMoney(tx, kind, context.farm.id, input.id)) {
+        await lockTheFarm(tx, context.farm.id);
+      }
       await tx.execute(
         sql`select 1 from ${kind.table} where ${kind.table.id} = ${input.id} for update`
       );

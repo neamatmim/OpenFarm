@@ -569,6 +569,7 @@ export const moneyEntryProcedures = {
       await audited(context).write(
         {
           entity: "money_event",
+          reachesMoney: true,
           entityId: id,
           action: "create",
           after: async (tx) => {
@@ -661,6 +662,7 @@ export const moneyEntryProcedures = {
       await audited(context).write(
         {
           entity: "wage_draw",
+          reachesMoney: true,
           entityId: () => id,
           action: "create",
           after: async (tx) => {

@@ -82,6 +82,7 @@ export const medicinePurchaseCorrection: CorrectionKind<
 > = {
   entity: "medicine_purchase",
   table: medicinePurchase,
+  money: true,
   roles: ["owner", "manager"],
   /**
    * A dose is costed from the latest purchases on or before it (`dosePriceOf`), so putting a purchase right re-prices

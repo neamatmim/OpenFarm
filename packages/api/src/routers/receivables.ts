@@ -136,6 +136,7 @@ export const receivablesRouter = {
       await audited(context).write(
         {
           entity: "receivable_payment",
+          reachesMoney: true,
           entityId: id,
           action: "create",
           after: (tx) => readReceivablePayment(tx, id),
@@ -219,6 +220,7 @@ export const receivablesRouter = {
       await audited(context).write(
         {
           entity: "receivable_write_off",
+          reachesMoney: true,
           entityId: id,
           action: "create",
           after: (tx) => readWriteOff(tx, id),

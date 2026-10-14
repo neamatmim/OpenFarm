@@ -92,6 +92,7 @@ export const buyingTripCorrection: CorrectionKind<
 > = {
   entity: "buying_trip",
   table: buyingTrip,
+  money: true,
   roles: ["owner", "manager"],
   // An outing's own costs are split across the Animals it brought in, so they are charges against
   // whichever Venture's Float paid for it.

@@ -201,6 +201,7 @@ export const dispatchCorrection: CorrectionKind<
 > = {
   entity: "dispatch",
   table: dispatch,
+  money: true,
   roles: ["owner", "manager"],
   missing: "No such dispatch",
   load: loadDispatch,

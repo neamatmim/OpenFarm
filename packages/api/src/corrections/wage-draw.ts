@@ -61,6 +61,7 @@ export const wageDrawCorrection: CorrectionKind<
 > = {
   entity: "wage_draw",
   table: wageDraw,
+  money: true,
   roles: ["owner", "manager"],
   // The same lock a payday takes before it reads what is owed.
   missing: "No such wage draw",
