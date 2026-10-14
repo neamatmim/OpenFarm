@@ -23,6 +23,7 @@ const as = (role: "owner" | "manager" | "vet", instant: string) =>
 
 let fmdId = "";
 let campaignId = "";
+let sprayId = "";
 let penId = "";
 const tags = {
   skipped: "",
@@ -30,6 +31,7 @@ const tags = {
   corrected: "",
   campaign: "",
   retired: "",
+  sprayed: "",
 };
 
 beforeAll(async () => {
@@ -47,6 +49,15 @@ beforeAll(async () => {
     content: playbook.fmdVaccination,
   });
   campaignId = campaign.definitionId;
+  const cypermethrin = await vet.client.drugs.create({
+    name: { bn: `সাইপারমেথ্রিন ${suffix}`, en: "Cypermethrin" },
+    milkWithdrawalDays: 1,
+    meatWithdrawalDays: 28,
+  });
+  const spray = await owner.client.sops.create({
+    content: standardPlaybook({ tickSpray: cypermethrin.id }).tickSpray,
+  });
+  sprayId = spray.definitionId;
   const manager = await as("manager", ARRIVED);
   const shed = await manager.client.sheds.create({ name: suffix });
   const pen = await manager.client.sheds.pens.create({
@@ -264,6 +275,31 @@ describe("an arrival dose put off", () => {
       reason: `টিকা আসলে দেওয়া হয়েছিল ${suffix}`,
     });
     expect(await owed()).toEqual([{ state: "called_off" }]);
+  });
+
+  it("is not raised again for a tick spray skipped, whose next week is its later", async () => {
+    const manager = await as("manager", DOSE_DAY);
+    await manager.client.work.raiseNow({ definitionId: sprayId, penId });
+    const spray = await scratchDb().query.sopInstance.findFirst({
+      where: { definitionId: sprayId, penId, animalId: { isNull: true } },
+      columns: { id: true },
+    });
+    await manager.client.work.claim({ id: spray?.id ?? "" });
+    // Left out within a month of his sale: the spray's twenty-eight days would hold the sale up.
+    await manager.client.work.completeStep({
+      instanceId: spray?.id ?? "",
+      stepId: "spray",
+      animalTag: tags.sprayed,
+      evidence: [],
+      skipReason: "এক মাসের মধ্যে বিক্রি — স্প্রে নয়",
+    });
+    const him = await manager.client.animals.get({ tagNumber: tags.sprayed });
+    expect(
+      await scratchDb().query.sopInstance.findMany({
+        where: { definitionId: sprayId, animalId: him.id },
+        columns: { id: true, dueAt: true, cause: true },
+      })
+    ).toEqual([]);
   });
 
   it("is not raised again once the Owner retires the procedure", async () => {

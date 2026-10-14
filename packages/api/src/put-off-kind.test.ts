@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { putOffKindOf } from "./put-off-store";
 
 // Which work put off is owed again, read from the work and never from a skip's words.
-const playbook = standardPlaybook({ fmdVaccine: "fmd" });
+const playbook = standardPlaybook({ fmdVaccine: "fmd", tickSpray: "spray" });
 
 describe("putOffKindOf", () => {
   it("is a Release, from its release Step, whatever raised it", () => {
@@ -33,5 +33,11 @@ describe("putOffKindOf", () => {
     expect(
       putOffKindOf("byHand:p:2087-01-15", playbook.fmdVaccination)
     ).toBeNull();
+  });
+
+  it("is nothing for a tick spray, whose next week is its later", () => {
+    // Walked over a Pen and dosing each animal as a Campaign does, but on a Schedule: a bull left out — unwell, or
+    // within a month of his sale — is sprayed when it comes round, never raised again into his withdrawal.
+    expect(putOffKindOf("campaign:w:a", playbook.tickSpray)).toBeNull();
   });
 });
