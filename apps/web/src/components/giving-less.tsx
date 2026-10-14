@@ -1,9 +1,11 @@
+import { GIVING_LESS } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Stethoscope, TrendingDown } from "lucide-react";
-import { createContext, useContext } from "react";
+import type { ReactNode } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
 import {
   DataTable,
@@ -14,32 +16,83 @@ import {
 import { Opens, QueueGroup, QueueRow } from "@/components/home/queue";
 import { Nothing } from "@/components/list-cells";
 import { Section, TagChip } from "@/components/page";
+import { useRecordObservation } from "@/components/record-observation";
 import { useLanguage } from "@/i18n/language-provider";
-import {
-  keptOnThePhone,
-  queueObservation,
-  sendOrKeep,
-} from "@/lib/record-offline";
 import { useRefused } from "@/lib/refused";
 import type { SeenTo } from "@/lib/seen-to";
 import { seenToSaid } from "@/lib/seen-to";
 import { toast } from "@/lib/toast";
-import { client } from "@/utils/orpc";
-import type { orpc } from "@/utils/orpc";
+import { orpc } from "@/utils/orpc";
 
-/** The Observation word that puts a cow giving less in front of the Vet. */
-const GIVING_LESS = "giving_less";
+/** A cow giving well under her own week, as the Manager's queue, the Milk page and the Vet's are told it. */
+export type GivingLessRows = Awaited<
+  ReturnType<typeof orpc.milk.givingLess.call>
+>;
 
-/** Whether whoever reads the list may put a cow in front of the Vet: the Manager and the Owner, never the Vet. */
-const MayAskTheVet = createContext(false);
+type GivingLessRow = GivingLessRows[number];
 
-/** What has been done about her, from an answer that may have been kept on a phone from before it said. */
-const seenOf = (row: { seenTo?: SeenTo | null }) => seenToSaid(row.seenTo);
+/** Who may put a cow in front of the Vet here, and which cows this phone has asked about on this visit. */
+interface Asking {
+  mayAsk: boolean;
+  askedHere: ReadonlySet<string>;
+  markAsked: (tag: string) => void;
+}
+
+const AskingTheVet = createContext<Asking>({
+  mayAsk: false,
+  askedHere: new Set(),
+  markAsked: () => null,
+});
+
+/**
+ * The Manager's and the Owner's lists may put a cow in front of the Vet; the Vet's own may not. A request kept on the
+ * phone with no signal is not on the farm's list until the phone is back in range, so the cows asked about on this
+ * visit are remembered here and their button goes — a second tap must not keep a second request.
+ */
+const AskingTheVetHere = ({
+  mayAsk,
+  children,
+}: {
+  mayAsk: boolean;
+  children: ReactNode;
+}) => {
+  const [askedHere, setAskedHere] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
+  const asking = useMemo(
+    () => ({
+      mayAsk,
+      askedHere,
+      markAsked: (tag: string) =>
+        setAskedHere((before) => new Set([...before, tag])),
+    }),
+    [mayAsk, askedHere]
+  );
+  return (
+    <AskingTheVet.Provider value={asking}>{children}</AskingTheVet.Provider>
+  );
+};
+
+/** What has been done about her: the farm's answer, else asked from this phone on this visit, else nothing. */
+const useSeenTo = (row: { tag: string; seenTo?: SeenTo | null }) => {
+  const { askedHere } = useContext(AskingTheVet);
+  const said = seenToSaid(row.seenTo);
+  if (said) {
+    return said;
+  }
+  return askedHere.has(row.tag)
+    ? { key: "givingLess.vetAsked" as const, at: new Date() }
+    : null;
+};
 
 /** What has been done about a cow giving less, said: the Vet saw her, or the Vet was asked, and when. */
-const SeenToWords = ({ row }: { row: { seenTo?: SeenTo | null } }) => {
+const SeenToWords = ({
+  row,
+}: {
+  row: { tag: string; seenTo?: SeenTo | null };
+}) => {
   const { t, language } = useLanguage();
-  const said = seenOf(row);
+  const said = useSeenTo(row);
   if (!said) {
     return null;
   }
@@ -51,35 +104,36 @@ const SeenToWords = ({ row }: { row: { seenTo?: SeenTo | null } }) => {
 };
 
 /**
- * Put her in front of the Vet: an Observation, "giving less milk", which reaches the Vet's inbox as any sighting does —
- * sent now when the farm answers, kept on the phone when it does not.
+ * Put her in front of the Vet: an Observation, "giving less milk", which reaches the Vet's inbox as any Observation does
+ * — sent now when the farm answers, kept on the phone when it does not.
  */
 const AskTheVet = ({ tag }: { tag: string }) => {
   const { t } = useLanguage();
   const refused = useRefused();
   const queryClient = useQueryClient();
-  const ask = useMutation({
-    ...keptOnThePhone,
-    mutationFn: () => {
-      const input = { tagNumber: tag, saw: GIVING_LESS };
-      return sendOrKeep({
-        online: navigator.onLine,
-        send: () => client.observations.record(input),
-        keep: () => queueObservation(input),
-      });
-    },
+  const { markAsked } = useContext(AskingTheVet);
+  const ask = useRecordObservation({
     onSuccess: async (how) => {
+      markAsked(tag);
       toast.success(
         t(how === "sent" ? "givingLess.asked" : "givingLess.queued")
       );
-      await queryClient.invalidateQueries();
+      // What says she has been asked about: the list itself, on the Milk page, the Vet's page and the Manager's day,
+      // and the Observations.
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: orpc.milk.givingLess.key(),
+        }),
+        queryClient.invalidateQueries({ queryKey: orpc.home.key() }),
+        queryClient.invalidateQueries({ queryKey: orpc.observations.key() }),
+      ]);
     },
     onError: refused,
   });
   return (
     <Button
       disabled={ask.isPending}
-      onClick={() => ask.mutate()}
+      onClick={() => ask.mutate({ tagNumber: tag, saw: GIVING_LESS })}
       size="sm"
       type="button"
       variant="outline"
@@ -90,28 +144,25 @@ const AskTheVet = ({ tag }: { tag: string }) => {
   );
 };
 
-/** A cow giving well under her own week, as the Manager's queue and the Milk page are told it. */
-export type GivingLessRows = Awaited<
-  ReturnType<typeof orpc.milk.givingLess.call>
->;
+/** At the end of her line on a phone: the button to put her in front of the Vet, for whoever may and while nobody has;
+ *  otherwise the sign that the line opens her page. Above the line's link, so a tap is the button's. */
+const RowEnd = ({ row }: { row: GivingLessRow }) => {
+  const { mayAsk } = useContext(AskingTheVet);
+  const said = useSeenTo(row);
+  return mayAsk && !said ? (
+    <div className="relative z-10">
+      <AskTheVet tag={row.tag} />
+    </div>
+  ) : (
+    <Opens />
+  );
+};
 
-/**
- * Cows in milk giving well under their own week, the furthest under first: liters a milking lately and usually, how far
- * under, and how long she has been in milk, each opening her page. A sudden drop is often the first sign of mastitis,
- * milk fever or ketosis — and a heat drops milk too.
- */
-export const GivingLessGroup = ({
-  rows,
-  headless = false,
-}: {
-  /** Missing from an answer a phone kept from before the list. */
-  rows: GivingLessRows | undefined;
-  headless?: boolean;
-}) => {
+/** One cow's line in the queue. */
+const GivingLessLine = ({ row }: { row: GivingLessRow }) => {
   const { t, language } = useLanguage();
-  const items = (rows ?? []).map((row) => (
+  return (
     <QueueRow
-      key={row.animalId}
       meta={
         <>
           {t("givingLess.line", {
@@ -132,24 +183,46 @@ export const GivingLessGroup = ({
           {row.tag}
         </Link>
       }
-      trailing={<Opens />}
+      trailing={<RowEnd row={row} />}
     />
+  );
+};
+
+/**
+ * Cows in milk giving well under their own week, the furthest under first: liters a milking lately and usually, how far
+ * under, what has been done about her, and how long she has been in milk, each opening her page. A sudden drop is often
+ * the first sign of mastitis, milk fever or ketosis — and a heat drops milk too.
+ */
+export const GivingLessGroup = ({
+  rows,
+  headless = false,
+  mayAskTheVet = false,
+}: {
+  /** Missing from an answer a phone kept from before the list. */
+  rows: GivingLessRows | undefined;
+  headless?: boolean;
+  /** The Manager's and the Owner's list may put a cow in front of the Vet; the Vet's own may not. */
+  mayAskTheVet?: boolean;
+}) => {
+  const { t } = useLanguage();
+  const items = (rows ?? []).map((row) => (
+    <GivingLessLine key={row.animalId} row={row} />
   ));
   if (items.length === 0) {
     return null;
   }
   return (
-    <QueueGroup
-      headless={headless}
-      icon={TrendingDown}
-      label={t("givingLess.title")}
-      rows={items}
-      tone="warning"
-    />
+    <AskingTheVetHere mayAsk={mayAskTheVet}>
+      <QueueGroup
+        headless={headless}
+        icon={TrendingDown}
+        label={t("givingLess.title")}
+        rows={items}
+        tone="warning"
+      />
+    </AskingTheVetHere>
   );
 };
-
-type GivingLessRow = GivingLessRows[number];
 
 interface Cell {
   row: { original: GivingLessRow };
@@ -177,8 +250,9 @@ const DropCell = ({ row }: Cell) => {
 /** What has been done about her, or — for whoever may — the button to put her in front of the Vet. */
 const SeenToCell = ({ row }: Cell) => {
   const { t } = useLanguage();
-  const mayAsk = useContext(MayAskTheVet);
-  if (seenOf(row.original)) {
+  const { mayAsk } = useContext(AskingTheVet);
+  const said = useSeenTo(row.original);
+  if (said) {
     return <SeenToWords row={row.original} />;
   }
   return mayAsk ? (
@@ -256,12 +330,14 @@ export const GivingLessList = ({
   /** The Manager's and the Owner's list may put a cow in front of the Vet; the Vet's own may not. */
   mayAskTheVet?: boolean;
 }) => (
-  <MayAskTheVet.Provider value={mayAskTheVet}>
+  <>
     <div className="md:hidden">
-      <GivingLessGroup headless rows={rows} />
+      <GivingLessGroup headless mayAskTheVet={mayAskTheVet} rows={rows} />
     </div>
-    <Section className="hidden md:flex">
-      <GivingLessTable rows={rows} />
-    </Section>
-  </MayAskTheVet.Provider>
+    <AskingTheVetHere mayAsk={mayAskTheVet}>
+      <Section className="hidden md:flex">
+        <GivingLessTable rows={rows} />
+      </Section>
+    </AskingTheVetHere>
+  </>
 );

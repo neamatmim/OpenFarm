@@ -327,7 +327,13 @@ const QueueKindList = ({
       );
     }
     case "givingLess": {
-      return <GivingLessGroup headless={headless} rows={queue.givingLess} />;
+      return (
+        <GivingLessGroup
+          headless={headless}
+          mayAskTheVet
+          rows={queue.givingLess}
+        />
+      );
     }
     case "heatWatch": {
       return <HeatWatchGroup headless={headless} rows={queue.heatWatch} />;

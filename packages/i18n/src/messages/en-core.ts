@@ -3707,7 +3707,8 @@ export const enCore = {
   "milk.calves": "Calves",
   "milk.discard": "Poured away",
   "milk.house": "Farm or house use",
-  "milk.withdrawal": "Under withdrawal — this milk cannot go to the tank",
+  "milk.withdrawal":
+    "Under withdrawal — this milk cannot go to the tank or the house",
   "milk.withdrawalShort": "Withdrawal",
   "milk.forced":
     "Under withdrawal — recorded as poured away, not sent to the tank",

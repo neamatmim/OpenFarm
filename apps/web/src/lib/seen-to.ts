@@ -1,10 +1,12 @@
 import type { MessageKey } from "@OpenFarm/i18n";
 
-/** What has been done about a cow giving less: the Vet saw her, or somebody put her in front of the Vet. */
-export interface SeenTo {
-  by: "vet" | "asked";
-  at: Date;
-}
+import type { orpc } from "@/utils/orpc";
+
+/** What has been done about a cow giving less, as the farm answers it: the Vet saw her, or somebody put her in front of
+ *  the Vet. */
+export type SeenTo = NonNullable<
+  Awaited<ReturnType<typeof orpc.milk.givingLess.call>>[number]["seenTo"]
+>;
 
 /**
  * The words for what has been done about a cow on "Giving less", or nothing when nobody has acted — or when the answer

@@ -3460,7 +3460,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "milk.calves": "বাছুর",
   "milk.discard": "ফেলে দেওয়া",
   "milk.house": "খামার বা বাড়ির কাজে",
-  "milk.withdrawal": "উইথড্রয়াল চলছে — এই দুধ ট্যাংকে যাবে না",
+  "milk.withdrawal": "উইথড্রয়াল চলছে — এই দুধ ট্যাংকে বা বাড়ির কাজে যাবে না",
   "milk.withdrawalShort": "উইথড্রয়াল",
   "milk.forced": "উইথড্রয়াল চলছে — ট্যাংকে নয়, ফেলে দেওয়া হিসেবে লেখা হলো",
   "milk.difference": "ট্যাংক গাভীর হিসাব থেকে {liters} লিটার দূরে",
