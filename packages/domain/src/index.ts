@@ -978,6 +978,7 @@ export {
   TAKES_MONTHLY_SUMS,
   capitalItMayHold,
   cattleMoneyOf,
+  dueByMonthEndOf,
   monthlyPaymentAllocationOf,
   monthlySumsOf,
   monthlyTermsOf,

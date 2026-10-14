@@ -8,10 +8,13 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Banknote,
   Building2,
+  CalendarCheck,
   Copy,
   FileText,
   ImageIcon,
   PenLine,
+  Printer,
+  Send,
   Users,
 } from "lucide-react";
 import { useState } from "react";
@@ -33,16 +36,20 @@ import { FarmTakesSheet } from "@/components/ventures/farm-takes-sheet";
 import type { StatementKind } from "@/components/ventures/investor-papers";
 import {
   AgreementAgain,
+  EveryProgressDialog,
   PAPER_KINDS,
   StatementDialog,
+  useEveryProgress,
   useInvestorPapers,
 } from "@/components/ventures/investor-papers";
+import { MonthsCapitalSheet } from "@/components/ventures/months-capital-sheet";
 import {
   AmendmentOffersInApp,
   OffersInApp,
 } from "@/components/ventures/offers-in-app";
 import {
   AcknowledgeSheet,
+  AllPayoutsSheet,
   PayOutSheet,
   SharePaid,
 } from "@/components/ventures/settling-up";
@@ -497,6 +504,100 @@ const InvestorsTable = ({
   return <DataTable card={investorCard} table={table} />;
 };
 
+/** A Venture's Settlement as approved, the shares in it. */
+type ApprovedShares = NonNullable<
+  Awaited<ReturnType<typeof client.ventures.settlement.approved>>
+>["shares"];
+
+/**
+ * What is done for every Investor of a Venture at once, over its table: a month's capital from one grid, read against
+ * the Venture Account's statement (paid by the month); every progress statement printed together, while the run goes
+ * on; and every payout sent on one day, once the Settlement is approved and the Owner's own Advance is home.
+ */
+const TogetherActs = ({
+  venture,
+  agreed,
+  mayPayIn,
+  signed,
+  approved,
+  advanceFirst,
+}: {
+  venture: Venture;
+  agreed: readonly Agreement[];
+  /** Some paper may take capital now. */
+  mayPayIn: boolean;
+  /** Somebody has signed. */
+  signed: boolean;
+  /** The Settlement as approved, or nothing yet. */
+  approved: { shares: ApprovedShares } | null;
+  advanceFirst: boolean;
+}) => {
+  const shares = approved?.shares ?? null;
+  const { t } = useLanguage();
+  const [monthGrid, setMonthGrid] = useState(false);
+  const [sendingAll, setSendingAll] = useState(false);
+  const every = useEveryProgress();
+  const byTheMonth =
+    takesCapitalNow(venture) && venture.capitalPaid === "by_the_month";
+  const running = ["buying", "fattening", "selling"].includes(venture.state);
+  const stillToSend = (shares ?? []).some(
+    (one) => !one.paid && one.payoutMoney > 0
+  );
+  return (
+    <>
+      {byTheMonth && mayPayIn ? (
+        <Button
+          onClick={() => setMonthGrid(true)}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <CalendarCheck aria-hidden data-icon="inline-start" />
+          {t("ventures.monthGrid")}
+        </Button>
+      ) : null}
+      {running && signed ? (
+        <Button
+          disabled={every.busy}
+          onClick={() => every.ask(venture.id)}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <Printer aria-hidden data-icon="inline-start" />
+          {t("statements.progressAll")}
+        </Button>
+      ) : null}
+      {shares !== null && !advanceFirst && stillToSend ? (
+        <Button
+          onClick={() => setSendingAll(true)}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <Send aria-hidden data-icon="inline-start" />
+          {t("ventures.allShares")}
+        </Button>
+      ) : null}
+      <EveryProgressDialog every={every} />
+      <MonthsCapitalSheet
+        onOpenChange={setMonthGrid}
+        open={monthGrid}
+        venture={monthGrid ? venture : null}
+      />
+      <AllPayoutsSheet
+        farmsOwn={
+          new Set(agreed.filter((one) => one.isFarm).map((one) => one.id))
+        }
+        onOpenChange={setSendingAll}
+        open={sendingAll}
+        shares={shares ?? []}
+        ventureId={venture.id}
+      />
+    </>
+  );
+};
+
 /**
  * Who has signed this Venture and on what: their Units, the split those Units earn, the capital they have
  * paid against what the Units are worth, and whether the farm holds the stamped paper's photo — the thing
@@ -598,8 +699,19 @@ export const VentureInvestors = ({
       },
     };
   });
+  const together = (
+    <TogetherActs
+      advanceFirst={advanceFirst}
+      agreed={agreed}
+      mayPayIn={someoneMayPayIn}
+      approved={approved}
+      signed={rows.length > 0}
+      venture={venture}
+    />
+  );
   const actions = taking ? (
     <>
+      {together}
       {someoneMayPayIn ? (
         <Button
           onClick={() => acts.takeCapital(venture)}
@@ -629,7 +741,9 @@ export const VentureInvestors = ({
         </Button>
       ) : null}
     </>
-  ) : null;
+  ) : (
+    together
+  );
   return (
     <Section
       action={actions}

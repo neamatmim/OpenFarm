@@ -1,5 +1,5 @@
 import type { MonthlyPaymentAllocation } from "@OpenFarm/domain";
-import { monthlyPaymentAllocationOf, payInCodeIn } from "@OpenFarm/domain";
+import { payInCodeIn } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -18,6 +18,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { paperOnFile } from "@/lib/agreed-in-app";
 import { useFreshFor } from "@/lib/fresh-for";
 import { useMoney } from "@/lib/money";
+import { proposedAllocation } from "@/lib/month-grid";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -110,35 +111,6 @@ const whatTheChoiceSays = ({
     : t("ventures.codeNotChosen", named);
 };
 
-/** A preview uses the ledger's allocation; server checks still run behind the Farm lock. */
-const proposedAllocation = (
-  allocation: MonthlyPaymentAllocation | null | undefined,
-  amount: number,
-  today: string
-) => {
-  if (
-    !allocation ||
-    !Number.isFinite(amount) ||
-    amount <= 0 ||
-    amount > allocation.owedMoney
-  ) {
-    return null;
-  }
-  return monthlyPaymentAllocationOf({
-    units: 1,
-    unitPriceMoney: allocation.totalMoney,
-    monthly: {
-      cattlePartMoney: allocation.cattleRequiredMoney,
-      sums: allocation.sums.map((one) => ({
-        dueOn: one.dueOn,
-        amount: one.amountMoney,
-      })),
-    },
-    paidMoney: allocation.paidMoney + amount,
-    today,
-  });
-};
-
 const readyToReceive = (arrival: Arrival, room: number) => {
   const amount = Number(arrival.amountMoney);
   const withinLimit = amount <= room;
@@ -152,7 +124,7 @@ const readyToReceive = (arrival: Arrival, room: number) => {
   );
 };
 
-const ReceiptAllocationPreview = ({
+export const ReceiptAllocationPreview = ({
   allocation,
   proposed,
 }: {

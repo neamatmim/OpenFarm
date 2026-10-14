@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   capitalItMayHold,
   cattleMoneyOf,
+  dueByMonthEndOf,
   monthlyPaymentAllocationOf,
   monthlySumsOf,
   monthlyTermsOf,
@@ -375,5 +376,43 @@ describe("confirmed receipts allocated against the original schedule", () => {
     expect(almost.owedMoney).toBe(0.1);
     expect(almost.sums.at(-1)?.leftMoney).toBe(0.1);
     expect(allocate(57_999.9 + 0.1).owedMoney).toBe(0);
+  });
+});
+
+describe("what one Agreement is asked for by the end of the month", () => {
+  const monthly = {
+    cattlePartMoney: 40_000,
+    sums: monthlySumsOf(58_000, {
+      cattlePartMoney: 40_000,
+      sums: 9,
+      firstDueOn: "2071-02-10",
+    }),
+  };
+  const askedFor = (paidMoney: number, today: string) =>
+    dueByMonthEndOf(
+      monthlyPaymentAllocationOf({
+        units: 1,
+        unitPriceMoney: 58_000,
+        monthly,
+        paidMoney,
+        today,
+      }),
+      today
+    );
+
+  it("asks for the Cattle Part still owed before any sum has come", () => {
+    expect(askedFor(0, "2071-01-05")).toBe(40_000);
+  });
+
+  it("asks for a sum falling due later in the month, not only one already due", () => {
+    expect(askedFor(40_000, "2071-02-05")).toBe(2000);
+  });
+
+  it("asks for what is left of a sum part-paid, and this month's besides", () => {
+    expect(askedFor(41_000, "2071-03-03")).toBe(3000);
+  });
+
+  it("asks for nothing when this month's sum was sent ahead", () => {
+    expect(askedFor(44_000, "2071-02-20")).toBe(0);
   });
 });

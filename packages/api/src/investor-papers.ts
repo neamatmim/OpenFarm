@@ -308,6 +308,46 @@ export const progressStatementFor = async (
   return { document, photos, agreementId: standing.agreement.id };
 };
 
+/**
+ * অগ্রগতি for every Investor of a Venture, one after another, for the month's printing: each made as its own paper is
+ * and kept in the trail as its own Export. The Investors are the ones the month's notice counts — everybody who signed,
+ * not the Farm's own Units, whose paper nobody is sent. The photographs are the Venture's animals, the same on every
+ * paper, so they travel once.
+ */
+export const progressStatementsOf = async (
+  context: PaperMaking,
+  ventureId: string
+) => {
+  const signed = await context.db.query.investmentAgreement.findMany({
+    where: { farmId: context.farm.id, ventureId },
+    columns: { id: true, investorId: true, stampKind: true },
+    orderBy: { createdAt: "asc", id: "asc" },
+  });
+  const theirs = signed.filter((one) => one.stampKind !== "farm_own");
+  const people = await context.db.query.investor.findMany({
+    where: {
+      farmId: context.farm.id,
+      id: { in: theirs.map((one) => one.investorId) },
+    },
+    columns: { id: true, name: true },
+  });
+  const nameOf = new Map(people.map((one) => [one.id, one.name]));
+  const papers: {
+    agreementId: string;
+    investorName: string;
+    document: Awaited<ReturnType<typeof progressStatementFor>>["document"];
+  }[] = [];
+  let photos: Awaited<ReturnType<typeof progressStatementFor>>["photos"] = [];
+  for (const one of theirs) {
+    const investorName = nameOf.get(one.investorId) ?? "";
+    // oxlint-disable-next-line no-await-in-loop -- each paper made and kept in the trail in turn
+    const made = await progressStatementFor(context, one.id);
+    papers.push({ agreementId: one.id, investorName, document: made.document });
+    ({ photos } = made);
+  }
+  return { papers, photos };
+};
+
 /** হিসাব নিকাশ for one Agreement: the figures approval froze, his own payout, and any Adjustment since. */
 export const settlementStatementFor = async (
   context: PaperMaking,

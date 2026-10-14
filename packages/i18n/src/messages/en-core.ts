@@ -863,6 +863,9 @@ export const enCore = {
   "statements.for": "{name}'s papers",
   "statements.joining": "Joining letter",
   "statements.progress": "Progress",
+  "statements.progressAll": "Everybody's progress",
+  "statements.progressAllHint":
+    "This month's progress statement for every investor, one after another, each on a page of its own.",
   "statements.settlement": "Settlement statement",
   "statements.agreementCopy": "Print a copy of the Agreement",
   "statements.signedPaper": "The signed paper's photo",
@@ -966,6 +969,8 @@ export const enCore = {
     "This payment was confirmed from the investor's own pay-in note: void the other one",
   "refusal.capitalReferenceTaken":
     "This venture has already taken capital under that reference",
+  "refusal.capitalReferenceTwice": "The same reference is on two lines",
+  "refusal.payoutReferenceTwice": "The same reference is on two lines",
   "correct.voidWhy": "Entered twice, or it never happened",
   "correct.voidIt": "Void it: it comes off the farm's books, with its money",
   "correct.voidAnimal": "Void her: written down twice, or she never came",
