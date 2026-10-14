@@ -103,6 +103,29 @@ const holdIfReady = async (
 };
 
 /**
+ * Refuses a dose passed as held for her sale for an animal not Ready for Sale: hers is owed now, and holding it would put
+ * it off for a sale nobody has confirmed.
+ */
+export const assertReadyForSale = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  animalId: string | null
+): Promise<void> => {
+  const her = animalId
+    ? await tx.query.animal.findFirst({
+        where: { id: animalId, farmId },
+        columns: { state: true },
+      })
+    : undefined;
+  if (her?.state !== "ready_for_sale") {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "She is not Ready for Sale: give the dose, or say why it waits",
+      data: { refusal: "not_ready_for_sale" },
+    });
+  }
+};
+
+/**
  * Owed work put off — its step skipped, or the work closed Missed — raised again for him in his Pen, the farm's put-off
  * days later, under the same Version: his Release while he is still in Quarantine, an arrival dose or a Campaign's dose
  * while he is still on the farm. Again and again until it is done; a replay of the same skip raises nothing more, as its

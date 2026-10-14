@@ -750,6 +750,8 @@ export const workRouter = {
           /** The day her last dose of a Campaign that comes round was given, where it still covers her; nothing
            *  otherwise. */
           notDueSince: covered.get(beast.id) ?? null,
+          /** She is Ready for Sale: a dose given one animal at a time is held for her sale, not given. */
+          readyForSale: beast.state === "ready_for_sale",
         })),
       };
     }),

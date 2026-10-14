@@ -1,7 +1,9 @@
 import type { SopContent, Step } from "@OpenFarm/domain";
 import {
+  HELD_FOR_SALE,
   NOT_DUE_YET,
   WRITTEN_BY_MISTAKE,
+  mayHoldForSale,
   mayPassAsNotDue,
   maySkip,
   missingEvidence,
@@ -160,10 +162,12 @@ export const assertEvidenceComplete = (
       });
     }
     // A reason the Version never wrote would count her covered and mean nothing the farm acts on.
-    // So may the farm's own word for an animal a Campaign's last dose still covers — the effect checks that it does.
+    // So may the farm's own word for an animal a Campaign's last dose still covers — the effect checks that it does —
+    // and for one held on a dose for her sale — the effect checks that she is Ready for Sale.
     const offered =
       (correcting && skipReason === WRITTEN_BY_MISTAKE.bn) ||
       (skipReason === NOT_DUE_YET.bn && mayPassAsNotDue(step)) ||
+      (skipReason === HELD_FOR_SALE.bn && mayHoldForSale(step)) ||
       step.skipReasons.length === 0 ||
       step.skipReasons.some((reason) => reason.bn === skipReason);
     if (!offered) {

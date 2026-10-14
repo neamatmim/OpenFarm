@@ -3,6 +3,7 @@ import {
   isClosingStep,
   isFinished,
   isOneTap,
+  mayHoldForSale,
   nothingToNoteOf,
 } from "@OpenFarm/domain";
 import { buttonVariants } from "@OpenFarm/ui/components/button";
@@ -476,6 +477,9 @@ const WorkPage = () => {
                 <AnimalTile
                   animal={beast}
                   completion={doneFor(perAnimalStep.id, beast.id)}
+                  heldForSale={
+                    beast.readyForSale === true && mayHoldForSale(perAnimalStep)
+                  }
                   well={nothingToNoteOf(perAnimalStep)?.bn}
                   next={beast.id === nextAnimal?.id}
                   onOpen={() => openAnimalIfMine(beast)}

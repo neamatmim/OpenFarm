@@ -497,12 +497,15 @@ export const StepRow = ({
 export const AnimalTile = ({
   animal,
   completion,
+  heldForSale = false,
   well,
   next,
   onOpen,
 }: {
   animal: Animal;
   completion: Completion | undefined;
+  /** She is Ready for Sale, and this Step's dose is held for her sale. */
+  heldForSale?: boolean;
   /** The Step's reason for passing an animal as well, where it has one: an animal passed so is done. */
   well?: string;
   next: boolean;
@@ -564,6 +567,9 @@ export const AnimalTile = ({
             day: formatDate(startOfFarmDay(animal.notDueSince), language),
           })}
         </StatusBadge>
+      ) : null}
+      {heldForSale && !animal.notDueSince && standing === "left" ? (
+        <StatusBadge tone="info">{t("work.heldForSale")}</StatusBadge>
       ) : null}
     </button>
   );

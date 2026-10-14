@@ -4,6 +4,7 @@ import { CALVING_RECORDERS, HEAT, SERVICE, isCalvingLead } from "./breeding";
 import {
   campaignIntervalTriggerOf,
   campaignProductOf,
+  mayHoldForSale,
   mayPassAsNotDue,
 } from "./campaign-interval";
 import { farmDayOf } from "./farm-clock";
@@ -227,6 +228,7 @@ export const SKIP_MEANINGS = [
   "unwell",
   "nothing_to_note",
   "not_due",
+  "held_for_sale",
 ] as const;
 export type SkipMeaning = (typeof SKIP_MEANINGS)[number];
 
@@ -257,6 +259,18 @@ export const NOT_DUE_YET: SkipReason = {
   means: "not_due",
 };
 
+/**
+ * The farm's own word for an animal Ready for Sale on a dose given one animal at a time — a Campaign's walk, or one of
+ * his arrival doses: passed, not dosed, because the dose's withdrawal would hold up the sale she is ready for. Owed
+ * still: held while she is ready, and raised again, due that day, if she goes back to Fattening. Offered whatever the
+ * Version's own reasons, and refused by the farm for an animal not Ready for Sale.
+ */
+export const HELD_FOR_SALE: SkipReason = {
+  bn: "বিক্রির জন্য প্রস্তুত — স্থগিত",
+  en: "Ready for sale — held",
+  means: "held_for_sale",
+};
+
 /** What the reason somebody skipped with means, read from the Step they skipped: nothing for a reason the farm does
  *  not act on, or a Step that was not skipped. Matched on the Bangla, because that is what a phone sends. */
 export const meaningOfSkip = (
@@ -268,6 +282,9 @@ export const meaningOfSkip = (
   }
   if (skipReason === NOT_DUE_YET.bn && mayPassAsNotDue(step)) {
     return "not_due";
+  }
+  if (skipReason === HELD_FOR_SALE.bn && mayHoldForSale(step)) {
+    return "held_for_sale";
   }
   return (
     step.skipReasons.find((reason) => reason.bn === skipReason)?.means ?? null

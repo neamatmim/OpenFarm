@@ -9,7 +9,11 @@ import { assertStillCovered } from "../campaign-interval-store";
 import { recomputeWithdrawal } from "../health-store";
 import { lotOfDose } from "../medicine-stock";
 import { tell } from "../notice";
-import { callOffPutOffDose, raiseThePutOff } from "../put-off-store";
+import {
+  assertReadyForSale,
+  callOffPutOffDose,
+  raiseThePutOff,
+} from "../put-off-store";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
 import { asPublished, writtenNote } from "./evidence";
 
@@ -239,6 +243,15 @@ const followThePutOffDose = async (
       input.now
     );
     return;
+  }
+  // Passed as held for her sale: put off as any skip is, and held as it is raised again — only once the farm has seen
+  // that she is Ready for Sale.
+  if (input.skipped && input.skippedAs === "held_for_sale") {
+    await assertReadyForSale(
+      tx,
+      input.instance.farmId,
+      campaignAnimalId ?? input.instance.animalId
+    );
   }
   if (input.skipped) {
     await raiseThePutOff(

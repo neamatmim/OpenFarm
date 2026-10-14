@@ -115,3 +115,10 @@ export const notDueSince = ({
 export const mayPassAsNotDue = (
   step: Pick<Step, "repeatPerAnimal" | "effect">
 ): boolean => isCampaignDose(step);
+
+/** Whether an animal Ready for Sale may be held on this Step, her dose put off till she is back to Fattening: a dose given
+ *  one animal at a time — a Campaign's, or one of his arrival doses — whose withdrawal would hold up the sale. Never a
+ *  Prescription's: her course is the Vet's to stop. */
+export const mayHoldForSale = (
+  step: Pick<Step, "repeatPerAnimal" | "effect">
+): boolean => isCampaignDose(step);

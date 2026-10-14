@@ -6,11 +6,18 @@ import {
   campaignIntervalOf,
   campaignProductOf,
   dueForACampaign,
+  mayHoldForSale,
   mayPassAsNotDue,
   notDueSince,
   penDueBy,
 } from "./campaign-interval";
-import { NOT_DUE_YET, findStructuralProblems, meaningOfSkip } from "./sop";
+import type { Step } from "./sop";
+import {
+  HELD_FOR_SALE,
+  NOT_DUE_YET,
+  findStructuralProblems,
+  meaningOfSkip,
+} from "./sop";
 import { standardPlaybook } from "./standard-playbook";
 
 const playbook = standardPlaybook({
@@ -97,6 +104,42 @@ describe("an animal passed on a Campaign's walk as not due", () => {
     }
     expect(mayPassAsNotDue(milking)).toBe(false);
     expect(meaningOfSkip(milking, NOT_DUE_YET.bn)).toBeNull();
+  });
+});
+
+/** The Step of a procedure that gives its dose. */
+const doseOf = (content: { steps: Step[] }) => {
+  const dose = content.steps.find((step) => step.effect?.kind === "treatment");
+  if (!dose) {
+    throw new Error("expected a dose");
+  }
+  return dose;
+};
+
+describe("an animal Ready for Sale held on a dose given one animal at a time", () => {
+  it("is the farm's own reason on a Campaign's dose and on an arrival dose, meaning held for her sale", () => {
+    for (const dose of [
+      doseOf(playbook.fmdVaccination),
+      doseOf(playbook.arrivalFmd),
+    ]) {
+      expect(mayHoldForSale(dose)).toBe(true);
+      expect(meaningOfSkip(dose, HELD_FOR_SALE.bn)).toBe("held_for_sale");
+    }
+  });
+
+  it("is no reason on a Prescription's dose, nor on a Step that gives no dose", () => {
+    // Her course is the Vet's to stop, not the walk's to hold.
+    const prescribed = doseOf(playbook.treatmentDose);
+    expect(mayHoldForSale(prescribed)).toBe(false);
+    expect(meaningOfSkip(prescribed, HELD_FOR_SALE.bn)).toBeNull();
+    const milking = playbook.morningMilking.steps.find(
+      (step) => step.repeatPerAnimal
+    );
+    if (!milking) {
+      throw new Error("expected a milking step");
+    }
+    expect(mayHoldForSale(milking)).toBe(false);
+    expect(meaningOfSkip(milking, HELD_FOR_SALE.bn)).toBeNull();
   });
 });
 
