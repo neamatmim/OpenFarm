@@ -28,15 +28,17 @@ Decided with the Owner, 2026-09-28:
 - [ ] The app is installed as `openfarm.service` and starts, and the Owner signs up with that address and sets the farm up.
 - [ ] The nightly and monthly backup timers are installed and listed.
 - [ ] The first backup is run by hand, and **Farm settings → Backups** (খামারের সেটিংস → খামারের কপি) shows it.
-- [ ] **The first restore drill** is done and written down ([restore runbook](../../docs/runbooks/restore-drill.md)). This is also Release 1's "one quarterly restore drill passed". — _Owner_
+- [ ] **The first restore drill** is done ([restore runbook](../../docs/runbooks/restore-drill.md)) and written down on **Farm settings → Backups** (খামারের কপি): the day, who did it, and whether it went well. The page then says when the next is due, a quarter on. This is also Release 1's "one quarterly restore drill passed". — _Owner_
 
 ## 3. The farm, set up on the server
 
 - [ ] **Farm Identity**: the farm's real name, address and phone, which print on every paper. — _Owner_
 - [ ] **DLS registration**: number, office, issue and expiry dates, and a photo of the certificate. — _Owner_
-- [ ] **People** (**Farm settings → People and access**, খামারের সেটিংস → মানুষ ও অ্যাক্সেস): accounts for the Manager, each Barn Staff member and the Vet. The Shed Phones are enrolled and each worker has their PIN (ADR 0003). — _Owner, Manager_
+- [ ] **Other licenses** (**Farm settings** → **Other licenses**, খামারের সেটিংস → অন্যান্য লাইসেন্স): the trade license, and the fire or environment one if the farm holds it — number, issuer, dates and a photo of each. They show on the Inspector View beside the Registration. The app raises their renewal, and the Registration's, only from a renewal procedure the Owner writes in the Playbook; the farm page says while none does. — _Owner_
+- [ ] **People** (**Farm settings → People and access**, খামারের সেটিংস → মানুষ ও অ্যাক্সেস): accounts for the Manager, each Barn Staff member and the Vet. The Shed Phones are enrolled and each worker has their PIN (ADR 0003). The Vet's **BVC registration** number (বিভিসি নিবন্ধন) is written down — by the Vet in their own settings, or on their page — so it prints beside their name on the treatment register and the papers they sign. — _Owner, Manager, Vet_
 - [ ] **Sheds and pens** under the names the staff already use, because the register names each animal's pen. — _Manager_
-- [ ] **Breeds, feed items and rations**: the farm's own added to the standard ones. — _Manager_
+- [ ] **Breeds, feed items and rations**: the farm's own added to the standard ones. A concentrate the farm mixes itself, or silage it packs, is a feed item of its own, and each mix or pit is written down on **Feed → Made on the farm** (খামারে বানানো), so it is priced from what went into it. — _Manager_
+- [ ] **Milk buyers**: for each buyer, how they pay — at the gate, later at a set price, or by their own statement priced on fat and SNF (a collection center such as Milk Vita or PRAN). The last kind's milk goes with its price to follow, and each statement is entered on **Milk → Buyer statements** (ক্রেতার বিল) when it comes, so the farm's liters stand beside theirs. — _Manager, Owner_
 - [ ] **Farm Parameters** read through once on **Farm settings → Rules and alerts** (নিয়ম ও সতর্কবার্তা): the approval threshold, quiet hours, AI window, the day the month's costs are looked for, keep-or-sell and culling days. — _Owner, Manager_
 - [ ] **Money**: tick Shed rent and Utilities (and anything else paid monthly) as paid every month. — _Owner_
 - [ ] **Financial year**: ask the accountant whether the farm's books close on 30 June, and check **Farm settings → Financial year** shows the same years. If the books move with the government's April–March change (2027–28 a nine-month year), record the change there once the accountant says so (ADR 0017). — _Owner_
