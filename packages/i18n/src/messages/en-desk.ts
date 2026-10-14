@@ -1802,6 +1802,8 @@ export const enDesk = {
     "Called off: the farm no longer holds the license",
   "audit.calledOffBy.renewal_not_due":
     "Called off: its expiry was put right, and it is not due for renewal yet",
+  "audit.calledOffBy.held_for_sale":
+    "Held: ready for sale — owed again if the animal goes back to fattening",
   "audit.raisedAgainBy.calving_expected_again":
     "Raised again: her calving is expected again",
   "audit.before": "Before",

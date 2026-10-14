@@ -999,7 +999,9 @@ export const workRouter = {
           // Audit Event's business.
           await requireTransition(tx, instance, "closeAsMissed");
           // A Release nobody walked is still owed while he is in Quarantine: raised again after the farm's days.
-          await raiseThePutOff(tx, context.farm.id, instance.id, now, now);
+          await raiseThePutOff(tx, context.farm.id, instance.id, now, now, {
+            trail: audited(context).recordEvent,
+          });
         }
       );
       return { id: input.id, state: "missed" } as const;

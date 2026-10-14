@@ -16,6 +16,7 @@ import {
   putOffCauseOf,
   putOffOf,
 } from "./work-cause";
+import type { CalledOffBy } from "./work-transitions";
 import { callOffWork } from "./work-transitions";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -76,6 +77,32 @@ const whoseIsIt = (
     : { animalId: work.animalId, cause: work.cause };
 
 /**
+ * A dose just raised again for her, held if she is Ready for Sale: given now, its withdrawal would hold up the sale she
+ * is ready for. Owed still, and raised again if she goes back to Fattening. Without a trail to write it in, raised as
+ * ever.
+ */
+const holdIfReady = async (
+  tx: Tx,
+  farmId: string,
+  her: { animalId: string; state: string },
+  kind: "release" | "arrival_dose" | "campaign_dose",
+  { cause, trail }: { cause: string; trail?: Trail | null }
+): Promise<void> => {
+  if (kind === "release" || her.state !== "ready_for_sale" || !trail) {
+    return;
+  }
+  await callOffWork(
+    tx,
+    farmId,
+    and(
+      eq(sopInstance.animalId, her.animalId),
+      eq(sopInstance.cause, cause)
+    ) as SQL,
+    { trail, by: "held_for_sale" }
+  );
+};
+
+/**
  * Owed work put off — its step skipped, or the work closed Missed — raised again for him in his Pen, the farm's put-off
  * days later, under the same Version: his Release while he is still in Quarantine, an arrival dose or a Campaign's dose
  * while he is still on the farm. Again and again until it is done; a replay of the same skip raises nothing more, as its
@@ -90,7 +117,18 @@ export const raiseThePutOff = async (
   instanceId: string,
   at: Date,
   now: Date,
-  campaignAnimalId?: string | null
+  {
+    campaignAnimalId,
+    trail,
+    dueAt,
+  }: {
+    /** On a Pen's Campaign, the animal whose dose was put off. */
+    campaignAnimalId?: string | null;
+    /** Where a dose held for her sale is written as called off; without one, it is raised as ever. */
+    trail?: Trail | null;
+    /** When it falls due, where not the farm's put-off days after `at`: a held dose is owed from the day she is back. */
+    dueAt?: Date | null;
+  } = {}
 ): Promise<void> => {
   const work = await tx.query.sopInstance.findFirst({
     where: { id: instanceId, farmId },
@@ -140,6 +178,7 @@ export const raiseThePutOff = async (
     where: { id: farmId },
     columns: { putOffDays: true },
   });
+  const next = putOffCauseOf(original, (before?.n ?? 0) + 1);
   await raiseDueInstances(
     tx,
     farmId,
@@ -149,8 +188,9 @@ export const raiseThePutOff = async (
         versionId: work.versionId,
         penId: him.penId,
         animalId,
-        dueAt: new Date(at.getTime() + (farm?.putOffDays ?? 7) * DAY_MS),
-        cause: putOffCauseOf(original, (before?.n ?? 0) + 1),
+        dueAt:
+          dueAt ?? new Date(at.getTime() + (farm?.putOffDays ?? 7) * DAY_MS),
+        cause: next,
         graceMinutes: content.graceMinutes,
         assignedRole: content.assignedRole,
         checkerRole: content.checkerRole,
@@ -158,6 +198,10 @@ export const raiseThePutOff = async (
     ],
     now
   );
+  await holdIfReady(tx, farmId, { animalId, state: him.state }, kind, {
+    cause: next,
+    trail,
+  });
 };
 
 /** Open raised-again work of these causes, called off — less the work being done right now, which is finishing. */
@@ -166,14 +210,133 @@ const callOffAgain = (
   farmId: string,
   which: SQL | undefined,
   except: string | null,
-  trail: Trail
+  trail: Trail,
+  by: CalledOffBy = "released"
 ) =>
   callOffWork(
     tx,
     farmId,
     and(which, except ? ne(sopInstance.id, except) : undefined) as SQL,
-    { trail, by: "released" }
+    { trail, by }
   );
+
+/** Put-off work's cause: `<original>:again:<n>`. */
+const AGAIN = "%:again:%";
+
+/**
+ * Confirmed Ready for Sale: the doses put off and raised again for her, still open, are held — called off as held for
+ * her sale, so nobody gives a dose whose withdrawal would hold the sale up. Her first arrival doses are not touched.
+ */
+export const holdPutOffDoses = (
+  tx: Tx,
+  farmId: string,
+  animalId: string,
+  trail: Trail,
+  except: string | null = null
+) =>
+  callOffAgain(
+    tx,
+    farmId,
+    and(eq(sopInstance.animalId, animalId), like(sopInstance.cause, AGAIN)),
+    except,
+    trail,
+    "held_for_sale"
+  );
+
+/**
+ * Whether a held dose is owed her still: not given since — a skip put right to say it was, on the work first raised or
+ * one raised again — and, for an arrival dose, not excused by the Vet.
+ */
+const stillOwedHer = async (
+  tx: Tx,
+  farmId: string,
+  animalId: string,
+  original: string,
+  definitionId: string
+): Promise<boolean> => {
+  const chain = await tx.query.sopInstance.findMany({
+    where: {
+      farmId,
+      animalId,
+      OR: [{ cause: original }, { cause: { like: `${original}:again:%` } }],
+    },
+    columns: { id: true },
+  });
+  // Her dose of a Pen's Campaign was first asked on the Pen's work, which her key names.
+  const campaignWork = isCampaignDoseKey(original)
+    ? original.split(":")[1]
+    : undefined;
+  const ids = [
+    ...chain.map((one) => one.id),
+    ...(campaignWork ? [campaignWork] : []),
+  ];
+  const given = await tx.query.treatment.findFirst({
+    where: {
+      farmId,
+      animalId,
+      instanceId: { in: ids },
+      givenAt: { isNotNull: true },
+    },
+    columns: { id: true },
+  });
+  if (given) {
+    return false;
+  }
+  if (!ARRIVAL_CAUSE.test(original)) {
+    return true;
+  }
+  const excused = await tx.query.excusedDose.findFirst({
+    where: { farmId, animalId, definitionId },
+    columns: { id: true },
+  });
+  return !excused;
+};
+
+/**
+ * Back to Fattening unsold: each dose held for her sale is owed again, raised once more for her and due the day she is
+ * back — the latest held of each, as a skip would have raised it.
+ */
+export const raiseHeldDoses = async (
+  tx: Tx,
+  farmId: string,
+  animalId: string,
+  at: Date,
+  now: Date,
+  trail: Trail
+): Promise<void> => {
+  const held = await tx.query.sopInstance.findMany({
+    where: {
+      farmId,
+      animalId,
+      state: "called_off",
+      calledOffBy: "held_for_sale",
+    },
+    columns: { id: true, cause: true, definitionId: true },
+    orderBy: { id: "asc" },
+  });
+  // The latest raising of each, by its count: one held, back, and held again has two, and the second is the one owed.
+  const latest = new Map<
+    string,
+    { id: string; n: number; definitionId: string }
+  >();
+  for (const one of held) {
+    const found = putOffOf(one.cause);
+    if (found && found.n > (latest.get(found.original)?.n ?? 0)) {
+      latest.set(found.original, {
+        id: one.id,
+        n: found.n,
+        definitionId: one.definitionId,
+      });
+    }
+  }
+  for (const [original, one] of latest) {
+    // oxlint-disable-next-line no-await-in-loop -- one held dose after another, each its own work
+    if (await stillOwedHer(tx, farmId, animalId, original, one.definitionId)) {
+      // oxlint-disable-next-line no-await-in-loop -- as above
+      await raiseThePutOff(tx, farmId, one.id, at, now, { trail, dueAt: at });
+    }
+  }
+};
 
 /**
  * His Releases raised again and still open, called off: he is out of Quarantine, by the Release or by hand, and owes no

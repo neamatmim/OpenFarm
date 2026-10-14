@@ -100,6 +100,7 @@ export const CALLED_OFF_BY = [
   "excused",
   "license_retired",
   "renewal_not_due",
+  "held_for_sale",
 ] as const;
 export type CalledOffBy = (typeof CALLED_OFF_BY)[number];
 

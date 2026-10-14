@@ -42,7 +42,12 @@ import type { CalvingWorkFollowed } from "./calving-work";
 import { followExpectedCalving } from "./calving-work";
 import { joinTheFattening } from "./joining-store";
 import { lateEntry } from "./late";
-import { assertNoDoseOwed, callOffPutOffReleases } from "./put-off-store";
+import {
+  assertNoDoseOwed,
+  callOffPutOffReleases,
+  holdPutOffDoses,
+  raiseHeldDoses,
+} from "./put-off-store";
 import type { CalledOffBy } from "./work-transitions";
 import { callOffWork } from "./work-transitions";
 
@@ -719,7 +724,8 @@ const stillIn = (farmId: string, her: { id: string; state: AnimalState }) =>
  * from milk, the day is kept as her Lactation's Dry-off, which her next calving does not overwrite.
  *
  * Leaving Quarantine, by the Release's Step or by hand, he goes only when no arrival dose is owed him, and any Release
- * raised again for him is owed no more: said here so that no way out of Quarantine can forget either.
+ * raised again for him is owed no more: said here so that no way out of Quarantine can forget either. Confirmed Ready
+ * for Sale, the doses put off for her are held; back to Fattening, they are owed again from that day.
  *
  * Not calving, which is `calves`; not a way across to the other Side, which is a Move (`walkTo`); not out of the herd,
  * which is `leaves`. And nothing she has left may enter anything.
@@ -798,6 +804,12 @@ export const entersState = async (
   }
   if (leavingQuarantine) {
     await callOffPutOffReleases(tx, farmId, reached.id, trail, byWork);
+  }
+  if (state === "ready_for_sale") {
+    await holdPutOffDoses(tx, farmId, reached.id, trail, byWork);
+  }
+  if (her.state === "ready_for_sale") {
+    await raiseHeldDoses(tx, farmId, reached.id, at, now, trail);
   }
 };
 
