@@ -72,6 +72,9 @@ export interface StockLine {
   onHand: number;
   /** Taka per unit, a moving weighted average over what is in the store; null for feed never bought. */
   averagePriceMoney: number | null;
+  /** What is on hand is worth at that average, the store's own figure rounded once: what the Feed page and the
+   *  monthly report add up. Nothing for a store at or below nothing, or never priced. */
+  valueMoney: number;
   lastInOn: Date | null;
   /** Holding less than the level the Manager set, or fewer days of it than the farm's line at the rate it is fed: what
    *  puts it on the queue and in the digest. */

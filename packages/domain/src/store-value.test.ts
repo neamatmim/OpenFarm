@@ -7,8 +7,8 @@ describe("what the store held, in taka", () => {
     expect(
       storeValueOf({
         feed: [
-          { onHand: 1000, averagePriceMoney: 40 },
-          { onHand: 250.5, averagePriceMoney: 12 },
+          { onHand: 1000, averagePriceMoney: 40, valueMoney: 40_000 },
+          { onHand: 250.5, averagePriceMoney: 12, valueMoney: 3006 },
         ],
         medicine: [
           { expected: 10, perDoseMoney: 500 },
@@ -27,9 +27,9 @@ describe("what the store held, in taka", () => {
     expect(
       storeValueOf({
         feed: [
-          { onHand: -40, averagePriceMoney: 40 },
+          { onHand: -40, averagePriceMoney: 40, valueMoney: 0 },
           // The farm's own napier, never bought.
-          { onHand: 2000, averagePriceMoney: null },
+          { onHand: 2000, averagePriceMoney: null, valueMoney: 0 },
         ],
         medicine: [
           { expected: 0, perDoseMoney: 500 },
@@ -42,7 +42,7 @@ describe("what the store held, in taka", () => {
   it("counts silage still in the pit as feed, at what went into it", () => {
     expect(
       storeValueOf({
-        feed: [{ onHand: 100, averagePriceMoney: 40 }],
+        feed: [{ onHand: 100, averagePriceMoney: 40, valueMoney: 4000 }],
         medicine: [],
         inThePit: { worthMoney: 40_000, unpriced: 1 },
       })

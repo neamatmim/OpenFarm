@@ -795,6 +795,68 @@ describe("a Making written up the next day", () => {
   });
 });
 
+describe("what the store is worth", () => {
+  /** The store's worth as the Feed page adds it up: each line's own figure. */
+  const storeWorth = async (instant: string) => {
+    const manager = await as("manager", instant);
+    const lines = await manager.client.stock.onHand();
+    return lines.reduce((sum, one) => sum + one.valueMoney, 0);
+  };
+
+  it("is not moved by a Making, and the monthly report and Capital Employed say the same", async () => {
+    // As on the seed farm: six tonnes of concentrate at an average no paisa says exactly, bran and maize the same.
+    const buyer = await as("manager", "2082-01-02T03:00:00.000Z");
+    const ids: Record<string, string> = {};
+    for (const [key, quantity, priceMoney] of [
+      ["concentrate", 6388.5, 372_700],
+      ["bran", 5286.1, 255_850],
+      ["maize", 7208.4, 266_430],
+    ] as const) {
+      // oxlint-disable-next-line no-await-in-loop -- one name index
+      const made = await buyer.client.feed.items.create({
+        name: { bn: `${key} দাম ${suffix}` },
+      });
+      ids[key] = made.id;
+      // oxlint-disable-next-line no-await-in-loop -- one lorry at a time
+      await buyer.client.stock.receive({
+        feedItemId: made.id,
+        kind: "purchase",
+        quantity,
+        priceMoney,
+        seller: { name: `ফিড হাউস ${suffix}` },
+        receivedOn: "2082-01-02",
+      });
+    }
+    const before = await storeWorth("2082-01-02T04:00:00.000Z");
+    const mixer = await as("manager", "2082-01-02T05:00:00.000Z");
+    await mixer.client.feedMaking.make({
+      outputFeedItemId: ids.concentrate ?? "",
+      madeAt: new Date("2082-01-02T05:00:00.000Z"),
+      inputs: [
+        { feedItemId: ids.bran ?? "", quantity: 50 },
+        { feedItemId: ids.maize ?? "", quantity: 30 },
+      ],
+      cameOut: { quantity: 80 },
+    });
+    const after = await storeWorth("2082-01-02T06:00:00.000Z");
+    expect(Math.abs(after - before)).toBeLessThanOrEqual(0.01);
+
+    // The month's end, read today: the shelves' worth and what still lies in a pit packed earlier, at what went in.
+    const owner = await as("owner", "2082-01-02T06:00:00.000Z");
+    const { figures } = await owner.client.monthlyReport.month({
+      month: "2082-01",
+    });
+    const makings = await owner.client.feedMaking.list();
+    const pits = makings
+      .filter((one) => one.madeFeed === null)
+      .reduce((sum, one) => sum + (one.worthMoney ?? 0), 0);
+    expect(figures.atEnd.store.feedMoney).toBeCloseTo(after + pits, 2);
+    expect(figures.atEnd.capital.storeMoney).toBe(
+      figures.atEnd.store.totalMoney
+    );
+  });
+});
+
 describe("a Closed Month", () => {
   it("does not refuse feed made into it, as it does not refuse a Harvest: no money moves", async () => {
     const owner = await as("owner", "2079-01-05T04:00:00.000Z");

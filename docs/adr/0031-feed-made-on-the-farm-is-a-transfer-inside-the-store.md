@@ -124,3 +124,13 @@ delegated the open choices; each is decided below on the recommendation, and why
   it is wanted.
 - Every reader of the store — Stock on Hand, its Lots, costs, the leftover's price, the month's store value — reads
   Makings through `feedStoreOf`; a new reader that queried `feed_in` prices directly would see made feed with none.
+
+## Addendum, 2026-10-14: the store's worth is the store's own figure
+
+On the seed farm, 80 kg of concentrate mixed from 50 kg of bran and 30 of maize moved the Feed page's store value by
+৳39. The Making was right; the figure was not. Each feed was valued at what is on hand times its average price after
+that price was rounded to the paisa, and six tonnes of concentrate at a price half a paisa off is ৳30: the mix
+re-blended the concentrate's average, and the rounding moved. A feed's worth is now the replay's own value, rounded
+once (`stockLedger`'s `valueMoney`), on the Feed page, its Stock lines and the monthly report's store value — and so
+Capital Employed. A Making leaves it where it was, to the paisa. The average price shown per unit is still rounded,
+as a price is.
