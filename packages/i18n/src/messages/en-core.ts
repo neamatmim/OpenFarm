@@ -3829,8 +3829,8 @@ export const enCore = {
   "mismatch.openWork": "Open the work",
   "milk.flagged": "The manager will look at this",
   "alerts.title": "Alerts",
-  "alerts.bell":
-    "Alerts: {count, plural, =0 {nothing waiting} one {# waiting} other {# waiting}}",
+  "alerts.bell": "Alerts: {count} waiting",
+  "alerts.bellNone": "Alerts: nothing waiting",
   "alerts.none": "Nothing to tell you now",
   "alerts.withdrawalEnding": "{tag} — her milk withdrawal is ending",
   "animals.milkHeldUntil": "Milk held until {date}",

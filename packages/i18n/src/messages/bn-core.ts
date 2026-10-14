@@ -3574,8 +3574,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "mismatch.openWork": "কাজটি খুলুন",
   "milk.flagged": "ম্যানেজার এটি দেখবেন",
   "alerts.title": "সতর্কতা",
-  "alerts.bell":
-    "সতর্কতা: {count, plural, =0 {কিছু অপেক্ষায় নেই} one {#টি অপেক্ষায়} other {#টি অপেক্ষায়}}",
+  "alerts.bell": "সতর্কতা: {count}টি অপেক্ষায়",
+  "alerts.bellNone": "সতর্কতা: কিছু অপেক্ষায় নেই",
   "alerts.none": "এখন জানানোর মতো কিছু নেই",
   "alerts.withdrawalEnding": "{tag} — দুধ আটকে রাখার সময় শেষ হচ্ছে",
   "animals.milkHeldUntil": "দুধ আটকে আছে {date} পর্যন্ত",
