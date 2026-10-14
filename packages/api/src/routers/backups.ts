@@ -1,5 +1,7 @@
+import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { restoreDrill } from "@OpenFarm/db/schema/backup";
+import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { DRILL_STANDS, restoreDrill } from "@OpenFarm/db/schema/backup";
 import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -7,7 +9,6 @@ import { z } from "zod";
 import { audited } from "../audit";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { rolesOf } from "../membership";
 import { requireRole } from "../roles";
 import { drillStandingOf } from "../the-machinery-notices";
 
@@ -20,6 +21,41 @@ const RECENT = 30;
 
 /** A day without a copy. */
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Whoever was the Owner or a Manager on a farm day — whether or not they still are, or still sign in — by name: those a
+ * drill done that day may be said to be done by.
+ */
+const drillDoersOn = async (
+  db: Pick<Database, "query">,
+  farmId: string,
+  day: string
+): Promise<{ id: string; name: string }[]> => {
+  const from = startOfFarmDay(day);
+  const until = new Date(from.getTime() + DAY_MS);
+  const held = await db.query.roleAssignment.findMany({
+    where: {
+      farmId,
+      role: { in: ["owner", "manager"] },
+      createdAt: { lt: until },
+      OR: [{ revokedAt: { isNull: true } }, { revokedAt: { gte: from } }],
+    },
+    columns: { userId: true },
+    with: { user: { columns: { id: true, name: true } } },
+    orderBy: { userId: "asc" },
+  });
+  const people = new Map<string, string>();
+  for (const one of held) {
+    if (one.user) {
+      people.set(one.user.id, one.user.name);
+    }
+  }
+  return [...people]
+    .map(([id, name]) => ({ id, name }))
+    .toSorted(
+      (a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)
+    );
+};
 
 export const backupsRouter = {
   /**
@@ -56,8 +92,9 @@ export const backupsRouter = {
     }),
 
   /**
-   * The farm's Restore Drills, newest first, and when the next is due: a quarter after the last, or — never drilled — a
-   * quarter after the first good copy. Whoever reads the copies reads these.
+   * The farm's Restore Drills that stand — none put right by another — latest day first, and when the next is due: a
+   * quarter after the latest day one was done, or — never drilled — a quarter after the first good copy. Whoever reads
+   * the copies reads these.
    */
   drills: protectedProcedure
     .use(requireRole("owner", "manager"))
@@ -65,8 +102,8 @@ export const backupsRouter = {
       const now = context.clock.now();
       const [rows, standing] = await Promise.all([
         context.db.query.restoreDrill.findMany({
-          where: { farmId: context.farm.id },
-          orderBy: { recordedAt: "desc", id: "desc" },
+          where: { farmId: context.farm.id, ...DRILL_STANDS },
+          orderBy: { doneOn: "desc", recordedAt: "desc", id: "desc" },
           limit: DRILLS_SHOWN,
           with: {
             doer: { columns: { name: true } },
@@ -94,10 +131,20 @@ export const backupsRouter = {
       };
     }),
 
+  /** Who may be said to have done a drill on a day: whoever was the Owner or a Manager then, whether or not they still
+   *  are, or still sign in. The form offers these, and the farm takes no other. */
+  drillDoers: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ doneOn: farmDay }))
+    .handler(({ context, input }) =>
+      drillDoersOn(context.db, context.farm.id, input.doneOn)
+    ),
+
   /**
-   * Writes a Restore Drill down: the day it was done, whether it went well, which copy was restored, and a note — which
-   * a drill that went badly must have, saying what was missing (the runbook: do not tidy it away). The Owner's or a
-   * Manager's, who did it between them. Never edited: one written wrong is written again, and the latest stands.
+   * Writes a Restore Drill down: the day it was done, whether it went well, which copy was restored, who did it, and a
+   * note — which a drill that went badly must have, saying what was missing (the runbook: do not tidy it away). The
+   * Owner's or a Manager's to write. Never edited: one written down wrong is put right by another written in its place
+   * (`puttingRight`), which it then no longer stands beside.
    */
   recordDrill: protectedProcedure
     .use(requireRole("owner", "manager"))
@@ -107,8 +154,10 @@ export const backupsRouter = {
         wentWell: z.boolean(),
         backupUsed: z.string().trim().max(200).optional(),
         note: z.string().trim().max(1000).optional(),
-        /** Who did it, when it was not the one writing it down: the Owner or a Manager. */
+        /** Who did it, when it was not the one writing it down: whoever was the Owner or a Manager that day. */
         doneBy: z.string().optional(),
+        /** The drill this one puts right, written down wrong. */
+        puttingRight: z.string().optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -125,13 +174,21 @@ export const backupsRouter = {
           data: { refusal: "drill_says_what_went_wrong" },
         });
       }
+      // The one writing it down runs the farm now; another is named only if they ran it on the day.
       const doneBy = input.doneBy ?? context.actor.id;
-      const theirs = await rolesOf(context.db, context.farm.id, doneBy);
-      if (!theirs.some((role) => role === "owner" || role === "manager")) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "A drill is done by the Owner or a Manager",
-          data: { refusal: "drill_done_by_who_runs_the_farm" },
-        });
+      if (input.doneBy !== undefined) {
+        const doers = await drillDoersOn(
+          context.db,
+          context.farm.id,
+          input.doneOn
+        );
+        if (!doers.some((one) => one.id === input.doneBy)) {
+          throw new ORPCError("BAD_REQUEST", {
+            message:
+              "A drill is done by whoever was the Owner or a Manager that day",
+            data: { refusal: "drill_done_by_who_runs_the_farm" },
+          });
+        }
       }
       const id = uuidv7(now);
       const row = {
@@ -150,9 +207,36 @@ export const backupsRouter = {
           entity: "restore_drill",
           entityId: id,
           action: "create",
-          after: { ...row, doneOn: input.doneOn },
+          after: {
+            ...row,
+            doneOn: input.doneOn,
+            puttingRight: input.puttingRight ?? null,
+          },
         },
-        (tx) => tx.insert(restoreDrill).values(row)
+        async (tx) => {
+          await tx.insert(restoreDrill).values(row);
+          if (input.puttingRight !== undefined) {
+            // Only one still standing: a drill put right once is put right, and the second would stand on nothing.
+            const [putRight] = await tx
+              .update(restoreDrill)
+              .set({ putRightBy: id })
+              .where(
+                and(
+                  eq(restoreDrill.id, input.puttingRight),
+                  eq(restoreDrill.farmId, context.farm.id),
+                  isNull(restoreDrill.putRightBy)
+                )
+              )
+              .returning({ id: restoreDrill.id });
+            if (!putRight) {
+              throw new ORPCError("BAD_REQUEST", {
+                message:
+                  "That drill has already been put right, or is not this farm's",
+                data: { refusal: "drill_already_put_right" },
+              });
+            }
+          }
+        }
       );
       return { id };
     }),

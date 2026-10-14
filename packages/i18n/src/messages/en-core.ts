@@ -4093,8 +4093,15 @@ export const enCore = {
   "backups.drill.writtenBy": "Written down by {name}",
   "backups.drill.who": "Done by",
   "backups.drill.whoMe": "Me",
+  "backups.drill.puttingRight": "Is this putting one right?",
+  "backups.drill.puttingRightHint":
+    "A drill written down wrong is put right by this one in its place.",
+  "backups.drill.anotherDrill": "No, a drill of its own",
+  "backups.drill.theDrillOf": "It puts right the drill of {day}",
+  "backups.drill.refused.alreadyPutRight":
+    "That drill has already been put right",
   "refusal.drillDoneByWhoRunsTheFarm":
-    "A drill is done by the owner or a manager",
+    "A drill is done by whoever was the owner or a manager that day",
   "backups.drill.copyWas": "Copy restored: {copy}",
   "backups.drill.wentWell": "Went well",
   "backups.drill.wentBadly": "Did not go well",

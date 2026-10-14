@@ -329,6 +329,13 @@ describe("the Registration and its renewal", () => {
     expect(beforeDone.needsYou.registrationRenewal).toMatchObject({
       instanceId: work?.id,
     });
+    // The office put right before the work is closed, the form sending the expiry the Step has just written: the work
+    // that renewed it stays under its own cause, and next year's is raised (below).
+    const putRight = await as("manager", "2041-02-10T04:40:00.000Z");
+    await putRight.client.farm.setIdentity({
+      registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
+      registrationExpiresOn: "2042-03-31",
+    });
     await owner.client.work.complete({ id: work?.id ?? "" });
 
     // A fresh client, because a Context carries the Farm as it stood when the request began.
@@ -464,12 +471,21 @@ describe("the Registration and its renewal", () => {
           row.dueAt.getTime() === Date.parse("2051-11-09T18:00:00.000Z")
       )
     ).toHaveLength(1);
-    // A typed expiry put right while that renewal is open raises no second one.
+    // A typed expiry put right to a day whose lead has not begun: the work for the old one is owed no more, and the
+    // new one's is raised when its lead comes — once.
     const putRight = await as("manager", "2051-08-21T04:00:00.000Z");
     await putRight.client.farm.setIdentity({
       registrationExpiresOn: "2051-11-19",
     });
     const after = await renewalWork("2051-08-21T05:00:00.000Z");
-    expect(after.filter((row) => row.state === "due")).toHaveLength(1);
+    expect(after.filter((row) => row.state === "due")).toEqual([]);
+    const leadBegun = await renewalWork("2051-08-22T04:00:00.000Z");
+    expect(leadBegun.filter((row) => row.state === "due")).toEqual([
+      expect.objectContaining({
+        dueAt: new Date("2051-11-19T18:00:00.000Z"),
+      }),
+    ]);
+    const again = await renewalWork("2051-08-23T04:00:00.000Z");
+    expect(again.filter((row) => row.state === "due")).toHaveLength(1);
   });
 });

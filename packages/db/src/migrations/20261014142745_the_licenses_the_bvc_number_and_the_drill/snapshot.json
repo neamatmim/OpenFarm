@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "7207f143-e9cd-4fe9-8875-6d140173d36f",
+  "id": "a6e51e62-0d50-4de9-a5e3-e61a0026a9d9",
   "prevIds": [
     "e7ed0de2-4d9e-4be5-b86d-14c64e7c9b0c"
   ],
@@ -2208,6 +2208,19 @@
       "generated": null,
       "identity": null,
       "name": "recorded_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "restore_drill"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "put_right_by",
       "entityType": "columns",
       "schema": "public",
       "table": "restore_drill"

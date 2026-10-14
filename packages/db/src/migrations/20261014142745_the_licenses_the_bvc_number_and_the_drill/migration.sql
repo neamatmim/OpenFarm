@@ -9,7 +9,8 @@ CREATE TABLE "restore_drill" (
 	"note" text,
 	"done_by" text NOT NULL,
 	"recorded_by" text NOT NULL,
-	"recorded_at" timestamp with time zone NOT NULL
+	"recorded_at" timestamp with time zone NOT NULL,
+	"put_right_by" text
 );
 --> statement-breakpoint
 CREATE TABLE "farm_license" (

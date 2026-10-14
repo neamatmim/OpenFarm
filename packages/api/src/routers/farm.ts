@@ -31,7 +31,6 @@ import type { OwnersFigure } from "../owners-figures";
 import { theOwnersFigures, withoutTheOwnersFigures } from "../owners-figures";
 import { photoInput } from "../photo-input";
 import {
-  REGISTRATION_CAUSE,
   certificatesOf,
   keepCertificate,
   renewalCause,
@@ -555,13 +554,20 @@ export const farmRouter = {
             registrationExpiresOn: onFarmDay(input.registrationExpiresOn),
           });
           await refuseExpiryBeforeIssue(tx, farmId, changes);
+          const was = await tx.query.farm.findFirst({
+            where: { id: farmId },
+            columns: { registrationExpiresOn: true },
+          });
           await tx.update(farm).set(changes).where(eq(farm.id, farmId));
-          // The Registration's open renewal work follows the day it now runs out (ADR 0032).
+          // The renewal work raised for the expiry it replaced follows it, or is owed no more (ADR 0032).
           await followTheExpiry(tx, {
             farmId,
-            causePrefix: REGISTRATION_CAUSE,
+            previous: was?.registrationExpiresOn ?? null,
             expiresOn: changes.registrationExpiresOn,
             causeOf: renewalCause,
+            renewalLeadDays: context.farm.registrationRenewalLeadDays,
+            now: context.clock.now(),
+            trail: audited(context).recordEvent,
           });
           // Printed on every transport card, receipt and Investor paper: the Owner hears when the Manager changes them.
           await tellTheOwnerOfTheChange(context, tx, changes);

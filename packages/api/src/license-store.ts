@@ -297,18 +297,18 @@ export const callOffLicenseRenewals = (
     { trail, by: "license_retired" }
   );
 
-/** Moves a License's open renewal work to the expiry put right by hand on it (`followTheExpiry`). */
+/** Follows a License's expiry put right by hand with the renewal work raised for the one it replaces (`followTheExpiry`). */
 export const followLicenseExpiry = (
   tx: Tx,
   {
-    farmId,
     licenseId,
-    expiresOn,
-  }: { farmId: string; licenseId: string; expiresOn: Date | null | undefined }
+    ...following
+  }: { licenseId: string } & Omit<
+    Parameters<typeof followTheExpiry>[1],
+    "causeOf"
+  >
 ) =>
   followTheExpiry(tx, {
-    farmId,
-    causePrefix: `${LICENSE_CAUSE}${licenseId}:`,
-    expiresOn,
+    ...following,
     causeOf: licenseRenewalCause(licenseId),
   });

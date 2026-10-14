@@ -1,4 +1,4 @@
-import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf, isAFarmDay, startOfFarmDay } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -28,22 +28,22 @@ type Drill = Drills["drills"][number];
 const REFUSALS = {
   drill_not_done_yet: "backups.drill.refused.notDoneYet",
   drill_says_what_went_wrong: "backups.drill.refused.whatWentWrong",
+  drill_already_put_right: "backups.drill.refused.alreadyPutRight",
 } as const;
 
 /** A farm day as the reader's date. */
 const dayIn = (day: string, language: Language) =>
   formatDate(startOfFarmDay(day), language, "date");
 
-/** The Owner and the Managers, who rehearse the drill between them, other than whoever is signed in. */
-const useRunnersOfTheFarm = () => {
-  const people = useQuery(orpc.people.list.queryOptions());
+/** Whoever was the Owner or a Manager on the drill's day, other than whoever is signed in: the farm's own answer, so
+ *  the form offers nobody the farm would refuse, and nobody it would take is missing — one who has left among them. */
+const useDoersOn = (doneOn: string) => {
   const me = useQuery(orpc.people.me.queryOptions());
-  return (people.data?.people ?? []).filter(
-    (person) =>
-      person.id !== me.data?.id &&
-      !person.disabledAt &&
-      person.roles.some((role) => role === "owner" || role === "manager")
-  );
+  const doers = useQuery({
+    ...orpc.backups.drillDoers.queryOptions({ input: { doneOn } }),
+    enabled: isAFarmDay(doneOn),
+  });
+  return (doers.data ?? []).filter((person) => person.id !== me.data?.id);
 };
 
 /** Writing a drill down: the day, how it went, the copy restored, and what was checked — what was missing, when it did
@@ -51,11 +51,14 @@ const useRunnersOfTheFarm = () => {
 const RecordDrill = ({
   open,
   onOpenChange,
+  standing,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** The drills that stand, any of which this one may put right. */
+  standing: Drill[];
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const refused = useRefused(REFUSALS);
   const [doneOn, setDoneOn] = useState(() => farmDayOf(new Date()));
   const [how, setHow] = useState<"well" | "badly">("well");
@@ -63,7 +66,11 @@ const RecordDrill = ({
   const [note, setNote] = useState("");
   // Nobody named: the one writing it down did it.
   const [doneBy, setDoneBy] = useState("");
-  const runners = useRunnersOfTheFarm();
+  // Nothing chosen: a drill of its own, beside the others.
+  const [puttingRight, setPuttingRight] = useState("");
+  const runners = useDoersOn(doneOn);
+  // One chosen for another day, who did not run the farm on this one, is no longer offered: the writer stands.
+  const named = runners.some((person) => person.id === doneBy) ? doneBy : "";
   const record = useMutation(
     orpc.backups.recordDrill.mutationOptions({
       onSuccess: () => {
@@ -72,6 +79,7 @@ const RecordDrill = ({
         setBackupUsed("");
         setNote("");
         setDoneBy("");
+        setPuttingRight("");
         onOpenChange(false);
       },
       onError: refused,
@@ -88,7 +96,8 @@ const RecordDrill = ({
           wentWell: how === "well",
           backupUsed: backupUsed.trim() || undefined,
           note: note.trim() || undefined,
-          doneBy: doneBy || undefined,
+          doneBy: named || undefined,
+          puttingRight: puttingRight || undefined,
         })
       }
       open={open}
@@ -107,11 +116,33 @@ const RecordDrill = ({
           value={doneOn}
         />
       </FormField>
+      {standing.length > 0 ? (
+        <FormField
+          hint={t("backups.drill.puttingRightHint")}
+          id="drill-put-right"
+          label={t("backups.drill.puttingRight")}
+        >
+          <NativeSelect
+            id="drill-put-right"
+            onChange={(event) => setPuttingRight(event.target.value)}
+            value={puttingRight}
+          >
+            <option value="">{t("backups.drill.anotherDrill")}</option>
+            {standing.map((drill) => (
+              <option key={drill.id} value={drill.id}>
+                {t("backups.drill.theDrillOf", {
+                  day: dayIn(drill.doneOn, language),
+                })}
+              </option>
+            ))}
+          </NativeSelect>
+        </FormField>
+      ) : null}
       <FormField id="drill-who" label={t("backups.drill.who")}>
         <NativeSelect
           id="drill-who"
           onChange={(event) => setDoneBy(event.target.value)}
-          value={doneBy}
+          value={named}
         >
           <option value="">{t("backups.drill.whoMe")}</option>
           {runners.map((person) => (
@@ -251,7 +282,11 @@ export const RestoreDrillSection = () => {
           />
         )}
       </Loaded>
-      <RecordDrill onOpenChange={setRecording} open={recording} />
+      <RecordDrill
+        onOpenChange={setRecording}
+        open={recording}
+        standing={drills.data?.drills ?? []}
+      />
     </Section>
   );
 };

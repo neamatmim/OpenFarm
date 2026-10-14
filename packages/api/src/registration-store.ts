@@ -18,7 +18,7 @@ import { renewPaper, renewalsKeptIn } from "./renewal-store";
 export type { RenewalEntry } from "./renewal-store";
 
 /** The prefix every renewal's work is raised under. */
-export const REGISTRATION_CAUSE = "registration:";
+const REGISTRATION_CAUSE = "registration:";
 
 /**
  * What raises the renewal work for a Registration: the day its certificate runs out. Once for each certificate, so the

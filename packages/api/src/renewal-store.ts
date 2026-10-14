@@ -1,16 +1,18 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { eq } from "@OpenFarm/db/operators";
+import { eq, inArray } from "@OpenFarm/db/operators";
 import { licenseRenewal, registrationRenewal } from "@OpenFarm/db/schema/farm";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import {
   OPEN_INSTANCE_STATES,
   goodUntilOf,
+  renewalOpensAt,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import type { Tx } from "./audit";
+import type { Trail, Tx } from "./audit";
 import type { PhotoInput } from "./photo-input";
+import { callOffWork } from "./work-transitions";
 
 // A paper the farm renews — its DLS Registration, or one of its Licenses (ADR 0032) — renewed from the closing Step of
 // the work raised for it. What makes a renewal a renewal is the same for every paper; where each keeps its expiry, its
@@ -103,39 +105,107 @@ export const renewalsKeptIn =
       : tx.insert(licenseRenewal).values({ ...row, licenseId }));
   };
 
+/** The open work, of these, that a renewal Step has already renewed the paper from: it closes on that renewal. */
+const renewedAlready = async (
+  tx: Tx,
+  instanceIds: readonly string[]
+): Promise<Set<string>> => {
+  if (instanceIds.length === 0) {
+    return new Set();
+  }
+  const steps = await tx.query.stepCompletion.findMany({
+    where: { instanceId: { in: [...instanceIds] } },
+    columns: { id: true, instanceId: true },
+  });
+  const completionIds = steps.map((one) => one.id);
+  if (completionIds.length === 0) {
+    return new Set();
+  }
+  const [registration, licenses] = await Promise.all([
+    tx.query.registrationRenewal.findMany({
+      where: { completionId: { in: completionIds } },
+      columns: { completionId: true },
+    }),
+    tx.query.licenseRenewal.findMany({
+      where: { completionId: { in: completionIds } },
+      columns: { completionId: true },
+    }),
+  ]);
+  const renewing = new Set(
+    [...registration, ...licenses].map((one) => one.completionId)
+  );
+  return new Set(
+    steps.filter((one) => renewing.has(one.id)).map((one) => one.instanceId)
+  );
+};
+
 /**
- * Moves a paper's open renewal work to the expiry put right by hand: due when the paper now runs out, under the cause of
- * that expiry — so it is not late on a day the paper no longer runs out, and the next turn finds it already raised. A
- * cause another piece of the same procedure's work already holds is left, and only the day moves. Nothing for an expiry
- * cleared: the work still stands for the paper the farm holds.
+ * Follows a paper's expiry put right by hand with the renewal work raised for the expiry it replaces — only that work,
+ * only when the expiry has changed, and never work a renewal Step has already renewed the paper from, which closes on
+ * that renewal. Still within the renewal lead of the new expiry — a day typed wrong put right — the work moves with it:
+ * due when the paper now runs out, under that expiry's cause, so it is not late on a day the paper no longer runs out and
+ * the next turn finds it raised (only the day moves where another piece of the procedure's work holds that cause). Put
+ * past the lead — renewed outside the app — or cleared, so the paper no longer runs out, it is owed no more and called
+ * off (`renewal_not_due`); the renewal of the new expiry is raised when its lead comes.
  */
 export const followTheExpiry = async (
   tx: Tx,
   {
     farmId,
-    causePrefix,
+    previous,
     expiresOn,
     causeOf,
+    renewalLeadDays,
+    now,
+    trail,
   }: {
     farmId: string;
-    /** What every cause of this paper's renewal work begins with. */
-    causePrefix: string;
+    /** The expiry being replaced. */
+    previous: Date | null;
+    /** The expiry put in its place: null cleared, undefined not sent. */
     expiresOn: Date | null | undefined;
     causeOf: (expiresOn: Date) => string;
+    renewalLeadDays: number;
+    now: Date;
+    trail: Trail;
   }
 ): Promise<void> => {
-  if (!expiresOn) {
+  if (
+    expiresOn === undefined ||
+    previous === null ||
+    expiresOn?.getTime() === previous.getTime()
+  ) {
     return;
   }
-  const open = await tx.query.sopInstance.findMany({
+  const raisedFor = await tx.query.sopInstance.findMany({
     where: {
       farmId,
-      cause: { like: `${causePrefix}%` },
+      cause: causeOf(previous),
       state: { in: [...OPEN_INSTANCE_STATES] },
     },
-    columns: { id: true, definitionId: true, cause: true },
+    columns: { id: true, definitionId: true },
     orderBy: { dueAt: "asc", id: "asc" },
   });
+  const renewed = await renewedAlready(
+    tx,
+    raisedFor.map((one) => one.id)
+  );
+  const open = raisedFor.filter((one) => !renewed.has(one.id));
+  if (open.length === 0) {
+    return;
+  }
+  if (expiresOn === null || now < renewalOpensAt(expiresOn, renewalLeadDays)) {
+    await callOffWork(
+      tx,
+      farmId,
+      inArray(
+        sopInstance.id,
+        open.map((one) => one.id)
+      ),
+      { trail, by: "renewal_not_due" }
+    );
+    return;
+  }
   const cause = causeOf(expiresOn);
   for (const work of open) {
     // One row each, sequentially: a transaction has one client. A paper has one or two pieces of work open at most.

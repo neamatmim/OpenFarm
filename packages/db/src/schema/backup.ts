@@ -50,8 +50,8 @@ export const backupRun = pgTable(
 /**
  * A **Restore Drill**: the quarterly rehearsal of losing the farm's database — a backup restored into a scratch
  * environment and checked by the Manager in the app (docs/runbooks/restore-drill.md) — written down in the farm it
- * rehearsed, whether or not it went well. Never edited: one written down wrong is written down again, and the latest
- * stands.
+ * rehearsed, whether or not it went well. Never edited: one written down wrong is put right by another written down
+ * in its place.
  */
 export const restoreDrill = pgTable(
   "restore_drill",
@@ -75,6 +75,11 @@ export const restoreDrill = pgTable(
       .notNull()
       .references(() => user.id),
     recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
+    /** The drill written down to put this one right, when one was: this one then stands no more. Null while it stands. */
+    putRightBy: text("put_right_by"),
   },
   (table) => [index("restore_drill_farm_idx").on(table.farmId, table.doneOn)]
 );
+
+/** A Restore Drill that stands: not put right by another written down in its place. Use in relational `where`s. */
+export const DRILL_STANDS = { putRightBy: { isNull: true } } as const;

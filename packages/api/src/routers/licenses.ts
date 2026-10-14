@@ -217,11 +217,15 @@ export const licensesRouter = {
             .update(farmLicense)
             .set(changes)
             .where(eq(farmLicense.id, input.id));
-          // Its renewal work, open, follows the day it now runs out.
+          // The renewal work raised for the expiry it replaced follows it, or is owed no more (ADR 0032).
           await followLicenseExpiry(tx, {
             farmId,
             licenseId: input.id,
+            previous: was.expiresOn,
             expiresOn: onFarmDay(input.expiresOn),
+            renewalLeadDays: context.farm.registrationRenewalLeadDays,
+            now: context.clock.now(),
+            trail: audited(context).recordEvent,
           });
           await tellTheOwnerOfTheChange(context, tx, changes);
         }

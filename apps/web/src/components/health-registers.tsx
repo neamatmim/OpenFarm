@@ -256,12 +256,13 @@ const MeatClearCell = ({ row }: { row: { original: TreatmentRow } }) => (
   <SaidDate at={row.original.meatClearOn} />
 );
 
-/** The drug, and under it how it was given: the dose, the route and the course, as far as they were written. */
+/** The prescribing Vet, with their BVC number, as the treatment line and the papers name them. */
 const PrescriberCell = ({ row }: { row: { original: TreatmentRow } }) => {
   const { language } = useLanguage();
   return <span>{prescriberSaid(row.original, language)}</span>;
 };
 
+/** The drug, and under it how it was given: the dose, the route and the course, as far as they were written. */
 const DrugCell = ({ row }: { row: { original: TreatmentRow } }) => {
   const { t, language } = useLanguage();
   const { dose, route, course, drug } = row.original;

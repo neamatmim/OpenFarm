@@ -1,3 +1,4 @@
+import { roleAssignment } from "@OpenFarm/db/schema/farm";
 import {
   FakeClock,
   scratchDb,
@@ -173,9 +174,9 @@ describe("the Restore Drill", () => {
     expect(own.last).toMatchObject({ doneByName: thePerson("manager").name });
   });
 
-  it("stands as last written down, though it puts the drill on an earlier day than the one it corrects", async () => {
+  it("is put right by one written down in its place, though it puts the drill on an earlier day", async () => {
     const wrong = await as("owner", "2051-09-10T06:00:00.000Z");
-    await wrong.client.backups.recordDrill({
+    const typed = await wrong.client.backups.recordDrill({
       doneOn: "2051-09-09",
       wentWell: true,
     });
@@ -184,16 +185,88 @@ describe("the Restore Drill", () => {
       doneOn: "2051-08-09",
       wentWell: true,
       note: "The day was typed wrong: it was done a month ago",
+      puttingRight: typed.id,
     });
 
     const drills = await right.client.backups.drills();
     expect(drills.last).toMatchObject({ doneOn: "2051-08-09" });
     expect(drills.dueOn).toBe("2051-11-09");
+    // The one put right is no longer among the farm's drills, and is put right once.
+    expect(drills.drills.map((one) => one.id)).not.toContain(typed.id);
+    await expect(
+      right.client.backups.recordDrill({
+        doneOn: "2051-08-10",
+        wentWell: true,
+        puttingRight: typed.id,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "drill_already_put_right" } });
     const standing = await drillOverdue(
       scratchDb(),
       theFarm().id,
       new Date("2051-11-10T06:00:00.000Z")
     );
     expect(standing).toMatchObject({ id: "drill:2051-11-09" });
+  });
+
+  it("is counted from the latest day done, though an older drill is written down after it", async () => {
+    const owner = await as("owner", "2051-10-01T06:00:00.000Z");
+    await owner.client.backups.recordDrill({
+      doneOn: "2051-10-01",
+      wentWell: true,
+    });
+    // July's drill, never written down at the time, written on 2 October.
+    const late = await as("owner", "2051-10-02T06:00:00.000Z");
+    await late.client.backups.recordDrill({
+      doneOn: "2051-07-15",
+      wentWell: true,
+      note: "Written down late",
+    });
+
+    const drills = await late.client.backups.drills();
+    expect(drills).toMatchObject({ dueOn: "2052-01-01", overdue: false });
+    expect(drills.last).toMatchObject({ doneOn: "2051-10-01" });
+  });
+
+  it("names whoever was the Owner or a Manager on its day, a Manager who has since left among them", async () => {
+    await createTestClient(appRouter, {
+      as: "newcomer",
+      clock: new FakeClock("2051-01-01T00:00:00.000Z"),
+    });
+    await scratchDb()
+      .insert(roleAssignment)
+      .values({
+        id: `ra-left-manager-${theFarm().id}`,
+        farmId: theFarm().id,
+        userId: thePerson("newcomer").id,
+        role: "manager",
+        createdAt: new Date("2051-01-01T00:00:00.000Z"),
+        revokedAt: new Date("2051-10-20T06:00:00.000Z"),
+      })
+      .onConflictDoNothing();
+    const owner = await as("owner", "2051-10-25T06:00:00.000Z");
+
+    const then = await owner.client.backups.drillDoers({
+      doneOn: "2051-10-15",
+    });
+    expect(then.map((one) => one.id)).toEqual(
+      expect.arrayContaining([thePerson("newcomer").id, thePerson("owner").id])
+    );
+    await owner.client.backups.recordDrill({
+      doneOn: "2051-10-15",
+      wentWell: true,
+      doneBy: thePerson("newcomer").id,
+    });
+
+    const now = await owner.client.backups.drillDoers({ doneOn: "2051-10-24" });
+    expect(now.map((one) => one.id)).not.toContain(thePerson("newcomer").id);
+    await expect(
+      owner.client.backups.recordDrill({
+        doneOn: "2051-10-24",
+        wentWell: true,
+        doneBy: thePerson("newcomer").id,
+      })
+    ).rejects.toMatchObject({
+      data: { refusal: "drill_done_by_who_runs_the_farm" },
+    });
   });
 });

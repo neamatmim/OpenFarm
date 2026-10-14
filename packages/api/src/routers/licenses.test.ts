@@ -285,13 +285,13 @@ describe("the farm's Licenses", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("follows its License's expiry put right by hand while its renewal is open, and is raised no second time", async () => {
+  it("follows its License's expiry put right by hand to a day within the lead, and is raised no second time", async () => {
     const manager = await as("manager", "2061-04-04T04:00:00.000Z");
     const held = await manager.client.licenses.list();
     const trade = held.find((one) => one.number === "TL/SAV/2060/77");
     await manager.client.licenses.update({
       id: trade?.id ?? "",
-      expiresOn: "2061-07-15",
+      expiresOn: "2061-06-20",
     });
 
     const owed = await dueWork("2061-04-05T04:00:00.000Z");
@@ -299,8 +299,8 @@ describe("the farm's Licenses", () => {
     // Due the day it now runs out, under the cause of the expiry it now has: not late on the day it no longer runs out.
     expect(forTrade).toEqual([
       expect.objectContaining({
-        dueAt: new Date("2061-07-15T18:00:00.000Z"),
-        cause: `license:${trade?.id}:2061-07-15`,
+        dueAt: new Date("2061-06-20T18:00:00.000Z"),
+        cause: `license:${trade?.id}:2061-06-20`,
       }),
     ]);
   });
@@ -366,5 +366,83 @@ describe("the farm's Licenses", () => {
       licenses: true,
       registration: false,
     });
+  });
+
+  it("raises next year's renewal, though the License was put right between its renewal Step and the work closing", async () => {
+    const manager = await as("manager", "2062-01-01T04:00:00.000Z");
+    const { id } = await manager.client.licenses.add({
+      kind: "environment",
+      number: "DoE/2062/1",
+      expiresOn: "2062-06-30",
+    });
+    const owed = await dueWork("2062-04-02T04:00:00.000Z");
+    const work = owed.find((row) => row.cause?.includes(id));
+    const owner = await as("owner", "2062-04-03T04:00:00.000Z");
+    await owner.client.work.claim({ id: work?.id ?? "" });
+    await owner.client.work.completeStep({
+      instanceId: work?.id ?? "",
+      stepId: "apply",
+      evidence: [true],
+    });
+    await owner.client.work.completeStep({
+      instanceId: work?.id ?? "",
+      stepId: "renewed",
+      evidence: [true],
+      renewal: { expiresOn: "2063-06-30", certificate: PHOTO },
+    });
+    // The issuer put right before the work is closed, the form sending the expiry the Step has just written.
+    const putRight = await as("manager", "2062-04-03T05:00:00.000Z");
+    await putRight.client.licenses.update({
+      id,
+      issuer: "পরিবেশ অধিদপ্তর, ঢাকা",
+      expiresOn: "2063-06-30",
+    });
+    await owner.client.work.complete({ id: work?.id ?? "" });
+
+    const nextYear = await dueWork("2063-04-02T04:00:00.000Z");
+    expect(nextYear.filter((row) => row.cause?.includes(id))).toEqual([
+      expect.objectContaining({ cause: `license:${id}:2063-06-30` }),
+    ]);
+  });
+
+  it("calls its renewal off once the License is put a year forward by hand, renewed elsewhere, or given no expiry", async () => {
+    const manager = await as("manager", "2064-01-01T04:00:00.000Z");
+    const elsewhere = await manager.client.licenses.add({
+      kind: "other",
+      name: "বয়লার সনদ",
+      number: "BL/2064/1",
+      expiresOn: "2064-06-30",
+    });
+    const unending = await manager.client.licenses.add({
+      kind: "other",
+      name: "জমির খাজনা",
+      number: "KH/2064/1",
+      expiresOn: "2064-06-30",
+    });
+    const owed = await dueWork("2064-04-02T04:00:00.000Z");
+    const workOf = (licenseId: string) =>
+      owed.find((row) => row.cause?.includes(licenseId));
+    expect(workOf(elsewhere.id)).toBeDefined();
+    expect(workOf(unending.id)).toBeDefined();
+
+    const later = await as("manager", "2064-04-03T04:00:00.000Z");
+    await later.client.licenses.update({
+      id: elsewhere.id,
+      expiresOn: "2065-06-30",
+    });
+    await later.client.licenses.update({ id: unending.id, expiresOn: null });
+
+    const after = await renewalWork("2064-04-04T04:00:00.000Z");
+    const stateOf = (licenseId: string) =>
+      after
+        .filter((row) => row.cause?.includes(licenseId))
+        .map((row) => row.state);
+    expect(stateOf(elsewhere.id)).toEqual(["called_off"]);
+    expect(stateOf(unending.id)).toEqual(["called_off"]);
+    // The renewed one's next renewal comes in its own time.
+    const next = await dueWork("2065-04-02T04:00:00.000Z");
+    expect(
+      next.filter((row) => row.cause === `license:${elsewhere.id}:2065-06-30`)
+    ).toHaveLength(1);
   });
 });

@@ -25,9 +25,13 @@ choices: decide on the recommendation and record why.
   certificates. The Registration is one; each License is another. So is the raising: `renewalSlotsFor` takes the paper
   coming due — the Trigger that renews it, its expiry, the renewal lead, the cause its work is raised under, and the
   procedures whose work for it stands open — and the Day Turning asks it of the Registration and of each License.
-  An expiry put right by hand while the renewal work is open moves that work with it, for either paper
-  (`followTheExpiry`): due the day the paper now runs out, under that expiry's cause, so it is not late on a day the
-  paper no longer runs out and the next turn finds it already raised.
+  An expiry put right by hand follows the renewal work raised for the expiry it replaces (`followTheExpiry`), for either
+  paper — only that work, only when the expiry has in fact changed, and never work a renewal Step has already renewed
+  the paper from, which closes on that renewal: a form saved again with the expiry the Step just wrote moves nothing, so
+  next year's work is never left blocked by a cause already taken. Put right to a day within its renewal lead — a day
+  typed wrong — the work moves with it: due the day the paper now runs out, under that expiry's cause. Put past the
+  lead — renewed outside the app — or cleared, so the paper no longer runs out, the work is owed no more and called off
+  (`renewal_not_due`); the new expiry's renewal is raised when its lead comes.
 - **Its own Trigger and Step Effect, `license_renewal`**, not the Registration's stretched. The Registration's renewal
   is an errand to the Upazila Livestock Office; a trade license's is to the Pourashava. A farm that wants different
   steps for them writes two procedures, and one that renews licenses at all writes one more. The work carries which
@@ -52,10 +56,12 @@ choices: decide on the recommendation and record why.
   BVC-0457)», «ডা. করিম (BVC no. BVC-0457)».
 - **A Restore Drill is written down on the Backups page**: the day it was done, whether it went well, which copy was
   restored, a note — which one that went badly must have — who did it, the Owner or a Manager between whom it is done
-  (the one writing it down unless they name the other; anybody else is refused, `drill_done_by_who_runs_the_farm`),
-  and who wrote it down. Never edited; written wrong, it is written again and the one written last stands, though it
-  puts the drill on an earlier day than the one it corrects. The next is due a quarter after
-  the last, whether or not it went well, since the next drill is what checks the mend; a farm that has never drilled is
+  (the one writing it down unless they name another who was the Owner or a Manager on the drill's day — one who has
+  left or no longer signs in among them, so the farm and the form offer the same people; anybody else is refused,
+  `drill_done_by_who_runs_the_farm`), and who wrote it down. Never edited: one written down wrong is put right by
+  another written in its place, which names it (`puttingRight`) — the one put right then stands no more, and is put
+  right once (`drill_already_put_right`). Of the drills that stand, the latest day one was done decides: a drill
+  written down late for an older day changes nothing. The next is due a quarter after it, whether or not it went well, since the next drill is what checks the mend; a farm that has never drilled is
   counted from its first good copy, and one with no good copy is asked nothing here, its backups being the louder
   problem. Overdue the day after it falls due.
 - **Overdue is told where a backup failure is**: the Owner's notices, raised by the server's own timer
