@@ -280,7 +280,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * The week's milk as the farm can account for it — into the tank, out of the gate, still in the tank, and what is left
- * — and beside it what the calves drank, a day and a calf. By the same to-Bulk figure the day view reads.
+ * — and beside it what the house drank in the week and what the calves drank, a day and a calf. By the same to-Bulk
+ * figure the day view reads.
  */
 export const milkAccountOn = async (
   db: Pick<Database, "query">,
@@ -303,6 +304,9 @@ export const milkAccountOn = async (
     }),
   ]);
   const feeds: { at: Date; toCalves: number }[] = [];
+  // Milk for the house in the week: never in the tank, so never what the tank is short by, and said apart so a week the
+  // household drank its share reads as one.
+  let toHouse = 0;
   const intoTheTank = sessions.map((one) => {
     let toBulk = 0;
     let toCalves = 0;
@@ -311,6 +315,8 @@ export const milkAccountOn = async (
         toBulk += Number(record.liters);
       } else if (record.destination === "calves") {
         toCalves += Number(record.liters);
+      } else if (record.destination === "house" && one.dueAt >= weekFrom) {
+        toHouse += Number(record.liters);
       }
     }
     feeds.push({ at: one.dueAt, toCalves });
@@ -326,6 +332,7 @@ export const milkAccountOn = async (
   return {
     ...account,
     since: farmDayOf(weekFrom),
+    toHouse: roundLiters(toHouse),
     calves: {
       litersADay: roundLiters(perDay),
       calves: calves.length,

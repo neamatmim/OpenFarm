@@ -31,8 +31,9 @@ const Line = ({
 
 /**
  * The week's milk: what went into the tank, what left the gate, what is still in the tank, and what nobody can account
- * for — in red when it is past the Owner's line — and beside it what the calves drank. Above the day's Dispatches,
- * because a day on its own cannot say where the milk went: an evening's milk leaves the next morning.
+ * for — in red when it is past the Owner's line — then what the house drank, which never went in, and beside it what
+ * the calves drank. Above the day's Dispatches, because a day on its own cannot say where the milk went: an evening's
+ * milk leaves the next morning.
  */
 export const MilkAccountCard = () => {
   const { t, language } = useLanguage();
@@ -48,6 +49,8 @@ export const MilkAccountCard = () => {
     );
   }
   const week = account.data;
+  // Missing from an answer a phone kept from before the house had milk of its own.
+  const toHouse: number = (week as { toHouse?: number }).toHouse ?? 0;
   const calvesDrank = week.calves.litersADay > 0;
   const pastTheLine =
     week.notAccounted > 0 && week.notAccountedPercent > week.linePercent;
@@ -70,6 +73,10 @@ export const MilkAccountCard = () => {
           liters={week.notAccounted}
           loud={pastTheLine}
         />
+        {/* Only when the house drank some this week; an answer kept from before says nothing of it. */}
+        {toHouse > 0 ? (
+          <Line label={t("milkAccount.toHouse")} liters={toHouse} />
+        ) : null}
         {/* Only when the calves drank from the pail this week: none recorded is not calves going hungry. */}
         {calvesDrank && week.calves.perCalf !== null ? (
           <p className="text-muted-foreground pt-2 text-xs">

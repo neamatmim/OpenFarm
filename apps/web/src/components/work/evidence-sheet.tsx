@@ -35,6 +35,7 @@ import {
   Check,
   ChevronLeft,
   CircleCheck,
+  House,
   Lock,
   Milk,
   SkipForward,
@@ -688,14 +689,15 @@ const SheetHead = ({
   );
 };
 
-/** Each place milk can go, with a picture beside its word: the tank, the calf, the drain. */
+/** Each place milk can go, with a picture beside its word: the tank, the calf, the drain, the house. */
 const DESTINATION_ICON: Record<MilkDestination, LucideIcon> = {
   bulk: Milk,
   calves: Baby,
   discard: Trash2,
+  house: House,
 };
 
-/** Where the milk goes. Three buttons, because that is the whole vocabulary — and none at
+/** Where the milk goes. Four buttons, because that is the whole vocabulary — and none at
  *  all when a Withdrawal has already decided it. */
 const DestinationChoice = ({
   value,
@@ -719,7 +721,7 @@ const DestinationChoice = ({
       <legend className="mb-2 text-sm font-medium">
         {t("milk.destination")}
       </legend>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {MILK_DESTINATIONS.map((option) => {
           const Icon = DESTINATION_ICON[option];
           const chosen = value === option;

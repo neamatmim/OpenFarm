@@ -1,24 +1,20 @@
+import type { ObservationWord } from "@OpenFarm/domain";
 import {
   OBSERVATION_WORDS,
   OBSERVATION_WORD_NEEDING_A_NOTE,
+  observationWordsFor,
 } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useMutation } from "@tanstack/react-query";
 import { Eye } from "lucide-react";
 import { useId, useState } from "react";
 
 import { FormDialog, FormField } from "@/components/page-kit";
+import { useRecordObservation } from "@/components/record-observation";
 import { useLanguage } from "@/i18n/language-provider";
-import {
-  keptOnThePhone,
-  queueObservation,
-  sendOrKeep,
-} from "@/lib/record-offline";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
-import { client } from "@/utils/orpc";
 
 /** Shared controls for recording a sighting and putting a refused one right. */
 export const SightingFields = ({
@@ -26,11 +22,14 @@ export const SightingFields = ({
   note,
   onSaw,
   onNote,
+  words = OBSERVATION_WORDS,
 }: {
   saw: string;
   note: string;
   onSaw: (value: string) => void;
   onNote: (value: string) => void;
+  /** The words offered: every one, unless the animal's State rules some out. */
+  words?: readonly ObservationWord[];
 }) => {
   const { t, language } = useLanguage();
   const ids = useId();
@@ -42,7 +41,7 @@ export const SightingFields = ({
           {t("sighting.what")}
         </legend>
         <div className="grid grid-cols-2 gap-2">
-          {OBSERVATION_WORDS.map((sighting) => (
+          {words.map((sighting) => (
             <Button
               aria-pressed={saw === sighting.value}
               className="h-auto min-h-11 justify-start py-2 text-start whitespace-normal md:h-auto"
@@ -79,9 +78,12 @@ export const SightingFields = ({
  */
 export const ReportSighting = ({
   tagNumber,
+  state,
   className,
 }: {
   tagNumber: string;
+  /** Her State: "giving less milk" is offered of a cow in milk alone. */
+  state: string;
   /** Where the button sits in the header it is drawn in. */
   className?: string;
 }) => {
@@ -96,15 +98,7 @@ export const ReportSighting = ({
     setSaw("");
     setNote("");
   };
-  // Sent now when the farm answers, kept on the phone when it does not — bars and no data included.
-  const record = useMutation({
-    ...keptOnThePhone,
-    mutationFn: (input: { tagNumber: string; saw: string; note?: string }) =>
-      sendOrKeep({
-        online: navigator.onLine,
-        send: () => client.observations.record(input),
-        keep: () => queueObservation(input),
-      }),
+  const record = useRecordObservation({
     onSuccess: (how) =>
       done(t(how === "sent" ? "sighting.recorded" : "sighting.queued")),
     onError: refused,
@@ -136,7 +130,13 @@ export const ReportSighting = ({
         submitLabel={t("sighting.save")}
         title={`${t("sighting.report")} · ${tagNumber}`}
       >
-        <SightingFields saw={saw} note={note} onSaw={setSaw} onNote={setNote} />
+        <SightingFields
+          note={note}
+          onNote={setNote}
+          onSaw={setSaw}
+          saw={saw}
+          words={observationWordsFor(state)}
+        />
       </FormDialog>
     </>
   );

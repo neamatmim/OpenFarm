@@ -4,8 +4,10 @@ import { and, eq, sql } from "@OpenFarm/db/operators";
 import { milkRecord, milkingSession } from "@OpenFarm/db/schema/milk";
 import type { MilkDestination, Reconciliation } from "@OpenFarm/domain";
 import {
+  HEAT,
   LITER_DECIMALS,
   addDays,
+  asksAfterHerHealth,
   farmDayOf,
   startOfFarmDay,
   destinationFor,
@@ -241,8 +243,70 @@ export const reReconcile = async (
 
 const DAY_MS_DROP = 24 * 60 * 60 * 1000;
 
+/** Whether anybody has seen to a cow giving less: the Vet has her case open or diagnosed her lately, or somebody put her in
+ *  front of the Vet with an Observation about her health that still stands. Seen by the Vet outranks asked. */
+export interface SeenTo {
+  by: "vet" | "asked";
+  at: Date;
+}
+
 /**
- * Cows in milk giving well under their own week, the furthest under first: for the Manager's queue and the Milk page.
+ * What has been done about each of these cows: a Diagnosis made since `since` or still open whenever it was made, else
+ * her latest Observation since `since` that asks after her health (never a heat, which is the breeding work's) and was
+ * not withdrawn. `since` is the start of every day her drop is read over, her usual week and her days since, so a drop
+ * the farm has been watching for days does not forget who looked. So a cow on "Giving less" says whether anybody has
+ * acted, rather than standing there with no sign of it.
+ */
+const seenToSince = async (
+  db: Pick<Database, "query">,
+  farmId: string,
+  animalIds: readonly string[],
+  since: Date
+): Promise<Map<string, SeenTo>> => {
+  const seen = new Map<string, SeenTo>();
+  if (animalIds.length === 0) {
+    return seen;
+  }
+  const [diagnoses, observations] = await Promise.all([
+    db.query.diagnosis.findMany({
+      where: {
+        farmId,
+        animalId: { in: [...animalIds] },
+        OR: [{ diagnosedAt: { gte: since } }, { closedAt: { isNull: true } }],
+      },
+      columns: { animalId: true, diagnosedAt: true },
+    }),
+    db.query.observation.findMany({
+      where: {
+        farmId,
+        animalId: { in: [...animalIds] },
+        seenAt: { gte: since },
+        withdrawnAt: { isNull: true },
+        saw: { ne: HEAT },
+      },
+      columns: { animalId: true, seenAt: true, saw: true },
+    }),
+  ]);
+  for (const one of observations.filter((observed) =>
+    asksAfterHerHealth(observed.saw)
+  )) {
+    const was = seen.get(one.animalId);
+    if (!was || one.seenAt > was.at) {
+      seen.set(one.animalId, { by: "asked", at: one.seenAt });
+    }
+  }
+  for (const one of diagnoses) {
+    const was = seen.get(one.animalId);
+    if (!was || was.by === "asked" || one.diagnosedAt > was.at) {
+      seen.set(one.animalId, { by: "vet", at: one.diagnosedAt });
+    }
+  }
+  return seen;
+};
+
+/**
+ * Cows in milk giving well under their own week, the furthest under first, each with what has been done about her: for
+ * the Manager's queue, the Milk page and the Vet's.
  * Read only once a cow is past her calf's days and has a week of her own behind that, so the first days of a lactation
  * are never measured against nothing.
  */
@@ -292,26 +356,29 @@ export const milkDropsOn = async (
     columns: { id: true, tagNumber: true, lactationStartedAt: true },
     with: { pen: { columns: { name: true } } },
   });
-  return cows
-    .flatMap((her) => {
-      const drop = milkDropOf(byCow.get(her.id) ?? [], now, farm);
-      return drop
-        ? [
-            {
-              animalId: her.id,
-              tag: her.tagNumber,
-              penName: her.pen.name,
-              daysInMilk: her.lactationStartedAt
-                ? Math.floor(
-                    (now.getTime() - her.lactationStartedAt.getTime()) /
-                      DAY_MS_DROP
-                  )
-                : null,
-              ...drop,
-            },
-          ]
-        : [];
-    })
+  const dropping = cows.flatMap((her) => {
+    const drop = milkDropOf(byCow.get(her.id) ?? [], now, farm);
+    return drop ? [{ her, drop }] : [];
+  });
+  const seen = await seenToSince(
+    db,
+    farm.id,
+    dropping.map(({ her }) => her.id),
+    readFrom
+  );
+  return dropping
+    .map(({ her, drop }) => ({
+      animalId: her.id,
+      tag: her.tagNumber,
+      penName: her.pen.name,
+      daysInMilk: her.lactationStartedAt
+        ? Math.floor(
+            (now.getTime() - her.lactationStartedAt.getTime()) / DAY_MS_DROP
+          )
+        : null,
+      ...drop,
+      seenTo: seen.get(her.id) ?? null,
+    }))
     .toSorted(
       (a, b) => b.dropPercent - a.dropPercent || a.tag.localeCompare(b.tag)
     );

@@ -1097,6 +1097,8 @@ export const enCore = {
   "refusal.notASightingWord":
     "That is not one of the things the farm records seeing: choose from the list",
   "refusal.sayWhatWasSeen": "Say what was seen",
+  "refusal.notInMilk": "Only a cow in milk can be giving less milk",
+  "refusal.vetAskedAlready": "The vet has already been asked about her",
   "refusal.notThisAnimals":
     "That belongs to another animal: open it from her own page",
   "refusal.cannotDoThatWork":
@@ -3725,7 +3727,9 @@ export const enCore = {
   "milk.bulk": "Bulk tank",
   "milk.calves": "Calves",
   "milk.discard": "Poured away",
-  "milk.withdrawal": "Under withdrawal — this milk cannot go to the tank",
+  "milk.house": "Farm or house use",
+  "milk.withdrawal":
+    "Under withdrawal — this milk cannot go to the tank or the house",
   "milk.withdrawalShort": "Withdrawal",
   "milk.forced":
     "Under withdrawal — recorded as poured away, not sent to the tank",
@@ -5115,6 +5119,14 @@ export const enCore = {
     "An open cow with no heat seen this many days after calving is put on the heat watch, for closer watching and the vet. DLS re-examines a cow not in heat by 50–60 days.",
   "params.heatWatchAfterCalvingDays": "From this day after calving",
   "givingLess.title": "Giving less",
+  "givingLess.seenByVet": "Seen by the vet {day}",
+  "givingLess.vetAsked": "Vet asked {day}",
+  "givingLess.askVet": "Vet to look",
+  "givingLess.asked": "On the vet’s list",
+  "givingLess.queued":
+    "Kept on this phone: it reaches the vet when there is signal",
+  "givingLess.col.seenTo": "Seen to",
+  "givingLess.notYet": "Not yet",
   "givingLess.col.drop": "Less by",
   "givingLess.col.lately": "Lately (L a milking)",
   "givingLess.col.usually": "Usually (L a milking)",
@@ -5173,6 +5185,7 @@ export const enCore = {
   "milkAccount.dispatched": "Out of the gate",
   "milkAccount.stillInTank": "Still in the tank",
   "milkAccount.notAccounted": "Not accounted for",
+  "milkAccount.toHouse": "Farm or house use",
   "milkAccount.calves":
     "To calves: {liters} L a day for {calves, plural, one {# calf} other {# calves}} — {perCalf} L each",
   "params.firstServiceMonths": "A crossbred heifer served by",

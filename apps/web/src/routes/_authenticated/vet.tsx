@@ -10,6 +10,7 @@ import {
 import {
   ClipboardList,
   ClipboardPlus,
+  TrendingDown,
   FolderOpen,
   Hourglass,
   Pill,
@@ -20,7 +21,8 @@ import {
 import { useState } from "react";
 
 import { stillOwed } from "@/components/course";
-import { Notice, Page, PageHeader } from "@/components/page";
+import { GivingLessList } from "@/components/giving-less";
+import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import type { Figure, PageTab } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { DiagnosisSheet } from "@/components/vet/diagnosis-sheet";
@@ -34,7 +36,15 @@ import { useLanguage } from "@/i18n/language-provider";
 import { TAB_SWITCH } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
-const TABS = ["waiting", "mine", "repeat", "heat", "fee", "cases"] as const;
+const TABS = [
+  "waiting",
+  "mine",
+  "givingLess",
+  "repeat",
+  "heat",
+  "fee",
+  "cases",
+] as const;
 type Tab = (typeof TABS)[number];
 
 /** The tabs a vet called in for a visit has: their Cases, not the farm's breeding list or fees. */
@@ -42,6 +52,7 @@ const VISITING_TABS: readonly Tab[] = ["waiting", "mine", "cases"];
 const IN_HOUSE_TABS: readonly Tab[] = [
   "waiting",
   "mine",
+  "givingLess",
   "repeat",
   "heat",
   "fee",
@@ -154,6 +165,11 @@ const useVetQueries = (saw: string) => {
     ...orpc.breeding.heatWatch.queryOptions(),
     enabled: inHouse,
   });
+  // Cows in milk giving well under their own week: often the first sign of illness, and the farm's own Vet's to see.
+  const givingLess = useQuery({
+    ...orpc.milk.givingLess.queryOptions(),
+    enabled: inHouse,
+  });
   const cases = useQuery({
     ...orpc.vetCases.mine.queryOptions(),
     enabled: visiting,
@@ -171,6 +187,7 @@ const useVetQueries = (saw: string) => {
     mine,
     repeat,
     heat,
+    givingLess,
     cases,
     medicines,
   };
@@ -193,8 +210,17 @@ const VetTabs = ({
   const { t } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
   const search = Route.useSearch();
-  const { visiting, kinds, waiting, allWaiting, mine, repeat, heat, cases } =
-    queries;
+  const {
+    visiting,
+    kinds,
+    waiting,
+    allWaiting,
+    mine,
+    repeat,
+    heat,
+    givingLess,
+    cases,
+  } = queries;
   const repeatRows = repeat.data ?? [];
   const allowed = visiting ? VISITING_TABS : IN_HOUSE_TABS;
   const tab =
@@ -221,6 +247,17 @@ const VetTabs = ({
       label: t("vet.mine"),
       icon: ClipboardList,
       content: <ConcludedTab mine={mine} onPrescribe={onPrescribe} />,
+    },
+    givingLess: {
+      value: "givingLess",
+      label: t("givingLess.title"),
+      icon: TrendingDown,
+      count: givingLess.data?.length ?? 0,
+      content: givingLess.data?.length ? (
+        <GivingLessList rows={givingLess.data} />
+      ) : (
+        <EmptyState icon={TrendingDown} title={t("givingLess.none")} />
+      ),
     },
     repeat: {
       value: "repeat",

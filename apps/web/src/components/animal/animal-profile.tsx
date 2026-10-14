@@ -301,6 +301,7 @@ export const AnimalProfile = ({
             {powers.mayReport ? (
               <ReportSighting
                 className="col-span-2 w-full sm:w-fit"
+                state={detail.state}
                 tagNumber={detail.tagNumber}
               />
             ) : null}
