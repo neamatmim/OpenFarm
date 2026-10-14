@@ -5,7 +5,7 @@ import { receivableComplete, receivableSent } from "./receivable";
 
 /**
  * What stops a Dispatch being saved, and the box it is about: its liters, its price, its buyer, and what was paid. Milk
- * sent with its price to follow asks no price and nothing of the money — the buyer's statement sets both (ADR 0030).
+ * sent with its price to follow asks no price and nothing of the money — the buyer's statement sets both (ADR 0033).
  */
 export const dispatchProblem = (
   form: { liters: string; price: string; buyerName: string },

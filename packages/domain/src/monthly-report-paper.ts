@@ -33,7 +33,7 @@ export interface MonthFigures {
   dairy: {
     milkSoldMoney: number;
     litersSold: number;
-    /** Milk sent in it whose price is still to follow, for its buyer's statement to set: in no money (ADR 0030). */
+    /** Milk sent in it whose price is still to follow, for its buyer's statement to set: in no money (ADR 0033). */
     litersPriceToFollow: number;
     fetchedPerLiterMoney: number | null;
     chargedMoney: number;
@@ -981,7 +981,7 @@ const unpricedKgOf = (figures: MonthFigures) =>
 const uncostedDosesOf = (figures: MonthFigures) =>
   figures.dairy.uncostedDoses + figures.fattening.uncostedDoses;
 
-/** The milk the month sent with its price to follow, said as in no money (ADR 0030); nothing where it sent none. */
+/** The milk the month sent with its price to follow, said as in no money (ADR 0033); nothing where it sent none. */
 const priceToFollowSaid = (liters: number): Said | null =>
   liters > 0
     ? {

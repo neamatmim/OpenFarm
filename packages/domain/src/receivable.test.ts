@@ -204,6 +204,24 @@ describe("a buyer's Receivable, cleared oldest first", () => {
     expect(standing.items.map((one) => one.id)).toEqual(["a", "b"]);
   });
 
+  it("clears what was owed first by the day it became owed: milk priced later by his statement is owed from then (ADR 0033)", () => {
+    const standing = receivableStanding(
+      [
+        // Sent on the 3rd, its price to follow; his statement of the 2nd of next month priced it.
+        { ...item("statement", "2026-10-03", 6000), owedFrom: "2026-11-02" },
+        item("credit", "2026-10-17", 5000),
+      ],
+      [paid("p1", "2026-10-25", 5000)]
+    );
+
+    expect(standing.items).toMatchObject([
+      { id: "credit", owingMoney: 0 },
+      { id: "statement", owingMoney: 6000 },
+    ]);
+    // Still the day the oldest of what he owes left the farm.
+    expect(standing.oldestOn).toBe("2026-10-03");
+  });
+
   it("clears the oldest first when he pays part", () => {
     const standing = receivableStanding(
       [item("a", "2026-06-01", 20_000), item("b", "2026-06-10", 5000)],

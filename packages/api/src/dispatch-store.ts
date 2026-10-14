@@ -13,7 +13,9 @@ import {
   roundLiters,
   roundMoney,
   startOfFarmDay,
+  worthOfMilkSent,
 } from "@OpenFarm/domain";
+import type { MilkSent } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -57,32 +59,16 @@ export const worthOfDispatch = (row: {
 }): number => roundMoney(Number(row.liters) * Number(row.pricePerLiterMoney));
 
 /** A Dispatch as whether its price is to follow, and what it came to, are read from it. */
-export interface DispatchPriced {
-  liters: string | number;
-  pricePerLiterMoney: string | number | null;
-  receivableMoney: number;
-  buyerStatementId: string | null;
-}
+export type DispatchPriced = MilkSent;
 
 /** Sent with its price to follow, and not yet priced by a Buyer Statement. */
 export const isPriceToFollow = (
   row: Pick<DispatchPriced, "pricePerLiterMoney" | "buyerStatementId">
 ): boolean => row.pricePerLiterMoney === null && row.buyerStatementId === null;
 
-/**
- * What a Dispatch's milk came to as it stands: its liters at its price; for milk whose price was to follow, what its
- * Buyer Statement priced it at — all of it owed, as nothing was paid at the gate — and nothing while its price is still
- * to follow. Every sum of milk money reads it here, so none counts milk nobody has priced.
- */
-export const worthAsItStands = (row: DispatchPriced): number | null => {
-  if (row.pricePerLiterMoney !== null) {
-    return worthOfDispatch({
-      liters: row.liters,
-      pricePerLiterMoney: row.pricePerLiterMoney,
-    });
-  }
-  return row.buyerStatementId === null ? null : row.receivableMoney;
-};
+/** What a Dispatch's milk came to as it stands, read where the screen reads it too (`worthOfMilkSent`): nothing while
+ *  its price is still to follow. */
+export const worthAsItStands = worthOfMilkSent;
 
 /** Every Dispatch in a stretch of time, oldest first, with the buyer as the farm had them that day. */
 export const dispatchesBetween = async (
@@ -177,6 +163,31 @@ const MILK_BUYERS_DAYS = 180;
 /** How many of a buyer's latest Dispatches say whether he takes his milk on credit. */
 const RECENT_RUN = 5;
 
+/**
+ * Whether a buyer takes his milk on credit, from his latest Dispatches, the latest first: more of his last five left with
+ * all of it on credit than not. Milk sent with its price to follow was paid nothing at the gate.
+ */
+const paysLaterBy = (
+  latestFirst: readonly {
+    liters: string | number;
+    pricePerLiterMoney: string | null;
+    receivableMoney: number;
+  }[]
+): boolean => {
+  const run = latestFirst.slice(0, RECENT_RUN);
+  const allOnCredit = run.filter((one) =>
+    one.pricePerLiterMoney === null
+      ? true
+      : one.receivableMoney > 0 &&
+        one.receivableMoney >=
+          worthOfDispatch({
+            liters: one.liters,
+            pricePerLiterMoney: one.pricePerLiterMoney,
+          })
+  ).length;
+  return allOnCredit > run.length - allOnCredit;
+};
+
 /** A milk buyer as his recent milk left him: what the Dispatch sheet fills in once he is picked. */
 export interface MilkBuyer {
   /** The Counterparty his milk is booked to, which his Buyer Statements name. */
@@ -239,17 +250,6 @@ export const milkBuyersOf = async (
     // A buyer the farm keeps under one name; one read per buyer, and the farm has a handful.
     // oxlint-disable-next-line no-await-in-loop
     const known = await knownAs(db, farmId, last.name);
-    const run = theirs.slice(0, RECENT_RUN);
-    const allOnCredit = run.filter((one) =>
-      one.pricePerLiterMoney === null
-        ? true
-        : one.receivableMoney > 0 &&
-          one.receivableMoney >=
-            worthOfDispatch({
-              ...one,
-              pricePerLiterMoney: one.pricePerLiterMoney,
-            })
-    ).length;
     const lastPriced = theirs.find((one) => one.pricePerLiterMoney !== null);
     buyers.push({
       counterpartyId: known?.id ?? last.counterpartyId,
@@ -261,11 +261,50 @@ export const milkBuyersOf = async (
         lastPriced.pricePerLiterMoney === null
           ? null
           : Number(lastPriced.pricePerLiterMoney),
-      paysLater: allOnCredit > run.length - allOnCredit,
+      paysLater: paysLaterBy(theirs),
       priceToFollow: last.pricePerLiterMoney === null,
     });
   }
   return buyers;
+};
+
+/** Nothing is paid at the gate for milk whose price is to follow: money said paid there was a price after all. */
+export const assertNothingPaidToFollow = (paidMoney: number) => {
+  if (paidMoney > 0) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Nothing is paid at the gate for milk whose price is to follow",
+      data: { refusal: "price_to_follow_paid" },
+    });
+  }
+};
+
+/**
+ * Milk goes with its price to follow only to a buyer who takes it on credit — or one the farm has sent none to in half a
+ * year, whose terms the sheet sets now. A buyer whose recent milk he paid for at the gate is priced at the gate: a
+ * price to follow there would leave milk nobody will ever send a statement for.
+ */
+export const assertMayFollow = async (
+  tx: Pick<Database, "query">,
+  farmId: string,
+  buyerId: string,
+  now: Date
+) => {
+  const since = new Date(
+    now.getTime() - MILK_BUYERS_DAYS * 24 * 60 * 60 * 1000
+  );
+  const recent = await tx.query.dispatch.findMany({
+    where: { farmId, buyerId, dispatchedAt: { gte: since } },
+    columns: { liters: true, pricePerLiterMoney: true, receivableMoney: true },
+    orderBy: { dispatchedAt: "desc", id: "desc" },
+    limit: RECENT_RUN,
+  });
+  if (recent.length > 0 && !paysLaterBy(recent)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "He pays for his milk at the gate: give it its price, or send it on credit",
+      data: { refusal: "price_to_follow_pays_at_gate" },
+    });
+  }
 };
 
 /**

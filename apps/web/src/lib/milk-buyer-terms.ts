@@ -62,9 +62,16 @@ const termsTyped = (buyer: MilkBuyerTerms | null) => ({
       : String(buyer.pricePerLiterMoney),
 });
 
-/** Whether a buyer's milk goes with its price to follow; nobody's, not. */
+/**
+ * Whether milk may go to him with its price to follow: a buyer who takes his milk on credit, or one the farm does not
+ * know yet, whose terms the sheet sets now. One who pays at the gate is priced at the gate, as the farm insists.
+ */
+export const mayFollow = (buyer: MilkBuyerTerms | null): boolean =>
+  buyer === null || buyer.paysLater === true;
+
+/** Whether his milk goes with its price to follow: his last did, and he takes his milk on credit; nobody's, not. */
 const toFollowOf = (buyer: MilkBuyerTerms | null): boolean =>
-  buyer?.priceToFollow === true;
+  buyer?.priceToFollow === true && buyer.paysLater === true;
 
 /** All of it on credit, nothing paid at the gate: a buyer who takes his milk on credit and pays on his round. */
 const ALL_ON_CREDIT: ReceivableTyped = {
@@ -117,6 +124,8 @@ export const afterNaming = <Form extends TermsTyped>(
     },
     receivable: moneyFree ? receivableOf(picked) : typing.receivable,
     filledFrom: picked,
-    priceToFollow: moneyFree ? toFollowOf(picked) : typing.priceToFollow,
+    priceToFollow:
+      mayFollow(picked) &&
+      (moneyFree ? toFollowOf(picked) : typing.priceToFollow),
   };
 };

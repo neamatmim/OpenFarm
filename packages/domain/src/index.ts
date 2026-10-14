@@ -511,14 +511,17 @@ export {
   isReceivableRefusal,
   paidAtTheGate,
 } from "./receivable";
+export type { MilkSent, StatementDays } from "./buyer-statement";
 export {
-  PRICE_TO_FOLLOW_DEFAULT_PERIOD_DAYS,
   PRICE_TO_FOLLOW_GRACE_DAYS,
-  isPriceToFollowOverdue,
+  isPriceToFollowLate,
   litersCompared,
-  priceToFollowOverdueFrom,
+  milkMoneyOf,
+  priceToFollowLateFrom,
   spreadByLiters,
   statementPeriodDays,
+  statementPeriodEndOf,
+  worthOfMilkSent,
 } from "./buyer-statement";
 export type {
   ApprovedTerms,

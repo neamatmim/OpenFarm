@@ -2789,7 +2789,7 @@ export const enCore = {
   "dispatch.reportsHint": "Choose the dates; each record below covers them.",
   "dispatch.priceToFollow": "Price to follow",
   "dispatch.priceToFollowHint":
-    "A collection centre that tests fat and SNF and pays by its own statement: no price now and nothing paid. The buyer's statement sets it.",
+    "A collection center that tests fat and SNF and pays by its own statement: no price now and nothing paid. The buyer's statement sets it.",
   "dispatch.priceToFollowShort": "Price to follow",
   "dispatch.byStatement": "by statement",
   "dispatch.priceOrToFollow":
@@ -2842,7 +2842,7 @@ export const enCore = {
   "statement.voidedWhy": "Voided: {reason}",
   "statement.waiting": "Milk with its price to follow",
   "statement.waitingHint":
-    "Sent and waiting for its buyer's statement. Late once his period and ten days more have gone by.",
+    "Sent and waiting for its buyer's statement. Late ten days after the end of his statement period it falls in — the calendar month until he has sent one.",
   "statement.noneWaiting": "No milk is waiting for its price",
   "statement.waitingLine":
     "{count, plural, one {# dispatch} other {# dispatches}} · {liters} L",
@@ -2874,6 +2874,10 @@ export const enCore = {
     "Its days are not in order: first, last, its date — none after today — then the day he pays by",
   "refusal.pricedByStatement":
     "Its buyer's statement priced it: the owner voids the statement first",
+  "refusal.priceToFollowPaysAtGate":
+    "He pays for his milk at the gate: give it its price, or send it on credit",
+  "statement.amountBesideRecorded":
+    "His amount less everything the farm priced in its days: {currencySign}{amount}",
   "refusal.priceToFollowPaid":
     "Nothing is paid at the gate for milk whose price is to follow",
   "refusal.dispatchedInTheFuture": "Milk cannot have left later than now",

@@ -48,6 +48,6 @@ ALTER TABLE "buyer_statement_photo" ADD CONSTRAINT "buyer_statement_photo_farm_i
 ALTER TABLE "dispatch" ADD CONSTRAINT "dispatch_buyer_statement_id_buyer_statement_id_fkey" FOREIGN KEY ("buyer_statement_id") REFERENCES "buyer_statement"("id");--> statement-breakpoint
 ALTER TABLE "dispatch" ADD CONSTRAINT "dispatch_priced_once" CHECK ("buyer_statement_id" is null or "price_per_liter_money" is null);--> statement-breakpoint
 ALTER TABLE "dispatch" ADD CONSTRAINT "dispatch_to_follow_owes_nothing" CHECK ("price_per_liter_money" is not null or "buyer_statement_id" is not null or "receivable_money" = 0);--> statement-breakpoint
--- A Buyer Statement pricing milk sent in a closed month is a change the Owner makes to it, listed like the rest (ADR 0030).
+-- A Buyer Statement pricing milk sent in a closed month is a change the Owner makes to it, listed like the rest (ADR 0033).
 ALTER TABLE "closed_month_change" DROP CONSTRAINT "closed_month_change_source_known";--> statement-breakpoint
 ALTER TABLE "closed_month_change" ADD CONSTRAINT "closed_month_change_source_known" CHECK ("source" IN ('dispatch', 'intake', 'buying_trip', 'selling_trip', 'sale', 'sale_broker', 'wage_draw', 'feed_in', 'medicine_purchase', 'vet_fee', 'internal_sale_in', 'internal_sale_out', 'reimbursement', 'settlement_adjustment', 'farm_share', 'farm_loss', 'venture_made_good', 'venture_capital_out', 'venture_capital_back', 'venture_capital_return', 'receivable_payment', 'supplier_payment', 'by_hand', 'handover', 'receivable_write_off', 'cash_count', 'bank_check', 'buyer_statement'));

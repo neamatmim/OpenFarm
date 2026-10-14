@@ -445,6 +445,8 @@ const StatementLine = ({
 }) => {
   const { t } = useLanguage();
   const short = statement.differenceLiters < 0;
+  // His amount not matched by what the farm priced in its days — a can priced at the gate written in since, say.
+  const amountApart = statement.amountDifferenceMoney !== 0;
   // Voided, it says so; standing, the Owner may void it.
   let standing: ReactNode = null;
   if (statement.voided) {
@@ -505,6 +507,13 @@ const StatementLine = ({
             })}
           </span>
         )}
+        {amountApart ? (
+          <span className="text-warning font-medium">
+            {t("statement.amountBesideRecorded", {
+              amount: statement.amountDifferenceMoney,
+            })}
+          </span>
+        ) : null}
       </div>
       {statement.hasPhoto ? <StatementPhoto id={statement.id} /> : null}
     </div>
@@ -513,7 +522,7 @@ const StatementLine = ({
 
 /**
  * The milk page's Statements tab: the milk still waiting for its price, and every buyer's statement beside the farm's
- * own milk to him in its days — his liters against the farm's, his amount, and what it priced (ADR 0030). The Manager
+ * own milk to him in its days — his liters against the farm's, his amount, and what it priced (ADR 0033). The Manager
  * and the Owner record them; the Owner voids a wrong one.
  */
 export const BuyerStatementsTab = ({

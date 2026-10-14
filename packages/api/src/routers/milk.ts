@@ -24,12 +24,15 @@ import {
   statementsOf,
   voidStatement,
 } from "../buyer-statement-store";
+import { changeByOf } from "../closed-month-store";
 import { correct, reasonInput } from "../corrections/correction";
 import {
   dispatchCorrection,
   dispatchCorrectionInput,
 } from "../corrections/dispatch";
 import {
+  assertMayFollow,
+  assertNothingPaidToFollow,
   assertNotLater,
   bookDispatchMoney,
   buyerInput,
@@ -54,13 +57,13 @@ import {
 } from "../money-inputs";
 import { accountSaid, bookingOf } from "../money-store";
 import {
+  answerForCredit,
   receivableOrRefuse,
   owingNowOf,
   paidNowInput,
   promisedByInput,
   tellIfLentAfterWriteOff,
 } from "../receivable-store";
-import { refuse } from "../refuse";
 import {
   OWNER_ONLY,
   requireOnly,
@@ -149,11 +152,8 @@ export const milkRouter = {
       assertNotLater(input.dispatchedAt, now);
       const price = input.pricePerLiterMoney;
       // Milk whose price is to follow was paid nothing at the gate and is owed nothing yet: its statement sets both.
-      if (price === undefined && (input.paidNowMoney ?? 0) > 0) {
-        throw refuse(
-          "price_to_follow_paid",
-          "Nothing is paid at the gate for milk whose price is to follow"
-        );
+      if (price === undefined) {
+        assertNothingPaidToFollow(input.paidNowMoney ?? 0);
       }
       const receivable =
         price === undefined
@@ -187,6 +187,7 @@ export const milkRouter = {
             now
           );
           if (price === undefined) {
+            await assertMayFollow(tx, context.farm.id, buyer.buyerId, now);
             await assertNoStatementCovers(
               tx,
               context.farm.id,
@@ -220,6 +221,14 @@ export const milkRouter = {
             ),
             id,
             input.paymentMethod
+          );
+          // What he left owing is the month's too: into a closed month, the Owner's alone.
+          await answerForCredit(
+            tx,
+            changeByOf(context, now),
+            "dispatch",
+            id,
+            null
           );
           await tellIfLentAfterWriteOff(
             tx,
@@ -340,7 +349,7 @@ export const milkRouter = {
 
   /**
    * Records a buyer's statement and prices the milk sent him in its days with its price to follow, making what he owes
-   * for it his Receivable (ADR 0030). The Manager's or the Owner's; in a month the Owner has closed, hers alone. Once
+   * for it his Receivable (ADR 0033). The Manager's or the Owner's; in a month the Owner has closed, hers alone. Once
    * however often the phone sends it.
    */
   recordStatement: protectedProcedure

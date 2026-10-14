@@ -1,8 +1,9 @@
 import { addDays } from "./fattening";
+import { roundMoney } from "./money";
 
 /**
  * A **Buyer Statement**: the milk buyer's own account of a stretch of days — his liters, what he pays for them — set
- * beside what the farm sent him, and the money that prices the milk whose price was to follow (ADR 0030). Pure, so the
+ * beside what the farm sent him, and the money that prices the milk whose price was to follow (ADR 0033). Pure, so the
  * screen's preview and the farm's settling say the same.
  */
 
@@ -88,30 +89,96 @@ export const statementPeriodDays = (fromDay: string, toDay: string): number =>
       (24 * 60 * 60 * 1000)
   ) + 1;
 
-/** A buyer who has sent no statement yet is allowed a month for one: most centres pay monthly or twice a month. */
-export const PRICE_TO_FOLLOW_DEFAULT_PERIOD_DAYS = 31;
+/** A Dispatch as what its milk came to is read from it: the record's own figures, as text or as numbers. */
+export interface MilkSent {
+  liters: string | number;
+  pricePerLiterMoney: string | number | null;
+  receivableMoney: number;
+  buyerStatementId: string | null;
+}
+
+/**
+ * What a Dispatch's milk came to as it stands: its liters at its price, to the paisa; for milk whose price was to
+ * follow, what its Buyer Statement priced it at — all of it owed, as nothing was paid at the gate — and nothing while
+ * its price is still to follow. The farm and the screen both read it here, so neither counts milk nobody has priced.
+ */
+export const worthOfMilkSent = (row: MilkSent): number | null => {
+  if (row.pricePerLiterMoney !== null) {
+    return roundMoney(Number(row.liters) * Number(row.pricePerLiterMoney));
+  }
+  return row.buyerStatementId === null ? null : row.receivableMoney;
+};
+
+/** A day's or a month's milk money, and apart from it the liters whose price is still to follow: never counted at
+ *  nothing. */
+export const milkMoneyOf = (
+  rows: readonly { liters: number; worthMoney: number | null }[]
+): { amount: number; litersToFollow: number } => {
+  let amount = 0;
+  let litersToFollow = 0;
+  for (const row of rows) {
+    if (row.worthMoney === null) {
+      litersToFollow += row.liters;
+    } else {
+      amount += row.worthMoney;
+    }
+  }
+  return {
+    amount: roundMoney(amount),
+    litersToFollow: Math.round(litersToFollow * 100) / 100,
+  };
+};
 
 /** The days past his period a buyer's statement is waited for before his milk is called late: the post, a holiday. */
 export const PRICE_TO_FOLLOW_GRACE_DAYS = 10;
 
+/** A buyer's last standing statement's days, as his periods are stepped from. */
+export interface StatementDays {
+  fromDay: string;
+  toDay: string;
+}
+
+/** The last day of the calendar month a farm day falls in. */
+const lastOfMonth = (day: string): string => {
+  const [year, month] = day.split("-").map(Number);
+  return new Date(Date.UTC(year ?? 0, month ?? 1, 0))
+    .toISOString()
+    .slice(0, "YYYY-MM-DD".length);
+};
+
 /**
- * The first farm day milk sent with its price to follow is late: the buyer's own period — as long as his last
- * statement's, or a month while he has sent none — and ten days more after the day it left, so milk sent on the first
- * day of his period and on the last are both waited for until his statement could have come.
+ * The last day of the buyer's statement period a farm day falls in: periods as long as his last standing statement's,
+ * stepping on from its last day, and back from it for milk older than it; the calendar month while he has sent none —
+ * most centers pay monthly or twice a month.
  */
-export const priceToFollowOverdueFrom = (
+export const statementPeriodEndOf = (
+  day: string,
+  last: StatementDays | null
+): string => {
+  if (last === null) {
+    return lastOfMonth(day);
+  }
+  const period = statementPeriodDays(last.fromDay, last.toDay);
+  const offset = statementPeriodDays(last.toDay, day) - 1;
+  const periods =
+    offset > 0 ? Math.ceil(offset / period) : -Math.floor(-offset / period);
+  return addDays(last.toDay, periods * period);
+};
+
+/**
+ * The first farm day milk sent with its price to follow is late: ten days after the end of the buyer's period it
+ * falls in (`statementPeriodEndOf`), when his statement for it could have come — the same day for milk sent on the
+ * first day of the period and on its last.
+ */
+export const priceToFollowLateFrom = (
   leftOn: string,
-  periodDays: number | null
+  last: StatementDays | null
 ): string =>
-  addDays(
-    leftOn,
-    (periodDays ?? PRICE_TO_FOLLOW_DEFAULT_PERIOD_DAYS) +
-      PRICE_TO_FOLLOW_GRACE_DAYS
-  );
+  addDays(statementPeriodEndOf(leftOn, last), PRICE_TO_FOLLOW_GRACE_DAYS + 1);
 
 /** Whether milk sent with its price to follow is late on this farm day. */
-export const isPriceToFollowOverdue = (
+export const isPriceToFollowLate = (
   leftOn: string,
   today: string,
-  periodDays: number | null
-): boolean => today >= priceToFollowOverdueFrom(leftOn, periodDays);
+  last: StatementDays | null
+): boolean => today >= priceToFollowLateFrom(leftOn, last);

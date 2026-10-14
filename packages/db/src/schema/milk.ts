@@ -103,7 +103,7 @@ export const milkRecord = pgTable(
  * A **Buyer Statement**: the milk buyer's own account of a stretch of farm days — the liters he counted, what he pays for
  * them, and as he says, the average fat and SNF and the rate he set from them — with its number and date. Recorded, it
  * prices every Dispatch to him in those days whose price was to follow, by its liters' share of what is left of the
- * amount once the milk already priced is taken off, and so makes what he owes for them his Receivable (ADR 0030). Voided
+ * amount once the milk already priced is taken off, and so makes what he owes for them his Receivable (ADR 0033). Voided
  * by the Owner with a reason, never deleted: the milk it priced goes back to price to follow.
  */
 export const buyerStatement = pgTable(
@@ -206,8 +206,8 @@ export const dispatch = pgTable(
     buyerAddress: text("buyer_address"),
     /** The collector's slip number, when the buyer gives one. A buyer at the gate may not. */
     deliveryNote: text("delivery_note"),
-    /** Nothing while its price is to follow: a processor's collection centre sets it from the fat and SNF it tested,
-     *  on its **Buyer Statement**. */
+    /** Nothing for milk sent with its price to follow, and it stays nothing: its **Buyer Statement** prices the milk as
+     *  a whole — what it came to is its Receivable — and never writes a price per liter here. */
     pricePerLiterMoney: numeric("price_per_liter_money", {
       precision: 8,
       scale: 2,

@@ -41,7 +41,7 @@ export type OneMonth = Awaited<ReturnType<typeof client.monthlyReport.month>>;
 type Figures = OneMonth["figures"];
 /** The parts of a month's figures the management figures added (ADR 0023). */
 type NewParts = "results" | "atEnd" | "cashFlow" | "monthsReturn";
-/** The dairy's figures as the phone may hold them: an answer kept from before the price could follow (ADR 0030) has no
+/** The dairy's figures as the phone may hold them: an answer kept from before the price could follow (ADR 0033) has no
  *  liters whose price is to follow. */
 type KeptDairy = Omit<Figures["dairy"], "litersPriceToFollow"> & {
   litersPriceToFollow?: number;

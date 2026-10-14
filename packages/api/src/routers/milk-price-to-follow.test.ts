@@ -1,25 +1,27 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { FakeClock } from "@OpenFarm/test-harness";
+import { counterparty } from "@OpenFarm/db/schema/fattening";
+import { dispatch } from "@OpenFarm/db/schema/milk";
+import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-// Milk a processor's collection centre takes daily and pays for by its own statement: sent with its price to follow, it
+// Milk a processor's collection center takes daily and pays for by its own statement: sent with its price to follow, it
 // is liters and no money — never a Receivable of a price somebody made up at the gate — until the buyer's statement
-// prices it (ADR 0030).
+// prices it (ADR 0033).
 
 const suffix = `price-to-follow-${Date.now()}`;
 
 const as = (role: "owner" | "manager", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
-const centre = (name: string) => ({ name: `${name} ${suffix}` });
+const center = (name: string) => ({ name: `${name} ${suffix}` });
 
 describe("milk sent with its price to follow", () => {
   it("is liters and no money: nothing paid, nothing owed, and the day says its price is to follow", async () => {
     const manager = await as("manager", "2081-03-02T06:00:00.000Z");
-    const buyer = centre("মিল্ক ভিটা");
+    const buyer = center("মিল্ক ভিটা");
     const { id } = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2081-03-02T01:00:00.000Z"),
       liters: 120,
@@ -54,7 +56,7 @@ describe("milk sent with its price to follow", () => {
       manager.client.milk.dispatch({
         dispatchedAt: new Date("2081-03-03T01:00:00.000Z"),
         liters: 50,
-        buyer: centre("প্রাণ"),
+        buyer: center("প্রাণ"),
         priceToFollow: true,
         paidNowMoney: 500,
       })
@@ -68,14 +70,14 @@ describe("milk sent with its price to follow", () => {
       manager.client.milk.dispatch({
         dispatchedAt: new Date("2081-03-03T01:00:00.000Z"),
         liters: 50,
-        buyer: centre("আড়ং"),
+        buyer: center("আড়ং"),
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     await expect(
       manager.client.milk.dispatch({
         dispatchedAt: new Date("2081-03-03T01:00:00.000Z"),
         liters: 50,
-        buyer: centre("আড়ং"),
+        buyer: center("আড়ং"),
         pricePerLiterMoney: 60,
         priceToFollow: true,
       })
@@ -109,26 +111,27 @@ const buyerCalled = async (client: Client, name: string) => {
   return buyers.find((one) => one.name === name);
 };
 
-/** A fortnight of a centre's milk: two cans sent with the price to follow, and one priced and paid at the gate. */
+/** A fortnight of a center's milk: two cans sent with the price to follow, and one priced and paid at the gate. */
 const aFortnight = async (client: Client, name: string, month: string) => {
-  const buyer = centre(name);
+  const buyer = center(name);
   const first = await client.milk.dispatch({
     dispatchedAt: new Date(`${month}-01T01:00:00.000Z`),
     liters: 100,
     buyer,
     priceToFollow: true,
   });
-  await client.milk.dispatch({
-    dispatchedAt: new Date(`${month}-05T01:00:00.000Z`),
-    liters: 50,
-    buyer,
-    pricePerLiterMoney: 60,
-  });
   const second = await client.milk.dispatch({
     dispatchedAt: new Date(`${month}-10T01:00:00.000Z`),
     liters: 150,
     buyer,
     priceToFollow: true,
+  });
+  // A can priced at the gate between them, written in last: he takes his milk on credit all the same.
+  await client.milk.dispatch({
+    dispatchedAt: new Date(`${month}-05T01:00:00.000Z`),
+    liters: 50,
+    buyer,
+    pricePerLiterMoney: 60,
   });
   const his = await buyerCalled(client, buyer.name);
   return {
@@ -288,6 +291,16 @@ describe("a buyer's statement", () => {
       reason: "স্লিপ পরে এল",
       changes: { deliveryNote: { from: null, to: "CH-88" } },
     });
+
+    // And what it priced stands: what he owes, and what the milk came to.
+    expect(await owingOf(manager.client, sent.buyer.name)).toBe(15_000);
+    expect(
+      await sentOn(manager.client, "2081-08-01", sent.first)
+    ).toMatchObject({
+      deliveryNote: "CH-88",
+      worthMoney: 6000,
+      receivableMoney: 6000,
+    });
   });
 });
 
@@ -386,9 +399,9 @@ describe("milk money in the monthly report", () => {
 });
 
 describe("milk whose price is to follow, waiting", () => {
-  it("lists each buyer's, and is late once his period and ten days more have gone with no statement", async () => {
+  it("lists each buyer's, and is late ten days after the end of his period it falls in", async () => {
     const manager = await as("manager", "2082-03-05T06:00:00.000Z");
-    const buyer = centre("অপেক্ষার কেন্দ্র");
+    const buyer = center("অপেক্ষার কেন্দ্র");
     await manager.client.milk.dispatch({
       dispatchedAt: new Date("2082-03-01T01:00:00.000Z"),
       liters: 80,
@@ -414,10 +427,14 @@ describe("milk whose price is to follow, waiting", () => {
       lateFrom: "2082-04-11",
       lateCount: 0,
     });
-    // A month and ten days after the first left: the first is late, the second not yet.
+    // With no statement of his yet, his period is the calendar month: both are late ten days after March's end, and not
+    // a day before — whichever day of March each left.
+    expect(await theirs("2082-04-10T06:00:00.000Z")).toMatchObject({
+      lateCount: 0,
+    });
     expect(await theirs("2082-04-11T06:00:00.000Z")).toMatchObject({
-      lateCount: 1,
-      lateLiters: 80,
+      lateCount: 2,
+      lateLiters: 150,
     });
   });
 });
@@ -425,7 +442,7 @@ describe("milk whose price is to follow, waiting", () => {
 describe("a Dispatch's price put right", () => {
   it("prices milk whose price was to follow, all of it owed, and sends a price guessed at the gate back to follow only where nothing was paid", async () => {
     const manager = await as("manager", "2082-04-03T06:00:00.000Z");
-    const buyer = centre("ঠিক করা দাম");
+    const buyer = center("ঠিক করা দাম");
     const toFollow = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2082-04-01T01:00:00.000Z"),
       liters: 40,
@@ -471,7 +488,7 @@ describe("a Dispatch's price put right", () => {
 describe("a statement for milk of a closed month", () => {
   it("is the Owner's alone to record, and listed as a change after closing", async () => {
     const manager = await as("manager", "2082-05-20T06:00:00.000Z");
-    const buyer = centre("বন্ধ মাসের কেন্দ্র");
+    const buyer = center("বন্ধ মাসের কেন্দ্র");
     await manager.client.milk.dispatch({
       dispatchedAt: new Date("2082-05-03T01:00:00.000Z"),
       liters: 200,
@@ -512,5 +529,184 @@ describe("a statement for milk of a closed month", () => {
         afterMoney: 11_880,
       }),
     ]);
+  });
+});
+
+describe("his payments against milk a statement priced later", () => {
+  it("clear what he owed when he paid, not the milk that was owed only from his statement", async () => {
+    const manager = await as("manager", "2083-10-25T06:00:00.000Z");
+    const buyer = center("আগে-পরে");
+    const toFollow = await manager.client.milk.dispatch({
+      dispatchedAt: new Date("2083-10-03T01:00:00.000Z"),
+      liters: 100,
+      buyer,
+      priceToFollow: true,
+    });
+    const onCredit = await manager.client.milk.dispatch({
+      dispatchedAt: new Date("2083-10-17T01:00:00.000Z"),
+      liters: 100,
+      buyer,
+      pricePerLiterMoney: 50,
+      paidNowMoney: 0,
+    });
+    await manager.client.receivables.pay({
+      buyer: buyer.name,
+      kind: "milk",
+      amountMoney: 5000,
+      paidOn: "2083-10-25",
+      paymentMethod: "cash",
+    });
+    const his = await buyerCalled(manager.client, buyer.name);
+    const later = await as("manager", "2083-11-03T06:00:00.000Z");
+    const statement = {
+      id: uuidv7(),
+      counterpartyId: his?.counterpartyId ?? "",
+      fromDay: "2083-10-01",
+      toDay: "2083-10-15",
+      statedOn: "2083-11-02",
+      payBy: "2083-11-20",
+      liters: 100,
+      amountMoney: 6000,
+    };
+    const owner = await as("owner", "2083-11-04T06:00:00.000Z");
+    const octoberOwed = async () => {
+      const october = await owner.client.monthlyReport.month({
+        month: "2083-10",
+      });
+      return october.figures.atEnd.receivables.owingMoney;
+    };
+    const owedBefore = await octoberOwed();
+    await later.client.milk.recordStatement(statement);
+
+    // At October's end he owed no more than before: the milk was priced only by November's statement.
+    expect(await octoberOwed()).toBe(owedBefore);
+    const owing = await later.client.receivables.ofBuyer({ name: buyer.name });
+    const items = owing?.kinds.flatMap((one) => one.items) ?? [];
+
+    expect(owing?.owingMoney).toBe(6000);
+    expect(owing?.overdueSince).toBeNull();
+    expect(items.find((one) => one.id === onCredit.id)?.owingMoney).toBe(0);
+    expect(items.find((one) => one.id === toFollow.id)?.owingMoney).toBe(6000);
+
+    // Nothing he paid cleared the milk it priced, so the Owner may still void it.
+    await owner.client.milk.voidStatement({
+      id: statement.id,
+      reason: "ভুল দর",
+    });
+  });
+});
+
+describe("a statement saved twice at once", () => {
+  it("is one statement, never refused as overlapping itself", async () => {
+    const manager = await as("manager", "2083-12-17T06:00:00.000Z");
+    const sent = await aFortnight(manager.client, "দুবার", "2083-12");
+    const statement = fortnightStatement(sent.counterpartyId, "2083-12");
+
+    const saved = await Promise.all([
+      manager.client.milk.recordStatement(statement),
+      manager.client.milk.recordStatement(statement),
+    ]);
+
+    expect(saved).toEqual([{ id: statement.id }, { id: statement.id }]);
+    expect(await owingOf(manager.client, sent.buyer.name)).toBe(15_000);
+  });
+});
+
+describe("price to follow for a buyer who pays at the gate", () => {
+  it("is refused: a sweet shop that pays cash for its can is priced at the gate", async () => {
+    const manager = await as("manager", "2084-01-05T06:00:00.000Z");
+    const shop = center("নগদের দোকান");
+    await manager.client.milk.dispatch({
+      dispatchedAt: new Date("2084-01-03T01:00:00.000Z"),
+      liters: 10,
+      buyer: shop,
+      pricePerLiterMoney: 70,
+    });
+
+    await expect(
+      manager.client.milk.dispatch({
+        dispatchedAt: new Date("2084-01-04T01:00:00.000Z"),
+        liters: 10,
+        buyer: shop,
+        priceToFollow: true,
+      })
+    ).rejects.toMatchObject({
+      data: { refusal: "price_to_follow_pays_at_gate" },
+    });
+  });
+});
+
+describe("a statement beside milk priced at the gate later in its days", () => {
+  it("says the difference his amount leaves, not nought", async () => {
+    const manager = await as("manager", "2084-02-17T06:00:00.000Z");
+    const sent = await aFortnight(manager.client, "পরে যোগ", "2084-02");
+    const statement = fortnightStatement(sent.counterpartyId, "2084-02");
+    await manager.client.milk.recordStatement(statement);
+    // A can priced at the gate, written in after the statement: ৳1,200 his amount never counted.
+    await manager.client.milk.dispatch({
+      dispatchedAt: new Date("2084-02-12T01:00:00.000Z"),
+      liters: 20,
+      buyer: sent.buyer,
+      pricePerLiterMoney: 60,
+    });
+
+    expect(await statementCalled(manager.client, statement.id)).toMatchObject({
+      farmLiters: 320,
+      pricedMoney: 4200,
+      pricedByItMoney: 15_000,
+      amountDifferenceMoney: -1200,
+    });
+  });
+});
+
+describe("a buyer the farm kept under two spellings", () => {
+  it("has his statement price the milk sent under either", async () => {
+    const manager = await as("manager", "2084-03-17T06:00:00.000Z");
+    const farmId = theFarm().id;
+    const first = uuidv7(new Date("2084-01-01T00:00:00.000Z"));
+    const second = uuidv7(new Date("2084-01-02T00:00:00.000Z"));
+    await scratchDb()
+      .insert(counterparty)
+      .values([
+        {
+          id: first,
+          farmId,
+          name: `Twin Center ${suffix}`,
+          createdAt: new Date("2084-01-01T00:00:00.000Z"),
+        },
+        {
+          id: second,
+          farmId,
+          name: `TWIN CENTER ${suffix}`,
+          createdAt: new Date("2084-01-02T00:00:00.000Z"),
+        },
+      ]);
+    const onTheSecond = uuidv7(new Date("2084-03-02T01:00:00.000Z"));
+    await scratchDb()
+      .insert(dispatch)
+      .values({
+        id: onTheSecond,
+        farmId,
+        dispatchedAt: new Date("2084-03-02T01:00:00.000Z"),
+        liters: "100.00",
+        buyerId: second,
+        buyerName: `TWIN CENTER ${suffix}`,
+        recordedByRole: "manager",
+        recordedAt: new Date("2084-03-02T01:00:00.000Z"),
+      });
+
+    await manager.client.milk.recordStatement({
+      id: uuidv7(),
+      counterpartyId: first,
+      fromDay: "2084-03-01",
+      toDay: "2084-03-15",
+      statedOn: "2084-03-16",
+      liters: 100,
+      amountMoney: 5800,
+    });
+
+    expect(
+      await sentOn(manager.client, "2084-03-02", onTheSecond)
+    ).toMatchObject({ priceToFollow: false, worthMoney: 5800 });
   });
 });

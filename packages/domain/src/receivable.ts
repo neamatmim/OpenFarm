@@ -154,6 +154,9 @@ export interface ReceivableItem {
   id: string;
   /** The farm day it left. */
   leftOn: string;
+  /** The farm day it became owed, where that is later than it left: milk sent with its price to follow is owed from
+   *  its Buyer Statement's date (ADR 0033). Left out, the day it left. */
+  owedFrom?: string;
   /** What he still owed as it left. */
   receivableMoney: number;
   promisedBy: string | null;
@@ -208,9 +211,10 @@ const byDayThenId =
 
 /**
  * A buyer's Receivable of one kind, cleared oldest first — as a trader's khata is. Each payment, in the order it came, pays
- * off the oldest thing still owing; what is left of it is paid ahead, which the next thing he takes on credit uses up
- * first. Worked on read and never stored, so a Correction to an old Sale or payment re-flows without rewriting what a
- * payment was for.
+ * off the oldest thing still owing, by the day it became owed; what is left of it is paid ahead, which the next thing he
+ * owes uses up first. Milk priced later by his statement became owed on the statement's date, so a payment made before
+ * it clears what he owed then, not milk nobody had priced (ADR 0033). Worked on read and never stored, so a Correction
+ * to an old Sale or payment re-flows without rewriting what a payment was for.
  */
 export const receivableStanding = (
   items: readonly ReceivableItem[],
@@ -218,7 +222,11 @@ export const receivableStanding = (
 ): ReceivableStanding => {
   const owed = items
     .filter((one) => one.receivableMoney > 0)
-    .toSorted(byDayThenId((one) => one.leftOn));
+    .toSorted(
+      (a, b) =>
+        (a.owedFrom ?? a.leftOn).localeCompare(b.owedFrom ?? b.leftOn) ||
+        byDayThenId<ReceivableItem>((one) => one.leftOn)(a, b)
+    );
   // Two purses per item: what is still open, and what the Owner wrote off. Money pays the open first, everything
   // open before anything written off, and only then puts a write-off back.
   const open = new Map(
@@ -285,7 +293,7 @@ export const receivableStanding = (
     owingMoney: total((one) => one.owingMoney),
     paidAheadMoney: roundMoney(paidIn - clearedMoney),
     writtenOffMoney: total((one) => one.writtenOffMoney),
-    oldestOn: stillOwing[0]?.leftOn ?? null,
+    oldestOn: stillOwing.map((one) => one.leftOn).toSorted()[0] ?? null,
     soonestPromise: soonestPromise ?? null,
   };
 };

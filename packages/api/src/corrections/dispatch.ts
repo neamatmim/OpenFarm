@@ -10,6 +10,7 @@ import { assertNoStatementCovers } from "../buyer-statement-store";
 import type { ChangeBy } from "../closed-month-store";
 import { changeByOf } from "../closed-month-store";
 import {
+  assertNothingPaidToFollow,
   assertNotLater,
   bookDispatchMoney,
   buyerInput,
@@ -30,7 +31,9 @@ import {
   paymentMethodOf,
 } from "../money-store";
 import {
+  answerForCredit,
   assertNothingStandsAgainst,
+  creditOf,
   assertOwedCoversPaid,
   assertOwedCoversWrittenOff,
   receivableOrRefuse,
@@ -62,7 +65,9 @@ export const dispatchCorrectionInput = correctionInput({
     dispatchFields.deliveryNote.nullable(),
     z.string().nullable()
   ),
-  /** Nothing sends it with its price to follow, for the buyer's statement to set: refused where anything was paid. */
+  /** A price gives milk sent with its price to follow one, all of it owed; changed to nothing (null), a price guessed at
+   *  the gate is taken off and the milk goes back to its price to follow — refused while anything stands paid at the
+   *  gate. */
   pricePerLiterMoney: changeOf(
     dispatchFields.pricePerLiterMoney.nullable(),
     z.number().nullable()
@@ -116,12 +121,7 @@ type DispatchChanges = z.infer<typeof dispatchCorrectionInput>["changes"];
 /** Milk whose price is to follow, as a Correction leaves it: owing nothing yet, and refused where anything was paid
  *  at the gate — that money was a price after all. */
 const priceToFollowStill = (paidMoney: number) => {
-  if (paidMoney > 0) {
-    throw refuse(
-      "price_to_follow_paid",
-      "Nothing is paid at the gate for milk whose price is to follow"
-    );
-  }
+  assertNothingPaidToFollow(paidMoney);
   return { receivableMoney: 0, promisedBy: null };
 };
 
@@ -169,6 +169,16 @@ const receivableAfter = (row: DispatchRow, to: NewValues<DispatchChanges>) => {
     to.pricePerLiterMoney === undefined
       ? row.pricePerLiterMoney
       : to.pricePerLiterMoney;
+  // Priced by its Buyer Statement, it owes what the statement said: only its notes are put right here.
+  if (row.buyerStatementId !== null && to.pricePerLiterMoney === undefined) {
+    return {
+      price,
+      receivable: {
+        receivableMoney: row.receivableMoney,
+        promisedBy: row.promisedBy,
+      },
+    };
+  }
   const worthBefore = worthAsItStands(row) ?? 0;
   if (price === null) {
     return {
@@ -336,8 +346,12 @@ export const dispatchCorrection: CorrectionKind<
   trail: (tx, row) => readDispatch(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
     assertNotHeldByAStatement(row, to);
+    const by = changeByOf(context, now);
+    const owedBefore = await creditOf(tx, row.farmId, "dispatch", row.id);
     await (to.voided
-      ? voidTheDispatch(tx, row, changeByOf(context, now))
+      ? voidTheDispatch(tx, row, by)
       : putTheDispatchRight(tx, row, to, { context, now }));
+    // What he was left owing is the month's too, priced now or taken away: in a closed month, the Owner's alone.
+    await answerForCredit(tx, by, "dispatch", row.id, owedBefore);
   },
 };

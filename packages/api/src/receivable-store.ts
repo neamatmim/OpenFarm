@@ -65,6 +65,8 @@ export const CATEGORY_OF_RECEIVABLE: Record<ReceivableKind, CategoryKey> = {
 export interface OwedItem {
   id: string;
   leftOn: string;
+  /** The day it became owed where later than it left: milk its Buyer Statement priced, from the statement's date. */
+  owedFrom?: string;
   /** A Sale's animal by her tag; a Dispatch by its liters. */
   tagNumber: string | null;
   liters: number | null;
@@ -200,7 +202,10 @@ const readBook = async (
         liters: true,
         buyerId: true,
       },
-      with: { buyer: { columns: { name: true, phone: true } } },
+      with: {
+        buyer: { columns: { name: true, phone: true } },
+        buyerStatement: { columns: { statedOn: true } },
+      },
     }),
     db.query.receivablePayment.findMany({
       where: { farmId, ...whose, ...byThe("paidOn") },
@@ -227,7 +232,20 @@ const readBook = async (
       orderBy: { writtenOn: "asc", id: "asc" },
     }),
   ]);
-  return { sales, dispatches, payments, writeOffs };
+  return {
+    sales,
+    // Milk its Buyer Statement priced was owed only from the statement's date: not yet owed as at a day before it.
+    dispatches: dispatches.filter(
+      (one) =>
+        !(
+          only?.asOf &&
+          one.buyerStatement &&
+          one.buyerStatement.statedOn > only.asOf
+        )
+    ),
+    payments,
+    writeOffs,
+  };
 };
 
 type Book = Awaited<ReturnType<typeof readBook>>;
@@ -299,18 +317,17 @@ const itemsByBuyer = (
     );
   }
   for (const one of dispatches) {
-    add(
-      one.buyerId,
-      one.buyer,
-      "milk",
-      owedItem(
+    add(one.buyerId, one.buyer, "milk", {
+      ...owedItem(
         one,
         one.dispatchedAt,
         { tagNumber: null, liters: roundLiters(Number(one.liters)) },
         writtenOff.get(one.id) ?? 0,
         written.get(one.id) ?? []
-      )
-    );
+      ),
+      // Priced by its Buyer Statement, it is owed from the statement's date: his payments before it were for other milk.
+      ...(one.buyerStatement ? { owedFrom: one.buyerStatement.statedOn } : {}),
+    });
   }
   for (const one of payments) {
     add(one.counterpartyId, one.buyer);
@@ -787,21 +804,26 @@ export const fetchedPerLiter = (
  * and the milk still to follow apart, as liters — the reports say "so many liters, price to follow" rather than count
  * them at nothing.
  */
-export const milkFetched = (
-  rows: readonly (DispatchPriced & { id: string })[],
+export const milkFetched = <Row extends DispatchPriced & { id: string }>(
+  rows: readonly Row[],
   writtenOff: ReadonlyMap<string, number>
 ): {
-  priced: { liters: number; pricePerLiterMoney: number }[];
+  /** Each priced one, with the row it was read from for whatever else its reader wants of it. */
+  priced: { row: Row; liters: number; pricePerLiterMoney: number }[];
   toFollowLiters: number;
 } => {
-  const priced: { liters: number; pricePerLiterMoney: number }[] = [];
+  const priced: { row: Row; liters: number; pricePerLiterMoney: number }[] = [];
   let toFollowLiters = 0;
   for (const row of rows) {
     const fetched = fetchedPerLiter(row, writtenOff);
     if (fetched === null) {
       toFollowLiters += Number(row.liters);
     } else {
-      priced.push({ liters: Number(row.liters), pricePerLiterMoney: fetched });
+      priced.push({
+        row,
+        liters: Number(row.liters),
+        pricePerLiterMoney: fetched,
+      });
     }
   }
   return { priced, toFollowLiters: roundLiters(toFollowLiters) };
@@ -842,6 +864,114 @@ const itemDated = async (
     occurredAt: sold.soldAt,
     purseVentureId: ownerOn(sold.animalId, sold.soldAt),
   };
+};
+
+/** A Sale's or a Dispatch's credit as a Closed Month weighs it: when it left, what was owed, to whom, by when. */
+export interface CreditStands {
+  at: Date;
+  receivableMoney: number;
+  counterpartyId: string;
+  promisedBy: string | null;
+  purseVentureId: string | null;
+}
+
+/**
+ * What a Sale or Dispatch left owing as it stands now — nothing where it left nothing owing, or is gone, or its Buyer
+ * Statement priced it, which answers for its own milk (`answerForStatement`).
+ */
+export const creditOf = async (
+  tx: Tx,
+  farmId: string,
+  source: "sale" | "dispatch",
+  id: string
+): Promise<CreditStands | null> => {
+  if (source === "dispatch") {
+    const row = await tx.query.dispatch.findFirst({
+      where: { id, farmId },
+      columns: {
+        dispatchedAt: true,
+        receivableMoney: true,
+        buyerId: true,
+        promisedBy: true,
+        buyerStatementId: true,
+      },
+    });
+    return row && row.receivableMoney > 0 && row.buyerStatementId === null
+      ? {
+          at: row.dispatchedAt,
+          receivableMoney: row.receivableMoney,
+          counterpartyId: row.buyerId,
+          promisedBy: row.promisedBy,
+          purseVentureId: null,
+        }
+      : null;
+  }
+  const row = await tx.query.sale.findFirst({
+    where: { id, farmId },
+    columns: {
+      soldAt: true,
+      receivableMoney: true,
+      counterpartyId: true,
+      promisedBy: true,
+      animalId: true,
+    },
+  });
+  if (!row || row.receivableMoney <= 0) {
+    return null;
+  }
+  const ownerOn = await ownedThenByOf(tx, farmId);
+  return {
+    at: row.soldAt,
+    receivableMoney: row.receivableMoney,
+    counterpartyId: row.counterpartyId,
+    promisedBy: row.promisedBy,
+    purseVentureId: ownerOn(row.animalId, row.soldAt),
+  };
+};
+
+/** What it left owing as a Closed Month weighs it: the amount, when, whose purse, and to whom and by when as one. */
+const creditWeighed = (one: CreditStands | null) =>
+  one
+    ? {
+        at: one.at,
+        amountMoney: one.receivableMoney,
+        purseVentureId: one.purseVentureId,
+        rest: `${one.counterpartyId}|${one.promisedBy ?? ""}`,
+      }
+    : undefined;
+
+/**
+ * A Sale or Dispatch left owing, written, put right or voided, as a **Closed Month** has its say: what a buyer owed at
+ * a month's end, and what its animal or milk fetched, are that month's figures, though no money moved — so writing it
+ * into, out of or within a month the Owner has closed is hers alone, and kept for the next paper by the buyer and, for
+ * a Sale, her tag (ADR 0028 addendum). `before` is what it left owing before the write (`creditOf`); what it leaves now
+ * is read here.
+ */
+export const answerForCredit = async (
+  tx: Tx,
+  by: ChangeBy,
+  source: "sale" | "dispatch",
+  id: string,
+  before: CreditStands | null
+): Promise<void> => {
+  const after = await creditOf(tx, by.farmId, source, id);
+  const either = after ?? before;
+  if (!either) {
+    return;
+  }
+  await answerToClosedMonths(tx, by, [
+    {
+      recordId: id,
+      source,
+      before: creditWeighed(before),
+      after: creditWeighed(after),
+      about: aboutMoney(by.farmId, {
+        source,
+        sourceId: id,
+        counterpartyId: either.counterpartyId,
+      }),
+    },
+  ]);
 };
 
 /**
@@ -914,6 +1044,23 @@ export const owingOnItem = async (
 export const lockTheBuyer = async (tx: Tx, counterpartyId: string) => {
   await tx.execute(
     sql`select 1 from counterparty where id = ${counterpartyId} for update`
+  );
+};
+
+/** What a buyer's payments have cleared of each Sale or Dispatch of his, read from his book once. */
+export const paidOnItems = async (
+  db: Db,
+  farmId: string,
+  counterpartyId: string
+): Promise<Map<string, number>> => {
+  const [his] = await receivableOfBuyers(db, farmId, {
+    counterpartyId,
+    settledToo: true,
+  });
+  return new Map(
+    (his?.kinds ?? []).flatMap((kind) =>
+      kind.items.map((item) => [item.id, item.paidMoney] as const)
+    )
   );
 };
 

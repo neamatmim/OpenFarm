@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  isPriceToFollowOverdue,
+  isPriceToFollowLate,
   litersCompared,
-  priceToFollowOverdueFrom,
+  milkMoneyOf,
+  worthOfMilkSent,
+  priceToFollowLateFrom,
+  statementPeriodEndOf,
   spreadByLiters,
   statementPeriodDays,
 } from "./buyer-statement";
@@ -113,13 +116,61 @@ describe("milk whose price is to follow, left too long", () => {
     expect(statementPeriodDays("2026-09-01", "2026-09-30")).toBe(30);
   });
 
-  it("is late once the buyer's period and ten days more have gone by", () => {
-    expect(priceToFollowOverdueFrom("2026-09-01", 15)).toBe("2026-09-26");
-    expect(isPriceToFollowOverdue("2026-09-01", "2026-09-25", 15)).toBe(false);
-    expect(isPriceToFollowOverdue("2026-09-01", "2026-09-26", 15)).toBe(true);
+  const fortnight = { fromDay: "2026-09-01", toDay: "2026-09-15" };
+
+  it("falls in the period of his that holds its day, periods as long as his last statement's stepping on from it", () => {
+    expect(statementPeriodEndOf("2026-09-20", fortnight)).toBe("2026-09-30");
+    expect(statementPeriodEndOf("2026-09-30", fortnight)).toBe("2026-09-30");
+    expect(statementPeriodEndOf("2026-10-01", fortnight)).toBe("2026-10-15");
+    // And back from it, for milk older than his last statement that none has priced.
+    expect(statementPeriodEndOf("2026-08-25", fortnight)).toBe("2026-08-31");
   });
 
-  it("allows a month for a buyer who has sent no statement yet", () => {
-    expect(priceToFollowOverdueFrom("2026-09-01", null)).toBe("2026-10-12");
+  it("is late once the end of its period and ten days more have gone by, whichever day of the period it left", () => {
+    expect(priceToFollowLateFrom("2026-09-16", fortnight)).toBe("2026-10-11");
+    expect(priceToFollowLateFrom("2026-09-30", fortnight)).toBe("2026-10-11");
+    expect(isPriceToFollowLate("2026-09-30", "2026-10-10", fortnight)).toBe(
+      false
+    );
+    expect(isPriceToFollowLate("2026-09-30", "2026-10-11", fortnight)).toBe(
+      true
+    );
+  });
+
+  it("takes the calendar month for a buyer who has sent no statement yet", () => {
+    expect(statementPeriodEndOf("2026-10-30", null)).toBe("2026-10-31");
+    expect(priceToFollowLateFrom("2026-10-30", null)).toBe("2026-11-11");
+    expect(priceToFollowLateFrom("2026-02-03", null)).toBe("2026-03-11");
+  });
+});
+
+describe("what the milk a Dispatch sent came to", () => {
+  it("is its liters at its price, its statement's share once priced, and nothing while its price is to follow", () => {
+    const sent = { receivableMoney: 0, buyerStatementId: null };
+
+    expect(
+      worthOfMilkSent({ ...sent, liters: "10.00", pricePerLiterMoney: "55.55" })
+    ).toBe(555.5);
+    expect(
+      worthOfMilkSent({
+        liters: 100,
+        pricePerLiterMoney: null,
+        receivableMoney: 6000,
+        buyerStatementId: "s",
+      })
+    ).toBe(6000);
+    expect(
+      worthOfMilkSent({ ...sent, liters: 100, pricePerLiterMoney: null })
+    ).toBeNull();
+  });
+
+  it("adds up to the money, and the liters whose price is to follow apart", () => {
+    expect(
+      milkMoneyOf([
+        { liters: 10, worthMoney: 500 },
+        { liters: 40, worthMoney: null },
+        { liters: 5, worthMoney: 310 },
+      ])
+    ).toEqual({ amount: 810, litersToFollow: 40 });
   });
 });

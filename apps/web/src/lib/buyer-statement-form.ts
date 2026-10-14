@@ -2,7 +2,7 @@ import type { MessageKey } from "@OpenFarm/i18n";
 
 import type { Photo } from "./photo";
 
-// A buyer's statement as the sheet types it, and what the farm is sent of it (ADR 0030). Here rather than in the sheet,
+// A buyer's statement as the sheet types it, and what the farm is sent of it (ADR 0033). Here rather than in the sheet,
 // because which box stops the save, and what is sent, are easier read — and tested — apart from the markup.
 
 /** Every box of the statement sheet, as typed. */

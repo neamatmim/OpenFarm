@@ -2623,7 +2623,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "statement.voidedWhy": "বাতিল: {reason}",
   "statement.waiting": "যে দুধের দাম পরে ঠিক হবে",
   "statement.waitingHint":
-    "দেওয়া হয়েছে, ক্রেতার বিলের অপেক্ষায়। তার বিলের মেয়াদ আর আরও দশ দিন পার হলে দেরি।",
+    "দেওয়া হয়েছে, ক্রেতার বিলের অপেক্ষায়। যে বিলের মেয়াদে পড়ে তা শেষ হওয়ার দশ দিন পরে দেরি — প্রথম বিল আসা পর্যন্ত মেয়াদ ক্যালেন্ডার মাস।",
   "statement.noneWaiting": "কোনো দুধ দামের অপেক্ষায় নেই",
   "statement.waitingLine": "{count}টি হস্তান্তর · {liters} লিটার",
   "statement.since": "থেকে",
@@ -2651,6 +2651,10 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "দিনগুলো ক্রমে নেই: প্রথম, শেষ, বিলের তারিখ — কোনোটি আজকের পরে নয় — তারপর যেদিনের মধ্যে দেবে",
   "refusal.pricedByStatement":
     "ক্রেতার বিল এর দাম ঠিক করেছে: মালিক আগে বিলটি বাতিল করবেন",
+  "refusal.priceToFollowPaysAtGate":
+    "সে গেটেই দুধের দাম দেয়: দাম দিন, নয়তো বাকিতে দিন",
+  "statement.amountBesideRecorded":
+    "তার টাকা বাদ এই দিনগুলোতে খামারের ঠিক করা সব দাম: {currencySign}{amount}",
   "refusal.priceToFollowPaid":
     "যে দুধের দাম পরে ঠিক হবে তার জন্য গেটে কিছু দেওয়া হয় না",
   "refusal.dispatchedInTheFuture": "দুধ এখনের পরে যেতে পারে না",

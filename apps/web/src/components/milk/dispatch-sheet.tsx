@@ -21,7 +21,7 @@ import { ReceivableFields, BuyerOwes } from "@/components/receivable-fields";
 import { useLanguage } from "@/i18n/language-provider";
 import { dispatchMoneySent, dispatchProblem } from "@/lib/dispatch-validation";
 import type { BuyerTyping } from "@/lib/milk-buyer-terms";
-import { afterNaming, NOBODY_PICKED } from "@/lib/milk-buyer-terms";
+import { afterNaming, mayFollow, NOBODY_PICKED } from "@/lib/milk-buyer-terms";
 import { somethingPaid } from "@/lib/receivable";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
@@ -222,24 +222,26 @@ export const DispatchSheet = ({
           />
         )}
       </div>
-      <ChoiceCard htmlFor="dispatch-price-to-follow">
-        <Checkbox
-          checked={priceToFollow}
-          id="dispatch-price-to-follow"
-          onCheckedChange={(checked) =>
-            setTyping((current) => ({
-              ...current,
-              priceToFollow: checked === true,
-            }))
-          }
-        />
-        <span className="flex flex-col gap-0.5">
-          {t("dispatch.priceToFollow")}
-          <span className="text-muted-foreground text-xs">
-            {t("dispatch.priceToFollowHint")}
+      {mayFollow(filledFrom) ? (
+        <ChoiceCard htmlFor="dispatch-price-to-follow">
+          <Checkbox
+            checked={priceToFollow}
+            id="dispatch-price-to-follow"
+            onCheckedChange={(checked) =>
+              setTyping((current) => ({
+                ...current,
+                priceToFollow: checked === true,
+              }))
+            }
+          />
+          <span className="flex flex-col gap-0.5">
+            {t("dispatch.priceToFollow")}
+            <span className="text-muted-foreground text-xs">
+              {t("dispatch.priceToFollowHint")}
+            </span>
           </span>
-        </span>
-      </ChoiceCard>
+        </ChoiceCard>
+      ) : null}
       {priceToFollow ? null : <Worth form={form} />}
 
       <div className="grid gap-4 sm:grid-cols-2">

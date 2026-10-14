@@ -175,7 +175,7 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
       const toPran = random.chance(0.8);
       const note = `${deliveryNote}-${random.int(10, 99)}`;
       const price = random.int(56, 60);
-      // Milk Vita tests fat and SNF and pays by its own statement: its milk goes with the price to follow (ADR 0030).
+      // Milk Vita tests fat and SNF and pays by its own statement: its milk goes with the price to follow (ADR 0033).
       await f.as.manager.milk.dispatch({
         dispatchedAt: onFarm(day, "08:45"),
         liters: Math.round(liters - sweets),
@@ -241,7 +241,7 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
       fromDay,
       toDay,
       statedOn,
-      // Its centre pays on its round, a few days from now: owed, not yet late.
+      // Its center pays on its round, a few days from now: owed, not yet late.
       payBy: addDays(today, 3),
       liters: theirLiters,
       amountMoney: Math.round(theirLiters * 58.4),

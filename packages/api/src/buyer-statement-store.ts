@@ -5,18 +5,19 @@ import {
   buyerStatementPhoto,
   dispatch,
 } from "@OpenFarm/db/schema/milk";
+import type { StatementDays } from "@OpenFarm/domain";
 import {
   addDays,
   farmDayOf,
   farmDaysBetween,
   isAFarmDay,
-  isPriceToFollowOverdue,
+  isPriceToFollowLate,
   litersCompared,
-  priceToFollowOverdueFrom,
+  nameAsCompared,
+  priceToFollowLateFrom,
   roundLiters,
   roundMoney,
   spreadByLiters,
-  statementPeriodDays,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -31,16 +32,19 @@ import {
   monthKeyOf,
 } from "./closed-month-store";
 import type { Context } from "./context";
+import { sameBuyerIds } from "./counterparty-store";
 import { dispatchFields, twoPlaces, worthOfDispatch } from "./dispatch-store";
 import { farmDay } from "./farm-clock";
+import { lockTheFarm } from "./farm-lock";
 import { photoInput } from "./photo-input";
-import { lockTheBuyer, paidOnItem } from "./receivable-store";
+import { paidOnItems } from "./receivable-store";
 import { refuse } from "./refuse";
+import { seenWhenDone } from "./writes-seen";
 
-// A **Buyer Statement** (ADR 0030): the milk buyer's own account of a stretch of days, set beside the milk the farm
+// A **Buyer Statement** (ADR 0033): the milk buyer's own account of a stretch of days, set beside the milk the farm
 // sent him in them, and the money that prices what the farm sent with its price to follow.
 
-type Db = Pick<Database, "query"> | Tx;
+type Db = Pick<Database, "query" | "select"> | Tx;
 
 /** What a Buyer Statement is recorded with. `id` is the phone's own, so a save sent twice is one statement. */
 export const statementInput = z
@@ -65,18 +69,21 @@ export const statementInput = z
 
 export type StatementSaid = z.infer<typeof statementInput>;
 
-/** What a statement is set beside before it is recorded: whose, which days, and his liters and money. */
-export const besideInput = z.object({
-  counterpartyId: z.string().min(1),
-  fromDay: farmDay,
-  toDay: farmDay,
-  liters: dispatchFields.liters,
-  amountMoney: z.number().min(0).max(100_000_000),
-});
+/** What a statement is set beside before it is recorded: whose, which days, and his liters and money, as recorded. */
+export const besideInput = z.object(
+  statementInput.pick({
+    counterpartyId: true,
+    fromDay: true,
+    toDay: true,
+    liters: true,
+    amountMoney: true,
+  }).shape
+);
 
 /** A Dispatch to the buyer in a statement's days, as the statement reads it. */
 interface DispatchIn {
   id: string;
+  buyerId: string;
   dispatchedAt: Date;
   liters: number;
   pricePerLiterMoney: string | null;
@@ -84,28 +91,34 @@ interface DispatchIn {
   buyerStatementId: string | null;
 }
 
-/** Every Dispatch to one buyer in a stretch of farm days, oldest first. */
+const DISPATCH_IN = {
+  id: true,
+  buyerId: true,
+  dispatchedAt: true,
+  liters: true,
+  pricePerLiterMoney: true,
+  receivableMoney: true,
+  buyerStatementId: true,
+} as const;
+
+/**
+ * Every Dispatch to one buyer in a stretch of farm days, oldest first — under any name the farm kept him by
+ * (`sameBuyerIds`), so a buyer written down twice before names were compared has all his milk set beside his statement.
+ */
 const dispatchesIn = async (
   db: Db,
   farmId: string,
-  counterpartyId: string,
-  { fromDay, toDay }: { fromDay: string; toDay: string }
+  buyerIds: readonly string[],
+  { fromDay, toDay }: StatementDays
 ): Promise<DispatchIn[]> => {
   const range = farmDaysBetween(fromDay, toDay);
   const rows = await db.query.dispatch.findMany({
     where: {
       farmId,
-      buyerId: counterpartyId,
+      buyerId: { in: [...buyerIds] },
       dispatchedAt: { gte: range.from, lt: range.until },
     },
-    columns: {
-      id: true,
-      dispatchedAt: true,
-      liters: true,
-      pricePerLiterMoney: true,
-      receivableMoney: true,
-      buyerStatementId: true,
-    },
+    columns: DISPATCH_IN,
     orderBy: { dispatchedAt: "asc", id: "asc" },
   });
   return rows.map((row) => ({ ...row, liters: Number(row.liters) }));
@@ -121,51 +134,58 @@ export interface StatementBeside {
   /** The milk the farm priced at the gate in its days, and what it came to: left as it was. */
   pricedLiters: number;
   pricedMoney: number;
-  /** The milk sent with its price to follow, which the statement prices. */
+  /** The milk sent with its price to follow, which the statement prices — or priced, once recorded. */
   toFollowCount: number;
   toFollowLiters: number;
-  /** What the statement prices that milk at: its amount, less the milk priced at the gate. */
+  /** What the statement prices that milk at: his amount, less the milk priced at the gate. */
   spreadMoney: number;
-  /** What his amount says beyond everything the farm has priced, where none of it was to follow. */
+  /** What his amount says beyond everything the farm has priced in its days, the milk it priced among it. */
   amountDifferenceMoney: number;
 }
 
-/**
- * A statement's figures beside the farm's own Dispatches: the liters, the milk the farm priced at the gate, and the milk
- * sent with its price to follow — still to follow, or priced by this very statement once it is recorded.
- */
-const besideOf = (
+/** The figures every statement is set beside the farm's milk by: liters, and the milk priced at the gate. */
+const gateFiguresOf = (
   dispatches: readonly DispatchIn[],
-  said: { liters: number; amountMoney: number },
-  statementId: string | null
-): StatementBeside & { toFollow: DispatchIn[] } => {
+  statedLiters: number
+) => {
   const priced = dispatches.filter((one) => one.pricePerLiterMoney !== null);
-  const toFollow = dispatches.filter(
-    (one) =>
-      one.pricePerLiterMoney === null &&
-      (one.buyerStatementId === null || one.buyerStatementId === statementId)
-  );
   const farmLiters = roundLiters(
     dispatches.reduce((sum, one) => sum + one.liters, 0)
   );
-  const pricedMoney = roundMoney(
-    priced.reduce(
-      (sum, one) =>
-        sum +
-        worthOfDispatch({
-          liters: one.liters,
-          pricePerLiterMoney: one.pricePerLiterMoney ?? 0,
-        }),
-      0
-    )
-  );
-  const leftOver = roundMoney(said.amountMoney - pricedMoney);
-  const compared = litersCompared({ statedLiters: said.liters, farmLiters });
   return {
     farmLiters,
-    ...compared,
+    ...litersCompared({ statedLiters, farmLiters }),
     pricedLiters: roundLiters(priced.reduce((sum, one) => sum + one.liters, 0)),
-    pricedMoney,
+    pricedMoney: roundMoney(
+      priced.reduce(
+        (sum, one) =>
+          sum +
+          worthOfDispatch({
+            liters: one.liters,
+            pricePerLiterMoney: one.pricePerLiterMoney ?? 0,
+          }),
+        0
+      )
+    ),
+  };
+};
+
+/**
+ * A statement not yet recorded beside the farm's own Dispatches: the liters, the milk priced at the gate, and the milk
+ * still to follow, which it would price at his amount less the gate's — the gap is then filled by that milk, and said
+ * only where none of it was to follow.
+ */
+const besideToRecord = (
+  dispatches: readonly DispatchIn[],
+  said: { liters: number; amountMoney: number }
+): StatementBeside & { toFollow: DispatchIn[] } => {
+  const gate = gateFiguresOf(dispatches, said.liters);
+  const toFollow = dispatches.filter(
+    (one) => one.pricePerLiterMoney === null && one.buyerStatementId === null
+  );
+  const leftOver = roundMoney(said.amountMoney - gate.pricedMoney);
+  return {
+    ...gate,
     toFollow,
     toFollowCount: toFollow.length,
     toFollowLiters: roundLiters(
@@ -176,17 +196,50 @@ const besideOf = (
   };
 };
 
-/** A standing statement of his whose days meet these, if any: one stretch of his milk is priced once. */
+/**
+ * A recorded statement beside the farm's Dispatches as they stand now: what it priced stays what it priced, and his
+ * amount is set against the gate's milk and its own — so a can priced at the gate written into its days later shows as
+ * the difference it is, never as nought.
+ */
+const besideRecorded = (
+  dispatches: readonly DispatchIn[],
+  said: { liters: number; amountMoney: number },
+  statementId: string | null
+): StatementBeside & { pricedByItCount: number; pricedByItMoney: number } => {
+  const gate = gateFiguresOf(dispatches, said.liters);
+  const pricedByIt =
+    statementId === null
+      ? []
+      : dispatches.filter((one) => one.buyerStatementId === statementId);
+  const pricedByItMoney = roundMoney(
+    pricedByIt.reduce((sum, one) => sum + one.receivableMoney, 0)
+  );
+  return {
+    ...gate,
+    toFollowCount: pricedByIt.length,
+    toFollowLiters: roundLiters(
+      pricedByIt.reduce((sum, one) => sum + one.liters, 0)
+    ),
+    spreadMoney: pricedByItMoney,
+    amountDifferenceMoney: roundMoney(
+      said.amountMoney - gate.pricedMoney - pricedByItMoney
+    ),
+    pricedByItCount: pricedByIt.length,
+    pricedByItMoney,
+  };
+};
+
+/** A standing statement of his — under any name the farm kept him by — whose days meet these, if any. */
 const overlapping = async (
   db: Db,
   farmId: string,
-  counterpartyId: string,
-  { fromDay, toDay }: { fromDay: string; toDay: string }
+  buyerIds: readonly string[],
+  { fromDay, toDay }: StatementDays
 ) =>
   await db.query.buyerStatement.findFirst({
     where: {
       farmId,
-      counterpartyId,
+      counterpartyId: { in: [...buyerIds] },
       voidedAt: { isNull: true },
       fromDay: { lte: toDay },
       toDay: { gte: fromDay },
@@ -210,11 +263,12 @@ export const statementBesideOf = async (
   if (said.toDay < said.fromDay) {
     throw refuse("statement_days", "Its last day is before its first");
   }
+  const buyerIds = await sameBuyerIds(db, farmId, said.counterpartyId);
   const [dispatches, overlap] = await Promise.all([
-    dispatchesIn(db, farmId, said.counterpartyId, days),
-    overlapping(db, farmId, said.counterpartyId, days),
+    dispatchesIn(db, farmId, buyerIds, days),
+    overlapping(db, farmId, buyerIds, days),
   ]);
-  const { toFollow: _toFollow, ...beside } = besideOf(dispatches, said, null);
+  const { toFollow: _toFollow, ...beside } = besideToRecord(dispatches, said);
   let problem: StatementProblem = null;
   if (overlap) {
     problem = "statement_overlaps";
@@ -232,10 +286,12 @@ export const assertNoStatementCovers = async (
   dispatchedAt: Date
 ) => {
   const day = farmDayOf(dispatchedAt);
-  const covering = await overlapping(tx, farmId, counterpartyId, {
-    fromDay: day,
-    toDay: day,
-  });
+  const covering = await overlapping(
+    tx,
+    farmId,
+    await sameBuyerIds(tx, farmId, counterpartyId),
+    { fromDay: day, toDay: day }
+  );
   if (covering) {
     throw refuse(
       "statement_covers_it",
@@ -262,7 +318,7 @@ export const readStatement = async (tx: Tx, id: string) => {
 /**
  * What a statement's priced milk comes to in each month it was sent in, as a **Closed Month** weighs it: the milk is
  * money of the month it left in, so a statement that prices milk of a month the Owner has closed is hers alone to
- * record or void, and kept for the next paper (ADR 0028, 0030).
+ * record or void, and kept for the next paper (ADR 0028, 0033).
  */
 const weighedByMonth = (
   shares: readonly { dispatchedAt: Date; amountMoney: number }[],
@@ -333,6 +389,34 @@ const assertDays = (said: StatementSaid, payBy: string, today: string) => {
   }
 };
 
+/** A standing statement of his under this number already, whatever its capitals: one number once for a buyer. */
+const assertNumberFree = async (
+  tx: Tx,
+  farmId: string,
+  buyerIds: readonly string[],
+  number: string | undefined
+) => {
+  if (!number) {
+    return;
+  }
+  const standing = await tx.query.buyerStatement.findMany({
+    where: {
+      farmId,
+      counterpartyId: { in: [...buyerIds] },
+      voidedAt: { isNull: true },
+      number: { isNotNull: true },
+    },
+    columns: { number: true },
+  });
+  const asCompared = number.toLowerCase();
+  if (standing.some((one) => one.number?.toLowerCase() === asCompared)) {
+    throw refuse(
+      "statement_number_taken",
+      "A statement of his with that number is recorded already"
+    );
+  }
+};
+
 /** Whoever records or voids a statement: the Manager or the Owner, signed in on the farm. */
 type Recording = Context & {
   farm: NonNullable<Context["farm"]>;
@@ -340,11 +424,34 @@ type Recording = Context & {
   roleUsed: NonNullable<Context["roleUsed"]>;
 };
 
+/** Prices the milk a statement covers with its shares: all of each owed, by the day he pays by. */
+const priceTheMilk = async (
+  tx: Tx,
+  statementId: string,
+  toFollow: readonly DispatchIn[],
+  shares: ReadonlyMap<string, number>,
+  payBy: string
+) => {
+  for (const one of toFollow) {
+    // One row each, a handful a statement.
+    // oxlint-disable-next-line no-await-in-loop
+    await tx
+      .update(dispatch)
+      .set({
+        buyerStatementId: statementId,
+        receivableMoney: shares.get(one.id) ?? 0,
+        promisedBy: payBy,
+      })
+      .where(eq(dispatch.id, one.id));
+  }
+};
+
 /**
  * Records a Buyer Statement and prices the milk it covers: every Dispatch to him in its days sent with its price to
  * follow takes its liters' share of the amount, less what the milk priced at the gate came to, in whole paisa, the
  * paisa left over placed oldest first; all of it owed by the day he pays by — his Receivable, which his payments then
- * clear. Nothing is booked as cash: nothing was paid at the gate. Once however often it is sent.
+ * clear. Nothing is booked as cash: nothing was paid at the gate. Once however often it is sent: the phone's id is
+ * asked behind the Farm's lock, so two sends at once find each other rather than an overlap.
  */
 export const recordStatement = async (
   context: Recording,
@@ -352,28 +459,22 @@ export const recordStatement = async (
 ): Promise<{ id: string }> => {
   const now = context.clock.now();
   const farmId = context.farm.id;
-  const already = await context.db.query.buyerStatement.findFirst({
-    where: { id: said.id },
-    columns: { id: true, farmId: true },
-  });
-  if (already) {
-    if (already.farmId !== farmId) {
-      throw new ORPCError("NOT_FOUND");
-    }
-    return { id: already.id };
-  }
   const payBy =
     said.payBy ?? addDays(said.statedOn, context.farm.receivableDays);
   assertDays(said, payBy, farmDayOf(now));
-  await audited(context).write(
-    {
-      entity: "buyer_statement",
-      reachesMoney: true,
-      entityId: said.id,
-      action: "create",
-      after: (tx) => readStatement(tx, said.id),
-    },
-    async (tx) => {
+  return await seenWhenDone(
+    context.db.transaction(async (tx) => {
+      await lockTheFarm(tx, farmId);
+      const already = await tx.query.buyerStatement.findFirst({
+        where: { id: said.id },
+        columns: { id: true, farmId: true },
+      });
+      if (already) {
+        if (already.farmId !== farmId) {
+          throw new ORPCError("NOT_FOUND");
+        }
+        return { id: already.id };
+      }
       const buyer = await tx.query.counterparty.findFirst({
         where: { id: said.counterpartyId, farmId },
         columns: { id: true },
@@ -381,37 +482,18 @@ export const recordStatement = async (
       if (!buyer) {
         throw refuse("no_such_buyer", "The farm has no such buyer");
       }
-      // Held while his milk is priced and his Receivable grows, as a payment of his holds it.
-      await lockTheBuyer(tx, buyer.id);
+      const buyerIds = await sameBuyerIds(tx, farmId, buyer.id);
       const days = { fromDay: said.fromDay, toDay: said.toDay };
-      if (await overlapping(tx, farmId, buyer.id, days)) {
+      if (await overlapping(tx, farmId, buyerIds, days)) {
         throw refuse(
           "statement_overlaps",
           "A statement of his for some of those days is recorded already"
         );
       }
-      if (said.number) {
-        const standing = await tx.query.buyerStatement.findMany({
-          where: {
-            farmId,
-            counterpartyId: buyer.id,
-            voidedAt: { isNull: true },
-            number: { isNotNull: true },
-          },
-          columns: { number: true },
-        });
-        const asCompared = said.number.toLowerCase();
-        if (standing.some((one) => one.number?.toLowerCase() === asCompared)) {
-          throw refuse(
-            "statement_number_taken",
-            "A statement of his with that number is recorded already"
-          );
-        }
-      }
-      const beside = besideOf(
-        await dispatchesIn(tx, farmId, buyer.id, days),
-        said,
-        null
+      await assertNumberFree(tx, farmId, buyerIds, said.number);
+      const beside = besideToRecord(
+        await dispatchesIn(tx, farmId, buyerIds, days),
+        said
       );
       if (beside.toFollowCount > 0 && beside.spreadMoney <= 0) {
         throw refuse(
@@ -440,18 +522,7 @@ export const recordStatement = async (
         recordedAt: now,
       });
       const shares = spreadByLiters(beside.spreadMoney, beside.toFollow);
-      for (const one of beside.toFollow) {
-        // One row each, a handful a statement.
-        // oxlint-disable-next-line no-await-in-loop
-        await tx
-          .update(dispatch)
-          .set({
-            buyerStatementId: said.id,
-            receivableMoney: shares.get(one.id) ?? 0,
-            promisedBy: payBy,
-          })
-          .where(eq(dispatch.id, one.id));
-      }
+      await priceTheMilk(tx, said.id, beside.toFollow, shares, payBy);
       await answerForStatement(
         tx,
         changeByOf(context, now),
@@ -470,15 +541,55 @@ export const recordStatement = async (
           updatedAt: now,
         });
       }
-    }
+      await audited(context).recordEvent(tx, {
+        entity: "buyer_statement",
+        entityId: said.id,
+        action: "create",
+        after: (read) => readStatement(read, said.id),
+      });
+      return { id: said.id };
+    })
   );
-  return { id: said.id };
+};
+
+/**
+ * Refused while his payments have cleared any of the milk a statement priced, or some was written off: those are put
+ * right first, as a Dispatch's are. Each buyer's book read once, however many Dispatches it priced.
+ */
+const assertNothingStandsOnIt = async (
+  tx: Tx,
+  farmId: string,
+  priced: readonly { id: string; buyerId: string }[]
+) => {
+  const ids = priced.map((one) => one.id);
+  const writtenOff =
+    ids.length === 0
+      ? undefined
+      : await tx.query.receivableWriteOff.findFirst({
+          where: { farmId, sourceId: { in: ids } },
+          columns: { id: true },
+        });
+  if (writtenOff) {
+    throw refuse(
+      "statement_paid_on",
+      "Some of the milk it priced was written off: put that right first"
+    );
+  }
+  for (const buyerId of new Set(priced.map((one) => one.buyerId))) {
+    // oxlint-disable-next-line no-await-in-loop -- one book a buyer, nearly always one
+    const paid = await paidOnItems(tx, farmId, buyerId);
+    if (ids.some((id) => (paid.get(id) ?? 0) > 0)) {
+      throw refuse(
+        "statement_paid_on",
+        "His payments have cleared some of the milk it priced: put the payment right first"
+      );
+    }
+  }
 };
 
 /**
  * Voids a wrong Buyer Statement, with the Owner's reason: the milk it priced goes back to its price to follow, owing
- * nothing, for the right statement to price. Refused while his payments have cleared any of it or some of it was
- * written off: those are put right first, as a Dispatch's are.
+ * nothing, for the right statement to price.
  */
 export const voidStatement = async (
   context: Recording,
@@ -506,35 +617,17 @@ export const voidStatement = async (
       if (row.voidedAt) {
         throw refuse("statement_voided", "That statement is voided already");
       }
-      await lockTheBuyer(tx, row.counterpartyId);
       const priced = await tx.query.dispatch.findMany({
         where: { farmId, buyerStatementId: id },
-        columns: { id: true, dispatchedAt: true, receivableMoney: true },
+        columns: {
+          id: true,
+          buyerId: true,
+          dispatchedAt: true,
+          receivableMoney: true,
+        },
       });
+      await assertNothingStandsOnIt(tx, farmId, priced);
       const ids = priced.map((one) => one.id);
-      const writtenOff =
-        ids.length === 0
-          ? undefined
-          : await tx.query.receivableWriteOff.findFirst({
-              where: { farmId, sourceId: { in: ids } },
-              columns: { id: true },
-            });
-      for (const one of writtenOff ? [] : priced) {
-        // oxlint-disable-next-line no-await-in-loop -- a handful a statement, and the first paid one is enough
-        const paid = await paidOnItem(tx, farmId, row.counterpartyId, one.id);
-        if (paid > 0) {
-          throw refuse(
-            "statement_paid_on",
-            "His payments have cleared some of the milk it priced: put the payment right first"
-          );
-        }
-      }
-      if (writtenOff) {
-        throw refuse(
-          "statement_paid_on",
-          "Some of the milk it priced was written off: put that right first"
-        );
-      }
       if (ids.length > 0) {
         await tx
           .update(dispatch)
@@ -567,9 +660,22 @@ export const voidStatement = async (
 /** How many statements the list reads back: a year and more of a fortnightly buyer, several buyers over. */
 const STATEMENTS_READ = 120;
 
+/** Whether a Dispatch is one a statement is set beside: his under any name, and in its days. */
+const inItsDays =
+  (row: { fromDay: string; toDay: string; buyer: { name: string } }) =>
+  (one: { dispatchedAt: Date; buyer: { name: string } }) => {
+    const day = farmDayOf(one.dispatchedAt);
+    return (
+      day >= row.fromDay &&
+      day <= row.toDay &&
+      nameAsCompared(one.buyer.name) === nameAsCompared(row.buyer.name)
+    );
+  };
+
 /**
  * The farm's Buyer Statements, the latest days first, each beside the farm's milk to him in its days as it stands now —
- * the voided ones too, marked, so the trail of a wrong statement is not lost from the page.
+ * the voided ones too, marked, so the trail of a wrong statement is not lost from the page. Their Dispatches are read
+ * in one go, across the days they cover.
  */
 export const statementsOf = async (db: Db, farmId: string) => {
   const rows = await db.query.buyerStatement.findMany({
@@ -578,66 +684,62 @@ export const statementsOf = async (db: Db, farmId: string) => {
     limit: STATEMENTS_READ,
     with: { buyer: { columns: { name: true } } },
   });
-  const photos = await db.query.buyerStatementPhoto.findMany({
-    where: { farmId, statementId: { in: rows.map((one) => one.id) } },
-    columns: { statementId: true },
-  });
+  if (rows.length === 0) {
+    return [];
+  }
+  const firstDay = rows.map((one) => one.fromDay).toSorted()[0] ?? "";
+  const lastDay =
+    rows
+      .map((one) => one.toDay)
+      .toSorted()
+      .at(-1) ?? "";
+  const range = farmDaysBetween(firstDay, lastDay);
+  const [photos, sent] = await Promise.all([
+    db.query.buyerStatementPhoto.findMany({
+      where: { farmId, statementId: { in: rows.map((one) => one.id) } },
+      columns: { statementId: true },
+    }),
+    db.query.dispatch.findMany({
+      where: { farmId, dispatchedAt: { gte: range.from, lt: range.until } },
+      columns: DISPATCH_IN,
+      with: { buyer: { columns: { name: true } } },
+      orderBy: { dispatchedAt: "asc", id: "asc" },
+    }),
+  ]);
   const withPhoto = new Set(photos.map((one) => one.statementId));
-  return await Promise.all(
-    rows.map(async (row) => {
-      const said = {
-        liters: Number(row.liters),
-        amountMoney: row.amountMoney,
-      };
-      const dispatches = await dispatchesIn(
-        db,
-        farmId,
-        row.counterpartyId,
-        row
-      );
-      const { toFollow, ...beside } = besideOf(
-        dispatches,
-        said,
-        row.voidedAt ? null : row.id
-      );
-      const pricedByIt = dispatches.filter(
-        (one) => one.buyerStatementId === row.id
-      );
-      return {
-        id: row.id,
-        counterpartyId: row.counterpartyId,
-        buyerName: row.buyer.name,
-        number: row.number,
-        fromDay: row.fromDay,
-        toDay: row.toDay,
-        statedOn: row.statedOn,
-        payBy: row.payBy,
-        ...said,
-        fatPercent: row.fatPercent === null ? null : Number(row.fatPercent),
-        snfPercent: row.snfPercent === null ? null : Number(row.snfPercent),
-        ratePerLiterMoney:
-          row.ratePerLiterMoney === null ? null : Number(row.ratePerLiterMoney),
-        note: row.note,
-        hasPhoto: withPhoto.has(row.id),
-        ...beside,
-        /** What it priced: the milk sent with its price to follow in its days, and what that came to. */
-        pricedByItCount: pricedByIt.length,
-        pricedByItMoney: roundMoney(
-          pricedByIt.reduce((sum, one) => sum + one.receivableMoney, 0)
-        ),
-        /** Milk still to follow in its days — sent after a voided statement, or never priced. */
-        stillToFollowCount: row.voidedAt ? toFollow.length : 0,
-        voided: row.voidedAt
-          ? { at: row.voidedAt, reason: row.voidReason ?? "" }
-          : null,
-      };
-    })
-  );
+  return rows.map((row) => {
+    const said = { liters: Number(row.liters), amountMoney: row.amountMoney };
+    const dispatches = sent
+      .filter(inItsDays(row))
+      .map((one) => ({ ...one, liters: Number(one.liters) }));
+    return {
+      id: row.id,
+      counterpartyId: row.counterpartyId,
+      buyerName: row.buyer.name,
+      number: row.number,
+      fromDay: row.fromDay,
+      toDay: row.toDay,
+      statedOn: row.statedOn,
+      payBy: row.payBy,
+      ...said,
+      fatPercent: row.fatPercent === null ? null : Number(row.fatPercent),
+      snfPercent: row.snfPercent === null ? null : Number(row.snfPercent),
+      ratePerLiterMoney:
+        row.ratePerLiterMoney === null ? null : Number(row.ratePerLiterMoney),
+      note: row.note,
+      hasPhoto: withPhoto.has(row.id),
+      ...besideRecorded(dispatches, said, row.voidedAt ? null : row.id),
+      voided: row.voidedAt
+        ? { at: row.voidedAt, reason: row.voidReason ?? "" }
+        : null,
+    };
+  });
 };
 
 /**
  * Every buyer with milk sent and its price still to follow, the longest waiting first: how much, since when, and how
- * much of it is late — past his own statement's period, as long as his last, or a month, and ten days more.
+ * much of it is late — ten days past the end of his statement period it falls in, periods stepping on from his last
+ * standing statement, or the calendar month while he has sent none. A buyer kept under two names is one buyer.
  */
 export const priceToFollowOf = async (
   db: Db,
@@ -657,50 +759,51 @@ export const priceToFollowOf = async (
   if (waiting.length === 0) {
     return [];
   }
-  const buyerIds = [...new Set(waiting.map((one) => one.buyerId))];
   const statements = await db.query.buyerStatement.findMany({
-    where: {
-      farmId,
-      counterpartyId: { in: buyerIds },
-      voidedAt: { isNull: true },
-    },
-    columns: { counterpartyId: true, fromDay: true, toDay: true },
+    where: { farmId, voidedAt: { isNull: true } },
+    columns: { fromDay: true, toDay: true },
+    with: { buyer: { columns: { name: true } } },
     orderBy: { toDay: "desc", id: "desc" },
   });
-  const periodOf = new Map<string, number>();
+  const lastOf = new Map<string, StatementDays>();
   for (const one of statements) {
-    if (!periodOf.has(one.counterpartyId)) {
-      periodOf.set(
-        one.counterpartyId,
-        statementPeriodDays(one.fromDay, one.toDay)
-      );
+    const key = nameAsCompared(one.buyer.name);
+    if (!lastOf.has(key)) {
+      lastOf.set(key, { fromDay: one.fromDay, toDay: one.toDay });
     }
   }
   const byBuyer = new Map<string, typeof waiting>();
   for (const one of waiting) {
-    byBuyer.set(one.buyerId, [...(byBuyer.get(one.buyerId) ?? []), one]);
+    const key = nameAsCompared(one.buyer.name);
+    byBuyer.set(key, [...(byBuyer.get(key) ?? []), one]);
   }
-  return [...byBuyer.entries()].map(([counterpartyId, theirs]) => {
-    const periodDays = periodOf.get(counterpartyId) ?? null;
+  return [...byBuyer.entries()].flatMap(([key, theirs]) => {
+    const [oldest] = theirs;
+    if (!oldest) {
+      return [];
+    }
+    const last = lastOf.get(key) ?? null;
+    const oldestOn = farmDayOf(oldest.dispatchedAt);
     const late = theirs.filter((one) =>
-      isPriceToFollowOverdue(farmDayOf(one.dispatchedAt), today, periodDays)
+      isPriceToFollowLate(farmDayOf(one.dispatchedAt), today, last)
     );
-    const oldestOn = farmDayOf(theirs[0]?.dispatchedAt ?? new Date());
-    return {
-      counterpartyId,
-      name: theirs[0]?.buyer.name ?? "",
-      phone: theirs[0]?.buyer.phone ?? null,
-      count: theirs.length,
-      liters: roundLiters(
-        theirs.reduce((sum, one) => sum + Number(one.liters), 0)
-      ),
-      oldestOn,
-      /** The farm day the oldest of it went, or goes, late. */
-      lateFrom: priceToFollowOverdueFrom(oldestOn, periodDays),
-      lateCount: late.length,
-      lateLiters: roundLiters(
-        late.reduce((sum, one) => sum + Number(one.liters), 0)
-      ),
-    };
+    return [
+      {
+        counterpartyId: oldest.buyerId,
+        name: oldest.buyer.name,
+        phone: oldest.buyer.phone,
+        count: theirs.length,
+        liters: roundLiters(
+          theirs.reduce((sum, one) => sum + Number(one.liters), 0)
+        ),
+        oldestOn,
+        /** The farm day the oldest of it went, or goes, late. */
+        lateFrom: priceToFollowLateFrom(oldestOn, last),
+        lateCount: late.length,
+        lateLiters: roundLiters(
+          late.reduce((sum, one) => sum + Number(one.liters), 0)
+        ),
+      },
+    ];
   });
 };
