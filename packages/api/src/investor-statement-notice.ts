@@ -1,5 +1,11 @@
 import type { Database } from "@OpenFarm/db";
-import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import type { VentureState } from "@OpenFarm/domain";
+import {
+  farmDayOf,
+  isRunning,
+  RUNNING_STATES,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 
 import type { Tx } from "./audit";
@@ -65,12 +71,74 @@ const said = (occasion: Occasion): string =>
     : OCCASION_WORDS[occasion.kind];
 
 /**
- * The Ventures whose Investors can be owed a progress paper.
+ * Whether a Venture's Investors can be owed a progress paper: one that is running (`isRunning`).
  *
  * Not one still **Open**: it has taken money but bought nothing, and অগ্রগতি is what the animals weigh
  * and what has been spent on them. A Settled or Canceled run tells nobody either — its books are shut.
  */
-const RUNNING = ["buying", "fattening", "selling"] as const;
+export const owesPapers = (venture: { state: string }): boolean =>
+  isRunning(venture.state as VentureState);
+
+/** The first moment of the farm month `now` is in: a month's paper counts from then. */
+export const monthBegan = (now: Date): Date =>
+  startOfFarmDay(`${farmDayOf(now).slice(0, "YYYY-MM".length)}-01`);
+
+/**
+ * Each Venture's Agreements owed a progress paper, and which of them have had one made since `since`: its Investors'
+ * own papers, never the Farm's own Units (`farm_own`), which are no Investor to hand one to. The one rule the Venture's
+ * card, the telling and the sweep that settles it all read.
+ */
+export const papersOwedOf = async (
+  db: Pick<Database | Tx, "query">,
+  farmId: string,
+  ventureIds: readonly string[],
+  since: (ventureId: string) => Date
+): Promise<Map<string, { holders: number; owed: number }>> => {
+  const owed = new Map<string, { holders: number; owed: number }>();
+  if (ventureIds.length === 0) {
+    return owed;
+  }
+  const agreements = await db.query.investmentAgreement.findMany({
+    where: { farmId, ventureId: { in: [...ventureIds] } },
+    columns: { id: true, ventureId: true, stampKind: true },
+  });
+  const theirs = agreements.filter((one) => one.stampKind !== "farm_own");
+  const made =
+    theirs.length === 0
+      ? []
+      : await db.query.auditEvent.findMany({
+          where: {
+            farmId,
+            entity: "investment_agreement",
+            entityId: { in: theirs.map((one) => one.id) },
+            action: "export",
+          },
+          columns: { entityId: true, after: true, receivedAt: true },
+        });
+  const madeAt = new Map<string, Date[]>();
+  for (const event of made) {
+    if (
+      (event.after as { paper?: unknown } | null)?.paper ===
+      "progress_statement"
+    ) {
+      madeAt.set(event.entityId, [
+        ...(madeAt.get(event.entityId) ?? []),
+        event.receivedAt,
+      ]);
+    }
+  }
+  for (const ventureId of ventureIds) {
+    const from = since(ventureId);
+    const holders = theirs.filter((one) => one.ventureId === ventureId);
+    owed.set(ventureId, {
+      holders: holders.length,
+      owed: holders.filter(
+        (one) => !(madeAt.get(one.id) ?? []).some((at) => at >= from)
+      ).length,
+    });
+  }
+  return owed;
+};
 
 /** One telling waiting to be made: which Venture, which occasion, and the id it is filed under. */
 export interface PaperDue {
@@ -93,7 +161,7 @@ export const tellTheOwnerAPaperIsDue = async (
   occasion: Occasion,
   now: Date
 ): Promise<boolean> => {
-  if (!(RUNNING as readonly string[]).includes(venture.state)) {
+  if (!owesPapers(venture)) {
     return false;
   }
   const signed = await signedForEach(tx, farmId, [venture.id]);
@@ -139,7 +207,7 @@ export const papersToTell = async (
     db,
     farmId,
     await db.query.venture.findMany({
-      where: { farmId, state: { in: [...RUNNING] } },
+      where: { farmId, state: { in: [...RUNNING_STATES] } },
       columns: {
         id: true,
         name: true,
@@ -162,10 +230,21 @@ export const papersToTell = async (
     ventures.map((one) => one.id)
   );
   const thisMonth = today.slice(0, "YYYY-MM".length);
+  // A month's paper already made for every one of its Investors is not told as owed: the card and the telling read
+  // the one rule (`papersOwedOf`).
+  const owing = await papersOwedOf(
+    db,
+    farmId,
+    ventures.map((one) => one.id),
+    () => monthBegan(now)
+  );
   const due = ventures
     .filter((one) => (signed.get(one.id)?.people ?? 0) > 0)
     .flatMap((one) => {
-      const occasions: Occasion[] = [{ kind: "month", month: thisMonth }];
+      const occasions: Occasion[] =
+        (owing.get(one.id)?.owed ?? 0) > 0
+          ? [{ kind: "month", month: thisMonth }]
+          : [];
       // The Wind-up Period begins the day after the Target Window closes. Told while it runs, because
       // the point of telling is that there is still time to sell.
       if (

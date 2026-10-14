@@ -144,6 +144,8 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   // Money an Investor says they sent is the Owner's to look for in the Venture Account and record: hers alone, as every
   // Investor's money is (ADR 0018).
   pay_in_note_sent: { audience: [theOwner], entity: "pay_in_note" },
+  // An Agreement agreed in the portal is the Owner's to approve, and only hers (ADR 0022).
+  offer_agreed: { audience: [theOwner], entity: "agreement_offer" },
   // The Manager rings the buyer; the Owner answers for whom the farm lends to. About the one Sale or Dispatch gone past
   // its day, so each is told once however many mornings it stays late.
   receivable_overdue: {

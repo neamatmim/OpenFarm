@@ -271,6 +271,11 @@ export interface SumsStanding {
   sums: number;
   /** The day the latest missed sum fell due, or nothing while none is missed: what the Owner is told of, once a month. */
   lastMissedOn: string | null;
+  /** The day the oldest sum fell due that is not yet paid — since when he has been behind — or nothing while nothing
+   *  due is owed. */
+  oldestOwedOn: string | null;
+  /** What of his Cattle Part is not yet in: owed from before buying began, so behind whatever the day. */
+  cattlePartOwedMoney: number;
 }
 
 /**
@@ -329,7 +334,80 @@ export const sumsStandingOf = ({
     sumsPaid: cleared.filter((one) => one.cleared).length,
     sums: monthly.sums.length,
     lastMissedOn: missed.at(-1)?.dueOn ?? null,
+    oldestOwedOn:
+      cleared.find((one) => !one.cleared && one.dueOn <= today)?.dueOn ?? null,
+    cattlePartOwedMoney: roundMoney(
+      allocation.cattleRequiredMoney - allocation.cattlePaidMoney
+    ),
   };
+};
+
+/** Where an Agreement stands this month, as the Owner rings about it: past its seven days, behind but within them, or a
+ *  sum falling due this month — the order she rings in. */
+export const ASKING = ["missed", "late", "due"] as const;
+export type Asking = (typeof ASKING)[number];
+
+/** What to ring one Investor about this month, from where their Agreement stands. */
+export interface AskThisMonth {
+  standing: Asking;
+  /** What to ask for: everything fallen due and not paid; for a sum not yet due, that sum. */
+  dueMoney: number;
+  /** Of that, what is past its seven days. */
+  missedMoney: number;
+  /** Of that, his Cattle Part not yet in — said by its name, since it is no Monthly Sum. */
+  cattlePartMoney: number;
+  /** The day the sum asked for falls due — the oldest owed, or the one coming this month; today for a Cattle Part. */
+  dueOn: string;
+  /** Since when they have been behind, and how many days that is; nothing for a sum not yet late. */
+  behindSince: string | null;
+  daysBehind: number | null;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const daysFrom = (from: string, to: string) =>
+  Math.round(
+    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS
+  );
+
+/**
+ * What the Owner rings an Investor about this month, or nothing: missed when any sum is past its seven days, or the
+ * Cattle Part is not all in — owed since before buying began; late when a sum fell due before today and is not paid;
+ * due when one falls due today, or later this month with nothing behind it. Read off `sumsStandingOf`, never worked out
+ * a second way.
+ */
+export const askThisMonth = (
+  standing: SumsStanding,
+  today: string
+): AskThisMonth | null => {
+  const { oldestOwedOn: behind, next } = standing;
+  if (standing.dueMoney > 0) {
+    const late = behind !== null && behind < today;
+    let asking: Asking = late ? "late" : "due";
+    if (standing.missedMoney > 0) {
+      asking = "missed";
+    }
+    return {
+      standing: asking,
+      dueMoney: standing.dueMoney,
+      missedMoney: standing.missedMoney,
+      cattlePartMoney: standing.cattlePartOwedMoney,
+      dueOn: behind ?? today,
+      behindSince: late ? behind : null,
+      daysBehind: late && behind !== null ? daysFrom(behind, today) : null,
+    };
+  }
+  if (next && next.dueOn.slice(0, 7) === today.slice(0, 7)) {
+    return {
+      standing: "due",
+      dueMoney: next.amount,
+      missedMoney: 0,
+      cattlePartMoney: 0,
+      dueOn: next.dueOn,
+      behindSince: null,
+      daysBehind: null,
+    };
+  }
+  return null;
 };
 
 /**

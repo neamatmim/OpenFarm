@@ -141,6 +141,7 @@ const LEADS = {
     investors: "alerts.checkThePayInNotes",
     hash: PAY_IN_ANCHOR,
   },
+  offer_agreed: { investors: "alerts.approveTheAgreement" },
   credit_after_write_off: TO_WHO_OWES,
   password_guessed: "what it names",
   monthly_copy_failed: TO_THE_BACKUPS,

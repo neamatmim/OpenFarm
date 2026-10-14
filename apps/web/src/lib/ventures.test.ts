@@ -107,3 +107,42 @@ describe("Pay-in Notes still to check", () => {
     }
   });
 });
+
+describe("what else on a Venture waits for the Owner", () => {
+  it("names Monthly Sums missed, a month owed the Farm, statements, Requests and payouts, each with its figure", () => {
+    const waiting = open({
+      decideBy: "2099-09-30",
+      bank: undefined,
+      sumsMissedMoney: 5000,
+      reimbursementDue: { month: "2099-08", owedMoney: 3000 },
+      statementsDue: 2,
+      requestsWaiting: 1,
+      payoutsUnsent: 3,
+    });
+    expect(troubleWith(waiting)).toEqual(
+      expect.arrayContaining([
+        { word: "sums_missed", missedMoney: 5000 },
+        { word: "reimbursement_due", month: "2099-08", owedMoney: 3000 },
+        { word: "statements_due", count: 2 },
+        { word: "requests_waiting", count: 1 },
+        { word: "payouts_unsent", count: 3 },
+      ])
+    );
+  });
+
+  it("names none of them on a list kept from before they were counted, or when none wait", () => {
+    const before = open({ decideBy: "2099-09-30", bank: undefined });
+    const none = open({
+      decideBy: "2099-09-30",
+      bank: undefined,
+      sumsMissedMoney: 0,
+      reimbursementDue: null,
+      statementsDue: 0,
+      requestsWaiting: 0,
+      payoutsUnsent: 0,
+    });
+    for (const one of [before, none]) {
+      expect(troubleWith(one)).toEqual([]);
+    }
+  });
+});

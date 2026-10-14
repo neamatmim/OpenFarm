@@ -321,6 +321,14 @@ export interface NoticeFacts {
     sentOn: string;
     way: "bank_transfer" | "check" | "deposit_slip" | "mobile_money";
   };
+  /** An Investor who agreed in the portal to the Agreement Offer made them (ADR 0022): who, and which Venture, waiting
+   *  for the Owner's approval. */
+  offer_agreed: {
+    offerId: string;
+    ventureId: string;
+    venture: string;
+    investor: string;
+  };
 }
 
 /** What a notice about a Lot carries. */

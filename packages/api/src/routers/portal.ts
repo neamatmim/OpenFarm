@@ -57,6 +57,7 @@ import {
   signInHasRunItsDay,
   takeUpInvitation,
 } from "../portal-store";
+import { pushRaised } from "../push-send";
 import {
   askToJoin,
   requestNote,
@@ -297,7 +298,9 @@ export const portalRouter = {
       })
     )
     .handler(async ({ context, input }) => {
-      await agreeToOffer(context, context.investor.id, input);
+      const raised = await agreeToOffer(context, context.investor.id, input);
+      // The Owner's pocket, once the write has closed: the notice is in her list whether or not it travels.
+      await pushRaised(context, raised, context.clock.now());
       return { id: input.offerId };
     }),
 

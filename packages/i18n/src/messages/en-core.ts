@@ -856,6 +856,16 @@ export const enCore = {
     "The bank needs reading again for {months} — the farm changed its mind about those months",
   "ventureTrouble.bankDisagrees":
     "The bank did not agree for {months} — say what you found out",
+  "ventureTrouble.sumsMissed":
+    "{currencySign}{missed} of monthly sums missed — ring the investors behind",
+  "ventureTrouble.reimbursementDue":
+    "{month} not yet reimbursed to the farm — {currencySign}{owed}",
+  "ventureTrouble.statementsDue":
+    "{count, plural, one {# progress statement} other {# progress statements}} to hand out this month",
+  "ventureTrouble.requestsWaiting":
+    "{count, plural, one {# request to join} other {# requests to join}} to answer",
+  "ventureTrouble.payoutsUnsent":
+    "{count, plural, one {# payout} other {# payouts}} approved and not yet sent",
   /** "Investor statements" in full, and the third paper named for what it is: a bare "Statements" or
    *  "Settlement" would collide with the bank's statement a Bank Check reads and with the Venture's own
    *  Settlement, whose button sits on the same card. */
@@ -3462,6 +3472,9 @@ export const enCore = {
   "alerts.payInNoteSent":
     "{investor} says they sent {currencySign}{amount} {way} on {day}, for {venture}",
   "alerts.checkThePayInNotes": "Check it against the bank",
+  "alerts.offerAgreed":
+    "{investor} agreed in the app to join {venture}, waiting for your approval",
+  "alerts.approveTheAgreement": "Approve the agreement",
   "alerts.seeWhoOwes": "See who owes what",
   "alerts.lotExpiring":
     "{item}, lot {lot}: expires on {date}, with {left} left",

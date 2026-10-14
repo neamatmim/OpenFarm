@@ -158,6 +158,9 @@ export const DELIVERY = {
   // moment it is raised, through the quiet hours as a notifiable disease is — an hour's grace is no use to a Manager
   // asleep till five. In the app and by push, never by text.
   unwell_urgent: { when: "immediate", wakesTheFarm: true },
+  // An Investor who agreed in the portal waits on the Owner's approval, and the Venture may close before she gives it:
+  // told at once, as a Pay-in Note is.
+  offer_agreed: { when: "immediate" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /** What one kind says. Whether it says anything in a text message is not this table's decision but the delivery
@@ -426,6 +429,11 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
     app: "alerts.unwellUrgent",
     push: { title: "push.unwellUrgentTitle", body: "alerts.unwellUrgent" },
     digest: "digest.unwellUrgent",
+  },
+  offer_agreed: {
+    app: "alerts.offerAgreed",
+    push: { title: "push.offerAgreedTitle", body: "alerts.offerAgreed" },
+    digest: "digest.offerAgreed",
   },
 };
 

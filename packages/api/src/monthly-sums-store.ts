@@ -1,6 +1,11 @@
 import type { Database } from "@OpenFarm/db";
-import type { SumsStanding } from "@OpenFarm/domain";
-import { TAKES_MONTHLY_SUMS, sumsStandingOf } from "@OpenFarm/domain";
+import type { AskThisMonth, SumsStanding } from "@OpenFarm/domain";
+import {
+  ASKING,
+  TAKES_MONTHLY_SUMS,
+  askThisMonth,
+  sumsStandingOf,
+} from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import type { Raised } from "./notice";
@@ -93,6 +98,81 @@ export const standingsOf = async (
       },
     ];
   });
+};
+
+/** One Investor to ring about a Monthly Sum this month: who, on which Venture, and what to ask for. */
+export interface ToRing extends AskThisMonth {
+  agreementId: string;
+  ventureId: string;
+  venture: string;
+  investorId: string;
+  investor: string;
+  phone: string;
+}
+
+/** Where a row of the call list comes: missed first, then late, then due. */
+const order = (one: ToRing) => ASKING.indexOf(one.standing);
+
+/**
+ * This month's Monthly Sums across every Venture still taking them, as the Owner rings about them: whoever has missed
+ * one, then whoever is late, then whoever has one falling due this month — each with the phone to ring. The farm sends
+ * the Investor nothing; ringing is the Owner's (2026-10-02). Read off where each Agreement stands, never worked out a
+ * second way; the Farm's own capital is no Investor to ring.
+ */
+export const toRingThisMonth = async (
+  db: Db,
+  farmId: string,
+  today: string
+): Promise<ToRing[]> => {
+  const ventures = await db.query.venture.findMany({
+    where: {
+      farmId,
+      capitalPaid: "by_the_month",
+      state: { in: [...TAKES_MONTHLY_SUMS] },
+    },
+  });
+  const standings = await standingsOf(db, farmId, ventures, today);
+  const asking = standings.flatMap((one) => {
+    const ask = askThisMonth(one.standing, today);
+    return ask ? [{ ...one, ask }] : [];
+  });
+  if (asking.length === 0) {
+    return [];
+  }
+  const people = await db.query.investor.findMany({
+    where: {
+      farmId,
+      isFarm: false,
+      id: { in: asking.map((one) => one.investorId) },
+    },
+    columns: { id: true, name: true, phone: true },
+  });
+  const whom = new Map(people.map((one) => [one.id, one]));
+  const named = new Map(ventures.map((one) => [one.id, one.name]));
+  return asking
+    .flatMap((one) => {
+      const him = whom.get(one.investorId);
+      return him
+        ? [
+            {
+              ...one.ask,
+              agreementId: one.agreementId,
+              ventureId: one.ventureId,
+              venture: named.get(one.ventureId) ?? "",
+              investorId: him.id,
+              investor: him.name,
+              phone: him.phone,
+            },
+          ]
+        : [];
+    })
+    .toSorted(
+      (a, b) =>
+        order(a) - order(b) ||
+        a.dueOn.localeCompare(b.dueOn) ||
+        a.investor.localeCompare(b.investor) ||
+        a.agreementId.localeCompare(b.agreementId)
+    );
 };
 
 /** What each running Venture paid by the month has missed of its Monthly Sums today, across its Agreements. */

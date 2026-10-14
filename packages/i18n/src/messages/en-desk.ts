@@ -1587,6 +1587,9 @@ export const enDesk = {
   "ventures.figure.balance": "In the accounts",
   "ventures.figure.needsYou": "Needs you",
   "ventures.noneRunning": "No venture is running",
+  "ventures.noneNeedYou": "No venture needs you today",
+  "ventures.noneNeedYouHint":
+    "Tap the figure again to see every venture by where it stands.",
   "ventures.noneSettled": "No venture has settled yet",
   "ventures.noneCalledOff": "No venture has been called off",
   "ventures.noneRunningHint":
@@ -1726,6 +1729,17 @@ export const enDesk = {
   "investors.capHint":
     "The investor Cap, a farm setting: twenty people in one business for gain is a company",
   "investors.unitsHeld": "Units held",
+  "investors.thisMonth": "Monthly sums this month",
+  "investors.sumsTitle": "This month's monthly sums",
+  "investors.sumsHint":
+    "Who to ring about their monthly sums, across every venture paid by the month: missed first, then late, then due. The farm sends them nothing; the ringing is yours.",
+  "investors.sumsMissed": "Missed",
+  "investors.sumsLate": "Late",
+  "investors.sumsDue": "Due",
+  "investors.sumsDueOn": "due on {day}",
+  "investors.sumsBehindFor":
+    "behind {days, plural, one {# day} other {# days}}, since {day}",
+  "investors.sumsCattlePart": "{amount} of the cattle part not yet in",
   "investors.recordedCount": "Names on file",
   "investors.search": "Search a name or a phone",
   "investors.noneFound": "Nobody here by that name",
@@ -2099,6 +2113,9 @@ export const enDesk = {
   "digest.monthlySumMissed":
     "{count, plural, one {# investor} other {# investors}} behind on their monthly sums",
   "push.payInNoteSentTitle": "An investor says they have paid",
+  "push.offerAgreedTitle": "An investor agreed in the app",
+  "digest.offerAgreed":
+    "{count, plural, one {# agreement} other {# agreements}} agreed in the app to approve",
   "digest.payInNoteSent":
     "{count, plural, one {# pay-in note} other {# pay-in notes}} to check against the bank",
   "digest.lotExpiring":

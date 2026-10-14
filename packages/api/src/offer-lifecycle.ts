@@ -12,6 +12,7 @@ import type { AuditedWrite, SnapshotValue, Tx } from "./audit";
 import { audited, readSnapshot } from "./audit";
 import type { Context } from "./context";
 import { lockTheFarm } from "./farm-lock";
+import type { Raised } from "./notice";
 import type { SignedOfferKind } from "./signing-code";
 import { checkSigningCode, keepProof, proofWithdrawn } from "./signing-code";
 import { seenWhenDone } from "./writes-seen";
@@ -151,10 +152,12 @@ const lockedStep = async (
   );
 };
 
-/** How an agreement is kept: the trail of it, and the mark that records it, saying whether it did. */
+/** How an agreement is kept: the trail of it, and the mark that records it, saying whether it did — and, once it has,
+ *  whom to tell in the same write, for the caller to push once it has closed. */
 export interface SealedHow {
   trail: (now: Date) => AuditedWrite;
   mark: (tx: Tx, now: Date) => Promise<boolean>;
+  told?: (tx: Tx, now: Date) => Promise<Raised[]>;
 }
 
 /** How an agreement to a paper agreed alone is kept: its own row marked agreed, while neither withdrawn nor agreed. */
@@ -187,6 +190,7 @@ const agreedAloneHow = (
  * counted against them, refused by name — and then, in one locked step, the agreement marked (`how.mark`, which says
  * whether it marked anything: by default the paper's own row, an Amendment its answer) and its proof kept with the code
  * marked used. Withdrawn or agreed meanwhile, nothing is marked, no proof is kept of nothing, and the trail says nothing.
+ * Whoever `how` tells is told in that same step, and returned for the caller to push.
  */
 export const sealAgreementBy = async (
   context: Acting & Pick<Context, "callerAddress" | "callerAgent">,
@@ -194,32 +198,34 @@ export const sealAgreementBy = async (
   offer: OfferInApp & { paperHash: string },
   code: string,
   how: SealedHow
-): Promise<void> => {
+): Promise<Raised[]> => {
   const signed = { kind: offer.kind, id: offer.id } as const;
   const sealed = await checkSigningCode(context, investorId, signed, code);
+  let raised: Raised[] = [];
   await lockedStep(context, how.trail, async (tx, now) => {
     if (!(await how.mark(tx, now))) {
       return false;
     }
     await keepProof(tx, context, investorId, offer, sealed);
+    raised = (await how.told?.(tx, now)) ?? [];
     return true;
   });
+  return raised;
 };
 
-/** An Investor's agreement to a paper they agree to alone, sealed by a Signing Code: its own row marked agreed. */
+/** An Investor's agreement to a paper they agree to alone, sealed by a Signing Code: its own row marked agreed, and
+ *  whoever `told` tells told in the same step. */
 export const sealAgreement = (
   context: Acting & Pick<Context, "callerAddress" | "callerAgent">,
   investorId: string,
   offer: OfferInApp<AgreedAlone> & { paperHash: string },
-  code: string
-): Promise<void> =>
-  sealAgreementBy(
-    context,
-    investorId,
-    offer,
-    code,
-    agreedAloneHow(offer, context.actor.id)
-  );
+  code: string,
+  told?: SealedHow["told"]
+): Promise<Raised[]> =>
+  sealAgreementBy(context, investorId, offer, code, {
+    ...agreedAloneHow(offer, context.actor.id),
+    told,
+  });
 
 /** How a paper stood when the Investor came to withdraw their agreement, as the store found it. */
 export type AgreementFound =

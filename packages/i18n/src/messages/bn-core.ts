@@ -796,6 +796,13 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "{months} মাস আবার মিলিয়ে দেখতে হবে — ওই মাসগুলো নিয়ে খামারের হিসাব বদলেছে",
   "ventureTrouble.bankDisagrees":
     "{months} মাসে ব্যাংকের সাথে মেলেনি — কী জেনেছেন লিখুন",
+  "ventureTrouble.sumsMissed":
+    "মাসের টাকা বাকি পড়েছে {currencySign}{missed} — পিছিয়ে থাকা বিনিয়োগকারীদের ফোন করুন",
+  "ventureTrouble.reimbursementDue":
+    "{month}-এর খরচ খামারকে এখনো ফেরত দেওয়া হয়নি — {currencySign}{owed}",
+  "ventureTrouble.statementsDue": "এ মাসে {count}টি অগ্রগতিপত্র দিতে হবে",
+  "ventureTrouble.requestsWaiting": "যোগদানের {count}টি অনুরোধের উত্তর দিতে হবে",
+  "ventureTrouble.payoutsUnsent": "অনুমোদিত {count}টি পরিশোধ এখনো পাঠানো হয়নি",
   "statements.title": "কাগজপত্র",
   "statements.for": "{name}-এর কাগজপত্র",
   "statements.joining": "যোগদানপত্র",
@@ -3218,6 +3225,9 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "alerts.payInNoteSent":
     "{investor} জানিয়েছেন, তিনি {day} তারিখে {venture}-এর জন্য {way} {currencySign}{amount} পাঠিয়েছেন",
   "alerts.checkThePayInNotes": "ব্যাংকের সঙ্গে মিলিয়ে দেখুন",
+  "alerts.offerAgreed":
+    "{investor} অ্যাপে {venture}-এ যোগ দিতে সম্মতি দিয়েছেন, আপনার অনুমোদনের অপেক্ষায়",
+  "alerts.approveTheAgreement": "চুক্তি অনুমোদন করুন",
   "alerts.seeWhoOwes": "কার কাছে কত বাকি দেখুন",
   "alerts.lotExpiring":
     "{item}, লট {lot}: {date}-এ মেয়াদ শেষ হবে, এখনো {left} বাকি",

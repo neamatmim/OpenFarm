@@ -63,7 +63,12 @@ const tabOf = (venture: Venture): Tab =>
  * All four are of the runs on the Running tab alone. A settled Venture's capital was paid back out
  * months ago, and adding it to what the farm is holding would say the accounts hold money that has gone.
  */
-const useVentureFigures = (ventures: Venture[] | undefined): Figure[] => {
+const useVentureFigures = (
+  ventures: Venture[] | undefined,
+  /** How many want her, worked out once by the page; whether the list is narrowed to them, and how to narrow or
+   *  widen it. */
+  needs: { count: number; shown: boolean; toggle: () => void }
+): Figure[] => {
   const { t, language } = useLanguage();
   // Everything the Running tab holds, Open runs included: a tile that counts four while the tab under it
   // draws five is a page arguing with itself, and an Open Venture's capital is in the account already.
@@ -73,7 +78,7 @@ const useVentureFigures = (ventures: Venture[] | undefined): Figure[] => {
     (sum, one) => sum + (one.balanceMoney ?? 0),
     0
   );
-  const needHer = venturesNeedingHer(ventures).length;
+  const needHer = needs.count;
   const loading = <Skeleton className="h-8 w-24" />;
   const asMoney = useMoney();
   return [
@@ -97,6 +102,9 @@ const useVentureFigures = (ventures: Venture[] | undefined): Figure[] => {
       value: ventures ? formatNumber(needHer, language) : loading,
       icon: CircleAlert,
       tone: needHer > 0 ? "warning" : "neutral",
+      // Opens the list of them, whatever tab they are on; tapped again, the tabs come back.
+      onSelect: needs.toggle,
+      selected: needs.shown,
     },
   ];
 };
@@ -155,12 +163,23 @@ const VenturesPage = () => {
   const { t } = useLanguage();
   const [opening, setOpening] = useState(false);
   const [sellingInternally, setSellingInternally] = useState(false);
-  const { tab = "running" } = Route.useSearch();
+  const { tab = "running", needs = false } = Route.useSearch();
   const navigate = useNavigate();
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   const all = ventures.data ?? [];
   const on = (which: Tab) => all.filter((one) => tabOf(one) === which);
-  const figures = useVentureFigures(ventures.data);
+  const wanting = new Set(venturesNeedingHer(all).map((one) => one.id));
+  const anyVenture = all.length !== 0;
+  const figures = useVentureFigures(ventures.data, {
+    count: wanting.size,
+    shown: needs,
+    toggle: () =>
+      navigate({
+        ...TAB_SWITCH,
+        search: needs ? {} : { needs: true },
+        to: "/ventures",
+      }),
+  });
   const { acts, sheets } = useVentureActs();
   return (
     <Page>
@@ -196,7 +215,20 @@ const VenturesPage = () => {
       <Loaded query={ventures} skeleton={<TableSkeleton />}>
         {all.length === 0 ? (
           <EmptyState icon={Handshake} title={t("ventures.none")} />
-        ) : (
+        ) : null}
+        {/* Every Venture that wants her, whichever tab it would be on: a settled one may still owe a payout. */}
+        {anyVenture && needs ? (
+          <VentureList
+            acts={acts}
+            empty={{
+              icon: CircleAlert,
+              title: "ventures.noneNeedYou",
+              hint: "ventures.noneNeedYouHint",
+            }}
+            ventures={all.filter((one) => wanting.has(one.id))}
+          />
+        ) : null}
+        {anyVenture && !needs ? (
           <PageTabs
             onChange={(value) =>
               navigate({
@@ -257,7 +289,7 @@ const VenturesPage = () => {
             ]}
             value={tab}
           />
-        )}
+        ) : null}
       </Loaded>
       <OpenVentureSheet onOpenChange={setOpening} open={opening} />
       <InternalSaleSheet
@@ -269,9 +301,10 @@ const VenturesPage = () => {
   );
 };
 
-/** What the address may say about this page: which tab she is reading. */
+/** What the address may say about this page: which tab she is reading, or only the Ventures that want her. */
 interface VenturesSearch {
   tab?: Tab;
+  needs?: boolean;
 }
 
 export const Route = createFileRoute("/_authenticated/ventures/")({
@@ -282,6 +315,9 @@ export const Route = createFileRoute("/_authenticated/ventures/")({
     const said: VenturesSearch = {};
     if (TABS.includes(search.tab as Tab) && search.tab !== "running") {
       said.tab = search.tab as Tab;
+    }
+    if (search.needs === true || search.needs === "true") {
+      said.needs = true;
     }
     return said;
   },

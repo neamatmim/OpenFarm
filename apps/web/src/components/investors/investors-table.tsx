@@ -1,3 +1,4 @@
+import { ASKING } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Link } from "@tanstack/react-router";
 
@@ -17,11 +18,34 @@ import {
 import { Nothing } from "@/components/list-cells";
 import { StatusBadge, TagChip } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { useMoney } from "@/lib/money";
+import type { SumsSaid } from "@/lib/sums-to-ring";
+import { SUMS_SAID } from "@/lib/sums-to-ring";
 
-/** One Investor as the table reads them. */
+/** One Investor as the table reads them, with what they are to be rung about this month, if anything. */
 interface InvestorRow {
   investor: Investor;
+  sums: SumsSaid | undefined;
 }
+
+/** What they are to be asked for this month across their Ventures paid by the month, and how far behind; nothing
+ *  where nothing is due. */
+const SumsCell = ({ row }: Cell) => {
+  const { t } = useLanguage();
+  const asMoney = useMoney();
+  const { sums } = row.original;
+  if (!sums) {
+    return <Nothing />;
+  }
+  return (
+    <span className="flex flex-col items-end gap-1">
+      <StatusBadge tone={SUMS_SAID[sums.standing].tone}>
+        {t(SUMS_SAID[sums.standing].word)}
+      </StatusBadge>
+      <span className="tabular-nums">{asMoney(sums.dueMoney)}</span>
+    </span>
+  );
+};
 
 interface Cell {
   row: { original: InvestorRow };
@@ -192,11 +216,22 @@ const portalColumn = column.accessor(
     cell: PortalCell,
   }
 );
+// This month's standing sorts as the call list rings: missed first, then late, then due, then nothing.
+const sumsColumn = column.accessor(
+  (row) => (row.sums ? ASKING.indexOf(row.sums.standing) : undefined),
+  {
+    id: "sums",
+    header: listHeader("investors.thisMonth"),
+    cell: SumsCell,
+    meta: { align: "end" },
+  }
+);
 const investorColumns = column.columns([
   nameColumn,
   phoneColumn,
   nomineeColumn,
   unitsColumn,
+  sumsColumn,
 ]);
 const withPortalColumns = column.columns([
   nameColumn,
@@ -204,12 +239,14 @@ const withPortalColumns = column.columns([
   nomineeColumn,
   portalColumn,
   unitsColumn,
+  sumsColumn,
 ]);
 
 /** One Investor on a phone: who they are, how they are reached and what they hold. The whole card leads to
  *  their page, the way a thumb expects a card to. */
 const InvestorCard = ({ row }: { row: InvestorRow }) => {
   const { t, language } = useLanguage();
+  const asMoney = useMoney();
   const { investor } = row;
   return (
     <Link
@@ -247,6 +284,16 @@ const InvestorCard = ({ row }: { row: InvestorRow }) => {
             })}
           </TagChip>
         ) : null}
+        {row.sums ? (
+          <span className="flex items-center gap-2">
+            <StatusBadge tone={SUMS_SAID[row.sums.standing].tone}>
+              {t(SUMS_SAID[row.sums.standing].word)}
+            </StatusBadge>
+            <span className="text-sm tabular-nums">
+              {asMoney(row.sums.dueMoney)}
+            </span>
+          </span>
+        ) : null}
       </div>
     </Link>
   );
@@ -260,14 +307,20 @@ const investorCard = (row: InvestorRow) => <InvestorCard row={row} />;
 export const InvestorsTable = ({
   investors,
   showPortal,
+  sums,
 }: {
   investors: Investor[];
   /** Whether the portal is in use, and so worth a column. */
   showPortal: boolean;
+  /** What each is to be rung about this month, by Investor; nothing while it is still being asked. */
+  sums: ReadonlyMap<string, SumsSaid> | undefined;
 }) => {
   const table = useListTable({
     columns: showPortal ? withPortalColumns : investorColumns,
-    data: investors.map((investor) => ({ investor })),
+    data: investors.map((investor) => ({
+      investor,
+      sums: sums?.get(investor.id),
+    })),
     getRowId: (row) => row.investor.id,
   });
   return (
