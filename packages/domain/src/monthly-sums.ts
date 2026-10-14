@@ -234,6 +234,26 @@ export const monthlyPaymentAllocationOf = ({
   };
 };
 
+/**
+ * What one Agreement is asked for by the last day of a day's month: its Cattle Part still owed, and what is left of every
+ * Monthly Sum falling due by then — one already due and one still to come this month alike, since the bank statement the
+ * Owner reads it against is the month's. A sum sent ahead is not asked for again. What the month's capital grid fills a
+ * row with.
+ */
+export const dueByMonthEndOf = (
+  allocation: MonthlyPaymentAllocation,
+  today: string
+): number => {
+  const monthEnd = `${today.slice(0, "YYYY-MM".length)}-31`;
+  return roundMoney(
+    allocation.cattleRequiredMoney -
+      allocation.cattlePaidMoney +
+      allocation.sums
+        .filter((one) => one.dueOn <= monthEnd)
+        .reduce((sum, one) => sum + one.leftMoney, 0)
+  );
+};
+
 /** How one Agreement of a Venture paid by the month stands against its schedule on a day. */
 export interface SumsStanding {
   /** What it still owes of its Units' whole price. */

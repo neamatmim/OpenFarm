@@ -223,6 +223,100 @@ export const StatementDialog = ({
   );
 };
 
+/** Every Investor's অগ্রগতি for a Venture, as the farm made them: the papers, and the Venture's photographs once. */
+type EveryProgress = Awaited<
+  ReturnType<typeof client.investorStatements.progressAll>
+>;
+
+/** Where every Investor's progress is drawn in its dialog: what Print prints, alone, a page each. */
+const EVERY_PROGRESS_ID = "investor-progress-every";
+
+/** The month's progress statements for a Venture's Investors, asked for together. */
+export const useEveryProgress = () => {
+  const refused = useRefused(WHY_NOT);
+  const [made, setMade] = useState<EveryProgress | null>(null);
+  const making = useMutation(
+    orpc.investorStatements.progressAll.mutationOptions({
+      onError: (error: unknown) => {
+        setMade(null);
+        refused(error);
+      },
+      onSuccess: setMade,
+    })
+  );
+  return {
+    ask: (ventureId: string) => making.mutate({ ventureId }),
+    busy: making.isPending,
+    made,
+    close: () => setMade(null),
+  };
+};
+
+/**
+ * Every Investor's progress statement for the month, one after another in one dialog and printed together, each on a
+ * page of its own: read and printed in the language the switch shows, as every paper is (ADR 0021). The Venture's
+ * photographs travel with each.
+ */
+export const EveryProgressDialog = ({
+  every,
+}: {
+  every: ReturnType<typeof useEveryProgress>;
+}) => {
+  const { t, language: reads } = useLanguage();
+  const [language, setLanguage] = useState<Language>(reads);
+  const { made, close } = every;
+  const photographs = (made?.photos ?? []).map((one) => ({
+    alt: t("statements.photoOf", { tag: one.tagNumber }),
+    caption: one.tagNumber,
+    contentType: one.contentType,
+    data: one.data,
+    id: one.tagNumber,
+  }));
+  return (
+    <Dialog
+      onOpenChange={(open) => {
+        if (!open) {
+          close();
+        }
+      }}
+      open={made !== null}
+    >
+      <DialogContent
+        className="max-h-[90vh] overflow-y-auto sm:max-w-4xl"
+        closeLabel={t("common.close")}
+      >
+        <DialogHeader>
+          <DialogTitle>{t("statements.progressAll")}</DialogTitle>
+          <DialogDescription>
+            {t("statements.progressAllHint")}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <PaperToolbar
+            language={language}
+            onLanguage={setLanguage}
+            printId={EVERY_PROGRESS_ID}
+          />
+          <PaperDesk>
+            <div className="flex flex-col gap-6" id={EVERY_PROGRESS_ID}>
+              {(made?.papers ?? []).map((one) => (
+                <div className="break-after-page" key={one.agreementId}>
+                  <PaperDocumentView
+                    document={one.document}
+                    id={`${EVERY_PROGRESS_ID}-${one.agreementId}`}
+                    language={language}
+                    photographs={photographs}
+                  />
+                </div>
+              ))}
+            </div>
+          </PaperDesk>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 /** Where the photo of a signed paper is drawn in its dialog: what Print prints, alone. */
 const SIGNED_PAPER_ID = "signed-agreement-paper";
 

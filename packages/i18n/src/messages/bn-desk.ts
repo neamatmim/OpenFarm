@@ -1008,6 +1008,21 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "ventures.capitalHint":
     "{venture}-এর জন্য বিনিয়োগকারীর সই করা কাগজের বিপরীতে আসা {currencySum}। কেবল ব্যাংকে।",
   "ventures.capitalTaken": "{currencySum} জমা লেখা হয়েছে",
+  "ventures.monthGrid": "এ মাসের জমা",
+  "ventures.monthGridHint":
+    "প্রতিটি চুক্তিতে মাসের শেষ পর্যন্ত যা পাওনা তা বসানো আছে। ভেঞ্চার হিসাবের স্টেটমেন্টে যেগুলো এসেছে সেগুলোতে টিক দিন, সঙ্গে আসার দিন ও রেফারেন্স লিখুন: সব একসাথে লেখা হবে, নয়তো একটিও না।",
+  "ventures.monthGridCame": "স্টেটমেন্টে আছে",
+  "ventures.monthGridSave": "{count}টি জমা লিখুন",
+  "ventures.monthGridTaken": "{count}টি জমা লেখা হয়েছে",
+  "ventures.monthGridEmpty": "এ মাসে কোনো চুক্তির টাকা নেওয়ার নেই",
+  "ventures.monthGridFarm":
+    "খামারের নিজের ইউনিটের জমা «{act}» দিয়ে লিখুন, যেখানে খামারের কোন হিসাব থেকে গেল তা লেখা যায়।",
+  "ventures.lineRefused": "এই লাইন নেওয়া হয়নি",
+  "ventures.allShares": "সব পাওনা একসাথে পাঠান",
+  "ventures.allSharesHint":
+    "যত পাওনা এখনো যায়নি, সব এক দিনে, প্রতিটি নিজের ট্রান্সফারে: সব একসাথে লেখা হবে, নয়তো একটিও না। প্রত্যেক বিনিয়োগকারী নিজের টাকা পেয়েছেন কি না, তা আগের মতো একজন একজন করে লেখা হবে।",
+  "ventures.allSharesSave": "{count}টি পাওনা পাঠান",
+  "ventures.allSharesSent": "{count}টি পাওনা পাঠানো হয়েছে",
   "ventures.payIn.title": "জমার খবর",
   "ventures.payIn.waitingTitle":
     "বিনিয়োগকারীদের {count}টি জমার খবর ব্যাংকের সঙ্গে মেলাতে হবে",

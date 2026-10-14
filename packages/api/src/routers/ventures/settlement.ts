@@ -8,6 +8,7 @@ import {
 } from "@OpenFarm/db/schema/venture-account";
 import type { PaymentMethod } from "@OpenFarm/domain";
 import {
+  MANY_AT_ONCE,
   farmDayOf,
   farmsOwnPayout,
   roundMoney,
@@ -23,6 +24,7 @@ import { counterpartyNamed } from "../../counterparty-store";
 import { farmsOwnOf } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
 import { lockTheFarm } from "../../farm-lock";
+import { assertEachReferenceOnce, onRow } from "../../grid-row";
 import { protectedProcedure } from "../../index";
 import { farmAccountIdInput } from "../../money-inputs";
 import {
@@ -79,6 +81,136 @@ interface GoingOut {
   farmsOwn?: { capitalMoney: number };
 }
 
+/** Who pays a Settlement's money: narrower than `Context` on two counts, because the Farm's share is booked onto the
+ *  Farm's own books and a booking needs both — somebody did this, and it was done in a Role. */
+type Paying = Context & {
+  actor: { id: string };
+  roleUsed: NonNullable<Context["roleUsed"]>;
+};
+
+/** One payment's day, transfer and, for the Farm's own side of it, the Farm Account it went into or came out of. */
+interface PaymentSaid {
+  ventureId: string;
+  movedOn: string;
+  paymentMethod: PaymentMethod;
+  reference: string;
+  /** The Farm Account the Farm's own side of it went into or came out of: its share, or its share of a loss. */
+  farmAccountId?: string;
+}
+
+type PaymentKind = "payout" | "advance_repaid" | "farm_share" | "farm_loss_in";
+
+/** What an approved Settlement owes on one payment, and what the payment marks off when it lands. */
+type Owed = (
+  approved: NonNullable<Awaited<ReturnType<typeof approvedSettlementOf>>>
+) => GoingOut;
+
+/**
+ * One payment against an approved Settlement, on a transaction already holding the Farm's lock: refused when nothing has
+ * been approved, then the Venture's money moved, what it pays marked off, and the Farm's own side of it on the Farm's
+ * own books. Whether the run is now settled is asked once its payments are all in, by whoever sent them.
+ */
+const sendOne = async (
+  context: Paying,
+  tx: Tx,
+  input: PaymentSaid,
+  kind: PaymentKind,
+  owed: Owed,
+  now: Date
+): Promise<number> => {
+  const approved = await approvedSettlementOf(
+    tx,
+    context.farm.id,
+    input.ventureId
+  );
+  if (!approved) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Nothing is owed until the Settlement is approved",
+      data: { refusal: "not_yet_approved" },
+    });
+  }
+  const going = owed(approved);
+  const movementId = await payOut(
+    tx,
+    context.farm.id,
+    {
+      ventureId: input.ventureId,
+      kind,
+      amountMoney: going.amountMoney,
+      movedOn: input.movedOn,
+      reference: input.reference,
+    },
+    { actorId: context.actor.id, now }
+  );
+  await going.mark(tx, movementId);
+  // The Farm's own Units paid out: its capital home to its own books, and its share of the profit on that capital as
+  // its income — two Money Events, so the payout is never read whole as the Farm's earnings.
+  if (going.farmsOwn) {
+    const { capitalBackMoney, returnMoney } = farmsOwnPayout({
+      capitalMoney: going.farmsOwn.capitalMoney,
+      payoutMoney: going.amountMoney,
+    });
+    // One transfer, two parts: a Farm Account takes a reference once, so the return carries the transfer's reference
+    // marked as its part. The account's month still adds up to the bank's, which is what its Bank Check reads.
+    for (const [source, amountMoney, reference] of [
+      ["venture_capital_back", capitalBackMoney, input.reference],
+      [
+        "venture_capital_return",
+        returnMoney,
+        `${input.reference}${RETURN_PART}`,
+      ],
+    ] as const) {
+      if (amountMoney > 0) {
+        // oxlint-disable-next-line no-await-in-loop -- one transaction, one statement at a time
+        await bookMoney(
+          tx,
+          bookingOf(
+            context,
+            context.roleUsed,
+            now,
+            accountSaid([source], { ...input, reference })
+          ),
+          {
+            source,
+            sourceId: movementId,
+            amountMoney,
+            occurredAt: startOfFarmDay(input.movedOn),
+            counterpartyId: null,
+            paymentMethod: input.paymentMethod,
+          }
+        );
+      }
+    }
+  }
+  // The Farm's share is the one part of a Settlement that is the Farm's own earnings, so it lands
+  // on the Farm's books as income. An Investor's payout and the Owner's Advance coming back are
+  // not: that money was never the Farm's, and counting it would read a run's whole proceeds as the
+  // Farm's own.
+  //
+  // The Farm's share of a loss is the same money the other way: the Farm's own taka, going in to carry
+  // its part of a run that lost, and so on the Farm's books as money out.
+  if (kind === "farm_share" || kind === "farm_loss_in") {
+    await bookMoney(
+      tx,
+      bookingOf(
+        context,
+        context.roleUsed,
+        now,
+        accountSaid(["farm_share", "farm_loss"], input)
+      ),
+      {
+        source: kind === "farm_share" ? "farm_share" : "farm_loss",
+        sourceId: movementId,
+        amountMoney: going.amountMoney,
+        occurredAt: startOfFarmDay(input.movedOn),
+        counterpartyId: null,
+        paymentMethod: input.paymentMethod,
+      }
+    );
+  }
+  return going.amountMoney;
+};
+
 /**
  * One payment against an approved Settlement, whichever of the four it is: three going out, and the Farm's
  * share of a loss coming in.
@@ -89,123 +221,47 @@ interface GoingOut {
  * pay. What differs is who is owed and what it marks off, which is all `owed` decides.
  */
 const moveSettlementMoney = async (
-  // Narrower than `Context` on two counts, because the Farm's share is booked onto the Farm's own
-  // books and a booking needs both: somebody did this, and it was done in a Role.
-  context: Context & {
-    actor: { id: string };
-    roleUsed: NonNullable<Context["roleUsed"]>;
-  },
-  input: {
-    ventureId: string;
-    movedOn: string;
-    paymentMethod: PaymentMethod;
-    reference: string;
-    /** The Farm Account the Farm's own side of it went into or came out of: its share, or its share of a loss. */
-    farmAccountId?: string;
-  },
-  kind: "payout" | "advance_repaid" | "farm_share" | "farm_loss_in",
-  owed: (
-    approved: NonNullable<Awaited<ReturnType<typeof approvedSettlementOf>>>
-  ) => GoingOut
+  context: Paying,
+  ventureId: string,
+  payments: readonly {
+    input: Omit<PaymentSaid, "ventureId">;
+    kind: PaymentKind;
+    owed: Owed;
+  }[]
 ) => {
   const now = context.clock.now();
-  const row = await ours(context, input.ventureId);
-  assertByBank(input.paymentMethod);
+  const row = await ours(context, ventureId);
+  for (const one of payments) {
+    assertByBank(one.input.paymentMethod);
+  }
   return await audited(context).write(
     {
       entity: "venture_settlement",
       entityId: row.id,
       action: "update",
+      // The Farm first, before the Settlement as it stood is read: what is owed is only true behind the lock, and so is
+      // the before the trail keeps of it.
+      reachesMoney: true,
       before: (tx) => readSettlement(tx, context.farm.id, row.id),
       after: (tx) => readSettlement(tx, context.farm.id, row.id),
     },
     async (tx) => {
-      await lockTheFarm(tx, context.farm.id);
-      const approved = await approvedSettlementOf(tx, context.farm.id, row.id);
-      if (!approved) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "Nothing is owed until the Settlement is approved",
-          data: { refusal: "not_yet_approved" },
-        });
-      }
-      const going = owed(approved);
-      const movementId = await payOut(
-        tx,
-        context.farm.id,
-        {
-          ventureId: row.id,
-          kind,
-          amountMoney: going.amountMoney,
-          movedOn: input.movedOn,
-          reference: input.reference,
-        },
-        { actorId: context.actor.id, now }
-      );
-      await going.mark(tx, movementId);
-      // The Farm's own Units paid out: its capital home to its own books, and its share of the profit on that capital as
-      // its income — two Money Events, so the payout is never read whole as the Farm's earnings.
-      if (going.farmsOwn) {
-        const { capitalBackMoney, returnMoney } = farmsOwnPayout({
-          capitalMoney: going.farmsOwn.capitalMoney,
-          payoutMoney: going.amountMoney,
-        });
-        // One transfer, two parts: a Farm Account takes a reference once, so the return carries the transfer's reference
-        // marked as its part. The account's month still adds up to the bank's, which is what its Bank Check reads.
-        for (const [source, amountMoney, reference] of [
-          ["venture_capital_back", capitalBackMoney, input.reference],
-          [
-            "venture_capital_return",
-            returnMoney,
-            `${input.reference}${RETURN_PART}`,
-          ],
-        ] as const) {
-          if (amountMoney > 0) {
-            // oxlint-disable-next-line no-await-in-loop -- one transaction, one statement at a time
-            await bookMoney(
-              tx,
-              bookingOf(
-                context,
-                context.roleUsed,
-                now,
-                accountSaid([source], { ...input, reference })
-              ),
-              {
-                source,
-                sourceId: movementId,
-                amountMoney,
-                occurredAt: startOfFarmDay(input.movedOn),
-                counterpartyId: null,
-                paymentMethod: input.paymentMethod,
-              }
-            );
-          }
-        }
-      }
-      // The Farm's share is the one part of a Settlement that is the Farm's own earnings, so it lands
-      // on the Farm's books as income. An Investor's payout and the Owner's Advance coming back are
-      // not: that money was never the Farm's, and counting it would read a run's whole proceeds as the
-      // Farm's own.
-      //
-      // The Farm's share of a loss is the same money the other way: the Farm's own taka, going in to carry
-      // its part of a run that lost, and so on the Farm's books as money out.
-      if (kind === "farm_share" || kind === "farm_loss_in") {
-        await bookMoney(
-          tx,
-          bookingOf(
+      let paidMoney = 0;
+      for (const [index, one] of payments.entries()) {
+        try {
+          // oxlint-disable-next-line no-await-in-loop -- one transaction, one payment at a time, each marked before the next
+          paidMoney += await sendOne(
             context,
-            context.roleUsed,
-            now,
-            accountSaid(["farm_share", "farm_loss"], input)
-          ),
-          {
-            source: kind === "farm_share" ? "farm_share" : "farm_loss",
-            sourceId: movementId,
-            amountMoney: going.amountMoney,
-            occurredAt: startOfFarmDay(input.movedOn),
-            counterpartyId: null,
-            paymentMethod: input.paymentMethod,
-          }
-        );
+            tx,
+            { ...one.input, ventureId: row.id },
+            one.kind,
+            one.owed,
+            now
+          );
+        } catch (error) {
+          // A line of several is named; one payment alone is its own sheet, and says no line.
+          throw payments.length > 1 ? onRow(error, index + 1) : error;
+        }
       }
       await reachesSettledOnLastPayout(
         tx,
@@ -214,10 +270,86 @@ const moveSettlementMoney = async (
         audited(context).recordEvent,
         (inner) => readVenture(inner, context.farm.id, row.id)
       );
-      return { paidMoney: going.amountMoney };
+      return { paid: payments.length, paidMoney: roundMoney(paidMoney) };
     }
   );
 };
+
+/**
+ * What an approved Settlement owes on one Investor's share, as the Owner read it before she sent it — refused while
+ * her own Advance is still out, when the share has gone already or there is nothing to send, and when the figure is
+ * not what the paper says — and how the share is marked paid when it lands. The one rule of "Send it" and of sending
+ * them all.
+ */
+const aShareOwed =
+  (
+    context: Paying,
+    share: { agreementId: string; amountMoney: number },
+    farmsOwn: boolean
+  ): Owed =>
+  (approved) => {
+    if (
+      approved.row.advanceRepaidId === null &&
+      approved.row.advanceMoney !== 0
+    ) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "Your own money comes back before any capital does",
+        data: { refusal: "advance_comes_first" },
+      });
+    }
+    const his = approved.shares.find(
+      (one) => one.agreementId === share.agreementId
+    );
+    if (!his) {
+      throw new ORPCError("NOT_FOUND", {
+        message: "This Settlement owes nothing on that Agreement",
+      });
+    }
+    if (his.paidMovementId) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "That has already gone out",
+        data: { refusal: "already_paid" },
+      });
+    }
+    const owed = his.payoutMoney;
+    if (owed <= 0) {
+      // The run lost more than he put in, so there is nothing to send him. What he owes back is a
+      // conversation, not a movement of the Venture's money.
+      throw new ORPCError("BAD_REQUEST", {
+        message: "This Settlement owes nothing on that Agreement",
+        data: { refusal: "nothing_to_pay_him", owed },
+      });
+    }
+    if (roundMoney(share.amountMoney) !== roundMoney(owed)) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `This Settlement owes ${owed} on that Agreement`,
+        data: { refusal: "not_what_he_is_owed", owed },
+      });
+    }
+    return {
+      amountMoney: owed,
+      mark: (tx: Tx, movementId: string) =>
+        tx
+          .update(ventureSettlementShare)
+          .set({
+            paidMovementId: movementId,
+            // The Farm's own payout lands on the Farm's own books as it is sent: nobody is left to say they had it.
+            ...(farmsOwn
+              ? {
+                  acknowledgedAt: context.clock.now(),
+                  acknowledgedBy: context.actor.id,
+                }
+              : {}),
+          })
+          .where(
+            and(
+              eq(ventureSettlementShare.id, his.id),
+              eq(ventureSettlementShare.farmId, context.farm.id)
+            )
+          ),
+      ...(farmsOwn ? { farmsOwn: { capitalMoney: his.capitalMoney } } : {}),
+    };
+  };
 
 export const settlementProcedures = {
   /** A Venture's Settlement: worked out, approved, paid, and put right after. */
@@ -351,76 +483,66 @@ export const settlementProcedures = {
         const itsOwn = await farmsOwnOf(context.db, context.farm.id, [
           input.agreementId,
         ]);
+        return await moveSettlementMoney(context, input.ventureId, [
+          {
+            input,
+            kind: "payout",
+            owed: aShareOwed(context, input, itsOwn.has(input.agreementId)),
+          },
+        ]);
+      }),
+
+    /**
+     * Every Investor's share sent on one day, a transfer each: the same act as "Send it", line by line in one write, so
+     * the Owner sitting with the bank's statement writes the payouts up once rather than a sheet each. All or nothing,
+     * and a refusal names its line. Whether each Investor says he had it is still asked of him, one by one.
+     */
+    payMany: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .use(requirePasswordGiven())
+      .input(
+        z.object({
+          ventureId: z.string(),
+          movedOn: farmDay,
+          payouts: z
+            .array(
+              z.object({
+                agreementId: z.string(),
+                /** What the Owner read on the line before she sent it, as "Send it" asks. */
+                amountMoney: z.number().positive().max(1_000_000_000),
+                reference: z.string().trim().min(1).max(120),
+                /** For the Farm's own Units: the Farm Account its capital comes home to. */
+                farmAccountId: farmAccountIdInput,
+              })
+            )
+            .min(1)
+            .max(MANY_AT_ONCE),
+        })
+      )
+      .handler(async ({ context, input }) => {
+        assertEachReferenceOnce(input.payouts, "payout_reference_twice");
+        // Which of the shares are the Farm's own Units, whose payout lands on the Farm's own books.
+        const itsOwn = await farmsOwnOf(
+          context.db,
+          context.farm.id,
+          input.payouts.map((one) => one.agreementId)
+        );
         return await moveSettlementMoney(
           context,
-          input,
-          "payout",
-          (approved) => {
-            if (
-              approved.row.advanceRepaidId === null &&
-              approved.row.advanceMoney !== 0
-            ) {
-              throw new ORPCError("BAD_REQUEST", {
-                message: "Your own money comes back before any capital does",
-                data: { refusal: "advance_comes_first" },
-              });
-            }
-            const his = approved.shares.find(
-              (one) => one.agreementId === input.agreementId
-            );
-            if (!his) {
-              throw new ORPCError("NOT_FOUND", {
-                message: "This Settlement owes nothing on that Agreement",
-              });
-            }
-            if (his.paidMovementId) {
-              throw new ORPCError("BAD_REQUEST", {
-                message: "That has already gone out",
-                data: { refusal: "already_paid" },
-              });
-            }
-            const owed = his.payoutMoney;
-            if (owed <= 0) {
-              // The run lost more than he put in, so there is nothing to send him. What he owes back is a
-              // conversation, not a movement of the Venture's money.
-              throw new ORPCError("BAD_REQUEST", {
-                message: "This Settlement owes nothing on that Agreement",
-                data: { refusal: "nothing_to_pay_him", owed },
-              });
-            }
-            if (roundMoney(input.amountMoney) !== roundMoney(owed)) {
-              throw new ORPCError("BAD_REQUEST", {
-                message: `This Settlement owes ${owed} on that Agreement`,
-                data: { refusal: "not_what_he_is_owed", owed },
-              });
-            }
-            const farmsOwn = itsOwn.has(input.agreementId);
-            return {
-              amountMoney: owed,
-              mark: (tx: Tx, movementId: string) =>
-                tx
-                  .update(ventureSettlementShare)
-                  .set({
-                    paidMovementId: movementId,
-                    // The Farm's own payout lands on the Farm's own books as it is sent: nobody is left to say they had it.
-                    ...(farmsOwn
-                      ? {
-                          acknowledgedAt: context.clock.now(),
-                          acknowledgedBy: context.actor.id,
-                        }
-                      : {}),
-                  })
-                  .where(
-                    and(
-                      eq(ventureSettlementShare.id, his.id),
-                      eq(ventureSettlementShare.farmId, context.farm.id)
-                    )
-                  ),
-              ...(farmsOwn
-                ? { farmsOwn: { capitalMoney: his.capitalMoney } }
-                : {}),
-            };
-          }
+          input.ventureId,
+          input.payouts.map((payout) => ({
+            input: {
+              movedOn: input.movedOn,
+              paymentMethod: "bank" as const,
+              reference: payout.reference,
+              ...(payout.farmAccountId === undefined
+                ? {}
+                : { farmAccountId: payout.farmAccountId }),
+            },
+            kind: "payout" as const,
+            owed: aShareOwed(context, payout, itsOwn.has(payout.agreementId)),
+          }))
         );
       }),
 
@@ -440,34 +562,40 @@ export const settlementProcedures = {
         })
       )
       .handler(({ context, input }) =>
-        moveSettlementMoney(context, input, "advance_repaid", (approved) => {
-          if (approved.row.advanceRepaidId) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "Your Advance has already come back",
-              data: { refusal: "already_paid" },
-            });
-          }
-          const owed = approved.row.advanceMoney;
-          if (owed === 0) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "You put nothing of your own into this Venture",
-              data: { refusal: "no_advance_to_repay" },
-            });
-          }
-          return {
-            amountMoney: owed,
-            mark: (tx: Tx, movementId: string) =>
-              tx
-                .update(ventureSettlement)
-                .set({ advanceRepaidId: movementId })
-                .where(
-                  and(
-                    eq(ventureSettlement.id, approved.row.id),
-                    eq(ventureSettlement.farmId, context.farm.id)
-                  )
-                ),
-          };
-        })
+        moveSettlementMoney(context, input.ventureId, [
+          {
+            input,
+            kind: "advance_repaid",
+            owed: (approved) => {
+              if (approved.row.advanceRepaidId) {
+                throw new ORPCError("BAD_REQUEST", {
+                  message: "Your Advance has already come back",
+                  data: { refusal: "already_paid" },
+                });
+              }
+              const owed = approved.row.advanceMoney;
+              if (owed === 0) {
+                throw new ORPCError("BAD_REQUEST", {
+                  message: "You put nothing of your own into this Venture",
+                  data: { refusal: "no_advance_to_repay" },
+                });
+              }
+              return {
+                amountMoney: owed,
+                mark: (tx: Tx, movementId: string) =>
+                  tx
+                    .update(ventureSettlement)
+                    .set({ advanceRepaidId: movementId })
+                    .where(
+                      and(
+                        eq(ventureSettlement.id, approved.row.id),
+                        eq(ventureSettlement.farmId, context.farm.id)
+                      )
+                    ),
+              };
+            },
+          },
+        ])
       ),
 
     /**
@@ -490,34 +618,40 @@ export const settlementProcedures = {
         })
       )
       .handler(({ context, input }) =>
-        moveSettlementMoney(context, input, "farm_share", (approved) => {
-          if (approved.row.farmSharePaidId) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "The Farm's share has already been taken",
-              data: { refusal: "already_paid" },
-            });
-          }
-          const owed = approved.row.farmMoney;
-          if (owed <= 0) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "This Venture made the Farm nothing to take",
-              data: { refusal: "no_farm_share_to_take" },
-            });
-          }
-          return {
-            amountMoney: owed,
-            mark: (tx: Tx, movementId: string) =>
-              tx
-                .update(ventureSettlement)
-                .set({ farmSharePaidId: movementId })
-                .where(
-                  and(
-                    eq(ventureSettlement.id, approved.row.id),
-                    eq(ventureSettlement.farmId, context.farm.id)
-                  )
-                ),
-          };
-        })
+        moveSettlementMoney(context, input.ventureId, [
+          {
+            input,
+            kind: "farm_share",
+            owed: (approved) => {
+              if (approved.row.farmSharePaidId) {
+                throw new ORPCError("BAD_REQUEST", {
+                  message: "The Farm's share has already been taken",
+                  data: { refusal: "already_paid" },
+                });
+              }
+              const owed = approved.row.farmMoney;
+              if (owed <= 0) {
+                throw new ORPCError("BAD_REQUEST", {
+                  message: "This Venture made the Farm nothing to take",
+                  data: { refusal: "no_farm_share_to_take" },
+                });
+              }
+              return {
+                amountMoney: owed,
+                mark: (tx: Tx, movementId: string) =>
+                  tx
+                    .update(ventureSettlement)
+                    .set({ farmSharePaidId: movementId })
+                    .where(
+                      and(
+                        eq(ventureSettlement.id, approved.row.id),
+                        eq(ventureSettlement.farmId, context.farm.id)
+                      )
+                    ),
+              };
+            },
+          },
+        ])
       ),
 
     /**
@@ -543,34 +677,41 @@ export const settlementProcedures = {
         })
       )
       .handler(({ context, input }) =>
-        moveSettlementMoney(context, input, "farm_loss_in", (approved) => {
-          if (approved.row.farmSharePaidId) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "The Farm's share of the loss has already been paid in",
-              data: { refusal: "already_paid" },
-            });
-          }
-          const owed = -approved.row.farmMoney;
-          if (owed <= 0) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "This Venture made no loss for the Farm to carry",
-              data: { refusal: "no_farm_loss_to_cover" },
-            });
-          }
-          return {
-            amountMoney: owed,
-            mark: (tx: Tx, movementId: string) =>
-              tx
-                .update(ventureSettlement)
-                .set({ farmSharePaidId: movementId })
-                .where(
-                  and(
-                    eq(ventureSettlement.id, approved.row.id),
-                    eq(ventureSettlement.farmId, context.farm.id)
-                  )
-                ),
-          };
-        })
+        moveSettlementMoney(context, input.ventureId, [
+          {
+            input,
+            kind: "farm_loss_in",
+            owed: (approved) => {
+              if (approved.row.farmSharePaidId) {
+                throw new ORPCError("BAD_REQUEST", {
+                  message:
+                    "The Farm's share of the loss has already been paid in",
+                  data: { refusal: "already_paid" },
+                });
+              }
+              const owed = -approved.row.farmMoney;
+              if (owed <= 0) {
+                throw new ORPCError("BAD_REQUEST", {
+                  message: "This Venture made no loss for the Farm to carry",
+                  data: { refusal: "no_farm_loss_to_cover" },
+                });
+              }
+              return {
+                amountMoney: owed,
+                mark: (tx: Tx, movementId: string) =>
+                  tx
+                    .update(ventureSettlement)
+                    .set({ farmSharePaidId: movementId })
+                    .where(
+                      and(
+                        eq(ventureSettlement.id, approved.row.id),
+                        eq(ventureSettlement.farmId, context.farm.id)
+                      )
+                    ),
+              };
+            },
+          },
+        ])
       ),
 
     /**

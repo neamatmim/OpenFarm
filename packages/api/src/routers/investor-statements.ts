@@ -16,6 +16,7 @@ import { protectedProcedure } from "../index";
 import {
   joiningLetterFor,
   progressStatementFor,
+  progressStatementsOf,
   settlementStatementFor,
 } from "../investor-papers";
 import { nominationSignedWith, paperNominees } from "../nomination-store";
@@ -526,6 +527,18 @@ export const investorStatementsRouter = {
     .input(z.object({ agreementId: z.string() }))
     .handler(({ context, input }) =>
       progressStatementFor(context, input.agreementId)
+    ),
+
+  /**
+   * অগ্রগতি for every Investor of a Venture at once, for the month's printing: the papers one after another, each kept
+   * in the trail as its own; one that cannot be made yet named with why.
+   */
+  progressAll: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string() }))
+    .handler(({ context, input }) =>
+      progressStatementsOf(context, input.ventureId)
     ),
 
   /**

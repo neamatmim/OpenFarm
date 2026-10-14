@@ -10,6 +10,10 @@ import { StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { FarmAccountField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
+import { useFreshFor } from "@/lib/fresh-for";
+import { useMoney } from "@/lib/money";
+import type { PayoutLine } from "@/lib/month-grid";
+import { payoutLinesOf, payoutsOf, refusedLineOf } from "@/lib/month-grid";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -231,6 +235,146 @@ export const PayOutSheet = ({
           value={farmAccountId}
         />
       ) : null}
+    </FormSheet>
+  );
+};
+
+/** One line of the payout sheet: whose share, how much, and the transfer it went on. */
+const PayoutRow = ({
+  line,
+  refused,
+  onChange,
+}: {
+  line: PayoutLine;
+  refused: boolean;
+  onChange: (line: PayoutLine) => void;
+}) => {
+  const { t } = useLanguage();
+  const asMoney = useMoney();
+  const id = `payout-${line.agreementId}`;
+  return (
+    <fieldset
+      aria-invalid={refused || undefined}
+      className="aria-invalid:border-destructive flex flex-col gap-3 rounded-lg border p-3"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-medium">{line.name}</span>
+        <span className="tabular-nums">{asMoney(line.amountMoney)}</span>
+      </div>
+      {refused ? (
+        <p className="text-destructive text-sm">{t("ventures.lineRefused")}</p>
+      ) : null}
+      <FormField id={`${id}-reference`} label={t("ventures.reference")}>
+        <Input
+          autoComplete="off"
+          id={`${id}-reference`}
+          onChange={(event) =>
+            onChange({ ...line, reference: event.target.value })
+          }
+          value={line.reference}
+        />
+      </FormField>
+      {line.farmsOwn ? (
+        <FarmAccountField
+          id={`${id}-account`}
+          kind="bank"
+          onChange={(farmAccountId) => onChange({ ...line, farmAccountId })}
+          value={line.farmAccountId}
+        />
+      ) : null}
+    </fieldset>
+  );
+};
+
+/**
+ * Every Investor's share still to go, sent on one day from one sheet, each on its own transfer — the same act as "Send
+ * it", written together or not at all. A line the farm refuses is marked, the rest kept as typed. Whether each Investor
+ * says he had his is still written down one by one, from his row.
+ */
+export const AllPayoutsSheet = ({
+  ventureId,
+  shares,
+  farmsOwn,
+  open,
+  onOpenChange,
+}: {
+  ventureId: string;
+  shares: readonly Share[];
+  /** The Farm's own Units' papers, whose payout comes home to one of the Farm's own bank accounts. */
+  farmsOwn: ReadonlySet<string>;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  const [movedOn, setMovedOn] = useState("");
+  const [lines, setLines] = useState<PayoutLine[]>([]);
+  const [refusedAt, setRefusedAt] = useState<string | null>(null);
+  // Filled again whenever what is still to go has moved: a share sent from its row is not offered here again.
+  useFreshFor(
+    open
+      ? `${ventureId}:${shares.map((one) => `${one.agreementId}=${one.paid}`).join(",")}`
+      : undefined,
+    () => {
+      setLines(payoutLinesOf(shares, farmsOwn));
+      setMovedOn("");
+      setRefusedAt(null);
+    }
+  );
+  const sending = useMutation(
+    orpc.ventures.settlement.payMany.mutationOptions({
+      onError: (error) => {
+        const at = refusedLineOf(error);
+        setRefusedAt(at === null ? null : (lines[at]?.agreementId ?? null));
+        refused(error);
+      },
+      onSuccess: ({ paid }) => {
+        onOpenChange(false);
+        toast.success(t("ventures.allSharesSent", { count: paid }));
+      },
+    })
+  );
+  const ready =
+    lines.length > 0 &&
+    movedOn !== "" &&
+    lines.every((one) => one.reference.trim() !== "");
+  return (
+    <FormSheet
+      description={t("ventures.allSharesHint")}
+      onOpenChange={onOpenChange}
+      onSubmit={() =>
+        sending.mutate({ ventureId, movedOn, payouts: payoutsOf(lines) })
+      }
+      open={open}
+      pending={sending.isPending}
+      ready={ready}
+      submitLabel={t("ventures.allSharesSave", { count: lines.length })}
+      title={t("ventures.allShares")}
+      wide
+    >
+      <FormField id="payouts-day" label={t("ventures.movedOn")}>
+        <Input
+          id="payouts-day"
+          onChange={(event) => setMovedOn(event.target.value)}
+          type="date"
+          value={movedOn}
+        />
+      </FormField>
+      {lines.map((line) => (
+        <PayoutRow
+          key={line.agreementId}
+          line={line}
+          onChange={(changed) => {
+            setRefusedAt(null);
+            setLines(
+              lines.map((one) =>
+                one.agreementId === changed.agreementId ? changed : one
+              )
+            );
+          }}
+          refused={refusedAt === line.agreementId}
+        />
+      ))}
     </FormSheet>
   );
 };

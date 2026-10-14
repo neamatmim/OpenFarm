@@ -1080,6 +1080,25 @@ export const enDesk = {
   "ventures.capitalHint":
     "Money arriving for {venture}, against the paper the investor signed. By bank only.",
   "ventures.capitalTaken": "The capital is recorded",
+  "ventures.monthGrid": "This month's capital",
+  "ventures.monthGridHint":
+    "Each paper is filled with what it is asked for by the month's end. Tick the lines the venture account's statement shows, with the day and reference each came on: they are written together, or none of them.",
+  "ventures.monthGridCame": "On the statement",
+  "ventures.monthGridSave":
+    "{count, plural, one {Write # receipt} other {Write # receipts}}",
+  "ventures.monthGridTaken":
+    "{count, plural, one {# receipt is recorded} other {# receipts are recorded}}",
+  "ventures.monthGridEmpty": "No paper takes money this month",
+  "ventures.monthGridFarm":
+    "The farm's own units are written with {act}, which names the farm account they left.",
+  "ventures.lineRefused": "This line was refused",
+  "ventures.allShares": "Send every payout",
+  "ventures.allSharesHint":
+    "Every share still to go, sent on one day, each on its own transfer: they are written together, or none of them. Each investor still says he had his, one by one.",
+  "ventures.allSharesSave":
+    "{count, plural, one {Send # payout} other {Send # payouts}}",
+  "ventures.allSharesSent":
+    "{count, plural, one {# payout is sent} other {# payouts are sent}}",
   "ventures.payIn.title": "Pay-in notes",
   "ventures.payIn.waitingTitle":
     "{count, plural, one {# pay-in note} other {# pay-in notes}} from investors to check against the bank",

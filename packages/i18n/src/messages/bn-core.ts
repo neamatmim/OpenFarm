@@ -800,6 +800,9 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "statements.for": "{name}-এর কাগজপত্র",
   "statements.joining": "যোগদানপত্র",
   "statements.progress": "অগ্রগতি",
+  "statements.progressAll": "সবার অগ্রগতি",
+  "statements.progressAllHint":
+    "এ মাসে প্রত্যেক বিনিয়োগকারীর অগ্রগতি, একটির পর একটি, প্রতিটি আলাদা পাতায়।",
   "statements.settlement": "হিসাব নিকাশ",
   "statements.agreementCopy": "চুক্তির অনুলিপি ছাপুন",
   "statements.signedPaper": "সই করা কাগজের ছবি",
@@ -893,6 +896,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.confirmedFromANote":
     "এই জমা বিনিয়োগকারীর নিজের জমার খবর থেকে নিশ্চিত হয়েছে: অন্যটি বাতিল করুন",
   "refusal.capitalReferenceTaken": "এই রেফারেন্সে এই ভেঞ্চার আগেই মূলধন নিয়েছে",
+  "refusal.capitalReferenceTwice": "একই রেফারেন্স দুই লাইনে লেখা",
+  "refusal.payoutReferenceTwice": "একই রেফারেন্স দুই লাইনে লেখা",
   "correct.voidWhy": "দুবার লেখা হয়েছে, বা আসলে হয়নি",
   "correct.voidIt": "বাতিল করুন: খামারের হিসাব থেকে উঠে যাবে, টাকাসহ",
   "correct.voidAnimal": "বাতিল করুন: দুবার লেখা হয়েছে, বা সে আসেইনি",

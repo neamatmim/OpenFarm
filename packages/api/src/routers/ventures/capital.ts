@@ -2,37 +2,31 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
-import {
-  capitalItMayHold,
-  farmDayOf,
-  monthlyPaymentAllocationOf,
-  roundMoney,
-  startOfFarmDay,
-  takesCapital,
-} from "@OpenFarm/domain";
 // The Venture router's part for capital in, and the Buying Floats drawn and counted home.
-import { currencyWords } from "@OpenFarm/i18n";
+import { MANY_AT_ONCE, roundMoney } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../../audit";
 import { audited } from "../../audit";
+import type { Allocated } from "../../capital-receipt-store";
+import {
+  assertTakesCapital,
+  receiveCapital,
+  receiveMonthsCapital,
+  theAgreement,
+} from "../../capital-receipt-store";
 import { assertTheHand } from "../../cash-store";
 import { changeByOf } from "../../closed-month-store";
-import { isTheFarmsOwn } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
 import { lockTheFarm } from "../../farm-lock";
 import { protectedProcedure } from "../../index";
 import { theOwnersOf } from "../../intake-store";
-import { paperOnFile } from "../../investor-store";
-import { accountSaid, bookMoney, bookingOf } from "../../money-store";
 import {
   answerNotFound,
-  closePayInNotes,
   notFoundInput,
   notePhoto,
   notesOnVenture,
-  receiveTheNote,
 } from "../../pay-in-notes";
 import {
   OWNER_ONLY,
@@ -49,9 +43,7 @@ import {
 } from "../../venture-act";
 import {
   assertCattleBudgetHolds,
-  paidForBy,
   readMovement,
-  takenAgainst,
   whatTheFloatBought,
 } from "../../venture-store";
 import { assertByBank, money } from "./shared";
@@ -74,37 +66,6 @@ const capitalInput = z.object({
   /** For the Farm's own Units: the Farm Account its capital left, where the farm lists its accounts. */
   farmAccountId: z.string().optional(),
 });
-
-/** Open, any Venture; paid by the month, its Monthly Sums too while it buys and fattens. Once it sells, a sum not yet
- *  paid is not paid, and the man shares by what he did pay (the advisers' answers, 2026-10-02). */
-const assertTakesCapital = (
-  row: Parameters<typeof takesCapital>[0] & { capitalPaid: string }
-) => {
-  if (!takesCapital(row)) {
-    throw new ORPCError("BAD_REQUEST", {
-      message:
-        row.capitalPaid === "by_the_month"
-          ? "A Venture paid by the month takes its Monthly Sums only until it starts selling"
-          : "A Venture takes capital only while it is open",
-      data: { refusal: "venture_wrong_state" },
-    });
-  }
-};
-
-/** This Farm's Investment Agreement, or nothing the caller may move money against. */
-const theAgreement = async (
-  context: { db: Pick<Tx, "query">; farm: { id: string } },
-  id: string
-) => {
-  const row = await context.db.query.investmentAgreement.findFirst({
-    where: { id, farmId: context.farm.id },
-    columns: { id: true, ventureId: true, units: true, stampKind: true },
-  });
-  if (!row) {
-    throw new ORPCError("NOT_FOUND", { message: "No such Agreement" });
-  }
-  return row;
-};
 
 /**
  * An outing already bringing the Farm's or another Venture's animals home cannot be funded by this one: the
@@ -139,28 +100,6 @@ const assertTheOutingIsFree = async (
   }
 };
 
-/** Refuses capital under a reference this Venture's capital already holds: the same transfer written up twice. */
-const assertReferenceNotTaken = async (
-  tx: Tx,
-  {
-    farmId,
-    ventureId,
-    reference,
-  }: { farmId: string; ventureId: string; reference: string }
-) => {
-  const taken = await tx.query.ventureMovement.findMany({
-    where: { farmId, ventureId, kind: "capital_in" },
-    columns: { reference: true },
-  });
-  const said = reference.trim().toLowerCase();
-  if (taken.some((one) => one.reference.trim().toLowerCase() === said)) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "This Venture has already taken capital under that reference",
-      data: { refusal: "capital_reference_taken" },
-    });
-  }
-};
-
 export const capitalProcedures = {
   /**
    * The Investors' capital as it lands: which paper it came against, how much, the day the bank moved
@@ -184,13 +123,9 @@ export const capitalProcedures = {
         });
       }
       const agreement = await theAgreement(context, input.agreementId);
-      const row = await ours(context, agreement.ventureId);
-      assertTakesCapital(row);
+      assertTakesCapital(await ours(context, agreement.ventureId));
       const id = uuidv7(now);
-      let allocation: {
-        before: ReturnType<typeof monthlyPaymentAllocationOf>;
-        after: ReturnType<typeof monthlyPaymentAllocationOf>;
-      } | null = null;
+      let allocation: Allocated | null = null;
       return await audited(context).write(
         {
           entity: "venture_movement",
@@ -202,134 +137,36 @@ export const capitalProcedures = {
           }),
         },
         async (tx) => {
-          // Counted inside the write's own transaction and behind a lock on the Farm row, as signing
-          // counts its Units: what an Agreement has taken is only true until the next payment commits,
-          // and two arriving together each read a figure that still leaves room for the other. Capital
-          // divides by Units, so a Unit paid for twice would take twice its share of the profit while
-          // holding one share of the Venture.
           await lockTheFarm(tx, context.farm.id);
-          // Asked again behind the lock: a Venture canceled or moved on at the same moment takes nothing.
-          const standing = await tx.query.venture.findFirst({
-            where: { id: row.id, farmId: context.farm.id },
-          });
-          if (!standing) {
-            throw new ORPCError("NOT_FOUND", { message: "No such Venture" });
-          }
-          assertTakesCapital(standing);
-          const currentAgreement = await theAgreement(
-            { ...context, db: tx },
-            agreement.id
-          );
-          const owed = capitalItMayHold(currentAgreement.units, standing);
-          const paidAlready = await takenAgainst(
-            tx,
-            context.farm.id,
-            agreement.id
-          );
-          const paidNow = roundMoney(paidAlready + input.amountMoney);
-          if (paidNow > owed) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: `This Agreement is for ${Math.max(0, owed - paidAlready)} more ${currencyWords("en").sum}`,
-              data: { refusal: "capital_over_units" },
-            });
-          }
-          const { monthly } = paidForBy(standing);
-          if (monthly) {
-            const terms = {
-              units: currentAgreement.units,
-              unitPriceMoney: standing.unitPriceMoney,
-              monthly,
-              today: farmDayOf(now),
-            };
-            allocation = {
-              before: monthlyPaymentAllocationOf({
-                ...terms,
-                paidMoney: paidAlready,
-              }),
-              after: monthlyPaymentAllocationOf({
-                ...terms,
-                paidMoney: paidNow,
-              }),
-            };
-          }
-          // Asked after the count, which is the order these two were refused in before the count moved
-          // inside the lock: a payment that is both unpapered and over its Units hears the same of the
-          // two things it heard before.
-          const photo = await tx.query.agreementPaper.findFirst({
-            where: { agreementId: agreement.id, farmId: context.farm.id },
-            columns: { agreementId: true },
-          });
-          if (!paperOnFile(currentAgreement, photo !== undefined)) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "The stamped Agreement is not on file yet",
-              data: { refusal: "agreement_has_no_paper" },
-            });
-          }
-          // One transfer is one payment: the same reference taken twice raised an Investor's share of the profit by money
-          // he never sent.
-          await assertReferenceNotTaken(tx, {
-            farmId: context.farm.id,
-            ventureId: agreement.ventureId,
-            reference: input.reference,
-          });
-          await tx.insert(ventureMovement).values({
+          const received = await receiveCapital(context, tx, input, {
             id,
-            farmId: context.farm.id,
-            ventureId: agreement.ventureId,
-            kind: "capital_in",
-            agreementId: agreement.id,
-            amountMoney: input.amountMoney,
-            movedOn: input.movedOn,
-            reference: input.reference,
-            recordedBy: context.actor.id,
-            createdAt: now,
+            now,
           });
-          // The Farm's own Units are paid for with the Farm's own money: it leaves the Farm's books as it lands here.
-          if (isTheFarmsOwn(agreement)) {
-            await bookMoney(
-              tx,
-              bookingOf(
-                context,
-                "owner",
-                now,
-                accountSaid(["venture_capital_out"], {
-                  reference: input.reference,
-                  ...(input.farmAccountId === undefined
-                    ? {}
-                    : { farmAccountId: input.farmAccountId }),
-                })
-              ),
-              {
-                source: "venture_capital_out",
-                sourceId: id,
-                amountMoney: input.amountMoney,
-                occurredAt: startOfFarmDay(input.movedOn),
-                counterpartyId: null,
-                paymentMethod: "bank",
-              }
-            );
-          }
-          if (input.payInNoteId) {
-            await receiveTheNote(context, tx, {
-              noteId: input.payInNoteId,
-              agreementId: agreement.id,
-              movementId: id,
-            });
-          }
-          // Nothing left owing: a note still waiting is for money the paper cannot take.
-          if (paidNow >= owed) {
-            await closePayInNotes(
-              tx,
-              audited(context).recordEvent,
-              context.farm.id,
-              { agreementId: agreement.id },
-              "nothing_owed",
-              now
-            );
-          }
-          return { id, allocation };
+          ({ allocation } = received);
+          return received;
         }
       );
+    }),
+
+  /**
+   * A month's capital from the grid: each row the Owner found on the Venture Account's statement, its own receipt as the
+   * capital sheet takes one, all of them in one write or none. A refusal names the grid's line it came from.
+   */
+  takeMonthsCapital: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        ventureId: z.string(),
+        receipts: z
+          .array(capitalInput.omit({ paymentMethod: true }))
+          .min(1)
+          .max(MANY_AT_ONCE),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      assertTakesCapital(await ours(context, input.ventureId));
+      return await receiveMonthsCapital(context, input);
     }),
 
   /** The Investors' Pay-in Notes on a Venture, the Owner's to check against the Venture Account (ADR 0018). */
