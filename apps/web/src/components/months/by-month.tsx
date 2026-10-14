@@ -136,12 +136,22 @@ export const YearFigures = ({ year }: { year: Stretch }) => {
           label: t("months.milkSold"),
           value: asMoney(dairy.milkSoldMoney),
           hint:
-            dairy.fetchedPerLiterMoney === null
-              ? undefined
-              : t("months.milkSoldHint", {
-                  liters: formatNumber(dairy.litersSold, language),
-                  fetched: perLiter(dairy.fetchedPerLiterMoney),
-                }),
+            [
+              dairy.fetchedPerLiterMoney === null
+                ? null
+                : t("months.milkSoldHint", {
+                    liters: formatNumber(dairy.litersSold, language),
+                    fetched: perLiter(dairy.fetchedPerLiterMoney),
+                  }),
+              // Missing from an answer kept from before the price could follow: none was sent so.
+              (dairy.litersPriceToFollow ?? 0) > 0
+                ? t("months.priceToFollowHint", {
+                    liters: dairy.litersPriceToFollow,
+                  })
+                : null,
+            ]
+              .filter((one) => one !== null)
+              .join(" · ") || undefined,
           icon: Milk,
         },
         {

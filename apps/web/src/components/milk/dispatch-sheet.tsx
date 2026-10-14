@@ -1,10 +1,16 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
+import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ComponentProps } from "react";
 import { useState } from "react";
 
-import { FormField, FormSheet, WorkedOut } from "@/components/page-kit";
+import {
+  ChoiceCard,
+  FormField,
+  FormSheet,
+  WorkedOut,
+} from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
 import {
   accountSent,
@@ -13,10 +19,10 @@ import {
 } from "@/components/payment-method";
 import { ReceivableFields, BuyerOwes } from "@/components/receivable-fields";
 import { useLanguage } from "@/i18n/language-provider";
-import { dispatchProblem } from "@/lib/dispatch-validation";
+import { dispatchMoneySent, dispatchProblem } from "@/lib/dispatch-validation";
 import type { BuyerTyping } from "@/lib/milk-buyer-terms";
-import { afterNaming, NOBODY_PICKED } from "@/lib/milk-buyer-terms";
-import { receivableSent, somethingPaid } from "@/lib/receivable";
+import { afterNaming, mayFollow, NOBODY_PICKED } from "@/lib/milk-buyer-terms";
+import { somethingPaid } from "@/lib/receivable";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -120,7 +126,7 @@ export const DispatchSheet = ({
   // What is typed, what is said of the money, and whose terms are in the boxes: one state, so naming a buyer changes
   // all three together.
   const [typing, setTyping] = useState(SHEET_OPENS);
-  const { form, receivable, filledFrom } = typing;
+  const { form, receivable, filledFrom, priceToFollow } = typing;
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
   const buyers = useQuery({
@@ -156,7 +162,7 @@ export const DispatchSheet = ({
         : { ...current, form: { ...current.form, [name]: value } }
     );
   const worthMoney = worthOf(Number(form.liters), Number(form.price));
-  const problem = dispatchProblem(form, receivable, worthMoney);
+  const problem = dispatchProblem(form, receivable, worthMoney, priceToFollow);
   const box = { draft: form, onType: handleType };
 
   return (
@@ -177,13 +183,16 @@ export const DispatchSheet = ({
             phone: written(form.buyerPhone),
           },
           deliveryNote: written(form.deliveryNote),
-          pricePerLiterMoney: Number(form.price),
           fatPercent: typed(form.fat),
           snfPercent: typed(form.snf),
           note: written(form.note),
           paymentMethod,
-          ...accountSent(paymentMethod, account),
-          ...receivableSent(receivable),
+          ...(priceToFollow ? {} : accountSent(paymentMethod, account)),
+          ...dispatchMoneySent({
+            price: form.price,
+            priceToFollow,
+            receivable,
+          }),
         })
       }
       open={open}
@@ -202,16 +211,38 @@ export const DispatchSheet = ({
           name="liters"
           required
         />
-        <DispatchInput
-          {...box}
-          {...FIGURE}
-          label={t("dispatch.price")}
-          min={0.01}
-          name="price"
-          required
-        />
+        {priceToFollow ? null : (
+          <DispatchInput
+            {...box}
+            {...FIGURE}
+            label={t("dispatch.price")}
+            min={0.01}
+            name="price"
+            required
+          />
+        )}
       </div>
-      <Worth form={form} />
+      {mayFollow(filledFrom) ? (
+        <ChoiceCard htmlFor="dispatch-price-to-follow">
+          <Checkbox
+            checked={priceToFollow}
+            id="dispatch-price-to-follow"
+            onCheckedChange={(checked) =>
+              setTyping((current) => ({
+                ...current,
+                priceToFollow: checked === true,
+              }))
+            }
+          />
+          <span className="flex flex-col gap-0.5">
+            {t("dispatch.priceToFollow")}
+            <span className="text-muted-foreground text-xs">
+              {t("dispatch.priceToFollowHint")}
+            </span>
+          </span>
+        </ChoiceCard>
+      ) : null}
+      {priceToFollow ? null : <Worth form={form} />}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
@@ -255,25 +286,27 @@ export const DispatchSheet = ({
       />
       <BuyerOwes name={form.buyerName} />
 
-      <ReceivableFields
-        idPrefix="dispatch-receivable"
-        onType={(patch) =>
-          setTyping((current) => ({
-            ...current,
-            receivable: { ...current.receivable, ...patch },
-          }))
-        }
-        promiseRequired={false}
-        typed={receivable}
-        worthMoney={worthMoney}
-      />
+      {priceToFollow ? null : (
+        <ReceivableFields
+          idPrefix="dispatch-receivable"
+          onType={(patch) =>
+            setTyping((current) => ({
+              ...current,
+              receivable: { ...current.receivable, ...patch },
+            }))
+          }
+          promiseRequired={false}
+          typed={receivable}
+          worthMoney={worthMoney}
+        />
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <DispatchInput
           {...box}
           label={t("dispatch.deliveryNote")}
           name="deliveryNote"
         />
-        {somethingPaid(receivable) ? (
+        {!priceToFollow && somethingPaid(receivable) ? (
           <PaymentMethodField
             account={{ typed: account, onChange: setAccount }}
             id="dispatch-paid-by"

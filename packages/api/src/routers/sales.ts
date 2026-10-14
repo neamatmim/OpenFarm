@@ -18,6 +18,7 @@ import {
 } from "../animal-price-store";
 import { audited } from "../audit";
 import { assertTheHand } from "../cash-store";
+import { changeByOf } from "../closed-month-store";
 import { correct } from "../corrections/correction";
 import { saleCorrection, saleCorrectionInput } from "../corrections/sale";
 import { counterpartyNamed } from "../counterparty-store";
@@ -34,6 +35,7 @@ import { accountSaid, bookingOf } from "../money-store";
 import { closePayInNotes } from "../pay-in-notes";
 import { fatteningRows } from "../ready-store";
 import {
+  answerForCredit,
   receivableOrRefuse,
   paidNowInput,
   promisedByInput,
@@ -273,6 +275,8 @@ export const salesRouter = {
               input.heldBy
             )
           );
+          // What he left owing is the month's too: into a closed month, the Owner's alone (ADR 0028 addendum).
+          await answerForCredit(tx, changeByOf(context, now), "sale", id, null);
           // Told, never refused: the livestock market is the Manager's call, and what she cost is the Owner's to read.
           await tellIfSoldUnderCost(tx, context.farm.id, id, now);
           await tellIfLentAfterWriteOff(

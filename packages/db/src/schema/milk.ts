@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   index,
   integer,
   numeric,
@@ -98,6 +100,88 @@ export const milkRecord = pgTable(
 );
 
 /**
+ * A **Buyer Statement**: the milk buyer's own account of a stretch of farm days — the liters he counted, what he pays for
+ * them, and as he says, the average fat and SNF and the rate he set from them — with its number and date. Recorded, it
+ * prices every Dispatch to him in those days whose price was to follow, by its liters' share of what is left of the
+ * amount once the milk already priced is taken off, and so makes what he owes for them his Receivable (ADR 0033). Voided
+ * by the Owner with a reason, never deleted: the milk it priced goes back to price to follow.
+ */
+export const buyerStatement = pgTable(
+  "buyer_statement",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    counterpartyId: text("counterparty_id")
+      .notNull()
+      .references(() => counterparty.id),
+    /** The statement's own number, when the buyer prints one. */
+    number: text("number"),
+    /** The farm days ("YYYY-MM-DD") it covers, both counted, and the day it is dated. */
+    fromDay: text("from_day").notNull(),
+    toDay: text("to_day").notNull(),
+    statedOn: text("stated_on").notNull(),
+    /** The day he pays it by: what the milk it priced is owed by. */
+    payBy: text("pay_by").notNull(),
+    /** The buyer's count of the liters, and what he pays for them. */
+    liters: numeric("liters", { precision: 10, scale: 2 }).notNull(),
+    amountMoney: numericMoney("amount_money").notNull(),
+    fatPercent: numeric("fat_percent", { precision: 4, scale: 2 }),
+    snfPercent: numeric("snf_percent", { precision: 4, scale: 2 }),
+    ratePerLiterMoney: numeric("rate_per_liter_money", {
+      precision: 8,
+      scale: 2,
+    }),
+    note: text("note"),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
+    voidedBy: text("voided_by").references(() => user.id),
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
+    voidReason: text("void_reason"),
+  },
+  (table) => [
+    index("buyer_statement_buyer_idx").on(
+      table.farmId,
+      table.counterpartyId,
+      table.fromDay
+    ),
+    /** One number once for a buyer, among the statements standing. */
+    uniqueIndex("buyer_statement_number_uidx")
+      .on(table.farmId, table.counterpartyId, sql`lower(${table.number})`)
+      .where(sql`${table.voidedAt} is null and ${table.number} is not null`),
+    check("buyer_statement_days", sql`${table.toDay} >= ${table.fromDay}`),
+    check("buyer_statement_liters_not_negative", sql`${table.liters} >= 0`),
+    check(
+      "buyer_statement_rate_per_liter_money_not_negative",
+      sql`${table.ratePerLiterMoney} >= 0`
+    ),
+    check(
+      "buyer_statement_amount_money_not_negative",
+      sql`${table.amountMoney} >= 0`
+    ),
+    check(
+      "buyer_statement_recorded_by_role_known",
+      sql`${table.recordedByRole} IN ('owner', 'manager', 'staff', 'vet')`
+    ),
+  ]
+);
+
+/** A photograph of a Buyer Statement, kept apart from it so a list of statements does not carry every image. */
+export const buyerStatementPhoto = pgTable("buyer_statement_photo", {
+  statementId: text("statement_id")
+    .primaryKey()
+    .references(() => buyerStatement.id),
+  farmId: text("farm_id")
+    .notNull()
+    .references(() => farm.id, { onDelete: "cascade" }),
+  contentType: text("content_type").notNull(),
+  data: text("data").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+});
+
+/**
  * Bulk milk handed over to a buyer: when, how many liters, to whom, the delivery note the buyer's collector
  * wrote, the price, and the fat and SNF if the processor measured them.
  *
@@ -122,10 +206,16 @@ export const dispatch = pgTable(
     buyerAddress: text("buyer_address"),
     /** The collector's slip number, when the buyer gives one. A buyer at the gate may not. */
     deliveryNote: text("delivery_note"),
+    /** Nothing for milk sent with its price to follow, and it stays nothing: its **Buyer Statement** prices the milk as
+     *  a whole — what it came to is its Receivable — and never writes a price per liter here. */
     pricePerLiterMoney: numeric("price_per_liter_money", {
       precision: 8,
       scale: 2,
-    }).notNull(),
+    }),
+    /** The Buyer Statement that priced it, where its price was to follow: its milk then came to its Receivable. */
+    buyerStatementId: text("buyer_statement_id").references(
+      () => buyerStatement.id
+    ),
     fatPercent: numeric("fat_percent", { precision: 4, scale: 2 }),
     snfPercent: numeric("snf_percent", { precision: 4, scale: 2 }),
     /** What the buyer still owed for this milk when it left — its **Receivable**. Nothing for milk paid for at the gate, as
@@ -139,5 +229,18 @@ export const dispatch = pgTable(
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
     recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
-  (table) => [index("dispatch_farm_idx").on(table.farmId, table.dispatchedAt)]
+  (table) => [
+    index("dispatch_farm_idx").on(table.farmId, table.dispatchedAt),
+    index("dispatch_buyer_statement_idx").on(table.buyerStatementId),
+    /** A statement prices only milk whose price was to follow. */
+    check(
+      "dispatch_priced_once",
+      sql`${table.buyerStatementId} is null or ${table.pricePerLiterMoney} is null`
+    ),
+    /** Milk whose price is still to follow is owed nothing yet. */
+    check(
+      "dispatch_to_follow_owes_nothing",
+      sql`${table.pricePerLiterMoney} is not null or ${table.buyerStatementId} is not null or ${table.receivableMoney} = 0`
+    ),
+  ]
 );

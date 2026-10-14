@@ -23,6 +23,7 @@ import {
   monthsReturnOf,
   owedToSuppliersByAge,
   receivablesByAge,
+  roundLiters,
   roundMoney,
   sideResultsOf,
   inThePitAt,
@@ -51,7 +52,7 @@ import { THE_FARMS_PURSE } from "./money-store";
 import type { OverheadMoneyOn } from "./overhead-store";
 import { overheadMoneyIn, overheadsOf } from "./overhead-store";
 import {
-  fetchedPerLiter,
+  milkFetched,
   receivableOfBuyers,
   writtenOffByItem,
 } from "./receivable-store";
@@ -108,7 +109,10 @@ interface Read {
     id: string;
     dispatchedAt: Date;
     liters: string;
-    pricePerLiterMoney: string;
+    pricePerLiterMoney: string | null;
+    receivableMoney: number;
+    buyerStatementId: string | null;
+    buyerStatement: { recordedAt: Date } | null;
   }[];
   /** What stays written off of each Dispatch: milk a buyer never paid for did not fetch its price. */
   writtenOff: ReadonlyMap<string, number>;
@@ -145,13 +149,18 @@ const figuresOver = (
   const within = (at: Date) => at >= from && at < until;
   const sides = costsBySide(costs, { from, until });
   const cash = summarizeMoney(money.filter((one) => within(one.occurredAt)));
-  const milk = milkPriceOf(
-    dispatched
-      .filter((one) => within(one.dispatchedAt))
-      .map((one) => ({
-        liters: Number(one.liters),
-        pricePerLiterMoney: fetchedPerLiter(one, writtenOff),
-      }))
+  // Milk whose price is still to follow is liters, not money: said apart, never counted at a price nobody has set.
+  const fetched = milkFetched(
+    dispatched.filter((one) => within(one.dispatchedAt)),
+    writtenOff
+  );
+  const milk = milkPriceOf(fetched.priced);
+  // Milk of the stretch a Buyer Statement priced only after it ended: in its milk money, and owed from the statement —
+  // in no Receivable at its end — so the report says it beside the money, and the stretch ties (ADR 0033).
+  const pricedAfter = fetched.priced.filter(
+    (one) =>
+      one.row.buyerStatement !== null &&
+      one.row.buyerStatement.recordedAt >= until
   );
   const sold = sides.soldFattening.animals;
   const overheads = overheadsOf(
@@ -190,6 +199,28 @@ const figuresOver = (
     dairy: {
       milkSoldMoney: milk?.amount ?? 0,
       litersSold: milk?.liters ?? 0,
+      /** Milk sent in it whose price is still to follow, for its buyer's statement to set: in no money above. */
+      litersPriceToFollow: fetched.toFollowLiters,
+      /** Of the milk sold, what Buyer Statements recorded after it ended priced, its liters, and the farm days they
+       *  were recorded on: owed from then, so in no Receivable at its end. */
+      pricedAfterMoney: roundMoney(
+        pricedAfter.reduce(
+          (sum, one) => sum + one.liters * one.pricePerLiterMoney,
+          0
+        )
+      ),
+      pricedAfterLiters: roundLiters(
+        pricedAfter.reduce((sum, one) => sum + one.liters, 0)
+      ),
+      pricedAfterOn: [
+        ...new Set(
+          pricedAfter.flatMap((one) =>
+            one.row.buyerStatement
+              ? [farmDayOf(one.row.buyerStatement.recordedAt)]
+              : []
+          )
+        ),
+      ].toSorted(),
       /** What a liter fetched; nothing where no milk left. */
       fetchedPerLiterMoney: milk?.moneyPerLiter ?? null,
       /** Everything charged to the dairy side's animals in it. */
@@ -431,7 +462,10 @@ const readOver = async (
           dispatchedAt: true,
           liters: true,
           pricePerLiterMoney: true,
+          receivableMoney: true,
+          buyerStatementId: true,
         },
+        with: { buyerStatement: { columns: { recordedAt: true } } },
       }),
       overheadMoneyIn(db, farmId, span),
       ownersOverTime(db, farmId),

@@ -190,15 +190,20 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
       }
       const sweets = Math.round(Math.min(40, liters * 0.1));
       const deliveryNote = `চালান-${day.replaceAll("-", "").slice(2)}`;
+      const toPran = random.chance(0.8);
+      const note = `${deliveryNote}-${random.int(10, 99)}`;
+      const price = random.int(56, 60);
+      // Milk Vita tests fat and SNF and pays by its own statement: its milk goes with the price to follow (ADR 0033).
       await f.as.manager.milk.dispatch({
         dispatchedAt: onFarm(day, "08:45"),
         liters: Math.round(liters - sweets),
-        buyer: random.chance(0.8) ? MILK_BUYERS.pran : MILK_BUYERS.milkVita,
-        deliveryNote: `${deliveryNote}-${random.int(10, 99)}`,
-        pricePerLiterMoney: random.int(56, 60),
+        buyer: toPran ? MILK_BUYERS.pran : MILK_BUYERS.milkVita,
+        deliveryNote: note,
+        ...(toPran
+          ? { pricePerLiterMoney: price, ...paidBy(f, "bank") }
+          : { priceToFollow: true as const }),
         fatPercent: Math.round(random.between(3.8, 4.4) * 10) / 10,
         snfPercent: Math.round(random.between(8.1, 8.6) * 10) / 10,
-        ...paidBy(f, "bank"),
       });
       f.clock.set(onFarm(day, "09:10"));
       if (day === addDays(today, -3)) {
@@ -222,6 +227,47 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
       });
     });
   }
+  // Milk Vita's statement for an older fortnight came: its count half a percent short of the farm's, at its own rate,
+  // pricing the milk sent it then. The milk since still waits for its next statement.
+  const fromDay = addDays(today, -35);
+  const toDay = addDays(today, -21);
+  const statedOn = addDays(today, -18);
+  if (fromDay < farm.start) {
+    return;
+  }
+  on(statedOn, "11:00", "milk vita statement", async (f) => {
+    const buyers = await f.as.manager.milk.buyers();
+    const vita = buyers.find((one) => one.name === MILK_BUYERS.milkVita.name);
+    if (!vita) {
+      return;
+    }
+    const sent = await f.as.manager.milk.statementBeside({
+      counterpartyId: vita.counterpartyId,
+      fromDay,
+      toDay,
+      liters: 1,
+      amountMoney: 0,
+    });
+    if (sent.toFollowCount === 0) {
+      return;
+    }
+    const theirLiters = Math.round(sent.farmLiters * 0.995 * 10) / 10;
+    await f.as.manager.milk.recordStatement({
+      id: crypto.randomUUID(),
+      counterpartyId: vita.counterpartyId,
+      number: `MV-${toDay.replaceAll("-", "").slice(2)}`,
+      fromDay,
+      toDay,
+      statedOn,
+      // Its center pays on its round, a few days from now: owed, not yet late.
+      payBy: addDays(today, 3),
+      liters: theirLiters,
+      amountMoney: Math.round(theirLiters * 58.4),
+      fatPercent: 4.1,
+      snfPercent: 8.4,
+      ratePerLiterMoney: 58.4,
+    });
+  });
 };
 
 /** Each cow due inside the three months calves within a few days of her date, and goes back to milking. */

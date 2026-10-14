@@ -41,12 +41,12 @@ handed to the accountant could quietly stop being true. The Owner chose option A
     payments and the wage run, and every write of a Venture's money, which always have;
   - a Correction of a kind marked `money`, or, for a Step, one whose Effect counts the cash;
   - a sync batch only where one of its entries was made in a month gone by.
-  `closeMonth` takes it before asking what of the month still waits. So money booked into a month at the moment it
-  closes either lands first, and is counted as waiting, or finds it closed; and no two such writes take the Farm and a
-  row in opposite orders. Asking about a closed month takes the lock again, which in the same transaction is already
-  held, and takes it there only where a path above was missed. Everything else — a milking, an observation, the day's
-  sync, the register — never takes it, and never waits on it: the lock is `for no key update`, so a row that only names
-  the Farm is written beside it freely.
+    `closeMonth` takes it before asking what of the month still waits. So money booked into a month at the moment it
+    closes either lands first, and is counted as waiting, or finds it closed; and no two such writes take the Farm and a
+    row in opposite orders. Asking about a closed month takes the lock again, which in the same transaction is already
+    held, and takes it there only where a path above was missed. Everything else — a milking, an observation, the day's
+    sync, the register — never takes it, and never waits on it: the lock is `for no key update`, so a row that only names
+    the Farm is written beside it freely.
 - **A Correction a phone held asks as the farm stands now.** It is judged at when it was made, as every held
   Correction is; but whether its month is closed is asked by the farm's clock when the farm hears of it (`heardAt`), so
   a month closed since is closed to it, and it is kept as a late entry for a person.
@@ -114,3 +114,24 @@ the Owner, who makes the change herself or reopens the month.
 - Writes of money on one farm are made one after another, as a Venture's always were; the day's barn work is not.
 
 - Closing is one more monthly step for the Owner. It sits beside the monthly Bank Check, which comes first.
+
+## Addendum, 2026-10-14: what was sold on credit (ADR 0033)
+
+The rule was asked only where a Money Event was written, so a Dispatch or a Sale left wholly on credit — which books
+no money until the buyer pays — could be written, put right or voided into a closed month by anybody, though the
+Monthly Report reads its milk sold or what she fetched, and what buyers owed at the month's end and how overdue, from
+it. A closed month's Receivable is to stand as closed, so now:
+
+- **A Sale or a Dispatch left owing answers to the closed month by what it left owing** (`answerForCredit`): written,
+  put right or voided, what the record left owing as it stood and as it will stand — its day, the amount, the buyer
+  and for a Sale whose purse (not the day he promised, which moves nothing he owed) — is weighed as money is. A
+  change into, out of or within a closed month is the Owner's alone; anybody else is refused `month_closed`. Hers is
+  kept under "Changed after closing" as the Sale or the Dispatch, by the buyer and, for a Sale, her tag, with what the
+  month held of it owed before and after. A partly paid one is asked twice, once for its money and once for what is owed, and listed so.
+- **A Correction that gives milk sent with its price to follow a price** leaves it owed, and is asked the same way.
+- **A Buyer Statement** answers for the milk it prices or gives back, by the months that milk left in (ADR 0033); the
+  Dispatches it priced answer through it, not on their own.
+- **What was owed at a month's end** is read as owed then: milk a Buyer Statement priced is owed from when the
+  statement was recorded, so a statement recorded after a closed month leaves that month's Receivable as it was closed,
+  while the milk it priced counts in the milk sold of the month it left — the Owner's change, and listed. Voided once
+  the month it was recorded in is closed, it is listed against that month too.

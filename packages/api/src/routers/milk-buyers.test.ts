@@ -58,6 +58,8 @@ describe("the farm's milk buyers", () => {
         phone: "01711000000",
         pricePerLiterMoney: 55,
         paysLater: true,
+        priceToFollow: false,
+        counterpartyId: expect.any(String),
       },
       {
         name: sweetShop,
@@ -65,6 +67,8 @@ describe("the farm's milk buyers", () => {
         phone: null,
         pricePerLiterMoney: 62,
         paysLater: false,
+        priceToFollow: false,
+        counterpartyId: expect.any(String),
       },
     ]);
   });

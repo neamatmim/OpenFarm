@@ -38,6 +38,36 @@ export const knownAs = async (
 };
 
 /**
+ * Every Counterparty of the farm kept under this one's name as `nameAsCompared` compares it — himself, and any written
+ * down twice before the farm compared names without their capitals — so what is asked of one man finds all his records.
+ */
+export const sameBuyerIds = async (
+  tx: Pick<Tx, "select">,
+  farmId: string,
+  counterpartyId: string
+): Promise<string[]> => {
+  const [his] = await tx
+    .select({ name: counterparty.name })
+    .from(counterparty)
+    .where(
+      and(eq(counterparty.farmId, farmId), eq(counterparty.id, counterpartyId))
+    );
+  if (!his) {
+    return [];
+  }
+  const rows = await tx
+    .select({ id: counterparty.id })
+    .from(counterparty)
+    .where(
+      and(
+        eq(counterparty.farmId, farmId),
+        sql`lower(btrim(regexp_replace(normalize(${counterparty.name}, NFC), '[[:space:]]+', ' ', 'g'))) = ${nameAsCompared(his.name)}`
+      )
+    );
+  return rows.map((row) => row.id);
+};
+
+/**
  * The trader, recorded once per Farm — the same person whether the farm is buying from him or
  * selling to him, which is the whole point of one Counterparty and not a seller column here and
  * a buyer column there.

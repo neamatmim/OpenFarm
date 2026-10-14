@@ -60,6 +60,16 @@ describe("what buyers owe, by how long since it left", () => {
     expect(ages.overdueMoney).toBe(14_000);
   });
 
+  it("ages milk a Buyer Statement priced from when it became owed, not from the day it left (ADR 0033)", () => {
+    const ages = receivablesByAge(
+      [{ ...owing("2046-03-01", 6000, "2046-06-10"), owedFrom: "2046-05-28" }],
+      AS_OF,
+      30
+    );
+
+    expect(ages.ages.find((one) => one.owingMoney > 0)?.age).toBe("0-7");
+  });
+
   it("is nothing at all where nobody owes", () => {
     expect(receivablesByAge([], AS_OF, 30)).toEqual({
       owingMoney: 0,

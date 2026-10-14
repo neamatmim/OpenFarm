@@ -30,9 +30,11 @@ import {
   takeOffTheBooks,
 } from "../money-store";
 import {
+  answerForCredit,
   assertNothingStandsAgainst,
   assertOwedCoversPaid,
   assertOwedCoversWrittenOff,
+  creditOf,
   paidOnItem,
   receivableOrRefuse,
   paidNowInput,
@@ -359,11 +361,15 @@ export const saleCorrection: CorrectionKind<
   shownAs: { buyer: (to) => to.name },
   trail: (tx, row) => readSale(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
+    // What he was left owing is a closed month's figure too, put right or taken away: the Owner's alone there.
+    const by = changeByOf(context, now);
+    const owedBefore = await creditOf(tx, row.farmId, "sale", row.id);
     if (to.voided) {
       await voidTheSale(tx, row, context, now);
       // Sold under cost, shrunk on the lorry, owed and overdue: said of a Sale that never was.
       await clearNoticesAbout(tx, row.farmId, [row.id], now);
       await clearDebtNoticesOf(tx, row.farmId, row.id, now);
+      await answerForCredit(tx, by, "sale", row.id, owedBefore);
       return;
     }
     if (to.soldAt) {
@@ -423,5 +429,6 @@ export const saleCorrection: CorrectionKind<
       await tellIfSoldUnderCost(tx, row.farmId, row.id, now);
       await tellIfShrankTooMuch(tx, row.farmId, row.id, now);
     }
+    await answerForCredit(tx, by, "sale", row.id, owedBefore);
   },
 };

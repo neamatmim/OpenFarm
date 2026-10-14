@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { afterNaming, buyerCalled, NOBODY_PICKED } from "./milk-buyer-terms";
+import {
+  afterNaming,
+  buyerCalled,
+  mayFollow,
+  NOBODY_PICKED,
+} from "./milk-buyer-terms";
 import { NO_RECEIVABLE } from "./receivable";
 
 const center = {
@@ -38,6 +43,7 @@ describe("a milk buyer named on the Dispatch sheet", () => {
       },
       receivable: ALL_ON_CREDIT,
       filledFrom: center,
+      priceToFollow: false,
     });
   });
 
@@ -57,6 +63,7 @@ describe("a milk buyer named on the Dispatch sheet", () => {
       },
       receivable: NO_RECEIVABLE,
       filledFrom: sweetShop,
+      priceToFollow: false,
     });
   });
 
@@ -66,6 +73,7 @@ describe("a milk buyer named on the Dispatch sheet", () => {
       form: { ...blank, buyerName: "নতুন ক্রেতা" },
       receivable: NO_RECEIVABLE,
       filledFrom: null,
+      priceToFollow: false,
     });
   });
 
@@ -92,7 +100,61 @@ describe("a milk buyer named on the Dispatch sheet", () => {
     ).toMatchObject({
       form: { buyerPhone: "01700000000", price: "55" },
       filledFrom: center,
+      priceToFollow: false,
     });
+  });
+
+  it("sends a center whose last milk went with the price to follow so again, with no price in the box", () => {
+    const milkVita = {
+      name: "Milk Vita",
+      address: null,
+      phone: null,
+      pricePerLiterMoney: null,
+      paysLater: true,
+      priceToFollow: true,
+    };
+    const named = afterNaming(opened, "milk vita", [...buyers, milkVita]);
+
+    expect(named).toMatchObject({
+      form: { price: "" },
+      receivable: ALL_ON_CREDIT,
+      priceToFollow: true,
+    });
+    // Named otherwise, the price to follow goes back out with his other terms.
+    expect(
+      afterNaming(named, "Mishti Ghar", [...buyers, milkVita])
+    ).toMatchObject({ form: { price: "62" }, priceToFollow: false });
+  });
+
+  it("leaves the price to follow alone once somebody ticked it, for a buyer who takes his milk on credit", () => {
+    const ticked = { ...opened, priceToFollow: true };
+
+    expect(afterNaming(ticked, "সংগ্রহ কেন্দ্র", buyers).priceToFollow).toBe(true);
+  });
+
+  it("offers the price to follow only to a buyer on credit or one the farm does not know yet, and takes it from one who pays at the gate", () => {
+    const ticked = { ...opened, priceToFollow: true };
+
+    expect(mayFollow(null)).toBe(true);
+    expect(mayFollow(center)).toBe(true);
+    expect(mayFollow(sweetShop)).toBe(false);
+    expect(afterNaming(ticked, "Mishti Ghar", buyers).priceToFollow).toBe(
+      false
+    );
+    expect(afterNaming(ticked, "নতুন কেন্দ্র", buyers).priceToFollow).toBe(true);
+  });
+
+  it("ticks it for a buyer whose last milk went so only while he takes his milk on credit", () => {
+    const wasCredit = {
+      ...sweetShop,
+      name: "Was credit",
+      pricePerLiterMoney: null,
+      priceToFollow: true,
+    };
+
+    expect(afterNaming(opened, "Was credit", [wasCredit]).priceToFollow).toBe(
+      false
+    );
   });
 
   it("reads a buyer from an answer kept before the farm said who takes it on credit as paying at the gate", () => {

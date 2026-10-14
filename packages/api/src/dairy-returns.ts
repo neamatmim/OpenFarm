@@ -9,7 +9,7 @@ import {
   milkPricesByMonth,
 } from "@OpenFarm/domain";
 
-import { fetchedPerLiter, writtenOffByItem } from "./receivable-store";
+import { milkFetched, writtenOffByItem } from "./receivable-store";
 
 /**
  * What the dairy herd returns, read for the domain's `dairy-returns` to work: every Animal who has stood on the Dairy
@@ -31,15 +31,18 @@ const monthlyMilkPrices = async (db: Database, farmId: string) => {
       dispatchedAt: true,
       liters: true,
       pricePerLiterMoney: true,
+      receivableMoney: true,
+      buyerStatementId: true,
     },
   });
-  // Milk a buyer never paid for, and the Owner wrote off, did not fetch its price.
+  // Milk a buyer never paid for, and the Owner wrote off, did not fetch its price; milk whose price is still to follow
+  // is no price yet, and a month's price is what its priced milk fetched.
   const writtenOff = await writtenOffByItem(db, farmId);
   return milkPricesByMonth(
-    rows.map((one) => ({
-      dispatchedAt: one.dispatchedAt,
-      liters: Number(one.liters),
-      pricePerLiterMoney: fetchedPerLiter(one, writtenOff),
+    milkFetched(rows, writtenOff).priced.map((one) => ({
+      dispatchedAt: one.row.dispatchedAt,
+      liters: one.liters,
+      pricePerLiterMoney: one.pricePerLiterMoney,
     }))
   );
 };

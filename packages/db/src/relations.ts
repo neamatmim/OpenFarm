@@ -298,6 +298,21 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.counterparty.id,
       optional: false,
     }),
+    buyerStatement: r.one.buyerStatement({
+      from: r.dispatch.buyerStatementId,
+      to: r.buyerStatement.id,
+    }),
+  },
+  buyerStatement: {
+    buyer: r.one.counterparty({
+      from: r.buyerStatement.counterpartyId,
+      to: r.counterparty.id,
+      optional: false,
+    }),
+    dispatches: r.many.dispatch({
+      from: r.buyerStatement.id,
+      to: r.dispatch.buyerStatementId,
+    }),
   },
   stockCount: {
     feedItem: r.one.feedItem({

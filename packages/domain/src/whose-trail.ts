@@ -18,6 +18,8 @@ export const WHOSE_TRAIL = {
   backup_run: "farm",
   breed: "farm",
   buying_trip: "farm",
+  // A milk buyer's statement, recorded by the Manager who keeps the Dispatches it is set beside.
+  buyer_statement: "farm",
   diagnosis: "farm",
   dispatch: "farm",
   dls_report: "farm",

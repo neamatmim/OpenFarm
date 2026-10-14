@@ -44,6 +44,10 @@ import type {
 } from "@/components/home/queue-kinds";
 import { SetupLeft } from "@/components/home/setup-left";
 import {
+  PriceToFollowAttention,
+  useLatePriceToFollow,
+} from "@/components/milk/buyer-statements";
+import {
   EmptyState,
   Notice,
   Page,
@@ -326,17 +330,21 @@ const OwnerDay = ({
   const purchaseAttention = purchasesNeedingAttention(purchases.data ?? []);
   const supplierAttention =
     suppliers.data?.filter((row) => row.overdueMoney > 0).length ?? 0;
+  // Milk left too long with its price to follow is not "all fine" either: its buyer's statement is late.
+  const priceToFollow = useLatePriceToFollow();
   const waiting =
     decisionsWaiting(needsYou) + troubled.length + purchaseAttention;
   const allFine =
     anythingWaiting(needsYou) +
       troubled.length +
       purchaseAttention +
-      supplierAttention ===
+      supplierAttention +
+      priceToFollow.late.length ===
       0 &&
     heardAboutVentures &&
     purchases.isSuccess &&
-    suppliers.isSuccess;
+    suppliers.isSuccess &&
+    priceToFollow.heard;
 
   return (
     <Page>
@@ -366,6 +374,7 @@ const OwnerDay = ({
       <SummaryFigures figures={figures} />
       <FeedPurchaseAttention />
       <SupplierAttention />
+      <PriceToFollowAttention />
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-6">

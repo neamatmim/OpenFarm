@@ -610,7 +610,7 @@ export type ClosedMonthChangeKind = (typeof CLOSED_MONTH_CHANGES)[number];
 /**
  * What a change to a **Closed Month** was made to: a Money Event, by the record its money came from, or one of the
  * other records the month's figures read — a Handover between hands, a Receivable Write-off, a Cash Count, a Bank
- * Check.
+ * Check, a Buyer Statement pricing the milk sent in it.
  */
 export const CLOSED_MONTH_SOURCES = [
   ...MONEY_SOURCES,
@@ -618,6 +618,7 @@ export const CLOSED_MONTH_SOURCES = [
   "receivable_write_off",
   "cash_count",
   "bank_check",
+  "buyer_statement",
 ] as const;
 export type ClosedMonthSource = (typeof CLOSED_MONTH_SOURCES)[number];
 

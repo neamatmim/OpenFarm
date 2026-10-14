@@ -290,6 +290,7 @@ export const RECORD_WORD = {
   receivable_write_off: "months.closing.from.receivableWriteOff",
   cash_count: "months.closing.from.cashCount",
   bank_check: "months.closing.from.bankCheck",
+  buyer_statement: "months.closing.from.buyerStatement",
 } as const satisfies Record<ClosedMonthSource, MessageKey>;
 
 /** How many of the Farm's own Money Events dated in a month still wait for the Owner's word. */

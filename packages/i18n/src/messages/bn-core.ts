@@ -2651,6 +2651,95 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "dispatch.kpi.handedOverHint": "{count}টি হস্তান্তর · {currencySign}{amount}",
   "dispatch.kpi.mismatchesHint": "আপনার দেখার অপেক্ষায়",
   "dispatch.reportsHint": "তারিখ বেছে নিন; নিচের প্রতিটি রেকর্ড সেই সময়ের।",
+  "dispatch.priceToFollow": "দাম পরে ঠিক হবে",
+  "dispatch.priceToFollowHint":
+    "যে সংগ্রহ কেন্দ্র ফ্যাট ও এসএনএফ মেপে নিজের বিলে টাকা দেয়: এখন কোনো দাম নেই, কিছু দেওয়া হয়নি। ক্রেতার বিল দাম ঠিক করবে।",
+  "dispatch.priceToFollowShort": "দাম পরে",
+  "dispatch.byStatement": "বিল অনুযায়ী",
+  "dispatch.priceOrToFollow":
+    "প্রতি লিটার দাম ({currencySign}) — খালি রাখলে: দাম পরে ঠিক হবে",
+  "dispatch.kpi.priceToFollowHint": "{liters} লিটারের দাম পরে",
+  "statement.tab": "ক্রেতার বিল",
+  "statement.title": "ক্রেতার বিল",
+  "statement.listHint":
+    "প্রতিটি ক্রেতার বিল, সেই দিনগুলোতে খামার তাকে যে দুধ দিয়েছে তার পাশে: তার লিটার বনাম আমাদের, তার টাকা, আর বিলটি কোন দুধের দাম ঠিক করল।",
+  "statement.none": "এখনো কোনো ক্রেতার বিল লেখা হয়নি",
+  "statement.record": "ক্রেতার বিল লিখুন",
+  "statement.sheetDescription":
+    "কিছু দিনের জন্য ক্রেতার নিজের বিল: তার হিসাবের লিটার আর সে কত দেবে। সেই দিনগুলোতে যে দুধের দাম পরে ঠিক হওয়ার কথা ছিল, এটি তার দাম ঠিক করে, আর তা তার বাকি হয়।",
+  "statement.save": "বিল লিখুন",
+  "statement.recorded": "বিল লেখা হয়েছে — এর দুধের দাম ঠিক হয়েছে",
+  "statement.pickBuyer": "ক্রেতা বেছে নিন",
+  "statement.fromDay": "বিলের প্রথম দিন",
+  "statement.toDay": "বিলের শেষ দিন",
+  "statement.statedOn": "বিলের তারিখ",
+  "statement.payBy": "যেদিনের মধ্যে দেবে (খালি: খামারের বাকির দিন)",
+  "statement.liters": "তার হিসাবের লিটার",
+  "statement.amount": "তার টাকা ({currencySign})",
+  "statement.number": "বিলের নম্বর",
+  "statement.rate": "তার লিটারপ্রতি দর ({currencySign})",
+  "statement.photo": "বিলের ছবি",
+  "statement.seePhoto": "ছবি দেখুন",
+  "statement.hidePhoto": "ছবি লুকান",
+  "statement.farmSent":
+    "এই দিনগুলোতে খামার তাকে {liters} লিটার দিয়েছে; {count}টি হস্তান্তরের দাম পরে ঠিক হওয়ার কথা।",
+  "statement.difference": "তার হিসাব বাদ আমাদের: {liters} লিটার ({percent}%)",
+  "statement.differenceNoPercent": "তার হিসাব বাদ আমাদের: {liters} লিটার",
+  "statement.pricedAtGate":
+    "{liters} লিটারের দাম গেটেই ঠিক হয়েছিল: {currencySign}{amount}, তা যেমন ছিল তেমনই থাকবে।",
+  "statement.willPrice":
+    "দাম পরে ঠিক হওয়ার {liters} লিটারের দাম এটি ঠিক করবে {currencySign}{amount}, লিটার অনুযায়ী ভাগ করে।",
+  "statement.amountBeside":
+    "এর কোনো দুধের দাম পরে ঠিক হওয়ার কথা ছিল না: তার টাকা বাদ খামারের ঠিক করা দাম {amount}।",
+  "statement.theirLiters": "তার {liters} লিটার",
+  "statement.ourLiters": "আমাদের {liters} লিটার",
+  "statement.amountLabel": "তার টাকা",
+  "statement.rateSaid": "তার দরে লিটারে {currencySign}{rate}",
+  "statement.priced":
+    "{count}টি হস্তান্তরের দাম ঠিক হয়েছে: বাকি {currencySign}{amount}",
+  "statement.void": "বাতিল করুন",
+  "statement.voidTitle": "{name}-এর বিল বাতিল",
+  "statement.voidHint":
+    "ভুল বিল। এটি যে দুধের দাম ঠিক করেছিল তা আবার দাম পরে ঠিক হবে বলে ফিরে যাবে, কোনো বাকি থাকবে না; সঠিক বিল তার দাম ঠিক করবে।",
+  "statement.voided": "বাতিল হয়েছে — এর দুধের দাম আবার পরে ঠিক হবে",
+  "statement.voidedBadge": "বাতিল",
+  "statement.voidedWhy": "বাতিল: {reason}",
+  "statement.waiting": "যে দুধের দাম পরে ঠিক হবে",
+  "statement.waitingHint":
+    "দেওয়া হয়েছে, ক্রেতার বিলের অপেক্ষায়। যে বিলের মেয়াদে পড়ে তা শেষ হওয়ার দশ দিন পরে দেরি — প্রথম বিল আসা পর্যন্ত মেয়াদ ক্যালেন্ডার মাস।",
+  "statement.noneWaiting": "কোনো দুধ দামের অপেক্ষায় নেই",
+  "statement.waitingLine": "{count}টি হস্তান্তর · {liters} লিটার",
+  "statement.since": "থেকে",
+  "statement.late": "{liters} লিটার দেরি",
+  "statement.attention": "ক্রেতার বিল দেরি করছে",
+  "statement.attentionHint":
+    "{count} জন ক্রেতার কাছে দাম পরে ঠিক হবে বলে দুধ গেছে, সময় পার হলেও বিল আসেনি: মোট {liters} লিটার।",
+  "statement.seeWaiting": "দুধ দেখুন",
+  "statement.missing.buyer": "ক্রেতা বেছে নিন।",
+  "statement.missing.days": "প্রথম আর শেষ দিন দিন, ক্রমে।",
+  "statement.missing.statedOn": "বিলের তারিখ দিন: শেষ দিনে বা তার পরে।",
+  "statement.missing.payBy": "বিলের তারিখের আগের দিনের মধ্যে দেওয়া যায় না।",
+  "statement.missing.liters": "তার লিটার দিন।",
+  "statement.missing.amount": "তার টাকা দিন।",
+  "refusal.statementOverlaps": "এর কিছু দিনের জন্য তার একটি বিল আগেই লেখা আছে",
+  "refusal.statementBelowPriced":
+    "তার টাকা গেটে দাম ঠিক হওয়া দুধের চেয়ে বেশি নয়: আগে সেই দাম ঠিক করুন",
+  "refusal.statementCoversIt":
+    "ওই দিনগুলোর জন্য তার বিল লেখা হয়েছে: এই দুধের দাম দিন, নয়তো মালিক আগে বিলটি বাতিল করবেন",
+  "refusal.statementNumberTaken": "এই নম্বরে তার একটি বিল আগেই লেখা আছে",
+  "refusal.statementPaidOn":
+    "এর দাম ঠিক করা দুধে তার টাকা দেওয়া বা বাকি বাদ দেওয়া আছে: আগে সেগুলো ঠিক করুন",
+  "refusal.statementVoided": "বিলটি আগেই বাতিল হয়েছে",
+  "refusal.statementDays":
+    "দিনগুলো ক্রমে নেই: প্রথম, শেষ, বিলের তারিখ — কোনোটি আজকের পরে নয় — তারপর যেদিনের মধ্যে দেবে",
+  "refusal.pricedByStatement":
+    "ক্রেতার বিল এর দাম ঠিক করেছে: মালিক আগে বিলটি বাতিল করবেন",
+  "refusal.priceToFollowPaysAtGate":
+    "সে গেটেই দুধের দাম দেয়: দাম দিন, নয়তো বাকিতে দিন",
+  "statement.amountBesideRecorded":
+    "তার টাকা বাদ এই দিনগুলোতে খামারের ঠিক করা সব দাম: {amount}",
+  "refusal.priceToFollowPaid":
+    "যে দুধের দাম পরে ঠিক হবে তার জন্য গেটে কিছু দেওয়া হয় না",
   "refusal.dispatchedInTheFuture": "দুধ এখনের পরে যেতে পারে না",
   "refusal.periodTooLong":
     "একটি রেকর্ডে দুই বছরের বেশি থাকে না: খামারের সবচেয়ে লম্বা বছরও এর মধ্যে",
@@ -4313,6 +4402,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.yearNotBegun": "সেই অর্থবছর এখনও শুরু হয়নি। ওপর থেকে অন্য একটি বেছে নিন।",
   "months.milkSold": "বছরে দুধ বিক্রি",
   "months.milkSoldHint": "{liters} লিটার · লিটারে পাওয়া গেছে {fetched}",
+  "months.priceToFollowHint":
+    "{liters} লিটারের দাম পরে ঠিক হবে, এখানে কোনো টাকায় নেই",
   "months.dairyCost": "দুগ্ধ গাভীর খরচ",
   "months.dairyCostHint": "বাল্কে যাওয়া লিটারে {perLiter}",
   "months.margins": "বিক্রি হওয়া মোটাতাজা পশুর মার্জিন",
@@ -4360,6 +4451,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.one.dairyHint":
     "বিক্রি হওয়া দুধ, এক লিটারে কত পাওয়া গেল, আর খামারের নিজের গাভীদের খরচ।",
   "months.one.litersSold": "বিক্রি হওয়া দুধ",
+  "months.one.litersPriceToFollow": "দাম পরে ঠিক হবে এমন দুধ",
+  "months.one.pricedAfter": "মাস শেষ হওয়ার পরে দাম ঠিক হয়েছে",
   "months.one.fetchedPerLiter": "লিটারে পাওয়া",
   "months.one.litersToBulk": "সংগ্রহে যাওয়া দুধ",
   "months.one.costPerLiter": "লিটারে খরচ",
@@ -4478,6 +4571,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "months.closing.from.receivableWriteOff": "বাকি বাদ দেওয়া",
   "months.closing.from.cashCount": "নগদ গণনা",
   "months.closing.from.bankCheck": "ব্যাংক মিলানো",
+  "months.closing.from.buyerStatement": "ক্রেতার বিল",
   "months.closing.col.record": "কোন হিসাব",
   "months.closing.col.before": "আগে",
   "months.closing.col.after": "পরে",

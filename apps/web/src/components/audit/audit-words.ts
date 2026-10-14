@@ -39,6 +39,7 @@ export const ENTITIES = [
   "money_category",
   "drug_product",
   "dispatch",
+  "buyer_statement",
   "sop_training",
   "registration_certificate",
   "license",
