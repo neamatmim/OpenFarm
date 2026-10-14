@@ -7,7 +7,8 @@ import { paperOnFile } from "@/lib/agreed-in-app";
 export interface GridPaper {
   id: string;
   investorId: string;
-  capitalLeftMoney: number;
+  /** What it may still take; missing from an answer cached before it was sent, and worked out from its allocation. */
+  capitalLeftMoney?: number;
   paymentAllocation?: MonthlyPaymentAllocation | null;
   hasPaper: boolean;
   paperOnFile?: boolean;
@@ -27,42 +28,62 @@ export interface GridLine {
   /** What the paper may still take: the most a line may say. */
   roomMoney: number;
   allocation: MonthlyPaymentAllocation;
+  /** The Investor's waiting Pay-in Note the line was filled from: answered received when the line is written. */
+  payInNoteId?: string;
+}
+
+/** An Investor's Pay-in Note, as the Venture's notes list gives it: what the grid fills a line from. */
+export interface GridNote {
+  id: string;
+  agreementId: string;
+  amountMoney: number;
+  sentOn: string;
+  reference: string;
+  state: string;
 }
 
 /**
  * The month's grid, one line a paper that may take capital now: an Investor's paper on file with money still to come,
- * paid by the month. Each line starts filled with what that paper is asked for by the month's end, not ticked — the
- * Owner ticks the ones the statement shows. The Farm's own Units are recorded on the capital sheet, which names the
- * Farm Account they left, and are not in the grid.
+ * paid by the month. Each line starts filled with what that paper is asked for by the month's end — or, where its
+ * Investor has said he sent money and the note still waits, with what the note says, so writing the line answers the
+ * note and the same money is not taken from it again. None is ticked: the Owner ticks the ones the statement shows. The
+ * Farm's own Units are recorded on the capital sheet, which names the Farm Account they left, and are not in the grid.
  */
 export const linesOfTheMonth = (
   papers: readonly GridPaper[],
-  today: string
+  today: string,
+  notes: readonly GridNote[] = []
 ): GridLine[] =>
   papers.flatMap((one) => {
     const allocation = one.paymentAllocation;
+    // An answer cached before what a paper may still take was sent works it out as the Investors tab does: what its
+    // Units are for, less what has come in against it.
+    const roomMoney = one.capitalLeftMoney ?? allocation?.owedMoney ?? 0;
     if (
       !allocation ||
       one.isFarm === true ||
       !paperOnFile(one) ||
-      one.capitalLeftMoney <= 0
+      roomMoney <= 0
     ) {
       return [];
     }
-    const asked = Math.min(
-      dueByMonthEndOf(allocation, today),
-      one.capitalLeftMoney
+    // The latest note still waiting on this paper, the list being the latest first.
+    const told = notes.find(
+      (note) => note.agreementId === one.id && note.state === "waiting"
     );
+    const asked = Math.min(dueByMonthEndOf(allocation, today), roomMoney);
+    const askedSaid = asked > 0 ? String(asked) : "";
     return [
       {
         agreementId: one.id,
         investorId: one.investorId,
         came: false,
-        amountMoney: asked > 0 ? String(asked) : "",
-        movedOn: "",
-        reference: "",
-        roomMoney: one.capitalLeftMoney,
+        amountMoney: told ? String(told.amountMoney) : askedSaid,
+        movedOn: told?.sentOn ?? "",
+        reference: told?.reference ?? "",
+        roomMoney,
         allocation,
+        ...(told ? { payInNoteId: told.id } : {}),
       },
     ];
   });
@@ -88,6 +109,7 @@ export const receiptsOf = (lines: readonly GridLine[]) =>
       amountMoney: Number(one.amountMoney),
       movedOn: one.movedOn,
       reference: one.reference,
+      ...(one.payInNoteId ? { payInNoteId: one.payInNoteId } : {}),
     }));
 
 /** Whether the grid may be sent: something ticked, and every ticked line ready. */

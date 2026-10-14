@@ -137,18 +137,26 @@ export const MonthsCapitalSheet = ({
     }),
     enabled: venture !== null,
   });
+  // The Investors' waiting Pay-in Notes: a line is filled from its note, and answers it when written.
+  const notes = useQuery({
+    ...orpc.ventures.payInNotes.list.queryOptions({
+      input: { ventureId: venture?.id ?? "" },
+    }),
+    enabled: venture !== null,
+  });
   const [lines, setLines] = useState<GridLine[]>([]);
   const [refusedAt, setRefusedAt] = useState<string | null>(null);
   const today = farmDayOf(new Date());
   const papers = agreements.data;
   // Filled again for another Venture, and whenever what its papers may still take has moved — a month written, a
   // receipt taken from a row — so a line never offers money the paper has had since. Left as typed otherwise.
+  const waiting = (notes.data ?? []).filter((one) => one.state === "waiting");
   useFreshFor(
-    venture && papers
-      ? `${venture.id}:${papers.map((one) => `${one.id}=${one.capitalLeftMoney}`).join(",")}`
+    venture && papers && notes.data
+      ? `${venture.id}:${papers.map((one) => `${one.id}=${one.capitalLeftMoney}`).join(",")}:${waiting.map((one) => one.id).join(",")}`
       : undefined,
     () => {
-      setLines(linesOfTheMonth(papers ?? [], today));
+      setLines(linesOfTheMonth(papers ?? [], today, notes.data ?? []));
       setRefusedAt(null);
     }
   );

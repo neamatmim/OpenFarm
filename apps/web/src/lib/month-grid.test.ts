@@ -93,6 +93,53 @@ describe("the month's capital grid", () => {
     expect(gridIsReady([{ ...b, came: false }])).toBe(false);
   });
 
+  it("works out what a paper may still take when an answer cached before it was sent has none", () => {
+    const { capitalLeftMoney: _left, ...cached } = paper("old", 40_000);
+
+    const [line] = linesOfTheMonth([cached], "2071-02-05");
+
+    expect(line?.roomMoney).toBe(18_000);
+  });
+
+  it("fills a line from its Investor's waiting Pay-in Note, and sends the note with it", () => {
+    const [line] = linesOfTheMonth([paper("a", 40_000)], "2071-02-05", [
+      {
+        id: "old-note",
+        agreementId: "a",
+        amountMoney: 1000,
+        sentOn: "2071-01-04",
+        reference: "OLD",
+        state: "received",
+      },
+      {
+        id: "note",
+        agreementId: "a",
+        amountMoney: 2000,
+        sentOn: "2071-02-04",
+        reference: "BKASH-1",
+        state: "waiting",
+      },
+    ]);
+    if (!line) {
+      throw new Error("a line expected");
+    }
+
+    expect([line.amountMoney, line.movedOn, line.reference]).toEqual([
+      "2000",
+      "2071-02-04",
+      "BKASH-1",
+    ]);
+    expect(receiptsOf([{ ...line, came: true }])).toEqual([
+      {
+        agreementId: "a",
+        amountMoney: 2000,
+        movedOn: "2071-02-04",
+        reference: "BKASH-1",
+        payInNoteId: "note",
+      },
+    ]);
+  });
+
   it("reads which line sent the farm refused, counted from one", () => {
     expect(refusedLineOf({ data: { refusal: "x", row: 2 } })).toBe(1);
     expect(refusedLineOf({ data: { refusal: "x" } })).toBeNull();

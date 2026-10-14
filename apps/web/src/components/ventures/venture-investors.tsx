@@ -518,7 +518,6 @@ const TogetherActs = ({
   venture,
   agreed,
   mayPayIn,
-  signed,
   approved,
   advanceFirst,
 }: {
@@ -526,8 +525,6 @@ const TogetherActs = ({
   agreed: readonly Agreement[];
   /** Some paper may take capital now. */
   mayPayIn: boolean;
-  /** Somebody has signed. */
-  signed: boolean;
   /** The Settlement as approved, or nothing yet. */
   approved: { shares: ApprovedShares } | null;
   advanceFirst: boolean;
@@ -540,6 +537,8 @@ const TogetherActs = ({
   const byTheMonth =
     takesCapitalNow(venture) && venture.capitalPaid === "by_the_month";
   const running = ["buying", "fattening", "selling"].includes(venture.state);
+  // A progress paper is an Investor's: the Farm's own Units are sent none, so a Venture held only by them prints none.
+  const someInvestor = agreed.some((one) => !one.isFarm);
   const stillToSend = (shares ?? []).some(
     (one) => !one.paid && one.payoutMoney > 0
   );
@@ -556,7 +555,7 @@ const TogetherActs = ({
           {t("ventures.monthGrid")}
         </Button>
       ) : null}
-      {running && signed ? (
+      {running && someInvestor ? (
         <Button
           disabled={every.busy}
           onClick={() => every.ask(venture.id)}
@@ -705,7 +704,6 @@ export const VentureInvestors = ({
       agreed={agreed}
       mayPayIn={someoneMayPayIn}
       approved={approved}
-      signed={rows.length > 0}
       venture={venture}
     />
   );

@@ -1,5 +1,7 @@
+import { eq } from "@OpenFarm/db/operators";
+import { investmentAgreement } from "@OpenFarm/db/schema/venture";
 import { paperText } from "@OpenFarm/domain";
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -87,7 +89,9 @@ describe("every Investor's progress statement at once", () => {
     const made = await owner.investorStatements.progressAll({ ventureId });
 
     const everybody = [...names.paid, names.unpaid];
-    expect(made.papers.map((one) => one.investorName)).toEqual(everybody);
+    expect(made.papers.map((one) => one.agreementId)).toEqual(
+      everybody.map((name) => papers[name])
+    );
     for (const [index, one] of made.papers.entries()) {
       expect(paperText(one.document, "bn")).toContain(everybody[index]);
       expect(paperText(one.document, "en")).toContain(everybody[index]);
@@ -121,5 +125,67 @@ describe("every Investor's progress statement at once", () => {
         )
     );
     expect(new Set(exported.map((one) => one.entityId)).size).toBe(3);
+  });
+
+  it("keeps no Export of any paper when one of them cannot be made, and makes none", async () => {
+    const { client: owner } = await at("2099-02-03T04:00:00.000Z");
+    const venture = await owner.ventures.open({
+      name: `একটি হয় না ${suffix}`,
+      targetCapitalMoney: 500_000,
+      floorMoney: 0,
+      decideBy: "2099-02-03",
+      targetWindowStart: "2099-06-01",
+      targetWindowEnd: "2099-06-05",
+      unitPriceMoney: 50_000,
+      units: 10,
+      cattleBudgetMoney: 400_000,
+    });
+    const made: string[] = [];
+    for (const [index, name] of [
+      `প্রথম ${suffix}`,
+      `দ্বিতীয় ${suffix}`,
+    ].entries()) {
+      // oxlint-disable-next-line no-await-in-loop -- one Investor signed at a time
+      const person = await owner.investors.record({
+        name,
+        phone: `0174${suffix}${index}`,
+      });
+      // oxlint-disable-next-line no-await-in-loop -- as above
+      const agreement = await owner.ventures.agreements.sign({
+        ventureId: venture.id,
+        investorId: person.id,
+        units: 3,
+        investorsPercent: 60,
+        arbitrator: `সালিস ${suffix}`,
+        stampValueMoney: 300,
+        stampedOn: "2099-02-03",
+        stampSerial: `PB-${index}-${suffix}`,
+      });
+      made.push(agreement.id);
+      if (index === 1) {
+        // The second paper is pointed at the Farm's own partner record, so its paper cannot be made.
+        // oxlint-disable-next-line no-await-in-loop -- as above
+        const farms = await scratchDb().query.investor.findFirst({
+          where: { farmId: theFarm().id, isFarm: true },
+          columns: { id: true },
+        });
+        // oxlint-disable-next-line no-await-in-loop -- as above
+        await scratchDb()
+          .update(investmentAgreement)
+          .set({ investorId: farms?.id ?? "" })
+          .where(eq(investmentAgreement.id, agreement.id));
+      }
+    }
+    await owner.ventures.startBuying({ id: venture.id });
+
+    await expect(
+      owner.investorStatements.progressAll({ ventureId: venture.id })
+    ).rejects.toMatchObject({ data: { refusal: "the_farms_own_units" } });
+    const trail = await owner.audit.list({ entity: "investment_agreement" });
+    expect(
+      trail.filter(
+        (one) => one.action === "export" && made.includes(one.entityId)
+      )
+    ).toEqual([]);
   });
 });

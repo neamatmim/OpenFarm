@@ -41,6 +41,7 @@ const aMonthlyVenture = async (
     accountNumber: `MC-${id}`,
   });
   const papers: string[] = [];
+  const people: Awaited<ReturnType<typeof invited>>[] = [];
   for (const who of investors) {
     // oxlint-disable-next-line no-await-in-loop -- each Investor signs in turn
     const them = await invited(`${who} ${name} ${suffix}`);
@@ -62,8 +63,9 @@ const aMonthlyVenture = async (
       data: "aGVsbG8=",
     });
     papers.push(agreement.id);
+    people.push(them);
   }
-  return { ventureId: id, papers };
+  return { ventureId: id, papers, people };
 };
 
 const row = (agreementId: string, amountMoney: number, reference: string) => ({
@@ -91,6 +93,7 @@ beforeAll(async () => {
     registrationExpiresOn: "2090-03-31",
   });
   await owner.investors.setPortalOpen({ open: true });
+  await owner.investors.setPayInNotes({ shown: true });
 });
 
 describe("a month's capital from the grid", () => {
@@ -205,5 +208,47 @@ describe("a month's capital from the grid", () => {
         receipts: [row(there.papers[0] ?? "", 40_000, "MC-ELSEWHERE")],
       })
     ).rejects.toMatchObject({ code: "NOT_FOUND", data: { row: 1 } });
+  });
+
+  it("answers an Investor's Pay-in Note from the line that names it, or whose reference is the note's", async () => {
+    const { ventureId, papers, people } = await aMonthlyVenture("With notes", [
+      "Noted",
+      "Matched",
+    ]);
+    const owner = await asOwner();
+    const [a = "", b = ""] = papers;
+    const [noted, matched] = people;
+    const named = await noted?.client.portal.sendPayInNote({
+      agreementId: a,
+      amountMoney: 40_000,
+      sentOn: "2088-02-10",
+      way: "bank_transfer",
+      reference: "NOTE-NAMED",
+      photo: null,
+    });
+    await matched?.client.portal.sendPayInNote({
+      agreementId: b,
+      amountMoney: 40_000,
+      sentOn: "2088-02-10",
+      way: "bank_transfer",
+      reference: "NOTE-MATCHED",
+      photo: null,
+    });
+
+    await owner.ventures.takeMonthsCapital({
+      ventureId,
+      receipts: [
+        { ...row(a, 40_000, "STATEMENT-A"), payInNoteId: named?.id },
+        row(b, 40_000, " note-matched "),
+      ],
+    });
+
+    const notes = await owner.ventures.payInNotes.list({ ventureId });
+    expect(notes.map((one) => [one.agreementId, one.state]).toSorted()).toEqual(
+      [
+        [a, "received"],
+        [b, "received"],
+      ].toSorted()
+    );
   });
 });

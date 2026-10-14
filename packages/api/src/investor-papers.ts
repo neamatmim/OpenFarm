@@ -1,3 +1,4 @@
+import type { PaperDocument } from "@OpenFarm/domain";
 import {
   farmDayOf,
   joiningLetterPaper,
@@ -11,10 +12,11 @@ import {
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
+import type { AuditedWrite } from "./audit";
 import { audited } from "./audit";
 import type { Context } from "./context";
 import { assertRegistered, exportedPaper } from "./export-store";
-import { farmUnitsOf } from "./farm-capital-store";
+import { farmUnitsOf, isTheFarmsOwn } from "./farm-capital-store";
 import {
   assertCapitalHeld,
   hisHolding,
@@ -36,6 +38,7 @@ import { agreementReturnOnCapital } from "./returns-store";
 import { wordingSignedIn } from "./template-store";
 import { theirProgress } from "./venture-herd-store";
 import { windUpDaysOf, paidForBy } from "./venture-store";
+import { seenWhenDone } from "./writes-seen";
 
 /** What making one of an Investor's papers needs: the farm it comes from, whoever is asking for it — the Owner
  *  printing it, or the Investor reading it in the portal (ADR 0007) — and the clock. Every paper made is an Export
@@ -199,37 +202,45 @@ export const joiningLetterFor = async (
   return { document, agreementId: standing.agreement.id };
 };
 
-/** অগ্রগতি for one Agreement: how his animals are doing, where the Venture's money has gone, and their photographs. */
-export const progressStatementFor = async (
+/**
+ * What every Investor's অগ্রগতি of one Venture shares: the Venture, how its animals are doing, where its money has gone,
+ * the Farm's own Units in it, and the photographs of the animals standing. Read once for a paper, and once for all of a
+ * month's papers together.
+ */
+const ventureProgressOf = async (
   context: PaperMaking,
-  agreementId: string
+  ventureId: string,
+  now: Date
 ) => {
-  assertRegistered(context.farm, "an investor's progress statement");
-  const now = context.clock.now();
-  const standing = await hisStanding(
-    context.db,
-    context.farm.id,
-    agreementId,
-    farmDayOf(now)
-  );
-  const venture = await theVentureOf(
-    context.db,
-    context.farm.id,
-    standing.venture.id
-  );
-  const [theirs, spend] = await Promise.all([
+  const venture = await theVentureOf(context.db, context.farm.id, ventureId);
+  const [theirs, spend, farmUnits] = await Promise.all([
     theirProgress(context.db, context.farm.id, venture, now),
     theirSpend(context.db, context.farm.id, venture),
+    farmUnitsOf(context.db, context.farm.id, ventureId),
   ]);
+  const photos = await theirPhotographs(
+    context.db,
+    context.farm.id,
+    theirs.animals.filter((one) => one.standing && one.hasPhoto)
+  );
+  return { venture, theirs, spend, farmUnits, photos };
+};
+
+/**
+ * One Investor's অগ্রগতি, made from what his Venture's papers share, and the Export it is to be kept in the trail as —
+ * nothing written yet, so a paper is only ever in the trail once it is handed over.
+ */
+const progressPaperOf = (
+  context: PaperMaking,
+  standing: Awaited<ReturnType<typeof hisStanding>>,
+  shared: Awaited<ReturnType<typeof ventureProgressOf>>,
+  now: Date
+): { document: PaperDocument; exported: AuditedWrite } => {
+  const { venture, theirs, spend, farmUnits } = shared;
   const holding = hisHolding(
     { units: standing.agreement.units, capitalMoney: standing.capitalMoney },
     spend,
     venture
-  );
-  const farmUnits = await farmUnitsOf(
-    context.db,
-    context.farm.id,
-    standing.venture.id
   );
   const document = progressStatementPaper({
     farm: context.farm,
@@ -285,13 +296,9 @@ export const progressStatementFor = async (
     producedBy: context.actor.name,
     producedAt: madeOn(now),
   });
-  const photos = await theirPhotographs(
-    context.db,
-    context.farm.id,
-    theirs.animals.filter((one) => one.standing && one.hasPhoto)
-  );
-  await audited(context).write(
-    {
+  return {
+    document,
+    exported: {
       entity: "investment_agreement",
       entityId: standing.agreement.id,
       action: "export",
@@ -303,49 +310,90 @@ export const progressStatementFor = async (
         chargedMoney: spend.chargedMoney,
       }),
     },
-    () => Promise.resolve()
+  };
+};
+
+/** অগ্রগতি for one Agreement: how his animals are doing, where the Venture's money has gone, and their photographs. */
+export const progressStatementFor = async (
+  context: PaperMaking,
+  agreementId: string
+) => {
+  assertRegistered(context.farm, "an investor's progress statement");
+  const now = context.clock.now();
+  const standing = await hisStanding(
+    context.db,
+    context.farm.id,
+    agreementId,
+    farmDayOf(now)
   );
-  return { document, photos, agreementId: standing.agreement.id };
+  const shared = await ventureProgressOf(context, standing.venture.id, now);
+  const { document, exported } = progressPaperOf(
+    context,
+    standing,
+    shared,
+    now
+  );
+  await audited(context).write(exported, () => Promise.resolve());
+  return {
+    document,
+    photos: shared.photos,
+    agreementId: standing.agreement.id,
+  };
 };
 
 /**
- * অগ্রগতি for every Investor of a Venture, one after another, for the month's printing: each made as its own paper is
- * and kept in the trail as its own Export. The Investors are the ones the month's notice counts — everybody who signed,
- * not the Farm's own Units, whose paper nobody is sent. The photographs are the Venture's animals, the same on every
- * paper, so they travel once.
+ * অগ্রগতি for every Investor of a Venture, one after another, for the month's printing. The Investors are the ones the
+ * month's notice counts — everybody who signed, not the Farm's own Units, whose paper nobody is sent. What the papers
+ * share is read once, the photographs with it, and they travel once.
+ *
+ * Every paper is made before any is kept: a print that cannot make one of its papers is refused whole and leaves no
+ * Export in the trail, since nobody was handed anything. Made, every paper's Export is kept together, in one write.
  */
 export const progressStatementsOf = async (
   context: PaperMaking,
   ventureId: string
 ) => {
+  assertRegistered(context.farm, "an investor's progress statement");
+  const now = context.clock.now();
   const signed = await context.db.query.investmentAgreement.findMany({
     where: { farmId: context.farm.id, ventureId },
-    columns: { id: true, investorId: true, stampKind: true },
+    columns: { id: true, stampKind: true },
     orderBy: { createdAt: "asc", id: "asc" },
   });
-  const theirs = signed.filter((one) => one.stampKind !== "farm_own");
-  const people = await context.db.query.investor.findMany({
-    where: {
-      farmId: context.farm.id,
-      id: { in: theirs.map((one) => one.investorId) },
-    },
-    columns: { id: true, name: true },
-  });
-  const nameOf = new Map(people.map((one) => [one.id, one.name]));
-  const papers: {
+  const shared = await ventureProgressOf(context, ventureId, now);
+  const made: {
     agreementId: string;
-    investorName: string;
-    document: Awaited<ReturnType<typeof progressStatementFor>>["document"];
+    document: PaperDocument;
+    exported: AuditedWrite;
   }[] = [];
-  let photos: Awaited<ReturnType<typeof progressStatementFor>>["photos"] = [];
-  for (const one of theirs) {
-    const investorName = nameOf.get(one.investorId) ?? "";
-    // oxlint-disable-next-line no-await-in-loop -- each paper made and kept in the trail in turn
-    const made = await progressStatementFor(context, one.id);
-    papers.push({ agreementId: one.id, investorName, document: made.document });
-    ({ photos } = made);
+  for (const one of signed.filter((paper) => !isTheFarmsOwn(paper))) {
+    // oxlint-disable-next-line no-await-in-loop -- each Investor's own standing, read in turn
+    const standing = await hisStanding(
+      context.db,
+      context.farm.id,
+      one.id,
+      farmDayOf(now)
+    );
+    made.push({
+      agreementId: one.id,
+      ...progressPaperOf(context, standing, shared, now),
+    });
   }
-  return { papers, photos };
+  await seenWhenDone(
+    context.db.transaction(async (tx) => {
+      for (const one of made) {
+        // oxlint-disable-next-line no-await-in-loop -- one transaction, each paper's Export in turn
+        await audited(context).recordEvent(tx, one.exported);
+      }
+    })
+  );
+  return {
+    papers: made.map(({ agreementId, document }) => ({
+      agreementId,
+      document,
+    })),
+    photos: shared.photos,
+  };
 };
 
 /** হিসাব নিকাশ for one Agreement: the figures approval froze, his own payout, and any Adjustment since. */

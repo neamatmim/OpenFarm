@@ -14,7 +14,7 @@ const at = (instant: string) =>
   createTestClient(appRouter, { as: "owner", clock: new FakeClock(instant) });
 
 /** A Venture of two Investors, its one bull sold and its Settlement approved: nothing paid out yet. */
-const anApprovedRun = async (mark: string) => {
+const anApprovedRun = async (mark: string, approve = true) => {
   const { client: owner } = await at("2098-01-02T04:00:00.000Z");
   const venture = await owner.ventures.open({
     name: `একসাথে পাঠানো ${mark} ${suffix}`,
@@ -97,8 +97,10 @@ const anApprovedRun = async (mark: string) => {
     paymentMethod: "bank",
     reference: `SALE-${mark}-${suffix}`,
   });
-  const { client: settling } = await at("2098-01-15T06:00:00.000Z");
-  await settling.ventures.settlement.approve({ ventureId: venture.id });
+  if (approve) {
+    const { client: settling } = await at("2098-01-15T06:00:00.000Z");
+    await settling.ventures.settlement.approve({ ventureId: venture.id });
+  }
   return { ventureId: venture.id, papers };
 };
 
@@ -108,6 +110,13 @@ const paidOut = async (ventureId: string) => {
   const approved = await owner.ventures.settlement.approved({ ventureId });
   return approved?.shares.map((one) => one.paid) ?? [];
 };
+
+/** How many of a Settlement snapshot's shares have gone out. */
+const paidIn = (snapshot: unknown) =>
+  (
+    (snapshot as { shares?: { paidMovementId: string | null }[] } | null)
+      ?.shares ?? []
+  ).filter((one) => one.paidMovementId !== null).length;
 
 beforeAll(async () => {
   const { client: owner } = await at("2098-01-02T04:00:00.000Z");
@@ -185,5 +194,67 @@ describe("sending every payout at once", () => {
       data: { refusal: "not_what_he_is_owed", row: 2 },
     });
     expect(await paidOut(ventureId)).toEqual([false, false]);
+  });
+
+  it("says a refusal of the whole sheet without naming a line of it", async () => {
+    const { ventureId, papers } = await anApprovedRun("4", false);
+    const [a = "", b = ""] = papers;
+    const { client: owner } = await at("2098-01-16T04:00:00.000Z");
+
+    const refused = await owner.ventures.settlement
+      .payMany({
+        ventureId,
+        movedOn: "2098-01-16",
+        payouts: [
+          { agreementId: a, amountMoney: 256_000, reference: `NA-A-${suffix}` },
+          { agreementId: b, amountMoney: 256_000, reference: `NA-B-${suffix}` },
+        ],
+      })
+      .catch((error: unknown) => error);
+
+    expect(refused).toMatchObject({ data: { refusal: "not_yet_approved" } });
+    expect((refused as { data: object }).data).not.toHaveProperty("row");
+  });
+
+  it("keeps the trail's before and after true when one payout goes from its row while the sheet sends the other", async () => {
+    const { ventureId, papers } = await anApprovedRun("5");
+    const [a = "", b = ""] = papers;
+    const { client: owner } = await at("2098-01-16T04:00:00.000Z");
+
+    await Promise.all([
+      owner.ventures.settlement.payMany({
+        ventureId,
+        movedOn: "2098-01-16",
+        payouts: [
+          {
+            agreementId: a,
+            amountMoney: 256_000,
+            reference: `RACE-A-${suffix}`,
+          },
+        ],
+      }),
+      owner.ventures.settlement.pay({
+        ventureId,
+        agreementId: b,
+        amountMoney: 256_000,
+        movedOn: "2098-01-16",
+        paymentMethod: "bank",
+        reference: `RACE-B-${suffix}`,
+      }),
+    ]);
+
+    const trail = await owner.audit.list({
+      entity: "venture_settlement",
+      entityId: ventureId,
+    });
+    // Whichever went second read the first one's payout in its before: two payouts, one already out.
+    const counts = trail
+      .filter((one) => one.action === "update")
+      .map((one) => [paidIn(one.before), paidIn(one.after)])
+      .toSorted();
+    expect(counts).toEqual([
+      [0, 1],
+      [1, 2],
+    ]);
   });
 });

@@ -159,7 +159,7 @@ export const capitalProcedures = {
       z.object({
         ventureId: z.string(),
         receipts: z
-          .array(capitalInput.omit({ paymentMethod: true, payInNoteId: true }))
+          .array(capitalInput.omit({ paymentMethod: true }))
           .min(1)
           .max(MANY_AT_ONCE),
       })
