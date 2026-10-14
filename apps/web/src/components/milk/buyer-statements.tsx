@@ -66,7 +66,7 @@ const Money = ({ amount }: { amount: number }) => {
  * waiting first: how much, since when, and how much of it is late.
  */
 const StillToFollow = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const waiting = useQuery(orpc.milk.priceToFollow.queryOptions());
   const rows = waiting.data ?? [];
   return (
@@ -95,7 +95,13 @@ const StillToFollow = () => {
                       })}
                     </span>
                     <span>
-                      {t("statement.since")} <DaySaid day={one.oldestOn} />
+                      {t("statement.since", {
+                        day: formatDate(
+                          startOfFarmDay(one.oldestOn),
+                          language,
+                          "date"
+                        ),
+                      })}
                     </span>
                   </>
                 }

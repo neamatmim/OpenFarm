@@ -2709,7 +2709,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "দেওয়া হয়েছে, ক্রেতার বিলের অপেক্ষায়। যে বিলের মেয়াদে পড়ে তা শেষ হওয়ার দশ দিন পরে দেরি — প্রথম বিল আসা পর্যন্ত মেয়াদ ক্যালেন্ডার মাস।",
   "statement.noneWaiting": "কোনো দুধ দামের অপেক্ষায় নেই",
   "statement.waitingLine": "{count}টি হস্তান্তর · {liters} লিটার",
-  "statement.since": "থেকে",
+  "statement.since": "{day} থেকে",
   "statement.late": "{liters} লিটার দেরি",
   "statement.attention": "ক্রেতার বিল দেরি করছে",
   "statement.attentionHint":

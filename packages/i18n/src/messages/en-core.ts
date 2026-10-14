@@ -2933,7 +2933,7 @@ export const enCore = {
   "statement.noneWaiting": "No milk is waiting for its price",
   "statement.waitingLine":
     "{count, plural, one {# dispatch} other {# dispatches}} · {liters} L",
-  "statement.since": "since",
+  "statement.since": "since {day}",
   "statement.late": "{liters} L late",
   "statement.attention": "A buyer's statement is late",
   "statement.attentionHint":
