@@ -206,3 +206,21 @@ Left: D9 (cover for an absent worker), D10–D12 (feed screens, after a month of
 | `a6616b00` | F1, F5, F6 | «এ মাসে যাঁদের মাসের টাকা বাকি» on Investors with phone and capital in; Needs you counts and filters; the Owner told when an Investor agrees (`offer_agreed`). |
 
 Left: D10–D12 (feed, after a month of use), G2 (Qurbani booking, with the Eid batch sale), G4–G7, G9.
+
+## Built — step 7 (2026-10-14)
+
+`/implement`: G4–G7. Each branch code-reviewed (standards and spec), its findings fixed, and the fix reviewed again
+before merging; G4, the money one, went round three times. G9 closed: the Owner said the farm does not insure its
+cattle and has no plans to. Migrations applied to both dev DBs (268).
+
+| Merge | Findings | What |
+|---|---|---|
+| `061f2b71` | G6 | ADR 0030: **Body Condition** read from the Steps that ask it (a slot marked `body_condition`, or the Playbook's own five scores in an older Version) — on her page with a trend, the Fattening board, fertility, cull list and herd list; asked at Dry-off and Calving, dated by the calving; the editor can ask it on any Step walked animal by animal. Shown, never told: no notice until the Vet says what the farm should hear. |
+| `8d222e40` | — | The seed had stopped since 5310be52: a tick spray skipped for a bull near his sale was raised again as a Campaign dose and sprayed him into his withdrawal. Work that comes round on a Schedule is not raised again. |
+| `a962d0f5`, `aef0c99d` | G5 | ADR 0031: **Feed Making** — home-mixed concentrate and silage, a transfer inside the store, no money. Inputs leave at the moment of making; a pit's feed comes in when it is opened, at what came out. Priced on every read from what went in; refused where it would leave the store short at any moment after, or re-price a settled Venture through a chain of made feed. Then: the store's worth rounded once, so a Making leaves it to the paisa. |
+| `561c2b4f` | — | The alerts bell said «{count, plural, =0 …}» to a screen reader; a catalog test now refuses any plural translate cannot read. |
+| `1e21d754` | G7 | ADR 0032: farm **Licenses** (trade, environment, fire, other) on the Registration's renewal machinery (shared, not copied), listed on the Inspector View; a renewal moved with a hand-corrected expiry, called off on retire or when cleared, never moved once renewed; the farm page says when no procedure raises renewals. The Vet's **BVC number** on the treatment register, disease history, passport, letter and Inspector View. **Restore Drills** written down on Backups, who did it, the latest day standing, a wrong one put right explicitly; overdue to the Owner's digest. |
+| `a84b247b` | G4 | ADR 0033: milk sent with its **Price to Follow** (a buyer on credit only), priced by the **Buyer Statement** — his liters beside the farm's, spread by liters to the paisa, owed from the moment the statement is recorded so no earlier payment moves; the Owner voids. A month whose milk was priced after it ended says so on its own line. ADR 0028 addendum: milk or cattle sold on credit into a Closed Month is the Owner's alone (it was open to anyone before). |
+
+Left: D10–D12 (feed, after a month of use), G2 (Qurbani booking, with the Eid batch sale). Open for the Owner: a
+put-off Campaign dose (FMD, deworming) is still raised again for an animal Ready for sale.
