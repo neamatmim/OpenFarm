@@ -13,13 +13,21 @@ const worthOf = (stock: readonly { amount: number; price: number | null }[]) =>
  * bought — adds nothing, and is counted so the figure can say so. Silage still in the pit (a **Feed Making** whose made
  * feed has not come out) is feed the farm holds, at what went into it (ADR 0031): out of Stock on Hand, as nobody can
  * feed it yet, but not out of what the farm has tied up.
+ *
+ * A feed's worth is the store's own (`stockLedger`'s `valueMoney`), never what is on hand times its price once rounded
+ * to the paisa: across six tonnes that rounding is taka, and a Feed Making — feed moved inside the store at what it was
+ * worth — would move the figure by it.
  */
 export const storeValueOf = ({
   feed,
   medicine,
   inThePit = { worthMoney: 0, unpriced: 0 },
 }: {
-  feed: readonly { onHand: number; averagePriceMoney: number | null }[];
+  feed: readonly {
+    onHand: number;
+    averagePriceMoney: number | null;
+    valueMoney: number;
+  }[];
   medicine: readonly { expected: number; perDoseMoney: number | null }[];
   inThePit?: { worthMoney: number; unpriced: number };
 }) => {
@@ -31,7 +39,10 @@ export const storeValueOf = ({
       .filter((one) => one.expected > 0)
       .map((one) => ({ amount: one.expected, price: one.perDoseMoney })),
   };
-  const feedMoney = roundMoney(worthOf(held.feed) + inThePit.worthMoney);
+  const feedWorth = feed
+    .filter((one) => one.onHand > 0)
+    .reduce((sum, one) => sum + one.valueMoney, 0);
+  const feedMoney = roundMoney(feedWorth + inThePit.worthMoney);
   const medicineMoney = worthOf(held.medicine);
   return {
     feedMoney,

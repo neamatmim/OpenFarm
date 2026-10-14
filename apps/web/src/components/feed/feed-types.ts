@@ -71,8 +71,14 @@ export const standingOf = (line: StockLine): StockStanding => {
   return line.lowStockAt === null && !watchedByDays ? "unwatched" : "ok";
 };
 
-/** What a line of the store is worth at the average price it was bought at; nothing for feed with no price. */
-export const valueOf = (line: StockLine): number | null =>
-  line.averagePriceMoney === null
-    ? null
-    : Math.max(line.onHand, 0) * line.averagePriceMoney;
+/**
+ * What a line of the store is worth at the average price it was bought at — the farm's own figure, as the monthly
+ * report reads it, never on hand times the price once rounded, which across six tonnes is taka (ADR 0031) — and on an
+ * answer kept from before the farm said it, on hand times the price. Nothing for feed with no price.
+ */
+export const valueOf = (line: StockLine): number | null => {
+  if (line.averagePriceMoney === null) {
+    return null;
+  }
+  return line.valueMoney ?? Math.max(line.onHand, 0) * line.averagePriceMoney;
+};

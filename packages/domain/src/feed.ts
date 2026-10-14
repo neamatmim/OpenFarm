@@ -445,13 +445,13 @@ export const stepStore = (state: StoreState, one: StockMovement): void => {
 const replayStore = (
   movements: readonly StockMovement[],
   afterEach?: (at: Date, price: number | null) => void
-): { onHand: number; price: number | null } => {
+): StoreState => {
   const state = emptyStore();
   for (const one of movements.toSorted(inStoreOrder)) {
     stepStore(state, one);
     afterEach?.(one.at, state.price);
   }
-  return { onHand: state.onHand, price: state.price };
+  return state;
 };
 
 /**
@@ -538,17 +538,23 @@ export const wentShortFrom = (
  * `asOf` reads the store as it stood then — what a Feeding that day was charged at. The price is null
  * for feed never bought; with the store empty or below nothing it is the last price it had, because a
  * price of nothing would say the next Feeding cost nothing.
+ *
+ * What the store is worth is the replay's own figure, rounded once to the paisa — never what is on hand times the
+ * price after the price was rounded: six tonnes of concentrate at a price rounded half a paisa off is ৳30 off, and a
+ * Feed Making, which only moves feed inside the store, moved the store's worth by that much (ADR 0031).
  */
 export const stockLedger = (
   movements: readonly StockMovement[],
   asOf?: Date
-): { onHand: number; averagePriceMoney: number | null } => {
-  const { onHand, price } = replayStore(
+): { onHand: number; averagePriceMoney: number | null; valueMoney: number } => {
+  const { onHand, price, value } = replayStore(
     asOf ? movements.filter((one) => one.at <= asOf) : movements
   );
   return {
     onHand: roundKg(onHand),
     averagePriceMoney: price === null ? null : roundMoney(price),
+    /** What is on hand is worth, at its average price: nothing for a store at or below nothing, or never priced. */
+    valueMoney: onHand > 0 && price !== null ? roundMoney(value) : 0,
   };
 };
 

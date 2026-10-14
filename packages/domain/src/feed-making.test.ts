@@ -10,6 +10,7 @@ import {
 } from "./feed";
 import type { MakingRead } from "./feed-making";
 import { bringMakingsIn, inThePitAt, makingLossOf } from "./feed-making";
+import { storeValueOf } from "./store-value";
 
 const at = (iso: string) => new Date(iso);
 
@@ -47,11 +48,11 @@ describe("a Feed Making in the store", () => {
     const worths = bringMakingsIn(store, [making]);
     // 300 × 40 + 100 × 60 = 18,000 taka, over 400 kg: 45 a kilo.
     expect(worths.get("m1")).toMatchObject({ worthMoney: 18_000 });
-    expect(stockLedger(store.get("mix") ?? [])).toEqual({
+    expect(stockLedger(store.get("mix") ?? [])).toMatchObject({
       onHand: 400,
       averagePriceMoney: 45,
     });
-    expect(stockLedger(store.get("bran") ?? [])).toEqual({
+    expect(stockLedger(store.get("bran") ?? [])).toMatchObject({
       onHand: 700,
       averagePriceMoney: 40,
     });
@@ -84,7 +85,7 @@ describe("a Feed Making in the store", () => {
     const silage = store.get("silage") ?? [];
     // Nothing to feed while it is in the pit.
     expect(stockLedger(silage, at("2042-05-20T00:00:00Z")).onHand).toBe(0);
-    expect(stockLedger(silage)).toEqual({
+    expect(stockLedger(silage)).toMatchObject({
       onHand: 8500,
       averagePriceMoney: 4.71,
     });
@@ -280,6 +281,44 @@ describe("a write that takes the store short", () => {
       taken("10", 50),
     ];
     expect(wentShortFrom(corn, more, at("2042-05-02T00:00:00Z"))).toBe(true);
+  });
+});
+
+/** The store's worth as the Feed page and the monthly report say it. */
+const worthOf = (store: Map<string, StockMovement[]>) =>
+  storeValueOf({
+    feed: [...store.values()].map((movements) => stockLedger(movements)),
+    medicine: [],
+  }).feedMoney;
+
+describe("what the store is worth", () => {
+  it("is not moved by a Making: feed moved inside the store, at what it was worth", () => {
+    // As on the seed farm: six tonnes of concentrate at an average no paisa says exactly, and bran and maize the same.
+    const store = () =>
+      storeOf({
+        concentrate: [bought("2042-05-01T03:00:00Z", 6388.5, 372_700)],
+        bran: [bought("2042-05-01T03:00:00Z", 5286.1, 255_850)],
+        maize: [bought("2042-05-01T03:00:00Z", 7208.4, 266_430)],
+      });
+    const before = worthOf(store());
+    const after = store();
+    bringMakingsIn(after, [
+      {
+        id: "mix",
+        madeAt: at("2042-05-02T04:00:00Z"),
+        outputFeedItemId: "concentrate",
+        inputs: [
+          { feedItemId: "bran", quantity: 50 },
+          { feedItemId: "maize", quantity: 30 },
+        ],
+        madeFeed: {
+          arrivalId: "made",
+          at: at("2042-05-02T04:00:00Z"),
+          quantity: 80,
+        },
+      },
+    ]);
+    expect(Math.abs(worthOf(after) - before)).toBeLessThanOrEqual(0.01);
   });
 });
 
