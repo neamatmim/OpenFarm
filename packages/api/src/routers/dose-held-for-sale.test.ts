@@ -344,3 +344,91 @@ describe("a bull's first arrival dose falling due while he is Ready for Sale", (
     expect(owed[0]?.dueAt.getTime()).toBe(new Date(backOn).getTime());
   });
 });
+
+describe("a bull Ready for Sale on a dose that comes round on a schedule", () => {
+  it("is not held: its next round is its later, so nothing would be held or owed", async () => {
+    const owner = await as("owner", ARRIVED);
+    const vet = await as("vet", ARRIVED);
+    const cypermethrin = await vet.client.drugs.create({
+      name: { bn: `সাইপারমেথ্রিন ${suffix}`, en: "Cypermethrin" },
+      milkWithdrawalDays: 1,
+      meatWithdrawalDays: 28,
+    });
+    // The farm's own weekly spray, written without the standard one's states: a Ready bull still stands on its walk.
+    const spray = await owner.client.sops.create({
+      content: {
+        ...standardPlaybook({ tickSpray: cypermethrin.id }).tickSpray,
+        name: { bn: `স্প্রে ${suffix}`, en: `Spray ${suffix}` },
+        appliesTo: { side: "fattening" },
+      },
+    });
+    const tag = await aBull();
+    const manager = await as("manager", "2087-03-09T05:00:00.000Z");
+    await manager.client.readyForSale.confirm({ tagNumber: tag });
+    const walker = await as("manager", DOSE_DAY);
+    const penId = penOf.get(tag) ?? "";
+    await walker.client.work.raiseNow({
+      definitionId: spray.definitionId,
+      penId,
+    });
+    const listed = await walker.client.work.today({ penId });
+    const workId =
+      listed.find(
+        (row) => row.definitionId === spray.definitionId && !row.animalId
+      )?.id ?? "";
+    await walker.client.work.claim({ id: workId });
+    await expect(
+      walker.client.work.completeStep({
+        instanceId: workId,
+        stepId: "spray",
+        animalTag: tag,
+        evidence: [],
+        skipReason: HELD_FOR_SALE.bn,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "skip_reason_not_offered" } });
+  });
+});
+
+describe("a Version's own reasons to skip, at publishing", () => {
+  const withDoseReasons = (
+    skipReasons: { bn: string; en?: string; means?: "held_for_sale" }[]
+  ) => {
+    const content = standardPlaybook({ fmdVaccine: vaccineId }).fmdVaccination;
+    return {
+      ...content,
+      name: { bn: `টিকা ${suffix} ${skipReasons.length}`, en: "A vaccination" },
+      steps: content.steps.map((step) =>
+        step.id === "dose" ? { ...step, skipReasons } : step
+      ),
+    };
+  };
+
+  it("refuses one worded as the farm's own, and one meaning what only the farm's own words mean", async () => {
+    const owner = await as("owner", ARRIVED);
+    await expect(
+      owner.client.sops.create({
+        content: withDoseReasons([{ bn: HELD_FOR_SALE.bn }]),
+      })
+    ).rejects.toMatchObject({
+      data: {
+        blockers: [
+          "steps[1].skipReasons[0]: these words are the farm's own reason, and a step's own is worded otherwise",
+        ],
+      },
+    });
+    await expect(
+      owner.client.sops.create({
+        content: withDoseReasons([
+          { bn: "ওষুধ শেষ" },
+          { bn: "পরে", means: "held_for_sale" },
+        ]),
+      })
+    ).rejects.toMatchObject({
+      data: {
+        blockers: [
+          "steps[1].skipReasons[1]: a step's own reason may mean unwell, not found or nothing to note, and no more",
+        ],
+      },
+    });
+  });
+});

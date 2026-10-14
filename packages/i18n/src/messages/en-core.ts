@@ -2101,6 +2101,10 @@ export const enCore = {
   "sop.problem.bodyConditionScale":
     "body condition is asked as its five scores, one to five — take it out and ask it again",
   "sop.problem.sameValue": "two choices are the same; make each one different",
+  "sop.problem.farmReasonWords":
+    "these words are the farm's own reason, which the farm offers itself; word this one differently",
+  "sop.problem.ownReasonMeans":
+    "a step's own reason may only mean unwell, not found, or nothing to note",
   "sop.problem.sameId":
     "two steps share the name “{value}”; remove one and add it again",
   "sop.problem.needsFigure": "this step records a figure, so ask for a number",

@@ -3,7 +3,11 @@ import { and, eq, like, ne } from "@OpenFarm/db/operators";
 import { excusedDose } from "@OpenFarm/db/schema/health";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { SopContent } from "@OpenFarm/domain";
-import { OPEN_INSTANCE_STATES, isExitState } from "@OpenFarm/domain";
+import {
+  OPEN_INSTANCE_STATES,
+  comesRoundOnASchedule,
+  isExitState,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import type { SQL } from "drizzle-orm";
 
@@ -28,10 +32,6 @@ const releases = (content: SopContent): boolean =>
 /** Whether a procedure gives a dose: one of its Steps records a Treatment. */
 const givesADose = (content: SopContent): boolean =>
   content.steps.some((step) => step.effect?.kind === "treatment");
-
-/** Whether a procedure comes round by itself at its times — a tick spray every week — whose next round is its later. */
-const comesRoundOnASchedule = (content: SopContent): boolean =>
-  content.triggers.some((trigger) => trigger.kind === "schedule");
 
 /** A cause his arrival wrote: `arrival:<animal>:+<days>`. */
 const ARRIVAL_CAUSE = /^arrival:[^:]+:\+\d+$/u;

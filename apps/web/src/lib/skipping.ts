@@ -1,4 +1,4 @@
-import type { Bilingual, Step } from "@OpenFarm/domain";
+import type { Bilingual, SopContent, Step } from "@OpenFarm/domain";
 import {
   HELD_FOR_SALE,
   NOT_DUE_YET,
@@ -17,6 +17,23 @@ interface AsTheWalkSeesHer {
   readyForSale?: boolean;
 }
 
+/** Where a Step is answered: for which animal, in which Version. */
+interface Answering {
+  /** The animal it is answered for, where one is. */
+  animal?: AsTheWalkSeesHer;
+  /** The Version the Step is in: what raises it says whether a dose may be held for her sale. Without it, none is. */
+  content?: Pick<SopContent, "triggers">;
+}
+
+/** Whether her dose on this Step is held for her sale: she is Ready for Sale, and the Step may hold it. */
+export const heldHere = (
+  step: Pick<Step, "repeatPerAnimal" | "effect">,
+  { animal, content }: Answering
+): boolean =>
+  animal?.readyForSale === true &&
+  content !== undefined &&
+  mayHoldForSale(content, step);
+
 /**
  * The reasons this Step may be skipped with, as the phone can offer them — none, when it may not be
  * skipped at all, and none when the Playbook gave it no reasons.
@@ -30,14 +47,17 @@ interface AsTheWalkSeesHer {
  * Answering with the reasons rather than with yes or no keeps the button and the sheet reading the same
  * list, so one cannot offer what the other has not got. An animal a Campaign's last dose still covers is offered the
  * farm's own word for her, first: not due, dosed already. One Ready for Sale, on a dose given one animal at a time, is
- * offered the farm's word for holding it till she is back to Fattening.
+ * offered the farm's word for holding it till she is back to Fattening. The same words are never offered twice.
  */
 export const skipReasonsOffered = (
   step: Pick<Step, "repeatPerAnimal" | "effect" | "skipReasons">,
-  /** Putting an answer right, which may also say it was written by mistake. */
-  correcting = false,
-  /** The animal it is answered for, where one is. */
-  animal?: AsTheWalkSeesHer
+  {
+    correcting = false,
+    ...answering
+  }: Answering & {
+    /** Putting an answer right, which may also say it was written by mistake. */
+    correcting?: boolean;
+  } = {}
 ): Bilingual[] => {
   if (!maySkip(step)) {
     return [];
@@ -45,11 +65,14 @@ export const skipReasonsOffered = (
   const own = correcting
     ? [...step.skipReasons, WRITTEN_BY_MISTAKE]
     : step.skipReasons;
-  const held =
-    animal?.readyForSale && mayHoldForSale(step) ? [HELD_FOR_SALE] : [];
   const covered =
-    animal?.notDueSince && mayPassAsNotDue(step) ? [NOT_DUE_YET] : [];
-  return [...covered, ...held, ...own];
+    answering.animal?.notDueSince && mayPassAsNotDue(step) ? [NOT_DUE_YET] : [];
+  const held = heldHere(step, answering) ? [HELD_FOR_SALE] : [];
+  // A Version published before the farm refused its own reason worded as the farm's would list those words twice.
+  return [...covered, ...held, ...own].filter(
+    (reason, index, all) =>
+      all.findIndex((one) => one.bn === reason.bn) === index
+  );
 };
 
 /**
@@ -60,13 +83,10 @@ export const skipReasonsOffered = (
  */
 export const passedFirstWith = (
   step: Pick<Step, "repeatPerAnimal" | "effect">,
-  animal?: AsTheWalkSeesHer
+  answering: Answering
 ): string | null => {
-  if (animal?.notDueSince && mayPassAsNotDue(step)) {
+  if (answering.animal?.notDueSince && mayPassAsNotDue(step)) {
     return NOT_DUE_YET.bn;
   }
-  if (animal?.readyForSale && mayHoldForSale(step)) {
-    return HELD_FOR_SALE.bn;
-  }
-  return null;
+  return heldHere(step, answering) ? HELD_FOR_SALE.bn : null;
 };

@@ -119,6 +119,7 @@ export {
   campaignIntervalOf,
   campaignIntervalTriggerOf,
   campaignProductOf,
+  comesRoundOnASchedule,
   dueForACampaign,
   isCampaignDose,
   mayHoldForSale,

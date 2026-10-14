@@ -1937,6 +1937,10 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sop.problem.bodyConditionScale":
     "শরীরের অবস্থা তার পাঁচটি মানেই জানতে হয়, এক থেকে পাঁচ — এটি সরিয়ে আবার জানতে চান",
   "sop.problem.sameValue": "দুটি বিকল্প একই; প্রতিটি আলাদা করুন",
+  "sop.problem.farmReasonWords":
+    "এই কথাগুলো খামারের নিজের কারণ, যা খামার নিজেই দেখায়; অন্য কথায় লিখুন",
+  "sop.problem.ownReasonMeans":
+    "এই ধাপের নিজের কারণের মানে হতে পারে শুধু অসুস্থ, পাওয়া যায়নি, বা কিছু বলার নেই",
   "sop.problem.sameId": "দুটি ধাপের নাম একই “{value}”; একটি মুছে আবার যোগ করুন",
   "sop.problem.needsFigure": "এই ধাপ একটি সংখ্যা লেখে, তাই সংখ্যা চান",
   "sop.problem.noPen": "পশুকে কোন কোন পেনে নেওয়া যাবে তা বেছে নিন",

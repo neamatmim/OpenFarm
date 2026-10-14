@@ -67,50 +67,93 @@ describe("an animal Ready for Sale on a dose given one animal at a time", () => 
     skipReasons: [unwell],
   });
 
+  /** Raised by hand or by what happened, as a Campaign or an arrival dose is. */
+  const walked = { triggers: [] };
+  /** Come round every Monday morning, as a tick spray does. */
+  const weekly = {
+    triggers: [{ kind: "schedule" as const, times: ["08:30"], weekdays: [1] }],
+  };
+  const ready = { readyForSale: true };
+
   it("is offered the farm's word for holding her, whatever the Version's own reasons", () => {
     expect(
-      skipReasonsOffered(campaignDose, false, { readyForSale: true }).map(
-        (one) => one.bn
-      )
+      skipReasonsOffered(campaignDose, {
+        animal: ready,
+        content: walked,
+      }).map((one) => one.bn)
     ).toEqual([HELD_FOR_SALE.bn, unwell.bn]);
     // Covered as well: not due first, the better word.
     expect(
-      skipReasonsOffered(campaignDose, false, {
-        readyForSale: true,
-        notDueSince: "2026-09-01",
+      skipReasonsOffered(campaignDose, {
+        animal: { ...ready, notDueSince: "2026-09-01" },
+        content: walked,
       }).map((one) => one.bn)
     ).toEqual([NOT_DUE_YET.bn, HELD_FOR_SALE.bn, unwell.bn]);
   });
 
-  it("is not offered it when she is not Ready for Sale, nor on a Prescription's dose", () => {
+  it("is not offered it when she is not Ready for Sale, nor on a Prescription's dose, nor on one that comes round on a schedule", () => {
     expect(
-      skipReasonsOffered(campaignDose, false, { readyForSale: false })
+      skipReasonsOffered(campaignDose, {
+        animal: { readyForSale: false },
+        content: walked,
+      })
     ).toEqual([unwell]);
     // A phone's copy from before the farm said whether she is ready.
-    expect(skipReasonsOffered(campaignDose, false, {})).toEqual([unwell]);
+    expect(
+      skipReasonsOffered(campaignDose, { animal: {}, content: walked })
+    ).toEqual([unwell]);
     const prescribed = aStep({
       effect: { kind: "treatment" },
       skipReasons: [notFound],
     });
     expect(
-      skipReasonsOffered(prescribed, false, { readyForSale: true })
+      skipReasonsOffered(prescribed, { animal: ready, content: walked })
     ).toEqual([notFound]);
+    // Its next round is its later: nothing would be held for her, nor owed when she is back.
+    expect(
+      skipReasonsOffered(campaignDose, { animal: ready, content: weekly })
+    ).toEqual([unwell]);
+  });
+
+  it("never offers the same words twice", () => {
+    // A Version published before the farm refused its own reason worded as the farm's.
+    const echoing = aStep({
+      repeatPerAnimal: true,
+      effect: { kind: "treatment", productId: "fmd" },
+      skipReasons: [{ bn: HELD_FOR_SALE.bn }, { bn: NOT_DUE_YET.bn }, unwell],
+    });
+    expect(
+      skipReasonsOffered(echoing, {
+        animal: { ...ready, notDueSince: "2026-09-01" },
+        content: walked,
+      }).map((one) => one.bn)
+    ).toEqual([NOT_DUE_YET.bn, HELD_FOR_SALE.bn, unwell.bn]);
   });
 
   it("opens passed as held for her sale, and passed as not due where her last dose still covers her", () => {
-    expect(passedFirstWith(campaignDose, { readyForSale: true })).toBe(
-      HELD_FOR_SALE.bn
-    );
+    expect(
+      passedFirstWith(campaignDose, { animal: ready, content: walked })
+    ).toBe(HELD_FOR_SALE.bn);
     // Not due is the better word: she is owed nothing later at all.
     expect(
       passedFirstWith(campaignDose, {
-        readyForSale: true,
-        notDueSince: "2026-09-01",
+        animal: { ...ready, notDueSince: "2026-09-01" },
+        content: walked,
       })
     ).toBe(NOT_DUE_YET.bn);
-    expect(passedFirstWith(campaignDose, { readyForSale: false })).toBeNull();
+    expect(
+      passedFirstWith(campaignDose, {
+        animal: { readyForSale: false },
+        content: walked,
+      })
+    ).toBeNull();
+    expect(
+      passedFirstWith(campaignDose, { animal: ready, content: weekly })
+    ).toBeNull();
     // A phone's copy from before the farm said whether she is ready: she is walked as any other.
-    expect(passedFirstWith(campaignDose, {})).toBeNull();
-    expect(passedFirstWith(campaignDose)).toBeNull();
+    expect(
+      passedFirstWith(campaignDose, { animal: {}, content: walked })
+    ).toBeNull();
+    expect(passedFirstWith(campaignDose, { content: walked })).toBeNull();
   });
 });

@@ -5,6 +5,7 @@ import type {
   Evidence,
   LicenseKind,
   MilkDestination,
+  SopContent,
   Step,
 } from "@OpenFarm/domain";
 import {
@@ -793,7 +794,14 @@ const FieldWithLabel = ({
 const useStartingAnswer = (
   step: Step,
   existing: Completion | undefined,
-  animal: Animal | undefined,
+  {
+    animal,
+    content,
+  }: {
+    animal: Animal | undefined;
+    /** The Version the Step is in. */
+    content: Pick<SopContent, "triggers"> | undefined;
+  },
   initialReason?: string
 ) => {
   const done = existing?.status === "done" ? existing.evidence : undefined;
@@ -803,7 +811,7 @@ const useStartingAnswer = (
   // An animal a Campaign's last dose still covers opens passed as not due, so nobody doses her twice by default; one
   // Ready for Sale opens passed as held, so nobody starts a withdrawal that holds up her sale.
   const passedWith =
-    existing === undefined ? passedFirstWith(step, animal) : null;
+    existing === undefined ? passedFirstWith(step, { animal, content }) : null;
   const [skipping, setSkipping] = useState(
     existing?.status === "skipped" || passedWith !== null
   );
@@ -1077,6 +1085,7 @@ const recordButtonClass = (recovering: boolean, skippable: boolean): string => {
  *  a reason for a per-animal Step, and a warning that must be acknowledged for an odd figure. */
 export const EvidenceSheet = ({
   step,
+  content,
   animal,
   correcting,
   existing,
@@ -1093,6 +1102,8 @@ export const EvidenceSheet = ({
   onRecord,
 }: {
   step: Step;
+  /** The Version the Step is in: what raises it says whether her dose may be held for her sale. */
+  content?: Pick<SopContent, "triggers">;
   animal?: Animal;
   /** The entry already exists, so saving it again is a Correction. */
   correcting: boolean;
@@ -1135,7 +1146,7 @@ export const EvidenceSheet = ({
     destination,
     setDestination,
     locked,
-  } = useStartingAnswer(step, existing, animal, initialReason);
+  } = useStartingAnswer(step, existing, { animal, content }, initialReason);
   const [warning, setWarning] = useState<string | null>(null);
   const [photos, setPhotos] = useState<Taken>(() => initialPhotos ?? {});
   const recordsMilk = step.effect?.kind === "milk_record";
@@ -1143,7 +1154,11 @@ export const EvidenceSheet = ({
   // Asked of one place, not worked out here: the server refuses a skip by the same rule, and when this
   // screen had its own the two disagreed — a dose Step written with "ওষুধ শেষ" against it drew no
   // button at all. The reasons rather than a yes, so the button and the sheet cannot differ on them.
-  const skipReasons = skipReasonsOffered(step, correcting, animal);
+  const skipReasons = skipReasonsOffered(step, {
+    correcting,
+    animal,
+    content,
+  });
   const skippable = skipReasons.length > 0;
   // A Correction starts from what was fed, not from what the Ration owed: saving it unchanged keeps what went out.
   const recorded = factsOf(existing);

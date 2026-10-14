@@ -3,7 +3,6 @@ import {
   isClosingStep,
   isFinished,
   isOneTap,
-  mayHoldForSale,
   nothingToNoteOf,
 } from "@OpenFarm/domain";
 import { buttonVariants } from "@OpenFarm/ui/components/button";
@@ -64,6 +63,7 @@ import {
 } from "@/lib/record-offline";
 import { refreshTheScreen } from "@/lib/refresh";
 import { sayWhy } from "@/lib/saying";
+import { heldHere } from "@/lib/skipping";
 import type { StepAnswer } from "@/lib/step-answer";
 import { journeyOf } from "@/lib/step-answer";
 import { toast } from "@/lib/toast";
@@ -371,6 +371,7 @@ const WorkPage = () => {
     return (
       <EvidenceSheet
         animal={openAnimal}
+        content={content}
         correcting={Boolean(existing)}
         existing={existing}
         key={openAnimal.id}
@@ -387,6 +388,7 @@ const WorkPage = () => {
     const existing = doneFor(openStep.id);
     return (
       <EvidenceSheet
+        content={content}
         correcting={Boolean(existing)}
         existing={existing}
         feeding={feeding}
@@ -477,9 +479,10 @@ const WorkPage = () => {
                 <AnimalTile
                   animal={beast}
                   completion={doneFor(perAnimalStep.id, beast.id)}
-                  heldForSale={
-                    beast.readyForSale === true && mayHoldForSale(perAnimalStep)
-                  }
+                  heldForSale={heldHere(perAnimalStep, {
+                    animal: beast,
+                    content,
+                  })}
                   well={nothingToNoteOf(perAnimalStep)?.bn}
                   next={beast.id === nextAnimal?.id}
                   onOpen={() => openAnimalIfMine(beast)}
