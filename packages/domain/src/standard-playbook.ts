@@ -202,6 +202,11 @@ export const eventOfObservation = (
   return URGENT_ROUND_WORDS.includes(saw) ? UNWELL_URGENT : UNWELL;
 };
 
+/** Whether what was seen asks for somebody to look at her health: anything but a heat, which is the breeding work's.
+ *  The one rule the Manager's unwell work and the "Vet asked" mark on "Giving less" both read. */
+export const asksAfterHerHealth = (saw: string): boolean =>
+  eventOfObservation(saw) !== null;
+
 const healthRound = (): SopContent => ({
   name: { bn: "স্বাস্থ্য ও গরম পর্যবেক্ষণ", en: "Health and heat round" },
   purpose: {

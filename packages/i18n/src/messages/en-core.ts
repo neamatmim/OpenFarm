@@ -1092,6 +1092,8 @@ export const enCore = {
   "refusal.notASightingWord":
     "That is not one of the things the farm records seeing: choose from the list",
   "refusal.sayWhatWasSeen": "Say what was seen",
+  "refusal.notInMilk": "Only a cow in milk can be giving less milk",
+  "refusal.vetAskedAlready": "The vet has already been asked about her",
   "refusal.notThisAnimals":
     "That belongs to another animal: open it from her own page",
   "refusal.cannotDoThatWork":

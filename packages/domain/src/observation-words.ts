@@ -1,5 +1,8 @@
 import { HEAT } from "./breeding";
 
+/** The Observation word a cow on "Giving less" is put in front of the Vet by. Only a cow in milk can be. */
+export const GIVING_LESS = "giving_less";
+
 /**
  * What somebody can report seeing of an animal when no round asked — the same words the health round offers, so a
  * limp noticed at the gate and a limp noticed on the round are one kind of thing to the Vet, and a heat noticed
@@ -29,11 +32,19 @@ export const OBSERVATION_WORDS = [
     en: "Afterbirth not passed after 12 hours",
   },
   // A cow named on "Giving less" put in front of the Vet: a drop that sudden is illness until somebody looks.
-  { value: "giving_less", bn: "দুধ কম দিচ্ছে", en: "Giving less milk" },
+  { value: GIVING_LESS, bn: "দুধ কম দিচ্ছে", en: "Giving less milk" },
   { value: "other", bn: "অন্য কিছু", en: "Something else" },
 ] as const;
 
 export type ObservationWord = (typeof OBSERVATION_WORDS)[number];
+
+/** The words somebody may report seeing of an animal in this State: "giving less milk" of a cow in milk alone. */
+export const observationWordsFor = (
+  state: string
+): readonly ObservationWord[] =>
+  OBSERVATION_WORDS.filter(
+    (word) => word.value !== GIVING_LESS || state === "milking"
+  );
 
 export const observationWordOf = (value: string): ObservationWord | undefined =>
   OBSERVATION_WORDS.find((word) => word.value === value);

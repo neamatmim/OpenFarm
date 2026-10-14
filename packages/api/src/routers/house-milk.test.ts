@@ -20,7 +20,7 @@ const suffix = `house-milk-${Date.now()}`;
 
 let milkingId = "";
 let pen = { id: "" };
-let cows = { inTheTank: "", forTheHouse: "" };
+let cows = { inTheTank: "", forTheHouse: "", seenEarlier: "", heifer: "" };
 
 type Role = "owner" | "manager" | "staff" | "vet";
 
@@ -49,16 +49,26 @@ beforeAll(async () => {
       "sex,side,state,pen,source,calved_at",
       `female,dairy,milking,বাড়ির পেন ${suffix},bought,2064-12-01`,
       `female,dairy,milking,বাড়ির পেন ${suffix},bought,2064-12-01`,
+      `female,dairy,milking,বাড়ির পেন ${suffix},bought,2064-12-01`,
+      `female,dairy,heifer,বাড়ির পেন ${suffix},bought,`,
     ].join("\n"),
   });
   pen = { id: made.id };
   cows = {
     inTheTank: imported.imported[0]?.tagNumber ?? "",
     forTheHouse: imported.imported[1]?.tagNumber ?? "",
+    seenEarlier: imported.imported[2]?.tagNumber ?? "",
+    heifer: imported.imported[3]?.tagNumber ?? "",
   };
+  // The third cow the Vet diagnosed in January, and the case is still open: long before her drop, and still seen to.
+  const vet = await as("vet", "2065-01-20T04:00:00.000Z");
+  await vet.client.diagnoses.record({
+    animalTag: cows.seenEarlier,
+    disease: { bn: `ওলান প্রদাহ ${suffix}` },
+  });
 
-  // Each morning from the 1st to the 9th: the first cow's milk to the tank, all of it collected; the second cow's two
-  // liters to the house. The first cow gives ten a morning until the 8th, then four — giving less.
+  // Each morning from the 1st to the 9th: the first and third cows' milk to the tank, all of it collected; the second
+  // cow's two liters to the house. The first and third give ten a morning each until the 8th, then four — giving less.
   for (let day = 1; day <= 9; day += 1) {
     const morning = `2065-02-0${day}`;
     const inTheTank = day >= 8 ? 4 : 10;
@@ -83,6 +93,13 @@ beforeAll(async () => {
     await manager.client.work.completeStep({
       instanceId: work?.id ?? "",
       stepId: "milk",
+      animalTag: cows.seenEarlier,
+      evidence: [inTheTank],
+    });
+    // oxlint-disable-next-line no-await-in-loop
+    await manager.client.work.completeStep({
+      instanceId: work?.id ?? "",
+      stepId: "milk",
       animalTag: cows.forTheHouse,
       evidence: [2],
       destination: "house",
@@ -92,7 +109,7 @@ beforeAll(async () => {
     // oxlint-disable-next-line no-await-in-loop
     await atTheGate.client.milk.dispatch({
       dispatchedAt: new Date(`${morning}T02:00:00.000Z`),
-      liters: inTheTank,
+      liters: inTheTank * 2,
       buyer: { name: `মিষ্টির দোকান ${suffix}` },
       pricePerLiterMoney: 60,
     });
@@ -103,11 +120,11 @@ describe("milk for the house", () => {
   it("is milk the farm can account for: never in the tank, said apart, and nothing left over", async () => {
     const manager = await as("manager", NEXT_MORNING);
     const week = await manager.client.milk.account();
-    // The 4th to the 10th: six mornings. Ten a morning to the tank on the 4th to the 7th, four on the 8th and 9th — all
-    // of it collected — and two liters a morning to the house.
+    // The 4th to the 10th: six mornings. Twenty a morning to the tank on the 4th to the 7th, eight on the 8th and 9th
+    // — all of it collected — and two liters a morning to the house.
     expect(week).toMatchObject({
-      toBulk: 48,
-      dispatched: 48,
+      toBulk: 96,
+      dispatched: 96,
       stillInTank: 0,
       notAccounted: 0,
       toHouse: 12,
@@ -156,6 +173,35 @@ describe("a cow giving less, in front of the Vet", () => {
     await expect(staff.client.milk.givingLess()).rejects.toThrow();
   });
 
+  it("never counts a heat as the Vet asked: a heat is the breeding work's, not the Vet's", async () => {
+    const manager = await as("manager", NEXT_MORNING);
+    await manager.client.observations.record({
+      tagNumber: theCow(),
+      saw: "heat",
+    });
+    const vet = await as("vet", NEXT_MORNING);
+    const list = await vet.client.milk.givingLess();
+    const her = list.find((one) => one.tag === theCow());
+    expect(her?.seenTo).toBeNull();
+  });
+
+  it("counts a Diagnosis still open from long before her drop as seen by the Vet", async () => {
+    const vet = await as("vet", NEXT_MORNING);
+    const list = await vet.client.milk.givingLess();
+    const her = list.find((one) => one.tag === cows.seenEarlier);
+    expect(her?.seenTo).toMatchObject({ by: "vet" });
+  });
+
+  it("is never asked of a cow that gives no milk", async () => {
+    const manager = await as("manager", NEXT_MORNING);
+    await expect(
+      manager.client.observations.record({
+        tagNumber: cows.heifer,
+        saw: "giving_less",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "not_in_milk" } });
+  });
+
   it("counts a withdrawn Observation as nobody having asked", async () => {
     const manager = await as("manager", NEXT_MORNING);
     const { id } = await manager.client.observations.record({
@@ -189,5 +235,15 @@ describe("a cow giving less, in front of the Vet", () => {
     const list = await vet.client.milk.givingLess();
     const her = list.find((one) => one.tag === theCow());
     expect(her?.seenTo).toMatchObject({ by: "asked" });
+  });
+
+  it("is asked once: a second request while the first stands is refused", async () => {
+    const manager = await as("manager", NEXT_MORNING);
+    await expect(
+      manager.client.observations.record({
+        tagNumber: theCow(),
+        saw: "giving_less",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "vet_asked_already" } });
   });
 });

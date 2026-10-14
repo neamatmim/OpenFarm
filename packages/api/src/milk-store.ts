@@ -4,8 +4,10 @@ import { and, eq, sql } from "@OpenFarm/db/operators";
 import { milkRecord, milkingSession } from "@OpenFarm/db/schema/milk";
 import type { MilkDestination, Reconciliation } from "@OpenFarm/domain";
 import {
+  HEAT,
   LITER_DECIMALS,
   addDays,
+  asksAfterHerHealth,
   farmDayOf,
   startOfFarmDay,
   destinationFor,
@@ -241,16 +243,19 @@ export const reReconcile = async (
 
 const DAY_MS_DROP = 24 * 60 * 60 * 1000;
 
-/** Whether anybody has seen to a cow giving less since her drop began: the Vet has diagnosed her, or somebody put her in
- *  front of the Vet with an Observation that still stands. Seen by the Vet outranks asked. */
+/** Whether anybody has seen to a cow giving less: the Vet has her case open or diagnosed her lately, or somebody put her in
+ *  front of the Vet with an Observation about her health that still stands. Seen by the Vet outranks asked. */
 export interface SeenTo {
   by: "vet" | "asked";
   at: Date;
 }
 
 /**
- * What has been done about each of these cows since `since`: her latest Diagnosis, else her latest Observation not
- * withdrawn. So a cow on "Giving less" says whether anybody has acted, rather than standing there with no sign of it.
+ * What has been done about each of these cows: a Diagnosis made since `since` or still open whenever it was made, else
+ * her latest Observation since `since` that asks after her health (never a heat, which is the breeding work's) and was
+ * not withdrawn. `since` is the start of every day her drop is read over, her usual week and her days since, so a drop
+ * the farm has been watching for days does not forget who looked. So a cow on "Giving less" says whether anybody has
+ * acted, rather than standing there with no sign of it.
  */
 const seenToSince = async (
   db: Pick<Database, "query">,
@@ -267,7 +272,7 @@ const seenToSince = async (
       where: {
         farmId,
         animalId: { in: [...animalIds] },
-        diagnosedAt: { gte: since },
+        OR: [{ diagnosedAt: { gte: since } }, { closedAt: { isNull: true } }],
       },
       columns: { animalId: true, diagnosedAt: true },
     }),
@@ -277,11 +282,14 @@ const seenToSince = async (
         animalId: { in: [...animalIds] },
         seenAt: { gte: since },
         withdrawnAt: { isNull: true },
+        saw: { ne: HEAT },
       },
-      columns: { animalId: true, seenAt: true },
+      columns: { animalId: true, seenAt: true, saw: true },
     }),
   ]);
-  for (const one of observations) {
+  for (const one of observations.filter((observed) =>
+    asksAfterHerHealth(observed.saw)
+  )) {
     const was = seen.get(one.animalId);
     if (!was || one.seenAt > was.at) {
       seen.set(one.animalId, { by: "asked", at: one.seenAt });
@@ -356,7 +364,7 @@ export const milkDropsOn = async (
     db,
     farm.id,
     dropping.map(({ her }) => her.id),
-    startOfFarmDay(addDays(farmDayOf(now), -farm.milkDropDays))
+    readFrom
   );
   return dropping
     .map(({ her, drop }) => ({

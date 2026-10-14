@@ -999,6 +999,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.notASightingWord":
     "এটা খামারে লেখা হয় এমন দেখার মধ্যে নেই: তালিকা থেকে বেছে নিন",
   "refusal.sayWhatWasSeen": "কী দেখা গেছে লিখুন",
+  "refusal.notInMilk": "শুধু দুধে থাকা গাভীর দুধ কম হতে পারে",
+  "refusal.vetAskedAlready": "তার কথা ভেটকে আগেই বলা হয়েছে",
   "refusal.notThisAnimals": "এটা অন্য পশুর: তার নিজের পাতা থেকে খুলুন",
   "refusal.cannotDoThatWork": "এই কাজ যে ভূমিকার, তাঁর সেই ভূমিকা নেই",
   "refusal.notCheckedByAnyone": "এই কাজ কেউ যাচাই করে না",

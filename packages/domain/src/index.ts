@@ -673,9 +673,11 @@ export type { OverheadMoney } from "./overheads";
 export { headDaysBySide, headDaysIn, overheadsOver } from "./overheads";
 export type { ObservationWord } from "./observation-words";
 export {
+  GIVING_LESS,
   OBSERVATION_WORDS,
   OBSERVATION_WORD_NEEDING_A_NOTE,
   observationWordOf,
+  observationWordsFor,
 } from "./observation-words";
 export type {
   ChoiceSlot,
@@ -812,6 +814,7 @@ export {
   URGENT_ROUND_WORDS,
   URGENT_SIGHT_WORDS,
   WEANING_AFTER_DAYS,
+  asksAfterHerHealth,
   eventOfObservation,
   PEN_NEEDS,
   STANDARD_SOP_NEEDS,
