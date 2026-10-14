@@ -2917,7 +2917,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "certificate.take": "সনদের ছবি তুলুন",
   "certificate.hint":
     "সনদের পরিষ্কার ছবি — তোলার সঙ্গে সঙ্গেই রাখা হয়। সনদ নবায়ন হলে আবার তুলুন।",
-  "owner.registrationRenewal": "নিবন্ধন ও লাইসেন্স নবায়ন",
+  "owner.papersToRenew": "নিবন্ধন ও লাইসেন্স নবায়ন",
   "owner.registrationEnding": "নিবন্ধনের মেয়াদ শেষ {date}: নবায়ন করুন",
   "owner.registrationExpired": "নিবন্ধনের মেয়াদ শেষ হয়ে গেছে {date}",
   "owner.licenseEnding": "{license} {number}-এর মেয়াদ শেষ {date}: নবায়ন করুন",
@@ -3803,7 +3803,11 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "backups.drill.overdueWhat":
     "গত রাতের কপি ফিরিয়ে এনে মিলিয়ে দেখুন, তারপর মহড়াটি এখানে লিখে রাখুন।",
   "backups.drill.noCopy": "এখনও কোনো কপি সফল হয়নি, তাই ফিরিয়ে আনার মতো কিছু নেই।",
-  "backups.drill.doneBy": "{day}, লিখেছেন {name}",
+  "backups.drill.doneBy": "{day}, করেছেন {name}",
+  "backups.drill.writtenBy": "লিখেছেন {name}",
+  "backups.drill.who": "যিনি করেছেন",
+  "backups.drill.whoMe": "আমি",
+  "refusal.drillDoneByWhoRunsTheFarm": "মহড়া করেন মালিক বা ম্যানেজার",
   "backups.drill.copyWas": "ফিরিয়ে আনা কপি: {copy}",
   "backups.drill.wentWell": "ভালোভাবে হয়েছে",
   "backups.drill.wentBadly": "ভালোভাবে হয়নি",
@@ -4717,7 +4721,11 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "identity.unsaved": "পরিবর্তন এখনো সংরক্ষণ হয়নি",
   "licenses.title": "অন্যান্য লাইসেন্স",
   "licenses.why":
-    "ডিএলএস নিবন্ধনের পাশে খামারের অন্য কাগজ: ট্রেড লাইসেন্স, পরিবেশ ছাড়পত্র, ফায়ার লাইসেন্স। প্রতিটি নিবন্ধনের মতোই নবায়ন হয়: মেয়াদ শেষের আগে খামারের নবায়নের সময় থাকতেই মালিকের জন্য নবায়নের কাজ তোলা হয়।",
+    "ডিএলএস নিবন্ধনের পাশে খামারের অন্য কাগজ: ট্রেড লাইসেন্স, পরিবেশ ছাড়পত্র, ফায়ার লাইসেন্স। প্রতিটির মেয়াদ কবে শেষ, এখানে লেখা থাকে। প্লেবুকে লাইসেন্স নবায়নের সময় হলে তোলা হয় এমন নিয়ম থাকলে, খামারের নবায়নের সময় থাকতেই নবায়নের কাজ মালিকের তালিকায় ওঠে।",
+  "licenses.noProcedure": "কোনো নিয়ম এখনও লাইসেন্স নবায়ন করে না",
+  "licenses.noProcedureWhat":
+    "খামার জানায় কোনটির মেয়াদ কবে শেষ, কিন্তু প্লেবুকে নবায়নের সময় হলে তোলা হয় এমন নিয়ম না লেখা পর্যন্ত কাউকে নবায়নের কাজ দেওয়া হয় না।",
+  "identity.noRenewalProcedure": "কোনো নিয়ম এখনও নিবন্ধন নবায়ন করে না",
   "licenses.none": "এখনও কোনো লাইসেন্স লেখা হয়নি",
   "licenses.add": "লাইসেন্স যোগ করুন",
   "licenses.edit": "লাইসেন্স সংশোধন",

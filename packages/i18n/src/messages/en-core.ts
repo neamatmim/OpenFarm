@@ -3156,7 +3156,7 @@ export const enCore = {
   "certificate.take": "Photograph the certificate",
   "certificate.hint":
     "A clear photograph of the certificate, kept the moment it is taken. Take it again when the certificate is renewed.",
-  "owner.registrationRenewal": "Registration and licenses",
+  "owner.papersToRenew": "Registration and licenses",
   "owner.registrationEnding": "The registration runs out on {date}: renew it",
   "owner.registrationExpired": "The registration ran out on {date}",
   "owner.licenseEnding": "{license} {number} runs out on {date}: renew it",
@@ -4089,7 +4089,12 @@ export const enCore = {
     "Restore last night's copy, check it, and write the drill down here.",
   "backups.drill.noCopy":
     "No copy has worked yet, so there is nothing to restore.",
-  "backups.drill.doneBy": "{day}, written down by {name}",
+  "backups.drill.doneBy": "{day}, done by {name}",
+  "backups.drill.writtenBy": "Written down by {name}",
+  "backups.drill.who": "Done by",
+  "backups.drill.whoMe": "Me",
+  "refusal.drillDoneByWhoRunsTheFarm":
+    "A drill is done by the owner or a manager",
   "backups.drill.copyWas": "Copy restored: {copy}",
   "backups.drill.wentWell": "Went well",
   "backups.drill.wentBadly": "Did not go well",
@@ -5065,7 +5070,11 @@ export const enCore = {
   "identity.unsaved": "Changes not saved yet",
   "licenses.title": "Other licenses",
   "licenses.why":
-    "The farm's papers beside its DLS registration: the trade license, the environmental clearance, the fire license. Each is renewed as the registration is: the renewal is raised for the owner the farm's renewal lead before it runs out.",
+    "The farm's papers beside its DLS registration: the trade license, the environmental clearance, the fire license. Each says here when it runs out. A procedure in the Playbook raised by a license coming up for renewal puts its renewal on the owner's list the farm's renewal lead before.",
+  "licenses.noProcedure": "No procedure renews a license yet",
+  "licenses.noProcedureWhat":
+    "The farm says when each one runs out, and nobody is given its renewal as work until a procedure raised by its renewal is written in the Playbook.",
+  "identity.noRenewalProcedure": "No procedure renews the registration yet",
   "licenses.none": "No licenses written down yet",
   "licenses.add": "Add a license",
   "licenses.edit": "Correct the license",

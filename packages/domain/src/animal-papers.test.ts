@@ -22,6 +22,7 @@ const DOSE = {
   givenOn: "2026-06-01",
   meatClearOn: "2026-06-29",
   prescribedBy: "ডা. হাসান",
+  prescriberBvc: null,
   advice: null,
   givenBy: "শফিকুল ইসলাম",
 };

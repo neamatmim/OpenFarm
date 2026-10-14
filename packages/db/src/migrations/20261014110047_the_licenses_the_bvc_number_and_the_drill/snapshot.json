@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "3c037ee4-ce74-4a86-b089-47c05a60051e",
+  "id": "7207f143-e9cd-4fe9-8875-6d140173d36f",
   "prevIds": [
     "e7ed0de2-4d9e-4be5-b86d-14c64e7c9b0c"
   ],
@@ -2169,6 +2169,19 @@
       "generated": null,
       "identity": null,
       "name": "note",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "restore_drill"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "done_by",
       "entityType": "columns",
       "schema": "public",
       "table": "restore_drill"
@@ -29137,6 +29150,23 @@
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "restore_drill_farm_id_farm_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "restore_drill"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "done_by"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "restore_drill_done_by_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "restore_drill"

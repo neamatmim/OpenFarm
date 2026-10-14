@@ -15,5 +15,5 @@ export const vetForPaper = (farmId: string) =>
 
 /** The BVC number a Vet read by `vetForPaper` has on this farm, or nothing. */
 export const bvcOf = (
-  vet: { roles: readonly { bvcNumber: string | null }[] } | null | undefined
-): string | null => vet?.roles[0]?.bvcNumber ?? null;
+  vet: { roles?: readonly { bvcNumber: string | null }[] } | null | undefined
+): string | null => vet?.roles?.[0]?.bvcNumber ?? null;

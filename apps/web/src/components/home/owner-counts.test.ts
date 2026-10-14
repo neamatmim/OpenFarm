@@ -74,7 +74,7 @@ describe("what waits on the Owner", () => {
       },
       licenseRenewals: [{ licenseId: "trade" }, { licenseId: "fire" }],
     } as unknown as NeedsYou;
-    expect(ownerCountsOf(renewing)).toMatchObject({ registration: 3 });
+    expect(ownerCountsOf(renewing)).toMatchObject({ renewals: 3 });
     expect(decisionsWaiting(renewing)).toBe(3);
   });
 

@@ -2,14 +2,21 @@ import type { LicenseKind } from "@OpenFarm/domain";
 import { LICENSE_KINDS, licenseNamed } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatDayField } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
+import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { FileBadge, ImageOff } from "lucide-react";
 import { useState } from "react";
 
 import type { Tone } from "@/components/page";
-import { EmptyState, Loaded, Section, StatusBadge } from "@/components/page";
+import {
+  EmptyState,
+  Loaded,
+  Notice,
+  Section,
+  StatusBadge,
+} from "@/components/page";
 import {
   FormField,
   FormSheet,
@@ -307,9 +314,45 @@ const LicenseCard = ({
 };
 
 /**
+ * Said plainly where no procedure in force raises a paper's renewal: the farm keeps the paper and says when it runs out,
+ * and nobody is given its renewal as work until the Owner writes one in the Playbook. Nothing until the farm has said.
+ */
+export const NoRenewalProcedure = ({
+  paper,
+}: {
+  paper: "licenses" | "registration";
+}) => {
+  const { t } = useLanguage();
+  const raised = useQuery(orpc.licenses.renewalProcedures.queryOptions());
+  if (!raised.data || raised.data[paper]) {
+    return null;
+  }
+  return (
+    <Notice
+      action={
+        <Link
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+          to="/sops"
+        >
+          {t("nav.sops")}
+        </Link>
+      }
+      title={t(
+        paper === "licenses"
+          ? "licenses.noProcedure"
+          : "identity.noRenewalProcedure"
+      )}
+      tone="info"
+    >
+      {t("licenses.noProcedureWhat")}
+    </Notice>
+  );
+};
+
+/**
  * The farm's **Licenses** beside its DLS Registration — the trade license, the environmental clearance, the fire
  * license, any other — each with its number, issuer, days and certificate. Renewed as the Registration is: the renewal
- * work raised for the Owner the farm's renewal lead before one runs out (ADR 0030).
+ * work raised for the Owner the farm's renewal lead before one runs out (ADR 0032).
  */
 export const LicensesSection = ({ id }: { id?: string }) => {
   const { t, language } = useLanguage();
@@ -341,6 +384,7 @@ export const LicensesSection = ({ id }: { id?: string }) => {
       id={id}
       title={t("licenses.title")}
     >
+      {licenses.data?.length ? <NoRenewalProcedure paper="licenses" /> : null}
       <Loaded query={licenses}>
         {licenses.data?.length ? (
           <ul className="flex flex-col">
@@ -375,6 +419,61 @@ export const LicensesSection = ({ id }: { id?: string }) => {
         />
       ) : null}
       {retiring.dialog}
+    </Section>
+  );
+};
+
+/**
+ * The farm's Licenses as the Inspector View shows them beside the Registration: each with its number, who issued it, its
+ * days, how it stands and its certificate — read, never written, here.
+ */
+export const InspectorLicenses = () => {
+  const { t, language } = useLanguage();
+  const licenses = useQuery(orpc.licenses.list.queryOptions());
+  const day = (at: Date | null) =>
+    at ? formatDate(at, language, "date") : "—";
+  return (
+    <Section id="licenses" title={t("licenses.title")}>
+      <Loaded query={licenses}>
+        {licenses.data?.length ? (
+          <ul className="flex flex-col">
+            {licenses.data.map((license) => {
+              const standing = standingOf(license);
+              return (
+                <li
+                  className="flex flex-col gap-2 border-b py-3 last:border-b-0"
+                  key={license.id}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <span className="font-medium break-words">
+                        {`${licenseNamed(license, language)} · ${license.number}`}
+                      </span>
+                      {license.issuer ? (
+                        <span className="text-muted-foreground text-sm break-words">
+                          {license.issuer}
+                        </span>
+                      ) : null}
+                      <span className="text-muted-foreground text-xs">
+                        {t("licenses.days", {
+                          issued: day(license.issuedOn),
+                          expires: day(license.expiresOn),
+                        })}
+                      </span>
+                    </div>
+                    <StatusBadge tone={standing.tone}>
+                      {t(standing.word)}
+                    </StatusBadge>
+                  </div>
+                  <LicenseCertificate license={license} />
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <EmptyState bare icon={FileBadge} title={t("licenses.none")} />
+        )}
+      </Loaded>
     </Section>
   );
 };

@@ -1,27 +1,27 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { eq, sql } from "@OpenFarm/db/operators";
-import type { LicenseKind } from "@OpenFarm/db/schema/farm";
+import { eq, like, sql } from "@OpenFarm/db/operators";
 import {
   LICENSE_HELD,
   farmLicense,
   licenseCertificate,
-  licenseRenewal,
 } from "@OpenFarm/db/schema/farm";
+import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { SopContent } from "@OpenFarm/domain";
 import { OPEN_INSTANCE_STATES, farmDayOf, runningOut } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import type { Tx } from "./audit";
+import type { Trail, Tx } from "./audit";
 import type { DueSlot } from "./instances-store";
 import { renewalSlotsFor } from "./instances-store";
 import type { Raised } from "./notice";
 import { rememberingPeople, tell } from "./notice";
 import type { PhotoInput } from "./photo-input";
 import type { RenewablePaper, RenewalEntry } from "./renewal-store";
-import { renewPaper } from "./renewal-store";
+import { followTheExpiry, renewPaper, renewalsKeptIn } from "./renewal-store";
+import { callOffWork } from "./work-transitions";
 
 // The farm's **Licenses** beside its Registration — the trade license, the environmental clearance, the fire license,
-// any other — renewed on the Registration's machinery (ADR 0030): renewal work raised for the Owner the renewal lead
+// any other — renewed on the Registration's machinery (ADR 0032): renewal work raised for the Owner the renewal lead
 // before one runs out, due on the day it does, and its closing Step recording the new expiry and certificate.
 
 type Reading = Pick<Tx, "query">;
@@ -52,29 +52,21 @@ export const licensesHeld = (db: Reading, farmId: string) =>
     orderBy: { createdAt: "asc", id: "asc" },
   });
 
-/** For each License, the SOPs whose work renewing it is still open: given none more until it is done. */
-const openRenewalsByLicense = async (
-  db: Reading,
-  farmId: string
-): Promise<Map<string, Set<string>>> => {
+/** Every License's renewal work still open, soonest due first, with the License each was raised for. */
+const openLicenseWork = async (db: Reading, farmId: string) => {
   const open = await db.query.sopInstance.findMany({
     where: {
       farmId,
       cause: { like: `${LICENSE_CAUSE}%` },
       state: { in: [...OPEN_INSTANCE_STATES] },
     },
-    columns: { definitionId: true, cause: true },
+    columns: { id: true, definitionId: true, cause: true },
+    orderBy: { dueAt: "asc", id: "asc" },
   });
-  const byLicense = new Map<string, Set<string>>();
-  for (const one of open) {
+  return open.flatMap((one) => {
     const licenseId = licenseOfCause(one.cause);
-    if (licenseId) {
-      const sops = byLicense.get(licenseId) ?? new Set<string>();
-      sops.add(one.definitionId);
-      byLicense.set(licenseId, sops);
-    }
-  }
-  return byLicense;
+    return licenseId ? [{ ...one, licenseId }] : [];
+  });
 };
 
 /** The renewal work every License the farm holds is owed now: one piece for each License within the renewal lead of
@@ -94,7 +86,7 @@ export const licenseRenewalSlots = async (
   }
   const [licenses, open] = await Promise.all([
     licensesHeld(db, farm.id),
-    openRenewalsByLicense(db, farm.id),
+    openLicenseWork(db, farm.id),
   ]);
   return licenses.flatMap((license) =>
     renewalSlotsFor(now, sops, {
@@ -102,18 +94,14 @@ export const licenseRenewalSlots = async (
       expiresOn: license.expiresOn,
       renewalLeadDays: farm.registrationRenewalLeadDays,
       causeOf: licenseRenewalCause(license.id),
-      stillOpen: open.get(license.id),
+      stillOpen: new Set(
+        open
+          .filter((one) => one.licenseId === license.id)
+          .map((one) => one.definitionId)
+      ),
     })
   );
 };
-
-/** A License as a notice and a screen name it: its kind, the name the farm wrote for an `other`, and its number. */
-export interface LicenseNamed {
-  id: string;
-  kind: LicenseKind;
-  name: string | null;
-  number: string;
-}
 
 /** Tells the Owner of each License's renewal raised, in the evening's post, as the Registration's is: once for each
  *  piece of renewal work. */
@@ -172,15 +160,7 @@ export const licenseRenewalsDue = async (
 ) => {
   const [licenses, open] = await Promise.all([
     licensesHeld(db, farm.id),
-    db.query.sopInstance.findMany({
-      where: {
-        farmId: farm.id,
-        cause: { like: `${LICENSE_CAUSE}%` },
-        state: { in: [...OPEN_INSTANCE_STATES] },
-      },
-      columns: { id: true, cause: true },
-      orderBy: { dueAt: "asc", id: "asc" },
-    }),
+    openLicenseWork(db, farm.id),
   ]);
   return licenses.flatMap((license) => {
     const { expired, endingSoon } = runningOut(
@@ -188,7 +168,7 @@ export const licenseRenewalsDue = async (
       now,
       farm.registrationRenewalLeadDays
     );
-    const work = open.find((one) => licenseOfCause(one.cause) === license.id);
+    const work = open.find((one) => one.licenseId === license.id);
     if (!(work || expired || endingSoon)) {
       return [];
     }
@@ -255,26 +235,7 @@ const licensePaper = (farmId: string, licenseId: string): RenewablePaper => ({
       where: { completionId },
       columns: { id: true, previousExpiresOn: true, expiresOn: true },
     }),
-  keepRenewal: async (
-    tx,
-    { already, completionId, previousExpiresOn, expiresOn, by, now }
-  ) => {
-    await (already
-      ? tx
-          .update(licenseRenewal)
-          .set({ expiresOn, renewedBy: by, renewedAt: now })
-          .where(eq(licenseRenewal.id, already.id))
-      : tx.insert(licenseRenewal).values({
-          id: newId(now),
-          farmId,
-          licenseId,
-          completionId,
-          previousExpiresOn,
-          expiresOn,
-          renewedBy: by,
-          renewedAt: now,
-        }));
-  },
+  keepRenewal: renewalsKeptIn({ farmId, licenseId }),
   setExpiry: async (tx, expiresOn, issuedOn) => {
     await tx
       .update(farmLicense)
@@ -307,13 +268,13 @@ export const renewLicense = async (
   const licenseId = licenseOfCause(cause);
   const license = licenseId
     ? await tx.query.farmLicense.findFirst({
-        where: { id: licenseId, farmId },
+        where: { id: licenseId, farmId, ...LICENSE_HELD },
         columns: { id: true },
       })
     : undefined;
   if (!license) {
     throw new ORPCError("BAD_REQUEST", {
-      message: "This work was raised for no License the farm holds",
+      message: "This work was raised for no License the farm still holds",
       data: { refusal: "renewal_names_no_license" },
     });
   }
@@ -322,3 +283,32 @@ export const renewLicense = async (
     ...(await renewPaper(tx, licensePaper(farmId, license.id), renewing)),
   };
 };
+
+/** Calls off a retired License's open renewal work: the farm no longer holds it, so nobody is to renew it. */
+export const callOffLicenseRenewals = (
+  tx: Tx,
+  { farmId, licenseId }: { farmId: string; licenseId: string },
+  trail: Trail
+) =>
+  callOffWork(
+    tx,
+    farmId,
+    like(sopInstance.cause, `${LICENSE_CAUSE}${licenseId}:%`),
+    { trail, by: "license_retired" }
+  );
+
+/** Moves a License's open renewal work to the expiry put right by hand on it (`followTheExpiry`). */
+export const followLicenseExpiry = (
+  tx: Tx,
+  {
+    farmId,
+    licenseId,
+    expiresOn,
+  }: { farmId: string; licenseId: string; expiresOn: Date | null | undefined }
+) =>
+  followTheExpiry(tx, {
+    farmId,
+    causePrefix: `${LICENSE_CAUSE}${licenseId}:`,
+    expiresOn,
+    causeOf: licenseRenewalCause(licenseId),
+  });

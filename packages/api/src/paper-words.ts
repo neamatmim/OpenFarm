@@ -8,6 +8,7 @@ import { farmDayOf, withdrawalEndsAt } from "@OpenFarm/domain";
 
 import type { HerPenSpell } from "./animal-record";
 import { meatDaysOf } from "./health-store";
+import { bvcOf } from "./vet-on-paper";
 
 // What a paper about her is made from. The record keeps instants and rows; a paper is read by a buyer or a slaughter
 // vet in either language, so it is handed farm days and kinds here, and says them itself (domain animal-papers.ts).
@@ -96,7 +97,7 @@ export const doseOnPaper = (dose: {
     givenOn: farmDayOf(dose.givenAt),
     meatClearOn: days ? farmDayOf(withdrawalEndsAt(dose.givenAt, days)) : null,
     prescribedBy: dose.prescription?.vet?.name ?? null,
-    prescriberBvc: dose.prescription?.vet?.roles?.[0]?.bvcNumber ?? null,
+    prescriberBvc: bvcOf(dose.prescription?.vet),
     advice: dose.instanceId === null ? (dose.advice ?? "") : null,
     givenBy: dose.giver?.name ?? null,
   };

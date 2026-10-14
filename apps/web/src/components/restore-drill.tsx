@@ -34,6 +34,18 @@ const REFUSALS = {
 const dayIn = (day: string, language: Language) =>
   formatDate(startOfFarmDay(day), language, "date");
 
+/** The Owner and the Managers, who rehearse the drill between them, other than whoever is signed in. */
+const useRunnersOfTheFarm = () => {
+  const people = useQuery(orpc.people.list.queryOptions());
+  const me = useQuery(orpc.people.me.queryOptions());
+  return (people.data?.people ?? []).filter(
+    (person) =>
+      person.id !== me.data?.id &&
+      !person.disabledAt &&
+      person.roles.some((role) => role === "owner" || role === "manager")
+  );
+};
+
 /** Writing a drill down: the day, how it went, the copy restored, and what was checked — what was missing, when it did
  *  not go well. */
 const RecordDrill = ({
@@ -49,6 +61,9 @@ const RecordDrill = ({
   const [how, setHow] = useState<"well" | "badly">("well");
   const [backupUsed, setBackupUsed] = useState("");
   const [note, setNote] = useState("");
+  // Nobody named: the one writing it down did it.
+  const [doneBy, setDoneBy] = useState("");
+  const runners = useRunnersOfTheFarm();
   const record = useMutation(
     orpc.backups.recordDrill.mutationOptions({
       onSuccess: () => {
@@ -56,6 +71,7 @@ const RecordDrill = ({
         setHow("well");
         setBackupUsed("");
         setNote("");
+        setDoneBy("");
         onOpenChange(false);
       },
       onError: refused,
@@ -72,6 +88,7 @@ const RecordDrill = ({
           wentWell: how === "well",
           backupUsed: backupUsed.trim() || undefined,
           note: note.trim() || undefined,
+          doneBy: doneBy || undefined,
         })
       }
       open={open}
@@ -89,6 +106,20 @@ const RecordDrill = ({
           type="date"
           value={doneOn}
         />
+      </FormField>
+      <FormField id="drill-who" label={t("backups.drill.who")}>
+        <NativeSelect
+          id="drill-who"
+          onChange={(event) => setDoneBy(event.target.value)}
+          value={doneBy}
+        >
+          <option value="">{t("backups.drill.whoMe")}</option>
+          {runners.map((person) => (
+            <option key={person.id} value={person.id}>
+              {person.name}
+            </option>
+          ))}
+        </NativeSelect>
       </FormField>
       <FormField id="drill-how" label={t("backups.drill.how")}>
         <NativeSelect
@@ -131,7 +162,7 @@ const RecordDrill = ({
   );
 };
 
-/** One drill: its day, who wrote it down, how it went, and its note. */
+/** One drill: its day, who did it and who wrote it down, how it went, and its note. */
 const DrillRow = ({ drill }: { drill: Drill }) => {
   const { t, language } = useLanguage();
   return (
@@ -140,7 +171,8 @@ const DrillRow = ({ drill }: { drill: Drill }) => {
         <span className="font-medium">
           {t("backups.drill.doneBy", {
             day: dayIn(drill.doneOn, language),
-            name: drill.recordedByName,
+            // A drill cached from before the doer was kept names the one who wrote it down.
+            name: drill.doneByName ?? drill.recordedByName,
           })}
         </span>
         <StatusBadge tone={drill.wentWell ? "success" : "danger"}>
@@ -151,6 +183,11 @@ const DrillRow = ({ drill }: { drill: Drill }) => {
           )}
         </StatusBadge>
       </div>
+      {drill.doneByName && drill.doneByName !== drill.recordedByName ? (
+        <span className="text-muted-foreground text-xs">
+          {t("backups.drill.writtenBy", { name: drill.recordedByName })}
+        </span>
+      ) : null}
       {drill.backupUsed ? (
         <span className="text-muted-foreground text-xs">
           {t("backups.drill.copyWas", { copy: drill.backupUsed })}

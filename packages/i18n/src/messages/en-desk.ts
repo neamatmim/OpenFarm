@@ -1798,6 +1798,8 @@ export const enDesk = {
   "audit.calledOffBy.sop_retired": "Called off: the procedure was retired",
   "audit.calledOffBy.released": "Called off: he is out of quarantine",
   "audit.calledOffBy.excused": "Called off: the vet excused the dose",
+  "audit.calledOffBy.license_retired":
+    "Called off: the farm no longer holds the license",
   "audit.raisedAgainBy.calving_expected_again":
     "Raised again: her calving is expected again",
   "audit.before": "Before",

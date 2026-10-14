@@ -7,6 +7,7 @@ import { z } from "zod";
 import { audited } from "../audit";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
+import { rolesOf } from "../membership";
 import { requireRole } from "../roles";
 import { drillStandingOf } from "../the-machinery-notices";
 
@@ -65,9 +66,12 @@ export const backupsRouter = {
       const [rows, standing] = await Promise.all([
         context.db.query.restoreDrill.findMany({
           where: { farmId: context.farm.id },
-          orderBy: { doneOn: "desc", recordedAt: "desc", id: "desc" },
+          orderBy: { recordedAt: "desc", id: "desc" },
           limit: DRILLS_SHOWN,
-          with: { recorder: { columns: { name: true } } },
+          with: {
+            doer: { columns: { name: true } },
+            recorder: { columns: { name: true } },
+          },
         }),
         drillStandingOf(context.db, context.farm.id, now),
       ]);
@@ -77,6 +81,7 @@ export const backupsRouter = {
         wentWell: row.wentWell,
         backupUsed: row.backupUsed,
         note: row.note,
+        doneByName: row.doer.name,
         recordedByName: row.recorder.name,
         recordedAt: row.recordedAt,
       }));
@@ -102,6 +107,8 @@ export const backupsRouter = {
         wentWell: z.boolean(),
         backupUsed: z.string().trim().max(200).optional(),
         note: z.string().trim().max(1000).optional(),
+        /** Who did it, when it was not the one writing it down: the Owner or a Manager. */
+        doneBy: z.string().optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -118,6 +125,14 @@ export const backupsRouter = {
           data: { refusal: "drill_says_what_went_wrong" },
         });
       }
+      const doneBy = input.doneBy ?? context.actor.id;
+      const theirs = await rolesOf(context.db, context.farm.id, doneBy);
+      if (!theirs.some((role) => role === "owner" || role === "manager")) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A drill is done by the Owner or a Manager",
+          data: { refusal: "drill_done_by_who_runs_the_farm" },
+        });
+      }
       const id = uuidv7(now);
       const row = {
         id,
@@ -126,6 +141,7 @@ export const backupsRouter = {
         wentWell: input.wentWell,
         backupUsed: input.backupUsed || null,
         note: input.note || null,
+        doneBy,
         recordedBy: context.actor.id,
         recordedAt: now,
       };

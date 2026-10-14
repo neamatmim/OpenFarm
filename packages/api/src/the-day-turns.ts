@@ -302,7 +302,7 @@ export const theDaysWork = async (context: Turning) => {
     ),
     breeding
   );
-  // Work about the whole farm: its Registration or one of its Licenses coming up for renewal (ADR 0030).
+  // Work about the whole farm: its Registration or one of its Licenses coming up for renewal (ADR 0032).
   const forTheRenewal = [
     ...renewalSlotsFor(now, sops, {
       trigger: "registration_renewal",

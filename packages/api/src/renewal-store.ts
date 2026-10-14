@@ -1,10 +1,18 @@
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { uuidv7 as newId } from "@OpenFarm/db/ids";
+import { eq } from "@OpenFarm/db/operators";
+import { licenseRenewal, registrationRenewal } from "@OpenFarm/db/schema/farm";
+import { sopInstance } from "@OpenFarm/db/schema/instance";
+import {
+  OPEN_INSTANCE_STATES,
+  goodUntilOf,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import type { PhotoInput } from "./photo-input";
 
-// A paper the farm renews — its DLS Registration, or one of its Licenses (ADR 0030) — renewed from the closing Step of
+// A paper the farm renews — its DLS Registration, or one of its Licenses (ADR 0032) — renewed from the closing Step of
 // the work raised for it. What makes a renewal a renewal is the same for every paper; where each keeps its expiry, its
 // renewals and its certificate's photographs is its own.
 
@@ -57,6 +65,92 @@ export interface RenewablePaper {
     taken: { by: string; now: Date; completionId: string }
   ) => Promise<unknown>;
 }
+
+/**
+ * How a paper keeps its renewals, in a table of its own beside it — the Registration's, or the Licenses' with the
+ * License each renews: a Step's renewal written once, and put right in its own row by a correction.
+ */
+export const renewalsKeptIn =
+  (whose: {
+    farmId: string;
+    licenseId?: string;
+  }): RenewablePaper["keepRenewal"] =>
+  async (
+    tx,
+    { already, completionId, previousExpiresOn, expiresOn, by, now }
+  ) => {
+    const { licenseId } = whose;
+    const table =
+      licenseId === undefined ? registrationRenewal : licenseRenewal;
+    if (already) {
+      await tx
+        .update(table)
+        .set({ expiresOn, renewedBy: by, renewedAt: now })
+        .where(eq(table.id, already.id));
+      return;
+    }
+    const row = {
+      id: newId(now),
+      farmId: whose.farmId,
+      completionId,
+      previousExpiresOn,
+      expiresOn,
+      renewedBy: by,
+      renewedAt: now,
+    };
+    await (licenseId === undefined
+      ? tx.insert(registrationRenewal).values(row)
+      : tx.insert(licenseRenewal).values({ ...row, licenseId }));
+  };
+
+/**
+ * Moves a paper's open renewal work to the expiry put right by hand: due when the paper now runs out, under the cause of
+ * that expiry — so it is not late on a day the paper no longer runs out, and the next turn finds it already raised. A
+ * cause another piece of the same procedure's work already holds is left, and only the day moves. Nothing for an expiry
+ * cleared: the work still stands for the paper the farm holds.
+ */
+export const followTheExpiry = async (
+  tx: Tx,
+  {
+    farmId,
+    causePrefix,
+    expiresOn,
+    causeOf,
+  }: {
+    farmId: string;
+    /** What every cause of this paper's renewal work begins with. */
+    causePrefix: string;
+    expiresOn: Date | null | undefined;
+    causeOf: (expiresOn: Date) => string;
+  }
+): Promise<void> => {
+  if (!expiresOn) {
+    return;
+  }
+  const open = await tx.query.sopInstance.findMany({
+    where: {
+      farmId,
+      cause: { like: `${causePrefix}%` },
+      state: { in: [...OPEN_INSTANCE_STATES] },
+    },
+    columns: { id: true, definitionId: true, cause: true },
+    orderBy: { dueAt: "asc", id: "asc" },
+  });
+  const cause = causeOf(expiresOn);
+  for (const work of open) {
+    // One row each, sequentially: a transaction has one client. A paper has one or two pieces of work open at most.
+    // oxlint-disable-next-line no-await-in-loop
+    const taken = await tx.query.sopInstance.findFirst({
+      where: { definitionId: work.definitionId, cause, id: { ne: work.id } },
+      columns: { id: true },
+    });
+    // oxlint-disable-next-line no-await-in-loop
+    await tx
+      .update(sopInstance)
+      .set({ dueAt: goodUntilOf(expiresOn), ...(taken ? {} : { cause }) })
+      .where(eq(sopInstance.id, work.id));
+  }
+};
 
 /**
  * Renews a paper from its renewal work's closing Step: the new expiry replaces the old one, and the renewed

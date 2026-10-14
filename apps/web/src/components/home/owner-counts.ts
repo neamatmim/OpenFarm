@@ -9,7 +9,7 @@ export type NeedsYou = Awaited<
 export type OwnerKind =
   | "missing"
   | "storeCount"
-  | "registration"
+  | "renewals"
   | "approvals"
   | "proposals"
   | "money"
@@ -61,7 +61,7 @@ export const ownerCountsOf = (
   // Missing from an answer a phone kept from before a Missing was written down.
   missing: needsYou.missing?.length ?? 0,
   storeCount: needsYou.storeCount ? 1 : 0,
-  registration: papersToRenew(needsYou),
+  renewals: papersToRenew(needsYou),
   approvals: needsYou.approvals.length,
   proposals: needsYou.proposals.length,
   money:

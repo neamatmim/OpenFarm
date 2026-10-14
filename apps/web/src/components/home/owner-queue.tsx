@@ -363,7 +363,7 @@ const RenewalGroup = ({ needsYou, headless }: GroupProps) => {
     <QueueGroup
       headless={headless}
       icon={FileBadge}
-      label={t("owner.registrationRenewal")}
+      label={t("owner.papersToRenew")}
       rows={[
         ...(needsYou.registrationRenewal
           ? [
@@ -493,7 +493,7 @@ const KindList = ({
     case "ventures": {
       return <VentureTroubles headless={headless} ventures={ventures} />;
     }
-    case "registration": {
+    case "renewals": {
       return <RenewalGroup headless={headless} needsYou={needsYou} />;
     }
     case "approvals": {
@@ -571,10 +571,10 @@ export const NeedsYouTabs = ({
       count: ventures.length,
     },
     {
-      value: "registration",
-      label: t("owner.registrationRenewal"),
+      value: "renewals",
+      label: t("owner.papersToRenew"),
       icon: FileBadge,
-      count: counts.registration,
+      count: counts.renewals,
     },
     {
       value: "approvals",

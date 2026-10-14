@@ -7,6 +7,7 @@ CREATE TABLE "restore_drill" (
 	"went_well" boolean NOT NULL,
 	"backup_used" text,
 	"note" text,
+	"done_by" text NOT NULL,
 	"recorded_by" text NOT NULL,
 	"recorded_at" timestamp with time zone NOT NULL
 );
@@ -54,6 +55,7 @@ CREATE INDEX "license_certificate_license_idx" ON "license_certificate" ("licens
 CREATE UNIQUE INDEX "license_certificate_completion_uidx" ON "license_certificate" ("completion_id") WHERE "completion_id" is not null;--> statement-breakpoint
 CREATE UNIQUE INDEX "license_renewal_completion_uidx" ON "license_renewal" ("completion_id");--> statement-breakpoint
 ALTER TABLE "restore_drill" ADD CONSTRAINT "restore_drill_farm_id_farm_id_fkey" FOREIGN KEY ("farm_id") REFERENCES "farm"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "restore_drill" ADD CONSTRAINT "restore_drill_done_by_user_id_fkey" FOREIGN KEY ("done_by") REFERENCES "user"("id");--> statement-breakpoint
 ALTER TABLE "restore_drill" ADD CONSTRAINT "restore_drill_recorded_by_user_id_fkey" FOREIGN KEY ("recorded_by") REFERENCES "user"("id");--> statement-breakpoint
 ALTER TABLE "farm_license" ADD CONSTRAINT "farm_license_farm_id_farm_id_fkey" FOREIGN KEY ("farm_id") REFERENCES "farm"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "farm_license" ADD CONSTRAINT "farm_license_created_by_user_id_fkey" FOREIGN KEY ("created_by") REFERENCES "user"("id");--> statement-breakpoint

@@ -16,7 +16,8 @@ choices: decide on the recommendation and record why.
   names — its number, who issued it, the days it runs between, and its certificate's photographs. Written and put
   right by the Owner or the Manager, read by the Vet, as the Registration is; retired, never deleted. One that does not
   run out is written with no expiry and is never renewed. A Manager's change is told to the Owner, as a change to the
-  Farm Identity is.
+  Farm Identity is. Retired, its open renewal work is called off (`license_retired`), and no renewal — a correction of
+  one already done among them — renews a License the farm no longer holds (`renewal_names_no_license`).
 - **Renewed on the Registration's machinery, generalized rather than copied.** What makes a renewal a renewal —
   refused without a photograph of the renewed certificate, refused to a day before the expiry it replaces, keyed on the
   Completion so a correction puts the same renewal right, standing aside once the paper has moved on — is now one
@@ -24,6 +25,9 @@ choices: decide on the recommendation and record why.
   certificates. The Registration is one; each License is another. So is the raising: `renewalSlotsFor` takes the paper
   coming due — the Trigger that renews it, its expiry, the renewal lead, the cause its work is raised under, and the
   procedures whose work for it stands open — and the Day Turning asks it of the Registration and of each License.
+  An expiry put right by hand while the renewal work is open moves that work with it, for either paper
+  (`followTheExpiry`): due the day the paper now runs out, under that expiry's cause, so it is not late on a day the
+  paper no longer runs out and the next turn finds it already raised.
 - **Its own Trigger and Step Effect, `license_renewal`**, not the Registration's stretched. The Registration's renewal
   is an errand to the Upazila Livestock Office; a trade license's is to the Pourashava. A farm that wants different
   steps for them writes two procedures, and one that renews licenses at all writes one more. The work carries which
@@ -47,8 +51,10 @@ choices: decide on the recommendation and record why.
   letter to the Upazila Livestock Officer. As the certificate prints it, in either language: «ডা. করিম (বিভিসি নং
   BVC-0457)», «ডা. করিম (BVC no. BVC-0457)».
 - **A Restore Drill is written down on the Backups page**: the day it was done, whether it went well, which copy was
-  restored, a note — which one that went badly must have — and who wrote it down, the Owner or a Manager between whom
-  it is done. Never edited; written wrong, it is written again and the latest stands. The next is due a quarter after
+  restored, a note — which one that went badly must have — who did it, the Owner or a Manager between whom it is done
+  (the one writing it down unless they name the other; anybody else is refused, `drill_done_by_who_runs_the_farm`),
+  and who wrote it down. Never edited; written wrong, it is written again and the one written last stands, though it
+  puts the drill on an earlier day than the one it corrects. The next is due a quarter after
   the last, whether or not it went well, since the next drill is what checks the mend; a farm that has never drilled is
   counted from its first good copy, and one with no good copy is asked nothing here, its backups being the louder
   problem. Overdue the day after it falls due.
@@ -62,6 +68,9 @@ choices: decide on the recommendation and record why.
   with a column saying whose: every read of the Registration's certificate would otherwise have to remember to leave
   the Licenses out, and the one that forgot would show an inspector the trade license.
 - A farm sees no License's renewal work until the Owner writes a procedure raised by `license_renewal`, as with the
-  Registration; the Owner's home lists a License coming due all the same.
+  Registration — the standard Playbook carries neither. The farm page says so plainly, with the way to the Playbook,
+  for the Licenses and for the Registration alike; the Owner's home lists a paper coming due all the same.
+- The Inspector View lists the Licenses the farm holds beside the Registration, each with its certificate, and its
+  treatment register reads the prescribing Vet's BVC number on the screen as on the paper.
 - The Restore Drill is written down in the live farm it rehearsed: the runbook's ops log line is now the Backups page.
   The mark left in the restored copy stays, as the copy's own proof that it was opened.

@@ -112,7 +112,7 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   money_awaiting_approval: { audience: [theOwner], entity: "money_event" },
   // The Registration is in the Owner's name, and renewing it is theirs to do.
   registration_renewal_due: { audience: [theOwner], entity: "sop_instance" },
-  // So are the farm's other Licenses, renewed on the same machinery (ADR 0030).
+  // So are the farm's other Licenses, renewed on the same machinery (ADR 0032).
   license_renewal_due: { audience: [theOwner], entity: "sop_instance" },
   // Whose money it is, is the Owner's business and nobody else's — the Manager reads a Venture's
   // figures but never its Investors. And producing the paper is the Owner's act besides.

@@ -98,6 +98,7 @@ export const CALLED_OFF_BY = [
   "exit_voided",
   "released",
   "excused",
+  "license_retired",
 ] as const;
 export type CalledOffBy = (typeof CALLED_OFF_BY)[number];
 

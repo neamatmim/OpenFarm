@@ -7,7 +7,7 @@ import { useState } from "react";
 
 import { Certificate } from "@/components/certificate";
 import { SettingsSection } from "@/components/farm-parameters";
-import { LicensesSection } from "@/components/licenses";
+import { LicensesSection, NoRenewalProcedure } from "@/components/licenses";
 import { Notice, Page, PageHeader } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -254,6 +254,8 @@ const RegistrationNotices = ({ farm }: { farm: Identity }) => {
       {expiresOn && !farm.registrationExpired && farm.registrationEndingSoon ? (
         <Notice title={t("identity.endingSoon", { when })} tone="warning" />
       ) : null}
+      {/* The expiry is written down, and still nothing raises its renewal as work. */}
+      {expiresOn ? <NoRenewalProcedure paper="registration" /> : null}
     </>
   );
 };

@@ -9,9 +9,15 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { keepLicenseCertificate, licensesHeld } from "../license-store";
+import {
+  callOffLicenseRenewals,
+  followLicenseExpiry,
+  keepLicenseCertificate,
+  licensesHeld,
+} from "../license-store";
 import { photoInput } from "../photo-input";
 import { requirePersonalSession, requireRole } from "../roles";
+import { sopsInForce } from "../sops-in-force";
 import { tellTheOwnerOfTheChange } from "./farm";
 
 /** What a License says, as the farm writes it from its certificate. */
@@ -89,7 +95,7 @@ const readLicense = async (tx: Tx, farmId: string, id: string) =>
 /**
  * The farm's **Licenses** beside its DLS Registration: the trade license, the environmental clearance, the fire
  * license, and any other the farm names. Written and put right by the Owner or the Manager, as the Registration is;
- * read by the Vet as the Farm Identity is. Renewed on the Registration's machinery (ADR 0030).
+ * read by the Vet as the Farm Identity is. Renewed on the Registration's machinery (ADR 0032).
  */
 export const licensesRouter = {
   /** The Licenses the farm holds: each with whether it has run out or is within the renewal lead, and when its
@@ -126,6 +132,24 @@ export const licensesRouter = {
       }));
     }),
 
+  /**
+   * Whether any procedure in force raises a License's renewal, and the Registration's: until one does, the farm keeps
+   * the papers and says when they run out, and nobody is given their renewal as work.
+   */
+  renewalProcedures: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .handler(async ({ context }) => {
+      const sops = await sopsInForce(context.db, context.farm.id);
+      const raisedBy = (kind: "registration_renewal" | "license_renewal") =>
+        sops.some((sop) =>
+          sop.content.triggers.some((trigger) => trigger.kind === kind)
+        );
+      return {
+        licenses: raisedBy("license_renewal"),
+        registration: raisedBy("registration_renewal"),
+      };
+    }),
+
   /** Writes a License down from its certificate. */
   add: protectedProcedure
     .use(requireRole("owner", "manager"))
@@ -160,7 +184,13 @@ export const licensesRouter = {
   /** Puts a License right — its number, issuer or days, as the certificate says them. A field left out stays. */
   update: protectedProcedure
     .use(requireRole("owner", "manager"))
-    .input(z.object({ id: z.string(), ...licenseFields }))
+    .input(
+      z.object({
+        id: z.string(),
+        ...licenseFields,
+        number: licenseFields.number.optional(),
+      })
+    )
     .handler(async ({ context, input }) => {
       const farmId = context.farm.id;
       await audited(context).write(
@@ -187,6 +217,12 @@ export const licensesRouter = {
             .update(farmLicense)
             .set(changes)
             .where(eq(farmLicense.id, input.id));
+          // Its renewal work, open, follows the day it now runs out.
+          await followLicenseExpiry(tx, {
+            farmId,
+            licenseId: input.id,
+            expiresOn: onFarmDay(input.expiresOn),
+          });
           await tellTheOwnerOfTheChange(context, tx, changes);
         }
       );
@@ -213,6 +249,12 @@ export const licensesRouter = {
             .update(farmLicense)
             .set({ retiredAt: context.clock.now() })
             .where(eq(farmLicense.id, input.id));
+          // Nobody renews a License the farm no longer holds: its open renewal work is called off.
+          await callOffLicenseRenewals(
+            tx,
+            { farmId, licenseId: input.id },
+            audited(context).recordEvent
+          );
           await tellTheOwnerOfTheChange(context, tx, { retired: input.id });
         }
       );

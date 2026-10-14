@@ -551,7 +551,7 @@ export type LicenseKind = (typeof LICENSE_KINDS)[number];
 
 /**
  * A **License**: one of the Farm's papers from an authority other than the DLS — its number, who issued it, the days it
- * runs between, and its certificate's photograph. Renewed as the Registration is (ADR 0030): the renewal work raised for
+ * runs between, and its certificate's photograph. Renewed as the Registration is (ADR 0032): the renewal work raised for
  * the Owner the renewal lead before it runs out, its closing Step recording the new expiry and certificate. Retired,
  * never deleted: a license the farm no longer holds is still what it held.
  */

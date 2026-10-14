@@ -67,6 +67,10 @@ export const restoreDrill = pgTable(
     backupUsed: text("backup_used"),
     /** What was checked, and — required when it did not go well — what was missing. */
     note: text("note"),
+    /** Who did it: the Owner or a Manager, who rehearse it between them. The one writing it down, unless they say. */
+    doneBy: text("done_by")
+      .notNull()
+      .references(() => user.id),
     recordedBy: text("recorded_by")
       .notNull()
       .references(() => user.id),

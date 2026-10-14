@@ -93,7 +93,8 @@ export const backupGap = async (
 };
 
 /**
- * The farm's **Restore Drill** and the next one's day: its latest drill, the first good copy the farm ever took, and
+ * The farm's **Restore Drill** and the next one's day: its drill last written down — which stands, though it puts right
+ * a day typed wrong to an earlier one — the first good copy the farm ever took, and
  * what `drillStanding` makes of them on the farm's day of `now`. Read by the Backups page and the notice alike, so the
  * two never disagree about when it is due.
  */
@@ -105,7 +106,7 @@ export const drillStandingOf = async (
   const [last, firstGood] = await Promise.all([
     db.query.restoreDrill.findFirst({
       where: { farmId },
-      orderBy: { doneOn: "desc", recordedAt: "desc", id: "desc" },
+      orderBy: { recordedAt: "desc", id: "desc" },
       columns: { doneOn: true },
     }),
     db.query.backupRun.findFirst({

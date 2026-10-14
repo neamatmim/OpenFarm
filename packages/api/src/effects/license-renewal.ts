@@ -10,7 +10,7 @@ type RenewalFacts = Pick<
 >;
 
 /**
- * Renews the License the work was raised for — the Owner's, as the Registration's renewal is (ADR 0030). The new expiry
+ * Renews the License the work was raised for — the Owner's, as the Registration's renewal is (ADR 0032). The new expiry
  * and certificate replace the old, and the renewal is kept against the expiry it replaced.
  */
 const renewTheLicense = async (

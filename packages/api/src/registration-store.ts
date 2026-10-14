@@ -1,10 +1,6 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq, sql } from "@OpenFarm/db/operators";
-import {
-  farm,
-  registrationCertificate,
-  registrationRenewal,
-} from "@OpenFarm/db/schema/farm";
+import { farm, registrationCertificate } from "@OpenFarm/db/schema/farm";
 import type { FarmIdentity } from "@OpenFarm/domain";
 import {
   OPEN_INSTANCE_STATES,
@@ -17,12 +13,12 @@ import type { Raised } from "./notice";
 import { rememberingPeople, tell } from "./notice";
 import type { PhotoInput } from "./photo-input";
 import type { RenewablePaper, RenewalEntry } from "./renewal-store";
-import { renewPaper } from "./renewal-store";
+import { renewPaper, renewalsKeptIn } from "./renewal-store";
 
 export type { RenewalEntry } from "./renewal-store";
 
 /** The prefix every renewal's work is raised under. */
-const RENEWAL_CAUSE = "registration:";
+export const REGISTRATION_CAUSE = "registration:";
 
 /**
  * What raises the renewal work for a Registration: the day its certificate runs out. Once for each certificate, so the
@@ -31,7 +27,7 @@ const RENEWAL_CAUSE = "registration:";
  * nothing more: no renewal is raised while one is open (`openRenewalsOf`).
  */
 export const renewalCause = (expiresOn: Date): string =>
-  `${RENEWAL_CAUSE}${farmDayOf(expiresOn)}`;
+  `${REGISTRATION_CAUSE}${farmDayOf(expiresOn)}`;
 
 /** The SOPs with renewal work still open: none of them is given a second until it is done, missed or called off. */
 export const openRenewalsOf = async (
@@ -41,7 +37,7 @@ export const openRenewalsOf = async (
   const open = await db.query.sopInstance.findMany({
     where: {
       farmId,
-      cause: { like: `${RENEWAL_CAUSE}%` },
+      cause: { like: `${REGISTRATION_CAUSE}%` },
       state: { in: [...OPEN_INSTANCE_STATES] },
     },
     columns: { definitionId: true },
@@ -75,7 +71,7 @@ export const renewalDue = async (
   const work = await db.query.sopInstance.findFirst({
     where: {
       farmId: standing.id,
-      cause: { like: `${RENEWAL_CAUSE}%` },
+      cause: { like: `${REGISTRATION_CAUSE}%` },
       state: { in: [...OPEN_INSTANCE_STATES] },
     },
     columns: { id: true },
@@ -102,7 +98,9 @@ export const tellOfRenewals = async (
   raised: readonly { id: string; cause: string | null }[],
   now: Date
 ): Promise<Raised[]> => {
-  const renewals = raised.filter((one) => one.cause?.startsWith(RENEWAL_CAUSE));
+  const renewals = raised.filter((one) =>
+    one.cause?.startsWith(REGISTRATION_CAUSE)
+  );
   const told: Raised[] = [];
   const remembering = rememberingPeople();
   for (const work of renewals) {
@@ -184,25 +182,7 @@ const registrationPaper = (farmId: string): RenewablePaper => ({
       where: { completionId },
       columns: { id: true, previousExpiresOn: true, expiresOn: true },
     }),
-  keepRenewal: async (
-    tx,
-    { already, completionId, previousExpiresOn, expiresOn, by, now }
-  ) => {
-    await (already
-      ? tx
-          .update(registrationRenewal)
-          .set({ expiresOn, renewedBy: by, renewedAt: now })
-          .where(eq(registrationRenewal.id, already.id))
-      : tx.insert(registrationRenewal).values({
-          id: newId(now),
-          farmId,
-          completionId,
-          previousExpiresOn,
-          expiresOn,
-          renewedBy: by,
-          renewedAt: now,
-        }));
-  },
+  keepRenewal: renewalsKeptIn({ farmId }),
   setExpiry: async (tx, expiresOn, issuedOn) => {
     await tx
       .update(farm)

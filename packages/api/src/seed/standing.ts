@@ -189,7 +189,7 @@ export const openTheFarm = async (
     pregnancyCheckAfterDays: 45,
     registrationRenewalLeadDays: 60,
   });
-  // Its other Licenses (ADR 0030): the Pourashava's trade license, renewed each July, and the Fire Service's.
+  // Its other Licenses (ADR 0032): the Pourashava's trade license, renewed each July, and the Fire Service's.
   await owner.licenses.add({
     kind: "trade",
     number: "TL/SAV/2025-26/04512",
@@ -203,19 +203,12 @@ export const openTheFarm = async (
     issuer: "ফায়ার সার্ভিস ও সিভিল ডিফেন্স, ঢাকা",
     expiresOn: addDays(today, 45),
   });
-  // The Vet's council number, written from the BVC certificate, and the first Restore Drill, done the day the server
-  // was set up as the runbook asks.
+  // The Vet's council number, written from the BVC certificate.
   const vetAccount = accounts.vet;
   if (vetAccount) {
     const vet = await clientOf(db, vetAccount, clock);
     await vet.people.setBvcNumber({ bvcNumber: "BVC-R-04582" });
   }
-  await owner.backups.recordDrill({
-    doneOn: addDays(start, -12),
-    wentWell: true,
-    backupUsed: "nightly",
-    note: "পাল, দুধ, পশুর ইতিহাস আর অডিট লগ সব ফিরে এসেছে",
-  });
 
   // The Farm's own mobile money number and bank account, listed before any money is written, so all of it names them.
   const mobileMoney = await owner.farmAccounts.create({

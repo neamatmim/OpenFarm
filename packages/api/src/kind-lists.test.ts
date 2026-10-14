@@ -6,7 +6,11 @@ import {
   SERVICE_METHODS as STORED_SERVICE_METHODS,
   WEANED_TO as STORED_WEANED_TO,
 } from "@OpenFarm/db/schema/breeding";
-import { ROLES as STORED_ROLES, farm } from "@OpenFarm/db/schema/farm";
+import {
+  LICENSE_KINDS as STORED_LICENSE_KINDS,
+  ROLES as STORED_ROLES,
+  farm,
+} from "@OpenFarm/db/schema/farm";
 import { READY_REASONS as STORED_READY_REASONS } from "@OpenFarm/db/schema/fattening";
 import {
   FEED_PACKS as STORED_PACKS,
@@ -38,6 +42,7 @@ import {
   DISPOSALS,
   FEED_PACKS,
   FEED_UNITS,
+  LICENSE_KINDS,
   MILK_DESTINATIONS,
   MORTALITY_KINDS,
   PAYMENT_METHODS,
@@ -78,6 +83,7 @@ describe("the lists the store keeps and the lists the screens read", () => {
     ["Roles", ROLES, STORED_ROLES],
     ["ways of paying", PAYMENT_METHODS, STORED_PAYMENT_METHODS],
     ["kinds of Receivable", RECEIVABLE_KINDS, STORED_RECEIVABLE_KINDS],
+    ["kinds of License", LICENSE_KINDS, STORED_LICENSE_KINDS],
     ["ways she is served", SERVICE_METHODS, STORED_SERVICE_METHODS],
     [
       "what a pregnancy check finds",

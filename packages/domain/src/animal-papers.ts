@@ -37,7 +37,7 @@ export interface DoseOnPaper {
   /** The Vet who prescribed it, or nothing for a dose given on a campaign over her Pen, or without a Prescription. */
   prescribedBy: string | null;
   /** That Vet's BVC registration number, where the farm has it. */
-  prescriberBvc?: string | null;
+  prescriberBvc: string | null;
   /** For a dose given without a Prescription, who advised it and why; nothing for a course's dose or a campaign's. */
   advice: string | null;
   givenBy: string | null;
@@ -98,7 +98,7 @@ const standingRows = (standing: WithdrawalStanding): DocumentRow[] => {
 /** Where a dose came from: a Vet's prescription, a campaign over her Pen, or advice without a Prescription. */
 const doseSource = (dose: DoseOnPaper): Said => {
   if (dose.prescribedBy) {
-    const vet = vetOnPaper(dose.prescribedBy, dose.prescriberBvc ?? null);
+    const vet = vetOnPaper(dose.prescribedBy, dose.prescriberBvc);
     return {
       bn: `ব্যবস্থাপত্র: ${vet.bn}`,
       en: `Prescribed by ${vet.en}`,

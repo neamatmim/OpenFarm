@@ -235,12 +235,24 @@ describe("the Registration and its renewal", () => {
       license: null,
     });
     expect(await renewalWork("2041-01-03T04:00:00.000Z")).toHaveLength(1);
-    // The Manager putting a typed expiry right within the year raises nothing more.
+    // The Manager putting a typed expiry right within the year raises nothing more, and the open work follows it: due
+    // the day the Registration now runs out, under that expiry's cause.
     const manager = await as("manager", "2041-01-03T04:00:00.000Z");
     await manager.client.farm.setIdentity({
       registrationExpiresOn: "2041-03-30",
     });
-    expect(await renewalWork("2041-01-03T05:00:00.000Z")).toHaveLength(1);
+    const followed = await renewalWork("2041-01-03T05:00:00.000Z");
+    expect(followed).toEqual([
+      expect.objectContaining({
+        id: raised[0]?.id,
+        dueAt: new Date("2041-03-30T18:00:00.000Z"),
+      }),
+    ]);
+    const rekeyed = await scratchDb().query.sopInstance.findFirst({
+      where: { id: raised[0]?.id },
+      columns: { cause: true },
+    });
+    expect(rekeyed?.cause).toBe("registration:2041-03-30");
     await manager.client.farm.setIdentity({
       registrationExpiresOn: "2041-03-31",
     });

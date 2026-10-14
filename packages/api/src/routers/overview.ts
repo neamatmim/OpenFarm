@@ -289,7 +289,7 @@ export const overviewRouter = {
           storeCount,
           /** The Registration coming up for renewal, or run out, and the work raised for it. */
           registrationRenewal: await renewalDue(context.db, context.farm, now),
-          /** Each License coming up for renewal, or run out, and the work raised for it (ADR 0030). */
+          /** Each License coming up for renewal, or run out, and the work raised for it (ADR 0032). */
           licenseRenewals: await licenseRenewalsDue(
             context.db,
             context.farm,

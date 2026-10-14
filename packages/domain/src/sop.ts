@@ -181,7 +181,7 @@ export type StepEffect =
   /** The farm's DLS Registration renewed: the new expiry, and the renewed certificate's photo. */
   | { kind: "registration_renewal" }
   /** One of the farm's Licenses renewed — the one its work was raised for: the new expiry, and the renewed
-   *  certificate's photo (ADR 0030). */
+   *  certificate's photo (ADR 0032). */
   | { kind: "license_renewal" }
   /** The Lot Number a vaccination Campaign was given from, asked once for the Pen. */
   | { kind: "lot_number" };
@@ -383,7 +383,7 @@ export type Trigger =
    *  for each expiry. */
   | { kind: "registration_renewal" }
   /** One of the farm's Licenses comes within the same renewal lead of running out: raised once for each License and
-   *  each expiry, on the Registration's machinery (ADR 0030). */
+   *  each expiry, on the Registration's machinery (ADR 0032). */
   | { kind: "license_renewal" }
   /** A Campaign's **Campaign Interval**: raised in each Pen holding an animal whose last dose of the Campaign's
    *  product is so many months behind her — or who has had none since she was first counted — once for that turn. */

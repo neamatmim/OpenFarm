@@ -5,7 +5,7 @@ import type { RowsAnswer } from "@OpenFarm/api/registers/rows";
 import { rowsOfRegister } from "@OpenFarm/api/registers/rows";
 import type { TreatmentRow } from "@OpenFarm/api/registers/treatment";
 import type { VaccinationRow } from "@OpenFarm/api/registers/vaccination";
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { startOfFarmDay, vetOnPaper } from "@OpenFarm/domain";
 import type { Language, MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -212,6 +212,13 @@ const courseSaid = (course: string, language: Language) =>
     formatDigits(Number(figure), language)
   );
 
+/** The prescribing Vet as the papers name them: with their BVC number where the farm has it. A row cached from before
+ *  the number was read carries none. */
+const prescriberSaid = (row: TreatmentRow, language: Language): string =>
+  row.prescribedBy
+    ? vetOnPaper(row.prescribedBy, row.prescriberBvc ?? null)[language]
+    : "—";
+
 const TreatmentLine = ({ row }: { row: TreatmentRow }) => {
   const { t, language } = useLanguage();
   const clearOn = (farmDay: string | null) =>
@@ -226,7 +233,7 @@ const TreatmentLine = ({ row }: { row: TreatmentRow }) => {
       <span className="text-muted-foreground block text-xs">
         {t("inspector.givenBy", {
           giver: row.givenBy ?? "—",
-          vet: row.prescribedBy ?? "—",
+          vet: prescriberSaid(row, language),
         })}
       </span>
       <span className="text-muted-foreground block text-xs">
@@ -250,6 +257,11 @@ const MeatClearCell = ({ row }: { row: { original: TreatmentRow } }) => (
 );
 
 /** The drug, and under it how it was given: the dose, the route and the course, as far as they were written. */
+const PrescriberCell = ({ row }: { row: { original: TreatmentRow } }) => {
+  const { language } = useLanguage();
+  return <span>{prescriberSaid(row.original, language)}</span>;
+};
+
 const DrugCell = ({ row }: { row: { original: TreatmentRow } }) => {
   const { t, language } = useLanguage();
   const { dose, route, course, drug } = row.original;
@@ -294,6 +306,7 @@ const treatmentColumns = treatment.columns([
   treatment.accessor((row) => orDash(row.prescribedBy), {
     id: "prescribedBy",
     header: listHeader("inspector.col.prescribedBy"),
+    cell: PrescriberCell,
   }),
   treatment.accessor((row) => orDash(row.milkClearOn), {
     id: "milkClearOn",

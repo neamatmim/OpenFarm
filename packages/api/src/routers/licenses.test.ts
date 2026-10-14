@@ -5,11 +5,12 @@ import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 // The farm's other Licenses — the trade license above all — written down with their certificates, and renewed on the
 // Registration's machinery: renewal work raised for the Owner the renewal lead before one runs out, due the day it
-// does, whose closing Step records the new expiry and the renewed certificate (ADR 0030).
+// does, whose closing Step records the new expiry and the renewed certificate (ADR 0032).
 
 const as = (role: "owner" | "manager" | "staff" | "vet", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
@@ -282,5 +283,88 @@ describe("the farm's Licenses", () => {
         renewal: { expiresOn: "2062-06-30", certificate: PHOTO },
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("follows its License's expiry put right by hand while its renewal is open, and is raised no second time", async () => {
+    const manager = await as("manager", "2061-04-04T04:00:00.000Z");
+    const held = await manager.client.licenses.list();
+    const trade = held.find((one) => one.number === "TL/SAV/2060/77");
+    await manager.client.licenses.update({
+      id: trade?.id ?? "",
+      expiresOn: "2061-07-15",
+    });
+
+    const owed = await dueWork("2061-04-05T04:00:00.000Z");
+    const forTrade = owed.filter((row) => row.cause?.includes(trade?.id ?? ""));
+    // Due the day it now runs out, under the cause of the expiry it now has: not late on the day it no longer runs out.
+    expect(forTrade).toEqual([
+      expect.objectContaining({
+        dueAt: new Date("2061-07-15T18:00:00.000Z"),
+        cause: `license:${trade?.id}:2061-07-15`,
+      }),
+    ]);
+  });
+
+  it("is called off when its License is retired, and raised for it no more", async () => {
+    const owner = await as("owner", "2061-04-06T04:00:00.000Z");
+    const held = await owner.client.licenses.list();
+    const fire = held.find((one) => one.kind === "fire");
+    const before = await dueWork("2061-04-06T04:00:00.000Z");
+    const fireWork = before.find((row) => row.cause?.includes(fire?.id ?? ""));
+    expect(fireWork).toBeDefined();
+
+    await owner.client.licenses.retire({ id: fire?.id ?? "" });
+
+    const after = await renewalWork("2061-04-07T04:00:00.000Z");
+    const forFire = after.filter((row) => row.cause?.includes(fire?.id ?? ""));
+    expect(forFire).toEqual([
+      expect.objectContaining({ id: fireWork?.id, state: "called_off" }),
+    ]);
+    const home = await owner.client.overview.get();
+    expect(
+      home.needsYou.licenseRenewals.map((one) => one.licenseId)
+    ).not.toContain(fire?.id);
+  });
+
+  it("renews no License the farm no longer holds, a renewal put right after it was retired among them", async () => {
+    const owner = await as("owner", "2061-04-08T04:00:00.000Z");
+    const owed = await dueWork("2061-04-08T04:00:00.000Z");
+    const held = await owner.client.licenses.list();
+    const trade = held.find((one) => one.number === "TL/SAV/2060/77");
+    const work = owed.find((row) => row.cause?.includes(trade?.id ?? ""));
+    await owner.client.work.claim({ id: work?.id ?? "" });
+    await owner.client.work.completeStep({
+      instanceId: work?.id ?? "",
+      stepId: "apply",
+      evidence: [true],
+    });
+    await owner.client.work.completeStep({
+      instanceId: work?.id ?? "",
+      stepId: "renewed",
+      evidence: [true],
+      renewal: { expiresOn: "2062-07-15", certificate: PHOTO },
+    });
+    await owner.client.work.complete({ id: work?.id ?? "" });
+    await owner.client.licenses.retire({ id: trade?.id ?? "" });
+
+    const later = await as("owner", "2061-04-09T04:00:00.000Z");
+    const board = await later.client.work.get({ id: work?.id ?? "" });
+    const renewed = board.completions.find((one) => one.stepId === "renewed");
+    await expect(
+      correctStepAsShown(later.client, {
+        completionId: renewed?.id ?? "",
+        evidence: [true],
+        renewal: { expiresOn: "2062-08-15" },
+        reason: "তারিখ ভুল লেখা হয়েছিল",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "renewal_names_no_license" } });
+  });
+
+  it("says whether any published procedure raises a License's renewal, and the Registration's", async () => {
+    const owner = await as("owner", "2061-04-10T04:00:00.000Z");
+    expect(await owner.client.licenses.renewalProcedures()).toEqual({
+      licenses: true,
+      registration: false,
+    });
   });
 });

@@ -39,6 +39,7 @@ import {
   isEscalated,
   isOpen,
   isOverdue,
+  isRenewalTrigger,
   lastCarryingMoment,
   minutesOverdue,
   raisesItsOwnWork,
@@ -129,7 +130,7 @@ export interface PaperComingDue {
 }
 
 /**
- * The renewal of a paper the farm holds — its DLS Registration, or one of its Licenses (ADR 0030) — once it has come
+ * The renewal of a paper the farm holds — its DLS Registration, or one of its Licenses (ADR 0032) — once it has come
  * within the farm's renewal lead of running out: one piece of work for the whole farm, in no Pen, for each SOP that
  * renews it. Raised when the lead begins and due when the paper runs out, so it is on the Owner's list for the whole of
  * the lead and late only once the paper has lapsed. Keyed on the expiry, so it is raised once for each certificate
@@ -358,8 +359,7 @@ const raisedElsewhere = (
   }
 > =>
   trigger.kind === "schedule" ||
-  trigger.kind === "registration_renewal" ||
-  trigger.kind === "license_renewal" ||
+  isRenewalTrigger(trigger) ||
   trigger.kind === "every_months";
 
 /** Whether a happening is what this Trigger waits for. */

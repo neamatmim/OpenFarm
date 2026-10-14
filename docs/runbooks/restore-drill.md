@@ -124,7 +124,7 @@ Once a quarter, and after any change to the database provider.
    system itself, dismiss an Alert or make a note so the drill leaves an Audit Event in the copy
    it was run against. A drill nobody recorded is a drill nobody did: the Backups page says
    when the next is due, and the Owner is told once a quarter has gone by without one
-   (ADR 0030).
+   (ADR 0032).
 4. If anything is missing, the drill has done its job. Do not tidy it away — find out why
    before the next nightly runs.
 5. **Drop the scratch database** once the drill is written down. It holds the whole farm — every
