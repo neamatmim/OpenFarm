@@ -41,7 +41,7 @@ export const feedMakingRouter = {
       z.object({
         id: z.string().uuid().optional(),
         outputFeedItemId: z.string(),
-        madeOn: farmDay,
+        madeAt: z.date(),
         inputs: makingInputs,
         cameOut: z.object({ quantity: quantityInput }).optional(),
         /** For silage: when it should be ready to open. */
@@ -60,7 +60,7 @@ export const feedMakingRouter = {
   cameOut: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(
-      z.object({ id: z.string(), quantity: quantityInput, cameOutOn: farmDay })
+      z.object({ id: z.string(), quantity: quantityInput, cameOutAt: z.date() })
     )
     .handler(({ context, input }) => takeOutOfThePit(context, input)),
 

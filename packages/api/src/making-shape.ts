@@ -4,8 +4,6 @@
  */
 import type { Database } from "@OpenFarm/db";
 import type { MakingRead } from "@OpenFarm/domain";
-import { startOfFarmDay } from "@OpenFarm/domain";
-import { cameInAt } from "@OpenFarm/domain/lots";
 
 import type { Tx } from "./audit";
 
@@ -62,14 +60,14 @@ export const inputsSaid = (inputs: LoadedMaking["inputs"]) =>
     quantity: Number(one.quantity),
   }));
 
-/** When a Making's inputs left the store: its day, at the moment it was written down where that was the same day. */
-export const madeAtOf = (making: { madeOn: string; recordedAt: Date }): Date =>
-  cameInAt(startOfFarmDay(making.madeOn), making.recordedAt);
-
-/** A Making as the store reads it: when, what went in, and what came out when. */
+/**
+ * A Making as the store reads it: when, what went in, and what came out when — each the moment it happened, as the
+ * person said it, never the moment it was written down: a mix made at six and fed at seven was made before it was fed
+ * however late it was written up.
+ */
 export const makingRead = (making: LoadedMaking): MakingRead => ({
   id: making.id,
-  madeAt: madeAtOf(making),
+  madeAt: making.madeAt,
   outputFeedItemId: making.outputFeedItemId,
   inputs: making.inputs.map((one) => ({
     feedItemId: one.feedItemId,
@@ -78,7 +76,7 @@ export const makingRead = (making: LoadedMaking): MakingRead => ({
   madeFeed: making.madeFeed
     ? {
         arrivalId: making.madeFeed.id,
-        at: cameInAt(making.madeFeed.receivedOn, making.madeFeed.recordedAt),
+        at: making.madeFeed.receivedOn,
         quantity: Number(making.madeFeed.quantity),
       }
     : null,

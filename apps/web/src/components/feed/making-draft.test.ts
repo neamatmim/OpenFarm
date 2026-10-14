@@ -1,13 +1,18 @@
+import { atFarmTime } from "@OpenFarm/domain";
 import { describe, expect, it } from "vitest";
 
 import {
   blankDraft,
   choosingOutput,
+  dayChosen,
   inputsPutRight,
   makingOfDraft,
   shortNamed,
   whatIsMissing,
 } from "./making-draft";
+
+/** The farm's day and clock as the sheet is opened. */
+const NOW = { today: "2081-03-02", time: "06:15" };
 
 /** The feeds a refusal names, as `shortNamed` said them. */
 const feedsOf = (error: unknown) =>
@@ -95,13 +100,30 @@ const LAST_MIX = {
   ],
 };
 
+describe("when a Feed Making was made", () => {
+  it("is now, for a sheet opened today", () => {
+    expect(blankDraft(NOW)).toMatchObject({
+      madeOn: "2081-03-02",
+      madeTime: "06:15",
+    });
+  });
+
+  it("asks the time for an earlier day, and gives now back for today", () => {
+    const yesterday = dayChosen(blankDraft(NOW), "2081-03-01", NOW);
+    expect(yesterday.madeTime).toBe("");
+    const chosen = {
+      ...choosingOutput(yesterday, "mix", LAST_MIX).draft,
+      cameOut: "400",
+    };
+    expect(whatIsMissing(chosen)).toBe("time");
+    expect(whatIsMissing({ ...chosen, madeTime: "10:30" })).toBeNull();
+    expect(dayChosen(yesterday, "2081-03-02", NOW).madeTime).toBe("06:15");
+  });
+});
+
 describe("a Feed Making as it is typed", () => {
   it("fills what goes in as the last making of the same feed, while nobody has typed into it", () => {
-    const { draft, filled } = choosingOutput(
-      blankDraft("2081-03-02"),
-      "mix",
-      LAST_MIX
-    );
+    const { draft, filled } = choosingOutput(blankDraft(NOW), "mix", LAST_MIX);
     expect(filled).toBe(true);
     expect(draft.lines.map((one) => [one.feedItemId, one.quantity])).toEqual([
       ["bran", "400"],
@@ -110,7 +132,7 @@ describe("a Feed Making as it is typed", () => {
   });
 
   it("keeps what somebody already typed", () => {
-    const typed = blankDraft("2081-03-02");
+    const typed = blankDraft(NOW);
     typed.lines[0] = {
       ...typed.lines[0],
       key: "a",
@@ -124,7 +146,7 @@ describe("a Feed Making as it is typed", () => {
   });
 
   it("says what is missing, first first", () => {
-    const draft = blankDraft("2081-03-02");
+    const draft = blankDraft(NOW);
     expect(whatIsMissing(draft)).toBe("output");
     const chosen = choosingOutput(draft, "mix", LAST_MIX).draft;
     // A mix says how much it made.
@@ -141,13 +163,13 @@ describe("a Feed Making as it is typed", () => {
 
   it("sends a mix with what it made, and silage with when it is ready, leaving empty rows behind", () => {
     const mix = {
-      ...choosingOutput(blankDraft("2081-03-02"), "mix", LAST_MIX).draft,
+      ...choosingOutput(blankDraft(NOW), "mix", LAST_MIX).draft,
       cameOut: "405",
     };
     mix.lines.push({ key: "empty", feedItemId: "", quantity: "" });
     expect(makingOfDraft(mix)).toEqual({
       outputFeedItemId: "mix",
-      madeOn: "2081-03-02",
+      madeAt: atFarmTime("2081-03-02", "06:15"),
       inputs: [
         { feedItemId: "bran", quantity: 400 },
         { feedItemId: "salt", quantity: 10 },
@@ -163,7 +185,7 @@ describe("a Feed Making as it is typed", () => {
       })
     ).toEqual({
       outputFeedItemId: "mix",
-      madeOn: "2081-03-02",
+      madeAt: atFarmTime("2081-03-02", "06:15"),
       inputs: [
         { feedItemId: "bran", quantity: 400 },
         { feedItemId: "salt", quantity: 10 },

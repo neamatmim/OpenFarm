@@ -348,8 +348,9 @@ export const feedMaking = pgTable(
     outputFeedItemId: text("output_feed_item_id")
       .notNull()
       .references(() => feedItem.id),
-    /** The farm day it was mixed or packed, `YYYY-MM-DD`, as the farm keeps a day: its inputs left the store then. */
-    madeOn: text("made_on").notNull(),
+    /** The moment it was mixed or packed — its inputs left the store then. A moment, not a day: a mix made at six and
+     *  fed at seven, written up at eleven, was made before it was fed. */
+    madeAt: timestamp("made_at", { withTimezone: true }).notNull(),
     /** For silage: the farm day, `YYYY-MM-DD`, it should be ready to open, as the person packing it said. Nothing for a
      *  mix. */
     readyOn: text("ready_on"),
@@ -360,7 +361,7 @@ export const feedMaking = pgTable(
     recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
-    index("feed_making_farm_idx").on(table.farmId, table.madeOn),
+    index("feed_making_farm_idx").on(table.farmId, table.madeAt),
     index("feed_making_output_idx").on(table.farmId, table.outputFeedItemId),
   ]
 );
@@ -439,7 +440,7 @@ export const feedIn = pgTable(
     priceMoney: numericMoney("price_money"),
     /** The seller: who the farm bought it from, as on an Intake. Null for a harvest. */
     counterpartyId: text("counterparty_id").references(() => counterparty.id),
-    /** The farm's day it came in. */
+    /** The farm's day it came in — for made feed, the moment it came out of its Making, which is read as it is. */
     receivedOn: timestamp("received_on", { withTimezone: true }).notNull(),
     /** The Lot Number on the bag, where there is one — bagged concentrate and premix carry one, hay and a
      *  harvest do not. */

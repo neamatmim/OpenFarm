@@ -1,4 +1,8 @@
-import { SMALLEST_FEED_AMOUNT, feedUnitWord } from "@OpenFarm/domain";
+import {
+  SMALLEST_FEED_AMOUNT,
+  atFarmTime,
+  feedUnitWord,
+} from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 
 import { namesIn } from "@/lib/names-in";
@@ -20,7 +24,9 @@ export type MakingHow = "now" | "later";
 
 export interface MakingDraft {
   outputFeedItemId: string;
+  /** The farm day and the time on the farm's clock it was mixed or packed: a Making is a moment, not a day. */
   madeOn: string;
+  madeTime: string;
   lines: DraftLine[];
   how: MakingHow;
   /** How much it made, for a mix. */
@@ -44,16 +50,26 @@ export const blankLine = (): DraftLine => ({
   quantity: "",
 });
 
+/** The farm's day and clock as a sheet is opened. */
+export interface FarmNow {
+  today: string;
+  time: string;
+}
+
 /** A sheet opened today: nothing chosen, two rows to start with, made now. */
-export const blankDraft = (today: string): MakingDraft => ({
+export const blankDraft = (now: FarmNow): MakingDraft => ({
   outputFeedItemId: "",
-  madeOn: today,
+  madeOn: now.today,
+  madeTime: now.time,
   lines: [blankLine(), blankLine()],
   how: "now",
   cameOut: "",
   readyOn: "",
   note: "",
 });
+
+/** A time on the farm's clock as a time box gives it: hours and minutes. */
+const A_TIME = /^\d{2}:\d{2}$/u;
 
 /** A figure as typed, read as one the farm keeps: a tenth of the unit at least. Nothing when it is not one. */
 const amountOf = (typed: string): number | null => {
@@ -97,6 +113,20 @@ export const choosingOutput = (
   };
 };
 
+/**
+ * The day it was made, chosen: today is made now, and an earlier day asks the time it was made — the mix at six is
+ * before the Feeding at seven, whenever it is written up.
+ */
+export const dayChosen = (
+  draft: MakingDraft,
+  day: string,
+  now: FarmNow
+): MakingDraft => ({
+  ...draft,
+  madeOn: day,
+  madeTime: day === now.today ? now.time : "",
+});
+
 /** The rows that say something: a feed chosen, or an amount typed. Empty rows are left behind. */
 const saidLines = (lines: readonly DraftLine[]) =>
   lines.filter((one) => one.feedItemId !== "" || one.quantity.trim() !== "");
@@ -104,9 +134,12 @@ const saidLines = (lines: readonly DraftLine[]) =>
 /** What is still missing before the farm can be asked, first first; nothing when it is all there. */
 export const whatIsMissing = (
   draft: MakingDraft
-): "output" | "inputs" | "amount" | null => {
+): "output" | "time" | "inputs" | "amount" | null => {
   if (draft.outputFeedItemId === "") {
     return "output";
+  }
+  if (draft.madeOn === "" || !A_TIME.test(draft.madeTime)) {
+    return "time";
   }
   const lines = saidLines(draft.lines);
   if (
@@ -136,7 +169,7 @@ const howItComes = (
 /** What the farm is sent for a draft with nothing missing. */
 export const makingOfDraft = (draft: MakingDraft) => ({
   outputFeedItemId: draft.outputFeedItemId,
-  madeOn: draft.madeOn,
+  madeAt: atFarmTime(draft.madeOn, draft.madeTime),
   inputs: saidLines(draft.lines).map((one) => ({
     feedItemId: one.feedItemId,
     quantity: amountOf(one.quantity) ?? 0,

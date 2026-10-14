@@ -2451,6 +2451,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
     "যা দেওয়া হবে তা গুদাম থেকে বেরোবে; যা বানানো হবে তা গুদামে আসবে, যা দেওয়া হয়েছে তার দামে। গুদামের ভেতরেই অদলবদল — কোনো টাকা লেনদেন হয় না।",
   "making.output": "কী বানানো হচ্ছে",
   "making.madeOn": "মেশানো বা গর্তে ভরার দিন",
+  "making.madeTime": "কয়টার সময়",
+  "making.needsTime": "কয়টার সময় মেশানো বা ভরা হলো বলুন।",
   "making.inputs": "কী কী দেওয়া হচ্ছে",
   "making.addInput": "আরেকটি খাদ্য যোগ করুন",
   "making.removeInput": "বাদ দিন",
@@ -2483,7 +2485,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "making.cameOutTitle": "সাইলেজ খোলা: কতটা বের হলো",
   "making.cameOutHint":
     "যা বের হলো তা খোলার দিনেই গুদামে আসবে — গর্তে যা দেওয়া হয়েছিল তার দামকে যা বের হলো তা দিয়ে ভাগ করে দাম।",
-  "making.cameOutOn": "খোলার দিন",
+  "making.cameOutOn": "খোলার দিন ও সময়",
   "making.cameOutSaved": "গুদামে এসেছে",
   "making.lost": "যা দেওয়া হয়েছিল তার চেয়ে {amount} {unit} কম ({percent}%)",
   "making.unpriced": "এখনো দাম নেই: যা দেওয়া হয়েছে তার একটির দাম নেই",

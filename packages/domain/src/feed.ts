@@ -479,19 +479,51 @@ export const leastOnHandFrom = (
   return roundKg(reached ? least : state.onHand);
 };
 
-/** Whether anything was taken from the store — fed, or made into another feed — at or after one moment and before
- *  another, where one is given. */
-export const takenFromBetween = (
-  movements: readonly StockMovement[],
-  from: Date,
-  until?: Date
-): boolean =>
-  movements.some(
-    (one) =>
-      one.kind === "out" &&
-      one.at >= from &&
-      (until === undefined || one.at < until)
-  );
+/** A store read forward a moment at a time: its movements in order, how far it has been read, and how it stands. */
+const readForward = (movements: readonly StockMovement[]) => {
+  const list = movements.toSorted(inStoreOrder);
+  const state = emptyStore();
+  let next = 0;
+  return {
+    /** The store once everything up to and at a moment has happened. */
+    at: (moment: number): number => {
+      let one = list[next];
+      while (one && one.at.getTime() <= moment) {
+        stepStore(state, one);
+        next += 1;
+        one = list[next];
+      }
+      return state.onHand;
+    },
+    moments: list.map((one) => one.at.getTime()),
+  };
+};
+
+/**
+ * Whether a write took a store short: compared moment by moment from `from` on, it holds less than nothing at some
+ * moment where it did not — or less than it already did, where the book was short then. A shortfall later in the
+ * week is no excuse for one that starts days before it: the moments are compared, never only the lowest points.
+ */
+export const wentShortFrom = (
+  before: readonly StockMovement[],
+  after: readonly StockMovement[],
+  from: Date
+): boolean => {
+  const was = readForward(before);
+  const now = readForward(after);
+  const start = from.getTime();
+  const moments = [
+    ...new Set([
+      start,
+      ...[...was.moments, ...now.moments].filter((one) => one > start),
+    ]),
+  ].toSorted((a, b) => a - b);
+  return moments.some((moment) => {
+    const held = roundKg(was.at(moment));
+    const holds = roundKg(now.at(moment));
+    return holds < Math.min(0, held);
+  });
+};
 
 /**
  * What is in the store, and what a unit of it cost: a moving weighted average, recomputed on each

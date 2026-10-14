@@ -2653,6 +2653,8 @@ export const enCore = {
     "What goes in leaves the store; what it makes comes in, worth what went in. A transfer inside the store — no money moves.",
   "making.output": "What it makes",
   "making.madeOn": "Mixed or packed on",
+  "making.madeTime": "At what time",
+  "making.needsTime": "Say at what time it was mixed or packed.",
   "making.inputs": "What goes in",
   "making.addInput": "Add a feed",
   "making.removeInput": "Remove",
@@ -2685,7 +2687,7 @@ export const enCore = {
   "making.cameOutTitle": "Silage opened: how much came out",
   "making.cameOutHint":
     "What came out comes into the store on the day it was opened, priced at what went into the pit over what came out.",
-  "making.cameOutOn": "Opened on",
+  "making.cameOutOn": "Opened on, and at what time",
   "making.cameOutSaved": "In the store",
   "making.lost": "{amount} {unit} less than went in ({percent}%)",
   "making.unpriced": "No price yet: something that went in has none",

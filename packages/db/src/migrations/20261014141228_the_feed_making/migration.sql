@@ -4,7 +4,7 @@ CREATE TABLE "feed_making" (
 	"id" text PRIMARY KEY,
 	"farm_id" text NOT NULL,
 	"output_feed_item_id" text NOT NULL,
-	"made_on" text NOT NULL,
+	"made_at" timestamp with time zone NOT NULL,
 	"ready_on" text,
 	"note" text,
 	"recorded_by" text,
@@ -23,7 +23,7 @@ CREATE TABLE "feed_making_input" (
 --> statement-breakpoint
 ALTER TABLE "feed_in" ADD COLUMN "feed_making_id" text;--> statement-breakpoint
 CREATE UNIQUE INDEX "feed_in_making_uidx" ON "feed_in" ("feed_making_id");--> statement-breakpoint
-CREATE INDEX "feed_making_farm_idx" ON "feed_making" ("farm_id","made_on");--> statement-breakpoint
+CREATE INDEX "feed_making_farm_idx" ON "feed_making" ("farm_id","made_at");--> statement-breakpoint
 CREATE INDEX "feed_making_output_idx" ON "feed_making" ("farm_id","output_feed_item_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "feed_making_input_item_uidx" ON "feed_making_input" ("feed_making_id","feed_item_id");--> statement-breakpoint
 CREATE INDEX "feed_making_input_item_idx" ON "feed_making_input" ("farm_id","feed_item_id");--> statement-breakpoint

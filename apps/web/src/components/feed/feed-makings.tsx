@@ -1,6 +1,8 @@
 import {
   SMALLEST_FEED_AMOUNT,
+  atFarmTime,
   farmDayOf,
+  farmTimeOf,
   startOfFarmDay,
   feedUnitEach,
   feedUnitWord,
@@ -39,7 +41,7 @@ import {
   WorkedOut,
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { day, figure, voiding } from "@/lib/correcting";
+import { figure, moment, voiding } from "@/lib/correcting";
 import { useMoney } from "@/lib/money";
 import { namesIn } from "@/lib/names-in";
 import { useRefused } from "@/lib/refused";
@@ -48,17 +50,24 @@ import { orpc } from "@/utils/orpc";
 
 import { OtherName, TwoNames } from "./feed-name";
 import type { FeedItemRow, StockLine } from "./feed-types";
-import type { DraftLine, MakingDraft } from "./making-draft";
+import type { DraftLine, FarmNow, MakingDraft } from "./making-draft";
 import {
   blankDraft,
   blankLine,
   choosingOutput,
+  dayChosen,
   inputsPutRight,
   lineKey,
   makingOfDraft,
   shortNamed,
   whatIsMissing,
 } from "./making-draft";
+
+/** The farm's day and clock now, as a sheet opens. */
+const farmNow = (): FarmNow => {
+  const now = new Date();
+  return { today: farmDayOf(now), time: farmTimeOf(now) };
+};
 
 export type Making = Awaited<
   ReturnType<typeof orpc.feedMaking.list.call>
@@ -183,9 +192,7 @@ export const MakeFeedSheet = ({
 }) => {
   const { t, language } = useLanguage();
   const prefix = useId();
-  const [draft, setDraft] = useState<MakingDraft>(() =>
-    blankDraft(farmDayOf(new Date()))
-  );
+  const [draft, setDraft] = useState<MakingDraft>(() => blankDraft(farmNow()));
   const [filled, setFilled] = useState(false);
   // The sheet's own id for this making, kept until the farm has it: a second tap on Save, or a save whose answer was
   // lost, is the same making.
@@ -197,7 +204,7 @@ export const MakeFeedSheet = ({
       onError: (error) => refused(shortNamed(error, items, language)),
       onSuccess: () => {
         toast.success(t("making.saved"));
-        setDraft(blankDraft(farmDayOf(new Date())));
+        setDraft(blankDraft(farmNow()));
         setFilled(false);
         setMakingId(crypto.randomUUID());
         onOpenChange(false);
@@ -211,6 +218,7 @@ export const MakeFeedSheet = ({
   const missing = whatIsMissing(draft);
   const missingWords = {
     output: { said: t("making.needsOutput"), at: `${prefix}-output` },
+    time: { said: t("making.needsTime"), at: `${prefix}-time` },
     inputs: { said: t("making.needsInputs") },
     amount: { said: t("making.needsAmount"), at: `${prefix}-out` },
   } as const;
@@ -258,10 +266,20 @@ export const MakeFeedSheet = ({
           id={`${prefix}-made`}
           max={farmDayOf(new Date())}
           onChange={(event) =>
-            setDraft({ ...draft, madeOn: event.target.value })
+            setDraft(dayChosen(draft, event.target.value, farmNow()))
           }
           type="date"
           value={draft.madeOn}
+        />
+      </FormField>
+      <FormField id={`${prefix}-time`} label={t("making.madeTime")}>
+        <Input
+          id={`${prefix}-time`}
+          onChange={(event) =>
+            setDraft({ ...draft, madeTime: event.target.value })
+          }
+          type="time"
+          value={draft.madeTime}
         />
       </FormField>
       <fieldset className="flex flex-col gap-3">
@@ -370,7 +388,11 @@ const CameOutDialog = ({
   const { t, language } = useLanguage();
   const prefix = useId();
   const [quantity, setQuantity] = useState("");
-  const [on, setOn] = useState(farmDayOf(new Date()));
+  // Opened now, unless it is said otherwise: a day and the time on the farm's clock, as the Making's own moment is.
+  const [at, setAt] = useState(() => {
+    const now = farmNow();
+    return `${now.today}T${now.time}`;
+  });
   const refused = useRefused();
   const cameOut = useMutation(
     orpc.feedMaking.cameOut.mutationOptions({
@@ -385,7 +407,8 @@ const CameOutDialog = ({
   const ready =
     quantity.trim() !== "" &&
     Number.isFinite(amount) &&
-    amount >= SMALLEST_FEED_AMOUNT;
+    amount >= SMALLEST_FEED_AMOUNT &&
+    at.length === "YYYY-MM-DDTHH:MM".length;
   return (
     <FormDialog
       description={t("making.cameOutHint")}
@@ -396,7 +419,14 @@ const CameOutDialog = ({
       }}
       onSubmit={() => {
         if (ready) {
-          cameOut.mutate({ id: making.id, quantity: amount, cameOutOn: on });
+          cameOut.mutate({
+            id: making.id,
+            quantity: amount,
+            cameOutAt: atFarmTime(
+              at.slice(0, "YYYY-MM-DD".length),
+              at.slice("YYYY-MM-DDT".length)
+            ),
+          });
         }
       }}
       open
@@ -424,11 +454,9 @@ const CameOutDialog = ({
       <FormField id={`${prefix}-on`} label={t("making.cameOutOn")}>
         <Input
           id={`${prefix}-on`}
-          max={farmDayOf(new Date())}
-          min={making.madeOn}
-          onChange={(event) => setOn(event.target.value)}
-          type="date"
-          value={on}
+          onChange={(event) => setAt(event.target.value)}
+          type="datetime-local"
+          value={at}
         />
       </FormField>
     </FormDialog>
@@ -469,11 +497,11 @@ const MakingCorrection = ({
   const inputs = inputsPutRight(held, rows);
   const correcting = useCorrecting({
     voided: voiding(),
-    madeOn: day(startOfFarmDay(making.madeOn)),
+    madeAt: moment(making.madeAt),
     ...(making.madeFeed
       ? {
           quantity: figure(making.madeFeed.quantity, SMALLEST_FEED_AMOUNT),
-          cameOutOn: day(making.madeFeed.cameOutOn),
+          cameOutAt: moment(making.madeFeed.cameOutAt),
         }
       : {}),
   });
@@ -537,9 +565,9 @@ const MakingCorrection = ({
       </fieldset>
       <CorrectionAnswer
         label={t("making.madeOn")}
-        onChange={(value) => correcting.set("madeOn", value)}
-        type="date"
-        value={correcting.typed.madeOn ?? ""}
+        onChange={(value) => correcting.set("madeAt", value)}
+        type="datetime-local"
+        value={correcting.typed.madeAt ?? ""}
       />
       {making.madeFeed ? (
         <>
@@ -554,9 +582,9 @@ const MakingCorrection = ({
           />
           <CorrectionAnswer
             label={t("making.cameOutOn")}
-            onChange={(value) => correcting.set("cameOutOn", value)}
-            type="date"
-            value={correcting.typed.cameOutOn ?? ""}
+            onChange={(value) => correcting.set("cameOutAt", value)}
+            type="datetime-local"
+            value={correcting.typed.cameOutAt ?? ""}
           />
         </>
       ) : null}
@@ -581,7 +609,7 @@ const MadeOnCell = ({ row }: { row: { original: MakingRow } }) => {
   const { language } = useLanguage();
   return (
     <span className="whitespace-nowrap">
-      {formatDate(startOfFarmDay(row.original.madeOn), language)}
+      {formatDate(row.original.madeAt, language, "dateTime")}
     </span>
   );
 };
@@ -626,8 +654,9 @@ const CameOutLine = ({ making }: { making: Making }) => {
         {formatNumber(making.madeFeed.quantity, language)} {unit}
       </span>
       <span className="text-muted-foreground text-xs whitespace-nowrap">
-        {formatDate(making.madeFeed.cameOutOn, language)} · {t("lots.col.left")}{" "}
-        {formatNumber(making.madeFeed.left, language)} {unit}
+        {formatDate(making.madeFeed.cameOutAt, language, "dateTime")} ·{" "}
+        {t("lots.col.left")} {formatNumber(making.madeFeed.left, language)}{" "}
+        {unit}
       </span>
       {loss && loss.lost > 0 ? (
         <span className="text-muted-foreground text-xs whitespace-nowrap">
@@ -704,7 +733,7 @@ const ActionsCell = ({ row }: { row: { original: MakingRow } }) => (
 
 const makingColumn = createListColumns<MakingRow>();
 const makingColumns = makingColumn.columns([
-  makingColumn.accessor((one) => one.madeOn, {
+  makingColumn.accessor((one) => new Date(one.madeAt).getTime(), {
     id: "madeOn",
     header: listHeader("making.col.madeOn"),
     cell: MadeOnCell,
@@ -747,7 +776,7 @@ const MakingCard = ({ row }: { row: MakingRow }) => {
           <span className="font-medium">{namesIn(row, language).shown}</span>
           <OtherName named={row} />
           <span className="text-muted-foreground text-xs">
-            {formatDate(startOfFarmDay(row.madeOn), language)}
+            {formatDate(row.madeAt, language, "dateTime")}
             {row.note ? ` · ${row.note}` : ""}
           </span>
         </div>

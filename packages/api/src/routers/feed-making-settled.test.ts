@@ -220,24 +220,34 @@ beforeAll(async () => {
     seller: { name: `ডিলার ${suffix}` },
     receivedOn: "2087-01-05",
   }));
+  // A second lorry of bran, dearer, half an hour later: the mix is struck at the average of the two.
+  const second = await as("manager", "2087-01-05T03:30:00.000Z");
+  await second.client.stock.receive({
+    feedItemId: bran,
+    kind: "purchase",
+    quantity: 1000,
+    priceMoney: 60_000,
+    seller: { name: `ডিলার ${suffix}` },
+    receivedOn: "2087-01-05",
+  });
   // Bran into a mix, the mix into pellets, the same morning; and a pit of bran packed to open as pellets later.
   const mixer = await as("manager", "2087-01-05T04:00:00.000Z");
   ({ id: mixMakingId } = await mixer.client.feedMaking.make({
     outputFeedItemId: mix,
-    madeOn: "2087-01-05",
+    madeAt: new Date("2087-01-05T04:00:00.000Z"),
     inputs: [{ feedItemId: bran, quantity: 100 }],
     cameOut: { quantity: 80 },
   }));
   const presser = await as("manager", "2087-01-05T05:00:00.000Z");
   await presser.client.feedMaking.make({
     outputFeedItemId: pellet,
-    madeOn: "2087-01-05",
+    madeAt: new Date("2087-01-05T05:00:00.000Z"),
     inputs: [{ feedItemId: mix, quantity: 50 }],
     cameOut: { quantity: 50 },
   });
   ({ id: pitId } = await presser.client.feedMaking.make({
     outputFeedItemId: pellet,
-    madeOn: "2087-01-05",
+    madeAt: new Date("2087-01-05T05:00:00.000Z"),
     inputs: [{ feedItemId: bran, quantity: 100 }],
   }));
   const ration = await presser.client.feed.rations.save({
@@ -320,7 +330,7 @@ describe("feed made on the farm, and a settled Venture that ate it", () => {
     await expect(
       owner.client.feedMaking.make({
         outputFeedItemId: pellet,
-        madeOn: "2087-01-06",
+        madeAt: new Date("2087-01-06T05:00:00.000Z"),
         inputs: [{ feedItemId: bran, quantity: 10 }],
         cameOut: { quantity: 10 },
       })
@@ -333,13 +343,41 @@ describe("feed made on the farm, and a settled Venture that ate it", () => {
       owner.client.feedMaking.cameOut({
         id: pitId,
         quantity: 90,
-        cameOutOn: "2087-01-06",
+        cameOutAt: new Date("2087-01-06T05:00:00.000Z"),
       })
     ).rejects.toMatchObject(SETTLED);
     await owner.client.feedMaking.cameOut({
       id: pitId,
       quantity: 90,
-      cameOutOn: "2087-03-05",
+      cameOutAt: new Date("2087-03-05T04:00:00.000Z"),
     });
+  });
+
+  it("refuses bran packed back between the two lorries, though nobody ate what it made", async () => {
+    // 500 kg out before the dearer lorry leaves less for it to be averaged with: the mix struck after it, and the
+    // pellets the bull ate, would cost more.
+    const owner = await as("owner", "2087-03-05T04:00:00.000Z");
+    const spare = await owner.client.feed.items.create({
+      name: { bn: `অন্য মিশ্রণ ${suffix}` },
+    });
+    await expect(
+      owner.client.feedMaking.make({
+        outputFeedItemId: spare.id,
+        madeAt: new Date("2087-01-05T03:15:00.000Z"),
+        inputs: [{ feedItemId: bran, quantity: 500 }],
+      })
+    ).rejects.toMatchObject(SETTLED);
+  });
+
+  it("says made feed is put right on its Making before any Venture stands in the way", async () => {
+    const owner = await as("owner", "2087-03-05T04:00:00.000Z");
+    const [arrival] = await owner.client.stock.feedIn({ feedItemId: mix });
+    await expect(
+      owner.client.stock.correct({
+        id: arrival?.id ?? "",
+        reason: "ভুল",
+        changes: { quantity: { from: arrival?.quantity ?? 0, to: 1 } },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "made_feed_is_its_making" } });
   });
 });

@@ -88,7 +88,7 @@ describe("a home-mixed concentrate", () => {
     // mixed into 700 kg: 41.71 a kilo.
     const made = await manager.client.feedMaking.make({
       outputFeedItemId: items.mix ?? "",
-      madeOn: "2081-03-02",
+      madeAt: new Date("2081-03-02T05:00:00.000Z"),
       inputs: [
         { feedItemId: items.bran ?? "", quantity: 400 },
         { feedItemId: items.maize ?? "", quantity: 200 },
@@ -114,7 +114,7 @@ describe("a home-mixed concentrate", () => {
     const again = await manager.client.feedMaking.make({
       id: mixed,
       outputFeedItemId: items.mix ?? "",
-      madeOn: "2081-03-02",
+      madeAt: new Date("2081-03-02T05:00:00.000Z"),
       inputs: [
         { feedItemId: items.bran ?? "", quantity: 400 },
         { feedItemId: items.maize ?? "", quantity: 200 },
@@ -197,7 +197,7 @@ describe("taking from the store", () => {
     await expect(
       manager.client.feedMaking.make({
         outputFeedItemId: items.mix ?? "",
-        madeOn: "2081-03-04",
+        madeAt: new Date("2081-03-04T05:00:00.000Z"),
         inputs: [
           { feedItemId: items.bran ?? "", quantity: 100 },
           // 300 cake bought, 100 mixed: 200 left.
@@ -218,7 +218,7 @@ describe("taking from the store", () => {
     await expect(
       manager.client.feedMaking.make({
         outputFeedItemId: items.mix ?? "",
-        madeOn: "2081-02-27",
+        madeAt: new Date("2081-02-27T05:00:00.000Z"),
         inputs: [{ feedItemId: items.bran ?? "", quantity: 10 }],
         cameOut: { quantity: 10 },
       })
@@ -230,7 +230,7 @@ describe("taking from the store", () => {
     await expect(
       manager.client.feedMaking.make({
         outputFeedItemId: items.mix ?? "",
-        madeOn: "2081-03-04",
+        madeAt: new Date("2081-03-04T05:00:00.000Z"),
         inputs: [{ feedItemId: items.mix ?? "", quantity: 10 }],
         cameOut: { quantity: 10 },
       })
@@ -255,7 +255,7 @@ describe("taking from the store", () => {
     await expect(
       staff.client.feedMaking.make({
         outputFeedItemId: items.mix ?? "",
-        madeOn: "2081-03-04",
+        madeAt: new Date("2081-03-04T05:00:00.000Z"),
         inputs: [{ feedItemId: items.bran ?? "", quantity: 10 }],
         cameOut: { quantity: 10 },
       })
@@ -282,7 +282,7 @@ describe("silage", () => {
     // 10 t of chopped maize at 3 a kilo and 100 l of molasses at 50: 35,000 taka packed.
     const packed = await manager.client.feedMaking.make({
       outputFeedItemId: items.silage ?? "",
-      madeOn: "2081-03-05",
+      madeAt: new Date("2081-03-05T04:00:00.000Z"),
       readyOn: "2081-04-10",
       note: "উত্তরের গর্ত",
       inputs: [
@@ -334,7 +334,7 @@ describe("silage", () => {
     await manager.client.feedMaking.cameOut({
       id: pit,
       quantity: 8500,
-      cameOutOn: "2081-04-12",
+      cameOutAt: new Date("2081-04-12T04:00:00.000Z"),
     });
     // 35,000 taka over the 8,500 kg that came out: 4.12 a kilo — the 1,500 kg the pit lost paid for by what is fed.
     expect(
@@ -354,7 +354,7 @@ describe("silage", () => {
       manager.client.feedMaking.cameOut({
         id: pit,
         quantity: 8000,
-        cameOutOn: "2081-04-13",
+        cameOutAt: new Date("2081-04-13T04:00:00.000Z"),
       })
     ).rejects.toMatchObject({ data: { refusal: "making_already_out" } });
   });
@@ -363,14 +363,14 @@ describe("silage", () => {
     const manager = await as("manager", "2081-04-13T04:00:00.000Z");
     const packed = await manager.client.feedMaking.make({
       outputFeedItemId: items.silage ?? "",
-      madeOn: "2081-04-13",
+      madeAt: new Date("2081-04-13T04:00:00.000Z"),
       inputs: [{ feedItemId: items.molasses ?? "", quantity: 10 }],
     });
     await expect(
       manager.client.feedMaking.cameOut({
         id: packed.id,
         quantity: 8,
-        cameOutOn: "2081-04-12",
+        cameOutAt: new Date("2081-04-12T04:00:00.000Z"),
       })
     ).rejects.toMatchObject({ data: { refusal: "out_before_it_was_made" } });
   });
@@ -393,7 +393,7 @@ describe("fodder with no Fodder Price", () => {
     });
     await manager.client.feedMaking.make({
       outputFeedItemId: napierSilage.id,
-      madeOn: "2081-05-01",
+      madeAt: new Date("2081-05-01T04:00:00.000Z"),
       inputs: [
         { feedItemId: napier.id, quantity: 1000 },
         { feedItemId: items.molasses ?? "", quantity: 20 },
@@ -420,7 +420,7 @@ describe("putting a making right", () => {
     const manager = await as("manager", "2081-06-01T04:00:00.000Z");
     const made = await manager.client.feedMaking.make({
       outputFeedItemId: items.mix ?? "",
-      madeOn: "2081-06-01",
+      madeAt: new Date("2081-06-01T04:00:00.000Z"),
       inputs: [{ feedItemId: items.bran ?? "", quantity: 100 }],
       cameOut: { quantity: 1000 },
     });
@@ -558,7 +558,7 @@ describe("the store from the day it was made on", () => {
     const mixer = await as("manager", "2080-07-03T05:00:00.000Z");
     ({ id: firstMix } = await mixer.client.feedMaking.make({
       outputFeedItemId: mixA,
-      madeOn: "2080-07-03",
+      madeAt: new Date("2080-07-03T05:00:00.000Z"),
       inputs: [{ feedItemId: corn, quantity: 80 }],
       cameOut: { quantity: 80 },
     }));
@@ -566,7 +566,7 @@ describe("the store from the day it was made on", () => {
     const presser = await as("manager", "2080-07-04T05:00:00.000Z");
     await presser.client.feedMaking.make({
       outputFeedItemId: pellet,
-      madeOn: "2080-07-04",
+      madeAt: new Date("2080-07-04T05:00:00.000Z"),
       inputs: [{ feedItemId: mixA, quantity: 50 }],
       cameOut: { quantity: 50 },
     });
@@ -578,7 +578,7 @@ describe("the store from the day it was made on", () => {
     await expect(
       late.client.feedMaking.make({
         outputFeedItemId: pellet,
-        madeOn: "2080-07-02",
+        madeAt: new Date("2080-07-02T05:00:00.000Z"),
         inputs: [{ feedItemId: corn, quantity: 30 }],
         cameOut: { quantity: 30 },
       })
@@ -612,7 +612,12 @@ describe("the store from the day it was made on", () => {
       manager.client.feedMaking.correct({
         id: firstMix,
         reason: "৩০ জুন মেশানো",
-        changes: { madeOn: { from: "2080-07-03", to: "2080-06-30" } },
+        changes: {
+          madeAt: {
+            from: "2080-07-03T05:00:00.000Z",
+            to: new Date("2080-06-30T05:00:00.000Z"),
+          },
+        },
       })
     ).rejects.toMatchObject({ data: { refusal: "not_enough_in_the_store" } });
   });
@@ -624,9 +629,19 @@ describe("the store from the day it was made on", () => {
       manager.client.feedMaking.correct({
         id: firstMix,
         reason: "৫ তারিখে বের হয়েছিল",
-        changes: { cameOutOn: { from: "2080-07-03", to: "2080-07-05" } },
+        changes: {
+          cameOutAt: {
+            from: "2080-07-03T05:00:00.000Z",
+            to: new Date("2080-07-05T05:00:00.000Z"),
+          },
+        },
       })
-    ).rejects.toMatchObject({ data: { refusal: "making_output_used" } });
+    ).rejects.toMatchObject({
+      data: {
+        refusal: "not_enough_in_the_store",
+        short: [{ feedItemId: mixA }],
+      },
+    });
   });
 
   it("refuses less made than the Making after it drew", async () => {
@@ -645,9 +660,9 @@ describe("the store from the day it was made on", () => {
     });
   });
 
-  it("is never voided once any of the feed it made was used, though its own Lot still reads full", async () => {
-    // Mix bought before it was made: the bought Lot is drawn first, so the made Lot «left» reads all 30 — yet the
-    // pellets pressed after it was made came out of a store whose price it was already in.
+  it("is voided — written twice — when what was taken since the store could spare without it", async () => {
+    // Mix bought and mixed the same morning, then pellets pressed from 20 kg of it: without the 30 made, the store
+    // still had 100 bought to give the 20. The pellets re-price, as they would for a Purchase put right.
     const manager = await as("manager", "2080-07-10T03:00:00.000Z");
     await manager.client.stock.receive({
       feedItemId: mixA,
@@ -660,26 +675,26 @@ describe("the store from the day it was made on", () => {
     const mixing = await as("manager", "2080-07-10T04:00:00.000Z");
     const made = await mixing.client.feedMaking.make({
       outputFeedItemId: mixA,
-      madeOn: "2080-07-10",
+      madeAt: new Date("2080-07-10T04:00:00.000Z"),
       inputs: [{ feedItemId: corn, quantity: 10 }],
       cameOut: { quantity: 30 },
     });
     const pressing = await as("manager", "2080-07-10T05:00:00.000Z");
     await pressing.client.feedMaking.make({
       outputFeedItemId: pellet,
-      madeOn: "2080-07-10",
+      madeAt: new Date("2080-07-10T05:00:00.000Z"),
       inputs: [{ feedItemId: mixA, quantity: 20 }],
       cameOut: { quantity: 20 },
     });
-    const arrivals = await pressing.client.stock.feedIn({ feedItemId: mixA });
-    expect(arrivals.find((one) => one.making?.id === made.id)?.left).toBe(30);
-    await expect(
-      pressing.client.feedMaking.correct({
-        id: made.id,
-        reason: "দুবার লেখা",
-        changes: { voided: { from: false, to: true } },
-      })
-    ).rejects.toMatchObject({ data: { refusal: "making_output_used" } });
+    const held = await onHandOf(mixA, "2080-07-10T06:00:00.000Z");
+    await pressing.client.feedMaking.correct({
+      id: made.id,
+      reason: "দুবার লেখা",
+      changes: { voided: { from: false, to: true } },
+    });
+    expect(await onHandOf(mixA, "2080-07-10T06:00:00.000Z")).toBe(
+      (held ?? 0) - 30
+    );
   });
 });
 
@@ -702,7 +717,7 @@ describe("a pit's opening put right", () => {
     });
     const packed = await manager.client.feedMaking.make({
       outputFeedItemId: pitFeed,
-      madeOn: "2080-09-01",
+      madeAt: new Date("2080-09-01T04:00:00.000Z"),
       inputs: [{ feedItemId: grass, quantity: 1000 }],
     });
     // Opened forty days on; his typing put right the next day — forty-one days after the packing.
@@ -710,7 +725,7 @@ describe("a pit's opening put right", () => {
     await opening.client.feedMaking.cameOut({
       id: packed.id,
       quantity: 9000,
-      cameOutOn: "2080-10-11",
+      cameOutAt: new Date("2080-10-11T04:00:00.000Z"),
     });
     const nextDay = await as("manager", "2080-10-12T04:00:00.000Z");
     await nextDay.client.feedMaking.correct({
@@ -742,12 +757,41 @@ describe("a ready day", () => {
     await expect(
       manager.client.feedMaking.make({
         outputFeedItemId: items.mix ?? "",
-        madeOn: "2081-03-04",
+        madeAt: new Date("2081-03-04T05:00:00.000Z"),
         readyOn: "2081-04-04",
         inputs: [{ feedItemId: items.bran ?? "", quantity: 1 }],
         cameOut: { quantity: 1 },
       })
     ).rejects.toMatchObject({ data: { refusal: "ready_day_is_for_a_pit" } });
+  });
+});
+
+describe("a Making written up the next day", () => {
+  it("is made when it was, not at the day's start: after the morning's lorry it took from", async () => {
+    // The lorry of oil cake at ten in the morning, mixed at half past ten, written up the next day.
+    const manager = await as("manager", "2080-11-05T04:00:00.000Z");
+    const { id: cake } = await manager.client.feed.items.create({
+      name: { bn: `খৈল সকালের ${suffix}` },
+    });
+    const { id: mixed } = await manager.client.feed.items.create({
+      name: { bn: `সকালের মিশ্রণ ${suffix}` },
+    });
+    await manager.client.stock.receive({
+      feedItemId: cake,
+      kind: "purchase",
+      quantity: 50,
+      priceMoney: 3000,
+      seller: { name: `ফিড হাউস ${suffix}` },
+      receivedOn: "2080-11-05",
+    });
+    const nextDay = await as("manager", "2080-11-06T04:00:00.000Z");
+    await nextDay.client.feedMaking.make({
+      outputFeedItemId: mixed,
+      madeAt: new Date("2080-11-05T04:30:00.000Z"),
+      inputs: [{ feedItemId: cake, quantity: 50 }],
+      cameOut: { quantity: 50 },
+    });
+    expect(await priceOf(mixed, "2080-11-06T05:00:00.000Z")).toBe(60);
   });
 });
 
@@ -774,7 +818,7 @@ describe("a Closed Month", () => {
     const manager = await as("manager", "2079-02-08T05:00:00.000Z");
     await manager.client.feedMaking.make({
       outputFeedItemId: mix.id,
-      madeOn: "2079-01-20",
+      madeAt: new Date("2079-01-20T05:00:00.000Z"),
       inputs: [{ feedItemId: bran.id, quantity: 50 }],
       cameOut: { quantity: 50 },
     });

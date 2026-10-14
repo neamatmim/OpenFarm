@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "24fdbf71-5928-4df5-9308-d098b5693c92",
+  "id": "f7bbfbbe-eb3b-4f2a-8111-1e95c50df844",
   "prevIds": [
     "e7ed0de2-4d9e-4be5-b86d-14c64e7c9b0c"
   ],
@@ -7050,14 +7050,14 @@
       "table": "feed_making"
     },
     {
-      "type": "text",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "made_on",
+      "name": "made_at",
       "entityType": "columns",
       "schema": "public",
       "table": "feed_making"
@@ -24144,7 +24144,7 @@
           "opclass": null
         },
         {
-          "value": "made_on",
+          "value": "made_at",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,

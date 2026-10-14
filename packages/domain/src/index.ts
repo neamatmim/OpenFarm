@@ -349,7 +349,7 @@ export {
   countedOverTheBook,
   stockLedger,
   leastOnHandFrom,
-  takenFromBetween,
+  wentShortFrom,
   unitPriceOf,
 } from "./feed";
 export type { MakingRead, MakingWorth } from "./feed-making";

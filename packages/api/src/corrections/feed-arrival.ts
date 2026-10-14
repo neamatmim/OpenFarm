@@ -102,6 +102,10 @@ export const feedArrivalCorrection: CorrectionKind<
    * arrival had no part in.
    */
   venturesOf: (tx, row, changes) => {
+    // Made feed is put right on its Making, which `apply` says first: no Venture stands in the way of that answer.
+    if (isMadeFeed(row)) {
+      return Promise.resolve([]);
+    }
     const moved = changes.receivedOn && startOfFarmDay(changes.receivedOn.to);
     const from = moved && moved < row.receivedOn ? moved : row.receivedOn;
     // And of every feed made from it since, down the chain: concentrate mixed from this bran is priced through it.

@@ -6,7 +6,7 @@ import {
   leastOnHandFrom,
   priceHistory,
   stockLedger,
-  takenFromBetween,
+  wentShortFrom,
 } from "./feed";
 import type { MakingRead } from "./feed-making";
 import { bringMakingsIn, inThePitAt, makingLossOf } from "./feed-making";
@@ -240,26 +240,46 @@ describe("the least the store held from a moment on", () => {
   });
 });
 
-describe("taken from the store", () => {
-  const bran = [
-    bought("2042-05-01T03:00:00Z", 100, 4000),
-    {
-      kind: "out",
-      at: at("2042-05-03T03:00:00Z"),
-      quantity: 20,
-    } satisfies StockMovement,
+describe("a write that takes the store short", () => {
+  const taken = (day: string, quantity: number): StockMovement => ({
+    kind: "out",
+    at: at(`2042-05-${day}T06:00:00Z`),
+    quantity,
+  });
+  // 30 kg of corn on the 5th, a Making takes it all on the 8th, and a Feeding takes 40 on the 10th that nobody wrote
+  // coming in: the book is already 40 short from the 10th.
+  const corn = [
+    bought("2042-05-05T03:00:00Z", 30, 900),
+    taken("08", 30),
+    taken("10", 40),
   ];
 
-  it("is any Feeding or Making at or after a moment, and before another where one is given", () => {
-    expect(takenFromBetween(bran, at("2042-05-03T03:00:00Z"))).toBe(true);
-    expect(takenFromBetween(bran, at("2042-05-03T03:00:01Z"))).toBe(false);
-    expect(
-      takenFromBetween(
-        bran,
-        at("2042-05-01T00:00:00Z"),
-        at("2042-05-03T03:00:00Z")
-      )
-    ).toBe(false);
+  it("is one that holds less than nothing at any moment where the store did not, though its lowest is no lower", () => {
+    // The Making moved back to the 2nd: from the 2nd to the 5th the store held nothing, and now holds 30 less.
+    const moved = [
+      bought("2042-05-05T03:00:00Z", 30, 900),
+      taken("02", 30),
+      taken("10", 40),
+    ];
+    expect(wentShortFrom(corn, moved, at("2042-05-02T00:00:00Z"))).toBe(true);
+  });
+
+  it("is not one that leaves every moment no shorter than it was, or above nothing", () => {
+    const less = [
+      bought("2042-05-05T03:00:00Z", 30, 900),
+      taken("08", 20),
+      taken("10", 40),
+    ];
+    expect(wentShortFrom(corn, less, at("2042-05-02T00:00:00Z"))).toBe(false);
+  });
+
+  it("is one that deepens a shortfall already there", () => {
+    const more = [
+      bought("2042-05-05T03:00:00Z", 30, 900),
+      taken("08", 30),
+      taken("10", 50),
+    ];
+    expect(wentShortFrom(corn, more, at("2042-05-02T00:00:00Z"))).toBe(true);
   });
 });
 

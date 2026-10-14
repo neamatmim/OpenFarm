@@ -150,7 +150,7 @@ beforeAll(async () => {
   const mixer = await as("manager", "2083-01-09T05:00:00.000Z");
   ({ id: makingId } = await mixer.client.feedMaking.make({
     outputFeedItemId: mixId,
-    madeOn: "2083-01-09",
+    madeAt: new Date("2083-01-09T05:00:00.000Z"),
     inputs: [{ feedItemId: branId, quantity: 100 }],
     cameOut: { quantity: 80 },
   }));
@@ -179,9 +179,19 @@ describe("made feed, fed", () => {
       manager.client.feedMaking.correct({
         id: makingId,
         reason: "১১ তারিখে মেশানো",
-        changes: { madeOn: { from: "2083-01-09", to: "2083-01-11" } },
+        changes: {
+          madeAt: {
+            from: "2083-01-09T05:00:00.000Z",
+            to: new Date("2083-01-11T02:00:00.000Z"),
+          },
+        },
       })
-    ).rejects.toMatchObject({ data: { refusal: "making_output_used" } });
+    ).rejects.toMatchObject({
+      data: {
+        refusal: "not_enough_in_the_store",
+        short: [{ feedItemId: mixId }],
+      },
+    });
   });
 
   it("is never voided once some of it has been eaten", async () => {
@@ -223,5 +233,71 @@ describe("made feed, fed", () => {
       month: "2083-01",
     });
     expect(january.totalMoney).toBe(1000);
+  });
+});
+
+describe("the store, moment by moment", () => {
+  it("refuses a Making moved back to before its feed came, though the store's lowest point is no lower", async () => {
+    // 30 kg of the mix left; pressed into pellets on the 11th; then 40 fed on the 12th that nobody wrote coming in, so
+    // the book is 40 short from the 12th. Moved back to the 8th, the pellets take 30 of a mix that came on the 9th:
+    // nothing on the 8th, now 30 short — never as low as the 12th, and still a shortfall that was not there.
+    const manager = await as("manager", "2083-01-11T05:00:00.000Z");
+    const pellet = await manager.client.feed.items.create({
+      name: { bn: `পেলেট ${suffix}` },
+    });
+    const pressed = await manager.client.feedMaking.make({
+      outputFeedItemId: pellet.id,
+      madeAt: new Date("2083-01-11T05:00:00.000Z"),
+      inputs: [{ feedItemId: mixId, quantity: 30 }],
+      cameOut: { quantity: 30 },
+    });
+    await fedOn("2083-01-12", 40);
+    const later = await as("manager", "2083-01-13T04:00:00.000Z");
+    await expect(
+      later.client.feedMaking.correct({
+        id: pressed.id,
+        reason: "৮ তারিখে বানানো",
+        changes: {
+          madeAt: {
+            from: "2083-01-11T05:00:00.000Z",
+            to: new Date("2083-01-08T05:00:00.000Z"),
+          },
+        },
+      })
+    ).rejects.toMatchObject({
+      data: {
+        refusal: "not_enough_in_the_store",
+        short: [{ feedItemId: mixId }],
+      },
+    });
+  });
+
+  it("charges a Feeding at seven for the mix made at six, though it was written up at eleven", async () => {
+    // Mix bought on the 1st: 100 kg for 5,000, of which 60 stand once the 40 owed is taken — 50 a kilo.
+    const buying = await as("manager", "2083-02-01T03:00:00.000Z");
+    await buying.client.stock.receive({
+      feedItemId: mixId,
+      kind: "purchase",
+      quantity: 100,
+      priceMoney: 5000,
+      seller: { name: `ডিলার ${suffix}` },
+      receivedOn: "2083-02-01",
+    });
+    // On the 5th the bull is fed at half past six; the Manager mixed 20 kg from 100 kg of bran at six, and writes it up
+    // at eleven. 60 kg at 50 and 20 at 200: 80 kg at 87.50, which is what the half past six Feeding ate.
+    await fedOn("2083-02-05", 10);
+    const writing = await as("manager", "2083-02-05T05:00:00.000Z");
+    await writing.client.feedMaking.make({
+      outputFeedItemId: mixId,
+      madeAt: new Date("2083-02-05T00:00:00.000Z"),
+      inputs: [{ feedItemId: branId, quantity: 100 }],
+      cameOut: { quantity: 20 },
+    });
+    const owner = await as("owner", "2083-03-02T04:00:00.000Z");
+    const february = await owner.client.ventures.consumption({
+      ventureId,
+      month: "2083-02",
+    });
+    expect(february.totalMoney).toBe(875);
   });
 });

@@ -154,7 +154,7 @@ const keepTheStore = ({ farm, days, on }: Script) => {
       on(day, "11:30", "home mix", async (f) => {
         await f.as.manager.feedMaking.make({
           outputFeedItemId: f.feeds.concentrate,
-          madeOn: day,
+          madeAt: onFarm(day, "11:30"),
           inputs: [
             { feedItemId: f.feeds.bran, quantity: 100 },
             { feedItemId: f.feeds.maize, quantity: 60 },
