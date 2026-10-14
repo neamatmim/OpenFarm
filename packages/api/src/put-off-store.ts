@@ -244,6 +244,55 @@ export const holdPutOffDoses = (
   );
 
 /**
+ * Whether a held dose is owed her still: not given since — a skip put right to say it was, on the work first raised or
+ * one raised again — and, for an arrival dose, not excused by the Vet.
+ */
+const stillOwedHer = async (
+  tx: Tx,
+  farmId: string,
+  animalId: string,
+  original: string,
+  definitionId: string
+): Promise<boolean> => {
+  const chain = await tx.query.sopInstance.findMany({
+    where: {
+      farmId,
+      animalId,
+      OR: [{ cause: original }, { cause: { like: `${original}:again:%` } }],
+    },
+    columns: { id: true },
+  });
+  // Her dose of a Pen's Campaign was first asked on the Pen's work, which her key names.
+  const campaignWork = isCampaignDoseKey(original)
+    ? original.split(":")[1]
+    : undefined;
+  const ids = [
+    ...chain.map((one) => one.id),
+    ...(campaignWork ? [campaignWork] : []),
+  ];
+  const given = await tx.query.treatment.findFirst({
+    where: {
+      farmId,
+      animalId,
+      instanceId: { in: ids },
+      givenAt: { isNotNull: true },
+    },
+    columns: { id: true },
+  });
+  if (given) {
+    return false;
+  }
+  if (!ARRIVAL_CAUSE.test(original)) {
+    return true;
+  }
+  const excused = await tx.query.excusedDose.findFirst({
+    where: { farmId, animalId, definitionId },
+    columns: { id: true },
+  });
+  return !excused;
+};
+
+/**
  * Back to Fattening unsold: each dose held for her sale is owed again, raised once more for her and due the day she is
  * back — the latest held of each, as a skip would have raised it.
  */
@@ -262,19 +311,30 @@ export const raiseHeldDoses = async (
       state: "called_off",
       calledOffBy: "held_for_sale",
     },
-    columns: { id: true, cause: true },
-    orderBy: { dueAt: "desc", id: "desc" },
+    columns: { id: true, cause: true, definitionId: true },
+    orderBy: { id: "asc" },
   });
-  const latest = new Map<string, string>();
+  // The latest raising of each, by its count: one held, back, and held again has two, and the second is the one owed.
+  const latest = new Map<
+    string,
+    { id: string; n: number; definitionId: string }
+  >();
   for (const one of held) {
-    const original = putOffOf(one.cause)?.original ?? one.cause ?? one.id;
-    if (!latest.has(original)) {
-      latest.set(original, one.id);
+    const found = putOffOf(one.cause);
+    if (found && found.n > (latest.get(found.original)?.n ?? 0)) {
+      latest.set(found.original, {
+        id: one.id,
+        n: found.n,
+        definitionId: one.definitionId,
+      });
     }
   }
-  for (const id of latest.values()) {
+  for (const [original, one] of latest) {
     // oxlint-disable-next-line no-await-in-loop -- one held dose after another, each its own work
-    await raiseThePutOff(tx, farmId, id, at, now, { trail, dueAt: at });
+    if (await stillOwedHer(tx, farmId, animalId, original, one.definitionId)) {
+      // oxlint-disable-next-line no-await-in-loop -- as above
+      await raiseThePutOff(tx, farmId, one.id, at, now, { trail, dueAt: at });
+    }
   }
 };
 

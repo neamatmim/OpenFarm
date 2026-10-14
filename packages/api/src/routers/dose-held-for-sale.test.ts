@@ -3,6 +3,7 @@ import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 /**
@@ -19,7 +20,9 @@ const as = (role: "owner" | "manager" | "vet", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 let campaignId = "";
-let penId = "";
+let shedId = "";
+/** Each bull's own Pen, so each Campaign walked is his alone. */
+const penOf = new Map<string, string>();
 
 beforeAll(async () => {
   const owner = await as("owner", ARRIVED);
@@ -35,19 +38,19 @@ beforeAll(async () => {
   campaignId = campaign.definitionId;
   const manager = await as("manager", ARRIVED);
   const shed = await manager.client.sheds.create({ name: suffix });
-  const pen = await manager.client.sheds.pens.create({
-    shedId: shed.id,
-    name: `কোয়ারেন্টিন ${suffix}`,
-    quarantine: true,
-  });
-  penId = pen.id;
+  shedId = shed.id;
 });
 
-/** A bull off the lorry into Quarantine, and let out to Fattening the same day. */
+/** A bull off the lorry into a Quarantine Pen of his own, and let out to Fattening the same day. */
 const aBull = async () => {
   const manager = await as("manager", ARRIVED);
+  const pen = await manager.client.sheds.pens.create({
+    shedId,
+    name: `কোয়ারেন্টিন ${suffix} ${penOf.size + 1}`,
+    quarantine: true,
+  });
   const bull = await manager.client.intakes.record({
-    penId,
+    penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
     purchasePriceMoney: 60_000,
@@ -63,12 +66,14 @@ const aBull = async () => {
   });
   const him = await manager.client.animals.get({ tagNumber: bull.tagNumber });
   expect(him.state).toBe("fattening");
+  penOf.set(bull.tagNumber, pen.id);
   return bull.tagNumber;
 };
 
 /** The Pen's Campaign walked on `at`, his dose skipped "unwell — later". */
 const skippedOnTheCampaign = async (at: string, tagNumber: string) => {
   const manager = await as("manager", at);
+  const penId = penOf.get(tagNumber) ?? "";
   await manager.client.work.raiseNow({ definitionId: campaignId, penId });
   const listed = await manager.client.work.today({ penId });
   const workId =
@@ -87,6 +92,7 @@ const skippedOnTheCampaign = async (at: string, tagNumber: string) => {
     evidence: [],
     skipReason: LATER,
   });
+  return workId;
 };
 
 /** His dose of the Campaign raised again, oldest first. */
@@ -155,5 +161,50 @@ describe("a Campaign dose put off for a bull Ready for Sale", () => {
     await owner.client.work.ensureDue();
     const still = await hisAgain(tag);
     expect(still.map((one) => one.state)).toEqual(["called_off"]);
+  });
+
+  it("is owed again after a second time ready and back", async () => {
+    const tag = await aBull();
+    const day = (n: number) =>
+      new Date(new Date(DOSE_DAY).getTime() + n * DAY_MS).toISOString();
+    await skippedOnTheCampaign(DOSE_DAY, tag);
+    const ready = async (at: string) => {
+      const manager = await as("manager", at);
+      await manager.client.readyForSale.confirm({ tagNumber: tag });
+    };
+    const back = async (at: string) => {
+      const manager = await as("manager", at);
+      await manager.client.animals.setState({
+        tagNumber: tag,
+        state: "fattening",
+      });
+    };
+    await ready(day(1));
+    await back(day(3));
+    await ready(day(4));
+    await back(day(5));
+    const after = await hisAgain(tag);
+    const open = after.filter((one) => one.state === "due");
+    expect(open).toHaveLength(1);
+    expect(open[0]?.dueAt.toISOString()).toBe(day(5));
+  });
+
+  it("is owed no more once its skip is put right to say it was given while he was held", async () => {
+    const tag = await aBull();
+    const workId = await skippedOnTheCampaign(DOSE_DAY, tag);
+    const heldOn = "2087-03-11T05:00:00.000Z";
+    const manager = await as("manager", heldOn);
+    await manager.client.readyForSale.confirm({ tagNumber: tag });
+    const board = await manager.client.work.get({ id: workId });
+    const skipped = board.completions.find((row) => row.stepId === "dose");
+    await correctStepAsShown(manager.client, {
+      completionId: skipped?.id ?? "",
+      evidence: [true, ""],
+      reason: `টিকা আসলে দেওয়া হয়েছিল ${suffix}`,
+    });
+    const back = await as("manager", "2087-04-20T05:00:00.000Z");
+    await back.client.animals.setState({ tagNumber: tag, state: "fattening" });
+    const after = await hisAgain(tag);
+    expect(after.filter((one) => one.state === "due")).toEqual([]);
   });
 });
