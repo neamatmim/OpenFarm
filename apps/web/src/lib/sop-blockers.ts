@@ -55,6 +55,10 @@ const SAID: Readonly<Record<string, MessageKey>> = {
   "body condition is asked as the five scores, one to five":
     "sop.problem.bodyConditionScale",
   "two choices share one value": "sop.problem.sameValue",
+  "these words are the farm's own reason, and a step's own is worded otherwise":
+    "sop.problem.farmReasonWords",
+  "a step's own reason may mean unwell, not found or nothing to note, and no more":
+    "sop.problem.ownReasonMeans",
   "this step records a figure and asks for none": "sop.problem.needsFigure",
   "this step moves an animal and offers no pen to move her to":
     "sop.problem.noPen",

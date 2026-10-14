@@ -15,6 +15,9 @@ export interface Animal {
   /** On a Campaign that comes round, the day her last dose was given where it still covers her: passed as not due. A
    *  phone's copy from before the farm said it has none. */
   notDueSince?: string | null;
+  /** She is Ready for Sale: a dose given one animal at a time is held for her sale. A phone's copy from before the farm
+   *  said so counts her not ready. */
+  readyForSale?: boolean;
 }
 
 /** What finishing says: only work somebody signs off waits for them; the rest is finished when it is finished. */

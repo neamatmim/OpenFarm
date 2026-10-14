@@ -3,9 +3,13 @@ import { describe, expect, it } from "vitest";
 import { BODY_CONDITION } from "./body-condition";
 import type { SopContent, Step } from "./sop";
 import {
+  HELD_FOR_SALE,
+  NOT_DUE_YET,
+  WRITTEN_BY_MISTAKE,
   describeChanges,
   findStructuralProblems,
   maySkip,
+  meaningOfSkip,
   isOneTap,
   missingEvidence,
   nothingToNoteOf,
@@ -415,6 +419,55 @@ describe("a Version's Steps", () => {
         (problem) => problem.includes("share one value")
       )
     ).toBe(true);
+  });
+});
+
+/** What the farm finds wrong with a Version's own reasons to skip. */
+const ownWordsProblems = (content: SopContent) =>
+  findStructuralProblems(content).filter((problem) =>
+    problem.includes("skipReasons")
+  );
+
+describe("a Step's own reasons to skip", () => {
+  const { fmdVaccination } = standardPlaybook({ fmdVaccine: "fmd-product" });
+  const withReasons = (skipReasons: Step["skipReasons"]): SopContent => ({
+    ...fmdVaccination,
+    steps: fmdVaccination.steps.map((step) =>
+      step.id === "dose" ? { ...step, skipReasons } : step
+    ),
+  });
+
+  it("are not worded as one of the farm's own, which would read as the farm's and be offered twice", () => {
+    for (const farmWord of [HELD_FOR_SALE, NOT_DUE_YET, WRITTEN_BY_MISTAKE]) {
+      expect(
+        ownWordsProblems(withReasons([{ bn: ` ${farmWord.bn} ` }]))
+      ).toEqual([
+        "steps[1].skipReasons[0]: these words are the farm's own reason, and a step's own is worded otherwise",
+      ]);
+    }
+  });
+
+  it("mean only what a Version may make them mean: unwell, not found, or nothing to note", () => {
+    // «ওষুধ শেষ» on a Prescription's dose, tagged held for sale, was refused for every animal not Ready for Sale.
+    for (const means of ["held_for_sale", "not_due"] as const) {
+      expect(ownWordsProblems(withReasons([{ bn: "ওষুধ শেষ", means }]))).toEqual(
+        [
+          "steps[1].skipReasons[0]: a step's own reason may mean unwell, not found or nothing to note, and no more",
+        ]
+      );
+    }
+    // One published before the farm refused it is read as words only.
+    const tagged = withReasons([{ bn: "ওষুধ শেষ", means: "held_for_sale" }]);
+    const dose = tagged.steps.find((step) => step.id === "dose");
+    if (!dose) {
+      throw new Error("expected the dose");
+    }
+    expect(meaningOfSkip(dose, "ওষুধ শেষ", tagged)).toBeNull();
+    for (const means of ["unwell", "not_found", "nothing_to_note"] as const) {
+      expect(ownWordsProblems(withReasons([{ bn: "ওষুধ শেষ", means }]))).toEqual(
+        []
+      );
+    }
   });
 });
 

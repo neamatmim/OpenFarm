@@ -1,7 +1,9 @@
 import type { SopContent, Step } from "@OpenFarm/domain";
 import {
+  HELD_FOR_SALE,
   NOT_DUE_YET,
   WRITTEN_BY_MISTAKE,
+  mayHoldForSale,
   mayPassAsNotDue,
   maySkip,
   missingEvidence,
@@ -150,8 +152,15 @@ export const assertEvidenceComplete = (
   /** Whether a photo answers that slot. A Step may ask for more than one, and a photo that
    *  could not say which it answered would be a photo nobody can read back. */
   hasPhotoAt: (slot: number) => boolean,
-  /** A Correction, which may also say the answer was written by mistake. */
-  { correcting = false }: { correcting?: boolean } = {}
+  {
+    correcting = false,
+    content,
+  }: {
+    /** A Correction, which may also say the answer was written by mistake. */
+    correcting?: boolean;
+    /** The Version the Step is in: what raises it says whether a dose may be held for her sale. */
+    content: Pick<SopContent, "triggers">;
+  }
 ): void => {
   if (skipReason) {
     if (!maySkip(step)) {
@@ -160,10 +169,12 @@ export const assertEvidenceComplete = (
       });
     }
     // A reason the Version never wrote would count her covered and mean nothing the farm acts on.
-    // So may the farm's own word for an animal a Campaign's last dose still covers — the effect checks that it does.
+    // So may the farm's own word for an animal a Campaign's last dose still covers — the effect checks that it does —
+    // and for one held on a dose for her sale — the effect checks that she is Ready for Sale.
     const offered =
       (correcting && skipReason === WRITTEN_BY_MISTAKE.bn) ||
       (skipReason === NOT_DUE_YET.bn && mayPassAsNotDue(step)) ||
+      (skipReason === HELD_FOR_SALE.bn && mayHoldForSale(content, step)) ||
       step.skipReasons.length === 0 ||
       step.skipReasons.some((reason) => reason.bn === skipReason);
     if (!offered) {

@@ -1,4 +1,4 @@
-import { standardPlaybook } from "@OpenFarm/domain";
+import { HELD_FOR_SALE, standardPlaybook } from "@OpenFarm/domain";
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -21,6 +21,7 @@ const as = (role: "owner" | "manager" | "vet", instant: string) =>
 
 let campaignId = "";
 let shedId = "";
+let vaccineId = "";
 /** Each bull's own Pen, so each Campaign walked is his alone. */
 const penOf = new Map<string, string>();
 
@@ -36,6 +37,7 @@ beforeAll(async () => {
     content: standardPlaybook({ fmdVaccine: vaccine.id }).fmdVaccination,
   });
   campaignId = campaign.definitionId;
+  vaccineId = vaccine.id;
   const manager = await as("manager", ARRIVED);
   const shed = await manager.client.sheds.create({ name: suffix });
   shedId = shed.id;
@@ -70,8 +72,12 @@ const aBull = async () => {
   return bull.tagNumber;
 };
 
-/** The Pen's Campaign walked on `at`, his dose skipped "unwell — later". */
-const skippedOnTheCampaign = async (at: string, tagNumber: string) => {
+/** The Pen's Campaign walked on `at`, his dose skipped "unwell — later", or for the reason given. */
+const skippedOnTheCampaign = async (
+  at: string,
+  tagNumber: string,
+  skipReason = LATER
+) => {
   const manager = await as("manager", at);
   const penId = penOf.get(tagNumber) ?? "";
   await manager.client.work.raiseNow({ definitionId: campaignId, penId });
@@ -90,7 +96,7 @@ const skippedOnTheCampaign = async (at: string, tagNumber: string) => {
     stepId: "dose",
     animalTag: tagNumber,
     evidence: [],
-    skipReason: LATER,
+    skipReason,
   });
   return workId;
 };
@@ -206,5 +212,223 @@ describe("a Campaign dose put off for a bull Ready for Sale", () => {
     await back.client.animals.setState({ tagNumber: tag, state: "fattening" });
     const after = await hisAgain(tag);
     expect(after.filter((one) => one.state === "due")).toEqual([]);
+  });
+});
+
+describe("a bull Ready for Sale on a Campaign's first walk", () => {
+  it("is shown ready, passed as held, and owed again from the day he goes back to Fattening", async () => {
+    const tag = await aBull();
+    const manager = await as("manager", "2087-03-09T05:00:00.000Z");
+    await manager.client.readyForSale.confirm({ tagNumber: tag });
+    const workId = await skippedOnTheCampaign(DOSE_DAY, tag, HELD_FOR_SALE.bn);
+    const board = await manager.client.work.get({ id: workId });
+    expect(board.animals).toEqual([
+      expect.objectContaining({ tagNumber: tag, readyForSale: true }),
+    ]);
+    expect(await hisAgain(tag)).toEqual([
+      expect.objectContaining({
+        state: "called_off",
+        calledOffBy: "held_for_sale",
+      }),
+    ]);
+
+    const backOn = "2087-04-10T05:00:00.000Z";
+    const unsold = await as("manager", backOn);
+    await unsold.client.animals.setState({
+      tagNumber: tag,
+      state: "fattening",
+    });
+    const after = await hisAgain(tag);
+    expect(after.map((one) => one.state)).toEqual(["called_off", "due"]);
+    expect(after[1]?.dueAt.getTime()).toBe(new Date(backOn).getTime());
+  });
+
+  it("is not held for a bull still Fattening: the farm refuses it, and the walk shows him not ready", async () => {
+    const tag = await aBull();
+    const manager = await as("manager", DOSE_DAY);
+    const penId = penOf.get(tag) ?? "";
+    await manager.client.work.raiseNow({ definitionId: campaignId, penId });
+    const listed = await manager.client.work.today({ penId });
+    const workId =
+      listed.find((row) => row.definitionId === campaignId && !row.animalId)
+        ?.id ?? "";
+    const board = await manager.client.work.get({ id: workId });
+    expect(board.animals).toEqual([
+      expect.objectContaining({ tagNumber: tag, readyForSale: false }),
+    ]);
+    await manager.client.work.claim({ id: workId });
+    await manager.client.work.completeStep({
+      instanceId: workId,
+      stepId: "lot",
+      evidence: [`FMD-${suffix}`],
+    });
+    await expect(
+      manager.client.work.completeStep({
+        instanceId: workId,
+        stepId: "dose",
+        animalTag: tag,
+        evidence: [],
+        skipReason: HELD_FOR_SALE.bn,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "not_ready_for_sale" } });
+    expect(await hisAgain(tag)).toEqual([]);
+  });
+});
+
+describe("a bull's first arrival dose falling due while he is Ready for Sale", () => {
+  let arrivalFmdId = "";
+
+  beforeAll(async () => {
+    const owner = await as("owner", ARRIVED);
+    const adopted = await owner.client.sops.create({
+      content: standardPlaybook({ fmdVaccine: vaccineId }).arrivalFmd,
+    });
+    arrivalFmdId = adopted.definitionId;
+  });
+
+  /** His arrival FMD, oldest first, once the day is turned at `at`. */
+  const hisArrivalFmd = async (at: string, tagNumber: string) => {
+    const manager = await as("manager", at);
+    await manager.client.work.ensureDue();
+    const him = await manager.client.animals.get({ tagNumber });
+    return await scratchDb().query.sopInstance.findMany({
+      where: { definitionId: arrivalFmdId, animalId: him.id },
+      columns: { id: true, state: true, dueAt: true, calledOffBy: true },
+      orderBy: { dueAt: "asc", id: "asc" },
+    });
+  };
+
+  it("is passed as held, and owed again from the day he goes back to Fattening", async () => {
+    const tag = await aBull();
+    const manager = await as("manager", "2087-03-09T05:00:00.000Z");
+    await manager.client.readyForSale.confirm({ tagNumber: tag });
+    // Ten days after he came.
+    const fallsDue = "2087-03-11T05:00:00.000Z";
+    const [first] = await hisArrivalFmd(fallsDue, tag);
+    const workId = first?.id ?? "";
+    const staff = await as("manager", fallsDue);
+    const board = await staff.client.work.get({ id: workId });
+    expect(board.animals).toEqual([
+      expect.objectContaining({ tagNumber: tag, readyForSale: true }),
+    ]);
+    await staff.client.work.claim({ id: workId });
+    await staff.client.work.completeStep({
+      instanceId: workId,
+      stepId: "lot",
+      evidence: [`FMD-${suffix}`],
+    });
+    await staff.client.work.completeStep({
+      instanceId: workId,
+      stepId: "dose",
+      animalTag: tag,
+      evidence: [],
+      skipReason: HELD_FOR_SALE.bn,
+    });
+    const held = await hisArrivalFmd(fallsDue, tag);
+    expect(held.slice(1)).toEqual([
+      expect.objectContaining({
+        state: "called_off",
+        calledOffBy: "held_for_sale",
+      }),
+    ]);
+
+    const backOn = "2087-04-10T05:00:00.000Z";
+    const unsold = await as("manager", backOn);
+    await unsold.client.animals.setState({
+      tagNumber: tag,
+      state: "fattening",
+    });
+    const after = await hisArrivalFmd(backOn, tag);
+    const owed = after.filter((one) => one.state === "due");
+    expect(owed).toHaveLength(1);
+    expect(owed[0]?.dueAt.getTime()).toBe(new Date(backOn).getTime());
+  });
+});
+
+describe("a bull Ready for Sale on a dose that comes round on a schedule", () => {
+  it("is not held: its next round is its later, so nothing would be held or owed", async () => {
+    const owner = await as("owner", ARRIVED);
+    const vet = await as("vet", ARRIVED);
+    const cypermethrin = await vet.client.drugs.create({
+      name: { bn: `সাইপারমেথ্রিন ${suffix}`, en: "Cypermethrin" },
+      milkWithdrawalDays: 1,
+      meatWithdrawalDays: 28,
+    });
+    // The farm's own weekly spray, written without the standard one's states: a Ready bull still stands on its walk.
+    const spray = await owner.client.sops.create({
+      content: {
+        ...standardPlaybook({ tickSpray: cypermethrin.id }).tickSpray,
+        name: { bn: `স্প্রে ${suffix}`, en: `Spray ${suffix}` },
+        appliesTo: { side: "fattening" },
+      },
+    });
+    const tag = await aBull();
+    const manager = await as("manager", "2087-03-09T05:00:00.000Z");
+    await manager.client.readyForSale.confirm({ tagNumber: tag });
+    const walker = await as("manager", DOSE_DAY);
+    const penId = penOf.get(tag) ?? "";
+    await walker.client.work.raiseNow({
+      definitionId: spray.definitionId,
+      penId,
+    });
+    const listed = await walker.client.work.today({ penId });
+    const workId =
+      listed.find(
+        (row) => row.definitionId === spray.definitionId && !row.animalId
+      )?.id ?? "";
+    await walker.client.work.claim({ id: workId });
+    await expect(
+      walker.client.work.completeStep({
+        instanceId: workId,
+        stepId: "spray",
+        animalTag: tag,
+        evidence: [],
+        skipReason: HELD_FOR_SALE.bn,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "skip_reason_not_offered" } });
+  });
+});
+
+describe("a Version's own reasons to skip, at publishing", () => {
+  const withDoseReasons = (
+    skipReasons: { bn: string; en?: string; means?: "held_for_sale" }[]
+  ) => {
+    const content = standardPlaybook({ fmdVaccine: vaccineId }).fmdVaccination;
+    return {
+      ...content,
+      name: { bn: `টিকা ${suffix} ${skipReasons.length}`, en: "A vaccination" },
+      steps: content.steps.map((step) =>
+        step.id === "dose" ? { ...step, skipReasons } : step
+      ),
+    };
+  };
+
+  it("refuses one worded as the farm's own, and one meaning what only the farm's own words mean", async () => {
+    const owner = await as("owner", ARRIVED);
+    await expect(
+      owner.client.sops.create({
+        content: withDoseReasons([{ bn: HELD_FOR_SALE.bn }]),
+      })
+    ).rejects.toMatchObject({
+      data: {
+        blockers: [
+          "steps[1].skipReasons[0]: these words are the farm's own reason, and a step's own is worded otherwise",
+        ],
+      },
+    });
+    await expect(
+      owner.client.sops.create({
+        content: withDoseReasons([
+          { bn: "ওষুধ শেষ" },
+          { bn: "পরে", means: "held_for_sale" },
+        ]),
+      })
+    ).rejects.toMatchObject({
+      data: {
+        blockers: [
+          "steps[1].skipReasons[1]: a step's own reason may mean unwell, not found or nothing to note, and no more",
+        ],
+      },
+    });
   });
 });

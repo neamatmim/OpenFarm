@@ -115,3 +115,19 @@ export const notDueSince = ({
 export const mayPassAsNotDue = (
   step: Pick<Step, "repeatPerAnimal" | "effect">
 ): boolean => isCampaignDose(step);
+
+/** Whether a procedure comes round by itself at its times — a tick spray every week — whose next round is its later. */
+export const comesRoundOnASchedule = (
+  content: Pick<SopContent, "triggers">
+): boolean => content.triggers.some((trigger) => trigger.kind === "schedule");
+
+/**
+ * Whether an animal Ready for Sale may be held on this Step, her dose put off till she is back to Fattening: a dose given
+ * one animal at a time — a Campaign's, or one of his arrival doses — whose withdrawal would hold up the sale. Never a
+ * Prescription's, whose course is the Vet's to stop; and never one of a procedure that comes round on a schedule, whose
+ * next round is its later, so nothing would be held for her and nothing owed when she is back.
+ */
+export const mayHoldForSale = (
+  content: Pick<SopContent, "triggers">,
+  step: Pick<Step, "repeatPerAnimal" | "effect">
+): boolean => isCampaignDose(step) && !comesRoundOnASchedule(content);

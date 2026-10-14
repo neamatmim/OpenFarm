@@ -487,6 +487,7 @@ const WorkRecoveryForm = ({
       ) : null}
       <EvidenceSheet
         step={step}
+        content={work.content}
         animal={
           animal
             ? {

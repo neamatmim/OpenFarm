@@ -23,6 +23,7 @@ const MEANING_WORDS: Record<ChoiceMeaning | SkipMeaning, MessageKey> = {
   unwell: "sop.meaning.unwell",
   nothing_to_note: "sop.meaning.nothingToNote",
   not_due: "sop.meaning.notDue",
+  held_for_sale: "sop.meaning.heldForSale",
 };
 
 /** One meaning left behind, and the new words it may be given to — the Owner saying they are the same thing. */

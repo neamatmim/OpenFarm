@@ -933,6 +933,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.noWithdrawalDays":
     "পশুচিকিৎসক এই ওষুধের আটকে রাখার দিন লেখেননি, তাই এটি এখনো দেওয়া যাবে না",
   "refusal.doseIsDue": "তার ডোজের সময় হয়েছে: দিন, নয়তো কেন অপেক্ষা তা বলুন।",
+  "refusal.notReadyForSale":
+    "সে বিক্রির জন্য প্রস্তুত নয়: ডোজ দিন, নয়তো কেন অপেক্ষা তা বলুন।",
   "refusal.observationCorrected":
     "এই তালিকা খোলার পর ঘটনাটি সংশোধন হয়েছে। তার জায়গার ঘটনাটির উত্তর দিন",
   "refusal.feedOnARation":
@@ -1889,6 +1891,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sop.meaning.nothingToNote": "এক চাপে পার",
   "sop.meaning.notDue": "পরে কিছু পাওনা নয়",
   "work.notDue": "পাওনা নয় — {day} দেওয়া",
+  "sop.meaning.heldForSale": "বিক্রি পর্যন্ত স্থগিত, মোটাতাজাকরণে ফিরলে আবার পাওনা",
+  "work.heldForSale": "বিক্রির জন্য প্রস্তুত — স্থগিত",
   "sop.meaningLost": "“{was}”-এর কাজ ছিল: {means}। এই ধাপে এখন কিছুই তা করে না।",
   "sop.meaningLostWrite": "এর নতুন কথা লিখুন, তারপর এখানে সেটিকে দিন।",
   "sop.meaningGiveTo": "কাকে দেবেন…",
@@ -1933,6 +1937,10 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "sop.problem.bodyConditionScale":
     "শরীরের অবস্থা তার পাঁচটি মানেই জানতে হয়, এক থেকে পাঁচ — এটি সরিয়ে আবার জানতে চান",
   "sop.problem.sameValue": "দুটি বিকল্প একই; প্রতিটি আলাদা করুন",
+  "sop.problem.farmReasonWords":
+    "এই কথাগুলো খামারের নিজের কারণ, যা খামার নিজেই দেখায়; অন্য কথায় লিখুন",
+  "sop.problem.ownReasonMeans":
+    "এই ধাপের নিজের কারণের মানে হতে পারে শুধু অসুস্থ, পাওয়া যায়নি, বা কিছু বলার নেই",
   "sop.problem.sameId": "দুটি ধাপের নাম একই “{value}”; একটি মুছে আবার যোগ করুন",
   "sop.problem.needsFigure": "এই ধাপ একটি সংখ্যা লেখে, তাই সংখ্যা চান",
   "sop.problem.noPen": "পশুকে কোন কোন পেনে নেওয়া যাবে তা বেছে নিন",

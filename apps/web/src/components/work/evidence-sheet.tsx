@@ -5,15 +5,14 @@ import type {
   Evidence,
   LicenseKind,
   MilkDestination,
+  SopContent,
   Step,
 } from "@OpenFarm/domain";
 import {
-  NOT_DUE_YET,
   feedUnitWord,
   licenseNamed,
   MILK_DESTINATIONS,
   farFromLast,
-  mayPassAsNotDue,
   missingEvidence,
   nothingToNoteOf,
   outsideItsRange,
@@ -62,7 +61,7 @@ import { fieldOfMoment, momentOfField } from "@/lib/farm-moment";
 import { namesIn, saidIn } from "@/lib/names-in";
 import { photoProblem, shrink } from "@/lib/photo";
 import type { MedicineCountEntry, StockCountEntry } from "@/lib/record-offline";
-import { skipReasonsOffered } from "@/lib/skipping";
+import { passedFirstWith, skipReasonsOffered } from "@/lib/skipping";
 import type { StepAnswer } from "@/lib/step-answer";
 import { enteredFrom } from "@/lib/step-answer";
 import { toast } from "@/lib/toast";
@@ -795,25 +794,29 @@ const FieldWithLabel = ({
 const useStartingAnswer = (
   step: Step,
   existing: Completion | undefined,
-  animal: Animal | undefined,
+  {
+    animal,
+    content,
+  }: {
+    animal: Animal | undefined;
+    /** The Version the Step is in. */
+    content: Pick<SopContent, "triggers"> | undefined;
+  },
   initialReason?: string
 ) => {
   const done = existing?.status === "done" ? existing.evidence : undefined;
   const [values, setValues] = useState<Entered>(() =>
     enteredFrom(step, done, new Date())
   );
-  // An animal a Campaign's last dose still covers opens passed as not due, so nobody doses her twice by default.
-  const passedNotDue =
-    existing === undefined &&
-    Boolean(animal?.notDueSince) &&
-    mayPassAsNotDue(step);
+  // An animal a Campaign's last dose still covers opens passed as not due, so nobody doses her twice by default; one
+  // Ready for Sale opens passed as held, so nobody starts a withdrawal that holds up her sale.
+  const passedWith =
+    existing === undefined ? passedFirstWith(step, { animal, content }) : null;
   const [skipping, setSkipping] = useState(
-    existing?.status === "skipped" || passedNotDue
+    existing?.status === "skipped" || passedWith !== null
   );
   const [reason, setReason] = useState(
-    initialReason ??
-      existing?.skipReason ??
-      (passedNotDue ? NOT_DUE_YET.bn : "")
+    initialReason ?? existing?.skipReason ?? passedWith ?? ""
   );
   const locked = Boolean(animal?.underMilkWithdrawal);
   const [destination, setDestination] = useState<MilkDestination>(
@@ -1082,6 +1085,7 @@ const recordButtonClass = (recovering: boolean, skippable: boolean): string => {
  *  a reason for a per-animal Step, and a warning that must be acknowledged for an odd figure. */
 export const EvidenceSheet = ({
   step,
+  content,
   animal,
   correcting,
   existing,
@@ -1098,6 +1102,8 @@ export const EvidenceSheet = ({
   onRecord,
 }: {
   step: Step;
+  /** The Version the Step is in: what raises it says whether her dose may be held for her sale. */
+  content?: Pick<SopContent, "triggers">;
   animal?: Animal;
   /** The entry already exists, so saving it again is a Correction. */
   correcting: boolean;
@@ -1140,7 +1146,7 @@ export const EvidenceSheet = ({
     destination,
     setDestination,
     locked,
-  } = useStartingAnswer(step, existing, animal, initialReason);
+  } = useStartingAnswer(step, existing, { animal, content }, initialReason);
   const [warning, setWarning] = useState<string | null>(null);
   const [photos, setPhotos] = useState<Taken>(() => initialPhotos ?? {});
   const recordsMilk = step.effect?.kind === "milk_record";
@@ -1148,11 +1154,11 @@ export const EvidenceSheet = ({
   // Asked of one place, not worked out here: the server refuses a skip by the same rule, and when this
   // screen had its own the two disagreed — a dose Step written with "ওষুধ শেষ" against it drew no
   // button at all. The reasons rather than a yes, so the button and the sheet cannot differ on them.
-  const skipReasons = skipReasonsOffered(
-    step,
+  const skipReasons = skipReasonsOffered(step, {
     correcting,
-    Boolean(animal?.notDueSince)
-  );
+    animal,
+    content,
+  });
   const skippable = skipReasons.length > 0;
   // A Correction starts from what was fed, not from what the Ration owed: saving it unchanged keeps what went out.
   const recorded = factsOf(existing);

@@ -1010,6 +1010,8 @@ export const enCore = {
   "refusal.noWithdrawalDays":
     "The vet has written no withdrawal days for this medicine, so it cannot be given yet",
   "refusal.doseIsDue": "Her dose has come: give it, or say why it waits.",
+  "refusal.notReadyForSale":
+    "She is not ready for sale: give the dose, or say why it waits.",
   "refusal.observationCorrected":
     "That sighting was corrected since this list was opened. Answer the one in its place",
   "refusal.feedOnARation":
@@ -2050,6 +2052,8 @@ export const enCore = {
   "sop.meaning.nothingToNote": "passed in one tap",
   "sop.meaning.notDue": "owed nothing later",
   "work.notDue": "Not due — dosed {day}",
+  "sop.meaning.heldForSale": "held till sold, owed again back in fattening",
+  "work.heldForSale": "Ready for sale — held",
   "sop.meaningLost":
     "“{was}” did this: {means}. Nothing on this step does now.",
   "sop.meaningLostWrite":
@@ -2097,6 +2101,10 @@ export const enCore = {
   "sop.problem.bodyConditionScale":
     "body condition is asked as its five scores, one to five — take it out and ask it again",
   "sop.problem.sameValue": "two choices are the same; make each one different",
+  "sop.problem.farmReasonWords":
+    "these words are the farm's own reason, which the farm offers itself; word this one differently",
+  "sop.problem.ownReasonMeans":
+    "a step's own reason may only mean unwell, not found, or nothing to note",
   "sop.problem.sameId":
     "two steps share the name “{value}”; remove one and add it again",
   "sop.problem.needsFigure": "this step records a figure, so ask for a number",

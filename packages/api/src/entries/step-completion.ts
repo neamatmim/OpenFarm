@@ -197,7 +197,7 @@ const effectOfStep = (
     renewal: answer.renewal,
     destination: answer.destination,
     skipped: Boolean(answer.skipReason),
-    skippedAs: meaningOfSkip(step, answer.skipReason),
+    skippedAs: meaningOfSkip(step, answer.skipReason, content),
     feedTolerancePercent: context.farm.feedTolerancePercent,
     tolerancePercent: context.farm.milkTolerancePercent,
     pregnancyTimes: pregnancyTimesOf(context.farm),
@@ -327,8 +327,12 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
       const skipping = Boolean(input.skipReason);
       // The photos follow as Step photos of their own; the Step says which slots they answer.
       const promised = new Set(input.photoSlots);
-      assertEvidenceComplete(step, input.evidence, input.skipReason, (slot) =>
-        promised.has(slot)
+      assertEvidenceComplete(
+        step,
+        input.evidence,
+        input.skipReason,
+        (slot) => promised.has(slot),
+        { content }
       );
 
       const already = await tx.query.stepCompletion.findFirst({
@@ -448,6 +452,7 @@ export const replaceStep = async (
   const skipping = Boolean(answer.skipReason);
   assertEvidenceComplete(step, answer.evidence, answer.skipReason, hasPhotoAt, {
     correcting: true,
+    content,
   });
   await tx
     .update(stepCompletion)

@@ -4,6 +4,7 @@ import { CALVING_RECORDERS, HEAT, SERVICE, isCalvingLead } from "./breeding";
 import {
   campaignIntervalTriggerOf,
   campaignProductOf,
+  mayHoldForSale,
   mayPassAsNotDue,
 } from "./campaign-interval";
 import { farmDayOf } from "./farm-clock";
@@ -227,8 +228,23 @@ export const SKIP_MEANINGS = [
   "unwell",
   "nothing_to_note",
   "not_due",
+  "held_for_sale",
 ] as const;
 export type SkipMeaning = (typeof SKIP_MEANINGS)[number];
+
+/** What a Version's own reason to skip may mean. Not due and held for her sale are the farm's own words' alone: the farm
+ *  checks the animal before taking either, and a Version's reason carrying one — «ওষুধ শেষ» on a Prescription's dose,
+ *  say — would be refused for every animal that did not fit it. */
+const OWN_SKIP_MEANINGS = [
+  "not_found",
+  "unwell",
+  "nothing_to_note",
+] as const satisfies readonly SkipMeaning[];
+
+const isOwnSkipMeaning = (
+  means: SkipMeaning
+): means is (typeof OWN_SKIP_MEANINGS)[number] =>
+  (OWN_SKIP_MEANINGS as readonly SkipMeaning[]).includes(means);
 
 /** Why an animal may be skipped, in the Owner's words, and what it means where the farm acts on it. */
 export interface SkipReason extends Bilingual {
@@ -257,11 +273,25 @@ export const NOT_DUE_YET: SkipReason = {
   means: "not_due",
 };
 
+/**
+ * The farm's own word for an animal Ready for Sale on a dose given one animal at a time — a Campaign's walk, or one of
+ * his arrival doses: passed, not dosed, because the dose's withdrawal would hold up the sale she is ready for. Owed
+ * still: held while she is ready, and raised again, due that day, if she goes back to Fattening. Offered whatever the
+ * Version's own reasons, and refused by the farm for an animal not Ready for Sale.
+ */
+export const HELD_FOR_SALE: SkipReason = {
+  bn: "বিক্রির জন্য প্রস্তুত — স্থগিত",
+  en: "Ready for sale — held",
+  means: "held_for_sale",
+};
+
 /** What the reason somebody skipped with means, read from the Step they skipped: nothing for a reason the farm does
  *  not act on, or a Step that was not skipped. Matched on the Bangla, because that is what a phone sends. */
 export const meaningOfSkip = (
   step: Pick<Step, "skipReasons" | "repeatPerAnimal" | "effect">,
-  skipReason: string | null | undefined
+  skipReason: string | null | undefined,
+  /** The Version the Step is in: what raises it says whether a dose may be held. */
+  content: Pick<SopContent, "triggers">
 ): SkipMeaning | null => {
   if (!skipReason) {
     return null;
@@ -269,9 +299,14 @@ export const meaningOfSkip = (
   if (skipReason === NOT_DUE_YET.bn && mayPassAsNotDue(step)) {
     return "not_due";
   }
-  return (
-    step.skipReasons.find((reason) => reason.bn === skipReason)?.means ?? null
-  );
+  if (skipReason === HELD_FOR_SALE.bn && mayHoldForSale(content, step)) {
+    return "held_for_sale";
+  }
+  const means = step.skipReasons.find(
+    (reason) => reason.bn === skipReason
+  )?.means;
+  // A Version published before the farm refused it may give its own reason a meaning only the farm's words carry.
+  return means && isOwnSkipMeaning(means) ? means : null;
 };
 
 /** The reason a Step's animal is passed as well, with nothing to note, where the Step has one. */
@@ -1181,6 +1216,36 @@ const intervalProblems = (content: SopContent): string[] =>
       ]
     : [];
 
+/** The farm's own words for a skip, offered beside a Step's own and read before them. */
+const FARM_SKIP_WORDS: ReadonlySet<string> = new Set([
+  NOT_DUE_YET.bn,
+  HELD_FOR_SALE.bn,
+  WRITTEN_BY_MISTAKE.bn,
+]);
+
+/**
+ * A Step's own reasons to skip are its own: worded as one of the farm's, a reason would be read as the farm's and offered
+ * twice; meaning what only the farm's words mean, it would be refused for every animal the farm's check did not fit.
+ */
+const ownReasonProblems = (content: SopContent): string[] =>
+  content.steps.flatMap((step, stepIndex) =>
+    step.skipReasons.flatMap((reason, reasonIndex) => {
+      const path = `steps[${stepIndex}].skipReasons[${reasonIndex}]`;
+      return [
+        ...(FARM_SKIP_WORDS.has(reason.bn.trim())
+          ? [
+              `${path}: these words are the farm's own reason, and a step's own is worded otherwise`,
+            ]
+          : []),
+        ...(reason.means && !isOwnSkipMeaning(reason.means)
+          ? [
+              `${path}: a step's own reason may mean unwell, not found or nothing to note, and no more`,
+            ]
+          : []),
+      ];
+    })
+  );
+
 /** What is wrong with one answer a Step asks: a range that runs backwards, a choice with nothing to choose, Body
  *  Condition asked as anything but its five scores. */
 const answerProblems = (evidence: Evidence, path: string): string[] => {
@@ -1215,6 +1280,7 @@ export const findStructuralProblems = (content: SopContent): string[] => {
     ...lotNumberPlaceProblems(content),
     ...reportRoleProblems(content),
     ...sameIdProblems(content),
+    ...ownReasonProblems(content),
   ];
   if (content.steps.length === 0) {
     problems.push("steps: an SOP needs at least one step");
