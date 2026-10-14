@@ -28,6 +28,10 @@ const releases = (content: SopContent): boolean =>
 const givesADose = (content: SopContent): boolean =>
   content.steps.some((step) => step.effect?.kind === "treatment");
 
+/** Whether a procedure comes round by itself at its times — a tick spray every week — whose next round is its later. */
+const comesRoundOnASchedule = (content: SopContent): boolean =>
+  content.triggers.some((trigger) => trigger.kind === "schedule");
+
 /** A cause his arrival wrote: `arrival:<animal>:+<days>`. */
 const ARRIVAL_CAUSE = /^arrival:[^:]+:\+\d+$/u;
 
@@ -49,7 +53,11 @@ export const putOffKindOf = (
   if (ARRIVAL_CAUSE.test(original)) {
     return "arrival_dose";
   }
-  return isCampaignDoseKey(original) ? "campaign_dose" : null;
+  // Walked over a Pen and dosing each animal as a Campaign does, but on a Schedule: she is dosed when it comes round, and
+  // one left out within a month of her sale is never raised again into her withdrawal.
+  return isCampaignDoseKey(original) && !comesRoundOnASchedule(content)
+    ? "campaign_dose"
+    : null;
 };
 
 /**
