@@ -6,7 +6,7 @@ import { Link } from "@tanstack/react-router";
 import { Beef, CircleCheck, Store } from "lucide-react";
 import { useState } from "react";
 
-import { BoardBodyCondition } from "@/components/body-condition";
+import { BodyConditionLine } from "@/components/body-condition";
 import {
   ActionsHeader,
   DataTable,
@@ -123,7 +123,7 @@ const WeightCell = ({ row }: BoardCell) => (
       latestKg={row.original.latestKg}
       targetWeightKg={row.original.targetWeightKg}
     />
-    <BoardBodyCondition reading={row.original.bodyCondition} />
+    <BodyConditionLine reading={row.original.bodyCondition} />
   </div>
 );
 
@@ -305,7 +305,7 @@ const BoardCard = ({ row }: { row: BoardRow }) => {
           <StandingBadges row={row} />
         </div>
         <WeightNow row={row} />
-        <BoardBodyCondition reading={row.bodyCondition} />
+        <BodyConditionLine reading={row.bodyCondition} />
         <span className="text-muted-foreground text-xs">
           {details.join(" · ")}
         </span>

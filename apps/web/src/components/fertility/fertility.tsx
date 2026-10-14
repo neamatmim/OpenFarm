@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { BodyConditionLine } from "@/components/body-condition";
 import {
   DataTable,
   createListColumns,
@@ -201,6 +202,7 @@ export const DryOffFigures = ({
                     number: formatNumber(one.lactationNumber, language),
                   })}
                 </span>
+                <BodyConditionLine reading={one.bodyCondition} />
               </li>
             ))}
           </ul>
@@ -414,6 +416,10 @@ const LastIntervalCell = ({ row }: CowCell) => {
   );
 };
 
+const ConditionCell = ({ row }: CowCell) => (
+  <BodyConditionLine reading={row.original.bodyCondition} />
+);
+
 const cowColumn = createListColumns<SinceCalving>();
 const cowColumns = cowColumn.columns([
   cowColumn.accessor("tagNumber", {
@@ -442,6 +448,12 @@ const cowColumns = cowColumn.columns([
     sortUndefined: "last",
     meta: { align: "end" },
   }),
+  cowColumn.accessor((row) => row.bodyCondition?.score, {
+    id: "bodyCondition",
+    header: listHeader("bodyCondition.title"),
+    cell: ConditionCell,
+    sortUndefined: "last",
+  }),
 ]);
 
 /** A cow on a phone: her tag and whether she has settled, then when she calved and her Attempts since. */
@@ -462,6 +474,7 @@ const CowCard = ({ cow }: { cow: SinceCalving }) => {
           count: formatNumber(cow.attempts, language),
         })}
       </span>
+      <BodyConditionLine reading={cow.bodyCondition} />
     </div>
   );
 };

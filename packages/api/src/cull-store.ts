@@ -9,6 +9,7 @@ import {
   milkPriceOf,
 } from "@OpenFarm/domain";
 
+import { latestBodyConditions } from "./body-condition-store";
 import { repeatBreedersOn } from "./breeding-store";
 import { farmCosts, keepChargesOf } from "./cost-store";
 import { fetchedPerLiter, writtenOffByItem } from "./receivable-store";
@@ -87,6 +88,11 @@ export const cullList = async (
     }))
   );
   const stoodBy = groupedBy(costs.history, (line) => line.animalId);
+  const judged = await latestBodyConditions(
+    db,
+    farm.id,
+    cows.map((cow) => cow.id)
+  );
   return {
     /** What a liter fetched in the farm's Dispatches over its milk price window; nothing where none left. */
     milkPrice: price ? { ...price, since, days: farm.cullMilkPriceDays } : null,
@@ -136,6 +142,8 @@ export const cullList = async (
           inCalfDue: cow.expectedCalvingAt,
           /** Heats served that did not take, for a Repeat Breeder nobody has answered for; nothing otherwise. */
           failedAttempts,
+          /** Her latest Body Condition, judged at her Dry-off or her Calving; nothing where nobody judged her. */
+          bodyCondition: judged.get(cow.id) ?? null,
           milk,
           reasons: cullReasonsOf({
             state: cow.state,

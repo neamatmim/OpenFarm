@@ -1,5 +1,6 @@
 import {
   ANIMAL_STATES,
+  EVIDENCE_MEANINGS,
   EVIDENCE_TYPES,
   MAX_GRACE_MINUTES,
   ROLES,
@@ -47,6 +48,8 @@ const evidence = z.object({
       z.object({ value: z.string().trim().min(1).max(40), label: bilingual })
     )
     .optional(),
+  /** What the farm reads the answer as wherever a Step asks it: Body Condition, the Playbook's own slot. */
+  means: z.enum(EVIDENCE_MEANINGS).optional(),
 });
 
 const step = z.object({

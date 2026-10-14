@@ -115,6 +115,13 @@ const useHerdRows = (animals: Animal[]): HerdRow[] => {
     photoUpdatedAt: a.photoUpdatedAt,
     milkHeld: stillHeld(a.milkWithdrawalUntil),
     meatHeld: stillHeld(a.meatWithdrawalUntil),
+    // Missing from a list this phone kept from before the herd said it.
+    bodyCondition: a.bodyCondition
+      ? {
+          score: a.bodyCondition.score,
+          judgedAt: new Date(a.bodyCondition.judgedAt),
+        }
+      : null,
   }));
 };
 

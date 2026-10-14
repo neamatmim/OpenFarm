@@ -1,8 +1,9 @@
-import type { Age } from "@OpenFarm/domain";
+import type { Age, BodyConditionScore } from "@OpenFarm/domain";
 import { Link } from "@tanstack/react-router";
 import { Beef, ChevronRight, Milk } from "lucide-react";
 
 import { AnimalPhoto } from "@/components/animal-photo";
+import { BodyConditionLine } from "@/components/body-condition";
 import type { RowLead, RowSelection } from "@/components/data-table";
 import {
   DataTable,
@@ -43,6 +44,8 @@ export interface HerdRow {
   photoUpdatedAt: Date | null;
   milkHeld: boolean;
   meatHeld: boolean;
+  /** Her latest Body Condition and when she was judged; nothing where nobody has judged her. */
+  bodyCondition: { score: BodyConditionScore; judgedAt: Date } | null;
 }
 
 /** Her photo where one was taken; otherwise her Side's mark in the same place, so the numbers down a list still line
@@ -98,6 +101,10 @@ const AgeCell = ({ row }: { row: { original: HerdRow } }) => {
   );
 };
 
+const ConditionCell = ({ row }: { row: { original: HerdRow } }) => (
+  <BodyConditionLine reading={row.original.bodyCondition} />
+);
+
 const HeldCell = ({ row }: { row: { original: HerdRow } }) => (
   <HeldBadges
     meatHeld={row.original.meatHeld}
@@ -139,6 +146,13 @@ const herdColumns = column.columns([
     header: listHeader("animals.age"),
     meta: ON_THE_PHOTO,
     cell: AgeCell,
+  }),
+  column.accessor((a) => a.bodyCondition?.score, {
+    id: "bodyCondition",
+    header: listHeader("bodyCondition.title"),
+    meta: ON_THE_PHOTO,
+    cell: ConditionCell,
+    sortUndefined: "last",
   }),
   column.accessor((a) => Number(a.milkHeld) + Number(a.meatHeld), {
     id: "held",

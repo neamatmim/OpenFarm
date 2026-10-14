@@ -129,6 +129,8 @@ export {
   asksBodyConditionIn,
   bodyConditionIn,
   bodyConditionSlot,
+  bodyConditionWords,
+  judgedAtOf,
 } from "./body-condition";
 export type {
   ExpectedGain,
@@ -451,6 +453,7 @@ export type {
   FarmEvent,
   SopChange,
   SkipMeaning,
+  EvidenceMeaning,
   SkipReason,
   SopContent,
   Step,
@@ -468,6 +471,7 @@ export {
   PHOTO_MAX_BYTES,
   THUMB_MAX_BYTES,
   SKIP_MEANINGS,
+  EVIDENCE_MEANINGS,
   STAYS_A_HEIFER,
   STEP_EFFECT_KINDS,
   TRIGGER_KINDS,

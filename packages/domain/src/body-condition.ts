@@ -8,9 +8,26 @@ import type { Evidence, Step } from "./sop";
 export const BODY_CONDITION_SCORES = ["1", "2", "3", "4", "5"] as const;
 export type BodyConditionScore = 1 | 2 | 3 | 4 | 5;
 
+/** The scale's words, the same on the phone that asks it and on every screen that says it. */
+const SCALE: Record<
+  (typeof BODY_CONDITION_SCORES)[number],
+  { bn: string; en: string }
+> = {
+  "1": { bn: "১ — খুব রোগা", en: "1 — very thin" },
+  "2": { bn: "২ — রোগা", en: "2 — thin" },
+  "3": { bn: "৩ — ঠিক আছে", en: "3 — moderate" },
+  "4": { bn: "৪ — ভালো গোশত", en: "4 — good flesh" },
+  "5": { bn: "৫ — খুব মোটা", en: "5 — fat" },
+};
+
+/** The words a score is said in, as the Playbook's slot says it. */
+export const bodyConditionWords = (
+  score: BodyConditionScore
+): { bn: string; en: string } => SCALE[String(score) as keyof typeof SCALE];
+
 /**
- * The slot that asks it, as the Standard Playbook writes it. The values are the record's words, read back as the score
- * whatever the farm calls them; the words above them are the farm's to reword.
+ * The slot that asks it, as the Standard Playbook writes it, and as the Playbook editor adds it to a Step: marked as Body
+ * Condition, so the farm reads it as that whatever the question above it is reworded to.
  */
 export const BODY_CONDITION: Evidence = {
   type: "choice",
@@ -19,17 +36,15 @@ export const BODY_CONDITION: Evidence = {
     bn: "শরীরের অবস্থা (জানলে)",
     en: "Body condition (if you can judge it)",
   },
-  choices: [
-    { value: "1", label: { bn: "১ — খুব রোগা", en: "1 — very thin" } },
-    { value: "2", label: { bn: "২ — রোগা", en: "2 — thin" } },
-    { value: "3", label: { bn: "৩ — ঠিক আছে", en: "3 — moderate" } },
-    { value: "4", label: { bn: "৪ — ভালো গোশত", en: "4 — good flesh" } },
-    { value: "5", label: { bn: "৫ — খুব মোটা", en: "5 — fat" } },
-  ],
+  choices: BODY_CONDITION_SCORES.map((value) => ({
+    value,
+    label: SCALE[value],
+  })),
+  means: "body_condition",
 };
 
-/** Whether a slot asks Body Condition: a choice of the five scores, no more and none missing. */
-const asksBodyCondition = (evidence: Evidence): boolean => {
+/** Whether a choice offers the five scores, no more and none missing: what a slot marked as Body Condition must. */
+export const offersTheFiveScores = (evidence: Evidence): boolean => {
   const offered = (evidence.choices ?? []).map((one) => one.value);
   return (
     evidence.type === "choice" &&
@@ -38,9 +53,28 @@ const asksBodyCondition = (evidence: Evidence): boolean => {
   );
 };
 
+/**
+ * Whether a slot asks Body Condition: one marked so — publishing refuses one that does not offer the five scores — or,
+ * written before the slot carried its mark, the Playbook's own slot as it was: the five scores, each in the Playbook's
+ * own words. An Owner's own one-to-five choice — a lameness score typed "1, 2, 3, 4, 5" — has the same values and its
+ * own words, and is not read as it.
+ */
+const asksIt = (evidence: Evidence): boolean => {
+  if (evidence.means === "body_condition") {
+    return true;
+  }
+  return (
+    evidence.means === undefined &&
+    offersTheFiveScores(evidence) &&
+    (evidence.choices ?? []).every(
+      (one) => one.label.bn === SCALE[one.value as keyof typeof SCALE]?.bn
+    )
+  );
+};
+
 /** Where a Step asks Body Condition, or -1 where it does not. */
 export const bodyConditionSlot = (step: Pick<Step, "evidence">): number =>
-  step.evidence.findIndex(asksBodyCondition);
+  step.evidence.findIndex(asksIt);
 
 /** Whether a Step asks Body Condition. */
 export const asksBodyConditionIn = (step: Pick<Step, "evidence">): boolean =>
@@ -57,4 +91,19 @@ export const bodyConditionIn = (
     (BODY_CONDITION_SCORES as readonly string[]).includes(value)
     ? (Number(value) as BodyConditionScore)
     : null;
+};
+
+/**
+ * When she was judged: the moment the Step says the thing happened — when she calved — where it asks one and it was
+ * answered, since a Calving is often written up hours after; otherwise when the Step was written.
+ */
+export const judgedAtOf = (
+  step: Pick<Step, "evidence">,
+  evidence: readonly unknown[],
+  recordedAt: Date
+): Date => {
+  const at = step.evidence.findIndex((item) => item.type === "datetime");
+  const said = at === -1 ? undefined : evidence[at];
+  const when = typeof said === "string" && said !== "" ? new Date(said) : null;
+  return when && !Number.isNaN(when.getTime()) ? when : recordedAt;
 };

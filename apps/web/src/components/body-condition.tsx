@@ -1,24 +1,31 @@
-import type { BodyConditionScore } from "@OpenFarm/domain";
+import { bodyConditionWords } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { Language } from "@OpenFarm/i18n";
 import { ArrowDown, ArrowRight, ArrowUp } from "lucide-react";
 
+import type { AnimalDetail } from "@/components/animal/animal-types";
 import { RecordList, RecordRow, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { conditionChange } from "@/lib/body-condition";
 
-/** One judgment of her Body Condition, as her page and the board are told it. */
-interface Reading {
-  score: BodyConditionScore;
-  judgedAt: Date | string;
-  procedure?: { bn: string; en?: string };
-}
+/** One judgment of her Body Condition, as her page is told it. */
+type Reading = AnimalDetail["bodyCondition"][number];
+/** Her latest, as a list of animals is told it beside each. */
+type Latest = Pick<Reading, "score" | "judgedAt">;
 
-/** The score in the reader's words: "3 — moderate". */
-const ScoreWords = ({ score }: { score: BodyConditionScore }) => {
-  const { t } = useLanguage();
-  return <>{t(`bodyCondition.score.${score}`)}</>;
-};
+/** The score in the reader's words, the scale's own — "3 — moderate" — as the phone that asked it said them. */
+const scoreWords = (score: Reading["score"], language: Language): string =>
+  bodyConditionWords(score)[language];
+
+/** The day she was judged. */
+const dayJudged = (reading: Latest, language: Language): string =>
+  formatDate(new Date(reading.judgedAt), language, "date");
+
+/** The procedure that asked it, in the reader's language where the farm wrote it in theirs. */
+const procedureWords = (
+  procedure: Reading["procedure"],
+  language: Language
+): string => (language === "en" && procedure.en ? procedure.en : procedure.bn);
 
 const CHANGE_ICON = { up: ArrowUp, down: ArrowDown, same: ArrowRight };
 
@@ -42,10 +49,9 @@ export const LatestBodyCondition = ({
   return (
     <span className="flex flex-col gap-0.5">
       <span>
-        <ScoreWords score={latest.score} />
+        {scoreWords(latest.score, language)}
         <span className="text-muted-foreground font-normal">
-          {" · "}
-          {formatDate(new Date(latest.judgedAt), language, "date")}
+          {` · ${dayJudged(latest, language)}`}
         </span>
       </span>
       {change && Icon && before ? (
@@ -60,17 +66,6 @@ export const LatestBodyCondition = ({
       ) : null}
     </span>
   );
-};
-
-/** The procedure that asked it, in the reader's language where the farm wrote it in theirs. */
-const procedureWords = (
-  procedure: Reading["procedure"],
-  language: Language
-): string | null => {
-  if (!procedure) {
-    return null;
-  }
-  return language === "en" && procedure.en ? procedure.en : procedure.bn;
 };
 
 /** Each judgment of her Body Condition, the latest first, with the day and the procedure that asked it. */
@@ -89,28 +84,28 @@ export const BodyConditionReadings = ({
       title={t("bodyCondition.title")}
     >
       <RecordList>
-        {readings.map((reading) => {
-          const procedure = procedureWords(reading.procedure, language);
-          const day = formatDate(new Date(reading.judgedAt), language, "date");
-          return (
-            <RecordRow
-              key={`${String(reading.judgedAt)}-${reading.score}`}
-              meta={procedure ? `${day} · ${procedure}` : day}
-              title={<ScoreWords score={reading.score} />}
-            />
-          );
-        })}
+        {readings.map((reading) => (
+          <RecordRow
+            key={`${String(reading.judgedAt)}-${reading.score}`}
+            meta={`${dayJudged(reading, language)} · ${procedureWords(
+              reading.procedure,
+              language
+            )}`}
+            title={scoreWords(reading.score, language)}
+          />
+        ))}
       </RecordList>
     </Section>
   );
 };
 
-/** Her latest Body Condition as one small line under her weight on the Fattening board: "Condition 3 · 16 Feb". */
-export const BoardBodyCondition = ({
+/** An animal's latest Body Condition as one small line beside her in a list: "Condition 3 · 16 Feb". Nothing where
+ *  nobody has judged her. */
+export const BodyConditionLine = ({
   reading,
 }: {
-  /** Missing from an answer this phone kept from before the board said it. */
-  reading: Reading | null | undefined;
+  /** Missing from an answer this phone kept from before the list said it. */
+  reading: Latest | null | undefined;
 }) => {
   const { t, language } = useLanguage();
   if (!reading) {
@@ -120,7 +115,7 @@ export const BoardBodyCondition = ({
     <span className="text-muted-foreground text-xs whitespace-nowrap">
       {`${t("bodyCondition.short", {
         score: formatNumber(reading.score, language),
-      })} · ${formatDate(new Date(reading.judgedAt), language, "date")}`}
+      })} · ${dayJudged(reading, language)}`}
     </span>
   );
 };

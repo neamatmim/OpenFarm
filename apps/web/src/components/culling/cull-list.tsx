@@ -10,6 +10,7 @@ import { CalendarX, Milk, Repeat, Store } from "lucide-react";
 import { useState } from "react";
 
 import { StateBadge } from "@/components/animal/animal-words";
+import { BodyConditionLine } from "@/components/body-condition";
 import {
   ActionsHeader,
   DataTable,
@@ -181,6 +182,7 @@ const CalvingLines = ({ cow }: { cow: CullCow }) => {
           {line}
         </span>
       ))}
+      <BodyConditionLine reading={cow.bodyCondition} />
     </span>
   );
 };

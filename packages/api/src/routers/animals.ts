@@ -31,6 +31,7 @@ import { audited } from "../audit";
 import {
   BODY_CONDITION_SHOWN,
   bodyConditionsOf,
+  latestBodyConditions,
 } from "../body-condition-store";
 import { breedNamed } from "../breed-store";
 import {
@@ -1138,9 +1139,16 @@ export const animalsRouter = {
         },
         orderBy: { tagNumber: "asc" },
       });
+      // Each one's latest Body Condition, read once for the list.
+      const judged = await latestBodyConditions(
+        context.db,
+        context.farm.id,
+        rows.map((row) => row.id)
+      );
       return rows.map(({ intake, ...her }) => ({
         ...her,
         ageAtIntake: intake ?? null,
+        bodyCondition: judged.get(her.id) ?? null,
       }));
     }),
 
@@ -1316,16 +1324,16 @@ export const animalsRouter = {
             intakeView(intake)
           )
         : null;
-      const judged = await bodyConditionsOf(
-        context.db,
-        context.farm.id,
-        [her.id],
-        BODY_CONDITION_SHOWN
-      );
-      const [heats, services, checks] = await Promise.all([
+      const [heats, services, checks, judged] = await Promise.all([
         heatsOf(context.db, her.id),
         servicesOf(context.db, her.id),
         pregnancyChecksOf(context.db, her.id),
+        bodyConditionsOf(
+          context.db,
+          context.farm.id,
+          [her.id],
+          BODY_CONDITION_SHOWN
+        ),
       ]);
       return {
         ...whatSheIs,

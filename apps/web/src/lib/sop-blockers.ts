@@ -52,6 +52,8 @@ const SAID: Readonly<Record<string, MessageKey>> = {
   "a step needs at least one kind of evidence": "sop.problem.noEvidence",
   "the range runs backwards": "sop.problem.rangeBackwards",
   "a choice needs something to choose": "sop.problem.noChoices",
+  "body condition is asked as the five scores, one to five":
+    "sop.problem.bodyConditionScale",
   "two choices share one value": "sop.problem.sameValue",
   "this step records a figure and asks for none": "sop.problem.needsFigure",
   "this step moves an animal and offers no pen to move her to":

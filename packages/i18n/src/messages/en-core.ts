@@ -2087,6 +2087,8 @@ export const enCore = {
   "sop.problem.noEvidence": "say what is recorded",
   "sop.problem.rangeBackwards": "the least is more than the most",
   "sop.problem.noChoices": "write at least one thing to choose",
+  "sop.problem.bodyConditionScale":
+    "body condition is asked as its five scores, one to five — take it out and ask it again",
   "sop.problem.sameValue": "two choices are the same; make each one different",
   "sop.problem.sameId":
     "two steps share the name “{value}”; remove one and add it again",
@@ -4348,11 +4350,6 @@ export const enCore = {
   "gain.title": "Gain and projection",
   "gain.daysOnFeed": "Days on feed",
   "bodyCondition.title": "Body condition",
-  "bodyCondition.score.1": "1 — very thin",
-  "bodyCondition.score.2": "2 — thin",
-  "bodyCondition.score.3": "3 — moderate",
-  "bodyCondition.score.4": "4 — good flesh",
-  "bodyCondition.score.5": "5 — fat",
   "bodyCondition.short": "Condition {score}",
   "bodyCondition.up": "Up from {score}",
   "bodyCondition.down": "Down from {score}",

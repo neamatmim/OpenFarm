@@ -1,6 +1,10 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { standardPlaybook } from "@OpenFarm/domain";
+import {
+  BODY_CONDITION,
+  BODY_CONDITION_SCORES,
+  standardPlaybook,
+} from "@OpenFarm/domain";
 import {
   DAY,
   FakeClock,
@@ -28,6 +32,10 @@ const everyMorning = (content: SopContent, name: string): SopContent => ({
   name: { bn: `${content.name.bn} ${name}`, en: content.name.en },
   triggers: [{ kind: "schedule", times: ["07:00"] }],
 });
+
+/** The five scores, each worded as the Owner words it. */
+const fiveOf = (bn: (score: string) => string) =>
+  BODY_CONDITION_SCORES.map((value) => ({ value, label: { bn: bn(value) } }));
 
 const setup = async () => {
   const clock = new FakeClock("2027-02-01T03:00:00.000Z");
@@ -102,6 +110,50 @@ const setup = async () => {
   const dryOff = await owner.client.sops.create({
     content: everyMorning(playbook.dryOff, suffix),
   });
+  const calving = await owner.client.sops.create({
+    content: everyMorning(playbook.calvingRecord, suffix),
+  });
+  // The farm's own look at the bulls: a lameness score the Owner typed as "1, 2, 3, 4, 5" — the same values as Body
+  // Condition, in the Owner's own words — and Body Condition the Playbook's way, its words reworded.
+  const look = await owner.client.sops.create({
+    content: {
+      name: { bn: `পা দেখা ${suffix}`, en: "Feet and flesh" },
+      purpose: { bn: "প্রতিটি ষাঁড়ের পা আর শরীর দেখুন" },
+      triggers: [{ kind: "schedule", times: ["07:00"] }],
+      appliesTo: { side: "fattening" },
+      assignedRole: "staff",
+      checkerRole: "manager",
+      graceMinutes: 240,
+      steps: [
+        {
+          id: "lame",
+          text: { bn: "খোঁড়ানো কতটা" },
+          repeatPerAnimal: true,
+          evidence: [
+            {
+              type: "choice",
+              required: true,
+              choices: fiveOf((value) => value),
+            },
+          ],
+          skipReasons: [],
+        },
+        {
+          id: "flesh",
+          text: { bn: "শরীর কেমন" },
+          repeatPerAnimal: true,
+          evidence: [
+            {
+              ...BODY_CONDITION,
+              required: true,
+              choices: fiveOf((value) => `মান ${value}`),
+            },
+          ],
+          skipReasons: [],
+        },
+      ],
+    },
+  });
   return {
     bullPen,
     cowPen,
@@ -110,6 +162,8 @@ const setup = async () => {
     cow: cow.tagNumber,
     weighIn,
     dryOff,
+    calving,
+    look,
   };
 };
 
@@ -172,20 +226,9 @@ describe("Body Condition", () => {
       evidence: [231, ""],
     });
 
-    // A third round he would not go up the crush: skipped, he was not judged, and his last score stands.
-    const third = await round(
-      "2027-03-02",
-      world.weighIn.definitionId,
-      world.bullPen.id
-    );
-    await third.staff.client.work.completeStep({
-      instanceId: third.instance.id,
-      stepId: "weigh",
-      animalTag: world.bull,
-      skipReason: "ক্রাশে ওঠেনি",
+    const his = await second.owner.client.animals.get({
+      tagNumber: world.bull,
     });
-
-    const his = await third.owner.client.animals.get({ tagNumber: world.bull });
     expect(his.bodyCondition).toMatchObject([
       {
         score: 3,
@@ -194,12 +237,12 @@ describe("Body Condition", () => {
       },
       { score: 2, judgedAt: new Date("2027-02-02T07:30:00.000Z") },
     ]);
-    const never = await third.owner.client.animals.get({
+    const never = await second.owner.client.animals.get({
       tagNumber: world.unjudged,
     });
     expect(never.bodyCondition).toEqual([]);
 
-    const board = await third.owner.client.fattening.list();
+    const board = await second.owner.client.fattening.list();
     expect(board.find((row) => row.tagNumber === world.bull)).toMatchObject({
       bodyCondition: {
         score: 3,
@@ -230,6 +273,102 @@ describe("Body Condition", () => {
     expect(putRight.bodyCondition[0]).toMatchObject({ score: 4 });
   });
 
+  it("is judged by no skipped Step: a bull that would not go up the crush keeps his last score", async () => {
+    const third = await round(
+      "2027-03-02",
+      world.weighIn.definitionId,
+      world.bullPen.id
+    );
+    await third.staff.client.work.completeStep({
+      instanceId: third.instance.id,
+      stepId: "weigh",
+      animalTag: world.bull,
+      skipReason: "ক্রাশে ওঠেনি",
+    });
+
+    const his = await third.owner.client.animals.get({ tagNumber: world.bull });
+    expect(his.bodyCondition).toMatchObject([
+      { score: 4, judgedAt: new Date("2027-02-16T07:30:00.000Z") },
+      { score: 2, judgedAt: new Date("2027-02-02T07:30:00.000Z") },
+    ]);
+    expect(his.bodyCondition).toHaveLength(2);
+  });
+
+  it("says six of them on her page, the latest first, however many there are", async () => {
+    const days = [
+      "2027-03-16",
+      "2027-03-30",
+      "2027-04-13",
+      "2027-04-27",
+      "2027-05-11",
+    ];
+    const scores = ["3", "3", "4", "4", "5"];
+    for (const [index, day] of days.entries()) {
+      // One round after another, each on its own day.
+      // oxlint-disable-next-line no-await-in-loop
+      const { instance, staff } = await round(
+        day,
+        world.weighIn.definitionId,
+        world.bullPen.id
+      );
+      // oxlint-disable-next-line no-await-in-loop
+      await staff.client.work.completeStep({
+        instanceId: instance.id,
+        stepId: "weigh",
+        animalTag: world.bull,
+        evidence: [240 + index * 15, scores[index] ?? ""],
+      });
+    }
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2027-05-12T03:00:00.000Z"),
+    });
+    const his = await owner.client.animals.get({ tagNumber: world.bull });
+    // Seven judged; the first, on the second of February, is the one left off.
+    expect(his.bodyCondition.map((one) => one.score)).toEqual([
+      5, 4, 4, 3, 3, 4,
+    ]);
+    expect(his.bodyCondition.at(-1)?.judgedAt).toEqual(
+      new Date("2027-02-16T07:30:00.000Z")
+    );
+    const board = await owner.client.fattening.list();
+    expect(
+      board.find((row) => row.tagNumber === world.bull)?.bodyCondition
+    ).toEqual({ score: 5, judgedAt: new Date("2027-05-11T07:30:00.000Z") });
+  });
+
+  it("is not an Owner's own one-to-five scale, and is the Playbook's slot whatever its words are reworded to", async () => {
+    const { instance, staff, owner } = await round(
+      "2027-05-20",
+      world.look.definitionId,
+      world.bullPen.id
+    );
+    await staff.client.work.completeStep({
+      instanceId: instance.id,
+      stepId: "lame",
+      animalTag: world.bull,
+      evidence: ["2"],
+    });
+    const lame = await owner.client.animals.get({ tagNumber: world.bull });
+    // His lameness is not his flesh: his latest is still the weigh-in's five.
+    expect(lame.bodyCondition[0]).toMatchObject({
+      score: 5,
+      procedure: { en: "Weigh-in" },
+    });
+
+    await staff.client.work.completeStep({
+      instanceId: instance.id,
+      stepId: "flesh",
+      animalTag: world.bull,
+      evidence: ["1"],
+    });
+    const flesh = await owner.client.animals.get({ tagNumber: world.bull });
+    expect(flesh.bodyCondition[0]).toMatchObject({
+      score: 1,
+      procedure: { en: "Feet and flesh" },
+    });
+  });
+
   it("is asked as she goes dry, and read on her page", async () => {
     const { instance, staff, owner } = await round(
       "2027-03-03",
@@ -247,5 +386,61 @@ describe("Body Condition", () => {
     expect(her.bodyCondition).toMatchObject([
       { score: 2, procedure: { en: "Dry-off" } },
     ]);
+  });
+
+  it("is asked when she calves, judged at the moment she calved, and said wherever the herd's cows are listed", async () => {
+    const { instance, staff } = await round(
+      "2027-03-10",
+      world.calving.definitionId,
+      world.cowPen.id
+    );
+    // Calved in the small hours, written up at half past seven: nine answers, the last her flesh.
+    await staff.client.work.completeStep({
+      instanceId: instance.id,
+      stepId: "calved",
+      animalTag: world.cow,
+      evidence: [
+        "2027-03-10T02:10:00.000Z",
+        "unassisted",
+        "female",
+        "alive",
+        "",
+        "",
+        "",
+        "",
+        "4",
+      ],
+    });
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2027-03-11T03:00:00.000Z"),
+    });
+    const her = await owner.client.animals.get({ tagNumber: world.cow });
+    expect(her.state).toBe("milking");
+    expect(her.bodyCondition).toMatchObject([
+      {
+        score: 4,
+        judgedAt: new Date("2027-03-10T02:10:00.000Z"),
+        procedure: { en: "Calving record" },
+      },
+      { score: 2, procedure: { en: "Dry-off" } },
+    ]);
+
+    const latest = {
+      score: 4,
+      judgedAt: new Date("2027-03-10T02:10:00.000Z"),
+    };
+    const fertility = await owner.client.breeding.fertility();
+    expect(
+      fertility.cows.find((cow) => cow.tagNumber === world.cow)?.bodyCondition
+    ).toEqual(latest);
+    const culling = await owner.client.cullList.list();
+    expect(
+      culling.cows.find((cow) => cow.tagNumber === world.cow)?.bodyCondition
+    ).toEqual(latest);
+    const herd = await owner.client.animals.list();
+    expect(
+      herd.find((one) => one.tagNumber === world.cow)?.bodyCondition
+    ).toEqual(latest);
   });
 });
