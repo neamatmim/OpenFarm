@@ -439,14 +439,20 @@ export const StatusBadge = ({
   tone,
   children,
   icon,
+  wraps = false,
 }: {
   tone: Tone;
   children: ReactNode;
   icon?: LucideIcon;
+  /** Inside something narrow — an animal's tile — the words wrap rather than run out past its edge. */
+  wraps?: boolean;
 }) => {
   const Icon = icon ?? TONE_ICON[tone];
   return (
-    <Badge variant={BADGE_VARIANT[tone]}>
+    <Badge
+      className={wraps ? "max-w-full whitespace-normal" : undefined}
+      variant={BADGE_VARIANT[tone]}
+    >
       <Icon aria-hidden data-icon="inline-start" />
       {children}
     </Badge>

@@ -557,19 +557,21 @@ export const AnimalTile = ({
         </span>
       ) : null}
       {animal.underMilkWithdrawal ? (
-        <StatusBadge icon={Lock} tone="warning">
+        <StatusBadge icon={Lock} tone="warning" wraps>
           {t("milk.withdrawalShort")}
         </StatusBadge>
       ) : null}
       {animal.notDueSince && standing === "left" ? (
-        <StatusBadge tone="info">
+        <StatusBadge tone="info" wraps>
           {t("work.notDue", {
             day: formatDate(startOfFarmDay(animal.notDueSince), language),
           })}
         </StatusBadge>
       ) : null}
       {heldForSale && !animal.notDueSince && standing === "left" ? (
-        <StatusBadge tone="info">{t("work.heldForSale")}</StatusBadge>
+        <StatusBadge tone="info" wraps>
+          {t("work.heldForSale")}
+        </StatusBadge>
       ) : null}
     </button>
   );
