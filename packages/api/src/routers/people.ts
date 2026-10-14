@@ -20,6 +20,7 @@ import { audited } from "../audit";
 import { refuseCommonPassword } from "../chosen-password";
 import { correct } from "../corrections/correction";
 import { nameCorrection, nameCorrectionInput } from "../corrections/name";
+import { scopesWithTheirCover } from "../cover-store";
 import { requireDevice } from "../device";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
@@ -59,7 +60,6 @@ import {
   requirePersonalSession,
   requireRole,
 } from "../roles";
-import { scopesOf } from "../scope";
 
 const roleSchema = z.enum(ROLES);
 
@@ -180,7 +180,7 @@ export const peopleRouter = {
     /** What they may see and record under each Role they hold — the farm, their Pens, their Cases, or their Pens or
      *  their Cases — worked out by the same Scope every procedure is held to, so a screen shows what each of their
      *  Roles lets them reach rather than working the rule out again. */
-    scopes: scopesOf(context),
+    scopes: await scopesWithTheirCover(context),
     /** The number the farm can text, so a screen can show what is written down. */
     phone: context.person?.phone ?? null,
     disabled: Boolean(context.person?.disabledAt),

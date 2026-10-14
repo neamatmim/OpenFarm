@@ -2010,6 +2010,7 @@ export const enDesk = {
   "audit.entity.store": "Store",
   "audit.entity.push_subscription": "Notifications",
   "audit.entity.pen": "Pen",
+  "audit.entity.cover": "Cover",
   "audit.entity.shed": "Shed",
   "audit.entity.money_category": "Money category",
   "audit.entity.drug_product": "Medicine",

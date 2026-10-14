@@ -7,6 +7,7 @@ import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ASSIGNMENT } from "@OpenFarm/db/schema/herd";
 
 import type { Tx } from "./audit";
+import { swapTheAwayAt } from "./cover-store";
 
 /** One Alert waiting to be raised: what it is about, and what its message needs. */
 export interface AlertToRaise {
@@ -54,7 +55,9 @@ export const peopleOnTheWork = async (
     assignedRole: RoleName;
     assignedTo: string | null;
     claimedBy: string | null;
-  }
+  },
+  /** When it is told: a Pen's work is the cover's while its keeper is away that day. */
+  at?: Date
 ): Promise<string[]> => {
   const named = instance.claimedBy ?? instance.assignedTo;
   if (named) {
@@ -73,7 +76,12 @@ export const peopleOnTheWork = async (
     },
     columns: { userId: true },
   });
-  return [...new Set(assignments.map((row) => row.userId))];
+  return await swapTheAwayAt(
+    tx,
+    farmId,
+    [...new Set(assignments.map((row) => row.userId))],
+    at
+  );
 };
 
 /**
@@ -119,13 +127,20 @@ export const raiseAlerts = async (
 export const peopleOfThePen = async (
   tx: Tx,
   farmId: string,
-  penId: string
+  penId: string,
+  /** When it is told: whoever covers the keeper away that day hears it in their place. */
+  at?: Date
 ): Promise<string[]> => {
   const rows = await tx.query.penAssignment.findMany({
     where: { farmId, penId, ...ACTIVE_ASSIGNMENT },
     columns: { userId: true },
   });
-  return [...new Set(rows.map((row) => row.userId))];
+  return await swapTheAwayAt(
+    tx,
+    farmId,
+    [...new Set(rows.map((row) => row.userId))],
+    at
+  );
 };
 
 /**
@@ -143,7 +158,9 @@ export const doersOf = async (
     assignedRole: RoleName;
     assignedTo: string | null;
     claimedBy: string | null;
-  }
+  },
+  /** When it is told, for work nobody named, whose Pen's people turn on that day's Covers. */
+  at?: Date
 ): Promise<string[]> => {
   const named = instance.claimedBy ?? instance.assignedTo;
   if (named) {
@@ -156,7 +173,7 @@ export const doersOf = async (
   const byHand = [...new Set(recorded.map((row) => row.recordedBy))];
   return byHand.length > 0
     ? byHand
-    : await peopleOnTheWork(tx, farmId, instance);
+    : await peopleOnTheWork(tx, farmId, instance, at);
 };
 
 /**

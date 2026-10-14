@@ -34,6 +34,7 @@ export const ENTITIES = [
   "sop_version",
   "push_subscription",
   "pen",
+  "cover",
   "shed",
   "money_category",
   "drug_product",

@@ -9,6 +9,7 @@ import { breedsRouter } from "./breeds";
 import { buyingTripsRouter } from "./buying-trips";
 import { cashRouter } from "./cash";
 import { costsRouter } from "./costs";
+import { coversRouter } from "./covers";
 import { cullListRouter } from "./cull-list";
 import { devicesRouter } from "./devices";
 import { diagnosesRouter } from "./diagnoses";
@@ -95,6 +96,7 @@ type AppRouterShape = {
   observations: typeof observationsRouter;
   papers: typeof papersRouter;
   people: typeof peopleRouter;
+  covers: typeof coversRouter;
   prescriptions: typeof prescriptionsRouter;
   push: typeof pushRouter;
   readyForSale: typeof readyForSaleRouter;
@@ -156,6 +158,7 @@ export const appRouter: AppRouterShape = {
   observations: observationsRouter,
   papers: papersRouter,
   people: peopleRouter,
+  covers: coversRouter,
   prescriptions: prescriptionsRouter,
   push: pushRouter,
   readyForSale: readyForSaleRouter,

@@ -1891,6 +1891,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "audit.entity.store": "গুদাম",
   "audit.entity.push_subscription": "নোটিফিকেশন",
   "audit.entity.pen": "পেন",
+  "audit.entity.cover": "বদলি",
   "audit.entity.shed": "শেড",
   "audit.entity.money_category": "{currencyOf} খাত",
   "audit.entity.drug_product": "ওষুধ",

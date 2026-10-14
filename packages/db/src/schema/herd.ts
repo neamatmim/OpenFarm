@@ -349,6 +349,58 @@ export const penAssignment = pgTable(
 /** The one definition of "a Pen a person still looks after": not ended. Use in relational `where`s. */
 export const ACTIVE_ASSIGNMENT = { endedAt: { isNull: true } } as const;
 
+/**
+ * A Cover: one Barn Staff member looking after an absent one's Pens for one farm day, as the Manager set it. The
+ * absent person keeps their own Pens; the cover has them besides, until the day turns or the Manager ends it early.
+ * Never deleted; one ended early keeps when and by whom.
+ */
+export const cover = pgTable(
+  "cover",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    /** Whose Pens are covered: the one away today. */
+    absentUserId: text("absent_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Who looks after them today. */
+    coverUserId: text("cover_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** The farm day it is for, "YYYY-MM-DD": it covers nothing on any other. */
+    day: text("day").notNull(),
+    setBy: text("set_by")
+      .notNull()
+      .references(() => user.id),
+    setAt: timestamp("set_at", { withTimezone: true }).notNull(),
+    /** Ended before the day turned; null while it stands for the rest of its day. */
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    endedBy: text("ended_by").references(() => user.id),
+  },
+  (table) => [
+    index("cover_farm_cover_day_idx").on(
+      table.farmId,
+      table.coverUserId,
+      table.day
+    ),
+    index("cover_farm_day_idx").on(table.farmId, table.day),
+    // One standing Cover for one person on one day: a new one ends the last before it is written.
+    uniqueIndex("cover_standing_uidx")
+      .on(table.farmId, table.absentUserId, table.day)
+      .where(sql`${table.endedAt} is null`),
+    check(
+      "cover_not_themselves",
+      sql`${table.absentUserId} <> ${table.coverUserId}`
+    ),
+    check(
+      "cover_day_shape",
+      sql`${table.day} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`
+    ),
+  ]
+);
+
 /** How a carcass left the farm. The burial rule is six feet, and an inspector may ask which
  *  of these it was — so these are the two the rule names, and the note carries the rest. */
 export const DISPOSALS = ["buried", "burned"] as const;
