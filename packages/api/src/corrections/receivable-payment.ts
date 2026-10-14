@@ -77,6 +77,7 @@ export const receivablePaymentCorrection: CorrectionKind<
 > = {
   entity: "receivable_payment",
   table: receivablePayment,
+  money: true,
   roles: ["owner", "manager"],
   missing: "No such payment",
   load: loadPayment,

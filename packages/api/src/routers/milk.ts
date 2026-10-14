@@ -129,6 +129,7 @@ export const milkRouter = {
       await audited(context).write(
         {
           entity: "dispatch",
+          reachesMoney: true,
           entityId: id,
           action: "create",
           after: (tx) => readDispatch(tx, id),

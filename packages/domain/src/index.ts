@@ -1041,6 +1041,7 @@ export type {
   MonthlyReportRow,
 } from "./monthly-report-paper";
 export { monthlyReportPaper, monthlyReportRows } from "./monthly-report-paper";
+export { MONEY_SOURCE_WORD } from "./money-source-words";
 export { paperText } from "./paper-text";
 export type {
   ChargeLine,

@@ -31,6 +31,7 @@ export const writeOffCorrection: CorrectionKind<
 > = {
   entity: "receivable_write_off",
   table: receivableWriteOff,
+  money: true,
   roles: ["owner"],
   missing: "No such write-off",
   load: loadWriteOff,

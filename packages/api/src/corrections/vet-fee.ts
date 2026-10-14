@@ -45,6 +45,7 @@ export const vetFeeCorrection: CorrectionKind<
 > = {
   entity: "vet_fee",
   table: vetFee,
+  money: true,
   roles: ["owner", "vet"],
   missing: "No such fee",
   load: loadFee,

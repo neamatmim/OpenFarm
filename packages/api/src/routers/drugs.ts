@@ -242,6 +242,7 @@ export const drugsRouter = {
       await audited(context).write(
         {
           entity: "medicine_purchase",
+          reachesMoney: true,
           entityId: id,
           action: "create",
           after: async (tx) =>

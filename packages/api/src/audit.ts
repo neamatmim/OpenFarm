@@ -44,6 +44,10 @@ export interface AuditedWrite {
    *  request is acting under. A Correction is permitted by a specific Role's window, and
    *  that is the Role the trail must name. */
   roleUsed?: RoleName;
+  /** A write that can book or move money, or another figure of a month gone by, which a **Closed Month** asks about:
+   *  the Farm's lock is taken first, before any row of the write's own (`lockTheFarm`). Nothing for the rest — a
+   *  milking, an observation — which never wait on it. */
+  reachesMoney?: boolean;
 }
 
 /** A snapshot as it stands on this transaction: read now if it is a reader. */
@@ -142,9 +146,9 @@ export const audited = (
     const eventId = uuidv7(receivedAt);
     return seenWhenDone(
       context.db.transaction(async (tx) => {
-        // The Farm first, before any row of the write's own: every write that can reach its money is ordered the same
-        // way, so none waits on another that waits on it (`lockTheFarm`).
-        if (farmId) {
+        // The Farm first for a write that can reach its money, before any row of the write's own: every such write is
+        // ordered the same way, so none waits on another that waits on it (`lockTheFarm`).
+        if (farmId && event.reachesMoney) {
           await lockTheFarm(tx, farmId);
         }
         const before = await readSnapshot(tx, event.before);

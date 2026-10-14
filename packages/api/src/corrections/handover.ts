@@ -59,6 +59,7 @@ export const handoverCorrection: CorrectionKind<
 > = {
   entity: "handover",
   table: handover,
+  money: true,
   roles: ["owner", "manager"],
   missing: "No such handover",
   load: loadHandover,

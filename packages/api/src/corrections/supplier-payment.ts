@@ -39,6 +39,7 @@ export const supplierPaymentCorrection: CorrectionKind<
 > = {
   entity: "supplier_payment",
   table: supplierPayment,
+  money: true,
   roles: ["owner"],
   missing: "No such supplier payment",
   load,

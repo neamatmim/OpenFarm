@@ -149,6 +149,7 @@ export const cashRouter = {
       await audited(context).write(
         {
           entity: "handover",
+          reachesMoney: true,
           entityId: () => id,
           action: "create",
           after: (tx) => readHandover(tx, id),
@@ -197,6 +198,7 @@ export const cashRouter = {
       await audited(context).write(
         {
           entity: "buying_trip",
+          reachesMoney: true,
           entityId: input.tripId,
           action: "correct",
           reason: input.reason,
@@ -249,6 +251,7 @@ export const cashRouter = {
       await audited(context).write(
         {
           entity: "buying_trip",
+          reachesMoney: true,
           entityId: input.tripId,
           action: "update",
           after: async (tx) => {

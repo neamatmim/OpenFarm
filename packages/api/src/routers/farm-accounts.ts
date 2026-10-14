@@ -326,6 +326,7 @@ export const farmAccountsRouter = {
       await audited(context).write(
         {
           entity: "farm_account_check",
+          reachesMoney: true,
           entityId: id,
           action: readBefore ? "update" : "create",
           reason: input.note,

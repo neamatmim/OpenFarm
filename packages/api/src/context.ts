@@ -72,6 +72,10 @@ export interface Context {
   /** Who this write is attributed to, whichever principal it arrived by. */
   actor: Actor | null;
   clock: Clock;
+  /** When the farm heard of this request, where `clock` is set to when the work was done instead — a Correction a
+   *  phone held with no signal is judged at when it was made, but whether a month is closed is asked as the farm stands
+   *  now (ADR 0028). Nothing where `clock` is the farm's own. */
+  heardAt?: Date;
   db: Database;
   /** The Farm this request acts on, its row as it stood when the request arrived — what each column means is said on
    *  the schema; null until the farm is bootstrapped. Read again behind the farm's lock where a write depends on it. */

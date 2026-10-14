@@ -333,6 +333,7 @@ export const saleCorrection: CorrectionKind<
 > = {
   entity: "sale",
   table: sale,
+  money: true,
   roles: ["owner", "manager"],
   // Putting one of these right can move a Venture Movement, so it takes the Farm lock first, as
   // everything that counts a Venture's money does.

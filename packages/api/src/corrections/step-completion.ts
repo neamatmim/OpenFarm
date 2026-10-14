@@ -143,7 +143,10 @@ export const stepCorrection: CorrectionKind<
 > = {
   entity: "step_completion",
   table: stepCompletion,
+  // A Step whose Effect counts the cash sets what a hand holds, a figure of its month; no other Step's reaches money.
+  money: (row) => stepOfCompletion(row).effect?.kind === "cash_count",
   roles: ["owner", "manager", "staff", "vet"],
+
   // A Pregnancy Check is a clinical finding: the Vet's alone to put right, as a Diagnosis is.
   rolesFor: (row) =>
     isClinicalStep(stepOfCompletion(row)) ? ["vet"] : undefined,

@@ -166,6 +166,7 @@ export const moneyByHandCorrection: CorrectionKind<
 > = {
   entity: "money_event",
   table: moneyEvent,
+  money: true,
   roles: ["owner", "manager"],
   missing: "No such money entry",
   venturesOf: venturesOfEntered,

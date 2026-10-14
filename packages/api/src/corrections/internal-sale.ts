@@ -72,6 +72,7 @@ export const internalSaleCorrection: CorrectionKind<
 > = {
   entity: "internal_sale",
   table: internalSale,
+  money: true,
   roles: ["owner"],
   missing: "No such sale",
   load: loadSale,

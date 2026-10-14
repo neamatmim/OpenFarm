@@ -53,6 +53,7 @@ export const sellingTripCorrection: CorrectionKind<
 > = {
   entity: "selling_trip",
   table: sellingTrip,
+  money: true,
   roles: ["owner", "manager"],
   // An outing's own costs are split across the Animals it carried, so they are charges against every
   // Venture that had one on the lorry — whether or not anybody bought her.
