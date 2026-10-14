@@ -191,3 +191,18 @@ files, domain 107, i18n 3, web 101), screens seen on the seed farm. No migration
 | `4b5c94d8` | G1 | ADR 0029: a Campaign comes round by each animal's last dose (every N months); raised in many Pens at once, never twice in one Pen; «animals owed a Campaign» on Medicines; animals not due show «Not due — dosed {day}» on the walk and raise no put-off. A farm that adopted its vaccination procedures before this sets the interval in the Playbook. |
 
 Left: D9 (cover for an absent worker), D10–D12 (feed screens, after a month of use), F (Venture admin), G2–G9.
+
+## Built — step 6 (2026-10-14)
+
+`/implement`: F (Venture admin), D9, G3, G8. Each branch code-reviewed and fixed before merging; main green after (api
+387 files, domain 108, i18n 3, web 105); screens seen on the seed farm. Migrations applied to both dev DBs (265).
+
+| Merge | Findings | What |
+|---|---|---|
+| `bf5d74e7` | — | The month-close lock fix (315d73be) had sat on a detached HEAD and missed c566de95: the farm lock only on money paths. Pushed. |
+| `e06835f5`, `bea462db` | D9 | **Cover** «বদলি»: an absent milker's pens to another for the day, ended by the day; notices to the cover; their claims released; late entries judged by that day's pens. Then: held work taken in on the Manager's own farm (buildContext named no farm). |
+| `2023986a` | F2, F3 | A Venture's month of capital on one grid (all or nothing, answers Pay-in Notes), every progress statement in one print (built first, kept together), every payout on one sheet. |
+| `f95a8d2f` | G3, G8 | Milk for the house a Destination at milking; the Vet's own giving-less list; «Vet to look» once per cow, never for heat. |
+| `a6616b00` | F1, F5, F6 | «এ মাসে যাঁদের মাসের টাকা বাকি» on Investors with phone and capital in; Needs you counts and filters; the Owner told when an Investor agrees (`offer_agreed`). |
+
+Left: D10–D12 (feed, after a month of use), G2 (Qurbani booking, with the Eid batch sale), G4–G7, G9.
