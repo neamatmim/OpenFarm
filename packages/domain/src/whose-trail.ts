@@ -29,6 +29,7 @@ export const WHOSE_TRAIL = {
   farm: "farm",
   farm_day: "farm",
   feed_in: "farm",
+  feed_making: "farm",
   feed_purchase_order: "farm",
   supplier: "farm",
   supplier_invoice: "farm",

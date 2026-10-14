@@ -148,6 +148,24 @@ const keepTheStore = ({ farm, days, on }: Script) => {
         });
       }
     });
+    // The last fortnight, the Manager mixes a little concentrate himself from what the lorry brought (ADR 0031): a Feed
+    // Making on the Feed page's «Made on the farm», its inputs out of the store and the mix in at what went in.
+    if (day >= addDays(today, -14)) {
+      on(day, "11:30", "home mix", async (f) => {
+        await f.as.manager.feedMaking.make({
+          outputFeedItemId: f.feeds.concentrate,
+          madeAt: onFarm(day, "11:30"),
+          inputs: [
+            { feedItemId: f.feeds.bran, quantity: 100 },
+            { feedItemId: f.feeds.maize, quantity: 60 },
+            { feedItemId: f.feeds.mustardCake, quantity: 30 },
+            { feedItemId: f.feeds.salt, quantity: 2 },
+          ],
+          cameOut: { quantity: 190 },
+          note: "ঘরে মেশানো দানাদার",
+        });
+      });
+    }
   }
 };
 

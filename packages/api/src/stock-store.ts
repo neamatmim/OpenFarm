@@ -2,14 +2,20 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, notInArray, sql } from "@OpenFarm/db/operators";
 import type { FEED_IN_KINDS } from "@OpenFarm/db/schema/feed";
-import { feeding, stockCount } from "@OpenFarm/db/schema/feed";
+import {
+  RECEIVED_FEED_IN_KINDS,
+  feeding,
+  stockCount,
+} from "@OpenFarm/db/schema/feed";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import type {
+  MakingWorth,
   PurchasePrice,
   SellerOnTheScale,
   StockMovement,
 } from "@OpenFarm/domain";
 import {
+  bringMakingsIn,
   lastFellBelow,
   farmDayOf,
   daysLeftOf,
@@ -37,6 +43,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
+import { loadMakings, makingRead } from "./making-shape";
 import type { Booking } from "./money-store";
 import {
   bookMoney,
@@ -97,18 +104,27 @@ const MS_PER_SECOND = 1000;
 /** One delivery of feed as its Lot: what came, its bag's number and day. */
 type FeedLot = LotIn & { lotNumber: string | null };
 
+/** The farm's store: every movement by Feed Item, and what each Feed Making was worth. */
+export interface FeedStore {
+  movements: Map<string, StockMovement[]>;
+  makings: Map<string, MakingWorth>;
+}
+
 /**
  * Every movement in and out of the farm's store, by Feed Item: what came in, what each Feeding gave,
- * and what each Stock Count found. Feedings are read in the database, a line per item per session,
+ * and what each Stock Count found — and what each Feed Making took out and brought in, at what went into it
+ * (`bringMakingsIn`, ADR 0031). Feedings are read in the database, a line per item per session,
  * because a year of twice-daily feeding across a farm's Pens is thousands of sessions.
  */
 const everyMovement = async (
   db: Pick<Database, "query" | "execute">,
-  farmId: string
-): Promise<Map<string, StockMovement[]>> => {
+  farmId: string,
+  { excludingMaking }: { excludingMaking?: string } = {}
+): Promise<FeedStore> => {
   // Corrections call this inside a transaction. Its PostgreSQL client may only execute one query at a time.
   const arrivals = await db.query.feedIn.findMany({
-    where: { farmId },
+    // Made feed is its Making's to bring in, at what went into it (`bringMakingsIn`).
+    where: { farmId, kind: { in: [...RECEIVED_FEED_IN_KINDS] } },
     columns: {
       id: true,
       feedItemId: true,
@@ -174,8 +190,27 @@ const everyMovement = async (
       quantity: Number(row.given),
     });
   }
-  return byItem;
+  const makings = await loadMakings(db, farmId, excludingMaking);
+  return {
+    movements: byItem,
+    makings: bringMakingsIn(byItem, makings.map(makingRead)),
+  };
 };
+
+/**
+ * The farm's store with what each Feed Making was worth (`everyMovement`), kept until something is written, as
+ * `movementsByItem` is. A Making being put right is left out — read afresh, never kept.
+ */
+export const feedStoreOf = async (
+  db: Pick<Database, "query" | "execute">,
+  farmId: string,
+  { excludingMaking }: { excludingMaking?: string } = {}
+): Promise<FeedStore> =>
+  insideATransaction(db) || excludingMaking !== undefined
+    ? await everyMovement(db, farmId, { excludingMaking })
+    : await keptUntilAWrite("feedStore", farmId, () =>
+        everyMovement(db, farmId)
+      );
 
 /**
  * The farm's store, every movement by Feed Item (`everyMovement`), kept until something is written: Home, the overview,
@@ -189,11 +224,7 @@ export const movementsByItem = async (
   farmId: string,
   { excludingCount }: { excludingCount?: string } = {}
 ): Promise<Map<string, StockMovement[]>> => {
-  const every = insideATransaction(db)
-    ? await everyMovement(db, farmId)
-    : await keptUntilAWrite("feedStore", farmId, () =>
-        everyMovement(db, farmId)
-      );
+  const { movements: every } = await feedStoreOf(db, farmId);
   if (excludingCount === undefined) {
     return every;
   }
@@ -799,8 +830,8 @@ export const bookPurchaseMoney = async (
 ) => {
   const row = await tx.query.feedIn.findFirst({ where: { id } });
   // A Harvest is worth something to whoever eats it, but the farm paid nobody for it: it values the
-  // store, and no money moved.
-  if (row?.kind === "harvest") {
+  // store, and no money moved. Nor did any for feed made on the farm: it moved inside the store.
+  if (row && row.kind !== "purchase") {
     return;
   }
   const paidMoney = row?.paidAtDeliveryMoney ?? row?.priceMoney;

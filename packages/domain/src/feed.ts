@@ -368,7 +368,14 @@ export type StockMovement =
       /** The delivery it was, and what its bag says, for reading what is left of each. */
       lot?: { id: string; lotNumber: string | null; expiresOn: string | null };
     }
-  | { kind: "out"; at: Date; quantity: number }
+  | {
+      kind: "out";
+      at: Date;
+      quantity: number;
+      /** The Feed Making it was taken out for, where it was made into another feed rather than fed: it leaves the
+       *  store all the same, but no Pen ate it, so it is not how fast the feed is fed. */
+      into?: string;
+    }
   /** A Stock Count: what was really there. It wins over whatever the store was thought to hold. The Step it was
    *  recorded in, where it is known, so a count being recorded again can be left out of what it is compared against. */
   | { kind: "count"; at: Date; counted: number; completionId?: string };
@@ -381,50 +388,141 @@ const MOVEMENT_ORDER: Record<StockMovement["kind"], number> = {
   count: 2,
 };
 
+/** The order a store's movements happened in: by the moment, and at the same moment feed that came in before the
+ *  Feedings that took from it, and the count last. */
+export const inStoreOrder = (a: StockMovement, b: StockMovement): number =>
+  a.at.getTime() - b.at.getTime() ||
+  MOVEMENT_ORDER[a.kind] - MOVEMENT_ORDER[b.kind];
+
+/** A store part way through being replayed: how much is in it, what that is worth, and what a unit of it costs. */
+export interface StoreState {
+  onHand: number;
+  value: number;
+  price: number | null;
+}
+
+/** A store before anything moved in it. */
+export const emptyStore = (): StoreState => ({
+  onHand: 0,
+  value: 0,
+  price: null,
+});
+
+/** One movement taken into a store being replayed, in place: the one rule every reading of the store's price uses. */
+export const stepStore = (state: StoreState, one: StockMovement): void => {
+  if (one.kind === "count") {
+    // The count is what is there. What it cost a unit does not change because somebody counted:
+    // the store is worth what was counted, at the price it already had.
+    state.onHand = one.counted;
+    state.value = state.price === null ? 0 : one.counted * state.price;
+  } else if (one.kind === "out") {
+    const unitPrice = state.price ?? 0;
+    state.onHand -= one.quantity;
+    state.value =
+      state.onHand > 0
+        ? Math.max(0, state.value - unitPrice * one.quantity)
+        : 0;
+  } else {
+    const cost = one.priceMoney ?? 0;
+    // A store at or below nothing starts again from what came in: there is nothing left to average the
+    // new lot with, and what the pens already ate of it before it was written down was charged when
+    // they ate it — so only the part still standing carries its share of the cost.
+    if (state.onHand <= 0) {
+      const standing = Math.max(0, one.quantity + state.onHand);
+      state.onHand += one.quantity;
+      state.value = one.quantity > 0 ? (cost * standing) / one.quantity : 0;
+    } else {
+      state.onHand += one.quantity;
+      state.value += cost;
+    }
+    if (one.priceMoney !== null || state.price !== null) {
+      state.price = state.onHand > 0 ? state.value / state.onHand : state.price;
+    }
+  }
+};
+
 /** The store replayed, one movement at a time, in the order things happened. */
 const replayStore = (
   movements: readonly StockMovement[],
   afterEach?: (at: Date, price: number | null) => void
 ): { onHand: number; price: number | null } => {
-  const inOrder = movements.toSorted(
-    (a, b) =>
-      a.at.getTime() - b.at.getTime() ||
-      // Feed that came in on a day is in the store before that day's Feedings take from it.
-      MOVEMENT_ORDER[a.kind] - MOVEMENT_ORDER[b.kind]
-  );
-  let onHand = 0;
-  let value = 0;
-  let price: number | null = null;
-  for (const one of inOrder) {
-    if (one.kind === "count") {
-      // The count is what is there. What it cost a unit does not change because somebody counted:
-      // the store is worth what was counted, at the price it already had.
-      onHand = one.counted;
-      value = price === null ? 0 : one.counted * price;
-    } else if (one.kind === "out") {
-      const unitPrice = price ?? 0;
-      onHand -= one.quantity;
-      value = onHand > 0 ? Math.max(0, value - unitPrice * one.quantity) : 0;
-    } else {
-      const cost = one.priceMoney ?? 0;
-      // A store at or below nothing starts again from what came in: there is nothing left to average the
-      // new lot with, and what the pens already ate of it before it was written down was charged when
-      // they ate it — so only the part still standing carries its share of the cost.
-      if (onHand <= 0) {
-        const standing = Math.max(0, one.quantity + onHand);
-        onHand += one.quantity;
-        value = one.quantity > 0 ? (cost * standing) / one.quantity : 0;
-      } else {
-        onHand += one.quantity;
-        value += cost;
-      }
-      if (one.priceMoney !== null || price !== null) {
-        price = onHand > 0 ? value / onHand : price;
-      }
-    }
-    afterEach?.(one.at, price);
+  const state = emptyStore();
+  for (const one of movements.toSorted(inStoreOrder)) {
+    stepStore(state, one);
+    afterEach?.(one.at, state.price);
   }
-  return { onHand, price };
+  return { onHand: state.onHand, price: state.price };
+};
+
+/**
+ * The least the store held from a moment on — at that moment, and after every movement since — as it is booked. What
+ * a Feed Making may take without the store going below nothing at any time after it, a Feeding later the same week
+ * included.
+ */
+export const leastOnHandFrom = (
+  movements: readonly StockMovement[],
+  from: Date
+): number => {
+  const state = emptyStore();
+  let least = Number.POSITIVE_INFINITY;
+  let reached = false;
+  for (const one of movements.toSorted(inStoreOrder)) {
+    if (!reached && one.at > from) {
+      reached = true;
+      least = state.onHand;
+    }
+    stepStore(state, one);
+    if (reached) {
+      least = Math.min(least, state.onHand);
+    }
+  }
+  return roundKg(reached ? least : state.onHand);
+};
+
+/** A store read forward a moment at a time: its movements in order, how far it has been read, and how it stands. */
+const readForward = (movements: readonly StockMovement[]) => {
+  const list = movements.toSorted(inStoreOrder);
+  const state = emptyStore();
+  let next = 0;
+  return {
+    /** The store once everything up to and at a moment has happened. */
+    at: (moment: number): number => {
+      let one = list[next];
+      while (one && one.at.getTime() <= moment) {
+        stepStore(state, one);
+        next += 1;
+        one = list[next];
+      }
+      return state.onHand;
+    },
+    moments: list.map((one) => one.at.getTime()),
+  };
+};
+
+/**
+ * Whether a write took a store short: compared moment by moment from `from` on, it holds less than nothing at some
+ * moment where it did not — or less than it already did, where the book was short then. A shortfall later in the
+ * week is no excuse for one that starts days before it: the moments are compared, never only the lowest points.
+ */
+export const wentShortFrom = (
+  before: readonly StockMovement[],
+  after: readonly StockMovement[],
+  from: Date
+): boolean => {
+  const was = readForward(before);
+  const now = readForward(after);
+  const start = from.getTime();
+  const moments = [
+    ...new Set([
+      start,
+      ...[...was.moments, ...now.moments].filter((one) => one > start),
+    ]),
+  ].toSorted((a, b) => a - b);
+  return moments.some((moment) => {
+    const held = roundKg(was.at(moment));
+    const holds = roundKg(now.at(moment));
+    return holds < Math.min(0, held);
+  });
 };
 
 /**
@@ -488,11 +586,12 @@ export const shortfallOf = (
 };
 
 /** One arrival of feed, as its price per unit is read: a Purchase has one, a Harvest never — its worth is the farm's
- *  own word for its fodder, not what anybody charged. */
+ *  own word for its fodder, not what anybody charged — and made feed never: its worth is what went into it, which is
+ *  no price anybody was asked. */
 export interface ArrivalPriced {
   id: string;
   feedItemId: string;
-  kind: "purchase" | "harvest";
+  kind: "purchase" | "harvest" | "made";
   quantity: number;
   priceMoney: number | null;
   receivedOn: Date;
@@ -581,7 +680,8 @@ export const fedPerDayOf = (
   let fed = 0;
   let fedLately = false;
   for (const one of movements) {
-    if (one.kind !== "out" || one.at > now) {
+    // Made into another feed is not fed: a day's ten tonnes packed into a silage pit is no rate anybody feeds at.
+    if (one.kind !== "out" || one.into !== undefined || one.at > now) {
       continue;
     }
     firstFedAt = Math.min(firstFedAt, one.at.getTime());
@@ -737,11 +837,7 @@ export const lastFellBelow = (
   movements: readonly StockMovement[],
   level: number
 ): Date | null => {
-  const inOrder = movements.toSorted(
-    (a, b) =>
-      a.at.getTime() - b.at.getTime() ||
-      MOVEMENT_ORDER[a.kind] - MOVEMENT_ORDER[b.kind]
-  );
+  const inOrder = movements.toSorted(inStoreOrder);
   let onHand = 0;
   let fell: Date | null = null;
   for (const one of inOrder) {

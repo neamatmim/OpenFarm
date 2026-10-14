@@ -1927,6 +1927,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "audit.entity.registration_certificate": "নিবন্ধন সনদ",
   "audit.entity.notifiable_disease": "জানানোর রোগ",
   "audit.entity.feed_in": "খাদ্য আগমন",
+  "audit.entity.feed_making": "খামারে বানানো খাদ্য",
   "audit.entity.dls_report": "DLS প্রতিবেদন",
   "audit.entity.abortion": "গর্ভপাত",
   "audit.entity.withdrawal": "প্রত্যাহারকাল",

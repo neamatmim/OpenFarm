@@ -1,6 +1,12 @@
 import { eq } from "@OpenFarm/db/operators";
 import { feedIn } from "@OpenFarm/db/schema/feed";
-import { farmDayOf, roundMoney, startOfFarmDay } from "@OpenFarm/domain";
+import {
+  farmDayOf,
+  isMadeFeed,
+  roundMoney,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { clearNoticesAbout } from "../alerts-store";
@@ -8,6 +14,7 @@ import type { Tx } from "../audit";
 import { changeByOf } from "../closed-month-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
+import { venturesFedThrough } from "../feed-making-store";
 import {
   lockFeedOrder,
   validateCorrectedDelivery,
@@ -35,12 +42,7 @@ import {
   verifyCorrectedInvoice,
 } from "../supplier-store";
 import type { CorrectionKind } from "./correction";
-import {
-  changeOf,
-  correctionInput,
-  somethingChanged,
-  venturesCharged,
-} from "./correction";
+import { changeOf, correctionInput, somethingChanged } from "./correction";
 
 /** A cut lot re-valued for a new quantity, at the price a kilo of it was worth the day it came in. */
 const revalued = (
@@ -100,14 +102,14 @@ export const feedArrivalCorrection: CorrectionKind<
    * arrival had no part in.
    */
   venturesOf: (tx, row, changes) => {
+    // Made feed is put right on its Making, which `apply` says first: no Venture stands in the way of that answer.
+    if (isMadeFeed(row)) {
+      return Promise.resolve([]);
+    }
     const moved = changes.receivedOn && startOfFarmDay(changes.receivedOn.to);
     const from = moved && moved < row.receivedOn ? moved : row.receivedOn;
-    return venturesCharged(tx, row.farmId, (costs) =>
-      costs.charges.filter(
-        (one) =>
-          one.kind === "feed" && one.fromId === row.feedItemId && one.at >= from
-      )
-    );
+    // And of every feed made from it since, down the chain: concentrate mixed from this bran is priced through it.
+    return venturesFedThrough(tx, row.farmId, [row.feedItemId], from);
   },
   missing: "No such arrival",
   load: loadArrival,
@@ -125,6 +127,13 @@ export const feedArrivalCorrection: CorrectionKind<
   shownAs: { seller: (to) => to.name },
   trail: (tx, row) => readFeedArrival(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
+    // Made feed is what its Feed Making says came out: put right there, where its inputs and its worth are.
+    if (isMadeFeed(row)) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "Made feed is put right on the making that made it",
+        data: { refusal: "made_feed_is_its_making" },
+      });
+    }
     const order = row.purchaseOrderId
       ? await lockFeedOrder(tx, row.farmId, row.purchaseOrderId)
       : null;
