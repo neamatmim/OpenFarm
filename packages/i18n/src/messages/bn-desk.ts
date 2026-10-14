@@ -1680,6 +1680,8 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "audit.calledOffBy.excused": "বাতিল: ডাক্তার এই ডোজ মাফ করেছেন",
   "audit.calledOffBy.license_retired": "বাতিল: লাইসেন্সটি খামারের আর নেই",
   "audit.calledOffBy.renewal_not_due": "বাতিল: মেয়াদ বদলানোয় এখন নবায়নের সময় নয়",
+  "audit.calledOffBy.held_for_sale":
+    "স্থগিত: বিক্রির জন্য প্রস্তুত — মোটাতাজাকরণে ফিরলে আবার দিতে হবে",
   "audit.raisedAgainBy.calving_expected_again":
     "আবার তোলা হয়েছে: তার বাচ্চা দেওয়া আবার প্রত্যাশিত",
   "audit.before": "আগে",

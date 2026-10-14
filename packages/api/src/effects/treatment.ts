@@ -247,7 +247,7 @@ const followThePutOffDose = async (
       input.instance.id,
       input.recordedAt,
       input.now,
-      campaignAnimalId
+      { campaignAnimalId, trail: input.trail }
     );
     return;
   }
