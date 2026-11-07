@@ -1,6 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import { farmDayOf } from "@OpenFarm/domain";
 
+import { applyByLink } from "./applications";
 import { leaveOneAstray } from "./astray";
 import {
   lastEidsSeason,
@@ -8,6 +9,7 @@ import {
   registerTheHerd,
   takeInBulls,
 } from "./herd";
+import type { Happening } from "./history";
 import { liveTheDays } from "./history";
 import {
   SEED_PASSWORD,
@@ -67,11 +69,19 @@ export const seedFarm = async (db: Database) => {
   step(`${herd.cows.size} dairy animals, ${herd.bulls.size} bulls`);
   step(`${HISTORY_DAYS} days of the farm`);
   const happenings = scriptTheDays(farm, herd);
-  runTheVentures(farm, ventures, (day, time, what, run) => {
+  const atTheirTimes = (
+    day: string,
+    time: string,
+    what: string,
+    run: Happening["run"]
+  ) => {
     if (day >= farm.start && day <= farm.today) {
       happenings.push({ day, time, what, run });
     }
-  });
+  };
+  runTheVentures(farm, ventures, atTheirTimes);
+  // Somebody the Owner knows applying by link, one waiting for her and one she declined (ADR 0034).
+  applyByLink(farm, atTheirTimes);
   await liveTheDays(farm, herd, happenings, (line) => step(line));
   step("a visiting vet called in about a lame cow");
   await callInAVisitingVet(farm, db, clock, today);

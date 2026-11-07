@@ -82,6 +82,6 @@ with portal access, nothing more. Joining a Venture is still a Request to Join, 
 | 04  | [The Owner approves or declines](issues/04-approve-or-decline.md)    | done       |
 | 05  | [What is not approved is not kept](issues/05-not-kept.md)            | done       |
 | 06  | [The screens](issues/06-screens.md)                                  | done       |
-| 07  | [Seeded, and opened](issues/07-seed-and-open.md)                     | 06         |
+| 07  | [Seeded, and opened](issues/07-seed-and-open.md)                     | done       |
 
 05 and 06 may be built side by side. Nothing needs the advisers' answer to be built, only to be switched on.
