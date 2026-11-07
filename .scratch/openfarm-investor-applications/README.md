@@ -78,7 +78,7 @@ with portal access, nothing more. Joining a Venture is still a Request to Join, 
 | --- | -------------------------------------------------------------------- | ---------- |
 | 01  | [Words, ADR and the advisers' sheet](issues/01-words-and-adr.md)     | done       |
 | 02  | [The Owner makes an Application Link](issues/02-application-link.md) | done       |
-| 03  | [They apply](issues/03-they-apply.md)                                | 02         |
+| 03  | [They apply](issues/03-they-apply.md)                                | done       |
 | 04  | [The Owner approves or declines](issues/04-approve-or-decline.md)    | 03         |
 | 05  | [What is not approved is not kept](issues/05-not-kept.md)            | 04         |
 | 06  | [The screens](issues/06-screens.md)                                  | 02, 03, 04 |

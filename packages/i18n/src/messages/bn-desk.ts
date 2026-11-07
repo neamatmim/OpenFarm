@@ -753,6 +753,10 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "portal.newCode": "নতুন কোড দিন",
   "portal.sentCode.sms":
     "{farm}: পোর্টালের নতুন কোড {code}। {at}-এ আপনার ফোন নম্বর আর এই কোড দিয়ে নতুন পাসওয়ার্ড বেছে নিন। {days} দিন কাজ করবে। কাউকে বলবেন না।",
+  "portal.apply.code.open":
+    "{farm}: আপনার তথ্য ফর্ম খোলার কোড {code}। {minutes} মিনিট কাজ করবে। কাউকে বলবেন না।",
+  "portal.apply.code.agree":
+    "{farm}: এইমাত্র পড়া পোর্টাল সম্মতিপত্রে সম্মতি দেওয়ার কোড {code}। কোডটি দেওয়াই এতে আপনার স্বাক্ষর। {minutes} মিনিট কাজ করবে।",
   "portal.apply.link.subject": "আপনার তথ্য পূরণ করুন",
   "portal.apply.link.email":
     "{name}, {farm}-এর মালিক আপনাকে খামারের বিনিয়োগকারীর খাতার জন্য নিজের তথ্য পূরণ করতে বলেছেন।\n\nফোনে এটি খুলুন: {at}\n\nখুলতে খামার আপনার মোবাইলে একটি কোড পাঠাবে। লিংকটি একবারই, {days} দিন কাজ করবে। আপনি এটি আশা না করে থাকলে উপেক্ষা করুন আর খামারকে জানান।",
@@ -1989,6 +1993,8 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "digest.moneyAwaiting": "{count}টি {currencyOf} হিসাব আপনার অনুমোদনের অপেক্ষায়",
   "digest.monthlySumMissed": "{count} জন বিনিয়োগকারী মাসের {currencyIn} পিছিয়ে",
   "push.payInNoteSentTitle": "বিনিয়োগকারী টাকা পাঠিয়েছেন বলে জানিয়েছেন",
+  "push.applicationSentTitle": "একটি আবেদন পড়তে হবে",
+  "digest.applicationSent": "{count}টি আবেদন আপনার উত্তরের অপেক্ষায়",
   "push.offerAgreedTitle": "একজন বিনিয়োগকারী অ্যাপে সম্মতি দিয়েছেন",
   "digest.offerAgreed": "অ্যাপে সম্মতি দেওয়া {count}টি চুক্তি অনুমোদনের অপেক্ষায়",
   "digest.payInNoteSent": "{count}টি জমার খবর ব্যাংকের সঙ্গে মেলাতে হবে",

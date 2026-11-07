@@ -807,6 +807,10 @@ export const enDesk = {
   "portal.newCode": "Give a new code",
   "portal.sentCode.sms":
     "{farm}: your new portal code is {code}. At {at}, enter your phone number and this code, then choose a new password. It works for {days, plural, one {# day} other {# days}}. Tell nobody.",
+  "portal.apply.code.open":
+    "{farm}: {code} is your code to open your details form. It works for {minutes} minutes. Share it with nobody.",
+  "portal.apply.code.agree":
+    "{farm}: {code} is your code to agree to the Portal Consent you just read. Entering it is your signature on it. It works for {minutes} minutes.",
   "portal.apply.link.subject": "Fill in your details",
   "portal.apply.link.email":
     "{name}, the owner of {farm} has asked you to fill in your own details for the farm's investor records.\n\nOpen this on your phone: {at}\n\nTo open it, the farm texts a code to your mobile. The link works once, for {days, plural, one {# day} other {# days}}. If you did not expect it, ignore it and tell the farm.",
@@ -2131,6 +2135,9 @@ export const enDesk = {
   "digest.monthlySumMissed":
     "{count, plural, one {# investor} other {# investors}} behind on their monthly sums",
   "push.payInNoteSentTitle": "An investor says they have paid",
+  "push.applicationSentTitle": "An application to read",
+  "digest.applicationSent":
+    "{count, plural, one {# application} other {# applications}} waiting for your answer",
   "push.offerAgreedTitle": "An investor agreed in the app",
   "digest.offerAgreed":
     "{count, plural, one {# agreement} other {# agreements}} agreed in the app to approve",

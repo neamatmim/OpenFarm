@@ -57,5 +57,6 @@ export const ALERT_KINDS = [
   "offer_agreed",
   "license_renewal_due",
   "restore_drill_overdue",
+  "application_sent",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];

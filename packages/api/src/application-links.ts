@@ -11,11 +11,14 @@ import { z } from "zod";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import { hashToken } from "./device";
+import { assertRegistered } from "./export-store";
 import { lockTheFarm } from "./farm-lock";
 import { ONE_SEND_EVERY_MS, maskedEmail } from "./investor-email";
+import { emailInput } from "./investor-input";
 import type { Owned } from "./portal-invitable";
 import { refused } from "./portal-invitable";
 import { portalClosed } from "./portal-store";
+import { giveStandardTemplates } from "./template-store";
 
 // An Application Link: the Owner's invitation to one person they know to fill in their own details online (ADR 0034).
 // Made for a name, a mobile and an email; the link is shown once and kept only as a hash; good for a week and one
@@ -48,7 +51,7 @@ export const linkInput = z.object({
   kind: z.enum(INVESTOR_KINDS),
   name: z.string().trim().min(1).max(120),
   phone: z.string().trim().min(1).max(20),
-  email: z.string().trim().toLowerCase().max(254).pipe(z.email()).optional(),
+  email: emailInput.optional(),
   /** Whether to email it at once, where it has an email. Left out: it is emailed. */
   send: z.boolean().optional(),
 });
@@ -256,6 +259,9 @@ export const makeApplicationLink = async (
   sent: { byEmail: string | null; bySms: string | null } | null;
 }> => {
   await assertApplicationsTaken(context);
+  // The consent they will agree is laid out on the farm's identity and its wording: both there before anybody is asked.
+  assertRegistered(context.farm, "portal_consent");
+  await giveStandardTemplates(context);
   const mobile = mobileNumberOf(input.phone);
   if (!mobile) {
     throw refused(

@@ -106,6 +106,14 @@ describe("the switch", () => {
 
 describe("a link", () => {
   beforeAll(async () => {
+    const owner = await as("owner");
+    await owner.farm.setIdentity({
+      address: `সাভার, ঢাকা ${suffix}`,
+      phone: "+8801711000097",
+      registrationNumber: `DLS/SAV/2098/${suffix}`,
+      registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
+      registrationExpiresOn: "2100-03-31",
+    });
     await turnPortal(true);
     await turnApplications(true);
   });

@@ -311,6 +311,9 @@ server {
     server_name investors.farm.example.com;
     # ssl_certificate lines as certbot wrote them
 
+    # An Application's photographs of the NID and an Organization's papers, four at most, and no more (ADR 0034).
+    client_max_body_size 8m;
+
     # What every request passes on: the name asked for, and the address it came from.
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-For $remote_addr;
@@ -333,7 +336,8 @@ server {
     }
 
     # The portal's own calls, who is asking, the language they read in, and who is signed in.
-    location ~ ^/api/rpc/(portal/[^/]+|people/me|language/[^/]+)$ { proxy_pass http://127.0.0.1:3001; }
+    # `portal/apply/…` is what an Application Link opens, for somebody not yet signed in (ADR 0034).
+    location ~ ^/api/rpc/(portal/(apply/)?[^/]+|people/me|language/[^/]+)$ { proxy_pass http://127.0.0.1:3001; }
     location /_serverFn/ { proxy_pass http://127.0.0.1:3001; }
 
     # Nothing else of the farm app — the service worker included, which the app itself cannot refuse: like the

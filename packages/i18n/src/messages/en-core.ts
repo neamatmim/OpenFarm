@@ -3672,6 +3672,9 @@ export const enCore = {
   "alerts.payInNoteSent":
     "{investor} says they sent {currencySign}{amount} {way} on {day}, for {venture}",
   "alerts.checkThePayInNotes": "Check it against the bank",
+  "alerts.applicationSent":
+    "{name} sent their application to become an investor",
+  "alerts.readTheApplication": "Read the application",
   "alerts.offerAgreed":
     "{investor} agreed in the app to join {venture}, waiting for your approval",
   "alerts.approveTheAgreement": "Approve the agreement",

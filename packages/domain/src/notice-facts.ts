@@ -332,6 +332,13 @@ export interface NoticeFacts {
     sentOn: string;
     way: "bank_transfer" | "check" | "deposit_slip" | "mobile_money";
   };
+  /** Somebody the Owner sent an Application Link sending their Application back (ADR 0034): who, and whether a person
+   *  or an Organization, waiting for the Owner to approve or decline. */
+  application_sent: {
+    applicationId: string;
+    name: string;
+    kind: "person" | "organization";
+  };
   /** An Investor who agreed in the portal to the Agreement Offer made them (ADR 0022): who, and which Venture, waiting
    *  for the Owner's approval. */
   offer_agreed: {

@@ -166,6 +166,11 @@ const EXAMPLE: NoticeFacts = {
     sentOn: "2038-01-05",
     way: "mobile_money",
   },
+  application_sent: {
+    applicationId: "application-1",
+    name: "আবুল হাশেম মিয়া",
+    kind: "person",
+  },
   offer_agreed: {
     offerId: "offer-1",
     ventureId: "venture-1",

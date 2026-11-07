@@ -22,6 +22,12 @@ import { lockTheFarm } from "../farm-lock";
 import { protectedProcedure } from "../index";
 import { emailChanged, forgetEmailCode } from "../investor-email";
 import {
+  investorInput,
+  organizationInput,
+  personInput,
+  theRecord,
+} from "../investor-input";
+import {
   countedInvestors,
   organizationOf,
   readInvestor,
@@ -89,49 +95,6 @@ const takenAwaySaid = (
   return { why, ...said };
 };
 
-/** An email as the Owner types it: kept lowercased, so the same address is never two. */
-const emailInput = z.string().trim().toLowerCase().max(254).pipe(z.email());
-
-const personInput = z.object({
-  /** Left out by every caller written before an Investor could be an Organization: a person. */
-  kind: z.literal("person").optional(),
-  name: z.string().trim().min(1).max(120),
-  phone: z.string().trim().min(1).max(20),
-  address: z.string().trim().max(200).optional(),
-  /** The number on their National ID, as the agreement asks for it. */
-  nid: z.string().trim().max(40).optional(),
-  /** Bank channels only, so the account is how they are paid. Written out as the bank would want it — the
-   *  name on the account, its number, the bank and the branch — often on a line each. */
-  bankAccount: z.string().trim().max(300).optional(),
-  /** Their own email, optional: the farm sends a signing code there beside the phone once they confirm it (ADR 0022). */
-  email: emailInput.optional(),
-});
-
-/** An Organization (ADR 0020): its own name, address, papers and bank account, and the one Signatory it acts through,
- *  whose mobile is the record's phone. */
-const organizationInput = z.object({
-  kind: z.literal("organization"),
-  name: z.string().trim().min(1).max(120),
-  /** The Signatory's mobile: the farm reaches the Organization on it, and the Signatory signs in to the portal with it. */
-  phone: z.string().trim().min(1).max(20),
-  address: z.string().trim().max(200).optional(),
-  bankAccount: z.string().trim().max(300).optional(),
-  tradeLicense: z.string().trim().max(40).optional(),
-  rjscNumber: z.string().trim().max(40).optional(),
-  tin: z.string().trim().max(40).optional(),
-  /** The paper that names the Signatory — a board resolution, a letter — as the Owner describes it, and its date. */
-  authority: z.string().trim().min(1).max(200),
-  authorityOn: z.iso.date().optional(),
-  signatoryName: z.string().trim().min(1).max(120),
-  signatoryNid: z.string().trim().max(40).optional(),
-  signatoryRole: z.string().trim().max(80).optional(),
-  /** The Signatory's own email, optional, as a person's is. */
-  email: emailInput.optional(),
-});
-
-/** A person or an Organization, as the Owner writes them down. */
-const investorInput = z.union([organizationInput, personInput]);
-
 const updateInput = z.union([
   organizationInput.extend({ id: z.string().min(1) }),
   personInput.extend({ id: z.string().min(1) }),
@@ -165,45 +128,6 @@ const nominationSaid = (nomination: NominationOnFile | null, today: string) =>
         nominees: paperNominees(nomination, today),
       }
     : null;
-
-/** Everything written down about one Investor, as a correction replaces it: a field left out is a field cleared, since
- *  the form sends the whole record as it now stands. The other kind's columns are always empty. */
-const theRecord = (input: z.infer<typeof investorInput>) =>
-  input.kind === "organization"
-    ? {
-        kind: input.kind,
-        name: input.name,
-        phone: input.phone,
-        email: input.email ?? null,
-        address: input.address ?? null,
-        nid: null,
-        bankAccount: input.bankAccount ?? null,
-        tradeLicense: input.tradeLicense ?? null,
-        rjscNumber: input.rjscNumber ?? null,
-        tin: input.tin ?? null,
-        authority: input.authority,
-        authorityOn: input.authorityOn ?? null,
-        signatoryName: input.signatoryName,
-        signatoryNid: input.signatoryNid ?? null,
-        signatoryRole: input.signatoryRole ?? null,
-      }
-    : {
-        kind: "person" as const,
-        name: input.name,
-        phone: input.phone,
-        email: input.email ?? null,
-        address: input.address ?? null,
-        nid: input.nid ?? null,
-        bankAccount: input.bankAccount ?? null,
-        tradeLicense: null,
-        rjscNumber: null,
-        tin: null,
-        authority: null,
-        authorityOn: null,
-        signatoryName: null,
-        signatoryNid: null,
-        signatoryRole: null,
-      };
 
 /** The farm's Investors, as the one way a list is kept keeps it: retired, never removed, because everything they
  *  signed and were paid is kept for twelve years and names them. The same person is found by name and phone, not by

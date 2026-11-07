@@ -406,6 +406,7 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     investor: facts.investor,
     venture: facts.venture,
   }),
+  application_sent: (facts) => ({ name: facts.name }),
   // A number, so the words say it in the reader's own numerals.
   join_requested: (facts) => ({
     investor: facts.investor,
