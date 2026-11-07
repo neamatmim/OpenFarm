@@ -1,5 +1,6 @@
 export * from "./alert";
 export * from "./alert-kinds";
+export * from "./application";
 export * from "./audit";
 export * from "./auth";
 export * from "./backup";

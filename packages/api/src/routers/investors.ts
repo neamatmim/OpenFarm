@@ -71,6 +71,7 @@ import { closeRequests, theirRequests } from "../requests-to-join";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import { theirAgreements } from "../their-agreements";
 import { CODE_PAPERS, codePaperFor, handOver } from "../welcome-letter";
+import { applicationsRouter } from "./applications";
 
 /** Why an Investor's access was taken away, as their record says it: the reason, and for a withdrawn consent the day
  *  they asked and how. */
@@ -382,6 +383,8 @@ export const investorsRouter = {
         codesBy: { sms: context.sms.sends, email: context.email.sends },
         /** Whether an Investor may send a Pay-in Note from the portal (ADR 0018). */
         payInNotes: context.farm.payInNotes,
+        /** Whether the Owner may send somebody an Application Link (ADR 0034). */
+        applicationsOpen: context.farm.investorApplications,
         /** Whether invited Investors are shown a settled Venture's Return on Capital (ADR 0012). */
         returnsShown: context.farm.investorReturns,
         /** The Farm's own partner record, which holds its own capital in a Venture and is in no list of people: so a
@@ -901,6 +904,36 @@ export const investorsRouter = {
    * records no capital. Off until the Owner turns it on, once the lawyer and the Shariah scholar have seen it. The
    * Owner's alone.
    */
+  /**
+   * Lets the Owner send somebody they know an Application Link, to apply online and be let in without a meeting — or
+   * stops it (ADR 0034). Turned off, no link opens, and none is withdrawn: on again, the ones still in their week open
+   * again. Off until the Owner turns it on, once the lawyer and the Shariah scholar have seen it. The Owner's alone.
+   */
+  setApplicationsOpen: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ shown: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      await audited(context).write(
+        {
+          entity: "farm",
+          entityId: context.farm.id,
+          action: "update",
+          before: { investorApplications: context.farm.investorApplications },
+          after: { investorApplications: input.shown },
+        },
+        (tx) =>
+          tx
+            .update(farm)
+            .set({ investorApplications: input.shown })
+            .where(eq(farm.id, context.farm.id))
+      );
+      return { shown: input.shown };
+    }),
+
+  /** Application Links and the Applications they bring back (ADR 0034). */
+  applications: applicationsRouter,
+
   setPayInNotes: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())

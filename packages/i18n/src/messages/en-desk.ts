@@ -807,6 +807,11 @@ export const enDesk = {
   "portal.newCode": "Give a new code",
   "portal.sentCode.sms":
     "{farm}: your new portal code is {code}. At {at}, enter your phone number and this code, then choose a new password. It works for {days, plural, one {# day} other {# days}}. Tell nobody.",
+  "portal.apply.link.subject": "Fill in your details",
+  "portal.apply.link.email":
+    "{name}, the owner of {farm} has asked you to fill in your own details for the farm's investor records.\n\nOpen this on your phone: {at}\n\nTo open it, the farm texts a code to your mobile. The link works once, for {days, plural, one {# day} other {# days}}. If you did not expect it, ignore it and tell the farm.",
+  "portal.apply.link.sms":
+    "{farm}: fill in your details for the farm's investor records. The link works once, for {days, plural, one {# day} other {# days}}; share it with nobody.\n{at}",
   "portal.sentCode.subject": "Your new portal code",
   "portal.sentCode.email":
     "Your new code for the {farm} Investor Portal: {code}\n\nAt {at}, enter your phone number and this code, then choose a new password. It works for {days, plural, one {# day} other {# days}}. Tell nobody; if you did not ask for it, tell the farm.",
