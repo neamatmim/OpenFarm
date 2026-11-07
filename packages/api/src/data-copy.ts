@@ -97,6 +97,14 @@ const linesFor = (
 ): DocumentRow[] =>
   value && inLanguage(value, "bn").trim() ? [{ label, value }] : [];
 
+/** The photographs an Application carries, as the paper names them. */
+const PHOTO_WORDS = {
+  nid_front: { bn: "এনআইডির সামনের দিক", en: "NID, front" },
+  nid_back: { bn: "এনআইডির পেছনের দিক", en: "NID, back" },
+  trade_license: { bn: "ট্রেড লাইসেন্স", en: "trade license" },
+  authority: { bn: "স্বাক্ষরকারীর ক্ষমতাপত্র", en: "the Signatory's authority" },
+} as const;
+
 /** What a part of the paper says where the farm holds nothing for it. */
 const NONE: Said = { bn: "কিছু নেই", en: "None" };
 
@@ -161,6 +169,9 @@ const BANGLA = {
   noConsent: "কোনো সম্মতি রেকর্ড নেই",
   consentWithdrawn: (day: string) => `তুলে নেওয়া ${day}`,
   consentInForce: "বহাল",
+  consentByCode: (to: string) => `সম্মতি দিয়েছেন ${to}-এ পাঠানো কোডে`,
+  photosKept: (what: string[]) =>
+    what.length > 0 ? `রাখা ছবি: ${what.join(", ")}` : "",
   since: (at: string) => `${at} থেকে`,
 };
 
@@ -209,6 +220,9 @@ const ENGLISH: typeof BANGLA = {
   noConsent: "No consent on record",
   consentWithdrawn: (day: string) => `withdrawn ${day}`,
   consentInForce: "in force",
+  consentByCode: (to: string) => `consent agreed with a code texted to ${to}`,
+  photosKept: (what: string[]) =>
+    what.length > 0 ? `photographs kept: ${what.join(", ")}` : "",
   since: (at: string) => `since ${at}`,
 };
 
@@ -846,6 +860,40 @@ const amendmentsTakenBack = async (
 };
 
 /**
+ * How they came in, where it was by an Application (ADR 0034): when they sent it, where the code that agreed their
+ * consent went, and the photographs the farm keeps for them. Nothing for somebody the Owner wrote down in person.
+ */
+const appliedOnline = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  investorId: string
+): Promise<DocumentRow[]> => {
+  const application = await db.query.investorApplication.findFirst({
+    where: { farmId, investorId, state: "approved" },
+    columns: { id: true, sentAt: true, codeSentTo: true },
+  });
+  if (!application) {
+    return [];
+  }
+  const photos = await db.query.investorApplicationPhoto.findMany({
+    where: { applicationId: application.id },
+    columns: { what: true },
+  });
+  return linesFor(
+    { bn: "অনলাইনে আবেদন", en: "Applied online" },
+    each((language) =>
+      joined(
+        when(application.sentAt, language),
+        WORDS[language].consentByCode(application.codeSentTo),
+        WORDS[language].photosKept(
+          photos.map((one) => PHOTO_WORDS[one.what][language])
+        )
+      )
+    )
+  );
+};
+
+/**
  * The Data Copy of one Investor, laid out to print and hand over: the notice's points first, then their record
  * unmasked, their Agreements with any Settlement, the money they moved, the papers made for them, their Requests to
  * Join and each change they made, their portal access, consents and sign-ins, and every change to their record, access
@@ -1220,6 +1268,7 @@ export const dataCopyOf = async (
               );
             }),
           }))),
+      ...(await appliedOnline(db, farm.id, investorId)),
       ...places.map((one) => ({
         label: { bn: "এখন সাইন ইন", en: "Signed in now" },
         value: each((language) =>

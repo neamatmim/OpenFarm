@@ -150,6 +150,8 @@ export const DELIVERY = {
   // close: the Owner hears at once, by push, so the Venture Account can be checked today (the Owner, 2026-10-05). Not
   // at night — the bank is checked in the morning.
   pay_in_note_sent: { when: "immediate" },
+  // Somebody the Owner asked to apply has done so and is waiting: the Owner hears at once, as for money sent (ADR 0034).
+  application_sent: { when: "immediate" },
   // Money entered twice on purpose is the evening's question for the Owner, not a buzz: it may well be two bills.
   entered_twice: { when: "digest" },
   // A sale gone cheap is the evening's question for the Owner to ask about, never a buzz at the livestock market.
@@ -417,6 +419,14 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
     app: "alerts.payInNoteSent",
     push: { title: "push.payInNoteSentTitle", body: "alerts.payInNoteSent" },
     digest: "digest.payInNoteSent",
+  },
+  application_sent: {
+    app: "alerts.applicationSent",
+    push: {
+      title: "push.applicationSentTitle",
+      body: "alerts.applicationSent",
+    },
+    digest: "digest.applicationSent",
   },
   monthly_sum_missed: {
     app: "alerts.monthlySumMissed",

@@ -12,6 +12,7 @@ import {
   isQuiet,
 } from "@OpenFarm/domain";
 
+import { lapseAndClearApplications } from "./application-answers";
 import { audited } from "./audit";
 import type { Tx } from "./audit";
 import { pregnancyTimesOf } from "./breeding-store";
@@ -909,6 +910,8 @@ export const theSweep = async (context: Turning) => {
     ["password guesses", () => tellAboutPasswordGuesses(context, now)],
     ["papers", () => tellAboutPapers(context, now)],
     ["Reimbursements", () => tellAboutReimbursements(context, now)],
+    // Applications left undecided a month lapse, and one not taken up is cleared a month after (ADR 0034).
+    ["applications", () => lapseAndClearApplications(context, now)],
     // And the safety texts that did not go when their notice was raised, tried again until they do.
     ["texts", () => textAgainWhatDidNotGo(context)],
     // And the pushes the quiet hours held, or nothing carried, once the farm is awake.

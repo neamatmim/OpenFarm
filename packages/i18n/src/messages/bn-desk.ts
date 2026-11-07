@@ -753,6 +753,198 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "portal.newCode": "নতুন কোড দিন",
   "portal.sentCode.sms":
     "{farm}: পোর্টালের নতুন কোড {code}। {at}-এ আপনার ফোন নম্বর আর এই কোড দিয়ে নতুন পাসওয়ার্ড বেছে নিন। {days} দিন কাজ করবে। কাউকে বলবেন না।",
+  "portal.apply.code.open":
+    "{farm}: আপনার তথ্য ফর্ম খোলার কোড {code}। {minutes} মিনিট কাজ করবে। কাউকে বলবেন না।",
+  "portal.apply.code.agree":
+    "{farm}: এইমাত্র পড়া পোর্টাল সম্মতিপত্রে সম্মতি দেওয়ার কোড {code}। কোডটি দেওয়াই এতে আপনার স্বাক্ষর। {minutes} মিনিট কাজ করবে।",
+  "portal.apply.approved.sms":
+    "{farm}: আপনার আবেদন অনুমোদিত হয়েছে। পোর্টালের কোড {code}, {days} দিন কাজ করবে। নিচের ঠিকানায় আপনার ফোন নম্বর আর এই কোড দিয়ে পাসওয়ার্ড বেছে নিন। কাউকে বলবেন না।\n{at}",
+  "portal.apply.approved.subject": "আপনার আবেদন অনুমোদিত",
+  "portal.apply.approved.email":
+    "{farm}-এর মালিক আপনার আবেদন অনুমোদন করেছেন। বিনিয়োগকারী পোর্টালের কোড: {code}\n\n{at}-এ আপনার ফোন নম্বর আর এই কোড দিয়ে পাসওয়ার্ড বেছে নিন। কোডটি {days} দিন কাজ করবে। কাউকে বলবেন না।",
+  "portal.apply.declined.sms":
+    "{farm}: মালিক আপনার আবেদন পড়েছেন, এবার নিচ্ছেন না। {line}",
+  "portal.apply.declined.subject": "আপনার আবেদন",
+  "portal.apply.declined.email":
+    "{farm}-এর মালিক আপনার আবেদন পড়েছেন, এবার নিচ্ছেন না।\n\n{line}\n\nআপনার পাঠানো তথ্য এক মাসের মধ্যে খামারের খাতা থেকে মুছে ফেলা হবে।",
+  "investors.applications.title": "আবেদন",
+  "investors.applications.description":
+    "যাঁদের নিজের তথ্য পূরণের লিংক পাঠিয়েছেন। প্রতিটি এনআইডির ছবির সঙ্গে মিলিয়ে পড়ুন, তারপর অনুমোদন বা বাতিল করুন।",
+  "investors.applications.none": "এখনো কোনো আবেদন বা পাঠানো লিংক নেই।",
+  "investors.applications.make": "আবেদনের লিংক পাঠান",
+  "investors.applications.makeTitle": "আবেদনের লিংক পাঠান",
+  "investors.applications.makeHint":
+    "আপনার চেনা কারও জন্য। খামার তাঁকে লিংকটি ইমেইল করবে; তাঁর মোবাইলে যাওয়া কোড ছাড়া এটি খোলে না, আর একবারই, ৭ দিন কাজ করে।",
+  "investors.applications.makeAndEmail": "বানিয়ে ইমেইল করুন",
+  "investors.applications.kind": "কে আবেদন করছেন",
+  "investors.applications.name": "তাঁর নাম, বা প্রতিষ্ঠানের নাম",
+  "investors.applications.mobile": "মোবাইল",
+  "investors.applications.mobileHint":
+    "লিংক খোলার কোড এখানে যাবে, আর পোর্টালে তিনি এটি দিয়ে সাইন ইন করবেন। প্রতিষ্ঠানের হলে স্বাক্ষরকারীর।",
+  "investors.applications.email": "ইমেইল",
+  "investors.applications.emailHint":
+    "লিংক এখানে যাবে। একটি অক্ষর ভুল হলে অচেনা কারও কাছে যাবে, যিনি শুধু খামারের নাম দেখবেন।",
+  "investors.applications.madeTitle": "লিংক তৈরি হয়েছে",
+  "investors.applications.emailedTo":
+    "{to}-এ ইমেইল করা হয়েছে। অন্যভাবে পাঠাতে কপিও করতে পারেন।",
+  "investors.applications.notEmailed":
+    "খামার ইমেইল করতে পারেনি। নিচ থেকে কপি করে নিজে পাঠান, অথবা তালিকা থেকে এসএমএস করুন।",
+  "investors.applications.onceOnly":
+    "ঠিকানাটি শুধু এখনই দেখানো হচ্ছে। আবার পাঠালে নতুন ঠিকানা হবে, আর এটি আর খুলবে না।",
+  "investors.applications.linksOut": "এখনো ব্যবহার হয়নি এমন লিংক",
+  "investors.applications.until": "শেষ",
+  "investors.applications.emailAgain": "আবার ইমেইল করুন",
+  "investors.applications.textIt": "এসএমএস করুন",
+  "investors.applications.sentAgain":
+    "আবার পাঠানো হয়েছে {to}-এ। আগে পাঠানো ঠিকানা আর খোলে না।",
+  "investors.applications.withdraw": "তুলে নিন",
+  "investors.applications.withdrawTitle": "{name}-এর লিংক তুলে নেবেন?",
+  "investors.applications.withdrawWhy":
+    "এখন থেকে এটি আর কিছু খুলবে না। আরেকটি বানাতে পারবেন।",
+  "investors.applications.withdrawn": "লিংক তুলে নেওয়া হয়েছে",
+  "investors.applications.link.open": "পাঠানো হয়নি",
+  "investors.applications.link.sent": "পাঠানো হয়েছে",
+  "investors.applications.link.used": "আবেদন এসেছে",
+  "investors.applications.link.withdrawn": "তুলে নেওয়া",
+  "investors.applications.link.ran_out": "মেয়াদ শেষ",
+  "investors.applications.state.waiting": "অপেক্ষায়",
+  "investors.applications.state.approved": "অনুমোদিত",
+  "investors.applications.state.declined": "বাতিল",
+  "investors.applications.state.lapsed": "মেয়াদোত্তীর্ণ",
+  "investors.applications.answered": "সম্প্রতি উত্তর দেওয়া",
+  "investors.applications.sentOn": "পাঠিয়েছেন",
+  "investors.applications.read": "পড়ুন",
+  "investors.applications.one": "আবেদন",
+  "investors.applications.cleared": "মুছে ফেলা হয়েছে",
+  "investors.applications.clearedWhy":
+    "উত্তরের এক মাস পর তাঁর পাঠানো তথ্য মুছে ফেলা হয়েছে। শুধু নাম, মোবাইল, তারিখ আর উত্তর রাখা আছে।",
+  "investors.applications.wordingChangedWhy":
+    "তাঁর সম্মতির পরে পোর্টাল সম্মতিপত্রের লেখা বদলেছে। বাতিল করুন, আর নতুনটিতে সম্মতি দিতে তাঁকে নতুন লিংক পাঠান।",
+  "investors.applications.field.address": "ঠিকানা",
+  "investors.applications.field.nid": "এনআইডি নম্বর",
+  "investors.applications.field.email": "ইমেইল",
+  "investors.applications.field.bank": "যে ব্যাংক হিসাবে টাকা পাবেন",
+  "investors.applications.field.tradeLicense": "ট্রেড লাইসেন্স",
+  "investors.applications.field.rjsc": "আরজেএসসি নিবন্ধন",
+  "investors.applications.field.tin": "টিআইএন",
+  "investors.applications.field.authority": "ক্ষমতাপত্র",
+  "investors.applications.field.signatory": "স্বাক্ষরকারী",
+  "investors.applications.field.signatoryNid": "স্বাক্ষরকারীর এনআইডি",
+  "investors.applications.field.signatoryRole": "স্বাক্ষরকারীর পদ",
+  "investors.applications.nominees": "যাঁদের নমিনি করতে চান",
+  "investors.applications.noNominees": "কেউ নেই",
+  "investors.applications.nomineesDraft":
+    "এখনো মনোনয়নপত্র নয়: পোর্টালে ঢোকার পর তিনি মনোনয়নপত্রে তাঁদের নাম দেবেন, অপ্রাপ্তবয়স্ক থাকলে কাগজে।",
+  "investors.applications.photo.nid_front": "এনআইডির সামনের দিক",
+  "investors.applications.photo.nid_back": "এনআইডির পেছনের দিক",
+  "investors.applications.photo.trade_license": "ট্রেড লাইসেন্স",
+  "investors.applications.photo.authority": "স্বাক্ষরকারীর ক্ষমতাপত্র",
+  "investors.applications.consentProof": "অনলাইনে পোর্টাল সম্মতি, সংস্করণ {version}",
+  "investors.applications.consentCode": "{to}-এ পাঠানো কোডে, পাঠানো হয়েছিল",
+  "investors.applications.approve": "অনুমোদন করুন",
+  "investors.applications.approveTitle": "{name}-কে অনুমোদন করবেন?",
+  "investors.applications.approveWhy":
+    "তিনি যেভাবে পূরণ করেছেন সেভাবে বিনিয়োগকারী হিসেবে লেখা হবেন, তাঁর পোর্টাল সম্মতি রাখা হবে, আর পোর্টালের প্রথম কোড এসএমএসে যাবে। এনআইডির ছবি মিলিয়ে দেখেছেন?",
+  "investors.applications.approved": "অনুমোদিত। প্রথম কোড গেছে {to}-এ।",
+  "investors.applications.approvedNoCode":
+    "অনুমোদিত, কিন্তু কোড যায়নি। তাঁর পাতা থেকে নতুন কোড পাঠান।",
+  "investors.applications.decline": "বাতিল করুন",
+  "investors.applications.declineTitle": "{name}-এর আবেদন বাতিল করবেন?",
+  "investors.applications.declineHint":
+    "আপনার কথাটি এসএমএস আর ইমেইলে তাঁকে পাঠানো হবে। তাঁর পাঠানো তথ্য এক মাস পর মুছে ফেলা হবে।",
+  "investors.applications.line": "তাঁকে একটি কথা (ইচ্ছা হলে)",
+  "investors.applications.declined": "বাতিল। তাঁকে জানানো হয়েছে।",
+  "investors.applications.refused.off":
+    "লিংকে আবেদন বন্ধ। পোর্টালের সেটিংসে চালু করুন।",
+  "investors.applications.refused.portalClosed":
+    "বিনিয়োগকারী পোর্টাল বন্ধ। আগে খুলুন।",
+  "investors.applications.refused.cannotText":
+    "খামার এসএমএস পাঠাতে পারে না, আর লিংক খোলার কোড এসএমএসে যায়।",
+  "investors.applications.refused.cannotEmail":
+    "খামার এখনো ইমেইল পাঠাতে পারে না। লিংকটি কপি করুন, বা এসএমএস করুন।",
+  "investors.applications.refused.notMobile": "এটি মোবাইল নম্বর নয়।",
+  "investors.applications.refused.alreadyAnInvestor":
+    "এই মোবাইলে কেউ আগে থেকেই বিনিয়োগকারী।",
+  "investors.applications.refused.linkOpen":
+    "এই মোবাইলের একটি লিংক এখনো খোলা। আগে সেটি তুলে নিন।",
+  "investors.applications.refused.linkUsed": "তাঁর আবেদন আগেই এসেছে।",
+  "investors.applications.refused.linkWithdrawn": "লিংকটি তুলে নেওয়া হয়েছে।",
+  "investors.applications.refused.linkRanOut": "লিংকের মেয়াদ শেষ। আরেকটি বানান।",
+  "investors.applications.refused.sentJustNow":
+    "এইমাত্র পাঠানো হয়েছে। এক মিনিট অপেক্ষা করুন।",
+  "investors.applications.refused.notSent": "যায়নি। এক মিনিট পর আবার চেষ্টা করুন।",
+  "investors.applications.refused.answered": "এর উত্তর আগেই দেওয়া হয়েছে।",
+  "investors.applications.refused.wordingChanged":
+    "তাঁর সম্মতির পরে সম্মতিপত্রের লেখা বদলেছে",
+  "investors.applications.refused.identity":
+    "খামারের ডিএলএস নিবন্ধন নম্বর এখনো লেখা হয়নি; এটি ছাড়া সম্মতিপত্র তৈরি হয় না।",
+  "investors.applications.copy": "লিংক কপি করুন",
+  "investors.applications.copied": "কপি হয়েছে",
+  "investors.applications.switch.title": "লিংকে আবেদন",
+  "investors.applications.switch.show": "চালু করুন",
+  "investors.applications.switch.hide": "বন্ধ করুন",
+  "investors.applications.switch.shownHint":
+    "আপনার চেনা কাউকে ইমেইলে লিংক পাঠাতে পারবেন; তিনি নিজের তথ্য পূরণ করবেন, এনআইডির ছবি দেবেন আর এসএমএসের কোডে পোর্টাল সম্মতি দেবেন। অনুমোদন করলে তিনি বিনিয়োগকারী হবেন, আর প্রথম কোড এসএমএসে যাবে।",
+  "investors.applications.switch.hiddenHint":
+    "বন্ধ। আইনজীবী আর শরিয়াহ বিশেষজ্ঞ দেখার পরেই চালু করুন: এটি সামনাসামনি সই করা সম্মতি আর দেখা এনআইডির জায়গা নেয়।",
+  "investors.applications.switch.confirmTitle": "লিংকে আবেদন চালু করবেন?",
+  "investors.applications.switch.confirmWhy":
+    "আইনজীবী আর শরিয়াহ বিশেষজ্ঞ কি দেখেছেন? চালু হলে লিংক পাঠাতে পারবেন, আর আপনি যাঁকে অনুমোদন করবেন তিনি দেখা না করেই পোর্টালে ঢুকবেন।",
+  "investors.applications.switch.shownDone": "লিংকে আবেদন চালু",
+  "investors.applications.switch.hiddenDone": "লিংকে আবেদন বন্ধ",
+  "portal.apply.askForANewCode":
+    "নিরাপত্তার জন্য ফর্ম তিন ঘণ্টা খোলা থাকে। যা লিখেছিলেন তা রাখা হয়নি।",
+  "portal.apply.title": "আপনার তথ্য পূরণ করুন",
+  "portal.apply.openHint":
+    "{farm} আপনাকে তাদের বিনিয়োগকারীর খাতার জন্য নিজের তথ্য পূরণ করতে বলেছে। ফর্ম খুলতে খামার আপনার {mobile} মোবাইলে একটি কোড পাঠাবে।",
+  "portal.apply.askTheFarm":
+    "লিংকের মেয়াদ শেষ হতে পারে, আগেই ব্যবহার হয়ে থাকতে পারে, বা নতুন করে পাঠানো হতে পারে। খামারের কাছে নতুন লিংক চান।",
+  "portal.apply.sendMeACode": "আমাকে কোড পাঠান",
+  "portal.apply.sendAgain": "আবার কোড পাঠান",
+  "portal.apply.code": "কোড",
+  "portal.apply.enterTheCode": "খামারের পাঠানো কোডটি দিন",
+  "portal.apply.open": "ফর্ম খুলুন",
+  "portal.apply.formTitle": "আপনার তথ্য",
+  "portal.apply.formHint":
+    "{farm} যা জানতে চায় তা আপনার এনআইডি আর ব্যাংকের কাগজ অনুযায়ী লিখুন। আপনার মোবাইল {mobile}; খামার এতেই যোগাযোগ করবে, আর আপনি এটি দিয়ে সাইন ইন করবেন।",
+  "portal.apply.nominees": "আপনার নমিনি",
+  "portal.apply.nomineesHint":
+    "ভেঞ্চারের হিসাব মেটার আগে আপনি মারা গেলে কে আপনার মূলধন আর অংশ তুলবেন। ইচ্ছা হলে দিন। তাঁদের জন্য মনোনয়নপত্রে সই করার পরেই এটি বহাল হবে।",
+  "portal.apply.photos": "ছবি",
+  "portal.apply.photosHint":
+    "এনআইডির দুই দিকের পরিষ্কার ছবি, যাতে মালিক আপনার লেখা মিলিয়ে দেখতে পারেন।",
+  "portal.apply.photoTake": "ছবি বেছে নিন বা তুলুন",
+  "portal.apply.photoAgain": "অন্য ছবি দিন",
+  "portal.apply.toTheConsent": "পোর্টাল সম্মতিপত্র পড়ুন",
+  "portal.apply.readTheConsent": "আপনার তথ্যসহ পোর্টাল সম্মতিপত্র",
+  "portal.apply.agreeHint":
+    "পুরোটা পড়ুন। তারপর খামার আপনার {mobile} মোবাইলে একটি কোড পাঠাবে; কোডটি দেওয়াই এই সম্মতিপত্রে আপনার স্বাক্ষর।",
+  "portal.apply.sendTheCodeToAgree": "সম্মতির কোড পাঠান",
+  "portal.apply.agreeAndSend": "সম্মতি দিয়ে আবেদন পাঠান",
+  "portal.apply.sentTitle": "খামার আপনার আবেদন পেয়েছে",
+  "portal.apply.sentHint":
+    "মালিক পড়ে এসএমএসে উত্তর দেবেন। অনুমোদন হলে বিনিয়োগকারী পোর্টালের কোড এসএমএসে আসবে।",
+  "portal.apply.refused.opensNothing": "এই লিংক এখন আর কিছু খোলে না",
+  "portal.apply.refused.sittingEnded":
+    "এই বসার সময় শেষ। ফর্ম আবার খুলতে নতুন কোড চান।",
+  "portal.apply.refused.codeUsed": "কোডটি আগেই ব্যবহার হয়েছে। নতুন কোড চান।",
+  "portal.apply.refused.codeExpired": "কোডের মেয়াদ শেষ। নতুন কোড চান।",
+  "portal.apply.refused.tooManyCodes": "অনেকবার ভুল কোড। পনেরো মিনিট অপেক্ষা করুন।",
+  "portal.apply.refused.sentJustNow":
+    "এইমাত্র কোড পাঠানো হয়েছে। এক মিনিট অপেক্ষা করুন।",
+  "portal.apply.refused.notSent": "কোড যায়নি। এক মিনিট পর আবার চেষ্টা করুন।",
+  "portal.apply.refused.incomplete":
+    "এখনো লিখতে বাকি: আপনার ঠিকানা, এনআইডি নম্বর আর ব্যাংক হিসাব।",
+  "portal.apply.refused.photosMissing": "আগে ছবিগুলো দিন।",
+  "portal.apply.refused.consentChanged":
+    "আপনি পড়ার পর সম্মতিপত্র বদলেছে। সম্মতি দেওয়ার আগে আবার পড়ুন।",
+  "portal.apply.refused.kindFixed":
+    "এই লিংক অন্য ধরনের বিনিয়োগকারীর জন্য। খামারকে জিজ্ঞেস করুন।",
+  "portal.apply.link.subject": "আপনার তথ্য পূরণ করুন",
+  "portal.apply.link.email":
+    "{name}, {farm}-এর মালিক আপনাকে খামারের বিনিয়োগকারীর খাতার জন্য নিজের তথ্য পূরণ করতে বলেছেন।\n\nফোনে এটি খুলুন: {at}\n\nখুলতে খামার আপনার মোবাইলে একটি কোড পাঠাবে। লিংকটি একবারই, {days} দিন কাজ করবে। আপনি এটি আশা না করে থাকলে উপেক্ষা করুন আর খামারকে জানান।",
+  "portal.apply.link.sms":
+    "{farm}: খামারের বিনিয়োগকারীর খাতার জন্য আপনার তথ্য পূরণ করুন। লিংকটি একবারই, {days} দিন কাজ করবে; কাউকে দেবেন না।\n{at}",
   "portal.sentCode.subject": "পোর্টালের নতুন কোড",
   "portal.sentCode.email":
     "{farm}-এর বিনিয়োগকারী পোর্টালের নতুন কোড: {code}\n\n{at}-এ আপনার ফোন নম্বর আর এই কোড দিয়ে নতুন পাসওয়ার্ড বেছে নিন। কোডটি {days} দিন কাজ করবে। কাউকে বলবেন না; আপনি না চাইলে খামারকে জানান।",
@@ -1897,6 +2089,8 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "audit.entity.lot": "ওষুধের লট",
   "audit.entity.treatment": "চিকিৎসা",
   "audit.entity.request_to_join": "যোগদানের অনুরোধ",
+  "audit.entity.application_link": "আবেদনের লিংক",
+  "audit.entity.investor_application": "আবেদন",
   "audit.entity.pay_in_note": "জমার খবর",
   "audit.entity.password_guess": "ভুল পাসওয়ার্ড",
   "audit.entity.receivable": "বাকি",
@@ -1984,6 +2178,8 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "digest.moneyAwaiting": "{count}টি {currencyOf} হিসাব আপনার অনুমোদনের অপেক্ষায়",
   "digest.monthlySumMissed": "{count} জন বিনিয়োগকারী মাসের {currencyIn} পিছিয়ে",
   "push.payInNoteSentTitle": "বিনিয়োগকারী টাকা পাঠিয়েছেন বলে জানিয়েছেন",
+  "push.applicationSentTitle": "একটি আবেদন পড়তে হবে",
+  "digest.applicationSent": "{count}টি আবেদন আপনার উত্তরের অপেক্ষায়",
   "push.offerAgreedTitle": "একজন বিনিয়োগকারী অ্যাপে সম্মতি দিয়েছেন",
   "digest.offerAgreed": "অ্যাপে সম্মতি দেওয়া {count}টি চুক্তি অনুমোদনের অপেক্ষায়",
   "digest.payInNoteSent": "{count}টি জমার খবর ব্যাংকের সঙ্গে মেলাতে হবে",

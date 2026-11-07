@@ -17,6 +17,7 @@ import {
   maskedDigits,
   mobileNumberOf,
 } from "@OpenFarm/domain";
+import type { Language } from "@OpenFarm/i18n";
 import { resolveLanguage, translate } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -336,6 +337,20 @@ const waysToReach = async (
   };
 };
 
+/** The words a code goes out in: a new one, for somebody already in; or the first, for an approved Application. */
+const CODE_WORDS = {
+  new: {
+    sms: "portal.sentCode.sms",
+    subject: "portal.sentCode.subject",
+    email: "portal.sentCode.email",
+  },
+  first: {
+    sms: "portal.apply.approved.sms",
+    subject: "portal.apply.approved.subject",
+    email: "portal.apply.approved.email",
+  },
+} as const;
+
 /**
  * A new code sent to an Investor rather than handed over, for somebody already invited in person who has forgotten their
  * password or let their code run out: by text to their phone — the number they sign in with — and by email only to an
@@ -347,17 +362,19 @@ const waysToReach = async (
  */
 export const sendNewCode = async (
   context: Owned,
-  investorId: string
+  investorId: string,
+  /** For somebody whose Application was just approved: their first code, said as such, in the language they applied in
+   *  (ADR 0034). The Owner's button sends a new one. */
+  first?: { language: Language }
 ): Promise<{ bySms: string | null; byEmail: string | null; days: number }> => {
   const farmId = context.farm.id;
   const now = context.clock.now();
   const { loginEmail } = await invitable(context, investorId);
   const access = await mayBeSentACode(context, investorId, now);
-  const { sms, email, phone, language } = await waysToReach(
-    context,
-    investorId,
-    access.userId
-  );
+  const ways = await waysToReach(context, investorId, access.userId);
+  const { sms, email, phone } = ways;
+  const language = first?.language ?? ways.language;
+  const words = first ? CODE_WORDS.first : CODE_WORDS.new;
 
   const { code, codeHash } = await newInviteCode();
   const days = A_WEEK / (24 * 60 * 60 * 1000);
@@ -366,7 +383,7 @@ export const sendNewCode = async (
   const [texted, emailed] = await Promise.all([
     sms
       ? context.sms.send(sms, {
-          text: translate(language, "portal.sentCode.sms", {
+          text: translate(language, words.sms, {
             farm,
             code,
             at,
@@ -377,11 +394,9 @@ export const sendNewCode = async (
       : { delivered: false },
     email
       ? context.email.send(email, {
-          subject: `${farm}: ${translate("bn", "portal.sentCode.subject")} · ${translate("en", "portal.sentCode.subject")}`,
+          subject: `${farm}: ${translate("bn", words.subject)} · ${translate("en", words.subject)}`,
           text: (["bn", "en"] as const)
-            .map((one) =>
-              translate(one, "portal.sentCode.email", { farm, code, at, days })
-            )
+            .map((one) => translate(one, words.email, { farm, code, at, days }))
             .join("\n\n—\n\n"),
         })
       : { delivered: false },

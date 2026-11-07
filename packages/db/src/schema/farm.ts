@@ -286,6 +286,13 @@ export const farm = pgTable("farm", {
    *  Agreement, which the Owner checks against the Venture Account and records, or answers not found (ADR 0018). It
    *  moves no money. Off until the Owner turns it on, once the lawyer and the Shariah scholar have seen it. */
   payInNotes: boolean("pay_in_notes").notNull().default(false),
+  /** Whether the Owner may send somebody they know an **Application Link**, for them to fill in their own details
+   *  online and agree the Portal Consent with a texted code; approving the **Application** makes them an Investor and
+   *  texts their first code (ADR 0034). Off until the Owner turns it on, once the lawyer and the Shariah scholar have
+   *  seen it: it replaces a consent signed and an NID seen in person. */
+  investorApplications: boolean("investor_applications")
+    .notNull()
+    .default(false),
   /** Whether Investors are shown a settled Venture's **Return on Capital** in the portal and on their হিসাব নিকাশ — a
    *  share over its days, never a rate a year (ADR 0012). Off until the Owner turns it on, once the lawyer and the
    *  Shariah scholar have seen its wording; the Owner's Portal Preview shows it either way. */

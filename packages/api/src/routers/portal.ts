@@ -1,4 +1,6 @@
+import { APPLICATION_CODE_PURPOSES } from "@OpenFarm/db/schema/application";
 import { SIGNED_OFFER_KINDS } from "@OpenFarm/db/schema/venture";
+import { LANGUAGES } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -15,6 +17,16 @@ import {
   theirAmendmentOffers,
   withdrawAgreementToAmendment,
 } from "../amendment-offer-store";
+import {
+  applicationForm,
+  applicationPhotos,
+  consentToRead,
+  formOf,
+  openLink,
+  sendApplication,
+  sendApplyCode,
+  unlockLink,
+} from "../applications";
 import { protectedProcedure, publicProcedure } from "../index";
 import { confirmEmail, sendEmailCode } from "../investor-email";
 import {
@@ -103,8 +115,71 @@ export const investorProcedure = protectedProcedure.use(
   }
 );
 
+/**
+ * What an Application Link opens, for somebody not signed in (ADR 0034): the link's secret their only key, and every
+ * link that opens nothing answering alike (`applications.ts`).
+ */
+const applyRouter = {
+  /** The farm's name and the mobile the code goes to, mostly hidden: all a link says before its code is entered. */
+  open: publicProcedure
+    .input(z.object({ token: z.string().min(1).max(200) }))
+    .handler(({ context, input }) => openLink(context, input.token)),
+
+  /** Texts a code to the link's mobile: to open it, or within a sitting to agree the Portal Consent. */
+  sendCode: publicProcedure
+    .input(
+      z.object({
+        token: z.string().min(1).max(200),
+        purpose: z.enum(APPLICATION_CODE_PURPOSES),
+        key: z.string().max(200).optional(),
+        language: z.enum(LANGUAGES),
+      })
+    )
+    .handler(({ context, input }) => sendApplyCode(context, input)),
+
+  /** The opening code entered: a key for the sitting, and what the form opens on. */
+  unlock: publicProcedure
+    .input(
+      z.object({
+        token: z.string().min(1).max(200),
+        code: z.string().trim().min(1).max(20),
+      })
+    )
+    .handler(({ context, input }) => unlockLink(context, input)),
+
+  /** What the form opens on, again, within a sitting. */
+  form: publicProcedure
+    .input(
+      z.object({
+        token: z.string().min(1).max(200),
+        key: z.string().min(1).max(200),
+      })
+    )
+    .handler(({ context, input }) => formOf(context, input)),
+
+  /** The Portal Consent laid out from the form as it stands, to read before agreeing. */
+  consent: publicProcedure
+    .input(applicationForm)
+    .handler(({ context, input }) => consentToRead(context, input)),
+
+  /** The Application sent, the consent agreed with the second code. */
+  send: publicProcedure
+    .input(
+      applicationForm.extend({
+        photos: applicationPhotos,
+        laidAt: z.coerce.date(),
+        paperHash: z.string().min(1).max(128),
+        code: z.string().trim().min(1).max(20),
+      })
+    )
+    .handler(({ context, input }) => sendApplication(context, input)),
+};
+
 /** The Investor portal: taking up an invitation, and what an Investor reads. */
 export const portalRouter = {
+  /** Applying online by an Application Link (ADR 0034). */
+  applying: applyRouter,
+
   /**
    * An Investor taking up the Owner's invitation with the phone they were written down with, the code handed to
    * them, and a password of their own. Answers with what the account signs in as, which the screen signs them in

@@ -3417,6 +3417,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "alerts.payInNoteSent":
     "{investor} জানিয়েছেন, তিনি {day} তারিখে {venture}-এর জন্য {way} {currencySign}{amount} পাঠিয়েছেন",
   "alerts.checkThePayInNotes": "ব্যাংকের সঙ্গে মিলিয়ে দেখুন",
+  "alerts.applicationSent": "{name} বিনিয়োগকারী হওয়ার আবেদন পাঠিয়েছেন",
+  "alerts.readTheApplication": "আবেদনটি পড়ুন",
   "alerts.offerAgreed":
     "{investor} অ্যাপে {venture}-এ যোগ দিতে সম্মতি দিয়েছেন, আপনার অনুমোদনের অপেক্ষায়",
   "alerts.approveTheAgreement": "চুক্তি অনুমোদন করুন",

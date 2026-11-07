@@ -90,6 +90,9 @@ export const WHOSE_TRAIL = {
 
   // Who put money in, on what paper, and who would receive it: the investors page.
   investor: "owner",
+  // Who the Owner asked to apply online, and what they sent back (ADR 0034): an Investor's record before it is one.
+  application_link: "owner",
+  investor_application: "owner",
   investor_access: "owner",
   investment_agreement: "owner",
   nomination: "owner",

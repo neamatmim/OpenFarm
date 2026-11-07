@@ -14,7 +14,8 @@ const SERVED_TO_INVESTORS: readonly RegExp[] = [
   /^\/assets\//u,
   /^\/(?:icon\.svg|portal\.webmanifest|robots\.txt)$/u,
   /^\/api\/auth\/(?:sign-in\/email|sign-out|get-session|change-password|revoke-other-sessions)$/u,
-  /^\/api\/rpc\/(?:portal\/[^/]+|people\/me|language\/[^/]+)$/u,
+  // `portal/applying/…` too: what an Application Link opens, a level below the portal's own calls (ADR 0034).
+  /^\/api\/rpc\/(?:portal\/(?:applying\/)?[^/]+|people\/me|language\/[^/]+)$/u,
   // Every server function, since they are told apart only by a hash of the build: today there is one, `getUser`, and a
   // test stops a second arriving unseen.
   /^\/_serverFn\//u,
