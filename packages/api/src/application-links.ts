@@ -83,11 +83,11 @@ export const linkIsOpen = (link: LinkRow, now: Date): boolean => {
 
 /**
  * Whether the farm takes Applications at all, refused by name otherwise: the Owner's switch on, the portal open, and
- * the farm able to text, since the code that opens a link and seals the consent goes by text (ADR 0034). Read as the
- * farm stands now, not as the request found it.
+ * a way to send the codes that open a link and seal the consent — a text gateway, or the farm's email (ADR 0034). Read
+ * as the farm stands now, not as the request found it.
  */
 export const assertApplicationsTaken = async (
-  context: Pick<Owned, "db" | "farm" | "sms">
+  context: Pick<Owned, "db" | "farm" | "sms" | "email">
 ): Promise<void> => {
   const standing = await context.db.query.farm.findFirst({
     where: { id: context.farm.id },
@@ -102,10 +102,10 @@ export const assertApplicationsTaken = async (
   if (!standing.investorPortal) {
     throw portalClosed();
   }
-  if (!context.sms.sends) {
+  if (!(context.sms.sends || context.email.sends)) {
     throw refused(
-      "The farm cannot send texts, and the code that opens a link goes by text",
-      "farm_cannot_text"
+      "The farm can send neither texts nor email, and the codes that open a link go by one or the other",
+      "farm_cannot_send_codes"
     );
   }
 };
@@ -267,6 +267,14 @@ export const makeApplicationLink = async (
     throw refused(
       "Their phone is not a mobile number, which the code goes to and they sign in with",
       "phone_not_mobile"
+    );
+  }
+  // With no text gateway the codes go to their email alone: a link with none could never be opened (the Owner,
+  // 2026-11-08: no gateway yet).
+  if (!(context.sms.sends || input.email)) {
+    throw refused(
+      "The farm cannot send texts yet, so the codes go by email: give their email",
+      "link_needs_email"
     );
   }
   const now = context.clock.now();

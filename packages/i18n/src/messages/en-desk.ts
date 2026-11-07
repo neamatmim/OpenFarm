@@ -807,6 +807,7 @@ export const enDesk = {
   "portal.newCode": "Give a new code",
   "portal.sentCode.sms":
     "{farm}: your new portal code is {code}. At {at}, enter your phone number and this code, then choose a new password. It works for {days, plural, one {# day} other {# days}}. Tell nobody.",
+  "portal.apply.code.subject": "Your code",
   "portal.apply.code.open":
     "{farm}: {code} is your code to open your details form. It works for {minutes, plural, one {# minute} other {# minutes}}. Share it with nobody.",
   "portal.apply.code.agree":
@@ -828,16 +829,16 @@ export const enDesk = {
   "investors.applications.make": "Send an application link",
   "investors.applications.makeTitle": "Send an application link",
   "investors.applications.makeHint":
-    "For somebody you know. The farm emails them the link; it opens only with a code texted to their mobile, and works once, for 7 days.",
+    "For somebody you know. The farm emails them the link; it opens only with a code sent to their email (and their mobile, once the farm can text), and works once, for 7 days.",
   "investors.applications.makeAndEmail": "Make and email it",
   "investors.applications.kind": "Who is applying",
   "investors.applications.name": "Their name, or the organization's",
   "investors.applications.mobile": "Mobile",
   "investors.applications.mobileHint":
-    "The code that opens the link goes here, and they sign in to the portal with it. An organization's Signatory's.",
+    "They sign in to the portal with it, and the farm texts their codes here once it can send texts. An organization's Signatory's.",
   "investors.applications.email": "Email",
   "investors.applications.emailHint":
-    "Where the link goes. A wrong letter sends it to a stranger, who will see only the farm's name.",
+    "Where the link and their codes go. Check it letter by letter: the farm cannot text yet, so this address is how they get in.",
   "investors.applications.madeTitle": "The link is made",
   "investors.applications.emailedTo":
     "Emailed to {to}. You can copy it too, to send another way.",
@@ -893,13 +894,21 @@ export const enDesk = {
   "investors.applications.photo.nid_back": "NID, back",
   "investors.applications.photo.trade_license": "Trade license",
   "investors.applications.photo.authority": "The Signatory's authority",
+  "investors.applications.consentCodeEmail":
+    "With the code emailed to {to}, sent",
+  "investors.applications.refused.cannotSendCodes":
+    "The farm can send neither texts nor email yet, and the codes that open a link go by one or the other.",
+  "investors.applications.refused.needsEmail":
+    "The farm cannot send texts yet, so the codes go by email: give their email.",
+  "investors.applications.refused.noWayForFirstCode":
+    "Their first code would go nowhere: the farm cannot text yet, and they changed their email on the form. Decline, and send a new link to the email they gave.",
   "investors.applications.consentProof":
     "Portal consent agreed online, version {version}",
   "investors.applications.consentCode": "With the code texted to {to}, sent",
   "investors.applications.approve": "Approve",
   "investors.applications.approveTitle": "Approve {name}?",
   "investors.applications.approveWhy":
-    "They are written down as an investor as they filled it in, their portal consent is recorded, and their first portal code is texted to them. Have you checked the NID photos?",
+    "They are written down as an investor as they filled it in, their portal consent is recorded, and their first portal code is sent to them. Have you checked the NID photos?",
   "investors.applications.approved": "Approved. Their first code went to {to}.",
   "investors.applications.approvedNoCode":
     "Approved, but the code did not go. Send a new code from their page.",
@@ -951,15 +960,29 @@ export const enDesk = {
   "investors.applications.switch.hiddenDone": "Applications by link are off",
   "portal.apply.askForANewCode":
     "For your safety the form stays open for three hours. What you typed is not kept.",
+  "portal.apply.where.mobile": "your mobile ending {mobile}",
+  "portal.apply.where.email": "your email {email}",
+  "portal.apply.where.both":
+    "your mobile ending {mobile} and your email {email}",
+  "portal.apply.step.details": "Your details",
+  "portal.apply.step.photos": "Photos",
+  "portal.apply.step.consent": "Consent",
+  "portal.apply.detailsHint": "As they are on your NID and bank papers.",
+  "portal.apply.mobile": "Mobile",
+  "portal.apply.mobileFixed":
+    "You sign in to the portal with it. To change it, ask the farm.",
+  "portal.apply.consentIntro":
+    "Once your details and photos are in, read the portal consent laid out with them, then agree it with a code.",
+  "portal.apply.refusedTitle": "Not yet",
   "portal.apply.title": "Fill in your details",
   "portal.apply.openHint":
-    "{farm} asked you to fill in your own details for its investor records. To open the form, the farm texts a code to your mobile ending {mobile}.",
+    "{farm} asked you to fill in your own details for its investor records. To open the form, the farm sends a code to {where}.",
   "portal.apply.askTheFarm":
     "The link may have run out, been used already, or been sent again. Ask the farm for a new one.",
-  "portal.apply.sendMeACode": "Text me the code",
+  "portal.apply.sendMeACode": "Send me the code",
   "portal.apply.sendAgain": "Send the code again",
   "portal.apply.code": "The code",
-  "portal.apply.enterTheCode": "Enter the code the farm texted you",
+  "portal.apply.enterTheCode": "Enter the code the farm sent you",
   "portal.apply.open": "Open the form",
   "portal.apply.formTitle": "Your details",
   "portal.apply.formHint":
@@ -967,7 +990,6 @@ export const enDesk = {
   "portal.apply.nominees": "Your nominees",
   "portal.apply.nomineesHint":
     "Who would collect your capital and share if you died before a venture settles. Optional. They are in force only once you sign a nomination for them.",
-  "portal.apply.photos": "Photos",
   "portal.apply.photosHint":
     "Clear photos of both sides of the NID, so the owner can check what you wrote against it.",
   "portal.apply.photoTake": "Choose or take a photo",
@@ -976,12 +998,12 @@ export const enDesk = {
   "portal.apply.readTheConsent":
     "The portal consent, laid out with your details",
   "portal.apply.agreeHint":
-    "Read it through. Then the farm texts a code to your mobile ending {mobile}; entering it is your signature on this consent.",
-  "portal.apply.sendTheCodeToAgree": "Text me the code to agree",
+    "Read it through. Then the farm sends a code to {where}; entering it is your signature on this consent.",
+  "portal.apply.sendTheCodeToAgree": "Send me the code to agree",
   "portal.apply.agreeAndSend": "Agree and send my application",
   "portal.apply.sentTitle": "The farm has your application",
   "portal.apply.sentHint":
-    "The owner will read it and answer you by text. Once approved, your code to the investor portal comes by text.",
+    "The owner will read it and answer you. Once approved, your code to the investor portal comes the same way as these codes did.",
   "portal.apply.refused.opensNothing": "This link opens nothing now",
   "portal.apply.refused.sittingEnded":
     "This sitting has ended. Ask for a new code to open the form again.",
@@ -1003,7 +1025,7 @@ export const enDesk = {
     "This link was made for another kind of investor. Ask the farm.",
   "portal.apply.link.subject": "Fill in your details",
   "portal.apply.link.email":
-    "{name}, the owner of {farm} has asked you to fill in your own details for the farm's investor records.\n\nOpen this on your phone: {at}\n\nTo open it, the farm texts a code to your mobile. The link works once, for {days, plural, one {# day} other {# days}}. If you did not expect it, ignore it and tell the farm.",
+    "{name}, the owner of {farm} has asked you to fill in your own details for the farm's investor records.\n\nOpen this on your phone: {at}\n\nTo open it, the farm sends you a code. The link works once, for {days, plural, one {# day} other {# days}}. If you did not expect it, ignore it and tell the farm.",
   "portal.apply.link.sms":
     "{farm}: fill in your details for the farm's investor records. The link works once, for {days, plural, one {# day} other {# days}}; share it with nobody.\n{at}",
   "portal.sentCode.subject": "Your new portal code",

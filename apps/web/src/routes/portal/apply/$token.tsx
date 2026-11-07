@@ -1,12 +1,20 @@
 import { farmDayOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
+import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CircleCheck, MessageSquareLock } from "lucide-react";
+import {
+  Check,
+  CircleCheck,
+  FileText,
+  IdCard,
+  MessageSquareLock,
+} from "lucide-react";
 import { useState } from "react";
 
 import { CODE_FIELD } from "@/components/door-screen";
@@ -16,8 +24,8 @@ import {
   nomineesOf,
 } from "@/components/investors/nominee-draft";
 import { NomineesForm } from "@/components/investors/nominees-form";
-import { FLOW_CARD, FlowHead, Notice } from "@/components/page";
-import { FormField, UploadButton } from "@/components/page-kit";
+import { FLOW_CARD, FlowHead, Notice, Section } from "@/components/page";
+import { FormField, InsetPanel, UploadButton } from "@/components/page-kit";
 import { PortalDoor } from "@/components/portal/portal-door";
 import { PaperDesk } from "@/components/ventures/paper-dialog";
 import { PaperDocumentView } from "@/components/ventures/paper-document";
@@ -189,6 +197,24 @@ const recordOf = (kind: Kind, filled: Filled) =>
         bankAccount: given(filled.bankAccount),
       };
 
+/** Where the farm sends a code, mostly hidden, as a sentence says it: their mobile while the farm texts, and their
+ *  email while it sends email — by email alone until the farm has a text gateway (the Owner, 2026-11-08). */
+const whereCodesGo = (
+  ways: { bySms: string | null; byEmail: string | null },
+  t: ReturnType<typeof useLanguage>["t"]
+): string => {
+  if (ways.bySms && ways.byEmail) {
+    return t("portal.apply.where.both", {
+      mobile: ways.bySms,
+      email: ways.byEmail,
+    });
+  }
+  if (ways.bySms) {
+    return t("portal.apply.where.mobile", { mobile: ways.bySms });
+  }
+  return t("portal.apply.where.email", { email: ways.byEmail ?? "" });
+};
+
 /** The code box, the same as the portal's join page draws one. */
 const CodeBox = ({
   id,
@@ -274,14 +300,14 @@ const Opening = ({
           link.data
             ? t("portal.apply.openHint", {
                 farm: link.data.farmName,
-                mobile: link.data.mobile,
+                where: whereCodesGo(link.data, t),
               })
             : undefined
         }
         title={t("portal.apply.title")}
       />
       {refused ? (
-        <Notice title={t("auth.refused")} tone="danger">
+        <Notice title={t("portal.apply.refusedTitle")} tone="danger">
           {refused}
         </Notice>
       ) : null}
@@ -320,7 +346,7 @@ const Opening = ({
   );
 };
 
-/** One photograph to take or choose, with what it shows once taken. */
+/** One photograph to take or choose: a tile the shape of the card, showing it once taken. */
 const PhotoBox = ({
   what,
   photo,
@@ -335,14 +361,28 @@ const PhotoBox = ({
   const [busy, setBusy] = useState(false);
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-sm font-medium">{t(PHOTO_WORDS[what])}</span>
-      {photo ? (
-        <img
-          alt={t(PHOTO_WORDS[what])}
-          className="bg-muted/40 max-h-48 w-full rounded-lg border object-contain"
-          src={`data:${photo.contentType};base64,${photo.data}`}
-        />
-      ) : null}
+      <span className="flex items-center gap-1.5 text-sm font-medium">
+        {photo ? (
+          <CircleCheck aria-hidden className="text-success size-4" />
+        ) : null}
+        {t(PHOTO_WORDS[what])}
+      </span>
+      <div
+        className={cn(
+          "bg-muted/40 grid aspect-[3/2] place-items-center overflow-hidden rounded-lg border",
+          !photo && "border-dashed"
+        )}
+      >
+        {photo ? (
+          <img
+            alt={t(PHOTO_WORDS[what])}
+            className="size-full object-contain"
+            src={`data:${photo.contentType};base64,${photo.data}`}
+          />
+        ) : (
+          <IdCard aria-hidden className="text-muted-foreground size-10" />
+        )}
+      </div>
       <UploadButton
         busy={busy}
         fromCamera={false}
@@ -368,6 +408,60 @@ const PhotoBox = ({
       {problem ? <p className="text-destructive text-sm">{problem}</p> : null}
     </div>
   );
+};
+
+/** The three parts of the form along the top, each ticked once it is done, so a long form says how far there is to go. */
+const StepTrack = ({ done }: { done: readonly boolean[] }) => {
+  const { t, language } = useLanguage();
+  const steps = [
+    t("portal.apply.step.details"),
+    t("portal.apply.step.photos"),
+    t("portal.apply.step.consent"),
+  ];
+  return (
+    <ol className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+      {steps.map((label, index) => (
+        <li className="flex items-center gap-2" key={label}>
+          <span
+            className={cn(
+              "grid size-6 place-items-center rounded-full text-xs font-medium tabular-nums",
+              done[index]
+                ? "bg-success text-success-foreground"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            {done[index] ? (
+              <Check aria-hidden className="size-3.5" />
+            ) : (
+              formatNumber(index + 1, language)
+            )}
+          </span>
+          <span className={done[index] ? undefined : "text-muted-foreground"}>
+            {label}
+          </span>
+          {index < steps.length - 1 ? (
+            <span aria-hidden className="bg-border hidden h-px w-6 sm:block" />
+          ) : null}
+        </li>
+      ))}
+    </ol>
+  );
+};
+
+/** Whether a box has anything in it. */
+const has = (text: string) => text.trim() !== "";
+
+/** Whether a kind's details are all in that the farm asks of somebody it will not meet. */
+const detailsIn = (kind: Kind, filled: Filled): boolean => {
+  const common =
+    has(filled.name) && has(filled.address) && has(filled.bankAccount);
+  return kind === "person"
+    ? common && has(filled.nid)
+    : common &&
+        has(filled.tradeLicense) &&
+        has(filled.signatoryName) &&
+        has(filled.signatoryNid) &&
+        has(filled.authority);
 };
 
 /** The consent, as laid out from what they wrote, with the moment it was laid out and its fingerprint. */
@@ -505,7 +599,12 @@ const Filling = ({
       value: filled[one.field],
     };
     return (
-      <FormField id={props.id} key={one.field} label={t(one.label)}>
+      <FormField
+        className={one.long ? "sm:col-span-2" : undefined}
+        id={props.id}
+        key={one.field}
+        label={t(one.label)}
+      >
         {one.long ? (
           <Textarea maxLength={300} rows={2} {...props} />
         ) : (
@@ -514,135 +613,192 @@ const Filling = ({
       </FormField>
     );
   };
+  const sayRefused = refused ? (
+    <Notice title={t("portal.apply.refusedTitle")} tone="danger">
+      {refused}
+    </Notice>
+  ) : null;
+  // Full width on a phone, its own width beside the text on a wider screen.
+  const wide = "h-11 w-full sm:w-auto sm:self-start";
   return (
-    <div className={FLOW_CARD}>
-      <FlowHead
-        hint={t("portal.apply.formHint", {
-          farm: opened.farmName,
-          mobile: opened.mobile,
-        })}
-        title={t("portal.apply.formTitle")}
-      />
-      {refused ? (
-        <Notice title={t("auth.refused")} tone="danger">
-          {refused}
-        </Notice>
-      ) : null}
-      <div className="flex flex-col gap-4">{BOXES[kind].map(box)}</div>
-      {kind === "person" ? (
-        <div className="flex flex-col gap-2 border-t pt-4">
-          <p className="text-sm font-medium">{t("portal.apply.nominees")}</p>
-          <p className="text-muted-foreground text-xs">
-            {t("portal.apply.nomineesHint")}
-          </p>
-          <NomineesForm
-            drafts={nominees}
-            onChange={(next) => {
-              setNominees(next);
-              setRead(null);
-            }}
-            onDay={today}
-          />
-        </div>
-      ) : null}
-      <div className="flex flex-col gap-4 border-t pt-4">
-        <p className="text-sm font-medium">{t("portal.apply.photos")}</p>
-        <p className="text-muted-foreground text-xs">
-          {t("portal.apply.photosHint")}
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-3">
+        <p className="text-muted-foreground text-sm">{opened.farmName}</p>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t("portal.apply.formTitle")}
+        </h1>
+        <p className="text-muted-foreground max-w-2xl text-sm">
+          {t("portal.apply.formHint", {
+            farm: opened.farmName,
+            mobile: opened.mobile,
+          })}
         </p>
-        {PHOTOS[kind].map((what) => (
-          <PhotoBox
-            key={what}
-            onPhoto={(photo) => setPhotos((was) => ({ ...was, [what]: photo }))}
-            photo={photos[what]}
-            what={what}
-          />
-        ))}
-      </div>
-      {read ? (
-        <div className="flex flex-col gap-3 border-t pt-4">
-          <p className="text-sm font-medium">
-            {t("portal.apply.readTheConsent")}
-          </p>
-          <PaperDesk>
-            <PaperDocumentView document={read.paper} language={language} />
-          </PaperDesk>
-          <p className="text-muted-foreground text-sm">
-            {t("portal.apply.agreeHint", { mobile: opened.mobile })}
-          </p>
-          {codeSent ? (
-            <form
-              className="flex flex-col gap-3"
-              noValidate
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (photosMissing.length > 0) {
-                  setRefused(t("portal.apply.refused.photosMissing"));
-                  return;
-                }
-                send.mutate({
-                  ...theForm,
-                  photos: {
-                    nid_front: photos.nid_front as Photo,
-                    nid_back: photos.nid_back as Photo,
-                    trade_license: photos.trade_license,
-                    authority: photos.authority,
-                  },
-                  laidAt: read.laidAt,
-                  paperHash: read.paperHash,
-                  code,
-                });
+        <StepTrack
+          done={[
+            detailsIn(kind, filled),
+            photosMissing.length === 0,
+            read !== null,
+          ]}
+        />
+      </header>
+
+      <Section
+        description={t("portal.apply.detailsHint")}
+        title={`${formatNumber(1, language)}. ${t("portal.apply.step.details")}`}
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          {BOXES[kind].map(box)}
+          <FormField
+            hint={t("portal.apply.mobileFixed")}
+            id="apply-mobile"
+            label={t("portal.apply.mobile")}
+          >
+            <Input disabled id="apply-mobile" value={opened.mobile} />
+          </FormField>
+        </div>
+        {kind === "person" ? (
+          <div className="flex flex-col gap-3 border-t pt-4">
+            <div>
+              <p className="text-sm font-medium">
+                {t("portal.apply.nominees")}
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                {t("portal.apply.nomineesHint")}
+              </p>
+            </div>
+            <NomineesForm
+              drafts={nominees}
+              onChange={(next) => {
+                setNominees(next);
+                setRead(null);
               }}
-            >
-              <CodeBox code={code} id="apply-agree-code" onCode={setCode} />
-              <Button
-                className="h-12 w-full text-base md:h-9 md:text-sm"
-                disabled={send.isPending || code.trim() === ""}
-                type="submit"
-              >
-                {send.isPending ? <Spinner /> : null}
-                {t("portal.apply.agreeAndSend")}
-              </Button>
-            </form>
-          ) : (
-            <Button
-              className="h-12 w-full text-base md:h-9 md:text-sm"
-              disabled={sendCode.isPending || photosMissing.length > 0}
-              onClick={() =>
-                sendCode.mutate({
-                  token,
-                  key: sittingKey,
-                  purpose: "agree",
-                  language,
-                })
+              onDay={today}
+            />
+          </div>
+        ) : null}
+      </Section>
+
+      <Section
+        description={t("portal.apply.photosHint")}
+        title={`${formatNumber(2, language)}. ${t("portal.apply.step.photos")}`}
+      >
+        <div className="grid gap-5 sm:grid-cols-2">
+          {PHOTOS[kind].map((what) => (
+            <PhotoBox
+              key={what}
+              onPhoto={(photo) =>
+                setPhotos((was) => ({ ...was, [what]: photo }))
               }
+              photo={photos[what]}
+              what={what}
+            />
+          ))}
+        </div>
+      </Section>
+
+      <Section
+        description={t(
+          read ? "portal.apply.readTheConsent" : "portal.apply.consentIntro"
+        )}
+        title={`${formatNumber(3, language)}. ${t("portal.apply.step.consent")}`}
+      >
+        {read ? (
+          <>
+            <PaperDesk>
+              <PaperDocumentView document={read.paper} language={language} />
+            </PaperDesk>
+            <InsetPanel className="flex flex-col gap-4">
+              <p className="text-sm">
+                {t("portal.apply.agreeHint", {
+                  where: whereCodesGo(opened, t),
+                })}
+              </p>
+              {sayRefused}
+              {photosMissing.length > 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  {t("portal.apply.refused.photosMissing")}
+                </p>
+              ) : null}
+              {codeSent ? (
+                <form
+                  className="flex flex-col gap-3 sm:flex-row sm:items-end"
+                  noValidate
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (photosMissing.length > 0) {
+                      setRefused(t("portal.apply.refused.photosMissing"));
+                      return;
+                    }
+                    send.mutate({
+                      ...theForm,
+                      photos: {
+                        nid_front: photos.nid_front as Photo,
+                        nid_back: photos.nid_back as Photo,
+                        trade_license: photos.trade_license,
+                        authority: photos.authority,
+                      },
+                      laidAt: read.laidAt,
+                      paperHash: read.paperHash,
+                      code,
+                    });
+                  }}
+                >
+                  <div className="sm:w-48">
+                    <CodeBox
+                      code={code}
+                      id="apply-agree-code"
+                      onCode={setCode}
+                    />
+                  </div>
+                  <Button
+                    // Level with the code box beside it, and as tall.
+                    className="h-14 w-full sm:w-auto md:h-14"
+                    disabled={send.isPending || code.trim() === ""}
+                    type="submit"
+                  >
+                    {send.isPending ? <Spinner /> : <CircleCheck aria-hidden />}
+                    {t("portal.apply.agreeAndSend")}
+                  </Button>
+                </form>
+              ) : (
+                <Button
+                  className={wide}
+                  disabled={sendCode.isPending || photosMissing.length > 0}
+                  onClick={() =>
+                    sendCode.mutate({
+                      token,
+                      key: sittingKey,
+                      purpose: "agree",
+                      language,
+                    })
+                  }
+                  type="button"
+                >
+                  {sendCode.isPending ? (
+                    <Spinner />
+                  ) : (
+                    <MessageSquareLock aria-hidden />
+                  )}
+                  {t("portal.apply.sendTheCodeToAgree")}
+                </Button>
+              )}
+            </InsetPanel>
+          </>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {sayRefused}
+            <Button
+              className={wide}
+              disabled={consent.isPending || nomineesWrong}
+              onClick={() => consent.mutate(theForm)}
               type="button"
             >
-              {sendCode.isPending ? (
-                <Spinner />
-              ) : (
-                <MessageSquareLock aria-hidden />
-              )}
-              {t("portal.apply.sendTheCodeToAgree")}
+              {consent.isPending ? <Spinner /> : <FileText aria-hidden />}
+              {t("portal.apply.toTheConsent")}
             </Button>
-          )}
-          {photosMissing.length > 0 ? (
-            <p className="text-muted-foreground text-sm">
-              {t("portal.apply.refused.photosMissing")}
-            </p>
-          ) : null}
-        </div>
-      ) : (
-        <Button
-          className="h-12 w-full text-base md:h-9 md:text-sm"
-          disabled={consent.isPending || nomineesWrong}
-          onClick={() => consent.mutate(theForm)}
-          type="button"
-        >
-          {consent.isPending ? <Spinner /> : null}
-          {t("portal.apply.toTheConsent")}
-        </Button>
-      )}
+          </div>
+        )}
+      </Section>
     </div>
   );
 };
@@ -687,7 +843,16 @@ const ApplyPage = () => {
       />
     );
   }
-  return <PortalDoor>{step}</PortalDoor>;
+  // The form takes the page's width; the short steps either side of it sit in a card in the middle of it.
+  return (
+    <PortalDoor wide>
+      {key && !sent ? (
+        step
+      ) : (
+        <div className="mx-auto w-full max-w-md">{step}</div>
+      )}
+    </PortalDoor>
+  );
 };
 
 export const Route = createFileRoute("/portal/apply/$token")({

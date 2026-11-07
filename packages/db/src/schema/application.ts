@@ -72,7 +72,9 @@ export const applicationLink = pgTable(
 export const APPLICATION_CODE_PURPOSES = ["open", "agree"] as const;
 export type ApplicationCodePurpose = (typeof APPLICATION_CODE_PURPOSES)[number];
 
-/** The code last texted for a link, for one purpose: hashed, one at a time, replaced by the next one sent. */
+/** The codes last sent for a link, for one purpose: one by text to its mobile and another to its email, either of
+ *  them good, so the one entered says which way it came — as a Signing Code's do (ADR 0022). Hashed, replaced by the
+ *  next ones sent. With no text gateway yet, only the email's (the Owner, 2026-11-08). */
 export const applicationCode = pgTable(
   "application_code",
   {
@@ -84,20 +86,31 @@ export const applicationCode = pgTable(
       .notNull()
       .references(() => applicationLink.id),
     purpose: text("purpose", { enum: APPLICATION_CODE_PURPOSES }).notNull(),
-    codeHash: text("code_hash").notNull(),
-    /** Where it went, mostly hidden: the link's mobile. */
-    sentTo: text("sent_to").notNull(),
+    /** The code texted to the link's mobile, and where it went, mostly hidden; null when none was texted. */
+    codeHash: text("code_hash"),
+    sentTo: text("sent_to"),
+    /** The code emailed to the link's email, and where it went, mostly hidden; null when none was emailed. */
+    emailCodeHash: text("email_code_hash"),
+    emailTo: text("email_to"),
     sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     usedAt: timestamp("used_at", { withTimezone: true }),
   },
   (table) => [
+    check(
+      "application_code_went_somewhere",
+      sql`${table.codeHash} is not null or ${table.emailCodeHash} is not null`
+    ),
     uniqueIndex("application_code_link_purpose_uidx").on(
       table.linkId,
       table.purpose
     ),
   ]
 );
+
+/** The way a code came: by text to the link's mobile, or by email to its email. */
+export const APPLICATION_CODE_CHANNELS = ["sms", "email"] as const;
+export type ApplicationCodeChannel = (typeof APPLICATION_CODE_CHANNELS)[number];
 
 /** Where an Application stands: waiting for the Owner, approved, declined, or lapsed, left undecided a month. */
 export const APPLICATION_STATES = [
@@ -152,7 +165,11 @@ export const investorApplication = pgTable(
       .references(() => paperTemplateVersion.id),
     consentPaper: jsonb("consent_paper"),
     consentPaperHash: text("consent_paper_hash").notNull(),
-    /** The proof of their agreeing: the code's mobile, mostly hidden, when it was sent, and from where they agreed. */
+    /** The proof of their agreeing: which way the code they entered came, where it went, mostly hidden, when it was
+     *  sent, and from where they agreed. */
+    codeChannel: text("code_channel", { enum: APPLICATION_CODE_CHANNELS })
+      .notNull()
+      .default("sms"),
     codeSentTo: text("code_sent_to").notNull(),
     codeSentAt: timestamp("code_sent_at", { withTimezone: true }).notNull(),
     callerAddress: text("caller_address"),
