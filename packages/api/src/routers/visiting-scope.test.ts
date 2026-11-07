@@ -88,6 +88,30 @@ const ROLE_FREE = new Map<string, string>([
     "portal.join",
     "is how an Investor takes up the Owner's invitation to the portal, which is done signed out",
   ],
+  [
+    "portal.applying.open",
+    "is what an Application Link opens for somebody the Owner asked to apply, who has never signed in (ADR 0034)",
+  ],
+  [
+    "portal.applying.sendCode",
+    "is what an Application Link opens for somebody the Owner asked to apply, who has never signed in (ADR 0034)",
+  ],
+  [
+    "portal.applying.unlock",
+    "is what an Application Link opens for somebody the Owner asked to apply, who has never signed in (ADR 0034)",
+  ],
+  [
+    "portal.applying.form",
+    "is what an Application Link opens for somebody the Owner asked to apply, who has never signed in (ADR 0034)",
+  ],
+  [
+    "portal.applying.consent",
+    "is what an Application Link opens for somebody the Owner asked to apply, who has never signed in (ADR 0034)",
+  ],
+  [
+    "portal.applying.send",
+    "is what an Application Link opens for somebody the Owner asked to apply, who has never signed in (ADR 0034)",
+  ],
   ["language.get", "is their own language"],
   ["language.set", "is their own language"],
   ["devices.claim", "enrolls a Shed Phone with a code the Manager gave it"],

@@ -337,6 +337,20 @@ const waysToReach = async (
   };
 };
 
+/** The words a code goes out in: a new one, for somebody already in; or the first, for an approved Application. */
+const CODE_WORDS = {
+  new: {
+    sms: "portal.sentCode.sms",
+    subject: "portal.sentCode.subject",
+    email: "portal.sentCode.email",
+  },
+  first: {
+    sms: "portal.apply.approved.sms",
+    subject: "portal.apply.approved.subject",
+    email: "portal.apply.approved.email",
+  },
+} as const;
+
 /**
  * A new code sent to an Investor rather than handed over, for somebody already invited in person who has forgotten their
  * password or let their code run out: by text to their phone — the number they sign in with — and by email only to an
@@ -360,7 +374,7 @@ export const sendNewCode = async (
   const ways = await waysToReach(context, investorId, access.userId);
   const { sms, email, phone } = ways;
   const language = first?.language ?? ways.language;
-  const words = first ? "portal.apply.approved" : "portal.sentCode";
+  const words = first ? CODE_WORDS.first : CODE_WORDS.new;
 
   const { code, codeHash } = await newInviteCode();
   const days = A_WEEK / (24 * 60 * 60 * 1000);
@@ -369,7 +383,7 @@ export const sendNewCode = async (
   const [texted, emailed] = await Promise.all([
     sms
       ? context.sms.send(sms, {
-          text: translate(language, `${words}.sms`, {
+          text: translate(language, words.sms, {
             farm,
             code,
             at,
@@ -380,11 +394,9 @@ export const sendNewCode = async (
       : { delivered: false },
     email
       ? context.email.send(email, {
-          subject: `${farm}: ${translate("bn", `${words}.subject`)} · ${translate("en", `${words}.subject`)}`,
+          subject: `${farm}: ${translate("bn", words.subject)} · ${translate("en", words.subject)}`,
           text: (["bn", "en"] as const)
-            .map((one) =>
-              translate(one, `${words}.email`, { farm, code, at, days })
-            )
+            .map((one) => translate(one, words.email, { farm, code, at, days }))
             .join("\n\n—\n\n"),
         })
       : { delivered: false },

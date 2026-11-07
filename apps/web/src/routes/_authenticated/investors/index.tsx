@@ -7,6 +7,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { BadgeCheck, IdCard, Search, Users } from "lucide-react";
 import { useState } from "react";
 
+import { ApplicationsSection } from "@/components/investors/applications";
 import { DetailsFormAct } from "@/components/investors/details-form";
 import { InvestorSheet } from "@/components/investors/investor-sheet";
 import type { Investor } from "@/components/investors/investor-types";
@@ -154,6 +155,9 @@ const InvestorsPage = () => {
         title={t("investors.title")}
       />
       <SummaryFigures figures={figures} />
+      {/* Somebody she sent a link to has applied, and waits for her answer (ADR 0034). Missing from an answer kept from
+          before Applications: off. */}
+      <ApplicationsSection taking={counted?.applicationsOpen ?? false} />
       {/* What Investors say they have sent, waiting for the Owner to find in the Venture Accounts (ADR 0018). */}
       <NotesWaitingNotice />
       {/* Whom to ring this month about their Monthly Sums, missed first: the Owner's to call (2026-10-02). */}

@@ -82,12 +82,12 @@ const aLink = async (
 /** The link opened with the code texted to its mobile: the sitting's key. */
 const opened = async (link: { token: string; phone: string }) => {
   const nobody = await as(null);
-  await nobody.portal.apply.sendCode({
+  await nobody.portal.applying.sendCode({
     token: link.token,
     purpose: "open",
     language: "bn",
   });
-  const unlocked = await nobody.portal.apply.unlock({
+  const unlocked = await nobody.portal.applying.unlock({
     token: link.token,
     code: codeTextedTo(link.phone),
   });
@@ -122,14 +122,14 @@ const applied = async (
   const nobody = await as(null);
   const filled = aPersonsForm(link, key);
   const form = { ...filled, record: { ...filled.record, email } };
-  const read = await nobody.portal.apply.consent(form);
-  await nobody.portal.apply.sendCode({
+  const read = await nobody.portal.applying.consent(form);
+  await nobody.portal.applying.sendCode({
     token: link.token,
     purpose: "agree",
     key,
     language: "bn",
   });
-  return nobody.portal.apply.send({
+  return nobody.portal.applying.send({
     ...form,
     photos: { nid_front: PHOTO, nid_back: PHOTO },
     laidAt: read.laidAt,
@@ -161,7 +161,7 @@ describe("a link opened", () => {
   it("names nobody before its code: only the farm and the mobile, mostly hidden", async () => {
     const link = await aLink();
     const nobody = await as(null);
-    const said = await nobody.portal.apply.open({ token: link.token });
+    const said = await nobody.portal.applying.open({ token: link.token });
     expect(Object.keys(said).toSorted()).toEqual([
       "expiresAt",
       "farmName",
@@ -176,32 +176,34 @@ describe("a link opened", () => {
     const key = await opened(link);
     expect(textsTo(link.phone)).toHaveLength(1);
     const nobody = await as(null);
-    const form = await nobody.portal.apply.form({ token: link.token, key });
+    const form = await nobody.portal.applying.form({ token: link.token, key });
     expect(form).toMatchObject({ name: link.name, kind: "person" });
   });
 
   it("answers alike for a wrong secret, a withdrawn link and a used one", async () => {
     const nobody = await as(null);
     expect(
-      await refusalOf(nobody.portal.apply.open({ token: "not-a-link-at-all" }))
+      await refusalOf(
+        nobody.portal.applying.open({ token: "not-a-link-at-all" })
+      )
     ).toBe("link_opens_nothing");
     const withdrawn = await aLink();
     const owner = await as("owner");
     await owner.investors.applications.withdrawLink({ id: withdrawn.id });
     expect(
-      await refusalOf(nobody.portal.apply.open({ token: withdrawn.token }))
+      await refusalOf(nobody.portal.applying.open({ token: withdrawn.token }))
     ).toBe("link_opens_nothing");
     const used = await aLink();
     await applied(used);
     expect(
-      await refusalOf(nobody.portal.apply.open({ token: used.token }))
+      await refusalOf(nobody.portal.applying.open({ token: used.token }))
     ).toBe("link_opens_nothing");
   });
 
   it("stops somebody guessing at its code", async () => {
     const link = await aLink();
     const nobody = await as(null);
-    await nobody.portal.apply.sendCode({
+    await nobody.portal.applying.sendCode({
       token: link.token,
       purpose: "open",
       language: "bn",
@@ -212,13 +214,13 @@ describe("a link opened", () => {
       // One guess at a time, as somebody typing them sends them.
       // oxlint-disable-next-line no-await-in-loop
       const said = await refusalOf(
-        nobody.portal.apply.unlock({ token: link.token, code: wrong })
+        nobody.portal.applying.unlock({ token: link.token, code: wrong })
       );
       expect(said).toBe("wrong_code");
     }
     expect(
       await refusalOf(
-        nobody.portal.apply.unlock({ token: link.token, code: right })
+        nobody.portal.applying.unlock({ token: link.token, code: right })
       )
     ).toBe("too_many_codes");
   });
@@ -228,7 +230,7 @@ describe("a link opened", () => {
     const key = await opened(link);
     const later = await as(null, FOUR_HOURS_LATER);
     expect(
-      await refusalOf(later.portal.apply.form({ token: link.token, key }))
+      await refusalOf(later.portal.applying.form({ token: link.token, key }))
     ).toBe("sitting_ended");
   });
 });
@@ -291,10 +293,10 @@ describe("an Application sent", () => {
     const opening = codeTextedTo(link.phone);
     const nobody = await as(null);
     const form = aPersonsForm(link, key);
-    const read = await nobody.portal.apply.consent(form);
+    const read = await nobody.portal.applying.consent(form);
     expect(
       await refusalOf(
-        nobody.portal.apply.send({
+        nobody.portal.applying.send({
           ...form,
           photos: { nid_front: PHOTO, nid_back: PHOTO },
           laidAt: read.laidAt,
@@ -309,8 +311,8 @@ describe("an Application sent", () => {
     const link = await aLink();
     const key = await opened(link);
     const nobody = await as(null);
-    const read = await nobody.portal.apply.consent(aPersonsForm(link, key));
-    await nobody.portal.apply.sendCode({
+    const read = await nobody.portal.applying.consent(aPersonsForm(link, key));
+    await nobody.portal.applying.sendCode({
       token: link.token,
       purpose: "agree",
       key,
@@ -318,7 +320,7 @@ describe("an Application sent", () => {
     });
     expect(
       await refusalOf(
-        nobody.portal.apply.send({
+        nobody.portal.applying.send({
           ...aPersonsForm({ ...link, name: `${link.name} খান` }, key),
           photos: { nid_front: PHOTO, nid_back: PHOTO },
           laidAt: read.laidAt,
@@ -336,20 +338,20 @@ describe("an Application sent", () => {
     const form = aPersonsForm(link, key);
     expect(
       await refusalOf(
-        nobody.portal.apply.consent({
+        nobody.portal.applying.consent({
           ...form,
           record: { ...form.record, nid: undefined },
         })
       )
     ).toBe("application_incomplete");
-    const read = await nobody.portal.apply.consent(form);
-    await nobody.portal.apply.sendCode({
+    const read = await nobody.portal.applying.consent(form);
+    await nobody.portal.applying.sendCode({
       token: link.token,
       purpose: "agree",
       key,
       language: "bn",
     });
-    const sending = nobody.portal.apply.send({
+    const sending = nobody.portal.applying.send({
       ...form,
       photos: { nid_front: PHOTO } as never,
       laidAt: read.laidAt,
@@ -364,7 +366,7 @@ describe("an Application sent", () => {
     const key = await opened(link);
     const nobody = await as(null);
     expect(
-      await refusalOf(nobody.portal.apply.consent(aPersonsForm(link, key)))
+      await refusalOf(nobody.portal.applying.consent(aPersonsForm(link, key)))
     ).toBe("application_kind_fixed");
   });
 
@@ -373,7 +375,7 @@ describe("an Application sent", () => {
     const nobody = await as(null, A_MINUTE_LATER);
     expect(
       await refusalOf(
-        nobody.portal.apply.sendCode({
+        nobody.portal.applying.sendCode({
           token: link.token,
           purpose: "agree",
           key: "no-such-key",

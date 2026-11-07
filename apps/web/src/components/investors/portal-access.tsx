@@ -448,6 +448,18 @@ const SHOWN = {
     shownDone: "payInNote.switch.shownDone",
     hiddenDone: "payInNote.switch.hiddenDone",
   },
+  applications: {
+    set: orpc.investors.setApplicationsOpen,
+    title: "investors.applications.switch.title",
+    show: "investors.applications.switch.show",
+    hide: "investors.applications.switch.hide",
+    shownHint: "investors.applications.switch.shownHint",
+    hiddenHint: "investors.applications.switch.hiddenHint",
+    confirmTitle: "investors.applications.switch.confirmTitle",
+    confirmWhy: "investors.applications.switch.confirmWhy",
+    shownDone: "investors.applications.switch.shownDone",
+    hiddenDone: "investors.applications.switch.hiddenDone",
+  },
 } as const;
 
 type Shown = keyof typeof SHOWN;

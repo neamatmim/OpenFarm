@@ -178,7 +178,7 @@ const applyRouter = {
 /** The Investor portal: taking up an invitation, and what an Investor reads. */
 export const portalRouter = {
   /** Applying online by an Application Link (ADR 0034). */
-  apply: applyRouter,
+  applying: applyRouter,
 
   /**
    * An Investor taking up the Owner's invitation with the phone they were written down with, the code handed to

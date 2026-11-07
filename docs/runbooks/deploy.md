@@ -336,8 +336,8 @@ server {
     }
 
     # The portal's own calls, who is asking, the language they read in, and who is signed in.
-    # `portal/apply/…` is what an Application Link opens, for somebody not yet signed in (ADR 0034).
-    location ~ ^/api/rpc/(portal/(apply/)?[^/]+|people/me|language/[^/]+)$ { proxy_pass http://127.0.0.1:3001; }
+    # `portal/applying/…` is what an Application Link opens, for somebody not yet signed in (ADR 0034).
+    location ~ ^/api/rpc/(portal/(applying/)?[^/]+|people/me|language/[^/]+)$ { proxy_pass http://127.0.0.1:3001; }
     location /_serverFn/ { proxy_pass http://127.0.0.1:3001; }
 
     # Nothing else of the farm app — the service worker included, which the app itself cannot refuse: like the

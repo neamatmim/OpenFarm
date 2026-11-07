@@ -63,6 +63,8 @@ export const ENTITIES = [
   "repeat_breeder_answer",
   "ready_set_aside",
   "investor",
+  "application_link",
+  "investor_application",
   "nomination",
   "bank_rate",
   "financial_year_change",

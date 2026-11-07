@@ -823,12 +823,6 @@ export const investorsRouter = {
     }),
 
   /**
-   * Lets an Investor send a **Pay-in Note** from the portal — their word that they sent money towards one of their
-   * Agreements, for the Owner to check against the Venture Account — or stops it (ADR 0018). It moves no money and
-   * records no capital. Off until the Owner turns it on, once the lawyer and the Shariah scholar have seen it. The
-   * Owner's alone.
-   */
-  /**
    * Lets the Owner send somebody they know an Application Link, to apply online and be let in without a meeting — or
    * stops it (ADR 0034). Turned off, no link opens, and none is withdrawn: on again, the ones still in their week open
    * again. Off until the Owner turns it on, once the lawyer and the Shariah scholar have seen it. The Owner's alone.
@@ -858,6 +852,12 @@ export const investorsRouter = {
   /** Application Links and the Applications they bring back (ADR 0034). */
   applications: applicationsRouter,
 
+  /**
+   * Lets an Investor send a **Pay-in Note** from the portal — their word that they sent money towards one of their
+   * Agreements, for the Owner to check against the Venture Account — or stops it (ADR 0018). It moves no money and
+   * records no capital. Off until the Owner turns it on, once the lawyer and the Shariah scholar have seen it. The
+   * Owner's alone.
+   */
   setPayInNotes: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())

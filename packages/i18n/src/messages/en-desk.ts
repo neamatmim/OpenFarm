@@ -808,11 +808,11 @@ export const enDesk = {
   "portal.sentCode.sms":
     "{farm}: your new portal code is {code}. At {at}, enter your phone number and this code, then choose a new password. It works for {days, plural, one {# day} other {# days}}. Tell nobody.",
   "portal.apply.code.open":
-    "{farm}: {code} is your code to open your details form. It works for {minutes} minutes. Share it with nobody.",
+    "{farm}: {code} is your code to open your details form. It works for {minutes, plural, one {# minute} other {# minutes}}. Share it with nobody.",
   "portal.apply.code.agree":
-    "{farm}: {code} is your code to agree to the Portal Consent you just read. Entering it is your signature on it. It works for {minutes} minutes.",
+    "{farm}: {code} is your code to agree to the Portal Consent you just read. Entering it is your signature on it. It works for {minutes, plural, one {# minute} other {# minutes}}.",
   "portal.apply.approved.sms":
-    "{farm}: your application is approved. Your portal code is {code}. At {at}, enter your phone number and this code, then choose a password. It works for {days, plural, one {# day} other {# days}}. Tell nobody.",
+    "{farm}: your application is approved. Your portal code is {code}; it works for {days, plural, one {# day} other {# days}}. At the address below, enter your phone number and this code, then choose a password. Tell nobody.\n{at}",
   "portal.apply.approved.subject": "Your application is approved",
   "portal.apply.approved.email":
     "The owner of {farm} has approved your application. Your code for the Investor Portal is: {code}\n\nAt {at}, enter your phone number and this code, then choose a password. The code works for {days, plural, one {# day} other {# days}}. Tell nobody.",
@@ -821,6 +821,186 @@ export const enDesk = {
   "portal.apply.declined.subject": "Your application",
   "portal.apply.declined.email":
     "The owner of {farm} has read your application and will not take it up this time.\n\n{line}\n\nWhat you sent will be cleared from the farm's records within a month.",
+  "investors.applications.title": "Applications",
+  "investors.applications.description":
+    "People you sent a link to fill in their own details. Read each one against its NID photos, then approve or decline.",
+  "investors.applications.none": "No applications or links out yet.",
+  "investors.applications.make": "Send an application link",
+  "investors.applications.makeTitle": "Send an application link",
+  "investors.applications.makeHint":
+    "For somebody you know. The farm emails them the link; it opens only with a code texted to their mobile, and works once, for 7 days.",
+  "investors.applications.makeAndEmail": "Make and email it",
+  "investors.applications.kind": "Who is applying",
+  "investors.applications.name": "Their name, or the organization's",
+  "investors.applications.mobile": "Mobile",
+  "investors.applications.mobileHint":
+    "The code that opens the link goes here, and they sign in to the portal with it. An organization's Signatory's.",
+  "investors.applications.email": "Email",
+  "investors.applications.emailHint":
+    "Where the link goes. A wrong letter sends it to a stranger, who will see only the farm's name.",
+  "investors.applications.madeTitle": "The link is made",
+  "investors.applications.emailedTo":
+    "Emailed to {to}. You can copy it too, to send another way.",
+  "investors.applications.notEmailed":
+    "The farm could not email it. Copy it below and send it yourself, or text it from the list.",
+  "investors.applications.onceOnly":
+    "The address is shown only now. Sending it again makes a new one, and this one stops opening.",
+  "investors.applications.linksOut": "Links not used yet",
+  "investors.applications.until": "until",
+  "investors.applications.emailAgain": "Email again",
+  "investors.applications.textIt": "Text it",
+  "investors.applications.sentAgain":
+    "Sent again to {to}. The address sent before no longer opens.",
+  "investors.applications.withdraw": "Withdraw",
+  "investors.applications.withdrawTitle": "Withdraw the link for {name}?",
+  "investors.applications.withdrawWhy":
+    "It will open nothing from now on. You can make another.",
+  "investors.applications.withdrawn": "Link withdrawn",
+  "investors.applications.link.open": "Not sent",
+  "investors.applications.link.sent": "Sent",
+  "investors.applications.link.used": "Applied",
+  "investors.applications.link.withdrawn": "Withdrawn",
+  "investors.applications.link.ran_out": "Ran out",
+  "investors.applications.state.waiting": "Waiting",
+  "investors.applications.state.approved": "Approved",
+  "investors.applications.state.declined": "Declined",
+  "investors.applications.state.lapsed": "Lapsed",
+  "investors.applications.answered": "Answered lately",
+  "investors.applications.sentOn": "Sent",
+  "investors.applications.read": "Read",
+  "investors.applications.one": "Application",
+  "investors.applications.cleared": "Cleared",
+  "investors.applications.clearedWhy":
+    "What they sent was cleared a month after the answer. Only the name, mobile, dates and answer are kept.",
+  "investors.applications.wordingChangedWhy":
+    "The Portal Consent's wording has changed since they agreed it. Decline, and send them a new link to agree the new one.",
+  "investors.applications.field.address": "Address",
+  "investors.applications.field.nid": "NID number",
+  "investors.applications.field.email": "Email",
+  "investors.applications.field.bank": "Bank account they are paid into",
+  "investors.applications.field.tradeLicense": "Trade license",
+  "investors.applications.field.rjsc": "RJSC registration",
+  "investors.applications.field.tin": "TIN",
+  "investors.applications.field.authority": "Authority",
+  "investors.applications.field.signatory": "Signatory",
+  "investors.applications.field.signatoryNid": "Signatory's NID",
+  "investors.applications.field.signatoryRole": "Signatory's role",
+  "investors.applications.nominees": "Nominees they would name",
+  "investors.applications.noNominees": "None named",
+  "investors.applications.nomineesDraft":
+    "Not yet a nomination: they name them on a nomination once they are in the portal, or on paper where a minor is named.",
+  "investors.applications.photo.nid_front": "NID, front",
+  "investors.applications.photo.nid_back": "NID, back",
+  "investors.applications.photo.trade_license": "Trade license",
+  "investors.applications.photo.authority": "The Signatory's authority",
+  "investors.applications.consentProof":
+    "Portal consent agreed online, version {version}",
+  "investors.applications.consentCode": "With the code texted to {to}, sent",
+  "investors.applications.approve": "Approve",
+  "investors.applications.approveTitle": "Approve {name}?",
+  "investors.applications.approveWhy":
+    "They are written down as an investor as they filled it in, their portal consent is recorded, and their first portal code is texted to them. Have you checked the NID photos?",
+  "investors.applications.approved": "Approved. Their first code went to {to}.",
+  "investors.applications.approvedNoCode":
+    "Approved, but the code did not go. Send a new code from their page.",
+  "investors.applications.decline": "Decline",
+  "investors.applications.declineTitle": "Decline {name}?",
+  "investors.applications.declineHint":
+    "They are sent your line by text and email. What they sent is cleared a month from now.",
+  "investors.applications.line": "A line to them (optional)",
+  "investors.applications.declined": "Declined. They have been told.",
+  "investors.applications.refused.off":
+    "Applications by link are off. Turn them on under the portal's settings.",
+  "investors.applications.refused.portalClosed":
+    "The investor portal is shut. Open it first.",
+  "investors.applications.refused.cannotText":
+    "The farm cannot send texts, and the code that opens a link goes by text.",
+  "investors.applications.refused.cannotEmail":
+    "The farm cannot send email yet. Copy the link, or text it.",
+  "investors.applications.refused.notMobile": "That is not a mobile number.",
+  "investors.applications.refused.alreadyAnInvestor":
+    "Somebody on this mobile is already an investor.",
+  "investors.applications.refused.linkOpen":
+    "A link for this mobile is still open. Withdraw it first.",
+  "investors.applications.refused.linkUsed": "Their application is in already.",
+  "investors.applications.refused.linkWithdrawn": "The link was withdrawn.",
+  "investors.applications.refused.linkRanOut":
+    "The link ran out. Make another.",
+  "investors.applications.refused.sentJustNow":
+    "It was sent just now. Wait a minute.",
+  "investors.applications.refused.notSent":
+    "It did not go. Try again in a minute.",
+  "investors.applications.refused.answered": "It has been answered already.",
+  "investors.applications.refused.wordingChanged":
+    "The consent's wording changed since they agreed it",
+  "investors.applications.refused.identity":
+    "The farm's DLS registration number is not recorded yet; the consent cannot be laid out without it.",
+  "investors.applications.copy": "Copy the link",
+  "investors.applications.copied": "Copied",
+  "investors.applications.switch.title": "Applications by link",
+  "investors.applications.switch.show": "Turn on",
+  "investors.applications.switch.hide": "Turn off",
+  "investors.applications.switch.shownHint":
+    "You may email somebody you know a link to fill in their own details, photograph their NID and agree the Portal Consent with a texted code. Approving makes them an investor and texts their first code.",
+  "investors.applications.switch.hiddenHint":
+    "Off. Turn it on only once the lawyer and the Shariah scholar have seen it: it replaces a consent signed and an NID seen in person.",
+  "investors.applications.switch.confirmTitle": "Turn on applications by link?",
+  "investors.applications.switch.confirmWhy":
+    "Have the lawyer and the Shariah scholar seen it? Once on, you can send links, and somebody you approve gets into the portal without meeting you.",
+  "investors.applications.switch.shownDone": "Applications by link are on",
+  "investors.applications.switch.hiddenDone": "Applications by link are off",
+  "portal.apply.askForANewCode":
+    "For your safety the form stays open for three hours. What you typed is not kept.",
+  "portal.apply.title": "Fill in your details",
+  "portal.apply.openHint":
+    "{farm} asked you to fill in your own details for its investor records. To open the form, the farm texts a code to your mobile ending {mobile}.",
+  "portal.apply.askTheFarm":
+    "The link may have run out, been used already, or been sent again. Ask the farm for a new one.",
+  "portal.apply.sendMeACode": "Text me the code",
+  "portal.apply.sendAgain": "Send the code again",
+  "portal.apply.code": "The code",
+  "portal.apply.enterTheCode": "Enter the code the farm texted you",
+  "portal.apply.open": "Open the form",
+  "portal.apply.formTitle": "Your details",
+  "portal.apply.formHint":
+    "Fill in your details for {farm}, as they are on your NID and bank papers. Your mobile is the one ending {mobile}; the farm reaches you and you sign in with it.",
+  "portal.apply.nominees": "Your nominees",
+  "portal.apply.nomineesHint":
+    "Who would collect your capital and share if you died before a venture settles. Optional. They are in force only once you sign a nomination for them.",
+  "portal.apply.photos": "Photos",
+  "portal.apply.photosHint":
+    "Clear photos of both sides of the NID, so the owner can check what you wrote against it.",
+  "portal.apply.photoTake": "Choose or take a photo",
+  "portal.apply.photoAgain": "Use another photo",
+  "portal.apply.toTheConsent": "Read the portal consent",
+  "portal.apply.readTheConsent":
+    "The portal consent, laid out with your details",
+  "portal.apply.agreeHint":
+    "Read it through. Then the farm texts a code to your mobile ending {mobile}; entering it is your signature on this consent.",
+  "portal.apply.sendTheCodeToAgree": "Text me the code to agree",
+  "portal.apply.agreeAndSend": "Agree and send my application",
+  "portal.apply.sentTitle": "The farm has your application",
+  "portal.apply.sentHint":
+    "The owner will read it and answer you by text. Once approved, your code to the investor portal comes by text.",
+  "portal.apply.refused.opensNothing": "This link opens nothing now",
+  "portal.apply.refused.sittingEnded":
+    "This sitting has ended. Ask for a new code to open the form again.",
+  "portal.apply.refused.codeUsed":
+    "That code was used already. Ask for a new one.",
+  "portal.apply.refused.codeExpired":
+    "That code has run out. Ask for a new one.",
+  "portal.apply.refused.tooManyCodes":
+    "Too many wrong codes. Wait fifteen minutes.",
+  "portal.apply.refused.sentJustNow":
+    "A code was sent just now. Wait a minute.",
+  "portal.apply.refused.notSent": "The code did not go. Try again in a minute.",
+  "portal.apply.refused.incomplete":
+    "Still to fill in: your address, NID number and bank account.",
+  "portal.apply.refused.photosMissing": "Add the photos first.",
+  "portal.apply.refused.consentChanged":
+    "The consent changed since you read it. Read it again before agreeing.",
+  "portal.apply.refused.kindFixed":
+    "This link was made for another kind of investor. Ask the farm.",
   "portal.apply.link.subject": "Fill in your details",
   "portal.apply.link.email":
     "{name}, the owner of {farm} has asked you to fill in your own details for the farm's investor records.\n\nOpen this on your phone: {at}\n\nTo open it, the farm texts a code to your mobile. The link works once, for {days, plural, one {# day} other {# days}}. If you did not expect it, ignore it and tell the farm.",
@@ -2043,6 +2223,8 @@ export const enDesk = {
   "audit.entity.lot": "Medicine lot",
   "audit.entity.treatment": "Treatment",
   "audit.entity.request_to_join": "Request to join",
+  "audit.entity.application_link": "Application link",
+  "audit.entity.investor_application": "Application",
   "audit.entity.pay_in_note": "Pay-in note",
   "audit.entity.password_guess": "Wrong passwords",
   "audit.entity.receivable": "Receivable",
