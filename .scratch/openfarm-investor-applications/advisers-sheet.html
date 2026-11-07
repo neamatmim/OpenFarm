@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="bn">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>অনলাইনে আবেদন — উপদেষ্টাদের কাছে প্রশ্ন</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      @page {
+        size: A4;
+        margin: 14mm;
+      }
+      :root {
+        --ink: #1b1f1d;
+        --muted: #5b625e;
+        --line: #b9c0bc;
+        --soft: #f3f5f4;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #fff;
+        color: var(--ink);
+        font:
+          14px/1.5 "Noto Sans Bengali",
+          system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 182mm;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 2px;
+      }
+      h2 {
+        font-size: 15px;
+        margin: 18px 0 6px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 3px;
+      }
+      .en {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 12px;
+      }
+      .fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 24px;
+        margin-bottom: 12px;
+      }
+      .fields div {
+        border-bottom: 1px solid var(--line);
+        padding-top: 14px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .box {
+        background: var(--soft);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+      }
+      .box ul {
+        margin: 4px 0 0;
+        padding-left: 18px;
+      }
+      .q {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 12px 10px;
+        margin-bottom: 10px;
+        break-inside: avoid;
+      }
+      .q .who {
+        float: right;
+        font-size: 11px;
+        border: 1px solid var(--line);
+        border-radius: 99px;
+        padding: 0 8px;
+        color: var(--muted);
+      }
+      .q p {
+        margin: 0 0 4px;
+      }
+      .q .num {
+        font-weight: 600;
+      }
+      .opts {
+        list-style: none;
+        margin: 4px 0 0;
+        padding: 0;
+      }
+      .opts li {
+        margin: 2px 0;
+      }
+      .opts li::before {
+        content: "☐ ";
+        font-size: 15px;
+      }
+      .lines div {
+        border-bottom: 1px solid var(--line);
+        height: 22px;
+      }
+      .ref {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .signs {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 16px;
+        margin-top: 10px;
+        break-inside: avoid;
+      }
+      .signs div {
+        border-top: 1px solid var(--ink);
+        padding-top: 4px;
+        margin-top: 44px;
+        font-size: 12px;
+      }
+      .foot {
+        margin-top: 14px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      @media print {
+        main {
+          padding: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>অনলাইনে আবেদন — উপদেষ্টাদের কাছে প্রশ্ন</h1>
+      <p class="en">
+        Applying online by the Owner's link — questions for the lawyer and the
+        Shariah scholar
+      </p>
+      <p class="sub">
+        খামার চায়, মালিক যাঁকে চেনেন তাঁকে একটি লিংক পাঠাবেন, আর তিনি নিজের ফোন
+        থেকে বিনিয়োগকারীর তথ্য পূরণ করে আবেদন করবেন। মালিক অনুমোদন করলে তিনি
+        বিনিয়োগকারী হিসেবে লেখা হবেন এবং পোর্টালে ঢুকতে পারবেন — সাক্ষাৎ
+        ছাড়াই। আপনাদের লিখিত মত না পাওয়া পর্যন্ত এটি বন্ধ থাকবে। প্রতিটি
+        প্রশ্নে যেটি প্রযোজ্য টিক দিন, আর দরকার হলে নিচে লিখুন।
+        <br /><span class="en"
+          >The farm wishes the Owner to send a link to somebody they know, who
+          then fills in the investor's details from their own phone and applies.
+          Approved by the Owner, they are written down as an Investor and let
+          into the portal — without meeting. It stays switched off until your
+          written opinions. Tick what applies and write below where
+          needed.</span
+        >
+      </p>
+
+      <div class="fields">
+        <div>খামারের নাম / Farm</div>
+        <div>তারিখ / Date</div>
+      </div>
+
+      <h2>আজ কীভাবে চলে <span class="en">· How it works today</span></h2>
+      <div class="box">
+        আপনারা যা অনুমোদন করেছেন:
+        <span class="en">What you approved:</span>
+        <ul>
+          <li>
+            পোর্টাল শুধু আমন্ত্রিতদের জন্য। বিনিয়োগকারী এমন কেউ, যাঁকে মালিক
+            নিজে চেনেন বা যাঁর সঙ্গে ব্যক্তিগতভাবে পরিচয় করিয়ে দেওয়া হয়েছে।
+            <span class="en"
+              >The portal is by invitation only. An Investor is somebody the
+              Owner knows personally or was personally introduced to.</span
+            >
+          </li>
+          <li>
+            প্রথম সাক্ষাতে মালিক তাঁর জাতীয় পরিচয়পত্র আর ব্যাংকের কাগজ দেখে
+            তথ্য ফর্ম পূরণ করেন। বিনিয়োগকারী মালিকের সামনে কাগজে পোর্টাল
+            সম্মতিপত্রে সই করেন, তারপর মালিক হাতে হাতে প্রথম কোড দেন।
+            <span class="en"
+              >At the first meeting the Owner fills in the details form from
+              their NID and bank papers. The Investor signs the Portal Consent
+              on paper in front of the Owner, then the Owner hands over the
+              first code in person.</span
+            >
+          </li>
+        </ul>
+      </div>
+
+      <h2>যা করতে চাই <span class="en">· What the farm proposes</span></h2>
+      <div class="box">
+        মালিক একজন নির্দিষ্ট ব্যক্তির নাম, মোবাইল আর ইমেইল দিয়ে একটি লিংক
+        বানাবেন; খামার সেটি ইমেইলে পাঠাবে। লিংকটি এক সপ্তাহ, একটি আবেদনের জন্য।
+        কোনো সাধারণ পাতা নেই যেখান থেকে যে কেউ আবেদন করতে পারে, আর কোনো রেফারেল
+        নেই। লিংক খুললে সেই মোবাইলে একটি কোড যায়; কোড না দেওয়া পর্যন্ত কারও
+        নাম দেখায় না। তারপর তিনি তথ্য ফর্মের সব অংশ পূরণ করেন, জাতীয়
+        পরিচয়পত্রের দুই পাশের ছবি দেন (প্রতিষ্ঠান হলে ট্রেড লাইসেন্স আর
+        স্বাক্ষরকারীর ক্ষমতাপত্রও), পোর্টাল সম্মতিপত্র পুরোটা পড়েন, আর মোবাইলে
+        আসা কোড দিয়ে সম্মতি দেন — যেমন অ্যাপে চুক্তিতে সম্মতি দেওয়া হয় (২২
+        নম্বর সিদ্ধান্ত)। মালিক ছবি মিলিয়ে অনুমোদন বা বাতিল করেন। অনুমোদনে তাঁর
+        প্রথম কোড এসএমএসে যায়। কোনো ইউনিট চাওয়া হয় না, কোনো টাকা নেওয়া হয়
+        না; ভেঞ্চারে যোগ দেওয়া আগের মতোই চুক্তি সই করে।
+        <span class="en"
+          >The Owner makes a link for one named person — name, mobile, email —
+          and the farm emails it. It is good for a week and one application.
+          There is no general page anybody could apply from, and no referral.
+          Opening the link texts a code to that mobile; nobody's name shows
+          until it is entered. They then fill in every part of the details form,
+          add photos of both sides of their NID (for an organization, its trade
+          license and the Signatory's authority too), read the whole Portal
+          Consent, and agree it with the code texted to their mobile — as an
+          Agreement is agreed in the app (decision 22). The Owner checks the
+          photos and approves or declines. Approval texts their first code. No
+          Units are asked for and no money is taken; joining a Venture is still
+          by signing an Agreement.</span
+        >
+      </div>
+
+      <h2>প্রশ্ন <span class="en">· Questions</span></h2>
+      <div class="q">
+        <span class="who">আইনজীবী / Lawyer</span>
+        <p>
+          <span class="num">১.</span> মালিক নিজে যাঁকে চেনেন শুধু তাঁকেই ইমেইলে
+          লিংক পাঠাবেন। এটা কি এখনো "শুধু আমন্ত্রিতদের জন্য" — জনসাধারণের কাছে
+          প্রস্তাব নয়?<br /><span class="en"
+            >1. The Owner emails a link only to somebody they know themselves.
+            Is that still "by invitation only", and not an offer to the
+            public?</span
+          >
+        </p>
+        <ul class="opts">
+          <li>হ্যাঁ, এভাবে চলবে / Yes, it may go ahead as described</li>
+          <li>
+            চলবে, শর্তসাপেক্ষে (নিচে লিখুন) / It may, on conditions (write
+            below)
+          </li>
+          <li>না, এটা করা যাবে না / No, it may not be done</li>
+        </ul>
+        <div class="lines"><div></div></div>
+      </div>
+      <div class="q">
+        <span class="who">আইনজীবী / Lawyer</span>
+        <p>
+          <span class="num">২.</span> কাগজে সইয়ের বদলে মোবাইলে আসা কোড দিয়ে
+          পোর্টাল সম্মতি দেওয়া — তথ্য বিদেশের সার্ভারে রাখা, জাতীয় পরিচয়পত্র,
+          ব্যাংক আর নমিনির তথ্য রাখার সম্মতি — কি বৈধ সম্মতি হিসেবে চলবে? খামার
+          প্রমাণ রাখে: কখন, কোন নম্বরে কোড গেল, কোন ঠিকানা আর ব্রাউজার থেকে, আর
+          লেখাটির ছাপ।<br /><span class="en"
+            >2. Is the Portal Consent — to the record kept on a server abroad,
+            and to NID, bank and nominee details being held — valid when agreed
+            with a code texted to their mobile instead of signed on paper? The
+            farm keeps the proof: when, to which number the code went, from what
+            address and browser, and the wording's fingerprint.</span
+          >
+        </p>
+        <ul class="opts">
+          <li>হ্যাঁ / Yes</li>
+          <li>শর্তসাপেক্ষে (নিচে লিখুন) / On conditions (write below)</li>
+          <li>না, কাগজে সই লাগবে / No, a signature on paper is needed</li>
+        </ul>
+        <div class="lines"><div></div></div>
+      </div>
+      <div class="q">
+        <span class="who">আইনজীবী / Lawyer</span>
+        <p>
+          <span class="num">৩.</span> মালিক সামনাসামনি না দেখে জাতীয়
+          পরিচয়পত্রের ছবি দেখে বিনিয়োগকারীকে চিনবেন। এটা কি যথেষ্ট, নাকি অন্য
+          কোনো যাচাই লাগবে (যেমন চুক্তি সইয়ের দিন মূল কার্ড দেখা)?<br /><span
+            class="en"
+            >3. The Owner knows who the Investor is from a photo of their NID,
+            not by seeing it in person. Is that enough, or is another check
+            needed (for instance the card itself on the day the Agreement is
+            signed)?</span
+          >
+        </p>
+        <ul class="opts">
+          <li>ছবিই যথেষ্ট / The photo is enough</li>
+          <li>
+            অন্য যাচাই লাগবে (নিচে লিখুন) / Another check is needed (write
+            below)
+          </li>
+        </ul>
+        <div class="lines"><div></div></div>
+      </div>
+      <div class="q">
+        <span class="who">আইনজীবী / Lawyer</span>
+        <p>
+          <span class="num">৪.</span> অনুমোদিত আবেদনের ছবি বিনিয়োগকারীর তথ্যের
+          পাশে থাকবে, যত দিন তথ্য রাখা হয়। বাতিল বা ৩০ দিনে সিদ্ধান্ত না হওয়া
+          আবেদনের পরিচয়পত্র, ব্যাংক, নমিনি আর ছবি আরও ৩০ দিন পর মুছে ফেলা হবে;
+          নাম, মোবাইল, তারিখ আর উত্তর থাকবে। এতে কিছু বলার আছে কি?<br /><span
+            class="en"
+            >4. An approved application's photos stay beside the Investor's
+            record as long as it is kept. One declined, or undecided after 30
+            days, loses its NID, bank, nominees and photos 30 days later; the
+            name, mobile, dates and answer stay. Anything to say on that?</span
+          >
+        </p>
+        <ul class="opts">
+          <li>এভাবেই চলবে / It may stand as described</li>
+          <li>অন্যভাবে (নিচে লিখুন) / Otherwise (write below)</li>
+        </ul>
+        <div class="lines"><div></div></div>
+      </div>
+      <div class="q">
+        <span class="who">শরিয়াহ / Shariah</span>
+        <p>
+          <span class="num">৫.</span> আবেদন কাউকে কিছুতে বাঁধে না: কোনো ইউনিট,
+          কোনো টাকা, কোনো অংশীদারি নয়। মুদারাবা শুরু হয় আগের মতোই চুক্তি সই
+          করে। এতে কি কোনো আপত্তি আছে?<br /><span class="en"
+            >5. An application binds nobody to anything: no Units, no money, no
+            partnership. The mudarabah begins, as before, with a signed
+            Agreement. Any objection?</span
+          >
+        </p>
+        <ul class="opts">
+          <li>আপত্তি নেই / No objection</li>
+          <li>আপত্তি আছে (নিচে লিখুন) / An objection (write below)</li>
+        </ul>
+        <div class="lines"><div></div></div>
+      </div>
+      <div class="q">
+        <span class="who">আইনজীবী + শরিয়াহ / Lawyer + Shariah</span>
+        <p>
+          <span class="num">৬.</span> অন্য কোনো শর্ত বা সতর্কতা?<br /><span
+            class="en"
+            >6. Any other condition or caution?</span
+          >
+        </p>
+        <div class="lines">
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+      </div>
+      <h2>স্বাক্ষর <span class="en">· Signatures</span></h2>
+      <div class="signs" style="grid-template-columns: 1fr 1fr">
+        <div>
+          আইনজীবী — নাম, স্বাক্ষর, তারিখ<br /><span class="en">Lawyer</span>
+        </div>
+        <div>
+          শরিয়াহ বিশেষজ্ঞ — নাম, স্বাক্ষর, তারিখ<br /><span class="en"
+            >Shariah scholar</span
+          >
+        </div>
+      </div>
+
+      <p class="foot">
+        উত্তর পাওয়া পর্যন্ত সফটওয়্যারে এটি বন্ধ থাকবে; মালিক নিজে চালু করবেন।
+        <br />Until answered it stays switched off in the farm's software; the
+        Owner turns it on.
+      </p>
+    </main>
+  </body>
+</html>
