@@ -1,0 +1,2 @@
+ALTER TABLE "investor_application" ADD COLUMN "consent_id" text;--> statement-breakpoint
+ALTER TABLE "investor_application" ADD CONSTRAINT "investor_application_consent_id_portal_consent_id_fkey" FOREIGN KEY ("consent_id") REFERENCES "portal_consent"("id");

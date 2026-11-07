@@ -3,6 +3,7 @@ import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import type { EmailMessage, EmailTransport } from "../email";
 import { createTestClient } from "../test/client";
 import { codeTextedTo, textsKept, textsTo } from "../test/portal-client";
 import { appRouter } from "./index";
@@ -22,11 +23,22 @@ const aMobile = () => {
   return `017${String(phones).padStart(2, "0")}${suffix}`;
 };
 
+/** A mail account that keeps what it was given, shared by the file: the farm's own. */
+const mailed: { to: string; message: EmailMessage }[] = [];
+const mailKept: EmailTransport = {
+  sends: true,
+  send: (to, message) => {
+    mailed.push({ to, message });
+    return Promise.resolve({ delivered: true });
+  },
+};
+
 const as = async (role: "owner" | "manager" | null, at = JANUARY) => {
   const { client } = await createTestClient(appRouter, {
     as: role,
     clock: new FakeClock(at),
     sms: textsKept,
+    email: mailKept,
   });
   return client;
 };
@@ -44,7 +56,10 @@ const PHOTO = { contentType: "image/jpeg" as const, data: "aGVsbG8=" };
 const NID = `19${suffix}4455`;
 
 /** A link the Owner made for somebody, not sent: its secret, and who it is for. */
-const aLink = async (kind: "person" | "organization" = "person") => {
+const aLink = async (
+  kind: "person" | "organization" = "person",
+  send = false
+) => {
   const owner = await as("owner");
   const phone = aMobile();
   const name = `${kind === "person" ? "করিম" : "মেঘনা ডেইরি"} ${suffix} ${phones}`;
@@ -53,13 +68,14 @@ const aLink = async (kind: "person" | "organization" = "person") => {
     name,
     phone,
     email: `apply.${suffix}.${phones}@example.com`,
-    send: false,
+    send,
   });
   return {
     id: made.id,
     token: made.address.split("/portal/apply/")[1] ?? "",
     phone,
     name,
+    email: `apply.${suffix}.${phones}@example.com`,
   };
 };
 
@@ -98,10 +114,14 @@ const aPersonsForm = (
 });
 
 /** The consent read and agreed with the code texted for it, and the Application sent. */
-const applied = async (link: Awaited<ReturnType<typeof aLink>>) => {
+const applied = async (
+  link: Awaited<ReturnType<typeof aLink>>,
+  email: string | undefined = link.email
+) => {
   const key = await opened(link);
   const nobody = await as(null);
-  const form = aPersonsForm(link, key);
+  const filled = aPersonsForm(link, key);
+  const form = { ...filled, record: { ...filled.record, email } };
   const read = await nobody.portal.apply.consent(form);
   await nobody.portal.apply.sendCode({
     token: link.token,
@@ -356,5 +376,197 @@ describe("an Application sent", () => {
         })
       )
     ).toBe("sitting_ended");
+  });
+});
+
+/** The Application a link brought back. */
+const applicationFrom = async (linkId: string) => {
+  const row = await scratchDb().query.investorApplication.findFirst({
+    where: { linkId },
+    columns: { id: true },
+  });
+  if (!row) {
+    throw new Error("expected an Application");
+  }
+  return row.id;
+};
+
+/** The portal code in a text: eight of the code's own letters and digits. */
+const portalCodeIn = (text: string) =>
+  text.match(/\b[A-HJ-NP-Z2-9]{8}\b/u)?.[0] ?? "";
+
+describe("the Owner's answer", () => {
+  it("approved, writes them down, records the consent they agreed on its day, and texts their first code", async () => {
+    const link = await aLink();
+    await applied(link);
+    const id = await applicationFrom(link.id);
+    const owner = await as("owner", A_MINUTE_LATER);
+    const approved = await owner.investors.applications.approve({ id });
+    expect(approved.code?.bySms).not.toBeNull();
+
+    const them = await scratchDb().query.investor.findFirst({
+      where: { id: approved.investorId },
+    });
+    expect(them).toMatchObject({
+      name: link.name,
+      phone: link.phone,
+      nid: NID,
+      kind: "person",
+    });
+    const consent = await scratchDb().query.portalConsent.findFirst({
+      where: { investorId: approved.investorId },
+    });
+    expect(consent?.withdrawnOn).toBeNull();
+    const application = await scratchDb().query.investorApplication.findFirst({
+      where: { id },
+    });
+    expect(application).toMatchObject({
+      state: "approved",
+      investorId: approved.investorId,
+      consentId: consent?.id,
+    });
+
+    // The first code, said as one, takes them in as any code does.
+    const texted = textsTo(link.phone).at(-1)?.text ?? "";
+    const code = portalCodeIn(texted);
+    expect(code).not.toBe("");
+    const nobody = await as(null, A_MINUTE_LATER);
+    const joined = await nobody.portal.join({
+      phone: link.phone,
+      code,
+      password: `notun-pasword-${suffix}`,
+    });
+    expect(joined.loginEmail).toContain("@");
+  });
+
+  it("counts the email confirmed only where it is the one the link was emailed to", async () => {
+    const kept = await aLink("person", true);
+    await applied(kept);
+    const changed = await aLink("person", true);
+    await applied(changed, `another.${suffix}@example.com`);
+    const owner = await as("owner", A_MINUTE_LATER);
+    const one = await owner.investors.applications.approve({
+      id: await applicationFrom(kept.id),
+    });
+    const other = await owner.investors.applications.approve({
+      id: await applicationFrom(changed.id),
+    });
+    expect(one.code?.byEmail).not.toBeNull();
+    expect(other.code?.byEmail).toBeNull();
+    const confirmed = await scratchDb().query.investor.findFirst({
+      where: { id: other.investorId },
+      columns: { emailConfirmedAt: true, email: true },
+    });
+    expect(confirmed).toEqual({
+      email: `another.${suffix}@example.com`,
+      emailConfirmedAt: null,
+    });
+  });
+
+  it("leaves the first code in person for everybody the Owner met", async () => {
+    const owner = await as("owner");
+    const phone = aMobile();
+    const met = await owner.investors.record({
+      name: `জসিম ${suffix}`,
+      phone,
+      address: "সাভার",
+      nid: "1234567890",
+    });
+    await owner.investors.recordConsent({ id: met.id });
+    expect(await refusalOf(owner.investors.sendNewCode({ id: met.id }))).toBe(
+      "first_code_in_person"
+    );
+  });
+
+  it("settles the Owner's notice once answered", async () => {
+    const link = await aLink();
+    await applied(link);
+    const id = await applicationFrom(link.id);
+    const owner = await as("owner", A_MINUTE_LATER);
+    await owner.investors.applications.decline({ id });
+    const told = await owner.alerts.mine({});
+    expect(
+      told.some(
+        (one) =>
+          one.kind === "application_sent" &&
+          one.dismissedAt === null &&
+          (one.params as { applicationId?: string }).applicationId === id
+      )
+    ).toBe(false);
+  });
+
+  it("declined, sends them the Owner's line, and is not approved after", async () => {
+    const link = await aLink();
+    await applied(link);
+    const id = await applicationFrom(link.id);
+    const owner = await as("owner", A_MINUTE_LATER);
+    await owner.investors.applications.decline({
+      id,
+      line: `আগামী বছর আবার কথা হবে ${suffix}`,
+    });
+    expect(textsTo(link.phone).at(-1)?.text).toContain(
+      `আগামী বছর আবার কথা হবে ${suffix}`
+    );
+    expect(
+      mailed.some(
+        (one) =>
+          one.to === link.email &&
+          one.message.text.includes(`আগামী বছর আবার কথা হবে ${suffix}`)
+      )
+    ).toBe(true);
+    expect(await refusalOf(owner.investors.applications.approve({ id }))).toBe(
+      "application_answered"
+    );
+  });
+
+  it("is refused once somebody on that mobile has become an Investor meanwhile", async () => {
+    const link = await aLink();
+    await applied(link);
+    const owner = await as("owner", A_MINUTE_LATER);
+    await owner.investors.record({
+      name: `আরেকজন ${suffix}`,
+      phone: link.phone,
+    });
+    expect(
+      await refusalOf(
+        owner.investors.applications.approve({
+          id: await applicationFrom(link.id),
+        })
+      )
+    ).toBe("already_an_investor");
+  });
+
+  it("is refused once the consent's wording has changed since they agreed it", async () => {
+    const link = await aLink();
+    await applied(link);
+    const owner = await as("owner", A_MINUTE_LATER);
+    const listed = await owner.templates.list();
+    const consent = listed.find((one) => one.kind === "portal_consent");
+    if (!consent) {
+      throw new Error("expected the consent's wording");
+    }
+    await owner.templates.publish({
+      kind: "portal_consent",
+      content: consent.current.content,
+      note: `a new Version ${suffix}`,
+    });
+    expect(
+      await refusalOf(
+        owner.investors.applications.approve({
+          id: await applicationFrom(link.id),
+        })
+      )
+    ).toBe("consent_wording_changed");
+  });
+
+  it("is the Owner's alone", async () => {
+    const link = await aLink();
+    await applied(link);
+    const manager = await as("manager", A_MINUTE_LATER);
+    await expect(
+      manager.investors.applications.approve({
+        id: await applicationFrom(link.id),
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

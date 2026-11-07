@@ -12,7 +12,7 @@ import {
 import { user } from "./auth";
 import { farm } from "./farm";
 import { paperTemplateVersion } from "./paper-template";
-import { INVESTOR_KINDS, investor } from "./venture";
+import { INVESTOR_KINDS, investor, portalConsent } from "./venture";
 
 /**
  * An **Application Link**: the Owner's invitation to one person they know to fill in their own details online, in
@@ -167,6 +167,9 @@ export const investorApplication = pgTable(
     answerLine: text("answer_line"),
     /** The Investor an approved one became. */
     investorId: text("investor_id").references(() => investor.id),
+    /** The Portal Consent an approved one recorded, agreed online on the day it was sent: how the farm proves that
+     *  consent was given without a signature on paper (ADR 0034). */
+    consentId: text("consent_id").references(() => portalConsent.id),
     /** When what it held about them was cleared, a month after it was declined or lapsed. */
     clearedAt: timestamp("cleared_at", { withTimezone: true }),
   },

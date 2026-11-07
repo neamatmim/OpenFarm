@@ -1,5 +1,14 @@
+import { APPLICATION_PHOTO_KINDS } from "@OpenFarm/db/schema/application";
 import { z } from "zod";
 
+import {
+  applicationConsentPaper,
+  applicationPhoto,
+  applicationToRead,
+  applicationsOf,
+  approveApplication,
+  declineApplication,
+} from "../application-answers";
 import {
   LINK_WAYS,
   applicationLinks,
@@ -34,6 +43,50 @@ export const applicationsRouter = {
     .input(z.object({ id: z.string().min(1), by: z.enum(LINK_WAYS) }))
     .handler(({ context, input }) =>
       sendApplicationLink(context, input.id, input.by)
+    ),
+
+  /** The farm's Applications, newest first, with where each stands. */
+  list: owners.handler(({ context }) => applicationsOf(context)),
+
+  /** One Application, as the Owner reads it to answer it (`applicationToRead`). */
+  one: owners
+    .input(z.object({ id: z.string().min(1) }))
+    .handler(({ context, input }) => applicationToRead(context, input.id)),
+
+  /** One photograph it carries; opening it is in the trail. */
+  photo: owners
+    .input(
+      z.object({ id: z.string().min(1), what: z.enum(APPLICATION_PHOTO_KINDS) })
+    )
+    .handler(({ context, input }) =>
+      applicationPhoto(context, input.id, input.what)
+    ),
+
+  /** The Portal Consent it agreed, as laid out for them. */
+  consentPaper: owners
+    .input(z.object({ id: z.string().min(1) }))
+    .handler(({ context, input }) =>
+      applicationConsentPaper(context, input.id)
+    ),
+
+  /**
+   * Approves it: the Investor written down, their consent recorded, their way into the portal opened and their first
+   * code texted (`approveApplication`).
+   */
+  approve: owners
+    .input(z.object({ id: z.string().min(1) }))
+    .handler(({ context, input }) => approveApplication(context, input.id)),
+
+  /** Declines it, with a line they are sent. */
+  decline: owners
+    .input(
+      z.object({
+        id: z.string().min(1),
+        line: z.string().trim().max(300).optional(),
+      })
+    )
+    .handler(({ context, input }) =>
+      declineApplication(context, input.id, input.line || null)
     ),
 
   /** Withdraws a link not yet used. */

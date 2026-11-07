@@ -811,6 +811,16 @@ export const enDesk = {
     "{farm}: {code} is your code to open your details form. It works for {minutes} minutes. Share it with nobody.",
   "portal.apply.code.agree":
     "{farm}: {code} is your code to agree to the Portal Consent you just read. Entering it is your signature on it. It works for {minutes} minutes.",
+  "portal.apply.approved.sms":
+    "{farm}: your application is approved. Your portal code is {code}. At {at}, enter your phone number and this code, then choose a password. It works for {days, plural, one {# day} other {# days}}. Tell nobody.",
+  "portal.apply.approved.subject": "Your application is approved",
+  "portal.apply.approved.email":
+    "The owner of {farm} has approved your application. Your code for the Investor Portal is: {code}\n\nAt {at}, enter your phone number and this code, then choose a password. The code works for {days, plural, one {# day} other {# days}}. Tell nobody.",
+  "portal.apply.declined.sms":
+    "{farm}: the owner has read your application and will not take it up this time. {line}",
+  "portal.apply.declined.subject": "Your application",
+  "portal.apply.declined.email":
+    "The owner of {farm} has read your application and will not take it up this time.\n\n{line}\n\nWhat you sent will be cleared from the farm's records within a month.",
   "portal.apply.link.subject": "Fill in your details",
   "portal.apply.link.email":
     "{name}, the owner of {farm} has asked you to fill in your own details for the farm's investor records.\n\nOpen this on your phone: {at}\n\nTo open it, the farm texts a code to your mobile. The link works once, for {days, plural, one {# day} other {# days}}. If you did not expect it, ignore it and tell the farm.",
