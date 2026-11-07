@@ -147,6 +147,11 @@ beforeAll(async () => {
     registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
     registrationExpiresOn: "2100-03-31",
   });
+  await owner.farm.setDataKeepers({
+    dataHost: `হোস্ট ${suffix}`,
+    backupStore: `ভাণ্ডার ${suffix}`,
+    backupCountry: "সিঙ্গাপুর",
+  });
   await owner.investors.setPortalOpen({ open: true });
   const again = await as("owner");
   await again.investors.setApplicationsOpen({ shown: true });
@@ -463,6 +468,22 @@ describe("the Owner's answer", () => {
     });
   });
 
+  it("is said on their Data Copy: when they applied, where the consent's code went, and the photographs kept", async () => {
+    const link = await aLink();
+    await applied(link);
+    const owner = await as("owner", A_MINUTE_LATER);
+    const { investorId } = await owner.investors.applications.approve({
+      id: await applicationFrom(link.id),
+    });
+    const { document } = await owner.investors.dataCopy({ id: investorId });
+    const rows = document.sections.flatMap((one) =>
+      one.kind === "facts" ? one.rows : []
+    );
+    const said = rows.find((one) => one.label.en === "Applied online");
+    expect(JSON.stringify(said?.value)).toContain("NID, front");
+    expect(JSON.stringify(said?.value)).toContain("texted to");
+  });
+
   it("leaves the first code in person for everybody the Owner met", async () => {
     const owner = await as("owner");
     const phone = aMobile();
@@ -568,5 +589,94 @@ describe("the Owner's answer", () => {
         id: await applicationFrom(link.id),
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+/** The day's sweep, run at a moment. */
+const sweepAt = async (at: string) => {
+  const owner = await as("owner", at);
+  await owner.alerts.sweep();
+};
+
+const rowOf = (id: string) =>
+  scratchDb().query.investorApplication.findFirst({ where: { id } });
+
+/** One field of an Application as it stands. */
+const fieldOf = async <Field extends "state" | "nid">(
+  id: string,
+  field: Field
+) => {
+  const row = await rowOf(id);
+  return row?.[field];
+};
+
+const photosOf = (id: string) =>
+  scratchDb().query.investorApplicationPhoto.findMany({
+    where: { applicationId: id },
+    columns: { what: true },
+  });
+
+describe("what is not approved", () => {
+  const DAY_29 = "2099-01-30T04:00:00.000Z";
+  const DAY_30 = "2099-01-31T04:00:00.000Z";
+  const DAY_30_AND_A_MINUTE = "2099-01-31T04:01:00.000Z";
+  const DAY_90 = "2099-04-01T04:00:00.000Z";
+
+  it("lapses after a month undecided, and leaves the Owner's list", async () => {
+    const link = await aLink();
+    await applied(link);
+    const id = await applicationFrom(link.id);
+    await sweepAt(DAY_29);
+    expect(await fieldOf(id, "state")).toBe("waiting");
+    await sweepAt(DAY_30);
+    expect(await fieldOf(id, "state")).toBe("lapsed");
+    const owner = await as("owner", DAY_30);
+    const told = await owner.alerts.mine({});
+    expect(
+      told.some(
+        (one) =>
+          one.kind === "application_sent" &&
+          one.dismissedAt === null &&
+          (one.params as { applicationId?: string }).applicationId === id
+      )
+    ).toBe(false);
+  });
+
+  it("declined, is cleared a month later: photographs and details gone, the name, mobile and answer kept", async () => {
+    const link = await aLink();
+    await applied(link);
+    const id = await applicationFrom(link.id);
+    const owner = await as("owner", A_MINUTE_LATER);
+    await owner.investors.applications.decline({ id, line: "এবার নয়" });
+    await sweepAt(DAY_30);
+    expect(await fieldOf(id, "nid")).toBe(NID);
+    expect(await photosOf(id)).toHaveLength(2);
+    await sweepAt(DAY_30_AND_A_MINUTE);
+    const cleared = await rowOf(id);
+    expect(cleared).toMatchObject({
+      state: "declined",
+      name: link.name,
+      phone: link.phone,
+      answerLine: "এবার নয়",
+      nid: null,
+      bankAccount: null,
+      address: null,
+      email: null,
+      nominees: null,
+      consentPaper: null,
+    });
+    expect(cleared?.clearedAt).not.toBeNull();
+    expect(await photosOf(id)).toEqual([]);
+  });
+
+  it("approved, is never cleared: its photographs are the proof of the Owner's check", async () => {
+    const link = await aLink();
+    await applied(link);
+    const id = await applicationFrom(link.id);
+    const owner = await as("owner", A_MINUTE_LATER);
+    await owner.investors.applications.approve({ id });
+    await sweepAt(DAY_90);
+    expect(await fieldOf(id, "nid")).toBe(NID);
+    expect(await photosOf(id)).toHaveLength(2);
   });
 });

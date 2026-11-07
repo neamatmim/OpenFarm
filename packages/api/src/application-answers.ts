@@ -1,8 +1,11 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { and, eq, inArray, isNull, lte } from "@OpenFarm/db/operators";
 import { alert } from "@OpenFarm/db/schema/alert";
 import type { ApplicationPhotoKind } from "@OpenFarm/db/schema/application";
-import { investorApplication } from "@OpenFarm/db/schema/application";
+import {
+  investorApplication,
+  investorApplicationPhoto,
+} from "@OpenFarm/db/schema/application";
 import {
   investor,
   investorAccess,
@@ -22,6 +25,7 @@ import { assertApplicationsTaken, standingOfLink } from "./application-links";
 import { readApplicationForTrail } from "./applications";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
+import type { Context } from "./context";
 import { lockTheFarm } from "./farm-lock";
 import { readInvestor } from "./investor-store";
 import type { Owned } from "./portal-invitable";
@@ -458,4 +462,111 @@ export const applicationConsentPaper = async (context: Owned, id: string) => {
     columns: { consentPaper: true },
   });
   return row?.consentPaper ?? null;
+};
+
+/** How long an Application waits for an answer before it lapses: a month, as a Request to Join waits for a Venture. */
+export const APPLICATION_LAPSES_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** How long a declined or lapsed Application keeps what it holds about them before it is cleared. */
+export const APPLICATION_CLEARED_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** What clearing an Application empties: everything about them but the name, the mobile, the dates and the answer. */
+const CLEARED = {
+  email: null,
+  address: null,
+  nid: null,
+  bankAccount: null,
+  tradeLicense: null,
+  rjscNumber: null,
+  tin: null,
+  authority: null,
+  authorityOn: null,
+  signatoryName: null,
+  signatoryNid: null,
+  signatoryRole: null,
+  nominees: null,
+  consentPaper: null,
+  callerAddress: null,
+  callerAgent: null,
+} as const;
+
+/**
+ * The day's round for Applications (ADR 0034): one undecided for a month lapses and leaves the Owner's list; one
+ * declined or lapsed a month ago is cleared — its photographs deleted and everything about them emptied but the name,
+ * the mobile, the dates and the answer. An approved one is never cleared: its photographs are the Owner's proof of the
+ * check, held as the Investor's record is. Each its own write, the trail saying who and where it stands and nothing
+ * more; a round with nothing to do writes nothing.
+ */
+export const lapseAndClearApplications = async (
+  context: Context & { farm: NonNullable<Context["farm"]> },
+  now: Date
+): Promise<{ lapsed: number; cleared: number }> => {
+  const farmId = context.farm.id;
+  const lapseBefore = new Date(now.getTime() - APPLICATION_LAPSES_AFTER_MS);
+  const clearBefore = new Date(now.getTime() - APPLICATION_CLEARED_AFTER_MS);
+  const toLapse = await context.db.query.investorApplication.findMany({
+    where: { farmId, state: "waiting", sentAt: { lte: lapseBefore } },
+    columns: { id: true },
+  });
+  for (const { id } of toLapse) {
+    // oxlint-disable-next-line no-await-in-loop -- one write each, so the trail names each one
+    await audited(context).write(
+      {
+        entity: "investor_application",
+        entityId: id,
+        action: "update",
+        before: (tx) => readApplicationForTrail(tx, farmId, id),
+        after: (tx) => readApplicationForTrail(tx, farmId, id),
+      },
+      async (tx) => {
+        await tx
+          .update(investorApplication)
+          .set({ state: "lapsed", answeredAt: now })
+          .where(
+            and(
+              eq(investorApplication.id, id),
+              eq(investorApplication.state, "waiting")
+            )
+          );
+        await settleTheApplicationNotice(tx, farmId, id, now);
+      }
+    );
+  }
+  const toClear = await context.db.query.investorApplication.findMany({
+    where: {
+      farmId,
+      state: { in: ["declined", "lapsed"] },
+      answeredAt: { lte: clearBefore },
+      clearedAt: { isNull: true },
+    },
+    columns: { id: true },
+  });
+  for (const { id } of toClear) {
+    // oxlint-disable-next-line no-await-in-loop -- as above
+    await audited(context).write(
+      {
+        entity: "investor_application",
+        entityId: id,
+        action: "update",
+        before: (tx) => readApplicationForTrail(tx, farmId, id),
+        after: (tx) => readApplicationForTrail(tx, farmId, id),
+      },
+      async (tx) => {
+        await tx
+          .delete(investorApplicationPhoto)
+          .where(eq(investorApplicationPhoto.applicationId, id));
+        await tx
+          .update(investorApplication)
+          .set({ ...CLEARED, clearedAt: now })
+          .where(
+            and(
+              eq(investorApplication.id, id),
+              inArray(investorApplication.state, ["declined", "lapsed"]),
+              lte(investorApplication.answeredAt, clearBefore)
+            )
+          );
+      }
+    );
+  }
+  return { lapsed: toLapse.length, cleared: toClear.length };
 };
