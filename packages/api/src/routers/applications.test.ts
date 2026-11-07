@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { EmailMessage, EmailTransport } from "../email";
+import { silentSms } from "../sms";
 import { createTestClient } from "../test/client";
 import { codeTextedTo, textsKept, textsTo } from "../test/portal-client";
 import { appRouter } from "./index";
@@ -41,6 +42,30 @@ const as = async (role: "owner" | "manager" | null, at = JANUARY) => {
     email: mailKept,
   });
   return client;
+};
+
+/** The same, on a farm with no text gateway yet: every code goes by email (the Owner, 2026-11-08). */
+const byEmailOnly = async (role: "owner" | null, at = JANUARY) => {
+  const { client } = await createTestClient(appRouter, {
+    as: role,
+    clock: new FakeClock(at),
+    sms: silentSms,
+    email: mailKept,
+  });
+  return client;
+};
+
+/** The latest email to an address. */
+const mailTo = (address: string) =>
+  mailed.findLast((one) => one.to === address)?.message.text ?? "";
+
+/** The six-digit code in the latest email to an address. */
+const codeMailedTo = (address: string) => {
+  const code = mailTo(address).match(/\b\d{6}\b/u)?.[0];
+  if (!code) {
+    throw new Error(`expected a code emailed to ${address}`);
+  }
+  return code;
 };
 
 const refusalOf = async (act: Promise<unknown>) => {
@@ -163,12 +188,14 @@ describe("a link opened", () => {
     const nobody = await as(null);
     const said = await nobody.portal.applying.open({ token: link.token });
     expect(Object.keys(said).toSorted()).toEqual([
+      "byEmail",
+      "bySms",
       "expiresAt",
       "farmName",
-      "mobile",
     ]);
     expect(JSON.stringify(said)).not.toContain(link.name);
-    expect(said.mobile).not.toContain(link.phone.slice(0, 7));
+    expect(said.bySms).not.toContain(link.phone.slice(0, 7));
+    expect(said.byEmail).not.toContain(link.email);
   });
 
   it("texts its code to the link's mobile, and opens the form on who the Owner made it for", async () => {
@@ -680,5 +707,108 @@ describe("what is not approved", () => {
     await sweepAt(DAY_90);
     expect(await fieldOf(id, "nid")).toBe(NID);
     expect(await photosOf(id)).toHaveLength(2);
+  });
+});
+
+describe("with no text gateway yet", () => {
+  /** A link the Owner made and emailed, on a farm that cannot text. */
+  const anEmailedLink = async () => {
+    const owner = await byEmailOnly("owner");
+    const phone = aMobile();
+    const email = `by.mail.${suffix}.${phones}@example.com`;
+    const name = `সেলিনা ${suffix} ${phones}`;
+    const made = await owner.investors.applications.makeLink({
+      kind: "person",
+      name,
+      phone,
+      email,
+    });
+    expect(mailTo(email)).toContain(made.address);
+    return {
+      id: made.id,
+      token: made.address.split("/portal/apply/")[1] ?? "",
+      phone,
+      email,
+      name,
+    };
+  };
+
+  /** Applying from the codes emailed to them. */
+  const appliedByEmail = async (
+    link: Awaited<ReturnType<typeof anEmailedLink>>,
+    email: string = link.email
+  ) => {
+    const nobody = await byEmailOnly(null);
+    const said = await nobody.portal.applying.open({ token: link.token });
+    expect(said.bySms).toBeNull();
+    expect(said.byEmail).not.toBeNull();
+    await nobody.portal.applying.sendCode({
+      token: link.token,
+      purpose: "open",
+      language: "bn",
+    });
+    const { key } = await nobody.portal.applying.unlock({
+      token: link.token,
+      code: codeMailedTo(link.email),
+    });
+    const filled = aPersonsForm(link, key);
+    const form = { ...filled, record: { ...filled.record, email } };
+    const read = await nobody.portal.applying.consent(form);
+    await nobody.portal.applying.sendCode({
+      token: link.token,
+      purpose: "agree",
+      key,
+      language: "bn",
+    });
+    await nobody.portal.applying.send({
+      ...form,
+      photos: { nid_front: PHOTO, nid_back: PHOTO },
+      laidAt: read.laidAt,
+      paperHash: read.paperHash,
+      code: codeMailedTo(link.email),
+    });
+  };
+
+  it("opens, agrees and is approved by email alone, the first code emailed and the email confirmed", async () => {
+    const link = await anEmailedLink();
+    await appliedByEmail(link);
+    expect(textsTo(link.phone)).toEqual([]);
+    const application = await scratchDb().query.investorApplication.findFirst({
+      where: { linkId: link.id },
+    });
+    expect(application?.codeChannel).toBe("email");
+    const owner = await byEmailOnly("owner", A_MINUTE_LATER);
+    const approved = await owner.investors.applications.approve({
+      id: application?.id ?? "",
+    });
+    expect(approved.code).toMatchObject({ bySms: null });
+    expect(approved.code?.byEmail).not.toBeNull();
+    const them = await scratchDb().query.investor.findFirst({
+      where: { id: approved.investorId },
+      columns: { emailConfirmedAt: true },
+    });
+    expect(them?.emailConfirmedAt).not.toBeNull();
+    // The emailed first code takes them in with their mobile, as a texted one would.
+    const code = mailTo(link.email).match(/\b[A-HJ-NP-Z2-9]{8}\b/u)?.[0] ?? "";
+    const nobody = await byEmailOnly(null, A_MINUTE_LATER);
+    const joined = await nobody.portal.join({
+      phone: link.phone,
+      code,
+      password: `notun-pasword-${suffix}`,
+    });
+    expect(joined.loginEmail).toContain("@");
+  });
+
+  it("is not approved when their email changed and the farm cannot text: the first code would go nowhere", async () => {
+    const link = await anEmailedLink();
+    await appliedByEmail(link, `changed.${suffix}@example.com`);
+    const owner = await byEmailOnly("owner", A_MINUTE_LATER);
+    expect(
+      await refusalOf(
+        owner.investors.applications.approve({
+          id: await applicationFrom(link.id),
+        })
+      )
+    ).toBe("no_way_to_send_first_code");
   });
 });

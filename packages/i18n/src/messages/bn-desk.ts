@@ -753,6 +753,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "portal.newCode": "নতুন কোড দিন",
   "portal.sentCode.sms":
     "{farm}: পোর্টালের নতুন কোড {code}। {at}-এ আপনার ফোন নম্বর আর এই কোড দিয়ে নতুন পাসওয়ার্ড বেছে নিন। {days} দিন কাজ করবে। কাউকে বলবেন না।",
+  "portal.apply.code.subject": "আপনার কোড",
   "portal.apply.code.open":
     "{farm}: আপনার তথ্য ফর্ম খোলার কোড {code}। {minutes} মিনিট কাজ করবে। কাউকে বলবেন না।",
   "portal.apply.code.agree":
@@ -774,16 +775,16 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "investors.applications.make": "আবেদনের লিংক পাঠান",
   "investors.applications.makeTitle": "আবেদনের লিংক পাঠান",
   "investors.applications.makeHint":
-    "আপনার চেনা কারও জন্য। খামার তাঁকে লিংকটি ইমেইল করবে; তাঁর মোবাইলে যাওয়া কোড ছাড়া এটি খোলে না, আর একবারই, ৭ দিন কাজ করে।",
+    "আপনার চেনা কারও জন্য। খামার তাঁকে লিংকটি ইমেইল করবে; তাঁর ইমেইলে (আর খামার এসএমএস পাঠাতে পারলে মোবাইলে) যাওয়া কোড ছাড়া এটি খোলে না, আর একবারই, ৭ দিন কাজ করে।",
   "investors.applications.makeAndEmail": "বানিয়ে ইমেইল করুন",
   "investors.applications.kind": "কে আবেদন করছেন",
   "investors.applications.name": "তাঁর নাম, বা প্রতিষ্ঠানের নাম",
   "investors.applications.mobile": "মোবাইল",
   "investors.applications.mobileHint":
-    "লিংক খোলার কোড এখানে যাবে, আর পোর্টালে তিনি এটি দিয়ে সাইন ইন করবেন। প্রতিষ্ঠানের হলে স্বাক্ষরকারীর।",
+    "পোর্টালে তিনি এটি দিয়ে সাইন ইন করবেন, আর খামার এসএমএস পাঠাতে পারলে কোড এখানেও যাবে। প্রতিষ্ঠানের হলে স্বাক্ষরকারীর।",
   "investors.applications.email": "ইমেইল",
   "investors.applications.emailHint":
-    "লিংক এখানে যাবে। একটি অক্ষর ভুল হলে অচেনা কারও কাছে যাবে, যিনি শুধু খামারের নাম দেখবেন।",
+    "লিংক আর কোড এখানে যাবে। প্রতিটি অক্ষর মিলিয়ে নিন: খামার এখনো এসএমএস পাঠাতে পারে না, তাই এই ঠিকানা দিয়েই তিনি ঢুকবেন।",
   "investors.applications.madeTitle": "লিংক তৈরি হয়েছে",
   "investors.applications.emailedTo":
     "{to}-এ ইমেইল করা হয়েছে। অন্যভাবে পাঠাতে কপিও করতে পারেন।",
@@ -839,12 +840,20 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "investors.applications.photo.nid_back": "এনআইডির পেছনের দিক",
   "investors.applications.photo.trade_license": "ট্রেড লাইসেন্স",
   "investors.applications.photo.authority": "স্বাক্ষরকারীর ক্ষমতাপত্র",
+  "investors.applications.consentCodeEmail":
+    "{to}-এ ইমেইল করা কোডে, পাঠানো হয়েছিল",
+  "investors.applications.refused.cannotSendCodes":
+    "খামার এখনো এসএমএস বা ইমেইল কোনোটাই পাঠাতে পারে না, আর লিংক খোলার কোড এর একটিতে যায়।",
+  "investors.applications.refused.needsEmail":
+    "খামার এখনো এসএমএস পাঠাতে পারে না, তাই কোড ইমেইলে যাবে: তাঁর ইমেইল দিন।",
+  "investors.applications.refused.noWayForFirstCode":
+    "তাঁর প্রথম কোড কোথাও যাবে না: খামার এখনো এসএমএস পাঠাতে পারে না, আর তিনি ফর্মে ইমেইল বদলেছেন। বাতিল করে তাঁর দেওয়া ইমেইলে নতুন লিংক পাঠান।",
   "investors.applications.consentProof": "অনলাইনে পোর্টাল সম্মতি, সংস্করণ {version}",
   "investors.applications.consentCode": "{to}-এ পাঠানো কোডে, পাঠানো হয়েছিল",
   "investors.applications.approve": "অনুমোদন করুন",
   "investors.applications.approveTitle": "{name}-কে অনুমোদন করবেন?",
   "investors.applications.approveWhy":
-    "তিনি যেভাবে পূরণ করেছেন সেভাবে বিনিয়োগকারী হিসেবে লেখা হবেন, তাঁর পোর্টাল সম্মতি রাখা হবে, আর পোর্টালের প্রথম কোড এসএমএসে যাবে। এনআইডির ছবি মিলিয়ে দেখেছেন?",
+    "তিনি যেভাবে পূরণ করেছেন সেভাবে বিনিয়োগকারী হিসেবে লেখা হবেন, তাঁর পোর্টাল সম্মতি রাখা হবে, আর পোর্টালের প্রথম কোড তাঁকে পাঠানো হবে। এনআইডির ছবি মিলিয়ে দেখেছেন?",
   "investors.applications.approved": "অনুমোদিত। প্রথম কোড গেছে {to}-এ।",
   "investors.applications.approvedNoCode":
     "অনুমোদিত, কিন্তু কোড যায়নি। তাঁর পাতা থেকে নতুন কোড পাঠান।",
@@ -894,9 +903,22 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "investors.applications.switch.hiddenDone": "লিংকে আবেদন বন্ধ",
   "portal.apply.askForANewCode":
     "নিরাপত্তার জন্য ফর্ম তিন ঘণ্টা খোলা থাকে। যা লিখেছিলেন তা রাখা হয়নি।",
+  "portal.apply.where.mobile": "আপনার {mobile} মোবাইলে",
+  "portal.apply.where.email": "আপনার {email} ইমেইলে",
+  "portal.apply.where.both": "আপনার {mobile} মোবাইলে আর {email} ইমেইলে",
+  "portal.apply.step.details": "আপনার তথ্য",
+  "portal.apply.step.photos": "ছবি",
+  "portal.apply.step.consent": "সম্মতি",
+  "portal.apply.detailsHint": "আপনার এনআইডি আর ব্যাংকের কাগজে যেমন আছে।",
+  "portal.apply.mobile": "মোবাইল",
+  "portal.apply.mobileFixed":
+    "এটি দিয়ে আপনি পোর্টালে সাইন ইন করবেন। বদলাতে খামারকে বলুন।",
+  "portal.apply.consentIntro":
+    "তথ্য আর ছবি দেওয়া হলে, সেগুলো দিয়ে তৈরি পোর্টাল সম্মতিপত্র পড়ুন, তারপর কোড দিয়ে সম্মতি দিন।",
+  "portal.apply.refusedTitle": "এখনো হয়নি",
   "portal.apply.title": "আপনার তথ্য পূরণ করুন",
   "portal.apply.openHint":
-    "{farm} আপনাকে তাদের বিনিয়োগকারীর খাতার জন্য নিজের তথ্য পূরণ করতে বলেছে। ফর্ম খুলতে খামার আপনার {mobile} মোবাইলে একটি কোড পাঠাবে।",
+    "{farm} আপনাকে তাদের বিনিয়োগকারীর খাতার জন্য নিজের তথ্য পূরণ করতে বলেছে। ফর্ম খুলতে খামার {where} একটি কোড পাঠাবে।",
   "portal.apply.askTheFarm":
     "লিংকের মেয়াদ শেষ হতে পারে, আগেই ব্যবহার হয়ে থাকতে পারে, বা নতুন করে পাঠানো হতে পারে। খামারের কাছে নতুন লিংক চান।",
   "portal.apply.sendMeACode": "আমাকে কোড পাঠান",
@@ -910,7 +932,6 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "portal.apply.nominees": "আপনার নমিনি",
   "portal.apply.nomineesHint":
     "ভেঞ্চারের হিসাব মেটার আগে আপনি মারা গেলে কে আপনার মূলধন আর অংশ তুলবেন। ইচ্ছা হলে দিন। তাঁদের জন্য মনোনয়নপত্রে সই করার পরেই এটি বহাল হবে।",
-  "portal.apply.photos": "ছবি",
   "portal.apply.photosHint":
     "এনআইডির দুই দিকের পরিষ্কার ছবি, যাতে মালিক আপনার লেখা মিলিয়ে দেখতে পারেন।",
   "portal.apply.photoTake": "ছবি বেছে নিন বা তুলুন",
@@ -918,12 +939,12 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "portal.apply.toTheConsent": "পোর্টাল সম্মতিপত্র পড়ুন",
   "portal.apply.readTheConsent": "আপনার তথ্যসহ পোর্টাল সম্মতিপত্র",
   "portal.apply.agreeHint":
-    "পুরোটা পড়ুন। তারপর খামার আপনার {mobile} মোবাইলে একটি কোড পাঠাবে; কোডটি দেওয়াই এই সম্মতিপত্রে আপনার স্বাক্ষর।",
+    "পুরোটা পড়ুন। তারপর খামার {where} একটি কোড পাঠাবে; কোডটি দেওয়াই এই সম্মতিপত্রে আপনার স্বাক্ষর।",
   "portal.apply.sendTheCodeToAgree": "সম্মতির কোড পাঠান",
   "portal.apply.agreeAndSend": "সম্মতি দিয়ে আবেদন পাঠান",
   "portal.apply.sentTitle": "খামার আপনার আবেদন পেয়েছে",
   "portal.apply.sentHint":
-    "মালিক পড়ে এসএমএসে উত্তর দেবেন। অনুমোদন হলে বিনিয়োগকারী পোর্টালের কোড এসএমএসে আসবে।",
+    "মালিক পড়ে উত্তর দেবেন। অনুমোদন হলে বিনিয়োগকারী পোর্টালের কোড এই কোডগুলোর মতো করেই আসবে।",
   "portal.apply.refused.opensNothing": "এই লিংক এখন আর কিছু খোলে না",
   "portal.apply.refused.sittingEnded":
     "এই বসার সময় শেষ। ফর্ম আবার খুলতে নতুন কোড চান।",
@@ -942,7 +963,7 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
     "এই লিংক অন্য ধরনের বিনিয়োগকারীর জন্য। খামারকে জিজ্ঞেস করুন।",
   "portal.apply.link.subject": "আপনার তথ্য পূরণ করুন",
   "portal.apply.link.email":
-    "{name}, {farm}-এর মালিক আপনাকে খামারের বিনিয়োগকারীর খাতার জন্য নিজের তথ্য পূরণ করতে বলেছেন।\n\nফোনে এটি খুলুন: {at}\n\nখুলতে খামার আপনার মোবাইলে একটি কোড পাঠাবে। লিংকটি একবারই, {days} দিন কাজ করবে। আপনি এটি আশা না করে থাকলে উপেক্ষা করুন আর খামারকে জানান।",
+    "{name}, {farm}-এর মালিক আপনাকে খামারের বিনিয়োগকারীর খাতার জন্য নিজের তথ্য পূরণ করতে বলেছেন।\n\nফোনে এটি খুলুন: {at}\n\nখুলতে খামার আপনাকে একটি কোড পাঠাবে। লিংকটি একবারই, {days} দিন কাজ করবে। আপনি এটি আশা না করে থাকলে উপেক্ষা করুন আর খামারকে জানান।",
   "portal.apply.link.sms":
     "{farm}: খামারের বিনিয়োগকারীর খাতার জন্য আপনার তথ্য পূরণ করুন। লিংকটি একবারই, {days} দিন কাজ করবে; কাউকে দেবেন না।\n{at}",
   "portal.sentCode.subject": "পোর্টালের নতুন কোড",

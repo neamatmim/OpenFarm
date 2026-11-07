@@ -66,6 +66,9 @@ const REFUSALS: OwnWords = {
   applications_off: "investors.applications.refused.off",
   portal_closed: "investors.applications.refused.portalClosed",
   farm_cannot_text: "investors.applications.refused.cannotText",
+  farm_cannot_send_codes: "investors.applications.refused.cannotSendCodes",
+  link_needs_email: "investors.applications.refused.needsEmail",
+  no_way_to_send_first_code: "investors.applications.refused.noWayForFirstCode",
   farm_cannot_email: "investors.applications.refused.cannotEmail",
   phone_not_mobile: "investors.applications.refused.notMobile",
   already_an_investor: "investors.applications.refused.alreadyAnInvestor",
@@ -613,9 +616,14 @@ const ApplicationDialog = ({
                 })}
               </span>
               <span className="text-muted-foreground">
-                {t("investors.applications.consentCode", {
-                  to: application.consent.codeSentTo,
-                })}{" "}
+                {t(
+                  application.consent.codeChannel === "email"
+                    ? "investors.applications.consentCodeEmail"
+                    : "investors.applications.consentCode",
+                  {
+                    to: application.consent.codeSentTo,
+                  }
+                )}{" "}
                 <SaidDate at={application.consent.codeSentAt} withTime />
               </span>
               {application.consent.callerAgent ? (

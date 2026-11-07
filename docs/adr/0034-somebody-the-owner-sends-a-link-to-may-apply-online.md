@@ -27,3 +27,7 @@ On 2026-11-08 the Owner asked for "any investor" to apply online and be approved
 - The plan is in `.scratch/openfarm-investor-applications/`.
 
 **Revisit** when the advisers answer. If they say an online consent or a photographed NID will not do, the switch stays off and this ADR follows their answer.
+
+**2026-11-08, later: the codes go by email too.** The Owner: the farm has no SMS gateway yet. So every code an Application uses goes both ways where the farm can send it: one code by text to the link's mobile, and another by email to the link's email. Either opens the link or agrees the consent, and the proof says which way it came, as a Signing Code's does. With no gateway, the email alone carries them, so a link then needs an email. Approving sends the first portal code the same ways, and is refused when it would reach nobody: no gateway, and an email changed on the form that nothing secret has reached.
+
+What this gives up: with email alone, nothing proves the mobile is theirs, only the inbox. The mobile is still what they sign in with, and the link shows it only partly hidden, so a stranger holding a mistyped email cannot sign in. "The farm must be able to text" above gives way to this.

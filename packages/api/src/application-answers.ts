@@ -83,8 +83,9 @@ const theirLanguage = (row: ApplicationRow): Language =>
   isLanguage(row.language) ? row.language : "bn";
 
 /**
- * Whether the email they kept is the one their link was emailed to: the link was a secret sent there, as a
- * confirmation code is, so approving counts it confirmed and later codes reach it (ADR 0034).
+ * Whether the email they kept is the one their link went to, and something secret reached them there — the link
+ * itself, or the code they agreed with: as a confirmation code would, that proves the inbox theirs, so approving
+ * counts it confirmed and later codes reach it (ADR 0034).
  */
 const emailWasTheLinks = async (context: Owned, row: ApplicationRow) => {
   if (!row.email) {
@@ -94,7 +95,8 @@ const emailWasTheLinks = async (context: Owned, row: ApplicationRow) => {
     where: { id: row.linkId },
     columns: { email: true, sentByEmail: true },
   });
-  return link?.sentByEmail !== null && link?.email === row.email;
+  const reached = link?.sentByEmail !== null || row.codeChannel === "email";
+  return reached && link?.email === row.email;
 };
 
 /** Refuses approving somebody already on the farm's records by their mobile, or whose mobile signs in to another
@@ -153,6 +155,14 @@ export const approveApplication = async (
   const investorId = uuidv7(now);
   const consentId = uuidv7(now);
   const emailConfirmed = await emailWasTheLinks(context, row);
+  // Their first code has a way to reach them, or they would be approved into a portal they could never enter: by text
+  // while the farm texts, or to the email approving confirms.
+  if (!(context.sms.sends || (emailConfirmed && context.email.sends))) {
+    throw refused(
+      "The farm cannot text yet, and their email is not one the farm has reached: their first code would go nowhere",
+      "no_way_to_send_first_code"
+    );
+  }
   await audited(context).write(
     {
       entity: "investor",
@@ -411,6 +421,7 @@ export const applicationToRead = async (context: Owned, id: string) => {
       /** Whether the wording in force now is the one they agreed: a changed one cannot be approved. */
       stillInForce: wording.versionId === row.consentVersionId,
       paperHash: row.consentPaperHash,
+      codeChannel: row.codeChannel,
       codeSentTo: row.codeSentTo,
       codeSentAt: row.codeSentAt,
       callerAddress: row.callerAddress,

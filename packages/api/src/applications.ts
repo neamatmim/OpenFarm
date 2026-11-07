@@ -1,6 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull } from "@OpenFarm/db/operators";
 import type {
+  ApplicationCodeChannel,
   ApplicationCodePurpose,
   ApplicationPhotoKind,
 } from "@OpenFarm/db/schema/application";
@@ -41,7 +42,7 @@ import type { Context } from "./context";
 import { farmsOwnValues } from "./data-keepers";
 import { assertRegistered } from "./export-store";
 import { lockTheFarm } from "./farm-lock";
-import { ONE_SEND_EVERY_MS } from "./investor-email";
+import { ONE_SEND_EVERY_MS, maskedEmail } from "./investor-email";
 import { organizationInput, personInput, theRecord } from "./investor-input";
 import { keepPaper } from "./kept-paper";
 import { hashOfCodeAsTyped } from "./membership";
@@ -156,27 +157,89 @@ const readLinkForTrail = async (
     columns: { tokenHash: false, openKeyHash: false },
   })) ?? null;
 
-/** The farm's name and the mobile the code goes to, mostly hidden: all a link says before its code is entered, since
- *  an email typed with one wrong letter reaches a stranger. */
+/** Where a link's codes go, mostly hidden: by text to its mobile while the farm can text, and to its email while the
+ *  farm can send email (the Owner, 2026-11-08: no text gateway yet). */
+const waysOf = (context: Context, link: LinkRow) => {
+  const mobile = mobileNumberOf(link.phone);
+  return {
+    sms: context.sms.sends && mobile ? mobile : null,
+    email: context.email.sends && link.email ? link.email : null,
+  };
+};
+
+/** The ways a link's codes go, as a page says them: mostly hidden, nothing for a way the farm cannot use. */
+const waysSaid = (context: Context, link: LinkRow) => {
+  const ways = waysOf(context, link);
+  return {
+    bySms: ways.sms ? maskedDigits(link.phone) : null,
+    byEmail: ways.email ? maskedEmail(ways.email) : null,
+  };
+};
+
+/** The farm's name and where the code goes, mostly hidden: all a link says before its code is entered, since an email
+ *  typed with one wrong letter reaches a stranger. */
 export const openLink = async (context: Context, token: string) => {
   const { link, farm } = await linkOf(context, token);
   return {
     farmName: farm.farm.name,
-    mobile: maskedDigits(link.phone),
+    ...waysSaid(context, link),
     expiresAt: link.expiresAt,
   };
 };
 
-/** What a code's text says it is for, in the language they chose. */
+/** What a code's message says it is for, in the language they chose. */
 const codeText = (
   purpose: ApplicationCodePurpose,
   language: Language,
   facts: { farm: string; code: string; minutes: number }
 ) => translate(language, `portal.apply.code.${purpose}`, facts);
 
+/** A code that differs from another, so the one entered says which way it came. */
+const anotherCode = (than: string | null): string => {
+  let code = newCode();
+  while (code === than) {
+    code = newCode();
+  }
+  return code;
+};
+
+/** One code by text and another by email, each where the farm has a way to send it; what went, and the codes. */
+const sendTheCodes = async (
+  context: Context,
+  ways: { sms: string | null; email: string | null },
+  what: {
+    purpose: ApplicationCodePurpose;
+    language: Language;
+    minutes: number;
+  },
+  farmName: string
+) => {
+  const byText = ways.sms ? newCode() : null;
+  const byEmail = ways.email ? anotherCode(byText) : null;
+  const words = (code: string) =>
+    codeText(what.purpose, what.language, {
+      farm: farmName,
+      code,
+      minutes: what.minutes,
+    });
+  const [texted, emailed] = await Promise.all([
+    ways.sms && byText
+      ? context.sms.send(ways.sms, { text: words(byText), lang: what.language })
+      : { delivered: false },
+    ways.email && byEmail
+      ? context.email.send(ways.email, {
+          subject: `${farmName}: ${translate(what.language, "portal.apply.code.subject")}`,
+          text: words(byEmail),
+        })
+      : { delivered: false },
+  ]);
+  return { byText, byEmail, texted, emailed };
+};
+
 /**
- * Texts a code for a link to the link's own mobile, and no other: to open it, or — within a sitting — to agree the
- * Portal Consent. One a minute for each purpose, and five an hour for a link in all; refused when it did not go.
+ * Sends the codes for a link to its own mobile and email, and nowhere else: one by text while the farm can text, and
+ * another by email while it can send email — to open it, or within a sitting to agree the Portal Consent. One a minute
+ * for each purpose, and five an hour for a link in all; refused when neither went.
  */
 export const sendApplyCode = async (
   context: Context,
@@ -186,14 +249,18 @@ export const sendApplyCode = async (
     key?: string;
     language: Language;
   }
-): Promise<{ sentTo: string; minutes: number }> => {
+): Promise<{
+  bySms: string | null;
+  byEmail: string | null;
+  minutes: number;
+}> => {
   const { link, farm } =
     input.purpose === "agree"
       ? await sittingOf(context, input.token, input.key ?? "")
       : await linkOf(context, input.token);
   const now = context.clock.now();
-  const mobile = mobileNumberOf(link.phone);
-  if (!mobile) {
+  const ways = waysOf(context, link);
+  if (!(ways.sms || ways.email)) {
     throw opensNothing();
   }
   const sends = `application-send:${link.id}`;
@@ -211,28 +278,30 @@ export const sendApplyCode = async (
     });
   }
   countFailure(sends, now, SIGNING_SENDS);
-  const code = newCode();
   const minutes = APPLY_CODE_LIFETIME_MS / 60_000;
-  const texted = await context.sms.send(mobile, {
-    text: codeText(input.purpose, input.language, {
-      farm: farm.farm.name,
-      code,
-      minutes,
-    }),
-    lang: input.language,
-  });
-  if (!texted.delivered) {
+  const { byText, byEmail, texted, emailed } = await sendTheCodes(
+    context,
+    ways,
+    { purpose: input.purpose, language: input.language, minutes },
+    farm.farm.name
+  );
+  if (!(texted.delivered || emailed.delivered)) {
     throw refused(
       "The code did not go — try again in a minute",
       "code_not_sent"
     );
   }
+  const said = waysSaid(context, link);
   const row = {
     farmId: link.farmId,
     linkId: link.id,
     purpose: input.purpose,
-    codeHash: await hashOfCodeAsTyped(code),
-    sentTo: maskedDigits(link.phone),
+    codeHash:
+      texted.delivered && byText ? await hashOfCodeAsTyped(byText) : null,
+    sentTo: texted.delivered ? said.bySms : null,
+    emailCodeHash:
+      emailed.delivered && byEmail ? await hashOfCodeAsTyped(byEmail) : null,
+    emailTo: emailed.delivered ? said.byEmail : null,
     sentAt: now,
     expiresAt: new Date(now.getTime() + APPLY_CODE_LIFETIME_MS),
     usedAt: null,
@@ -244,13 +313,13 @@ export const sendApplyCode = async (
       target: [applicationCode.linkId, applicationCode.purpose],
       set: row,
     });
-  return { sentTo: row.sentTo, minutes };
+  return { bySms: row.sentTo, byEmail: row.emailTo, minutes };
 };
 
 /**
- * The code entered for a link and a purpose, checked: the last one sent, unexpired and unused. Every try is counted
- * before it is checked, ten wrong in a quarter hour stopping them; the right one forgets the count. Not yet used: the
- * caller marks it used in the write it opens (`useCode`).
+ * The code entered for a link and a purpose, checked: one of the last ones sent, unexpired and unused, and which way it
+ * came. Every try is counted before it is checked, ten wrong in a quarter hour stopping them; the right one forgets the
+ * count. Not yet used: the caller marks it used in the write it opens (`useCode`).
  */
 const checkCode = async (
   context: Context,
@@ -271,10 +340,12 @@ const checkCode = async (
   const sent = await context.db.query.applicationCode.findFirst({
     where: { linkId: link.id, purpose },
   });
-  if (
-    !sent ||
-    sent.codeHash !== (await hashOfCodeAsTyped(codeAsTyped(typed)))
-  ) {
+  const hash = await hashOfCodeAsTyped(codeAsTyped(typed));
+  const channel: ApplicationCodeChannel | null =
+    (sent?.codeHash === hash && "sms") ||
+    (sent?.emailCodeHash === hash && "email") ||
+    null;
+  if (!(sent && channel)) {
     throw refused("That is not the code we sent", "wrong_code");
   }
   if (sent.usedAt) {
@@ -284,7 +355,12 @@ const checkCode = async (
     throw refused("That code has run out — ask for another", "code_expired");
   }
   forgetFailures(guesses);
-  return sent;
+  return {
+    id: sent.id,
+    channel,
+    sentTo: (channel === "sms" ? sent.sentTo : sent.emailTo) ?? "",
+    sentAt: sent.sentAt,
+  };
 };
 
 /** Marks a code used in the write it opens, refused if another request used it meanwhile. */
@@ -305,6 +381,7 @@ const theForm = async (context: Context, link: LinkRow, farm: Visiting) => ({
   kind: link.kind,
   name: link.name,
   mobile: maskedDigits(link.phone),
+  ...waysSaid(context, link),
   email: link.email,
   sittingEndsAt: link.openKeyExpiresAt,
   privacyNotice: await theNoticeToRead(context.db, farm.farm),
@@ -615,6 +692,7 @@ export const sendApplication = async (
         consentVersionId: laid.wording.versionId,
         consentPaper: laid.paper,
         consentPaperHash: laid.paperHash,
+        codeChannel: sent.channel,
         codeSentTo: sent.sentTo,
         codeSentAt: sent.sentAt,
         callerAddress: context.callerAddress,

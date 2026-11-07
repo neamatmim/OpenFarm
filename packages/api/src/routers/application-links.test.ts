@@ -142,11 +142,26 @@ describe("a link", () => {
     }
   });
 
-  it("is refused when the farm cannot text, since the code that opens it goes by text", async () => {
+  it("is refused when the farm can send neither texts nor email, since its codes go by one or the other", async () => {
     const owner = await as("owner", { sms: silentSms });
     expect(
       await refusalOf(owner.investors.applications.makeLink(someone()))
-    ).toBe("farm_cannot_text");
+    ).toBe("farm_cannot_send_codes");
+  });
+
+  it("needs an email while the farm cannot text, and is made with one", async () => {
+    const owner = await as("owner", {
+      sms: silentSms,
+      email: anOutbox().transport,
+    });
+    const them = someone();
+    expect(
+      await refusalOf(
+        owner.investors.applications.makeLink({ ...them, email: undefined })
+      )
+    ).toBe("link_needs_email");
+    const made = await owner.investors.applications.makeLink(them);
+    expect(made.sent?.byEmail).not.toBeNull();
   });
 
   it("is the Owner's alone", async () => {
