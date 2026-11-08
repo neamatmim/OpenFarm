@@ -32,6 +32,7 @@ import {
   mayStartBuying,
   monthsStillOut,
   pastWindUp,
+  floorCountsSigned,
   shortOfFloor,
 } from "@/lib/ventures";
 
@@ -232,10 +233,16 @@ export const WhatStopsHer = ({
     const cattleShort = cattleMoneyShort(venture);
     let stops = t("ventures.startBuyingHint");
     if (short > 0) {
-      stops = t("ventures.floorNotMetYet", {
-        short: formatNumber(short, language),
-        floor: formatNumber(venture.floorMoney, language),
-      });
+      // Paid by the month, what the Floor is waiting on is signatures: the money comes after them.
+      stops = t(
+        floorCountsSigned(venture)
+          ? "ventures.floorNotSignedYet"
+          : "ventures.floorNotMetYet",
+        {
+          short: formatNumber(short, language),
+          floor: formatNumber(venture.floorMoney, language),
+        }
+      );
     } else if (cattleShort > 0) {
       stops = t("ventures.cattleMoneyShort", {
         short: formatNumber(cattleShort, language),
