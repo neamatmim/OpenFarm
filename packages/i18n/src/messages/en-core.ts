@@ -2784,6 +2784,10 @@ export const enCore = {
   "refusal.noSuchRequest": "There is no such request",
   "refusal.ventureUnderFloor":
     "The venture holds less than the floor it was opened on",
+  "refusal.ventureHasSignatures":
+    "Somebody has signed for this venture, so its terms are fixed",
+  "refusal.ventureOfferWaiting":
+    "An agreement is out to an investor on these terms: withdraw it first",
   "refusal.signedUnderFloor":
     "The units signed for come to less than the floor it was opened on",
   "refusal.ventureFloorOverTarget":

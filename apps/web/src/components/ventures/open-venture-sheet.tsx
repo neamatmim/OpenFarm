@@ -12,7 +12,7 @@ import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
-interface Plan {
+export interface Plan {
   name: string;
   targetCapitalMoney: string;
   unitPriceMoney: string;
@@ -47,6 +47,19 @@ const cattleBudgetOf = (plan: Plan, runningPercent: number | undefined) =>
   plan.cattleBudgetMoney.trim() === ""
     ? Number(wouldKeep(Number(plan.targetCapitalMoney), runningPercent) || 0)
     : Number(plan.cattleBudgetMoney);
+
+/** A figure the Owner may leave to the farm's parameters: left empty, the server works it out. */
+const typedOrNot = (box: string) =>
+  box.trim() === "" ? undefined : Number(box);
+
+/** What cannot be left to the farm's parameters: what it is called, what it is after, a Unit's price and its days. */
+const hasWhatItNeeds = (plan: Plan, window: { start: string; end: string }) =>
+  plan.name.trim() !== "" &&
+  Number(plan.targetCapitalMoney) > 0 &&
+  Number(plan.unitPriceMoney) > 0 &&
+  plan.decideBy !== "" &&
+  window.start !== "" &&
+  window.end !== "";
 
 const NOTHING_YET: Plan = {
   name: "",
@@ -123,32 +136,38 @@ const MonthlyPreview = ({
   );
 };
 
+/** A Venture's terms as the server takes them, opening it or changing them. */
+export type VentureTerms = Parameters<typeof orpc.ventures.open.call>[0];
+
 /**
- * The plan a Venture opens on. The Owner types what it is called, what it is after and what a Unit costs;
- * the Floor, the two budgets and how many Units there are follow from the Farm's own parameters, so the
- * form asks for four things rather than nine.
+ * The terms of a Venture, on one form for opening it and for changing them. The Owner types what it is called, what
+ * it is after and what a Unit costs; the Floor, the two budgets and how many Units there are follow from the Farm's
+ * own parameters, so the form asks for four things rather than nine.
  */
-export const OpenVentureSheet = ({
+export const VentureTermsSheet = ({
   open,
   onOpenChange,
+  plan,
+  setPlan,
+  title,
+  submitLabel,
+  description,
+  pending,
+  onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  plan: Plan;
+  setPlan: (plan: Plan) => void;
+  title: string;
+  submitLabel: string;
+  /** Said under the title instead of how the farm plans a Venture. */
+  description?: string;
+  pending: boolean;
+  onSave: (terms: VentureTerms) => void;
 }) => {
   const { t } = useLanguage();
-  const refused = useRefused();
-  const [plan, setPlan] = useState<Plan>(NOTHING_YET);
   const farm = useQuery(orpc.farm.current.queryOptions());
-  const opening = useMutation(
-    orpc.ventures.open.mutationOptions({
-      onError: refused,
-      onSuccess: () => {
-        setPlan(NOTHING_YET);
-        onOpenChange(false);
-        toast.success(t("ventures.opened"));
-      },
-    })
-  );
   const target = Number(plan.targetCapitalMoney);
   const unit = Number(plan.unitPriceMoney);
   // What the farm plans a Venture by, for the sentence under the title. The figures themselves are the
@@ -162,49 +181,40 @@ export const OpenVentureSheet = ({
     start: plan.targetWindowStart || eid?.start || "",
     end: plan.targetWindowEnd || eid?.end || "",
   };
-  const ready =
-    plan.name.trim() !== "" &&
-    target > 0 &&
-    unit > 0 &&
-    plan.decideBy !== "" &&
-    window.start !== "" &&
-    window.end !== "";
+  const ready = hasWhatItNeeds(plan, window);
   return (
     <FormSheet
       description={
-        settings
+        description ??
+        (settings
           ? t("ventures.openHint", {
               floor: settings.ventureFloorPercent ?? "",
               running: running ?? "",
             })
-          : t("ventures.openHintPlain")
+          : t("ventures.openHintPlain"))
       }
       onOpenChange={onOpenChange}
       onSubmit={() =>
         // The Floor, the Units and the two budgets follow from the farm's own parameters unless the
         // Owner says otherwise here.
-        opening.mutate({
+        onSave({
           name: plan.name,
           targetCapitalMoney: target,
           decideBy: plan.decideBy,
           targetWindowStart: window.start,
           targetWindowEnd: window.end,
           unitPriceMoney: unit,
-          floorMoney:
-            plan.floorMoney.trim() === "" ? undefined : Number(plan.floorMoney),
-          units: plan.units.trim() === "" ? undefined : Number(plan.units),
-          cattleBudgetMoney:
-            plan.cattleBudgetMoney.trim() === ""
-              ? undefined
-              : Number(plan.cattleBudgetMoney),
+          floorMoney: typedOrNot(plan.floorMoney),
+          units: typedOrNot(plan.units),
+          cattleBudgetMoney: typedOrNot(plan.cattleBudgetMoney),
           capitalPaid: plan.capitalPaid,
         })
       }
       open={open}
-      pending={opening.isPending}
+      pending={pending}
       ready={ready}
-      submitLabel={t("ventures.open")}
-      title={t("ventures.open")}
+      submitLabel={submitLabel}
+      title={title}
       wide
     >
       <div className="grid gap-4 sm:grid-cols-2">
@@ -341,5 +351,40 @@ export const OpenVentureSheet = ({
         />
       ) : null}
     </FormSheet>
+  );
+};
+
+/** A new Venture, written up from an empty form. */
+export const OpenVentureSheet = ({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  const [plan, setPlan] = useState<Plan>(NOTHING_YET);
+  const opening = useMutation(
+    orpc.ventures.open.mutationOptions({
+      onError: refused,
+      onSuccess: () => {
+        setPlan(NOTHING_YET);
+        onOpenChange(false);
+        toast.success(t("ventures.opened"));
+      },
+    })
+  );
+  return (
+    <VentureTermsSheet
+      onOpenChange={onOpenChange}
+      onSave={(terms) => opening.mutate(terms)}
+      open={open}
+      pending={opening.isPending}
+      plan={plan}
+      setPlan={setPlan}
+      submitLabel={t("ventures.open")}
+      title={t("ventures.open")}
+    />
   );
 };

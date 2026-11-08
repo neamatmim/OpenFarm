@@ -2573,6 +2573,10 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.noSuchRequest": "এমন কোনো অনুরোধ নেই",
   "refusal.ventureUnderFloor":
     "ভেঞ্চারে এখনো সর্বনিম্ন সীমার কম {currencySum} উঠেছে",
+  "refusal.ventureHasSignatures":
+    "এই ভেঞ্চারে কেউ সই করে ফেলেছেন, তাই শর্ত আর বদলানো যায় না",
+  "refusal.ventureOfferWaiting":
+    "এই শর্তে একজন বিনিয়োগকারীর কাছে চুক্তি পাঠানো আছে — আগে সেটা ফিরিয়ে নিন",
   "refusal.signedUnderFloor": "সই হওয়া ইউনিট মিলে এখনো সর্বনিম্ন সীমার কম হচ্ছে",
   "refusal.ventureFloorOverTarget": "সর্বনিম্ন সীমা লক্ষ্যের চেয়ে বেশি হতে পারে না",
   "refusal.ventureFloorOverUnits":

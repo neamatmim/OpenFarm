@@ -1279,6 +1279,12 @@ export const enDesk = {
   /** One paper amending every Agreement on a Venture. The split and the window only: Units are fixed
    *  once buying starts, and everything worked out since rests on them. */
   "ventures.amend": "Amend the agreements",
+  "ventures.changeTerms": "Change the terms",
+  "ventures.changeTerms.changed": "The terms are changed",
+  "ventures.changeTerms.hint":
+    "Only until somebody signs. Investors who can see this venture in the portal will read the new terms.",
+  "ventures.changeTerms.signed":
+    "Somebody has signed, so these are fixed. An amendment can still move the split and the selling window.",
   "ventures.amendHint":
     "One paper, signed by every investor in {venture}. What each of them signed at the start is kept beside it.",
   "ventures.amendShare": "The investors' share",

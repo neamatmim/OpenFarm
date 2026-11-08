@@ -1202,6 +1202,12 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
   "ventures.paperTake": "কাগজের ছবি তুলুন",
   "ventures.paperHint": "সই করা কাগজের ছবি, চুক্তির সাথে রাখা থাকবে",
   "ventures.amend": "চুক্তি সংশোধন",
+  "ventures.changeTerms": "শর্ত বদলান",
+  "ventures.changeTerms.changed": "শর্ত বদলানো হয়েছে",
+  "ventures.changeTerms.hint":
+    "কেউ সই করার আগ পর্যন্তই বদলানো যায়। পোর্টালে যে বিনিয়োগকারীরা এই ভেঞ্চার দেখতে পান, তাঁরা নতুন শর্ত দেখবেন।",
+  "ventures.changeTerms.signed":
+    "কেউ সই করে ফেলেছেন, তাই এগুলো আর বদলানো যায় না। চুক্তি সংশোধন করে শুধু ভাগ আর বিক্রির সময় বদলানো যায়।",
   "ventures.amendHint":
     "একটি কাগজ, {venture}-এর প্রত্যেক বিনিয়োগকারীর সই করা। প্রত্যেকে শুরুতে যা সই করেছিলেন, তা পাশেই থাকবে।",
   "ventures.amendShare": "বিনিয়োগকারীদের ভাগ",
