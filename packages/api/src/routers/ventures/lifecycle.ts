@@ -141,9 +141,15 @@ const assertReadyToBuy = async (
     unitPriceMoney: row.unitPriceMoney,
   });
   if (counted < row.floorMoney) {
+    // Told apart because the two want different things done: more signatures, or more money in.
+    const bySignatures = row.capitalPaid === "by_the_month";
     throw new ORPCError("BAD_REQUEST", {
-      message: "The Venture holds less than its Floor",
-      data: { refusal: "venture_under_floor" },
+      message: bySignatures
+        ? "The Units signed for come to less than the Floor"
+        : "The Venture holds less than its Floor",
+      data: {
+        refusal: bySignatures ? "signed_under_floor" : "venture_under_floor",
+      },
     });
   }
   // Paid by the month, the buying waits on every signed Unit's Cattle Part as well: the Monthly Sums keep the animals

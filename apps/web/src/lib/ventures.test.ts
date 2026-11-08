@@ -57,6 +57,20 @@ describe("a decision coming due", () => {
       shortMoney: 600_000,
     });
   });
+
+  it("paid by the month, is the trouble of signatures still wanted, with no money in", () => {
+    const due = open({
+      capitalPaid: "by_the_month",
+      capitalInMoney: 0,
+      decideBy: "2025-09-30",
+      bank: undefined,
+    });
+    expect(troubleWith(due)).toContainEqual({
+      word: "decision_due_unsigned",
+      decideBy: "2025-09-30",
+      shortMoney: 600_000,
+    });
+  });
 });
 
 // The Floor's line and the bar over it read one figure. Paid by the month that figure is signatures and not cash, which

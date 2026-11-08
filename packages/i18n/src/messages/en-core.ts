@@ -854,6 +854,8 @@ export const enCore = {
   "ventureTrouble.title": "Ventures needing you",
   "ventureTrouble.decisionDue":
     "Decide by {day}, and still {currencySign}{short} short of the floor: bring in the rest, or call it off",
+  "ventureTrouble.decisionDueUnsigned":
+    "Decide by {day}, and still {currencySign}{short} short of the floor: get the rest signed for, or call it off",
   "ventureTrouble.runningBudgetLow":
     "Running low on feeding money — {currencySign}{left} left",
   "ventureTrouble.pastWindUp":
@@ -2782,6 +2784,8 @@ export const enCore = {
   "refusal.noSuchRequest": "There is no such request",
   "refusal.ventureUnderFloor":
     "The venture holds less than the floor it was opened on",
+  "refusal.signedUnderFloor":
+    "The units signed for come to less than the floor it was opened on",
   "refusal.ventureFloorOverTarget":
     "The floor cannot be more than the capital the venture is after",
   "refusal.ventureFloorOverUnits":

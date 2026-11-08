@@ -795,6 +795,8 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "ventureTrouble.title": "যেসব ভেঞ্চারে আপনাকে লাগবে",
   "ventureTrouble.decisionDue":
     "{day} সিদ্ধান্তের দিন, অথচ সর্বনিম্ন সীমার চেয়ে এখনো {currencySign}{short} কম — বাকি {currencySum} আনুন, নয়তো ভেঞ্চার বাতিল করুন",
+  "ventureTrouble.decisionDueUnsigned":
+    "{day} সিদ্ধান্তের দিন, অথচ সর্বনিম্ন সীমার চেয়ে এখনো {currencySign}{short} কম — বাকি ইউনিট সই করান, নয়তো ভেঞ্চার বাতিল করুন",
   "ventureTrouble.runningBudgetLow":
     "খাওয়ানোর {currencySum} কমে আসছে — {currencySign}{left} বাকি",
   "ventureTrouble.pastWindUp": "গুটিয়ে আনার সময় শেষ, তবু {standing}টি গরু অবিক্রীত",
@@ -2571,6 +2573,7 @@ export const bnCore: Record<keyof typeof enCore, string> = {
   "refusal.noSuchRequest": "এমন কোনো অনুরোধ নেই",
   "refusal.ventureUnderFloor":
     "ভেঞ্চারে এখনো সর্বনিম্ন সীমার কম {currencySum} উঠেছে",
+  "refusal.signedUnderFloor": "সই হওয়া ইউনিট মিলে এখনো সর্বনিম্ন সীমার কম হচ্ছে",
   "refusal.ventureFloorOverTarget": "সর্বনিম্ন সীমা লক্ষ্যের চেয়ে বেশি হতে পারে না",
   "refusal.ventureFloorOverUnits":
     "সর্বনিম্ন সীমা ইউনিটগুলো দিয়ে যত {currencySum} উঠতে পারে তার চেয়ে বেশি — সীমা কমান, নয়তো ইউনিট বাড়ান",
