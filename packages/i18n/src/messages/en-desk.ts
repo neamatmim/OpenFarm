@@ -1302,6 +1302,8 @@ export const enDesk = {
     "Once buying starts the units are fixed: no new investor, and no top-up.",
   "ventures.floorNotMetYet":
     "{currencySign}{short} more has to come in before buying can start (floor {currencySign}{floor}).",
+  "ventures.floorNotSignedYet":
+    "{currencySign}{short} more has to be signed for before buying can start (floor {currencySign}{floor}).",
   "ventures.sums.paidOf":
     "{paid} of {of, plural, one {# month} other {# months}} paid",
   "ventures.sums.missed": "{amount} missed",

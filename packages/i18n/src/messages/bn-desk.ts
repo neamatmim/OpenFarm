@@ -1222,6 +1222,8 @@ export const bnDesk: Record<keyof typeof enDesk, string> = {
     "কেনা শুরু হলে ইউনিট আর বদলায় না: নতুন বিনিয়োগকারীও নেই, বাড়তি {currencySum}ও নেই।",
   "ventures.floorNotMetYet":
     "কেনা শুরুর আগে আরও {currencySign}{short} জমা হতে হবে (সর্বনিম্ন সীমা {currencySign}{floor})।",
+  "ventures.floorNotSignedYet":
+    "কেনা শুরুর আগে আরও {currencySign}{short}-এর ইউনিট সই হতে হবে (সর্বনিম্ন সীমা {currencySign}{floor})।",
   "ventures.sums.paidOf": "{of} মাসের {paid}টি দেওয়া",
   "ventures.sums.missed": "{amount} বাকি পড়েছে",
   "ventures.sums.due": "{amount} দেওয়ার সময় হয়েছে",

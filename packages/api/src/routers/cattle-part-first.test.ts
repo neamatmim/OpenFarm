@@ -247,7 +247,7 @@ describe("a Venture paid by the month and its Floor", () => {
     await pay(owner, paper, 400_000);
 
     await expect(owner.ventures.startBuying({ id })).rejects.toMatchObject({
-      data: { refusal: "venture_under_floor" },
+      data: { refusal: "signed_under_floor" },
     });
   });
 });

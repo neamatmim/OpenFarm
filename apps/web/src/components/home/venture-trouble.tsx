@@ -39,6 +39,13 @@ const SAYS: {
       short: formatNumber(trouble.shortMoney, language),
     }),
   },
+  decision_due_unsigned: {
+    key: "ventureTrouble.decisionDueUnsigned",
+    parts: (trouble, language) => ({
+      day: formatDate(startOfFarmDay(trouble.decideBy), language),
+      short: formatNumber(trouble.shortMoney, language),
+    }),
+  },
   pay_in_notes: {
     key: "ventureTrouble.payInNotes",
     parts: (trouble) => ({ count: trouble.count }),

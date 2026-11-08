@@ -130,6 +130,7 @@ export const monthsStillOut = (bank: BankStanding | undefined) => {
  */
 export type VentureTrouble =
   | { word: "decision_due"; decideBy: string; shortMoney: number }
+  | { word: "decision_due_unsigned"; decideBy: string; shortMoney: number }
   | { word: "pay_in_notes"; count: number }
   | { word: "running_budget_low"; leftMoney: number }
   | { word: "past_wind_up"; standing: number }
@@ -189,7 +190,10 @@ export const troubleWith = (venture: Venture): VentureTrouble[] => {
   const troubles: VentureTrouble[] = [];
   if (decisionIsDue(venture)) {
     troubles.push({
-      word: "decision_due",
+      // Paid by the month, what would meet the Floor in time is more signatures, not more money in.
+      word: floorCountsSigned(venture)
+        ? "decision_due_unsigned"
+        : "decision_due",
       decideBy: venture.decideBy,
       shortMoney: shortOfFloor(venture),
     });

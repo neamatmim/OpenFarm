@@ -107,6 +107,8 @@ describe("messages", () => {
       "owes",
       // "{amount} less" is a sum of money, not a count.
       "less",
+      // "{farm} reads" is a name, not a count.
+      "reads",
     ]);
     const countThenPlural =
       /\{(?<name>\w+)\} (?:more |new |expired |common |[A-Z]\w+ )?(?<word>[A-Za-z]+s)\b/gu;

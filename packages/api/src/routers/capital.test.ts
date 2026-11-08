@@ -246,7 +246,10 @@ describe("capital in", () => {
     });
     await expect(
       owner.client.ventures.startBuying({ id: funded.id })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "venture_under_floor" },
+    });
 
     await owner.client.ventures.takeCapital({
       agreementId: backer.agreementId,
