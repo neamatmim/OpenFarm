@@ -2,7 +2,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import { venture } from "@OpenFarm/db/schema/venture";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
-import type { MonthlyTerms } from "@OpenFarm/domain";
+import type { CapitalPaid, MonthlyTerms } from "@OpenFarm/domain";
 import {
   farmDayOf,
   mayMoveTo,
@@ -117,6 +117,96 @@ const termsToOpenOn = (
     });
   }
   return terms;
+};
+
+/**
+ * What a Venture's own row says of its terms, worked from what the Owner typed and the farm's parameters, whether it
+ * is opening on them or having them changed. Refused here, before anybody is asked to sign for terms that could
+ * never be met.
+ */
+const settledTerms = (
+  input: z.infer<typeof openInput>,
+  settings: Parameters<typeof planned>[1]
+) => {
+  const plan = planned(input, settings);
+  if (plan.floorMoney > input.targetCapitalMoney) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "The Floor cannot be more than the capital the Venture is after",
+      data: { refusal: "venture_floor_over_target" },
+    });
+  }
+  // What the Units can raise is all the capital the farm will take for it, so a Floor above that is one
+  // no signature could ever reach: the run would stay Open for ever, waiting on money it may not accept.
+  if (plan.floorMoney > plan.units * input.unitPriceMoney) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "The Floor cannot be more than the Units can raise",
+      data: { refusal: "venture_floor_over_units" },
+    });
+  }
+  if (plan.cattleBudgetMoney > input.targetCapitalMoney) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "The Cattle Budget cannot be more than the capital it comes from",
+      data: { refusal: "venture_budget_over_capital" },
+    });
+  }
+  const monthly = termsToOpenOn(input, plan);
+  const capitalPaid: CapitalPaid = monthly ? "by_the_month" : "before_buying";
+  return {
+    name: input.name,
+    targetCapitalMoney: input.targetCapitalMoney,
+    floorMoney: plan.floorMoney,
+    decideBy: input.decideBy,
+    targetWindowStart: input.targetWindowStart,
+    targetWindowEnd: input.targetWindowEnd,
+    unitPriceMoney: input.unitPriceMoney,
+    units: plan.units,
+    cattleBudgetMoney: plan.cattleBudgetMoney,
+    capitalPaid,
+    cattlePartMoney: monthly?.cattlePartMoney ?? null,
+    monthlySums: monthly?.sums ?? null,
+    firstSumDueOn: monthly?.firstDueOn ?? null,
+  };
+};
+
+/**
+ * That nobody is bound by a Venture's terms yet (ADR 0035): it is still Open, nobody has signed for a Unit of it — the
+ * Farm's own Units count — and no Agreement is out in the portal, whose paper was laid out from these terms. Asked
+ * behind the Farm lock that signing and offering take.
+ */
+const assertNobodyBound = async (tx: Tx, farmId: string, ventureId: string) => {
+  const standing = await tx.query.venture.findFirst({
+    where: { id: ventureId, farmId },
+    columns: { state: true },
+  });
+  if (standing?.state !== "open") {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Only a Venture still open may have its terms changed",
+      data: { refusal: "venture_wrong_state" },
+    });
+  }
+  const signed = await signedForEach(tx, farmId, [ventureId]);
+  if ((signed.get(ventureId)?.units ?? 0) > 0) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Somebody has signed for this Venture, so its terms are fixed",
+      data: { refusal: "venture_has_signatures" },
+    });
+  }
+  const offered = await tx.query.agreementOffer.findFirst({
+    where: {
+      farmId,
+      ventureId,
+      withdrawnAt: { isNull: true },
+      approvedAt: { isNull: true },
+    },
+    columns: { id: true },
+  });
+  if (offered) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "An Agreement is out to an Investor on these terms",
+      data: { refusal: "venture_offer_waiting" },
+    });
+  }
 };
 
 /**
@@ -452,30 +542,7 @@ export const lifecycleProcedures = {
     .input(openInput)
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const plan = planned(input, context.farm);
-      if (plan.floorMoney > input.targetCapitalMoney) {
-        throw new ORPCError("BAD_REQUEST", {
-          message:
-            "The Floor cannot be more than the capital the Venture is after",
-          data: { refusal: "venture_floor_over_target" },
-        });
-      }
-      // What the Units can raise is all the capital the farm will take for it, so a Floor above that is one
-      // no signature could ever reach: the run would stay Open for ever, waiting on money it may not accept.
-      if (plan.floorMoney > plan.units * input.unitPriceMoney) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "The Floor cannot be more than the Units can raise",
-          data: { refusal: "venture_floor_over_units" },
-        });
-      }
-      if (plan.cattleBudgetMoney > input.targetCapitalMoney) {
-        throw new ORPCError("BAD_REQUEST", {
-          message:
-            "The Cattle Budget cannot be more than the capital it comes from",
-          data: { refusal: "venture_budget_over_capital" },
-        });
-      }
-      const monthly = termsToOpenOn(input, plan);
+      const terms = settledTerms(input, context.farm);
       const id = uuidv7(now);
       await audited(context).write(
         {
@@ -491,19 +558,7 @@ export const lifecycleProcedures = {
             id,
             farmId: context.farm.id,
             ordinal: await nextVentureOrdinal(tx, context.farm.id),
-            name: input.name,
-            targetCapitalMoney: input.targetCapitalMoney,
-            floorMoney: plan.floorMoney,
-            decideBy: input.decideBy,
-            targetWindowStart: input.targetWindowStart,
-            targetWindowEnd: input.targetWindowEnd,
-            unitPriceMoney: input.unitPriceMoney,
-            units: plan.units,
-            cattleBudgetMoney: plan.cattleBudgetMoney,
-            capitalPaid: monthly ? "by_the_month" : "before_buying",
-            cattlePartMoney: monthly?.cattlePartMoney ?? null,
-            monthlySums: monthly?.sums ?? null,
-            firstSumDueOn: monthly?.firstDueOn ?? null,
+            ...terms,
             openedBy: context.actor.id,
             openedByRole: context.roleUsed,
             createdAt: now,
@@ -511,6 +566,34 @@ export const lifecycleProcedures = {
         }
       );
       return { id };
+    }),
+
+  /**
+   * Puts a Venture's terms right while nobody is bound by them (ADR 0035): every term it opened on, worked and refused
+   * as opening it is. Written over the row, with what it said before kept in the trail.
+   */
+  changeTerms: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string(), terms: openInput }))
+    .handler(async ({ context, input }) => {
+      const row = await ours(context, input.id);
+      const terms = settledTerms(input.terms, context.farm);
+      await audited(context).write(
+        {
+          entity: "venture",
+          entityId: row.id,
+          action: "update",
+          before: (tx) => readVenture(tx, context.farm.id, row.id),
+          after: (tx) => readVenture(tx, context.farm.id, row.id),
+        },
+        async (tx) => {
+          await lockTheFarm(tx, context.farm.id);
+          await assertNobodyBound(tx, context.farm.id, row.id);
+          await tx.update(venture).set(terms).where(eq(venture.id, row.id));
+        }
+      );
+      return { id: row.id };
     }),
 
   /**

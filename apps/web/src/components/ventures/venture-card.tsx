@@ -7,6 +7,7 @@ import { Link } from "@tanstack/react-router";
 import {
   Gavel,
   Landmark,
+  Pencil,
   PenLine,
   PiggyBank,
   Receipt,
@@ -189,6 +190,7 @@ export interface VentureActs {
   advance: (venture: Venture) => void;
   checkTheBank: (venture: Venture) => void;
   amend: (venture: Venture) => void;
+  changeTerms: (venture: Venture) => void;
   startBuying: (venture: Venture) => void;
   startFattening: (venture: Venture) => void;
 }
@@ -615,12 +617,23 @@ export const actsInTheMenu = (
     });
   }
   if (venture.state === "open") {
-    inTheMenu.push({
-      label: t("ventures.callOff"),
-      icon: XCircle,
-      destructive: true,
-      handleSelect: () => acts.callOff(venture),
-    });
+    // Dim rather than gone once somebody has signed: it is the first place anybody would look to put a term right.
+    const signed = money.signedFor.units > 0;
+    inTheMenu.push(
+      {
+        label: t("ventures.changeTerms"),
+        icon: Pencil,
+        disabled: signed,
+        hint: signed ? t("ventures.changeTerms.signed") : undefined,
+        handleSelect: () => acts.changeTerms(venture),
+      },
+      {
+        label: t("ventures.callOff"),
+        icon: XCircle,
+        destructive: true,
+        handleSelect: () => acts.callOff(venture),
+      }
+    );
   }
   return inTheMenu;
 };
