@@ -26,23 +26,31 @@ export const pastWindUp = (venture: Venture) =>
   (venture.animalsStanding ?? 0) !== 0 &&
   (venture.windUpEndsOn ?? "9999-12-31") < farmDayOf(new Date());
 
-/**
- * How far a Venture still is from its Floor, and so whether buying may start.
- *
- * The farm judges on what the account **holds** — "money sent back is not money to start on" — and on a
- * Venture still Open nothing has gone back, so what arrived is what it holds. Should a refund ever reach
- * one before it starts buying, this is the line to move onto the balance, and the server will already be
- * refusing what this still offers.
- */
-export const shortOfFloor = (venture: Venture) =>
-  venture.floorMoney -
+/** Whether its Floor is counted in the Units signed for and not the money held, which a screen has to say, because
+ *  the two read very differently beside what has come in. An answer cached before Ventures were paid by the month says
+ *  nothing, and is one paid before buying. */
+export const floorCountsSigned = (venture: Venture) =>
+  venture.capitalPaid === "by_the_month";
+
+/** What a Venture has towards its Floor: the one figure the Floor's line, its bar and the words beside them read. */
+export const towardsItsFloor = (venture: Venture) =>
   towardsTheFloor({
-    // An answer cached before Ventures were paid by the month is one paid before buying.
-    capitalPaid: venture.capitalPaid ?? "before_buying",
+    capitalPaid: floorCountsSigned(venture) ? "by_the_month" : "before_buying",
     heldMoney: venture.capitalInMoney,
     signedUnits: venture.signedFor.units,
     unitPriceMoney: venture.unitPriceMoney,
   });
+
+/**
+ * How far a Venture still is from its Floor, and so whether buying may start.
+ *
+ * Paid before buying, the farm judges on what the account **holds** — "money sent back is not money to start on" — and
+ * on a Venture still Open nothing has gone back, so what arrived is what it holds. Should a refund ever reach one
+ * before it starts buying, `towardsItsFloor` is the line to move onto the balance, and the server will already be
+ * refusing what this still offers.
+ */
+export const shortOfFloor = (venture: Venture) =>
+  venture.floorMoney - towardsItsFloor(venture);
 
 /** Paid by the month: the signed Units' Cattle Part still to come, which the buying waits on as well as the Floor. An
  *  answer cached before Ventures were paid by the month has none, and is a Venture paid before buying. */

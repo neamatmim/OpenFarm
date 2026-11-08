@@ -24,7 +24,11 @@ import {
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import type { Venture } from "@/lib/ventures";
-import { decisionIsDue } from "@/lib/ventures";
+import {
+  decisionIsDue,
+  floorCountsSigned,
+  towardsItsFloor,
+} from "@/lib/ventures";
 
 /** One Venture as the table reads it: the Venture itself, what the page can do to it, and the month the
  *  bank is claimed straight up to. */
@@ -163,11 +167,18 @@ const HeldCell = ({ row }: Cell) => {
           <RaisingBar
             className="h-1.5 w-28"
             floorMoney={venture.floorMoney}
-            inMoney={venture.capitalInMoney}
+            inMoney={towardsItsFloor(venture)}
             targetMoney={venture.targetCapitalMoney}
           />
           <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
-            {t("ventures.ofTheFloor", { floor: asMoney(venture.floorMoney) })}
+            {floorCountsSigned(venture)
+              ? t("ventures.page.signedOfTheFloor", {
+                  signed: asMoney(towardsItsFloor(venture)),
+                  floor: asMoney(venture.floorMoney),
+                })
+              : t("ventures.ofTheFloor", {
+                  floor: asMoney(venture.floorMoney),
+                })}
           </span>
         </>
       ) : null}

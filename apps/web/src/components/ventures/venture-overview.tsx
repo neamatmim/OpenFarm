@@ -16,11 +16,12 @@ import { VentureProjectionPanel } from "@/components/ventures/venture-projection
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import type { Venture } from "@/lib/ventures";
+import { floorCountsSigned, towardsItsFloor } from "@/lib/ventures";
 
 /**
- * How far an Open Venture has got towards the money it is waiting on: what has come in, against the Floor it
- * may not start buying below and the target it is looking for. The Floor is marked on the bar, because that
- * is the line the button to start buying waits on.
+ * How far an Open Venture has got towards the money it is waiting on: what has come in or, paid by the month, what
+ * has been signed for, against the Floor it may not start buying below and the target it is looking for. The Floor is
+ * marked on the bar, because that is the line the button to start buying waits on.
  */
 const TowardsTheFloor = ({ venture }: { venture: Venture }) => {
   const { t } = useLanguage();
@@ -31,14 +32,18 @@ const TowardsTheFloor = ({ venture }: { venture: Venture }) => {
         {/* Drawn for the eye; the line under it says the same in words, Floor and all, for everyone. */}
         <RaisingBar
           floorMoney={venture.floorMoney}
-          inMoney={venture.capitalInMoney}
+          inMoney={towardsItsFloor(venture)}
           targetMoney={venture.targetCapitalMoney}
         />
         <div className="text-muted-foreground flex flex-wrap justify-between gap-2 text-sm tabular-nums">
           <span className="text-foreground font-medium">
-            {t("ventures.page.raised", {
-              held: asMoney(venture.capitalInMoney),
-            })}
+            {floorCountsSigned(venture)
+              ? t("ventures.page.signedSoFar", {
+                  signed: asMoney(towardsItsFloor(venture)),
+                })
+              : t("ventures.page.raised", {
+                  held: asMoney(venture.capitalInMoney),
+                })}
           </span>
           <span>
             {t("ventures.page.floorAndTarget", {
