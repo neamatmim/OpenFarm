@@ -148,18 +148,12 @@ const applied = async (
   const filled = aPersonsForm(link, key);
   const form = { ...filled, record: { ...filled.record, email } };
   const read = await nobody.portal.applying.consent(form);
-  await nobody.portal.applying.sendCode({
-    token: link.token,
-    purpose: "agree",
-    key,
-    language: "bn",
-  });
   return nobody.portal.applying.send({
     ...form,
     photos: { nid_front: PHOTO, nid_back: PHOTO },
     laidAt: read.laidAt,
     paperHash: read.paperHash,
-    code: codeTextedTo(link.phone),
+    agreed: true,
   });
 };
 
@@ -314,24 +308,39 @@ describe("an Application sent", () => {
     expect(said).not.toContain("সোনালী");
   });
 
-  it("is refused with the opening code: agreeing needs its own", async () => {
+  it("keeps the code that opened the sitting as the proof of who ticked the consent", async () => {
+    const link = await aLink();
+    await applied(link);
+    const application = await scratchDb().query.investorApplication.findFirst({
+      where: { linkId: link.id },
+      columns: { codeChannel: true, codeSentTo: true, codeSentAt: true },
+    });
+    const opening = await scratchDb().query.applicationCode.findFirst({
+      where: { linkId: link.id, purpose: "open" },
+      columns: { sentTo: true, sentAt: true },
+    });
+    expect(application).toMatchObject({
+      codeChannel: "sms",
+      codeSentTo: opening?.sentTo,
+      codeSentAt: opening?.sentAt,
+    });
+  });
+
+  it("is refused without their tick", async () => {
     const link = await aLink();
     const key = await opened(link);
-    const opening = codeTextedTo(link.phone);
     const nobody = await as(null);
     const form = aPersonsForm(link, key);
     const read = await nobody.portal.applying.consent(form);
-    expect(
-      await refusalOf(
-        nobody.portal.applying.send({
-          ...form,
-          photos: { nid_front: PHOTO, nid_back: PHOTO },
-          laidAt: read.laidAt,
-          paperHash: read.paperHash,
-          code: opening,
-        })
-      )
-    ).toBe("wrong_code");
+    await expect(
+      nobody.portal.applying.send({
+        ...form,
+        photos: { nid_front: PHOTO, nid_back: PHOTO },
+        laidAt: read.laidAt,
+        paperHash: read.paperHash,
+        agreed: false as never,
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   it("is refused for a name changed after the consent naming them was read", async () => {
@@ -339,12 +348,6 @@ describe("an Application sent", () => {
     const key = await opened(link);
     const nobody = await as(null);
     const read = await nobody.portal.applying.consent(aPersonsForm(link, key));
-    await nobody.portal.applying.sendCode({
-      token: link.token,
-      purpose: "agree",
-      key,
-      language: "bn",
-    });
     expect(
       await refusalOf(
         nobody.portal.applying.send({
@@ -352,7 +355,7 @@ describe("an Application sent", () => {
           photos: { nid_front: PHOTO, nid_back: PHOTO },
           laidAt: read.laidAt,
           paperHash: read.paperHash,
-          code: codeTextedTo(link.phone),
+          agreed: true,
         })
       )
     ).toBe("consent_changed");
@@ -372,18 +375,12 @@ describe("an Application sent", () => {
       )
     ).toBe("application_incomplete");
     const read = await nobody.portal.applying.consent(form);
-    await nobody.portal.applying.sendCode({
-      token: link.token,
-      purpose: "agree",
-      key,
-      language: "bn",
-    });
     const sending = nobody.portal.applying.send({
       ...form,
       photos: { nid_front: PHOTO } as never,
       laidAt: read.laidAt,
       paperHash: read.paperHash,
-      code: codeTextedTo(link.phone),
+      agreed: true,
     });
     await expect(sending).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
@@ -397,19 +394,16 @@ describe("an Application sent", () => {
     ).toBe("application_kind_fixed");
   });
 
-  it("texts no code to agree before the link is open", async () => {
+  it("sends no code but the one that opens it", async () => {
     const link = await aLink();
     const nobody = await as(null, A_MINUTE_LATER);
-    expect(
-      await refusalOf(
-        nobody.portal.applying.sendCode({
-          token: link.token,
-          purpose: "agree",
-          key: "no-such-key",
-          language: "bn",
-        })
-      )
-    ).toBe("sitting_ended");
+    await expect(
+      nobody.portal.applying.sendCode({
+        token: link.token,
+        purpose: "agree" as never,
+        language: "bn",
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
 
@@ -754,18 +748,12 @@ describe("with no text gateway yet", () => {
     const filled = aPersonsForm(link, key);
     const form = { ...filled, record: { ...filled.record, email } };
     const read = await nobody.portal.applying.consent(form);
-    await nobody.portal.applying.sendCode({
-      token: link.token,
-      purpose: "agree",
-      key,
-      language: "bn",
-    });
     await nobody.portal.applying.send({
       ...form,
       photos: { nid_front: PHOTO, nid_back: PHOTO },
       laidAt: read.laidAt,
       paperHash: read.paperHash,
-      code: codeMailedTo(link.email),
+      agreed: true,
     });
   };
 

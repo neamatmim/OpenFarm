@@ -895,7 +895,7 @@ export const enDesk = {
   "investors.applications.photo.trade_license": "Trade license",
   "investors.applications.photo.authority": "The Signatory's authority",
   "investors.applications.consentCodeEmail":
-    "With the code emailed to {to}, sent",
+    "Agreed by ticking it, in a form opened with the code emailed to {to}, sent",
   "investors.applications.refused.cannotSendCodes":
     "The farm can send neither texts nor email yet, and the codes that open a link go by one or the other.",
   "investors.applications.refused.needsEmail":
@@ -904,7 +904,8 @@ export const enDesk = {
     "Their first code would go nowhere: the farm cannot text yet, and they changed their email on the form. Decline, and send a new link to the email they gave.",
   "investors.applications.consentProof":
     "Portal consent agreed online, version {version}",
-  "investors.applications.consentCode": "With the code texted to {to}, sent",
+  "investors.applications.consentCode":
+    "Agreed by ticking it, in a form opened with the code texted to {to}, sent",
   "investors.applications.approve": "Approve",
   "investors.applications.approveTitle": "Approve {name}?",
   "investors.applications.approveWhy":
@@ -960,10 +961,6 @@ export const enDesk = {
   "investors.applications.switch.hiddenDone": "Applications by link are off",
   "portal.apply.askForANewCode":
     "For your safety the form stays open for three hours. What you typed is not kept.",
-  "portal.apply.where.mobile": "your mobile ending {mobile}",
-  "portal.apply.where.email": "your email {email}",
-  "portal.apply.where.both":
-    "your mobile ending {mobile} and your email {email}",
   "portal.apply.step.details": "Your details",
   "portal.apply.step.photos": "Photos",
   "portal.apply.step.consent": "Consent",
@@ -972,11 +969,48 @@ export const enDesk = {
   "portal.apply.mobileFixed":
     "You sign in to the portal with it. To change it, ask the farm.",
   "portal.apply.consentIntro":
-    "Once your details and photos are in, read the portal consent laid out with them, then agree it with a code.",
+    "Once your details and photos are in, read the portal consent laid out with them, then tick to agree.",
   "portal.apply.refusedTitle": "Not yet",
+  "portal.apply.agreeTick":
+    "I have read this portal consent and agree to it, and I want {farm} to consider me as an investor.",
+  "portal.apply.application": "Application",
+  "portal.apply.codeGoesTo": "The code goes to",
+  "portal.apply.codeSent":
+    "Sent. Check your messages; the code works for {minutes, plural, one {# minute} other {# minutes}}.",
+  "portal.apply.formIntro":
+    "{farm} reads everything you send before answering. Fill it in as it is on your papers; nothing is kept until you send it.",
+  "portal.apply.from": "From {farm}",
+  "portal.apply.group.who": "Who you are",
+  "portal.apply.group.reach": "How the farm reaches you",
+  "portal.apply.group.paid": "Where you are paid",
+  "portal.apply.group.organization": "The organization",
+  "portal.apply.group.signatory": "Who signs for it",
+  "portal.apply.hint.nid": "As printed on the card: 10, 13 or 17 digits.",
+  "portal.apply.hint.email": "The farm sends your codes and its answer here.",
+  "portal.apply.hint.bank":
+    "Your share is only ever paid into this account, never in cash.",
+  "portal.apply.next.read":
+    "The owner reads your application and checks it against your photos.",
+  "portal.apply.next.code":
+    "If it is approved, your portal code comes to you the same way as these codes did.",
+  "portal.apply.next.signIn":
+    "On the portal's join page, enter your mobile number and that code, then choose a password.",
+  "portal.apply.nothingKept": "Nothing is kept until you send it.",
+  "portal.apply.openIntro":
+    "{farm} asked you to fill in your own details for its investor records. To open the form, the farm sends you a code.",
+  "portal.apply.openUntil": "The form stays open until {time}.",
+  "portal.apply.optional": "optional",
+  "portal.apply.photoAdd": "Tap to add a photo",
+  "portal.apply.photoChange": "Use another photo",
+  "portal.apply.sendAgainIn": "Send again in {seconds}s",
+  "portal.apply.stepState.done": "Done",
+  "portal.apply.stepState.now": "Now",
+  "portal.apply.stepState.later": "Still to do",
+  "portal.apply.steps": "Steps",
+  "portal.apply.tip.whole": "The whole card in the frame",
+  "portal.apply.tip.sharp": "Sharp enough to read",
+  "portal.apply.tip.glare": "No glare on the card",
   "portal.apply.title": "Fill in your details",
-  "portal.apply.openHint":
-    "{farm} asked you to fill in your own details for its investor records. To open the form, the farm sends a code to {where}.",
   "portal.apply.askTheFarm":
     "The link may have run out, been used already, or been sent again. Ask the farm for a new one.",
   "portal.apply.sendMeACode": "Send me the code",
@@ -985,25 +1019,18 @@ export const enDesk = {
   "portal.apply.enterTheCode": "Enter the code the farm sent you",
   "portal.apply.open": "Open the form",
   "portal.apply.formTitle": "Your details",
-  "portal.apply.formHint":
-    "Fill in your details for {farm}, as they are on your NID and bank papers. Your mobile is the one ending {mobile}; the farm reaches you and you sign in with it.",
   "portal.apply.nominees": "Your nominees",
   "portal.apply.nomineesHint":
     "Who would collect your capital and share if you died before a venture settles. Optional. They are in force only once you sign a nomination for them.",
   "portal.apply.photosHint":
     "Clear photos of both sides of the NID, so the owner can check what you wrote against it.",
-  "portal.apply.photoTake": "Choose or take a photo",
-  "portal.apply.photoAgain": "Use another photo",
   "portal.apply.toTheConsent": "Read the portal consent",
   "portal.apply.readTheConsent":
     "The portal consent, laid out with your details",
-  "portal.apply.agreeHint":
-    "Read it through. Then the farm sends a code to {where}; entering it is your signature on this consent.",
-  "portal.apply.sendTheCodeToAgree": "Send me the code to agree",
   "portal.apply.agreeAndSend": "Agree and send my application",
   "portal.apply.sentTitle": "The farm has your application",
   "portal.apply.sentHint":
-    "The owner will read it and answer you. Once approved, your code to the investor portal comes the same way as these codes did.",
+    "Thank you. Here is what happens next; you can close this page.",
   "portal.apply.refused.opensNothing": "This link opens nothing now",
   "portal.apply.refused.sittingEnded":
     "This sitting has ended. Ask for a new code to open the form again.",

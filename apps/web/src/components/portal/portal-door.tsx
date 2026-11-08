@@ -103,18 +103,28 @@ const PortalHeader = ({
 export const PortalDoor = ({
   children,
   wide = false,
+  widest = false,
 }: {
   children: ReactNode;
   wide?: boolean;
+  /** Wider still, for a long form with its steps beside it on a desk's screen. */
+  widest?: boolean;
 }) => {
   const { t } = useLanguage();
   const door = useQuery(orpc.portal.door.queryOptions());
-  if (wide) {
+  if (wide || widest) {
     return (
       <div className="flex min-h-svh flex-col">
         <PortalHeader />
         <main className="flex flex-1 items-start justify-center px-4 py-10">
-          <div className="flex w-full max-w-3xl flex-col gap-4">{children}</div>
+          <div
+            className={cn(
+              "flex w-full flex-col gap-4",
+              widest ? "max-w-5xl" : "max-w-3xl"
+            )}
+          >
+            {children}
+          </div>
         </main>
         <PortalNotice />
       </div>

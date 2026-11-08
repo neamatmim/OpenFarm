@@ -416,6 +416,10 @@ export const unlockLink = async (
           openKeyHash: keyHash,
           openKeyExpiresAt: new Date(now.getTime() + SITTING_MS),
           openedAt: link.openedAt ?? now,
+          // What proves who ticks the consent in this sitting: the code that opened it (the Owner, 2026-11-08).
+          openedByChannel: sent.channel,
+          openedCodeSentTo: sent.sentTo,
+          openedCodeSentAt: sent.sentAt,
         })
         .where(eq(applicationLink.id, link.id));
     }
@@ -614,9 +618,10 @@ export const readApplicationForTrail = async (
   })) ?? null;
 
 /**
- * The Application sent: the form, the photographs, and the code that agrees the Portal Consent laid out at `laidAt` —
- * which must be the paper they read, laid out within this sitting, and the wording still in force. In one write: the
- * Application kept with its proof, the code and the link used up, and the Owner told at once.
+ * The Application sent: the form, the photographs, and their tick agreeing the Portal Consent laid out at `laidAt` —
+ * which must be the paper they read, laid out within this sitting, and the wording still in force. A tick, not a code
+ * (the Owner, 2026-11-08): what proves who ticked it is the code that opened the sitting, kept with it. In one write:
+ * the Application kept with its proof, the link used up, and the Owner told at once.
  */
 export const sendApplication = async (
   context: Context,
@@ -624,7 +629,7 @@ export const sendApplication = async (
     photos: z.infer<typeof applicationPhotos>;
     laidAt: Date;
     paperHash: string;
-    code: string;
+    agreed: true;
   }
 ): Promise<{ sent: true }> => {
   const { link, farm } = await sittingOf(context, input.token, input.key);
@@ -653,7 +658,18 @@ export const sendApplication = async (
       "consent_changed"
     );
   }
-  const sent = await checkCode(context, link, "agree", input.code);
+  // The sitting was opened with a code, or there would be no key: that code is the proof of who ticked it.
+  if (!(link.openedByChannel && link.openedCodeSentAt)) {
+    throw refused(
+      "That sitting has ended: ask for a new code to open the link again",
+      "sitting_ended"
+    );
+  }
+  const opening = {
+    channel: link.openedByChannel,
+    sentTo: link.openedCodeSentTo ?? "",
+    sentAt: link.openedCodeSentAt,
+  };
   const id = uuidv7(now);
   const { record } = input;
   let raised: Awaited<ReturnType<typeof tell>> = [];
@@ -680,7 +696,6 @@ export const sendApplication = async (
       if (!usedUp) {
         throw opensNothing();
       }
-      await useCode(tx, sent.id, now);
       await tx.insert(investorApplication).values({
         id,
         farmId: link.farmId,
@@ -692,9 +707,9 @@ export const sendApplication = async (
         consentVersionId: laid.wording.versionId,
         consentPaper: laid.paper,
         consentPaperHash: laid.paperHash,
-        codeChannel: sent.channel,
-        codeSentTo: sent.sentTo,
-        codeSentAt: sent.sentAt,
+        codeChannel: opening.channel,
+        codeSentTo: opening.sentTo,
+        codeSentAt: opening.sentAt,
         callerAddress: context.callerAddress,
         callerAgent: context.callerAgent,
         sentAt: now,
