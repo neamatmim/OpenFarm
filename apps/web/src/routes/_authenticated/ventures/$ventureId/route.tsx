@@ -46,7 +46,12 @@ import { useMoney } from "@/lib/money";
 import { lastMonth } from "@/lib/months";
 import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
 import type { Venture } from "@/lib/ventures";
-import { shortOfFloor } from "@/lib/ventures";
+import {
+  cattleMoneyShort,
+  floorCountsSigned,
+  shortOfFloor,
+  towardsItsFloor,
+} from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["overview", "investors", "animals", "money"] as const;
@@ -73,6 +78,16 @@ const useFiguresOf = (venture: Venture): Figure[] => {
   const money = moneyOf(venture);
   if (venture.state === "open") {
     const short = shortOfFloor(venture);
+    const floor = asMoney(venture.floorMoney);
+    // Paid by the month the Floor is met by signatures, with the cattle money perhaps still to come: said in those
+    // words, and not green until that money is in, because a plain "reached" beside nothing held reads as a promise.
+    const bySigning = floorCountsSigned(venture);
+    let floorValue = asMoney(short);
+    if (short <= 0) {
+      floorValue = t(
+        bySigning ? "ventures.page.floorMetBySigning" : "ventures.page.floorMet"
+      );
+    }
     return [
       {
         label: t("ventures.held"),
@@ -84,10 +99,16 @@ const useFiguresOf = (venture: Venture): Figure[] => {
       },
       {
         label: t("ventures.page.toTheFloor"),
-        value: short > 0 ? asMoney(short) : t("ventures.page.floorMet"),
-        hint: t("ventures.ofTheFloor", { floor: asMoney(venture.floorMoney) }),
+        value: floorValue,
+        hint: bySigning
+          ? t("ventures.page.signedOfTheFloor", {
+              signed: asMoney(towardsItsFloor(venture)),
+              floor,
+            })
+          : t("ventures.ofTheFloor", { floor }),
         icon: Target,
-        tone: short > 0 ? "warning" : "success",
+        tone:
+          short > 0 || cattleMoneyShort(venture) > 0 ? "warning" : "success",
       },
       {
         label: t("ventures.signedFor"),

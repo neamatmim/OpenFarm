@@ -7,7 +7,7 @@ const widthOf = (part: number, whole: number) =>
   `${Math.min(PERCENT, Math.max(0, whole > 0 ? (part / whole) * PERCENT : 0))}%`;
 
 /**
- * What has come in against the target, with the Floor marked, because that is the line the button to start buying
+ * What counts towards the target, with the Floor marked, because that is the line the button to start buying
  * waits on. Drawn for the eye only: whatever sits beside it says the same in words.
  */
 export const RaisingBar = ({

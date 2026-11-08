@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import type { Venture } from "./ventures";
-import { decisionIsDue, pastWindUp, troubleWith } from "./ventures";
+import {
+  decisionIsDue,
+  floorCountsSigned,
+  pastWindUp,
+  shortOfFloor,
+  towardsItsFloor,
+  troubleWith,
+} from "./ventures";
 
 // An Open Venture short of its Floor has a day by which it must start buying or be called off. The Owner hears of it
 // a week ahead, while there is still time to bring in the rest, and not before — nor once the Floor is met.
@@ -49,6 +56,34 @@ describe("a decision coming due", () => {
       decideBy: "2025-09-30",
       shortMoney: 600_000,
     });
+  });
+});
+
+// The Floor's line and the bar over it read one figure. Paid by the month that figure is signatures and not cash, which
+// is why the page has to say which it is: the Floor can be met with nothing yet in the account.
+describe("what a Venture has towards its Floor", () => {
+  it("paid by the month, is the Units signed for, with no money in yet", () => {
+    const signed = open({
+      capitalPaid: "by_the_month",
+      capitalInMoney: 0,
+      signedFor: { units: 14, people: 3 },
+    });
+    expect(floorCountsSigned(signed)).toBe(true);
+    expect(towardsItsFloor(signed)).toBe(700_000);
+    expect(shortOfFloor(signed)).toBe(0);
+  });
+
+  it("paid before buying, is the money held, however many have signed", () => {
+    const held = open({ signedFor: { units: 14, people: 3 } });
+    expect(floorCountsSigned(held)).toBe(false);
+    expect(towardsItsFloor(held)).toBe(100_000);
+    expect(shortOfFloor(held)).toBe(600_000);
+  });
+
+  it("from an answer cached before Ventures were paid by the month, is the money held", () => {
+    const old = open({ capitalPaid: undefined });
+    expect(floorCountsSigned(old)).toBe(false);
+    expect(towardsItsFloor(old)).toBe(100_000);
   });
 });
 
