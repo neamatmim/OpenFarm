@@ -14,6 +14,10 @@ import { farm } from "./farm";
 import { paperTemplateVersion } from "./paper-template";
 import { INVESTOR_KINDS, investor, portalConsent } from "./venture";
 
+/** The way a code came: by text to the link's mobile, or by email to its email. */
+export const APPLICATION_CODE_CHANNELS = ["sms", "email"] as const;
+export type ApplicationCodeChannel = (typeof APPLICATION_CODE_CHANNELS)[number];
+
 /**
  * An **Application Link**: the Owner's invitation to one person they know to fill in their own details online, in
  * place of the Investor Details Form filled in at a meeting (ADR 0034). Made for a name, a mobile, an email and whether
@@ -57,6 +61,14 @@ export const applicationLink = pgTable(
     openKeyExpiresAt: timestamp("open_key_expires_at", { withTimezone: true }),
     /** When the link was first opened with its code: the Owner's list says so. */
     openedAt: timestamp("opened_at", { withTimezone: true }),
+    /** The code that opened the current sitting: which way it came, where it went, mostly hidden, and when it was sent.
+     *  The Portal Consent is agreed by a tick within that sitting, so this is what proves who ticked it (the Owner,
+     *  2026-11-08: a tick, not a second code). */
+    openedByChannel: text("opened_by_channel", {
+      enum: APPLICATION_CODE_CHANNELS,
+    }),
+    openedCodeSentTo: text("opened_code_sent_to"),
+    openedCodeSentAt: timestamp("opened_code_sent_at", { withTimezone: true }),
   },
   (table) => [
     uniqueIndex("application_link_token_uidx").on(table.tokenHash),
@@ -107,10 +119,6 @@ export const applicationCode = pgTable(
     ),
   ]
 );
-
-/** The way a code came: by text to the link's mobile, or by email to its email. */
-export const APPLICATION_CODE_CHANNELS = ["sms", "email"] as const;
-export type ApplicationCodeChannel = (typeof APPLICATION_CODE_CHANNELS)[number];
 
 /** Where an Application stands: waiting for the Owner, approved, declined, or lapsed, left undecided a month. */
 export const APPLICATION_STATES = [

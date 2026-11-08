@@ -116,18 +116,12 @@ const applyWith = async (
     nominees: [],
   };
   const read = await nobody.portal.applying.consent(form);
-  await nobody.portal.applying.sendCode({
-    token,
-    purpose: "agree",
-    key,
-    language: "bn",
-  });
   await nobody.portal.applying.send({
     ...form,
     photos: { nid_front: A_SLIP_PHOTO, nid_back: A_SLIP_PHOTO },
     laidAt: read.laidAt,
     paperHash: read.paperHash,
-    code: codeTextedTo(who.phone),
+    agreed: true,
   });
 };
 

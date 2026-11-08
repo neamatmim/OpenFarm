@@ -1,4 +1,3 @@
-import { APPLICATION_CODE_PURPOSES } from "@OpenFarm/db/schema/application";
 import { SIGNED_OFFER_KINDS } from "@OpenFarm/db/schema/venture";
 import { LANGUAGES } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
@@ -125,12 +124,13 @@ const applyRouter = {
     .input(z.object({ token: z.string().min(1).max(200) }))
     .handler(({ context, input }) => openLink(context, input.token)),
 
-  /** Texts a code to the link's mobile: to open it, or within a sitting to agree the Portal Consent. */
+  /** Sends the code that opens the link: by text to its mobile and by email to its email, where the farm can. */
   sendCode: publicProcedure
     .input(
       z.object({
         token: z.string().min(1).max(200),
-        purpose: z.enum(APPLICATION_CODE_PURPOSES),
+        // Only to open the link: the consent is agreed with a tick (the Owner, 2026-11-08).
+        purpose: z.literal("open"),
         key: z.string().max(200).optional(),
         language: z.enum(LANGUAGES),
       })
@@ -162,14 +162,15 @@ const applyRouter = {
     .input(applicationForm)
     .handler(({ context, input }) => consentToRead(context, input)),
 
-  /** The Application sent, the consent agreed with the second code. */
+  /** The Application sent, the consent agreed with their tick. */
   send: publicProcedure
     .input(
       applicationForm.extend({
         photos: applicationPhotos,
         laidAt: z.coerce.date(),
         paperHash: z.string().min(1).max(128),
-        code: z.string().trim().min(1).max(20),
+        /** Their tick: they read the consent and agree it (the Owner, 2026-11-08: a tick, not a code). */
+        agreed: z.literal(true),
       })
     )
     .handler(({ context, input }) => sendApplication(context, input)),
